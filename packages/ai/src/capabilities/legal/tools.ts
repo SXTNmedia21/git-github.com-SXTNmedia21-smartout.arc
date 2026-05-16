@@ -382,7 +382,7 @@ export const citeLaw = defineTool({
   description:
     "Look up and cite a Norwegian law paragraph (Aml., ferieloven, OTP, Riksavtalen, etc.). " +
     "Returns canonical Norwegian law text with paragraph reference, version, and confidence. " +
-    "Available on chat and voice channels.",
+    "Available on chat channel only (Layer 2 union ['chat','system'] per ADR-0163 §rule 4 — voice was removed when F-CL-11 closed).",
   capability: "legal",
   schema: z.object({
     query: z
@@ -396,8 +396,9 @@ export const citeLaw = defineTool({
       .describe("Narrow the search to a specific law. Optional."),
   }),
   execute: async (params, ctx: AgentToolContext): Promise<string> => {
-    // ADR-0078 Layer 3: cite_law is chat + voice (no system/autonomous from agent surface).
-    // Allowed channels checked at capability level (allowedChannels: ["chat", "voice"]).
+    // ADR-0078 Layer 3: cite_law is chat-only at the agent surface.
+    // Allowed channels enforced at capability level (allowedChannels: ["chat", "system"])
+    // per ADR-0163 §rule 4 — voice was removed when F-CL-11 closed (commit 47bffe635).
 
     // Phase 0c stub: return placeholder.
     // TODO(Phase 0c+): query regulatory_framework + framework_rule WHERE code ILIKE query

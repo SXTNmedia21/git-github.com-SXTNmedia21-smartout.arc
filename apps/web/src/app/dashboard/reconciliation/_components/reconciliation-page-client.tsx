@@ -14,6 +14,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { DayList } from "./DayList";
 import { DayDetail } from "./DayDetail";
 import { useReconciliationList } from "../_hooks/useReconciliation";
@@ -36,6 +38,7 @@ type ReconciliationRow = {
 export function ReconciliationPageClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: reconciliations } = useReconciliationList();
+  const reduceMotion = useReducedMotion();
 
   // Bridge tool input — stable shape for Botsson harness tools.
   // rows are cast to the bridge's narrower shape (subset of full DB row).
@@ -48,20 +51,63 @@ export function ReconciliationPageClient() {
     [selectedId, reconciliations],
   );
 
+  const fade = reduceMotion
+    ? {
+        initial: false as const,
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: motionTokens.exitMs / 2000 },
+      }
+    : {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: {
+          duration: motionTokens.exitMs / 1000,
+          ease: motionTokens.easingArray,
+        },
+      };
+
+  const stateKey = selectedId ? "detail" : "list";
+
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-6">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden p-4 pt-1 md:p-6 md:pt-3">
+      {/* Ambient orb — low-intensity orange radial gradient, always-on for v1 */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-56 -bottom-64 h-[720px] w-[720px] transition-[background] duration-500"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--brand-orange) 8%, transparent) 0%, transparent 65%)",
+        }}
+      />
+
       {/* Botsson harness — registers reconciliation tools while this route is mounted */}
       <ReconciliationToolsBridge {...bridgeInput} />
 
-      {selectedId ? (
-        <DayDetail reconciliationId={selectedId} onBack={() => setSelectedId(null)} />
-      ) : (
-        <DayList
-          reconciliations={(reconciliations ?? []) as ReconciliationRow[]}
-          selectedId={null}
-          onSelect={setSelectedId}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {stateKey === "detail" && selectedId ? (
+          <motion.div
+            key="detail"
+            {...fade}
+            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col"
+          >
+            <DayDetail reconciliationId={selectedId} onBack={() => setSelectedId(null)} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="list"
+            {...fade}
+            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col"
+          >
+            <DayList
+              reconciliations={(reconciliations ?? []) as ReconciliationRow[]}
+              selectedId={null}
+              onSelect={setSelectedId}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

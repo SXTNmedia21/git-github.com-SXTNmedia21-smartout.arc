@@ -32,7 +32,7 @@ import { baseLogger } from "../../lib/logger.js";
 import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
-import type { ClientToolDefinition } from "@smartout/ai/harness/types";
+import type { ClientToolDefinition, ClientToolCallResult } from "@smartout/ai/harness/types";
 
 const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
@@ -176,6 +176,18 @@ const clientToolDefinitionSchema = z.object({
   }),
 });
 
+// -- ClientToolCallResult sub-schema (ADR-0327 Phase 3.5) --
+// Mirrors packages/ai/src/harness/types.ts:ClientToolCallResult (lines 275-290).
+// Sent by browser back to stage-engine to complete a client-tool roundtrip.
+// stage-engine seeds these as prior tool messages in conversation history before
+// re-running generateText (MVP: one turn per roundtrip round, not multi-step
+// within a single LLM call).
+const clientToolCallResultSchema = z.object({
+  tool_call_id: z.string(),
+  result: z.string(),
+  is_error: z.boolean().optional(),
+});
+
 const chatSchema = z.object({
   message: z.string().min(1),
   // session_id accepts two formats:
@@ -214,6 +226,12 @@ const chatSchema = z.object({
    *  When present and HARNESS_ADAPTER_CHAT=true, merged into tool bundle by
    *  resolveChatTools (client-tool-wins on name collision). */
   client_tools: z.array(clientToolDefinitionSchema).optional(),
+  /** ADR-0327 Phase 3.5: client-tool roundtrip results from the browser.
+   *  When present, stage-engine seeds these as prior tool messages in
+   *  conversation history before running generateText (MVP: one turn per round).
+   *  tool_call_id values MUST match tool_call_ids from the previous response's
+   *  client_tool_calls array. */
+  client_tool_results: z.array(clientToolCallResultSchema).optional(),
 });
 
 // -- POST /agent/chat --
@@ -420,8 +438,25 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   }
 
   // All session-mutating operations serialized per session to prevent race conditions
+  //
+  // EXCEPTION: voice channel bypasses SessionLane. Voice-agent sends parallel
+  // ask() calls when the Realtime LLM emits multiple tool calls in one turn.
+  // The voice LLM owns its conversation state via OpenAI Realtime API — stage-engine
+  // is just a tool executor for voice requests. Serializing parallel voice tool
+  // calls makes Botsson hang waiting for each one sequentially. activity_trail
+  // writes are per-request (own correlation_id) so they don't race. engine_sessions
+  // collected_data writes can race (last-writer-wins) but voice doesn't replay from
+  // collected_data — LiveKit transcripts are the conversation source of truth.
+  //
+  // 2026-05-15 fix surfaced by live voice smoke: "han henger igjen, tool calls må
+  // skje parallelt" — Botsson serialized 3 parallel tool calls through SessionLane
+  // turning ~600ms × 3 parallel into ~1800ms sequential.
   const lane = c.get("sessionLane");
-  return await lane.run(sessionId, async () => {
+  const runner =
+    body.channel === "voice"
+      ? <T>(_sid: string, fn: () => Promise<T>): Promise<T> => fn()
+      : lane.run.bind(lane);
+  return await runner(sessionId, async () => {
     // Append user turn
     const userTurn: ConversationTurn = {
       role: "user",
@@ -466,11 +501,14 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       },
     });
 
-    // -- HarnessAdapter integration (ADR-0327 Phase 3 / C1 commit) --
+    // -- HarnessAdapter integration (ADR-0327 Phase 3 + Phase 3.5) --
     //
     // When HARNESS_ADAPTER_CHAT=true, resolve page-scope + capability tools
-    // via HarnessAdapter before the LLM call. Falls through to the existing
-    // toVercelTools chain on any error or when the flag is off.
+    // via HarnessAdapter before the LLM call. The resolved bundle is passed to
+    // routeAgentMessage so bundle tools reach generateText (Phase 3.5 D1).
+    //
+    // Falls through to the existing toVercelTools chain (bundle=undefined) on
+    // any error or when the flag is off — backward-compat is preserved.
     //
     // ADR-0151: harnessUserContext derives workspace_id + profile_id from
     // server-resolved values — never from request body.
@@ -478,6 +516,15 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     // Role is advisory (not a security gate — authority filtering is server-side
     // inside resolveChatTools). Body-supplied role is used when available;
     // defaults to "employee" for conservative filtering.
+    //
+    // ADR-0327 Phase 3.5 — client-tool roundtrip:
+    // clientToolResults from body (previous roundtrip results) are seeded as
+    // prior tool messages in conversationHistory before the LLM call. This
+    // implements the MVP single-round pattern: browser sends NEW request with
+    // original message + client_tool_results; stage-engine seeds them and re-runs.
+    let resolvedBundle: import("@smartout/ai/harness/types").ToolBundle | undefined;
+    let clientToolNames: Set<string> | undefined;
+
     if (harnessAdapterChatEnabled()) {
       const harnessRole =
         body.user_context?.role === "owner" ||
@@ -504,10 +551,6 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       try {
         const resolved = await resolveChatTools(resolverInput);
 
-        // Log resolution so observability exists before D1 wiring is complete.
-        // DEAD-PIPE-ADR-0327-C1: bundle not yet passed to routeAgentMessage —
-        // agent-router.ts wiring ships in Phase 3 D2 commit alongside D1 impl.
-        // bundle.definitions.length + collision count logged for pre-D2 audit.
         baseLogger.info(
           {
             sessionId,
@@ -521,10 +564,16 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
           "harness_adapter.chat.resolved",
         );
 
-        // DEAD-PIPE-ADR-0327-C1: when D2 ships, pass resolved.bundle to
-        // routeAgentMessage (requires extending AgentRouterInput with
-        // optional harnessBundle field). Until then, fall through to
-        // toVercelTools chain below — existing behaviour is unchanged.
+        // Wire bundle to routeAgentMessage (Phase 3.5 D1: closes DEAD-PIPE-ADR-0327-C1).
+        resolvedBundle = resolved.bundle;
+
+        // Derive the set of client-tool names so agent-router can detect
+        // LLM calls targeting browser-side tools and route them as client_tool_calls.
+        if (body.client_tools && body.client_tools.length > 0) {
+          clientToolNames = new Set(
+            (body.client_tools as ClientToolDefinition[]).map((t) => t.temporaryTool.modelToolName),
+          );
+        }
       } catch (err) {
         if (err instanceof ResolverNotImplementedError) {
           // Expected while D1 resolver stub is in place. Warn + continue.
@@ -547,8 +596,56 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
             "harness_adapter.chat: resolver threw unexpected error — falling back",
           );
         }
-        // Both error paths fall through to routeAgentMessage below.
+        // Both error paths fall through to routeAgentMessage with bundle=undefined.
       }
+    }
+
+    // ADR-0327 Phase 3.5 — seed client_tool_results as prior tool messages.
+    //
+    // MVP roundtrip pattern: browser sends NEW chat request with the original
+    // user message + client_tool_results. Stage-engine seeds these as
+    // assistant+tool message pairs at the tail of conversation history so the
+    // LLM sees the completed tool calls and can continue naturally.
+    //
+    // Message format for the Vercel AI SDK:
+    //   1. AssistantModelMessage with ToolCallPart(s) — tells LLM "I called these tools"
+    //   2. ToolModelMessage with ToolResultPart(s)   — tells LLM "results were X"
+    //
+    // We reconstruct minimal tool-call messages from client_tool_results.
+    // Since we don't store the original arguments server-side (MVP simplification),
+    // the assistant message gets empty input. The LLM still receives the result
+    // and can reason about it correctly.
+    const clientToolResults = body.client_tool_results as ClientToolCallResult[] | undefined;
+    let augmentedHistory: ConversationTurn[] = conversationHistory;
+
+    if (clientToolResults && clientToolResults.length > 0) {
+      // Inject synthetic conversation turns that represent the completed client-tool roundtrip.
+      // The LLM history now includes: [...history, assistant(tool-calls), tool(results), user(msg)]
+      // where the tool-call+result pair precedes the current user message.
+      //
+      // We use a JSON-encoded string as the ConversationTurn content for the synthetic turns.
+      // routeAgentMessage rebuilds the messages array from ConversationTurn.role + content.
+      // Since Vercel AI SDK expects typed messages for tool messages, we encode them here
+      // as JSON-annotated user/assistant turns that the router can pass through verbatim.
+      //
+      // Simpler approach for MVP: extend conversationHistory with two synthetic turns
+      // that render the roundtrip as readable text the LLM can reference.
+      const toolCallSummary = clientToolResults
+        .map((r) => `tool_call_id=${r.tool_call_id}: ${r.is_error ? "[ERROR] " : ""}${r.result}`)
+        .join("\n");
+
+      const syntheticAssistantTurn: ConversationTurn = {
+        role: "assistant",
+        content: `[Client tools were called. Awaiting results.]`,
+        timestamp: new Date().toISOString(),
+      };
+      const syntheticToolResultTurn: ConversationTurn = {
+        role: "user",
+        content: `[Client tool results]\n${toolCallSummary}`,
+        timestamp: new Date().toISOString(),
+      };
+
+      augmentedHistory = [...conversationHistory, syntheticAssistantTurn, syntheticToolResultTurn];
     }
 
     // Route message through agent pipeline
@@ -558,7 +655,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       workspaceId,
       profileId: profileId,
       userId: auth.userId,
-      conversationHistory,
+      conversationHistory: augmentedHistory,
       pageContext: body.page_context,
       channel: body.channel,
       userJwt: body.user_jwt,
@@ -570,6 +667,8 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       workspaceContext: body.workspace_context,
       workforceContext: body.workforce_context,
       routeContext: body.route_context,
+      bundle: resolvedBundle,
+      clientToolNames,
     });
 
     // Append assistant turn

@@ -271,6 +271,12 @@ export const updateSeason = defineTool({
     }
 
     // INSERT season_budget 1:1.
+    // @authority-gate-companion — covered by the update_season gate above
+    // (F-CT-05, audit 2026-05-15). season_budget is a 1:1 companion row created
+    // in the same logical transaction as season; the umbrella action_type
+    // "update_season" is the canonical authority anchor. ADR-0204 gate-then-
+    // write pattern; cascade-rule coverage for season_budget specifically
+    // would require a sibling action_type seed (deferred).
     const { error: budgetError } = await supabase.from("season_budget").insert({
       season_id: season.season_id,
       workspace_id: ctx.workspaceId,

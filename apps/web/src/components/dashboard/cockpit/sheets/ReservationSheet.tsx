@@ -31,6 +31,12 @@ type ReservationSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   anchorDate: string;
+  /**
+   * When set, pre-fills the booking time input on open.
+   * Used by SlotQuickAddPopover (Track C) to carry clicked slot time into the form.
+   * Falls back to the existing "19:00" default when omitted.
+   */
+  defaultBookingTime?: string;
 };
 
 type FormState = {
@@ -55,18 +61,28 @@ const EMPTY_STATE: FormState = {
   isVip: false,
 };
 
-export function ReservationSheet({ open, onOpenChange, anchorDate }: ReservationSheetProps) {
+export function ReservationSheet({
+  open,
+  onOpenChange,
+  anchorDate,
+  defaultBookingTime,
+}: ReservationSheetProps) {
   const { t } = useTranslation("dashboard");
   const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>({ ...EMPTY_STATE, shiftDate: anchorDate });
 
   // Reset form each time the sheet opens, defaulting date to current anchor.
+  // When defaultBookingTime is provided (from SlotQuickAddPopover), pre-fill time.
   useEffect(() => {
     if (open) {
-      setForm({ ...EMPTY_STATE, shiftDate: anchorDate });
+      setForm({
+        ...EMPTY_STATE,
+        shiftDate: anchorDate,
+        bookingTime: defaultBookingTime ?? EMPTY_STATE.bookingTime,
+      });
     }
-  }, [open, anchorDate]);
+  }, [open, anchorDate, defaultBookingTime]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

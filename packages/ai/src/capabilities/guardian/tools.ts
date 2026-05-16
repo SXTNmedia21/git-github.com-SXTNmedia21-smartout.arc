@@ -78,6 +78,16 @@ export const acknowledgeSignal = defineTool({
       return `Signal not acknowledged: ${gate.reason ?? "ikke tillatt"}.`;
     }
 
+    // Load the signal row up front — `title` feeds the guardian_log summary
+    // (F-CT-06 / ADR-0186) and `data` is needed for note-merge below. One read
+    // covers both responsibilities.
+    const { data: existing } = await supabase
+      .from("guardian_signal")
+      .select("title, data, entity_id")
+      .eq("id", params.signal_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
     // Build update payload — persist note in data JSONB if provided
     const updatePayload: Record<string, unknown> = {
       status: "acknowledged",
@@ -87,13 +97,6 @@ export const acknowledgeSignal = defineTool({
     };
 
     if (params.note) {
-      // Merge note into existing data JSONB
-      const { data: existing } = await supabase
-        .from("guardian_signal")
-        .select("data")
-        .eq("id", params.signal_id)
-        .single();
-
       updatePayload.data = {
         ...((existing?.data as Record<string, unknown>) ?? {}),
         acknowledged_note: params.note,
@@ -108,6 +111,26 @@ export const acknowledgeSignal = defineTool({
       .eq("status", "active");
 
     if (error) return `Failed to acknowledge signal: ${error.message}`;
+
+    // F-CT-06 / ADR-0186: every guardian state change must produce a bus
+    // event. The AFTER INSERT trigger on guardian_log fires pg_notify
+    // 'guardian_events', which every stage-engine instance LISTENs on and
+    // fans out to its WS clients. Same shape as supabase/functions/
+    // guardian-actions/index.ts.
+    await supabase.from("guardian_log").insert({
+      workspace_id: ctx.workspaceId,
+      session_id: (existing?.entity_id as string | null) ?? "00000000-0000-0000-0000-000000000000",
+      event_type: "guardian.signal_acknowledged",
+      actor: "agent",
+      summary: `Signal "${(existing?.title as string | undefined) ?? params.signal_id.slice(0, 8)}" acknowledged by ${ctx.profileId.slice(0, 8)}`,
+      data: {
+        signal_id: params.signal_id,
+        action: "acknowledge",
+        profile_id: ctx.profileId,
+        note: params.note ?? null,
+      },
+    });
+
     return `Signal acknowledged.${params.note ? ` Note: ${params.note}` : ""}`;
   },
 });

@@ -52,6 +52,17 @@ export type AgentChatResponse = {
     capability: string;
     confidence: number;
   };
+  /**
+   * ADR-0327 Phase 3.5 — client-tool roundtrip protocol.
+   *
+   * Present when the LLM picked one or more CLIENT-shipped tools during the
+   * turn. Stage-engine pauses after detecting these calls and returns them
+   * here so the BFF/browser can execute them and send back results via
+   * `client_tool_results` in the next request.
+   *
+   * When absent (undefined), no client tools were invoked — normal turn.
+   */
+  client_tool_calls?: import("@smartout/ai/harness/types").ClientToolCall[];
 };
 
 /** A single turn in a conversation (stored in session collected_data) */

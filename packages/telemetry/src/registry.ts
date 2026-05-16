@@ -191,7 +191,9 @@ export type EntityType =
   | "pos_account"
   | "pos_sale_event"
   // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
-  | "schedule_shift_offer";
+  | "schedule_shift_offer"
+  // ─── Dagslinjen targeted note (ADR-0331, Track E, 2026-05-15) ───────────────
+  | "session_note";
 
 export type ActionVerb =
   | "created"
@@ -4584,6 +4586,26 @@ export interface BotssonSessionArchived extends BaseEvent {
   };
 }
 
+// ─── Botsson Authority Filtering (ADR-0327 Phase 3, ADR-0184) ─
+// Emitted by:
+//   - stage-engine : agent-router.ts, when bundle.authority.blockedTools is
+//     non-empty after HarnessAdapter resolves the chat tool bundle.
+// Closes the authority audit black hole: blockedTools + rule names now land in
+// activity_trail + PostHog so audit replays can show what the harness filtered.
+export interface BotssonAuthorityFiltered extends BaseEvent {
+  event: "botsson.authority_filtered";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <sessionId>
+    data: {
+      session_id: string;
+      channel: "chat" | "voice";
+      blocked_count: number;
+      blocked_tools: string[]; // tool names
+      blocked_rules: string[]; // AuthorityRuleName for each blocked tool
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -4729,6 +4751,23 @@ export interface AgentMemorySummaryWritten extends BaseEvent {
       summary_length: number;
       /** Number of user turns included in the summary */
       turn_count: number;
+    };
+  };
+}
+
+// ─── Agent Memory Added (SE02-03 closure, audit 2026-05-15) ─────────────────
+// Emitted by /api/emma/memory POST when Emma writes a memory directly from
+// chat (separate from summary_written which fires at session-end). Same
+// destinations: posthog + logger + activity_trail. ADR-0116.
+export interface AgentMemoryAdded extends BaseEvent {
+  event: "agent.memory.added";
+  properties: {
+    data: {
+      memory_id: string;
+      /** Resolved memory_type stored on the row */
+      memory_type: "preference" | "fact" | "summary" | "general" | "constant";
+      /** Char count of the content (PII-safe — never log the content itself) */
+      content_length: number;
     };
   };
 }
@@ -8083,6 +8122,7 @@ export type SmartoutEvent =
   | BotssonStepCapHit
   | BotssonSessionCreated
   | BotssonSessionArchived
+  | BotssonAuthorityFiltered
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -8472,6 +8512,7 @@ export type SmartoutEvent =
   | VoiceSessionAbandonment
   // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
   | AgentMemorySummaryWritten
+  | AgentMemoryAdded
   // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
   | AgentScheduleWorkspaceQueried
   | AgentScheduleDateQueriedSelf
@@ -8505,7 +8546,14 @@ export type SmartoutEvent =
   | ContractPdfGateBypassed
   | GateContractSendDenied
   // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
-  | PayrollConsentDocumentCreated;
+  | PayrollConsentDocumentCreated
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ──────────────────────────
+  | UiDagslinjenSlotQuickaddActionPicked
+  | UiDagslinjenScopeFilterChanged
+  // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
+  | CommScheduledNoteCreated
+  | CommScheduledNoteDelivered
+  | CommScheduledNoteDeleted;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9636,6 +9684,102 @@ export interface PayrollConsentDocumentCreated extends BaseEvent {
       consent_type: "court_order";
       court_order_reference: string;
       actor_role: string;
+    };
+  };
+}
+
+// ─── Dagslinjen QuickAdd — UI interaction telemetry (2026-05-15) ─────────────
+//
+// Emitted when manager picks an action from SlotQuickAddPopover on Dagslinjen.
+// posthog: product analytics (funnel: click-slot → action → sheet open → submit).
+// logger: debugging.
+// No activity_trail (UI interaction only — write actions emit their own events).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenSlotQuickaddActionPicked extends BaseEvent {
+  event: "ui.dagslinjen.slot_quickadd.action_picked";
+  properties: {
+    data: {
+      /** Action the manager chose: booking | note | task | deviation | shift_start */
+      action: "booking" | "note" | "task" | "deviation" | "shift_start";
+      /** The time slot in HH:MM the manager clicked on the strip */
+      time: string;
+    };
+  };
+}
+
+// Emitted when manager changes the Dagslinjen scope filter (avdeling / team / vakt / all).
+// posthog: product analytics (filter adoption funnel).
+// logger: debugging.
+// No activity_trail (pure view filter — no write).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenScopeFilterChanged extends BaseEvent {
+  event: "ui.dagslinjen.scope_filter_changed";
+  properties: {
+    data: {
+      /** Encoded previous scope, e.g. "all" or "team:abc-123" */
+      from: string;
+      /** Encoded new scope, e.g. "department:def-456" */
+      to: string;
+    };
+  };
+}
+
+// ─── Dagslinjen targeted note fanout events (ADR-0331 / ADR-0333, Track E) ────
+//
+// comm.scheduled_note.created
+//   Emitted by create-targeted-note-action on successful session_note INSERT.
+//   activity_trail: audit — every note creation is traceable.
+//   posthog: product analytics (adoption of targeted note feature).
+//   logger: stdout observability.
+//   No engine_event in Phase 1 — fanout is triggered by pg_cron, not engine state.
+//
+// comm.scheduled_note.delivered
+//   Emitted by note-fanout-scheduler Edge Function (Track F) after successful fanout.
+//   activity_trail: audit — delivery confirmation.
+//   logger: stdout for scheduler observability.
+//   No posthog — delivery is system-initiated, not user-initiated.
+//   No engine_event — delivery is terminal state for Phase 1 note lifecycle.
+//
+// comm.scheduled_note.deleted
+//   Emitted when a targeted note is soft-deleted (deleted_at set).
+//   activity_trail: audit trail for deletions.
+//   logger: stdout.
+//   No posthog / engine_event — soft-delete is admin correction, not user funnel.
+
+export interface CommScheduledNoteCreated extends BaseEvent {
+  event: "comm.scheduled_note.created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      note_id: string;
+      audience_summary: {
+        dept_count: number;
+        team_count: number;
+        shift_count: number;
+        profile_count: number;
+      };
+      notify_at: string; // ISO 8601
+      is_cross_dept: boolean;
+    };
+  };
+}
+
+export interface CommScheduledNoteDelivered extends BaseEvent {
+  event: "comm.scheduled_note.delivered";
+  properties: {
+    data: {
+      note_id: string;
+      recipient_count: number;
+      delivered_at: string; // ISO 8601
+    };
+  };
+}
+
+export interface CommScheduledNoteDeleted extends BaseEvent {
+  event: "comm.scheduled_note.deleted";
+  properties: {
+    data: {
+      note_id: string;
     };
   };
 }
@@ -11144,6 +11288,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "botsson.session.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.authority_filtered": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
@@ -12840,6 +12988,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
+  // SE02-03 closure (audit 2026-05-15). Direct memory add from /api/emma/memory POST.
+  // Same routing as summary_written — audit + analytics, no workflow trigger.
+  "agent.memory.added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
 
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ────────────────────
   // Replaces per-source events (session_task.created, personal.task_created, etc.).
@@ -12974,5 +13128,36 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.consent_document.created": {
     destinations: ["posthog", "activity_trail", "logger", "engine_event"],
     category: "payroll",
+  },
+
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ───────────────────────────
+  // UI interaction only — posthog + logger. No activity_trail (not a write event).
+  // Write actions (booking created, task created, etc.) emit their own existing events.
+  "ui.dagslinjen.slot_quickadd.action_picked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Scope filter change — view-only filter; no write, no engine_event.
+  "ui.dagslinjen.scope_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── Dagslinjen targeted note fanout (ADR-0331 / ADR-0333, Track E) ─────────
+  // created: manager writes a note → posthog (adoption) + audit + logger.
+  // delivered: scheduler fires fanout → audit + logger (system event, not user funnel).
+  // deleted: soft-delete → audit + logger.
+  "comm.scheduled_note.created": {
+    destinations: ["activity_trail", "posthog", "logger"],
+    category: "communication",
+  },
+  "comm.scheduled_note.delivered": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
+  },
+  "comm.scheduled_note.deleted": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
   },
 };
