@@ -120,7 +120,7 @@ Routing table verified at `packages/telemetry/src/registry.ts:13110-13125`.
 
 New migrations (forward-only):
 
-- `20260616100500_session_note_targeted_fanout.sql` — adds
+- `20260616100501_session_note_targeted_fanout.sql` — adds
   `audience JSONB`, `notify_at TIMESTAMPTZ`, `delivered_at TIMESTAMPTZ`,
   `deleted_at TIMESTAMPTZ`, `note_type TEXT` (CHECK
   `('handoff','signoff','reminder','targeted')`) on `session_note`;
