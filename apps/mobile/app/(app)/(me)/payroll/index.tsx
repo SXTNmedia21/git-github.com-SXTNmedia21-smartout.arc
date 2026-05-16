@@ -373,6 +373,8 @@ export default function PayrollHomeScreen() {
               router.push("./payslip");
             }}
             style={({ pressed }) => [styles.primaryCard, pressed && styles.cardPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Åpne lønnsslipper"
           >
             {/* Decorative glow */}
             <View style={styles.primaryGlow} />
@@ -407,6 +409,8 @@ export default function PayrollHomeScreen() {
               router.push("./absence-request");
             }}
             style={({ pressed }) => [styles.bentoCard, pressed && styles.cardPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Ferie og sykefravær"
           >
             <View style={styles.bentoIconWrap}>
               <CalendarPlus size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
@@ -425,6 +429,8 @@ export default function PayrollHomeScreen() {
               router.push("./timebank");
             }}
             style={({ pressed }) => [styles.bentoCard, pressed && styles.cardPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Timebank og avspasering"
           >
             <View style={styles.bentoIconWrap}>
               <Clock size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
@@ -443,6 +449,8 @@ export default function PayrollHomeScreen() {
               router.push("./supplements");
             }}
             style={({ pressed }) => [styles.bentoCard, pressed && styles.cardPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Tillegg og supplement"
           >
             <View style={styles.bentoIconWrap}>
               <Gift size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
@@ -459,6 +467,8 @@ export default function PayrollHomeScreen() {
               router.push("./payslip");
             }}
             style={({ pressed }) => [styles.bentoCard, pressed && styles.cardPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Lønnsslipper PDF-arkiv"
           >
             <View style={styles.bentoIconWrap}>
               <FileText size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
@@ -511,6 +521,8 @@ export default function PayrollHomeScreen() {
                   Haptics.selectionAsync();
                   router.push("./payslip");
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Se alle lønnsslipper"
               >
                 <Text style={styles.seeAll}>SE ALLE</Text>
               </Pressable>
@@ -533,6 +545,8 @@ export default function PayrollHomeScreen() {
                     router.push("./payslip");
                   }}
                   style={({ pressed }) => [styles.payslipRow, pressed && styles.cardPressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Lønnsslipp ${periodName}`}
                 >
                   <View style={styles.payslipLeft}>
                     {/* Date block */}

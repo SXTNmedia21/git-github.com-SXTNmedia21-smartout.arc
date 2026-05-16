@@ -246,7 +246,12 @@ export default function LonnsgrunnlagDetailScreen() {
         <View style={styles.centeredState}>
           <Text style={styles.errorTitle}>Autentiseringsfeil</Text>
           <Text style={styles.errorBody}>{profileError}</Text>
-          <Pressable onPress={() => router.back()} style={styles.retryButton}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Gå tilbake"
+          >
             <Text style={styles.retryText}>Gå tilbake</Text>
           </Pressable>
         </View>
@@ -262,7 +267,12 @@ export default function LonnsgrunnlagDetailScreen() {
         <View style={styles.centeredState}>
           <Text style={styles.errorTitle}>Manglende data</Text>
           <Text style={styles.errorBody}>Kunne ikke identifisere lønnsgrunnlaget.</Text>
-          <Pressable onPress={() => router.back()} style={styles.retryButton}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Gå tilbake"
+          >
             <Text style={styles.retryText}>Gå tilbake</Text>
           </Pressable>
         </View>
@@ -327,7 +337,13 @@ export default function LonnsgrunnlagDetailScreen() {
             <Text style={styles.errorBody}>
               {(error as Error)?.message ?? "Kunne ikke hente tilgang til dokumentet."}
             </Text>
-            <Pressable onPress={handleRefresh} style={styles.retryButton} hitSlop={8}>
+            <Pressable
+              onPress={handleRefresh}
+              style={styles.retryButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Prøv igjen"
+            >
               <RefreshCw size={14} color="#ffffff" strokeWidth={2} />
               <Text style={styles.retryText}>Prøv igjen</Text>
             </Pressable>
