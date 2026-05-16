@@ -1,6 +1,8 @@
 ---
 title: "Journey — Manager scrolls long thread"
-status: draft
+feature: chat-whatsapp-phase1
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: mobile

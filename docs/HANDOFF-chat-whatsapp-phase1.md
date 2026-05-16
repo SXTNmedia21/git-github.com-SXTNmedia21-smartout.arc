@@ -25,6 +25,7 @@ Coordinator-orchestrated build: 7 sub-agent tracks across 3 gates. T2 bailed twi
 | `24224f076` | T4 | use-mark-read mutation + use-channel-read-receipts Realtime hook + telemetry registry entry |
 | `6fcabeb63` | T2 | MessageBubble + ChannelMessageBubble visual rework + ReadReceipt component |
 | `4e7fa9b34` | T7 | T5 review-finding fixes — scrim token + own-msg guard |
+| `11354f317` | T8 | Token remap — own bubble warnSoft (was secondary===muted); read-receipt was already brandOrange (T2 wired correctly, my diagnostic mid-session was wrong) |
 
 ## Decisions
 
@@ -40,13 +41,22 @@ Coordinator-orchestrated build: 7 sub-agent tracks across 3 gates. T2 bailed twi
 - **L-telemetry-tsbuildinfo-stale** — `pnpm --filter @smartout/telemetry build` with stale `.tsbuildinfo` may report "Done" without recompiling new event entries into `dist/`. Force-clean (`rm -rf dist .turbo *.tsbuildinfo`) when adding events to `registry.ts`.
 - **G1 schema reuse beats migration drift** — explore-first (T1) discovered `channel_message_read` table already existed unused. Saved a migration file and avoided phantom-ADR risk.
 
-## Known issues / Phase 2 candidates
+## Known issues / Phase 2+ candidates
 
 - **No DELETE subscription on `channel_message_read`** — if a message is hard-deleted, sender's in-memory "read" state persists until channel reopen. Matches WhatsApp behavior on deleted messages. Phase 2 candidate (per T6 audit).
 - **Sticky date dividers not implemented** — Phase 1 ships inline only. Sticky-on-scroll lands with Phase 2 gesture work (uses same Reanimated infra).
 - **`onSwipeReply` prop is dead-wired in MessageBubble + ChannelMessageBubble** — declared, not destructured, not invoked. Phase 2 owns swipe-to-reply gesture (PanGestureHandler).
 - **`delivered` state unreachable** — ReadReceipt component supports it but no presence tracking infrastructure to compute. Phase 2 may add or may keep collapsed.
-- **`ChannelMessageBubble` is a clone of `MessageBubble`** with a slightly different message shape. Two bubbles are now in sync (T2 reworked both identically). Worth considering a single bubble component with a discriminated message-shape union in a future cleanup sortie.
+- **`ChannelMessageBubble` is a clone of `MessageBubble`** with a slightly different message shape. Two bubbles are now in sync (T2 + T8 reworked both identically). Worth considering a single bubble component with a discriminated message-shape union in a future cleanup sortie.
+- **LiveKit auto-camera on chat mount** — `ConversationScreen.tsx:131-136` auto-tries `setCameraEnabled(true)` whenever `isCameraEnabled` flag is set. Browser/PWA without camera permission emits `NotReadableError` console-error on every chat-open. Pre-existing, surfaced during this sortie's PWA verification. Guard should depend on actual call state, not just flag. NOT chat-whatsapp scope — separate fix candidate.
+- **Chat settings, group-invite, admin (rename/kick/role) — entirely missing.** Surfaced during this sortie's PWA verification. NOT in plan, NOT in journeys, NOT in any active sortie. Whole separate feature. Worth a dedicated `chat-admin-phase1` sortie under campaign/mobile after Phase 2.
+- **E2E tests not written** for any of the 3 journeys (employee-read, employee-send, manager-long-thread). Accepted as debt; manual verification on PWA confirmed visual delivery. Phase 2 should add Detox/Playwright coverage for the journeys before adding gesture complexity.
+
+## Token-mapping learning (mid-session)
+
+T2 first dispatch picked `theme.colors.secondary` for own-bubble surface, expecting it to be brand-warm. Native palette has `secondary === muted === #f5f3f0`. Result: own + other bubbles indistinguishable, sender/receiver split lost. T5 + T6 audits both passed because they verified token-USAGE not token-SEMANTICS (no resolved-color comparison). Pontus caught it in PWA verification. T8 remapped to `colors.warnSoft` (`#fceedb` light / `#3a2f1c` dark — warm cream, perfect WhatsApp own-bubble feel).
+
+**Future audit pattern**: when reviewing token migrations on visual surfaces, resolve token VALUES side-by-side, not just confirm token NAMES used. Two tokens with different names but identical resolved colors = visual collision = bug invisible to typecheck.
 
 ## Next steps
 
