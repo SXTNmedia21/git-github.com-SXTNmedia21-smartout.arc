@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-05-14
+updated: 2026-05-16
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -1987,3 +1987,32 @@ Week 3 (gated):
 - Chair Phase 3 internal inconsistency = mechanism BY WHICH chair generalizes incorrectly (L-0279) — sibling to L-0147 reversal protocol
 - Briefing fact-check skipped (same-session research, no stale-claim risk) — pattern reused from prior councils; explicit note kept
 - All 4 reviewers responded; no degraded mode
+
+---
+
+## 2026-05-16 — Chat-WhatsApp Phase 3 priority + scope
+**Type:** architecture / planning
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor, frontend-designer, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a — first council for this topic
+
+**Key decision:** Phase 3 execution order:
+1. E + ADR-0338 build — `<DomainChatOwnership>` component (1-2d sortie, highest priority)
+2. C reconnect-guard fix (~30min, direct-to-development) — fires only on reconnect when camera previously active
+3. B polish — only `DraftMessageInput` drops `reply_to_id` (~1h direct-to-development)
+4. A E2E sortie — reuse `apps/e2e/playwright.config.ts` `mobile`/`mobile-pwa` projects + 4-5 chat journey specs (~1.5d)
+5. D `campaign/chat-admin` — multi-sortie, requires ADR-0336 + ADR-0337 + authority seed migration first
+
+**Trust Gate D FAILS** on 5 blockers:
+- `channel_admin` capability not registered
+- `gate_action` not declared for any channel-admin tool
+- Authority seed migration missing
+- ADR-0238 `<DomainChatOwnership>` component not built (declared in ADR, 0 code hits)
+- Telemetry events for channel-admin on `campaign/chat-admin` branch, not on `development`
+
+**Critical independent finding:** ADR-0238 `<DomainChatOwnership>` component DOES NOT EXIST as a component — comment convention only. `/dashboard/komm/chat` lacks declaration. Silent dual-surface bug shipping now (Orb active + domain chat active simultaneously). L-0257 had flagged this as phantom-contract accumulator; council confirmed it as active UX bug.
+
+**ADRs created:** ADR-0336, ADR-0337, ADR-0338, ADR-0339 (all proposed)
+**Learnings created:** L-0276, L-0277, L-0278
+
+**Phase 2.5 finding (L-0276):** Haiku fact-check reported 4 schema items VERIFIED MISSING; Supervisor sonnet caught all 4 as present under different names (`reply_to_id`, columns-on-channel, `channel_member_role` enum, `is_muted`+`muted_until`). Phase 2.5 prompt insufficient for concept-vs-name drift.

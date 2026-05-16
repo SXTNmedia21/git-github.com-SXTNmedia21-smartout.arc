@@ -150,6 +150,14 @@
       "types": "./dist/capabilities/task/tools.d.ts",
       "default": "./dist/capabilities/task/tools.js"
     },
+    "./capabilities/timeline-template": {
+      "types": "./dist/capabilities/timeline-template/index.d.ts",
+      "default": "./dist/capabilities/timeline-template/index.js"
+    },
+    "./capabilities/timeline-template/tools": {
+      "types": "./dist/capabilities/timeline-template/tools.d.ts",
+      "default": "./dist/capabilities/timeline-template/tools.js"
+    },
     "./capabilities/pos_account_management/tools": {
       "types": "./dist/capabilities/pos_account_management/tools.d.ts",
       "default": "./dist/capabilities/pos_account_management/tools.js"

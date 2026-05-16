@@ -19196,6 +19196,70 @@ export type Database = {
           },
         ]
       }
+      timeline_template: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_archived: boolean
+          items_json: Json
+          name: string
+          notes: string | null
+          scope_id: string
+          scope_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_archived?: boolean
+          items_json: Json
+          name: string
+          notes?: string | null
+          scope_id: string
+          scope_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_archived?: boolean
+          items_json?: Json
+          name?: string
+          notes?: string | null
+          scope_id?: string
+          scope_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_template_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "timeline_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "timeline_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       tip_adjustment_log: {
         Row: {
           changed_at: string

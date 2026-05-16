@@ -847,6 +847,11 @@ function DraftMessageInput({
       setSending(false);
       return;
     }
+    // reply_to_id is intentionally absent: DraftMessageInput only renders for
+    // brand-new DM channels (isDraft=true) which have no prior messages to
+    // reply to. The DraftEmptyState confirms no thread exists yet. Once the
+    // channel materializes, MessageInput takes over and carries full reply
+    // support via the parent's replyToId state.
     const supabase = createClient();
     const { error } = await supabase.from("channel_message").insert({
       channel_id: newChannelId,
