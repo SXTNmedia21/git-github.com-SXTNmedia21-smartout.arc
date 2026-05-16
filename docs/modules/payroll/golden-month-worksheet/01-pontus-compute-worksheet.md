@@ -9,6 +9,26 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 
 # 01 — Pontus Compute Worksheet
 
+> **E3 Riksavtalen 2026 rate verification PENDING**
+>
+> Pontus must verify the following rates against NHO Reiseliv
+> (https://www.nhoreiseliv.no/avtaler/) before signing `computedBy`.
+> All cells marked `[PENDING_E3_VERIFY]` use 2025 fixture rates from B1 seed.
+> If 2026 rates differ, update the B1 seed migration in a v1.1 follow-up
+> AND update all formula cells in this worksheet.
+>
+> | Rate | Fixture value (2025) | Source needed |
+> |---|---|---|
+> | minstelonn voksen ufaglart begynner | 195.00 kr/t | Riksavtalen §3 2026 |
+> | minstelonn voksen ufaglart 2+ aar | 205.00 kr/t | Riksavtalen §3 2026 |
+> | minstelonn voksen faglart (prof-006) | ~205+ kr/t | Riksavtalen §3 2026 |
+> | kveldstillegg | 42.41 kr/t | Riksavtalen §6 2026 |
+> | nattillegg nattvakt | 42.41 kr/t | Riksavtalen §6 2026 |
+> | nattillegg manuelt | 24.01 kr/t | Riksavtalen §6 2026 |
+> | nattillegg ordinaer | 56.02 kr/t | Riksavtalen §6 2026 |
+> | helgetillegg | 56.02 kr/t | Riksavtalen §6 2026 |
+> | helligdagstillegg | 100.00 kr/t | Riksavtalen §6 2026 |
+
 **Purpose:** Pre-computed formulas for every pay cell. Pontus fills `amount_ore` column.
 **Note:** Cells where formula is fully determined are pre-computed to øre. Mark with `[COMPUTED]`. Cells requiring external lookup (monthly salary from contract) are marked `[CONTRACT]`.
 
