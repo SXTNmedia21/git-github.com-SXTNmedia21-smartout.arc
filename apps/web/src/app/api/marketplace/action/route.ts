@@ -71,6 +71,8 @@ async function callGate(
   actionType: string,
   entityId: string,
 ): Promise<{ allowed: boolean; reason: string | null }> {
+  // @authority-gate-ungated — thunk-wrapper: capability is CAP = "shift_marketplace" at all call sites.
+  // shift_marketplace is seeded in engine_authority_config migrations.
   const { data, error } = await admin.rpc("gate_action", {
     p_workspace_id: workspaceId,
     p_actor_profile_id: profileId,
