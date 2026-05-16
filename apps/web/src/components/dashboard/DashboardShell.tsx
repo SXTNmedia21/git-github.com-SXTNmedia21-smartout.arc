@@ -1338,6 +1338,7 @@ function DashboardShellInner({
                     </div>
 
                     <nav
+                      data-testid="sidebar-nav"
                       className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
                     >
                       {isDocumentMode ? (

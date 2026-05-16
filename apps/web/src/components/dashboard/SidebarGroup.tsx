@@ -48,7 +48,10 @@ export function SidebarGroup({
       className={group.footer ? "border-border mt-3 border-t pt-3" : group.standalone ? "" : "mt-3"}
     >
       {!group.standalone && !isCollapsed && (
-        <div className="text-muted-foreground mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase">
+        <div
+          data-testid={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`}
+          className="text-muted-foreground mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase"
+        >
           {group.label}
         </div>
       )}
@@ -57,11 +60,17 @@ export function SidebarGroup({
         const isActive = computeActive(item, pathname);
         const indicators = dynamicIndicators?.[item.href] ?? item.indicators;
 
+        // routeSlug: strip leading /dashboard/ prefix, replace remaining / with -, fall back to href
+        const routeSlug = item.href
+          .replace(/^\/dashboard\/?/, "")
+          .replace(/\//g, "-") || "dashboard";
+
         if (item.disabled) {
           return (
             <DisabledNavItem
               key={item.href}
               item={item}
+              routeSlug={routeSlug}
               isDark={isDark}
               isCollapsed={isCollapsed}
             />
@@ -79,6 +88,7 @@ export function SidebarGroup({
             ai={item.ai}
             isDark={isDark}
             isCollapsed={isCollapsed}
+            data-testid={`sidebar-item-${routeSlug}`}
           />
         );
       })}
@@ -97,10 +107,12 @@ function computeActive(item: SidebarItem, pathname: string): boolean {
 
 function DisabledNavItem({
   item,
+  routeSlug,
   isDark: _isDark,
   isCollapsed,
 }: {
   item: SidebarItem;
+  routeSlug: string;
   isDark: boolean;
   isCollapsed: boolean;
 }) {
@@ -108,6 +120,7 @@ function DisabledNavItem({
   const Icon = item.icon;
   return (
     <div
+      data-testid={`sidebar-disabled-${routeSlug}`}
       data-disabled="true"
       title="Kommer snart"
       className={`group flex cursor-not-allowed items-center rounded-xl opacity-50 ${
