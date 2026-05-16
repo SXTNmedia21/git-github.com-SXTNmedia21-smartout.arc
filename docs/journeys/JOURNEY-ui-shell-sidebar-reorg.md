@@ -1,7 +1,9 @@
 ---
 title: Sidebar Reorg — User Journeys
-status: review
-updated: 2026-05-15
+feature: ui-shell-sidebar-reorg
+status: verified
+verified_at: 2026-05-16
+updated: 2026-05-16
 created: 2026-05-15
 module: dashboard
 tags: [sidebar, navigation, ui-shell, campaign-ui-shell, journey]
