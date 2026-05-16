@@ -6,13 +6,28 @@
  *   suggestTools:  requestSwap, respondToSwap, cancelSwap (require authority)
  *
  * All swap state lives in engine_state.context JSONB (ADR-0067).
- * Mutations call SECURITY DEFINER RPCs — employees cannot UPDATE schedule_shift directly.
+ * Mutations call SECURITY DEFINER RPCs — employees cannot UPDATE
+ * schedule_shift directly.
  *
  * Authority gating (ADR-0099/0176/0189): every write tool calls `gate_action`
  * via `callGateAction` BEFORE the RPC. `actor_profile_id` is taken from
  * `ctx.profileId` (never user input — ADR-0151, ADR-0176 Invariant 3).
  * On deny the tool returns a structured `{ ok: false, reason, gate_reason }`
  * payload and never reaches the RPC.
+ *
+ * Pipeline integration (ADR-0340 T2): each mutating tool ALSO creates /
+ * advances / terminates a `shift_swap_lifecycle` pipeline instance in
+ * engine_state via T1 engine helpers, and acquires / releases pipeline locks
+ * on schedule_shift. Pipeline stage events are emitted as additive log
+ * events (PENDING T4 for full telemetry registry routing).
+ *
+ * Lock decision (ADR-0340 §Q-lock-both): BOTH requester and target shifts
+ * are locked at stage_0_propose. This prevents a race condition where the
+ * marketplace could claim the target shift mid-swap while the swap is
+ * pending. Cost: two acquirePipelineLock calls inside the same exec
+ * callback (ADR-0287 single-mutateWithGate invariant — two acquires in
+ * one exec = atomic, compliant). The locks are released together at
+ * termination (cancel / approve / fail).
  */
 
 import { z } from "zod";
@@ -20,12 +35,30 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  createPipelineInstance,
+  advancePipelineInstance,
+  terminatePipelineInstance,
+  acquirePipelineLock,
+  releasePipelineLock,
+  emitStageProposed,
+  emitStageConsented,
+  emitStageRejected,
+  emitStageCancelled,
+  PipelineLockHeldError,
+  PipelineContextError,
+  PIPELINE_PROCESS_IDS,
+} from "../../engine/authority-pipeline/index.js";
+import { mutateWithGate } from "../_shared/mutate-with-gate.js";
 
-// Dotted per-tool capability literals (ADR-0195). Seeded by Task A migration
+// Dotted per-tool capability literals (ADR-0195). Seeded by T0 migration
 // in engine_authority_config.
 const CAPABILITY_REQUEST = "shift_swap.request";
 const CAPABILITY_RESPOND = "shift_swap.respond";
 const CAPABILITY_CANCEL = "shift_swap.cancel";
+
+// Pipeline blueprint for shift swaps.
+const SWAP_PROCESS_ID = PIPELINE_PROCESS_IDS[0]; // "shift_swap_lifecycle"
 
 // ── Read-Only Tools ─────────────────────────────────────────────────────────
 
@@ -153,7 +186,7 @@ export const requestSwap = defineTool({
     reason: z.string().optional().describe("Optional reason for the swap request"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // ADR-0078: chat-only channel guard
+    // ADR-0078 / ADR-0288: chat-only channel guard (Layer 3 inline — preserved verbatim)
     if (ctx.channel && ctx.channel !== "chat") {
       return "Skiftbytte kan kun gjores via chat, ikke voice. Bytt til chat for a sende byttforesporselen.";
     }
@@ -177,19 +210,77 @@ export const requestSwap = defineTool({
       });
     }
 
-    const { data, error } = await supabase.rpc("initiate_shift_swap", {
-      p_requester_shift_id: params.requester_shift_id,
-      p_target_profile_id: params.target_profile_id,
-      p_target_shift_id: params.target_shift_id,
-      p_reason: params.reason ?? null,
-    });
+    // ADR-0287 single-mutateWithGate: pipeline instance creation + lock
+    // acquire (both shifts) + domain RPC call all happen in one atomic exec.
+    // Lock both shifts to prevent marketplace from claiming target shift
+    // while the swap is pending (ADR-0340 §Q-lock-both).
+    const pipelineCtx = {
+      workspaceId: ctx.workspaceId,
+      profileId: ctx.profileId,
+    };
 
-    if (error) return `Feil ved opprettelse av byttforespørsel: ${error.message}`;
+    let swapId: string;
+    let pipelineInstanceId: string;
 
-    const swapId = data as string;
+    try {
+      const mutResult = await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_REQUEST,
+        actionType: "request_swap",
+        channel: "chat",
+        targetId: params.requester_shift_id,
+        exec: async (db) => {
+          // 1. Create pipeline instance for this swap (stage_0_propose).
+          const instance = await createPipelineInstance(
+            db,
+            pipelineCtx,
+            SWAP_PROCESS_ID,
+            params.requester_shift_id,
+            {
+              shiftId: params.requester_shift_id,
+              sourceWorkspaceId: ctx.workspaceId,
+              initiatorProfileId: ctx.profileId,
+              targetShiftId: params.target_shift_id,
+              targetProfileId: params.target_profile_id,
+              lastGateEvaluationId: gate.gateEvaluationId,
+            },
+          );
 
-    // ADR-0175 / L-0094: emit AFTER RPC success, before returning to agent.
-    // Dotted event per ADR-0164.
+          // 2. Acquire lock on requester's shift.
+          await acquirePipelineLock(db, pipelineCtx, params.requester_shift_id, instance.id);
+
+          // 3. Acquire lock on target shift (race prevention — ADR-0340 §Q-lock-both).
+          await acquirePipelineLock(db, pipelineCtx, params.target_shift_id, instance.id);
+
+          // 4. SECURITY DEFINER RPC — creates swap record + assigns engine_state.
+          const { data, error } = await db.rpc("initiate_shift_swap", {
+            p_requester_shift_id: params.requester_shift_id,
+            p_target_profile_id: params.target_profile_id,
+            p_target_shift_id: params.target_shift_id,
+            p_reason: params.reason ?? null,
+          });
+
+          if (error) throw new Error(error.message);
+
+          return { swapId: data as string, pipelineInstanceId: instance.id };
+        },
+      });
+
+      swapId = mutResult.result.swapId;
+      pipelineInstanceId = mutResult.result.pipelineInstanceId;
+    } catch (err) {
+      if (err instanceof PipelineLockHeldError) {
+        return `Skiftet er allerede låst av en annen aktiv bytteprosess. Prøv igjen etter at den eksisterende prosessen er avsluttet.`;
+      }
+      if (err instanceof PipelineContextError) {
+        return `Feil i pipeline-kontekst: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved opprettelse av byttforespørsel: ${msg}`;
+    }
+
+    // Legacy shift_swap.requested event — preserved verbatim (ADR-0340 §Preservation 1).
     await emit({
       event: "shift_swap.requested",
       workspace_id: ctx.workspaceId,
@@ -206,9 +297,21 @@ export const requestSwap = defineTool({
       },
     });
 
+    // Additive pipeline.stage_proposed event (PENDING T4 full registry routing).
+    await emitStageProposed({
+      processId: SWAP_PROCESS_ID,
+      stage: "shift_swap_lifecycle.stage_0_propose",
+      pipelineInstanceId,
+      gateEvaluationId: gate.gateEvaluationId,
+      shiftId: params.requester_shift_id,
+      workspaceId: ctx.workspaceId,
+      actorProfileId: ctx.profileId,
+    });
+
     return JSON.stringify({
       success: true,
       swap_id: swapId,
+      pipeline_instance_id: pipelineInstanceId,
       message: "Byttforespørsel sendt. Venter på svar fra kollega.",
     });
   },
@@ -224,7 +327,7 @@ export const respondToSwap = defineTool({
     reason: z.string().optional().describe("Optional reason (used when rejecting)"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // ADR-0078: chat-only channel guard
+    // ADR-0078 / ADR-0288: chat-only channel guard (Layer 3 inline — preserved verbatim)
     if (ctx.channel && ctx.channel !== "chat") {
       return "Skiftbytte kan kun gjores via chat, ikke voice.";
     }
@@ -247,15 +350,90 @@ export const respondToSwap = defineTool({
       });
     }
 
-    const { error } = await supabase.rpc("respond_to_shift_swap", {
-      p_swap_id: params.swap_id,
-      p_accepted: params.accepted,
-      p_reason: params.reason ?? null,
-    });
+    // Look up the pipeline instance for this swap so we know which instance
+    // to advance or terminate. The swap_id is the engine_state.id from the
+    // initiate_shift_swap RPC (set at stage_0_propose creation).
+    const { data: pipelineRow, error: pipelineFetchError } = await supabase
+      .from("engine_state")
+      .select("id, current_step, context")
+      .eq("id", params.swap_id)
+      .in("process_id", [...PIPELINE_PROCESS_IDS])
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
 
-    if (error) return `Feil ved svar pa byttforespørsel: ${error.message}`;
+    // If no pipeline instance is found we still allow the RPC to run —
+    // backward compat with swaps created before pipeline integration.
+    const hasPipelineInstance = !pipelineFetchError && pipelineRow !== null;
 
-    // ADR-0175 / L-0094: emit AFTER RPC success. Dotted event per ADR-0164.
+    const pipelineCtx = {
+      workspaceId: ctx.workspaceId,
+      profileId: ctx.profileId,
+    };
+
+    try {
+      await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_RESPOND,
+        actionType: "respond_to_swap",
+        channel: "chat",
+        targetId: params.swap_id,
+        exec: async (db) => {
+          // Domain RPC (SECURITY DEFINER) — executed first, then pipeline advance.
+          const { error } = await db.rpc("respond_to_shift_swap", {
+            p_swap_id: params.swap_id,
+            p_accepted: params.accepted,
+            p_reason: params.reason ?? null,
+          });
+          if (error) throw new Error(error.message);
+
+          // Advance or terminate pipeline instance if one exists.
+          if (hasPipelineInstance) {
+            if (params.accepted) {
+              // Accept → advance to stage_1_consent (step 1).
+              await advancePipelineInstance(
+                db,
+                pipelineCtx,
+                pipelineRow.id,
+                1,
+                gate.gateEvaluationId,
+              );
+            } else {
+              // Reject → terminal state; release locks.
+              const ctx_data = (pipelineRow.context ?? {}) as Record<string, string>;
+              const requesterShiftId = ctx_data.shiftId as string | undefined;
+              const targetShiftId = ctx_data.targetShiftId as string | undefined;
+
+              await terminatePipelineInstance(
+                db,
+                pipelineCtx,
+                pipelineRow.id,
+                { kind: "reject" },
+                gate.gateEvaluationId,
+              );
+
+              // Release locks on both shifts (ADR-0340 §Q-lock-both).
+              if (requesterShiftId) {
+                await releasePipelineLock(db, pipelineCtx, requesterShiftId, pipelineRow.id);
+              }
+              if (targetShiftId) {
+                await releasePipelineLock(db, pipelineCtx, targetShiftId, pipelineRow.id);
+              }
+            }
+          }
+
+          return { accepted: params.accepted };
+        },
+      });
+    } catch (err) {
+      if (err instanceof PipelineContextError) {
+        return `Feil i pipeline-kontekst: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved svar pa byttforespørsel: ${msg}`;
+    }
+
+    // Legacy events — preserved verbatim (ADR-0340 §Preservation 1).
     if (params.accepted) {
       await emit({
         event: "shift_swap.accepted",
@@ -280,6 +458,31 @@ export const respondToSwap = defineTool({
       });
     }
 
+    // Additive pipeline stage event (PENDING T4 full registry routing).
+    if (hasPipelineInstance) {
+      if (params.accepted) {
+        await emitStageConsented({
+          processId: SWAP_PROCESS_ID,
+          stage: "shift_swap_lifecycle.stage_1_consent",
+          pipelineInstanceId: pipelineRow.id,
+          gateEvaluationId: gate.gateEvaluationId,
+          shiftId: (pipelineRow.context as Record<string, string>).shiftId ?? params.swap_id,
+          workspaceId: ctx.workspaceId,
+          actorProfileId: ctx.profileId,
+        });
+      } else {
+        await emitStageRejected({
+          processId: SWAP_PROCESS_ID,
+          stage: "shift_swap_lifecycle.stage_1_consent",
+          pipelineInstanceId: pipelineRow.id,
+          gateEvaluationId: gate.gateEvaluationId,
+          shiftId: (pipelineRow.context as Record<string, string>).shiftId ?? params.swap_id,
+          workspaceId: ctx.workspaceId,
+          actorProfileId: ctx.profileId,
+        });
+      }
+    }
+
     return params.accepted
       ? "Bytte akseptert. Venter nå på godkjenning fra leder."
       : "Bytte avvist.";
@@ -295,7 +498,7 @@ export const cancelSwap = defineTool({
     swap_id: z.string().uuid().describe("The swap request ID (engine_state.id) to cancel"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // ADR-0078: chat-only channel guard
+    // ADR-0078 / ADR-0288: chat-only channel guard (Layer 3 inline — preserved verbatim)
     if (ctx.channel && ctx.channel !== "chat") {
       return "Skiftbytte kan kun gjores via chat, ikke voice.";
     }
@@ -319,13 +522,72 @@ export const cancelSwap = defineTool({
       });
     }
 
-    const { error } = await supabase.rpc("cancel_shift_swap", {
-      p_swap_id: params.swap_id,
-    });
+    // Look up pipeline instance for this swap.
+    const { data: pipelineRow, error: pipelineFetchError } = await supabase
+      .from("engine_state")
+      .select("id, current_step, context")
+      .eq("id", params.swap_id)
+      .in("process_id", [...PIPELINE_PROCESS_IDS])
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
 
-    if (error) return `Feil ved avbryting av byttforespørsel: ${error.message}`;
+    const hasPipelineInstance = !pipelineFetchError && pipelineRow !== null;
 
-    // ADR-0175 / L-0094: emit AFTER RPC success. Dotted event per ADR-0164.
+    const pipelineCtx = {
+      workspaceId: ctx.workspaceId,
+      profileId: ctx.profileId,
+    };
+
+    try {
+      await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_CANCEL,
+        actionType: "cancel_swap",
+        channel: "chat",
+        targetId: params.swap_id,
+        exec: async (db) => {
+          // Domain RPC (SECURITY DEFINER).
+          const { error } = await db.rpc("cancel_shift_swap", {
+            p_swap_id: params.swap_id,
+          });
+          if (error) throw new Error(error.message);
+
+          // Terminate pipeline instance + release locks if one exists.
+          if (hasPipelineInstance) {
+            const ctx_data = (pipelineRow.context ?? {}) as Record<string, string>;
+            const requesterShiftId = ctx_data.shiftId as string | undefined;
+            const targetShiftId = ctx_data.targetShiftId as string | undefined;
+
+            await terminatePipelineInstance(
+              db,
+              pipelineCtx,
+              pipelineRow.id,
+              { kind: "cancel" },
+              gate.gateEvaluationId,
+            );
+
+            // Release locks on both shifts (ADR-0340 §Q-lock-both).
+            if (requesterShiftId) {
+              await releasePipelineLock(db, pipelineCtx, requesterShiftId, pipelineRow.id);
+            }
+            if (targetShiftId) {
+              await releasePipelineLock(db, pipelineCtx, targetShiftId, pipelineRow.id);
+            }
+          }
+
+          return { cancelled: true };
+        },
+      });
+    } catch (err) {
+      if (err instanceof PipelineContextError) {
+        return `Feil i pipeline-kontekst: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved avbryting av byttforespørsel: ${msg}`;
+    }
+
+    // Legacy shift_swap.cancelled event — preserved verbatim (ADR-0340 §Preservation 1).
     await emit({
       event: "shift_swap.cancelled",
       workspace_id: ctx.workspaceId,
@@ -336,6 +598,19 @@ export const cancelSwap = defineTool({
         data: { swap_id: params.swap_id },
       },
     });
+
+    // Additive pipeline.stage_cancelled event (PENDING T4 full registry routing).
+    if (hasPipelineInstance) {
+      await emitStageCancelled({
+        processId: SWAP_PROCESS_ID,
+        stage: "shift_swap_lifecycle.stage_0_propose",
+        pipelineInstanceId: pipelineRow.id,
+        gateEvaluationId: gate.gateEvaluationId,
+        shiftId: (pipelineRow.context as Record<string, string>).shiftId ?? params.swap_id,
+        workspaceId: ctx.workspaceId,
+        actorProfileId: ctx.profileId,
+      });
+    }
 
     return "Byttforespørsel avbrutt.";
   },
