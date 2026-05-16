@@ -1,6 +1,7 @@
 ---
 title: "Journey — admin opens /dashboard/website overview"
-status: draft
+status: verified
+feature: website-polish
 updated: 2026-05-16
 created: 2026-05-16
 module: MODULE_01

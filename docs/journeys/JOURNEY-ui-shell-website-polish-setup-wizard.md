@@ -1,6 +1,7 @@
 ---
 title: "Journey — admin completes /dashboard/website/setup wizard"
-status: draft
+status: verified
+feature: website-polish
 updated: 2026-05-16
 created: 2026-05-16
 module: MODULE_01

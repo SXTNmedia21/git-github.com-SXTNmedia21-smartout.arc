@@ -1,6 +1,7 @@
 ---
 title: "Journey — admin edits a website page in /dashboard/website/pages/[pageId]"
-status: draft
+status: verified
+feature: website-polish
 updated: 2026-05-16
 created: 2026-05-16
 module: MODULE_01
