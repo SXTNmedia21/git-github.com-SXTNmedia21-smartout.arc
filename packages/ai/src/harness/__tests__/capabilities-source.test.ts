@@ -64,7 +64,9 @@ describe("CapabilitiesSource — real registry", () => {
       expect(typeof def.temporaryTool.modelToolName).toBe("string");
       expect(def.temporaryTool.modelToolName.length).toBeGreaterThan(0);
     }
-  });
+  }, // Cold-start of full real registry import + tools resolution can exceed
+  // 10s on CI runners under load. Raise per-test timeout to 30s.
+  30000);
 
   it("4. channel='chat' and channel='voice' return the same definition set", async () => {
     const { createCapabilitiesSource } = await import("../sources/capabilities-source.js");
