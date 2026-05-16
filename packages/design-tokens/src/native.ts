@@ -125,6 +125,8 @@ export const nativeTheme = {
     springAmbient: { stiffness: 35, damping: 22, mass: 2.2 },
     /** Reactive spring — touch feedback and phase transitions. */
     springReactive: { stiffness: 180, damping: 20, mass: 1 },
+    /** Snappy spring — swipe-to-reply return and short-range gesture feedback. */
+    springSnappy: { stiffness: 45, damping: 24, mass: 2 },
     /** Full orb drift-loop period (ms). */
     orbDriftMs: 40_000,
     /** Migration duration when active phase changes (ms). */

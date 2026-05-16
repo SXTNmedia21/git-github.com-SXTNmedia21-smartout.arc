@@ -13,14 +13,37 @@
  *
  * ADR-0165: shared visual primitive with chat/MessageBubble; this file exists
  * solely to adapt the channel message type while emitting identical styles.
+ *
+ * Swipe-to-reply (Phase 2 T1):
+ *   Mirrors MessageBubble gesture pattern exactly.
+ *   Horizontal pan (Gesture.Pan + activeOffsetX) → translateX shared value.
+ *   Threshold 48px → haptic + onSwipeReply (once per gesture).
+ *   Spring back via motion.springSnappy from @smartout/design-tokens.
+ *   CornerUpLeft reply icon fades in behind bubble, opposite side to drag.
  */
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { View, Text, Pressable, Platform, type ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
+import { CornerUpLeft } from "lucide-react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+  Extrapolation,
+  runOnJS,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { createStyles, useTheme } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import type { ChannelMessageWithSender } from "@/hooks/queries/use-channel-messages";
 import { ReadReceipt, type ReadReceiptState } from "@/components/chat/ReadReceipt";
+
+// ─── Swipe constants — pulled from token scope, no magic numbers elsewhere ───
+const SWIPE_MAX = 64; // max translateX (px)
+const SWIPE_THRESHOLD = 48; // px to trigger reply
+const { springSnappy } = nativeTheme.motion;
 
 const SYSTEM_TYPES = new Set(["system", "brief", "handoff", "announcement", "reminder", "summary"]);
 
@@ -44,20 +67,88 @@ function formatTime(isoString: string): string {
   return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 }
 
-export function ChannelMessageBubble({
+/**
+ * ChannelMessageBubbleInner — internal implementation wrapped in React.memo below.
+ * Gesture state lives in shared values — no React re-render during swipe.
+ */
+function ChannelMessageBubbleInner({
   message,
   isOwnMessage,
   onLongPress,
+  onSwipeReply,
   readReceiptState: receiptProp,
   style,
 }: Props) {
   const styles = useStyles();
   const theme = useTheme();
 
+  // ── Swipe shared values (gesture thread — never trigger React render) ──────
+  const translateX = useSharedValue(0);
+  // Boolean shared value: 1 = fired this gesture, 0 = not fired yet.
+  const hasFired = useSharedValue(0);
+
   const handleLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onLongPress();
   }, [onLongPress]);
+
+  // Stable ref so the worklet closure captures a stable identity.
+  const onSwipeReplyRef = useRef(onSwipeReply);
+  onSwipeReplyRef.current = onSwipeReply;
+
+  // Wrapper called from gesture worklet via runOnJS.
+  const fireReply = useCallback(() => {
+    Haptics.selectionAsync();
+    onSwipeReplyRef.current();
+  }, []);
+
+  /**
+   * Pan gesture — horizontal-only (activeOffsetX guards FlatList scroll).
+   * Direction: own messages drag right (+X), other messages drag left (-X).
+   * Wrong-direction drag is clamped to 0 so no translate occurs.
+   */
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((e) => {
+      "worklet";
+      const raw = e.translationX;
+      // Direction gate: own → positive X only, other → negative X only.
+      const directedRaw = isOwnMessage ? Math.max(0, raw) : Math.min(0, raw);
+      // Clamp to max travel distance (absolute value bounded by SWIPE_MAX).
+      const clamped = isOwnMessage
+        ? Math.min(directedRaw, SWIPE_MAX)
+        : Math.max(directedRaw, -SWIPE_MAX);
+      translateX.value = clamped;
+
+      // Fire reply once when threshold crossed.
+      const absTravel = Math.abs(clamped);
+      if (absTravel >= SWIPE_THRESHOLD && hasFired.value === 0) {
+        hasFired.value = 1;
+        runOnJS(fireReply)();
+      }
+    })
+    .onEnd(() => {
+      "worklet";
+      translateX.value = withSpring(0, springSnappy);
+      hasFired.value = 0;
+    });
+
+  // ── Animated styles ───────────────────────────────────────────────────────
+  const bubbleAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  /**
+   * Reply icon fades in proportionally to drag distance.
+   * Positioned on the OPPOSITE side from drag direction:
+   *   own (drags right) → icon left of bubble
+   *   other (drags left) → icon right of bubble
+   */
+  const replyIconAnimStyle = useAnimatedStyle(() => {
+    const absTravel = Math.abs(translateX.value);
+    const opacity = interpolate(absTravel, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP);
+    return { opacity };
+  });
 
   // Derive effective receipt state: pending flag takes precedence over prop.
   const effectiveReceiptState: ReadReceiptState = message._isPending
@@ -111,74 +202,104 @@ export function ChannelMessageBubble({
   const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
 
   return (
-    <View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
-      {!isOwnMessage && (
-        <View style={styles.avatarSlot}>
-          <Avatar
-            name={message.sender_name ?? "?"}
-            imageUrl={message.sender_avatar}
-            size="sm"
-            style={styles.avatar}
-          />
-        </View>
-      )}
-
-      <View style={[styles.column, isOwnMessage && styles.columnOwn]}>
-        {!isOwnMessage && message.sender_name && (
-          <Text style={styles.senderName}>{message.sender_name}</Text>
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
+        {/* Reply icon — shown on the side opposite to drag direction */}
+        {isOwnMessage ? (
+          // Own: drags right → icon on LEFT of bubble row
+          <Animated.View style={[styles.replyIcon, styles.replyIconLeft, replyIconAnimStyle]}>
+            <CornerUpLeft size={20} color={theme.colors.mutedForeground} />
+          </Animated.View>
+        ) : (
+          // Other: drags left → icon on RIGHT of bubble row
+          <Animated.View style={[styles.replyIcon, styles.replyIconRight, replyIconAnimStyle]}>
+            <CornerUpLeft size={20} color={theme.colors.mutedForeground} />
+          </Animated.View>
         )}
 
-        <Pressable
-          onLongPress={handleLongPress}
-          delayLongPress={300}
-          accessibilityLabel={`${message.sender_name}: ${message.content}`}
-        >
-          <View style={[styles.bubble, bubbleCorners, { backgroundColor: bubbleBg }]}>
-            {message.reply_to_id && message.reply_to_content && (
-              <View style={isOwnMessage ? styles.replyIndicatorOwn : styles.replyIndicator}>
-                <Text
-                  style={[styles.replyLabel, isOwnMessage && styles.replyLabelOwn]}
-                  numberOfLines={1}
-                >
-                  {message.reply_to_sender_name ?? ""}
-                </Text>
-                <Text
-                  style={[styles.replyText, isOwnMessage && styles.replyTextOwn]}
-                  numberOfLines={1}
-                >
-                  {message.reply_to_content}
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.content, { color: bubbleTextColor }]}>{message.content}</Text>
-
-            {/* Inline meta: time + receipt (own) / time only (other) — bottom-right */}
-            <View style={styles.inlineMeta}>
-              <Text style={styles.inlineTimestamp}>{formatTime(message.created_at)}</Text>
-              {isOwnMessage && <ReadReceipt state={effectiveReceiptState} size={11} />}
-            </View>
+        {!isOwnMessage && (
+          <View style={styles.avatarSlot}>
+            <Avatar
+              name={message.sender_name ?? "?"}
+              imageUrl={message.sender_avatar}
+              size="sm"
+              style={styles.avatar}
+            />
           </View>
-        </Pressable>
+        )}
 
-        {Object.keys(groupedReactions).length > 0 && (
-          <View
-            style={[
-              styles.reactionsRow,
-              isOwnMessage ? styles.reactionsRowOwn : styles.reactionsRowOther,
-            ]}
+        <Animated.View style={[styles.column, isOwnMessage && styles.columnOwn, bubbleAnimStyle]}>
+          {!isOwnMessage && message.sender_name && (
+            <Text style={styles.senderName}>{message.sender_name}</Text>
+          )}
+
+          <Pressable
+            onLongPress={handleLongPress}
+            delayLongPress={300}
+            accessibilityLabel={`${message.sender_name}: ${message.content}`}
           >
-            {Object.entries(groupedReactions).map(([emoji, count]) => (
-              <View key={emoji} style={styles.reactionPill}>
-                <Text style={styles.reactionEmoji}>{emoji}</Text>
-                <Text style={styles.reactionCount}>{count}</Text>
+            <View style={[styles.bubble, bubbleCorners, { backgroundColor: bubbleBg }]}>
+              {message.reply_to_id && message.reply_to_content && (
+                <View style={isOwnMessage ? styles.replyIndicatorOwn : styles.replyIndicator}>
+                  <Text
+                    style={[styles.replyLabel, isOwnMessage && styles.replyLabelOwn]}
+                    numberOfLines={1}
+                  >
+                    {message.reply_to_sender_name ?? ""}
+                  </Text>
+                  <Text
+                    style={[styles.replyText, isOwnMessage && styles.replyTextOwn]}
+                    numberOfLines={1}
+                  >
+                    {message.reply_to_content}
+                  </Text>
+                </View>
+              )}
+              <Text style={[styles.content, { color: bubbleTextColor }]}>{message.content}</Text>
+
+              {/* Inline meta: time + receipt (own) / time only (other) — bottom-right */}
+              <View style={styles.inlineMeta}>
+                <Text style={styles.inlineTimestamp}>{formatTime(message.created_at)}</Text>
+                {isOwnMessage && <ReadReceipt state={effectiveReceiptState} size={11} />}
               </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </View>
+            </View>
+          </Pressable>
+
+          {Object.keys(groupedReactions).length > 0 && (
+            <View
+              style={[
+                styles.reactionsRow,
+                isOwnMessage ? styles.reactionsRowOwn : styles.reactionsRowOther,
+              ]}
+            >
+              {Object.entries(groupedReactions).map(([emoji, count]) => (
+                <View key={emoji} style={styles.reactionPill}>
+                  <Text style={styles.reactionEmoji}>{emoji}</Text>
+                  <Text style={styles.reactionCount}>{count}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Animated.View>
+      </Animated.View>
+    </GestureDetector>
   );
 }
+
+/**
+ * ChannelMessageBubble — memoized to prevent re-render during gesture.
+ * Re-renders only when content, receipt state, or reaction count changes.
+ */
+export const ChannelMessageBubble = React.memo(ChannelMessageBubbleInner, (prev, next) => {
+  return (
+    prev.message.message_id === next.message.message_id &&
+    prev.message.content === next.message.content &&
+    prev.readReceiptState === next.readReceiptState &&
+    prev.message._isPending === next.message._isPending &&
+    prev.isOwnMessage === next.isOwnMessage &&
+    prev.message.reactions.length === next.message.reactions.length
+  );
+});
 
 const useStyles = createStyles((theme) => ({
   row: {
@@ -270,6 +391,22 @@ const useStyles = createStyles((theme) => ({
   },
   replyTextOwn: {
     color: theme.colors.mutedForeground,
+  },
+
+  /* Reply icon — rendered behind the bubble during swipe */
+  replyIcon: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 32,
+  },
+  replyIconLeft: {
+    left: -36,
+  },
+  replyIconRight: {
+    right: -36,
   },
 
   /* Reactions */
