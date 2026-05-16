@@ -18,7 +18,9 @@ import {
   FileText,
   ExternalLink,
   BookOpen,
+  Layers,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { LucideIcon } from "lucide-react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
@@ -191,9 +193,18 @@ export default function SectionSidebar({
 
       <div className="flex-1 overflow-y-auto">
         {sections.length === 0 && (
-          <p className="text-muted-foreground px-4 py-6 text-center text-sm">
-            Ingen seksjoner ennå
-          </p>
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <Layers className="text-muted-foreground size-8" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Siden er tom</p>
+              <p className="text-muted-foreground max-w-[200px] text-xs">
+                Start med en hero, tekst, eller annet innhold fra panelet til venstre.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+              + Legg til seksjon
+            </Button>
+          </div>
         )}
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, Eye } from "lucide-react";
+import { ChevronRight, Eye, MousePointerClick } from "lucide-react";
 import { useSections } from "../_hooks/use-sections";
 import type { SectionRow } from "../_actions/section-actions";
 import SectionSidebar from "./SectionSidebar";
@@ -10,6 +10,7 @@ import SectionForm from "./SectionForm";
 import SaveStatus from "./SaveStatus";
 import type { SaveState } from "./SaveStatus";
 import { getEditor } from "./editors/editor-registry";
+import { WebsitePageEditorToolsBridge } from "../pages/[pageId]/_tools/website-page-editor-tools-bridge";
 
 /**
  * Re-export SectionRow as WebsiteSection for use in sibling components.
@@ -43,8 +44,29 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
     [activeSection?.section_type],
   );
 
+  const sectionToolsInput = useMemo(
+    () => ({
+      pageId,
+      pageTitle,
+      // HACK: page-level visibility not threaded here; defaults to true. Follow-up: fetch from website_page row in SectionEditor.tsx parent.
+      isVisible: true,
+      sections: sections.map((s) => ({
+        website_section_id: s.website_section_id,
+        section_type: s.section_type,
+        is_visible: s.is_visible,
+        sort_order: s.sort_order,
+      })),
+      hasUnsavedChanges: saveState === "saving",
+      // HACK: live status not threaded here; conservative default false. Follow-up: pass website.is_live from WebsiteOverview ancestor.
+      websiteIsLive: false,
+      lastSavedAt: saveState === "saved" ? new Date().toISOString() : null,
+    }),
+    [pageId, pageTitle, sections, saveState],
+  );
+
   return (
     <div className="flex h-full flex-col">
+      <WebsitePageEditorToolsBridge {...sectionToolsInput} />
       {/* Top bar */}
       <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 lg:px-6">
         <nav className="text-muted-foreground flex items-center gap-1 text-sm">
@@ -67,6 +89,13 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
             <span className="hidden sm:inline">Forhåndsvisning</span>
           </a>
         </div>
+      </div>
+
+      {/* Page header description */}
+      <div className="px-6 pt-2 pb-4">
+        <p className="text-muted-foreground text-sm">
+          Rediger sider — legg til seksjoner, tilpass innhold, og publiser endringer.
+        </p>
       </div>
 
       {/* Body — SectionSidebar handles responsive layout internally */}
@@ -94,9 +123,14 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
                   EditorComponent={EditorComponent}
                 />
               ) : (
-                <div className="text-muted-foreground flex h-full items-center justify-center p-8 text-center text-sm">
-                  Velg en seksjon <span className="lg:hidden">&nbsp;fra fanene ovenfor</span>
-                  <span className="hidden lg:inline">&nbsp;fra sidepanelet</span>
+                <div className="flex h-full flex-col items-center justify-center gap-3 py-20 text-center">
+                  <MousePointerClick className="text-muted-foreground size-8" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Velg en seksjon</p>
+                    <p className="text-muted-foreground text-xs">
+                      Klikk på en seksjon i panelet eller legg til ny.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
