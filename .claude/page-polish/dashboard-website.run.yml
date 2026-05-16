@@ -5,6 +5,15 @@ status: done
 verified: true
 started_at: 2026-05-16T09:00:00+02:00
 verified_at: 2026-05-16T09:30:00+02:00
+mobile_parity: web_only
+mobile_rationale: |
+  ADR-0133: Authoring verb (D1-D5 compose, not D6 execute). Website
+  administration is a configuration/authoring flow. Mobile owns
+  Approve/Execute verbs only. Web-only per Surface Boundary.
+
+linked_sub_routes:
+  - /dashboard/website/setup
+  - /dashboard/website/pages/[pageId]
 
 # Step 1 — Locate
 locate:
