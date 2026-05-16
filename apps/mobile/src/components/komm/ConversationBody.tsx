@@ -156,6 +156,17 @@ export function ConversationBody({
   // T4 — Typing presence: stable emitTyping() broadcast callback.
   const emitTyping = useEmitTyping(channelId);
 
+  // T5 — Presence-join guard: ensure the one-shot broadcast fires at most ONCE
+  // per channelId, even though the T5 useEffect deps include `feed` and will
+  // re-run as paginated messages arrive. Without this ref a new channel object
+  // is created on every re-run (one per incoming message = unbounded channel leak).
+  const hasBroadcastRef = useRef(false);
+
+  // Reset the guard whenever the user navigates to a different channel.
+  useEffect(() => {
+    hasBroadcastRef.current = false;
+  }, [channelId]);
+
   // FlatList requires onViewableItemsChanged to be stable (wrapped in a ref).
   // Debounce 500ms: viewport events fire rapidly during scroll; batch IDs.
   const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,17 +271,21 @@ export function ConversationBody({
   // user has not yet recorded a channel_message_read row for (own_read_at
   // absent). We derive this from the loaded feed synchronously — no extra RPC.
   //
-  // Fire-and-forget. No retry. If the user reopens the channel, the broadcast
-  // fires again — idempotent on sender side (Set.add is idempotent).
+  // One-shot per channelId: hasBroadcastRef gates repeated execution so that
+  // pagination-driven feed changes do not create a new Supabase channel on each
+  // re-run (which would leak WebSocket registrations). The sender side is still
+  // idempotent (Set.add) but the channel object is never reused — only created once.
   //
   // getProfileContext() fail-fast per ADR-0134: throws on missing/empty identity.
   // Wrapped in try/catch so that a transient auth gap does not crash the screen.
   useEffect(() => {
     if (!channelId || !profileId) return;
     // We depend on the feed being populated — skip if feed is empty on first mount.
-    // The broadcast fires on every feed-change too (e.g. after pagination), but
-    // the receiver side is idempotent so duplicate broadcasts are harmless.
     if (feed.length === 0) return;
+    // One-shot guard: broadcast exactly once per channelId open.
+    // hasBroadcastRef is reset by the channelId-change effect above.
+    if (hasBroadcastRef.current) return;
+    hasBroadcastRef.current = true;
 
     // Collect message_ids that are: (a) not from self, (b) have no read receipt
     // in readReceipts (i.e. no own channel_message_read row mapped here).

@@ -7,6 +7,11 @@
  * subscribers know to remove the typer 4s after the last broadcast.
  * The 2s debounce ≤ 4s expiry means continuous typing keeps the indicator alive.
  *
+ * Channel lifecycle: one Supabase channel is created per channelId and held in
+ * channelRef for the lifetime of the hook. Re-subscribes if channelId changes.
+ * `supabase.removeChannel()` is called in the cleanup function, preventing the
+ * WebSocket leak that occurs when a new channel object is created per emit cycle.
+ *
  * Identity: resolved via `getProfileContext()` — fail-fast per ADR-0134.
  * A failed `getProfileContext()` is treated as a silent no-op (typing emit
  * failing should not surface an error to the user).
@@ -17,10 +22,11 @@
  * not a server mutation with optimistic update semantics.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { emit } from "@smartout/telemetry";
 import { getProfileContext } from "@/lib/profile-context";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 /** Debounce window in ms — one broadcast per window per channel. */
 const DEBOUNCE_MS = 2000;
@@ -34,10 +40,21 @@ const EXPIRES_IN_MS = 4000;
  */
 export function useEmitTyping(channelId: string): () => void {
   const lastEmitRef = useRef<number>(0);
-  // Keep channelId in a ref so the stable callback always uses the latest value
-  // without needing it as a dependency (channelId is stable per screen lifetime).
-  const channelIdRef = useRef(channelId);
-  channelIdRef.current = channelId;
+  // Persistent channel — created once per channelId, cleaned up on change/unmount.
+  // Avoids the WebSocket leak of creating a new channel object on every emit call.
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  useEffect(() => {
+    if (!channelId) return;
+    const ch = supabase.channel(`chat-typing:${channelId}`);
+    ch.subscribe();
+    channelRef.current = ch;
+
+    return () => {
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
+  }, [channelId]);
 
   const emitTyping = useCallback(() => {
     const now = Date.now();
@@ -51,8 +68,10 @@ export function useEmitTyping(channelId: string): () => void {
         // Fail-fast per ADR-0134 — throws on missing/empty identity.
         const { profileId, workspaceId } = await getProfileContext();
 
-        const channel = supabase.channel(`chat-typing:${channelIdRef.current}`);
-        await channel.send({
+        // Send on the persistent channel held in channelRef.
+        // If not yet subscribed (e.g. very first keystroke before effect settled),
+        // the send is a no-op — acceptable for a fire-and-forget presence signal.
+        await channelRef.current?.send({
           type: "broadcast",
           event: "typing",
           payload: {
@@ -68,7 +87,7 @@ export function useEmitTyping(channelId: string): () => void {
           actor_id: profileId,
           properties: {
             data: {
-              channel_id: channelIdRef.current,
+              channel_id: channelId,
               profile_id: profileId as string,
             },
           },
@@ -78,7 +97,7 @@ export function useEmitTyping(channelId: string): () => void {
         // getProfileContext() throws on missing auth; swallowed here intentionally.
       }
     })();
-  }, []); // stable — all state via refs
+  }, [channelId]); // re-create if channelId changes so emit closes over updated value
 
   return emitTyping;
 }

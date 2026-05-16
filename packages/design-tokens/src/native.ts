@@ -134,6 +134,14 @@ export const nativeTheme = {
     /** Phase-to-phase visual transition duration (ms). */
     phaseTransitionMs: 450,
     /**
+     * Fade-in/out durations — mirrors web tokens.ts `motion.enterMs` / `motion.exitMs`.
+     * Use with Reanimated FadeIn.duration(nativeTheme.motion.enterMs) etc.
+     */
+    /** Element enter fade duration (ms) — typing indicator, tooltips. */
+    enterMs: 500,
+    /** Element exit fade duration (ms) — typing indicator, tooltips. */
+    exitMs: 250,
+    /**
      * Calendar redesign motion tokens — handoff §"Keep simple" note.
      * "Sheet slide opp 200ms ease-out. Chevron rotate 150ms."
      * Use with Reanimated withTiming({ duration: nativeTheme.motion.chevronMs }).

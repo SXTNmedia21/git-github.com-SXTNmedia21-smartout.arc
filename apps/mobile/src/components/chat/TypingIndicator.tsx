@@ -10,17 +10,18 @@
  * whenever the typing set changes (max 2 names needed; tiny payload).
  *
  * Animation:
- *   Entering: FadeIn with motion.enterMs duration.
- *   Exiting:  FadeOut with motion.exitMs duration.
+ *   Entering: FadeIn with nativeTheme.motion.enterMs duration.
+ *   Exiting:  FadeOut with nativeTheme.motion.exitMs duration.
  *
  * Tokens only — no hex colors, no magic numbers for duration.
- * Uses `motion` from @smartout/design-tokens for entering/exiting durations.
+ * Uses `nativeTheme` from @smartout/design-tokens/native for entering/exiting durations.
+ * (The web-only `motion` export from @smartout/design-tokens is not available in RN.)
  */
 
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { motion } from "@smartout/design-tokens";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { createStyles } from "@/theme";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { supabase } from "@/lib/supabase";
@@ -83,8 +84,8 @@ export function TypingIndicator({ channelId, selfProfileId }: Props) {
 
   return (
     <Animated.View
-      entering={FadeIn.duration(motion.enterMs)}
-      exiting={FadeOut.duration(motion.exitMs)}
+      entering={FadeIn.duration(nativeTheme.motion.enterMs)}
+      exiting={FadeOut.duration(nativeTheme.motion.exitMs)}
       style={styles.container}
     >
       <View style={styles.pill}>

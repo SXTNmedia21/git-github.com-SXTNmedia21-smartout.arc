@@ -29,7 +29,7 @@
  *   Scale lives in a shared value — never triggers React re-render.
  */
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, Pressable, Image, type ViewStyle, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Play, CornerUpLeft } from "lucide-react-native";
@@ -134,6 +134,13 @@ function MessageBubbleInner({
   const translateX = useSharedValue(0);
   // Boolean shared value: 1 = fired this gesture, 0 = not fired yet.
   const hasFired = useSharedValue(0);
+  // isOwnMessage as shared value — avoids closing over the JS prop in the worklet,
+  // which would force the native gesture recognizer to tear down and rebuild every
+  // render (since the worklet captures a new closure reference each time).
+  const isOwnSV = useSharedValue(isOwnMessage ? 1 : 0);
+  useEffect(() => {
+    isOwnSV.value = isOwnMessage ? 1 : 0;
+  }, [isOwnMessage, isOwnSV]);
 
   // ── Long-press scale shared value (gesture thread — never triggers React render) ──
   const scale = useSharedValue(1);
@@ -183,11 +190,12 @@ function MessageBubbleInner({
       "worklet";
       const raw = e.translationX;
       // Direction gate: own → positive X only, other → negative X only.
-      const directedRaw = isOwnMessage ? Math.max(0, raw) : Math.min(0, raw);
+      // Use isOwnSV (shared value) instead of closing over the JS prop so the
+      // native gesture recognizer is not rebuilt on every render.
+      const directedRaw = isOwnSV.value === 1 ? Math.max(0, raw) : Math.min(0, raw);
       // Clamp to max travel distance (absolute value bounded by SWIPE_MAX).
-      const clamped = isOwnMessage
-        ? Math.min(directedRaw, SWIPE_MAX)
-        : Math.max(directedRaw, -SWIPE_MAX);
+      const clamped =
+        isOwnSV.value === 1 ? Math.min(directedRaw, SWIPE_MAX) : Math.max(directedRaw, -SWIPE_MAX);
       translateX.value = clamped;
 
       // Fire reply once when threshold crossed.
