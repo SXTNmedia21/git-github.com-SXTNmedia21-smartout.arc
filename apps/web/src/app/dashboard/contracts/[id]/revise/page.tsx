@@ -50,7 +50,8 @@ export default function ReviseContractPage() {
   return (
     <>
       <ContractReviseToolsBridge contractId={id ?? ""} navigateTo={(href) => router.push(href)} />
-      <div className="space-y-4">
+      <div className="flex flex-col gap-6">
+        {/* Back link */}
         <Link
           href={`/dashboard/contracts/${id}`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
@@ -58,7 +59,20 @@ export default function ReviseContractPage() {
           <ArrowLeft className="h-3.5 w-3.5" />
           {t("revise.back_to_contract")}
         </Link>
-        <p className="text-muted-foreground text-xs">{t("revise.revising", { id })}</p>
+
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+            {t("revise.revising", { id })}
+          </h1>
+          {/* Page instructions — explains the amendment flow to admin/manager */}
+          <p className="text-muted-foreground mt-1 max-w-prose text-sm">
+            Gjennomgå og endre vilkårene for denne kontrakten. Cascade foreslår oppdaterte verdier
+            basert på gjeldende tariff og rammeverk. Endringene lagres som et nytt utkast — den
+            opprinnelige kontrakten bevares i historikken.
+          </p>
+        </div>
+
         <CompositionWizard />
       </div>
     </>

@@ -53,10 +53,7 @@ function EmployeeSignedBadge({ signedAt }: { signedAt: string | null }) {
     );
   }
   return (
-    <Badge
-      variant="outline"
-      className="border-green-600/40 text-xs text-green-700 dark:text-green-400"
-    >
+    <Badge variant="outline" className="border-success/40 text-success-foreground text-xs">
       Ansatt signerte {formatDate(signedAt)}
     </Badge>
   );
@@ -141,6 +138,12 @@ export default async function AwaitingMySignaturePage() {
             {count > 0
               ? `${count} kontrakt${count === 1 ? "" : "er"} krever din signatur som arbeidsgiver`
               : "Ingen kontrakter venter din signatur"}
+          </p>
+          {/* Page instructions — explains the pending-signature queue */}
+          <p className="text-muted-foreground mt-2 max-w-prose text-sm">
+            Disse kontraktene er sendt til ansatte og venter nå på din signatur som arbeidsgiver.
+            Trykk «Signer nå» for å signere elektronisk via DocuSeal. Kontrakten er gyldig først når
+            begge parter har signert.
           </p>
         </header>
 
