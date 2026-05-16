@@ -12,6 +12,13 @@ import type {
 export type CapabilityName =
   | "knowledge"
   | "kb_query" // ADR-0221 — bound capability for intent='knowledge'
+  | "channel_admin" // ADR-0336 — channel admin tooling (mute/leave/invite/rename/archive/role)
+  | "channel_admin.mute_channel" // ADR-0336 — autonomous/employee: mute channel for self
+  | "channel_admin.leave_channel" // ADR-0336 — autonomous/employee: leave channel
+  | "channel_admin.invite_to_channel" // ADR-0336 — confirm/manager: invite workspace member
+  | "channel_admin.rename_channel" // ADR-0336 — confirm/admin: rename channel
+  | "channel_admin.archive_channel" // ADR-0336 — confirm/admin: archive channel
+  | "channel_admin.change_member_role" // ADR-0336 — confirm/admin: change member role
   | "schedule"
   | "training"
   | "operations"

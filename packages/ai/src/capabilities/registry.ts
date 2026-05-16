@@ -14,6 +14,7 @@ import { trainingCapability } from "./training/index.js";
 import { shiftLifecycleCapability } from "./shift-lifecycle/index.js";
 import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
+import { channelAdminCapability } from "./channel-admin/index.js";
 import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 import { kbQueryCapability } from "./kb_query/index.js";
@@ -50,6 +51,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   shift_lifecycle: shiftLifecycleCapability,
   governance: governanceCapability,
   billing_query: billingQueryCapability,
+  // Channel administrative tooling — ADR-0336. 6 tools: mute_channel + leave_channel
+  // (autonomous/employee), invite_to_channel (confirm/manager), rename_channel +
+  // archive_channel + change_member_role (confirm/admin). Chat-only (ADR-0078 PII ceiling).
+  // Sortie 1: all tools are skeletons (not_implemented). Bodies in per-tool body sorties.
+  channel_admin: channelAdminCapability,
   // Phase A3 — materialises the `memory` intent stub; write-only surface
   // for "remember this" requests. ADR-0078 (chat-only) + ADR-0099 (gated).
   memory: memoryCapability,
