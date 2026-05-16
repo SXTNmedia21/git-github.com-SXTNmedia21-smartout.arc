@@ -27,6 +27,7 @@ const SHOWCASE_WORKSPACE: WorkspaceData = {
   contract_status: "active",
   onboarding_completed: true,
   setup_guide_completed: true,
+  is_active: true,
 };
 
 /**

@@ -202,9 +202,11 @@ function ConnectModal({
 export function PosAccountsList({
   accounts,
   workspaceId,
+  workspaceIsActive,
 }: {
   accounts: PosAccountRow[];
   workspaceId: string;
+  workspaceIsActive: boolean;
 }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
@@ -259,10 +261,7 @@ export function PosAccountsList({
   return (
     <>
       {/* Botsson read-only tools — registers on mount, cleans up on unmount */}
-      {/* TODO(review): workspaceIsActive currently hardcoded to true. Resolve via
-          props from page.tsx once resolve-page-context exposes workspace.status or
-          equivalent active flag. WorkspaceData type currently lacks status field. */}
-      <PosAccountsToolsBridge accounts={toolAccounts} workspaceIsActive={true} />
+      <PosAccountsToolsBridge accounts={toolAccounts} workspaceIsActive={workspaceIsActive} />
 
       <AnimatePresence>
         {modalOpen && (
