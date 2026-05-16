@@ -8613,7 +8613,9 @@ export type SmartoutEvent =
   | TimelineTemplateApplied
   | TimelineTemplateArchived
   | TimelineTemplateApplyFailed
-  | TimelineTemplateListed;
+  | TimelineTemplateListed
+  // ─── Schedule Density (feat/schedule-card-density) ───────────────────────────
+  | ScheduleDensityChanged;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9052,6 +9054,14 @@ export interface PersonalSettingUpdated extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { key: string };
+  };
+}
+
+export interface ScheduleDensityChanged extends BaseEvent {
+  event: "schedule.density_changed";
+  properties: {
+    entity: EntityRef;
+    data: { density: "cozy" | "default" | "compact" | "pulse"; source: "ui" | "voice" };
   };
 }
 
@@ -12899,6 +12909,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "personal.setting_updated": {
     destinations: ["posthog", "activity_trail"],
     category: "agent",
+  },
+  // ─── Schedule Density (feat/schedule-card-density) ───────────────────────
+  "schedule.density_changed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
   },
   // ─── Welcome Wizard (first-login) ────────────────────────────────────────
   // started + step_completed + skipped_optional: posthog (funnel analytics)

@@ -295,8 +295,8 @@ export const DashboardContext = createContext({
   setScheduleDraftCount: (_val: number) => {
     void _val;
   },
-  scheduleCompactMode: false,
-  setScheduleCompactMode: (_val: boolean) => {
+  scheduleDensity: "default" as "cozy" | "default" | "compact" | "pulse",
+  setScheduleDensity: (_val: "cozy" | "default" | "compact" | "pulse") => {
     void _val;
   },
   workspaceData: null as { workspace_id: string; company_id: string | null; name: string } | null,
@@ -468,8 +468,8 @@ function DashboardShellInner({
     setOnPublishAll,
     scheduleDraftCount: scheduleDraftCountDisplay,
     setScheduleDraftCount,
-    scheduleCompactMode,
-    setScheduleCompactMode,
+    scheduleDensity,
+    setScheduleDensity,
     workspaceData,
     isSetupMode,
     isSetupLoading,
@@ -577,8 +577,8 @@ function DashboardShellInner({
       setOnPublishAll,
       scheduleDraftCount: scheduleDraftCountDisplay,
       setScheduleDraftCount,
-      scheduleCompactMode,
-      setScheduleCompactMode,
+      scheduleDensity,
+      setScheduleDensity,
       workspaceData,
       profileId,
       isSetupMode,
@@ -608,8 +608,8 @@ function DashboardShellInner({
       setOnPublishAll,
       scheduleDraftCountDisplay,
       setScheduleDraftCount,
-      scheduleCompactMode,
-      setScheduleCompactMode,
+      scheduleDensity,
+      setScheduleDensity,
       workspaceData,
       profileId,
       isSetupMode,

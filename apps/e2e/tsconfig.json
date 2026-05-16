@@ -21,6 +21,7 @@
     "engine-world/**/*.ts",
     "komm-nyheter/**/*.ts",
     "dagslinjen-quickadd/**/*.ts",
+    "schedule/**/*.ts",
     "playwright.config.ts",
     "global-setup.ts"
   ],
