@@ -56,6 +56,8 @@
     "expo-sqlite": "~55.0.15",
     "expo-status-bar": "~55.0.5",
     "expo-updates": "~55.0.21",
+    "expo-sharing": "~13.1.5",
+    "@shopify/flash-list": "^1.7.3",
     "livekit-client": "^2.17.3",
     "lucide-react-native": "^0.577.0",
     "react": "19.2.4",

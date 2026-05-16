@@ -5,23 +5,257 @@
  * 1. Section label "Din Oversikt" + hero title "Lønn & Arbeid"
  * 2. Primary payroll card: estimated payout, period, hours, "Settled" badge
  * 3. Bento grid (2x2): Absence, Timebank, Supplements, Payslips
- * 4. Recent payslips list with confidence badges
+ * 4. Lønnsgrunnlag PDF archive — FlashList, virtualised, memoized items
+ * 5. Recent payslips list with confidence badges
  *
- * Data from usePayrollSummary() + usePayslips().
+ * Data from usePayrollSummary() + usePayslips() + useMyLonnsgrunnlagList().
+ *
+ * FlashList (§A): items are memoized (React.memo) with stable callbacks
+ * (useCallback). Status badge colours are token-mapped, never hardcoded.
+ * Motion press feedback uses nativeTheme.motion.springReactive (snappy).
+ *
+ * ADR-0133: witness-only — no generate, no admin, no authoring.
  */
 
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import React, { useCallback, useMemo } from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
+import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { Clock, Gift, FileText, CalendarPlus, FileCheck } from "lucide-react-native";
+import { Clock, Gift, FileText, CalendarPlus } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { ActionHeader } from "@/components/navigation/ActionHeader";
 import { strings } from "@/constants/strings";
 import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import { usePayslips } from "@/hooks/queries/use-payslips";
-import { useMyLonnsgrunnlagList } from "@/hooks/queries/use-lonnsgrunnlag";
+import {
+  useMyLonnsgrunnlagList,
+  type LonnsgrunnlagListItem,
+} from "@/hooks/queries/use-lonnsgrunnlag";
+
+/* ── Motion spring (springReactive ≡ springSnappy from tokens.ts) ──────────── */
+const SPRING_SNAPPY = nativeTheme.motion.springReactive;
+
+/* ── Status badge helpers ───────────────────────────────────────────────────── */
+
+type LonnsgrunnlagStatus = "draft" | "locked" | "paid";
+
+function resolveStatus(item: LonnsgrunnlagListItem): LonnsgrunnlagStatus {
+  // variant null + no file_hash = draft; variant 'aggregate' = locked; file_hash = paid
+  if (item.file_hash) return "paid";
+  if (item.variant === "aggregate") return "locked";
+  return "draft";
+}
+
+/** Returns token-mapped badge style for a given status. No hardcoded hex. */
+function useBadgeTokens(status: LonnsgrunnlagStatus) {
+  const theme = useTheme();
+  switch (status) {
+    case "paid":
+      return {
+        bg: `${theme.colors.success}18`,
+        border: `${theme.colors.success}30`,
+        text: theme.colors.success,
+        label: "Utbetalt",
+      };
+    case "locked":
+      return {
+        bg: `${theme.colors.warning}18`,
+        border: `${theme.colors.warning}30`,
+        text: theme.colors.warning,
+        label: "Låst",
+      };
+    case "draft":
+    default:
+      return {
+        bg: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.secondary,
+        border: theme.isDark ? "rgba(255,255,255,0.10)" : theme.colors.border,
+        text: theme.colors.mutedForeground,
+        label: "Utkast",
+      };
+  }
+}
+
+/* ── Lønnsgrunnlag list item (memoized) ─────────────────────────────────────── */
+
+type LonnsgrunnlagItemProps = {
+  item: LonnsgrunnlagListItem;
+  onPress: (item: LonnsgrunnlagListItem) => void;
+};
+
+const LonnsgrunnlagItem = React.memo(function LonnsgrunnlagItem({
+  item,
+  onPress,
+}: LonnsgrunnlagItemProps) {
+  const theme = useTheme();
+  const status = resolveStatus(item);
+  const badge = useBadgeTokens(status);
+
+  // Reanimated press feedback — springReactive (snappy touch response)
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  function handlePressIn() {
+    scale.value = withSpring(0.97, SPRING_SNAPPY);
+  }
+  function handlePressOut() {
+    scale.value = withSpring(1, SPRING_SNAPPY);
+  }
+
+  const dateRange = useMemo(() => {
+    const start = new Date(item.period_start + "T00:00:00");
+    const end = new Date(item.period_end + "T00:00:00");
+    const fmt = (d: Date) => d.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+    return `${fmt(start)} – ${fmt(end)}`;
+  }, [item.period_start, item.period_end]);
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={() => onPress(item)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={itemStyles.row}
+        accessibilityRole="button"
+        accessibilityLabel={`Lønnsgrunnlag for ${item.period_label}`}
+      >
+        {/* Icon wrap */}
+        <View
+          style={[
+            itemStyles.iconWrap,
+            {
+              backgroundColor: theme.isDark
+                ? withOpacity(theme.colors.brandOrange, 0.1)
+                : withOpacity(theme.colors.brandOrange, 0.07),
+            },
+          ]}
+        >
+          <FileText size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
+        </View>
+
+        {/* Text block */}
+        <View style={itemStyles.textBlock}>
+          {/* Period label — bodyBold */}
+          <Text
+            style={[itemStyles.periodLabel, { color: theme.colors.foreground, fontWeight: "600" }]}
+          >
+            Lønnsgrunnlag — {item.period_label}
+          </Text>
+          {/* Date range — monospace xs */}
+          <Text
+            style={[
+              itemStyles.dateRange,
+              { color: withOpacity(theme.colors.mutedForeground, 0.7) },
+            ]}
+          >
+            {dateRange}
+          </Text>
+        </View>
+
+        {/* Status badge */}
+        <View
+          style={[
+            itemStyles.badge,
+            {
+              backgroundColor: badge.bg,
+              borderColor: badge.border,
+            },
+          ]}
+          accessibilityLabel={`Status: ${badge.label}`}
+        >
+          <Text style={[itemStyles.badgeText, { color: badge.text }]}>{badge.label}</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+});
+
+/** Static StyleSheet for LonnsgrunnlagItem — no theme dependency. */
+const itemStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  textBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  periodLabel: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  dateRange: {
+    fontSize: 11,
+    fontFamily: "GeistMono",
+    letterSpacing: 0.2,
+  },
+  badge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    minHeight: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+});
+
+/* ── Lønnsgrunnlag empty state ───────────────────────────────────────────────── */
+
+function LonnsgrunnlagEmptyState() {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        paddingVertical: 24,
+        gap: 10,
+      }}
+    >
+      <FileText
+        size={28}
+        color={withOpacity(theme.colors.mutedForeground, 0.4)}
+        strokeWidth={1.5}
+      />
+      <Text
+        style={{
+          fontSize: 13,
+          color: withOpacity(theme.colors.mutedForeground, 0.6),
+          fontStyle: "italic",
+        }}
+      >
+        Ingen lønnsgrunnlag ennå
+      </Text>
+    </View>
+  );
+}
 
 const MONTH_NAMES = [
   "Januar",
@@ -70,10 +304,37 @@ export default function PayrollHomeScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const { data: summary, isLoading: summaryLoading, error: summaryError } = usePayrollSummary();
-  const { data: payslipsData, isLoading: payslipsLoading, error: payslipsError } = usePayslips();
-  // T5.2 — lønnsgrunnlag PDF list (witness-only, ADR-0133)
+  const { data: summary, isLoading: summaryLoading } = usePayrollSummary();
+  const { data: payslipsData, isLoading: payslipsLoading } = usePayslips();
+  // Lønnsgrunnlag PDF list — witness-only (ADR-0133). FlashList renders items.
   const { data: lonnsgrunnlagList, isLoading: lonnsgrunnlagLoading } = useMyLonnsgrunnlagList();
+
+  // Stable callback for FlashList item — avoids re-render on parent state change
+  const handleLonnsgrunnlagPress = useCallback(
+    (item: LonnsgrunnlagListItem) => {
+      Haptics.selectionAsync();
+      router.push({
+        pathname: "./lonnsgrunnlag-detail",
+        params: {
+          eventId: item.id,
+          periodLabel: item.period_label,
+          exportedAt: item.exported_at,
+        },
+      });
+    },
+    [router],
+  );
+
+  // Stable renderItem for FlashList
+  const renderLonnsgrunnlagItem = useCallback(
+    ({ item }: { item: LonnsgrunnlagListItem }) => (
+      <LonnsgrunnlagItem item={item} onPress={handleLonnsgrunnlagPress} />
+    ),
+    [handleLonnsgrunnlagPress],
+  );
+
+  // Key extractor
+  const keyExtractor = useCallback((item: LonnsgrunnlagListItem) => item.id, []);
 
   const isLoading = summaryLoading || payslipsLoading;
   const hasData = !!summary || !!payslipsData;
@@ -209,7 +470,11 @@ export default function PayrollHomeScreen() {
         </View>
 
         {/* ── Lønnsgrunnlag PDF Archive ── */}
-        {/* T5.2: witness-only list — ADR-0133. No generate button, no admin actions. */}
+        {/*
+         * Witness-only list — ADR-0133. No generate button, no admin actions.
+         * FlashList with memoized LonnsgrunnlagItem + stable renderItem callback.
+         * Empty state: centred FileText icon + "Ingen lønnsgrunnlag ennå".
+         */}
         <Animated.View
           entering={FadeInDown.delay(250).duration(400).springify()}
           style={styles.lonnsgrunnlagSection}
@@ -221,56 +486,16 @@ export default function PayrollHomeScreen() {
             )}
           </View>
 
-          {!lonnsgrunnlagLoading && (!lonnsgrunnlagList || lonnsgrunnlagList.length === 0) && (
-            <View style={styles.lonnsgrunnlagEmpty}>
-              <FileCheck size={20} color={theme.colors.mutedForeground} strokeWidth={1.5} />
-              <Text style={styles.lonnsgrunnlagEmptyText}>
-                Ingen lønnsgrunnlag tilgjengelig ennå
-              </Text>
-            </View>
-          )}
-
-          {(lonnsgrunnlagList ?? []).slice(0, 5).map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push({
-                  pathname: "./lonnsgrunnlag-detail",
-                  params: {
-                    eventId: item.id,
-                    periodLabel: item.period_label,
-                    exportedAt: item.exported_at,
-                  },
-                });
-              }}
-              style={({ pressed }) => [styles.lonnsgrunnlagRow, pressed && styles.cardPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={`Åpne lønnsgrunnlag for ${item.period_label}`}
-            >
-              <View style={styles.lonnsgrunnlagLeft}>
-                <View style={styles.lonnsgrunnlagIconWrap}>
-                  <FileText size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
-                </View>
-                <View>
-                  <Text style={styles.lonnsgrunnlagName}>Lønnsgrunnlag — {item.period_label}</Text>
-                  <Text style={styles.lonnsgrunnlagDate}>
-                    PDF • Generert{" "}
-                    {new Date(item.exported_at).toLocaleDateString("nb-NO", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Text>
-                </View>
-              </View>
-              <FileCheck
-                size={16}
-                color={withOpacity(theme.colors.mutedForeground, 0.5)}
-                strokeWidth={1.8}
-              />
-            </Pressable>
-          ))}
+          {/* FlashList — virtualised, memoized items, stable callbacks */}
+          <FlashList
+            data={lonnsgrunnlagList ?? []}
+            renderItem={renderLonnsgrunnlagItem}
+            keyExtractor={keyExtractor}
+            estimatedItemSize={68}
+            scrollEnabled={false}
+            ListEmptyComponent={!lonnsgrunnlagLoading ? <LonnsgrunnlagEmptyState /> : null}
+            contentContainerStyle={styles.flashListContent}
+          />
         </Animated.View>
 
         {/* ── Recent Payslips ── */}
@@ -627,60 +852,12 @@ const useStyles = createStyles((theme) => ({
     marginTop: 2,
   },
 
-  /* ── Lønnsgrunnlag section (T5.2) ── */
+  /* ── Lønnsgrunnlag section (FlashList container) ── */
   lonnsgrunnlagSection: {
     gap: theme.spacing.element,
     marginBottom: theme.spacing.section,
   },
-  lonnsgrunnlagEmpty: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: theme.spacing.md,
-    paddingVertical: theme.spacing.card,
-    paddingHorizontal: theme.spacing.card,
-    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
-    borderRadius: theme.radius.md,
-  },
-  lonnsgrunnlagEmptyText: {
-    fontSize: 13,
-    color: theme.colors.mutedForeground,
-    fontStyle: "italic" as const,
-  },
-  lonnsgrunnlagRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    padding: theme.spacing.card,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.isDark ? theme.colors.card : "#ffffff",
-    ...theme.shadows.sm,
-  },
-  lonnsgrunnlagLeft: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: theme.spacing.md,
-    flex: 1,
-  },
-  lonnsgrunnlagIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: theme.isDark
-      ? withOpacity(theme.colors.brandOrange, 0.1)
-      : withOpacity(theme.colors.brandOrange, 0.07),
-  },
-  lonnsgrunnlagName: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: theme.colors.foreground,
-  },
-  lonnsgrunnlagDate: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 0.3,
-    color: withOpacity(theme.colors.mutedForeground, 0.7),
-    marginTop: 2,
+  flashListContent: {
+    paddingTop: 4,
   },
 }));
