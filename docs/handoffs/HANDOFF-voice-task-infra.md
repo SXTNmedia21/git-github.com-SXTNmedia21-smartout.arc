@@ -6,7 +6,7 @@ revision: v1
 layer: handoff
 created: 2026-05-13
 updated: 2026-05-13
-adr: ADR-0303
+adr: ADR-0344
 campaign: sortie-5-task-cutover
 related_sorties: [Sortie-3 (ADR-0301), Sortie-4 (ADR-0302)]
 target_branch: feat/sortie-5-task-cutover-voice-task-infra
@@ -76,7 +76,7 @@ Hard rename deferred to Sortie 5c.
 ### D4 — No new ADR for Sortie 5a
 
 Sortie 5a is a sub-sortie inside campaign `sortie-5-task-cutover`. The campaign
-closure ADR (ADR-0303) is written by Sortie 5b after hard-delete completes.
+closure ADR (ADR-0344) is written by Sortie 5b after hard-delete completes.
 Sortie 5a records no independent ADR — all decisions here are implementation
 details within ADR-0298 scope.
 
@@ -149,7 +149,7 @@ Acceptable V1 UX for a Norwegian-first product.
 - Drop `aliasTaskVerbs` shim from intent-classifier (subject to eval-gate pass).
 - Update `CLAUDE.md` task-handling section to reflect final single-verb surface.
 - Promote ADR-0298 from `proposed` → `accepted`.
-- Write ADR-0303 (campaign closure, covers all Sorties 1–5b decisions).
+- Write ADR-0344 (campaign closure, covers all Sorties 1–5b decisions).
 
 ### Sortie 5c (deferred ~2026-06-12)
 

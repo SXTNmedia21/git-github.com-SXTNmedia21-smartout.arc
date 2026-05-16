@@ -8,7 +8,7 @@ created: 2026-05-13
 updated: 2026-05-13
 spec: docs/superpowers/specs/2026-05-13-sortie-5b-hard-delete-operations-complete-design.md
 adr: ADR-0298
-sortie_adr_reserved: ADR-0303
+sortie_adr_reserved: ADR-0344
 campaign: sortie-5-task-cutover
 target_branch: feat/sortie-5-task-cutover-hard-delete-operations-complete
 target_worktree: ~/dev/smartout.ai-sortie-5-task-cutover-wt-2
@@ -108,9 +108,9 @@ Hard-delete `operations.complete_task` + migrate ~6 callers + (conditional) drop
 
 - [ ] T10.1 — `docs/handoffs/HANDOFF-hard-delete-operations-complete.md` per template
 - [ ] T10.2 — `docs/journeys/JOURNEY-sortie-5b-hard-delete-operations-complete.md` with `feature: hard-delete-operations-complete` + `status: verified` in frontmatter (per 5a close-feature gate learning)
-- [ ] T10.3 — `docs/decisions/0303-sortie-5-task-cutover.md` (campaign closure ADR; covers 5a + 5b + 5c-pending). Register in `0000-decision-log.md`.
+- [ ] T10.3 — `docs/decisions/0344-sortie-5-task-cutover.md` (campaign closure ADR; covers 5a + 5b + 5c-pending). Register in `0000-decision-log.md`.
 - [ ] T10.4 — `pnpm turbo typecheck` final green
-- [ ] T10.5 — Closure commit: `docs(sortie-5b): HANDOFF + JOURNEY + ADR-0303 + ADR-0298 promote`
+- [ ] T10.5 — Closure commit: `docs(sortie-5b): HANDOFF + JOURNEY + ADR-0344 + ADR-0298 promote`
 - [ ] T10.6 — Tell Pontus: "Sortie 5b ready for closure. Run `close-feature.sh` from wt-2 to merge into campaign."
 
 ## Acceptance criteria
@@ -125,7 +125,7 @@ Hard-delete `operations.complete_task` + migrate ~6 callers + (conditional) drop
 - [ ] Authority migration applied + idempotent
 - [ ] ADR-0298 promoted to `accepted`
 - [ ] CLAUDE.md task-handling section added
-- [ ] HANDOFF + JOURNEY (with `feature:` + `status:verified` frontmatter) + ADR-0303 present
+- [ ] HANDOFF + JOURNEY (with `feature:` + `status:verified` frontmatter) + ADR-0344 present
 - [ ] Zero new BFF routes
 - [ ] Zero toggleSessionTaskAction touches
 - [ ] Zero HMS module touches

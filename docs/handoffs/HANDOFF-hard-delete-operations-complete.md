@@ -6,7 +6,7 @@ revision: v1
 layer: handoff
 created: 2026-05-13
 updated: 2026-05-13
-adr: ADR-0303
+adr: ADR-0344
 campaign: sortie-5-task-cutover
 related_sorties: [Sortie-3 (ADR-0301), Sortie-4 (ADR-0302), Sortie-5a]
 target_branch: feat/sortie-5-task-cutover-hard-delete-operations-complete

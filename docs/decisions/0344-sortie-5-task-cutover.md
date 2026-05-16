@@ -1,13 +1,13 @@
 ---
-title: "ADR-0303: Sortie 5 Task Ontology Cutover (Campaign Closure)"
-id: ADR_0303
+title: "ADR-0344: Sortie 5 Task Ontology Cutover (Campaign Closure)"
+id: ADR_0344
 status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-13
 ---
 
-# ADR-0303: Sortie 5 Task Ontology Cutover (Campaign Closure)
+# ADR-0344: Sortie 5 Task Ontology Cutover (Campaign Closure)
 
 ## Context and Problem Statement
 
