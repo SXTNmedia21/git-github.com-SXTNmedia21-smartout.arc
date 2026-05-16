@@ -20,6 +20,20 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { AgentToolContext } from "../../types.js";
+
+// Stub @smartout/telemetry — pos tools emit() pos.account.connected after a
+// successful gate. Without this mock, the activity_trail provider calls
+// createClient() with no SUPABASE_URL → "supabaseUrl is required" →
+// unhandled rejection → vitest exit 1. Test doesn't assert emit content;
+// no-op is sufficient.
+vi.mock("@smartout/telemetry", async () => {
+  const actual = await vi.importActual<typeof import("@smartout/telemetry")>("@smartout/telemetry");
+  return {
+    ...actual,
+    emit: vi.fn(async () => undefined),
+  };
+});
+
 import { connectLightspeed, disconnect, listPosAccounts } from "../tools.js";
 
 // ─── Mock factory ──────────────────────────────────────────────────────────
