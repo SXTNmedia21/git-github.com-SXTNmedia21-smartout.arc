@@ -36,6 +36,8 @@ import { KontrakterTab } from "./_components/KontrakterTab";
 import { EmployeePickerDrawer } from "@/components/contracts/EmployeePickerDrawer";
 import { ContractDispatchDrawer } from "@/components/contracts/ContractDispatchDrawer";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
+import { ContractsToolsBridge } from "./_tools/contracts-tools-bridge";
+import type { BucketFilter, ContractRow } from "./_tools/use-contracts-tools";
 
 export default function ContractsPage() {
   const { t } = useTranslation("contracts");
@@ -55,6 +57,12 @@ export default function ContractsPage() {
     profile_id: string;
     display_name: string;
   } | null>(null);
+
+  // Bridge state — contracts list + bucket filter shared with ContractsToolsBridge.
+  // Fetched lightweight here (no pagination) so Botsson always has a fresh snapshot.
+  const [contractsForBridge, setContractsForBridge] = useState<ContractRow[]>([]);
+  const [contractsLoading, setContractsLoading] = useState(false);
+  const [activeBucketForBridge, setActiveBucketForBridge] = useState<BucketFilter>("all");
 
   const workspaceId = workspaceData?.workspace_id ?? null;
 
@@ -78,6 +86,24 @@ export default function ContractsPage() {
       },
     });
   }, [workspaceId, profileId]);
+
+  // Populate bridge data — lightweight list fetch (all statuses, page 1) for
+  // Botsson tools. KontrakterTab has its own fetch+pagination; this is parallel
+  // and non-blocking. Refresh on workspaceId change only (stale 30s acceptable).
+  useEffect(() => {
+    if (!workspaceId) return;
+    setContractsLoading(true);
+    void fetch(`/api/employment-contracts/list?workspace_id=${workspaceId}`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const json = (await res.json()) as { data?: ContractRow[] };
+        setContractsForBridge(json.data ?? []);
+      })
+      .catch(() => {
+        // Bridge data is non-critical — silently ignore fetch errors
+      })
+      .finally(() => setContractsLoading(false));
+  }, [workspaceId]);
 
   // Primary "Lag kontrakt" CTA — opens the composition drawer via query param
   // so the flow is deep-linkable and shareable. Guard: profileId required for
@@ -205,6 +231,20 @@ export default function ContractsPage() {
           }}
         />
       )}
+
+      {/* Harness bridge — registers Botsson tools for this page. Returns null.
+          Unregistered automatically when the user navigates away. */}
+      <ContractsToolsBridge
+        contracts={contractsForBridge}
+        isLoading={contractsLoading}
+        activeBucket={activeBucketForBridge}
+        actorProfileId={profileId}
+        uiActions={{
+          openContractDetail: (contractId) => router.push(`/dashboard/contracts/${contractId}`),
+          openNewContractFlow: handleCreateContract,
+          switchStatusFilter: setActiveBucketForBridge,
+        }}
+      />
     </div>
   );
 }

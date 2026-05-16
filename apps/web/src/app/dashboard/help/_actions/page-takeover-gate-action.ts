@@ -72,6 +72,8 @@ export async function pageTakeoverGateAction(
     return { ok: false, reason: "not_authenticated" };
   }
 
+  // @authority-gate-ungated — forwarder: capability comes from spec (caller-supplied static literal).
+  // Each takeover capability is seeded independently in migrations.
   const gate = await gateAction({
     workspaceId: profile.workspaceId,
     capability: spec.capability,

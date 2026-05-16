@@ -21,6 +21,7 @@ import { CreateAssetDialog } from "../../_components/CreateAssetDialog";
 import { EditAssetDialog } from "../../_components/EditAssetDialog";
 import { LOCATION_TYPE_CONFIG } from "../../_components/constants";
 import type { LocationRow, ZoneRow, AssetRow } from "../../_components/types";
+import { LocationsToolsBridge } from "../_tools/locations-tools-bridge";
 
 export default function LocationDetailPage() {
   const params = useParams<{ id: string }>();
@@ -142,6 +143,8 @@ export default function LocationDetailPage() {
 
   return (
     <>
+      {/* Harness bridge — registers Botsson tools for this surface */}
+      <LocationsToolsBridge location={location} zones={zones} assets={assets} loading={false} />
       <EntityDetailLayout
         breadcrumbs={[
           { label: "Organization", href: "/dashboard/organization" },

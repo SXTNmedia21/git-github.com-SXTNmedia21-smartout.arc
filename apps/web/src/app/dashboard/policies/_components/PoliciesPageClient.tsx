@@ -20,7 +20,8 @@ import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import { PolicyTypeBadge } from "./PolicyTypeBadge";
 import { PolicyCreateDialog } from "./PolicyCreateDialog";
-import type { PolicyRow } from "../_actions/policy-actions";
+import type { PolicyRow, CreatePolicyInput } from "../_actions/policy-actions";
+import { PoliciesToolsBridge } from "../_tools/policies-tools-bridge";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -61,8 +62,23 @@ function enforcementLabel(status: string): string {
 export function PoliciesPageClient({ initialData }: { initialData: PoliciesPageInitialData }) {
   const [isCompact, setIsCompact] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogPolicyType, setDialogPolicyType] = useState<
+    CreatePolicyInput["policy_type"] | undefined
+  >(undefined);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Bridge callbacks — forwarded to PoliciesToolsBridge so Botsson can
+  // open the create dialog (optionally pre-selecting a type) or highlight
+  // a policy by id. Detail navigation is a no-op in Phase 1.
+  const openCreateDialog = useCallback((policyType?: CreatePolicyInput["policy_type"]) => {
+    setDialogPolicyType(policyType);
+    setIsDialogOpen(true);
+  }, []);
+
+  const openPolicyById = useCallback((_policyId: string) => {
+    // Phase 1: no detail view yet. No-op — tool returns found: true with summary.
+  }, []);
 
   // Policies are provided by server — after createPolicy calls revalidatePath
   // the server re-renders with fresh data. No client-side re-fetch needed.
@@ -157,7 +173,21 @@ export function PoliciesPageClient({ initialData }: { initialData: PoliciesPageI
       </div>
 
       {/* Create dialog */}
-      <PolicyCreateDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} />
+      <PolicyCreateDialog
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setDialogPolicyType(undefined);
+        }}
+      />
+
+      {/* Botsson harness bridge — registers page-scoped tools on mount.
+          ADR-0238: policies is not a chat surface, owns_chat_surface = false. */}
+      <PoliciesToolsBridge
+        policies={policies}
+        openCreateDialog={openCreateDialog}
+        openPolicyById={openPolicyById}
+      />
     </div>
   );
 }

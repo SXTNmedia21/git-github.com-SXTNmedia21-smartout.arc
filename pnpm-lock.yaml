@@ -968,6 +968,9 @@ importers:
       '@smartout/ai':
         specifier: workspace:*
         version: link:../ai
+      livekit-client:
+        specifier: ^2.17.3
+        version: 2.17.3(@types/dom-mediacapture-record@1.0.22)
     devDependencies:
       '@smartout/eslint-config':
         specifier: workspace:^
@@ -1316,6 +1319,9 @@ importers:
       '@smartout/supabase':
         specifier: workspace:*
         version: link:../supabase
+      '@smartout/telemetry':
+        specifier: workspace:*
+        version: link:../telemetry
       '@supabase/supabase-js':
         specifier: 2.49.4
         version: 2.49.4

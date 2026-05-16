@@ -23,8 +23,8 @@
  * Telemetry: TODO — Agent V wires payroll_profile.updated emit() in Wave 2.
  *
  * Voice readback: FORBIDDEN per ADR-0078 for all fields in this section.
- * DomainChatOwnership: TODO — mount <DomainChatOwnership reason="payroll-profile" />
- * when the component is available (ADR-0238, Orb suppression for payroll surface).
+ * DomainChatOwnership: no-op intentional — this section is a payroll-profile form,
+ * not a domain chat surface. Orb runs in interactive mode (ADR-0238).
  */
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";

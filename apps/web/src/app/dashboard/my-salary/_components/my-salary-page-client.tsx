@@ -25,6 +25,7 @@ import { PeriodList } from "./PeriodList";
 import { PayslipDetail } from "./PayslipDetail";
 import { BalancesSidebar } from "./BalancesSidebar";
 import { MySalaryListClient } from "./MySalaryListClient";
+import { MySalaryToolsBridge } from "../_tools/my-salary-tools-bridge";
 
 // UI Events:
 // - action: setSelectedPeriodId(id) — period row click triggers detail refresh
@@ -47,6 +48,16 @@ export function MySalaryPageClient() {
 
   return (
     <div className="flex h-full flex-col">
+      {/* Botsson harness bridge — mounts tools once data is available */}
+      {!isLoading && (
+        <MySalaryToolsBridge
+          payslips={payslips}
+          salaryData={data}
+          selectedPeriodId={activePeriodId}
+          setSelectedPeriodId={setSelectedPeriodId}
+        />
+      )}
+
       <div className="flex flex-col gap-4 p-4 lg:flex-row">
         {/* Left: period list — fixed width, full height */}
         <div className="order-2 w-full shrink-0 lg:order-1 lg:w-72">

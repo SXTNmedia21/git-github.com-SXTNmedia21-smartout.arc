@@ -150,6 +150,18 @@
       "types": "./dist/capabilities/task/tools.d.ts",
       "default": "./dist/capabilities/task/tools.js"
     },
+    "./capabilities/timeline-template": {
+      "types": "./dist/capabilities/timeline-template/index.d.ts",
+      "default": "./dist/capabilities/timeline-template/index.js"
+    },
+    "./capabilities/timeline-template/tools": {
+      "types": "./dist/capabilities/timeline-template/tools.d.ts",
+      "default": "./dist/capabilities/timeline-template/tools.js"
+    },
+    "./capabilities/pos_account_management/tools": {
+      "types": "./dist/capabilities/pos_account_management/tools.d.ts",
+      "default": "./dist/capabilities/pos_account_management/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -161,6 +173,10 @@
     "./capabilities/journey": {
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
+    },
+    "./capabilities/scheduler": {
+      "types": "./dist/capabilities/scheduler/index.d.ts",
+      "default": "./dist/capabilities/scheduler/index.js"
     },
     "./capabilities/tips/calculate": {
       "types": "./dist/capabilities/tips/calculate.d.ts",
@@ -221,6 +237,14 @@
     "./classifiers/pii-classifier": {
       "types": "./dist/classifiers/pii-classifier.d.ts",
       "default": "./dist/classifiers/pii-classifier.js"
+    },
+    "./harness": {
+      "types": "./dist/harness/index.d.ts",
+      "default": "./dist/harness/index.js"
+    },
+    "./harness/types": {
+      "types": "./dist/harness/types.d.ts",
+      "default": "./dist/harness/types.js"
     }
   },
   "scripts": {

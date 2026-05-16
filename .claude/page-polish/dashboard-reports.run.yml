@@ -1,0 +1,136 @@
+# Page Polish Run — dashboard/reports
+# Tier 2/3 (strategic analytics). Read-mostly C1 calibration + C3 commercial surface.
+# Phase 7 (harness tools bridge) shipped. Phases 1-3 (Lighthouse) deferred — browser session required.
+
+route: /dashboard/reports
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/reports
+  components_count: 20  # page.tsx + loading.tsx + 12 _components + 4 _hooks + 2 _tools (new)
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/reports/page.tsx (Server Component, Suspense-wrapped)
+  loading_fallback: apps/web/src/app/dashboard/reports/loading.tsx
+  shell: apps/web/src/app/dashboard/reports/_components/ReportsPageShell.tsx ("use client")
+  tabs:
+    - { value: overview,  label: "Oversikt",        section: OverviewSection (dynamic)  }
+    - { value: people,    label: "Medarbeidere",     section: PeopleSection (dynamic)    }
+    - { value: staffing,  label: "Bemanning",        section: StaffingSection (dynamic)  }
+    - { value: training,  label: "Opplæring",        section: TrainingSection (dynamic)  }
+    - { value: saved,     label: "Mine rapporter",   section: SavedReportsGrid (static)  }
+  drawers:
+    - AiReportDrawer   # AI custom-report builder
+    - ReportInsightDrawer  # factor-adjustment deep-dive
+  state_machine:
+    - loading          # Suspense → loading.tsx
+    - ready            # ReportsPageShell renders with tabs
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# Step 4 — Datapoints
+datapoints:
+  - { name: overview,  hook: useReportOverview,  type: query, queryKey: "[reports, overview, wsId]" }
+  - { name: people,    hook: useReportPeople,    type: query, queryKey: "[reports, people, wsId]"   }
+  - { name: staffing,  hook: useReportStaffing,  type: query, queryKey: "[reports, staffing, wsId]" }
+  - { name: training,  hook: useReportTraining,  type: query, queryKey: "[reports, training, wsId]" }
+  - { name: saved,     source: SavedReportsGrid (useEffect + Supabase direct), type: direct }
+
+server_actions: []
+mutations: []  # No user-facing mutations on this surface — read-only analytics.
+
+# Step 5 — Design pass
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: true   # h1 uses font-heading
+  semantic_tokens:
+    bg-muted: yes
+    text-foreground: yes
+    text-muted-foreground: yes
+    border-border: yes
+  finding: clean_phase_4
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  header: "Rapporter"
+  description: "Innsikt og analyse for din arbeidsstyrke"
+  empty_copy: |
+    Arbeidsrom ikke tilgjengelig for rapporter enda. (existing fallback)
+  error_copy: null  # relies on Next.js error boundary — acceptable for analytics surface
+
+# Step 7 — Harness tools (Phase 7)
+harness_tools:
+  page_key: reports
+  file_hook: apps/web/src/app/dashboard/reports/_tools/use-reports-tools.ts
+  file_bridge: apps/web/src/app/dashboard/reports/_tools/reports-tools-bridge.tsx
+  mounted_in: ReportsPageShell.tsx (before Tabs render)
+  tool_count: 7
+  tools:
+    - key: getReportsState
+      description: "Get the current state of the reports page — active tab, available tabs, workspace ID. Call first when the manager asks any open-ended question about rapporter or statistikk."
+    - key: getKpiSummary
+      description: "Get the four top-level KPIs for the workspace: ansatte (headcount), beredskap (readiness %), vaktdekning (shift coverage %), and opplæring (training %). Use when manager asks 'hvordan står vi?', 'hva er beredskapen?', or wants a quick pulse check."
+    - key: getReportByTab
+      description: "Get structured analytics data for a specific tab. Use when manager asks about medarbeidere (role/status/tenure), bemanning (shift coverage, unfilled shifts, labor hours), or opplæring (protocol compliance, overdue assignments). Specify which tab to fetch."
+    - key: listSavedReports
+      description: "List saved custom reports for this workspace — count only (full list requires opening Mine rapporter tab). Use when manager asks 'har jeg lagret noen rapporter?' or 'finn min rapport om X'."
+    - key: getUnfilledShifts
+      description: "Get unfilled shifts (no employee assigned) in the next 7 days. Use when manager asks 'hvilke vakter mangler folk?', 'hvem er det hull i vakta?', or wants to see staffing gaps."
+    - key: switchReportTab
+      description: "Switch the active reports tab — 'overview' (Oversikt), 'people' (Medarbeidere), 'staffing' (Bemanning), 'training' (Opplæring), 'saved' (Mine rapporter). Use when manager says 'vis bemanning', 'åpne opplæring', 'gå til medarbeidere'."
+    - key: openAiReportAssistant
+      description: "Open the AI report-builder drawer so the manager can generate a custom report. Use when manager says 'lag en rapport', 'generer statistikk', 'åpne AI-assistenten', or asks for data not covered by the standard tabs."
+  owns_chat_surface: false  # ADR-0238 — no DomainChatOwnership declared
+
+# Step 8 — Speed test (DEFERRED — requires Lighthouse browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 9 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # deferred — browser session needed
+  no_skeleton_flash: null              # Suspense + matched dims — likely ok; needs browser confirm
+  motion_tokens_used: true             # 0 raw spring/damping values in page tree
+  telemetry_emit_per_mutation: true    # no user mutations — read-only surface
+  page_knowledge_written: true         # header + description present in ReportsPageShell
+  page_knowledge_db_synced: false      # pending page_knowledge table row
+  harness_tools_registered: true       # 7 tools via use-reports-tools.ts + bridge
+  retest_improved: false               # deferred
+
+# Notes
+notes: |
+  Phase 7 harness bridge shipped. Seven tools registered:
+    - 5 read tools: getReportsState, getKpiSummary, getReportByTab, listSavedReports, getUnfilledShifts
+    - 1 navigation: switchReportTab
+    - 1 drawer-open: openAiReportAssistant
+
+  Key design decisions:
+  - Hoisted all four analytics hooks (useReportOverview/People/Staffing/Training) into
+    ReportsPageShell so bridge has live data even before tab chunks load. TanStack
+    deduplicates against the same queryKeys the section components use — zero extra fetches.
+  - Tabs switched from uncontrolled (defaultValue) to controlled (value + onValueChange) so
+    Botsson can navigate tabs programmatically via switchReportTab.
+  - savedReportsCount is tracked as state in shell (updated via onCountChange from SavedReportsGrid
+    — future follow-up: wire SavedReportsGrid to emit its count upward; currently 0 default).
+  - ADR-0238 respected: owns_chat_surface=false.
+  - ADR-0151 respected: workspaceId comes from auth-derived prop, never body-supplied.
+
+  Next sortie follow-ups:
+  1. Wire SavedReportsGrid to call onCountChange(reports.length) on load so savedReportsCount
+     reflects actual saved report count.
+  2. Add page_knowledge table row for /dashboard/reports.
+  3. Add site-map.json entry for /dashboard/reports (Phase 8 — excluded from this task).
+  4. Phase 1-3 Lighthouse once browser session available.

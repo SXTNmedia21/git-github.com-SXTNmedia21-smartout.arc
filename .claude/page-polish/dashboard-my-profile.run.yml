@@ -1,0 +1,48 @@
+# Page Polish Run — /dashboard/my-profile (parent stub, no surface)
+
+route: /dashboard/my-profile
+status: done
+verified: true
+started_at: 2026-05-14T17:55:00+02:00
+verified_at: 2026-05-14T17:55:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-profile
+  components_count: 0
+
+# Step 2 — Architecture
+architecture:
+  parent_surface: false
+  reason: |
+    /dashboard/my-profile has NO page.tsx of its own. It is a container path
+    for sub-routes only. The polished surface is /dashboard/my-profile/complete
+    (employee PII intake). When more sub-routes ship (e.g. /my-profile/cv,
+    /my-profile/contract-history), each gets its own run.yml.
+  sub_routes:
+    - path: /dashboard/my-profile/complete
+      polish_file: .claude/page-polish/dashboard-my-profile-complete.run.yml
+      status: done
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+
+# Step 4 — Harness tools — n/a at parent level
+harness_tools_current:
+  count: 0
+  scope: n/a
+  notes: Tools live at sub-route scope; see dashboard-my-profile-complete.run.yml.
+
+# Step 11 — Verification checklist
+checklist:
+  parent_has_no_surface: true
+  sub_routes_polished: true
+  harness_tools_registered: true # at sub-route scope
+  page_knowledge_written: true   # in sub-route run.yml
+
+notes: |
+  Parent route stub satisfies pre-commit polish gate. No UI lives at this
+  path. All polish artifacts live in the sub-route run.yml(s).

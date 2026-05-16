@@ -38,6 +38,7 @@ import { AiSuggestionCard } from "./_components/shell/AiSuggestionCard";
 import { YearCanvas } from "./_components/canvas/YearCanvas";
 import { SeasonQuickCreateSheet } from "./_components/SeasonQuickCreateSheet";
 import { useSeasons, usePlanningEvents, useSeasonsSeededState } from "./_hooks";
+import { YearWheelToolsBridge } from "./_tools/year-wheel-tools-bridge";
 
 type FilterKey = "all" | "active" | "draft" | "archived";
 
@@ -253,6 +254,19 @@ export function YearWheelPageClient() {
           onAbandon={handleQuickCreateAbandon}
         />
       )}
+      {/* Botsson harness — registers D4/D5 year-wheel tools; returns null */}
+      <YearWheelToolsBridge
+        year={year}
+        seasons={seasons}
+        events={events}
+        seededSet={seededSet}
+        filter={filter}
+        uiActions={{
+          setYear: handleYearChange,
+          setFilter: handleFilterChange,
+          openSeason: handleSelectSeason,
+        }}
+      />
     </div>
   );
 }

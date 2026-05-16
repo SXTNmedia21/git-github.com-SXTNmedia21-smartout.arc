@@ -1,5 +1,6 @@
 "use client";
 
+import { motion as motionTokens } from "@smartout/design-tokens";
 import React, { useState, useMemo, useCallback, useContext } from "react";
 import {
   Calendar,
@@ -317,7 +318,7 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 12 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "spring", ...motionTokens.spring }}
                 className="border-border bg-background fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border px-6 py-4 shadow-xl"
               >
                 <div>
@@ -620,7 +621,7 @@ function ShiftRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
+            transition={{ duration: motionTokens.exitMs / 1000, ease: motionTokens.easingArray }}
             className="overflow-hidden"
           >
             <div className="mx-4 mb-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">

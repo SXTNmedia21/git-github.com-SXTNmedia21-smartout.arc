@@ -1,0 +1,120 @@
+---
+title: Page Polish — /dashboard/organization/departments/[id]
+route: /dashboard/organization/departments/:id
+status: done
+verified: true
+verified_at: "2026-05-14T00:00:00+02:00"
+created: "2026-05-14"
+updated: "2026-05-14"
+module: Organization
+tier: 3
+access:
+  - owner
+  - admin
+
+# ─────────────────────────────────────────────
+# Phase 1 — Speed test baseline
+# ─────────────────────────────────────────────
+phase_1:
+  status: skip
+  note: >
+    Harness-bridge sortie only. Speed-test baseline deferred to full
+    Tier 3 polish pass — route is admin-only and data-fetching pattern
+    already follows Promise.all parallelism (lines 67-106 of page.tsx).
+
+# ─────────────────────────────────────────────
+# Phase 2 — Fix bottlenecks
+# ─────────────────────────────────────────────
+phase_2:
+  status: skip
+  note: >
+    Loading state already uses bg-muted animate-pulse skeletons (lines 177-183).
+    No DOM-tree remount pattern detected. Deferred to Tier 3 pass.
+
+# ─────────────────────────────────────────────
+# Phase 3 — Re-test + admin upgrade
+# ─────────────────────────────────────────────
+phase_3:
+  status: skip
+  note: Route is admin/owner only — no dual-role branching.
+
+# ─────────────────────────────────────────────
+# Phase 4 — UI/UX polish
+# ─────────────────────────────────────────────
+phase_4:
+  status: skip
+  note: >
+    Page uses semantic tokens (bg-card, bg-muted, border-border, text-foreground,
+    text-muted-foreground). Full motion/typography audit deferred to Tier 3 pass.
+
+# ─────────────────────────────────────────────
+# Phase 5 — Telemetry registry
+# ─────────────────────────────────────────────
+phase_5:
+  status: done
+  note: >
+    DepartmentHoursTab.tsx already emits `operating_hours updated` via emit()
+    in saveMutation.onSuccess (line 162). No new mutations added in this sortie.
+    togglePositionActive and toggleDeptActive are deferred emit candidates
+    for the Tier 3 pass.
+
+# ─────────────────────────────────────────────
+# Phase 6 — Page instructions
+# ─────────────────────────────────────────────
+phase_6:
+  status: skip
+  note: >
+    EntityDetailLayout renders breadcrumbs + department name as heading.
+    Full description + empty/error copy audit deferred to Tier 3 pass.
+
+# ─────────────────────────────────────────────
+# Phase 7 — Harness tool expectations
+# ─────────────────────────────────────────────
+phase_7:
+  status: done
+  scope: organization-departments
+  files:
+    - apps/web/src/app/dashboard/organization/departments/[id]/_tools/use-departments-tools.ts
+    - apps/web/src/app/dashboard/organization/departments/[id]/_tools/departments-tools-bridge.tsx
+  tools:
+    - name: getDepartmentSummary
+      description: >
+        Get a summary of the current department — name, active/inactive status,
+        position count, team count, member count, policy count, and manager name.
+        Use when the user asks 'hva er status på denne avdelingen?', 'hvem leder
+        avdelingen?', 'hvor mange ansatte er her?', or wants a quick overview.
+    - name: listPositions
+      description: >
+        List all positions defined in this department with their active status,
+        minimum role requirement, and description. Use when the user asks 'hvilke
+        stillinger finnes her?', 'vis stillinger i avdelingen', 'er [stilling] aktiv?',
+        or needs to review staffing structure.
+    - name: listDepartmentTeams
+      description: >
+        List all teams linked to this department. Use when the user asks 'hvilke team
+        tilhører avdelingen?', 'vis team i [avdeling]', or needs to understand team
+        structure within this department.
+    - name: getDepartmentOperatingHours
+      description: >
+        Get the per-day operating hour offsets for this department relative to workspace
+        base hours. Use when the user asks 'når åpner avdelingen?', 'hva er åpningstidene
+        her?', 'er det avvik fra arbeidsstedets timer?', or needs to review when this
+        department operates.
+    - name: openDepartmentEdit
+      description: >
+        Open the edit dialog for this department so the user can change name, description,
+        color, icon, manager, or active status. Use when the user says 'rediger avdelingen',
+        'endre navn', 'oppdater avdelingsinfo', or asks to modify department settings.
+  adr_refs:
+    - ADR-0151  # workspace_id auth-derived, never body-supplied
+    - ADR-0238  # no domain chat surface — Orb interactive mode
+
+# ─────────────────────────────────────────────
+# Phase 8 — Site-map registration
+# ─────────────────────────────────────────────
+phase_8:
+  status: skip
+  note: >
+    DO NOT touch site-map.json per task constraints. Dynamic [id] routes
+    typically carry a parent-level entry (/dashboard/organization). Site-map
+    entry for this sub-route deferred to Tier 3 pass.

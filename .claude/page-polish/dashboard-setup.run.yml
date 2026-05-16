@@ -1,0 +1,119 @@
+# Page Polish Run — dashboard/setup
+# Phase 7 (harness tools) verified. 6 Botsson tools registered.
+# Phases 1-3 (Lighthouse) deferred — requires browser session.
+# Phase 8 (site-map) deferred — DO NOT TOUCH per task scope.
+
+route: /dashboard/setup
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T00:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/setup
+  components_count: 17  # page + types + wizard-definition + 9 _adapters + 1 _components + 3 _tools + 1 _actions
+
+architecture:
+  entry: apps/web/src/app/dashboard/setup/page.tsx (thin shell — "use client", lifts wizard state via onContextChange)
+  wizard: AnimatedWizardShell (packages/ui WizardShell + framer-motion + telemetry via useWizardTelemetry)
+  definition: apps/web/src/app/dashboard/setup/wizard-definition.ts (dashboardSetupWizard — 9 steps)
+  state_type: apps/web/src/app/dashboard/setup/types.ts (SetupState)
+  steps:
+    - { id: welcome,         skippable: true,  module: onboarding, adapter: WelcomeStepAdapter }
+    - { id: document-drop,   skippable: true,  module: governance,  adapter: DocumentDropStepAdapter }
+    - { id: governance,      skippable: false, module: governance,  adapter: GovernanceStepAdapter }
+    - { id: payroll,         skippable: false, module: governance,  adapter: PayrollStepAdapter }
+    - { id: employment,      skippable: false, module: governance,  adapter: EmploymentStepAdapter }
+    - { id: team,            skippable: true,  module: people,      adapter: TeamStepAdapter }
+    - { id: shift-template,  skippable: true,  module: schedule,    adapter: ShiftTemplateStepAdapter }
+    - { id: season,          skippable: false, module: season,      adapter: SeasonStepAdapter }
+    - { id: handbook,        skippable: true,  module: governance,  adapter: HandbookStepAdapter }
+  server_actions:
+    - { file: _actions/season-actions.ts, exports: [createSeason, updateSeason], gate: gatedInsert/gatedUpdate, telemetry: "season created / season updated" }
+  wizard_context:
+    source: onContextChange prop → WizardContextPayload (stepId, stepIndex, completedSteps, totalSteps)
+    lifted_by: handleContextChangeWithLift in page.tsx → SetupToolInput
+  step_override: "?step=<stepId> URL param — page.tsx wraps loadState to inject _initialStepIndex"
+
+adr_0238:
+  owns_chat_surface: false
+  reason: |
+    useWizardBotssonContext is a context-injection hook that sends wizard navigation
+    context INTO Botsson's existing LLM session. It does NOT create a second chat
+    surface — no <DomainChatOwnership> declaration needed.
+
+# Step 7 — Harness tools
+harness_tools:
+  count: 6
+  registered_at: apps/web/src/app/dashboard/setup/_tools/setup-tools-bridge.tsx
+  page_key: setup
+  read:
+    - key: getSetupProgress
+      desc: "Get overall workspace setup progress: how many steps are done, which modules are complete, and how many remain. Use when the user asks 'hva gjenstår?', 'er setup ferdig?', or 'hvor langt er jeg kommet?'."
+    - key: listSetupSteps
+      desc: "List all 9 setup wizard steps with their id, module, skippable flag, and whether completed this session. Use when the user asks to see the full setup checklist or wants to know which steps remain."
+    - key: getCurrentStep
+      desc: "Get the currently active setup step: id, index, module, and skippable flag. Use when the user asks 'hvor er jeg nå?', 'hvilket steg er jeg på?', or before calling proposeAdvanceStep."
+  write_propose:
+    - key: proposeAdvanceStep
+      desc: "Advance the wizard to the next step. Only use when the user explicitly says they want to move on, skip, or continue to the next step. Does NOT apply when the user has content to fill in first."
+  navigation:
+    - key: openStep
+      desc: "Jump directly to a named setup step. Use when the user wants to go to a specific step (e.g. 'gå til lønn' → payroll, 'åpne team-steget' → team). Valid ids: welcome, document-drop, governance, payroll, employment, team, shift-template, season, handbook."
+    - key: restartSetup
+      desc: "Restart the setup wizard from the first step. Use ONLY when the user explicitly asks to start over or reset setup. This reloads the page."
+
+page_knowledge:
+  header: Oppsett av arbeidssted
+  description: Fullfør oppsettveiviseren for å aktivere alle moduler — tariff, ansatte, sesong og håndbok.
+  empty_copy: Veiviseren er ikke fullført. Start fra steget du er på eller hopp til et bestemt steg.
+  error_copy: Noe gikk galt i oppsettet. Last siden på nytt eller hopp over det aktuelle steget.
+
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  note: |
+    AnimatedWizardShell (Tier 0 shared primitive) handles all motion and
+    brand panel. SetupStepHeader uses CSS variables (text-foreground,
+    text-muted-foreground, border-border, bg-muted). No page-level
+    hardcoded colors or raw spring values introduced by this harness.
+
+navigation_implementation:
+  openStep: "window.location.href = /dashboard/setup?step=<id> — hard navigate triggers wizard remount; loadState override in page.tsx injects _initialStepIndex from ?step= param"
+  proposeAdvanceStep: "Returns { ok: true, advancing: true, nextStepId } after dispatching CustomEvent('botsson:setup:advance') — Botsson relays the confirmation; user clicks Neste to proceed (wizard-appropriate UX: user controls step progression)"
+  restartSetup: "sessionStorage.removeItem('setup_dismissed') + window.location.href = /dashboard/setup"
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked — requires browser session
+  no_skeleton_flash: true              # Suspense + AnimatedWizardShell handles skeleton
+  motion_tokens_used: true             # AnimatedWizardShell uses motionTokens.* (Tier 0)
+  telemetry_emit_per_mutation: true    # season-actions.ts emits "season created" / "season updated"; useWizardTelemetry covers step events
+  page_knowledge_written: true
+  page_knowledge_db_synced: false
+  harness_tools_registered: true       # 6 tools — verified typecheck exit 0
+  retest_improved: false               # blocked — requires browser session
+
+notes: |
+  Setup wizard is a one-time workspace bootstrap flow (9 steps covering
+  governance, payroll, employment, team, schedule, season, handbook).
+  Wizard state is managed internally by WizardShell (packages/ui) —
+  page.tsx lifts read-only state via onContextChange callback chain.
+
+  The SetupToolsBridge (Botsson harness) gets currentStepIndex +
+  completedSteps + isLoading from the lifted state. Navigation tools use
+  hard reload (window.location.href) with ?step= URL param because
+  WizardShell does not expose a goTo imperative handle externally —
+  wizard-appropriate UX: user controls step progression, Botsson guides.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
+    page_knowledge_db_synced: requires Supabase page_knowledge table write
+    site-map: excluded from task scope per instructions

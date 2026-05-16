@@ -19,9 +19,10 @@ import {
   ChevronDown,
   ArrowLeft,
 } from "lucide-react";
-import { useState, useContext, useEffect, useCallback, useRef } from "react";
+import { useState, useContext, useEffect, useCallback, useRef, useId } from "react";
 import Papa from "papaparse";
 import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
@@ -73,8 +74,18 @@ export function InviteMemberDialog({
   onRefresh,
 }: InviteMemberDialogProps) {
   const { workspaceData, profileId } = useContext(DashboardContext);
+  const titleId = useId();
   const [mode, setMode] = useState<InviteMode>("single");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
 
   // Single mode state
   const [singleRow, setSingleRow] = useState<InviteRow>(createEmptyRow);
@@ -92,8 +103,10 @@ export function InviteMemberDialog({
     });
   }, []);
 
-  // Employee groups and contract templates
-  const [employeeGroups, setEmployeeGroups] = useState<{ id: string; name: string }[]>([]);
+  // Employee groups (= lønnsprofiler) and contract templates
+  const [employeeGroups, setEmployeeGroups] = useState<
+    { id: string; name: string; default_hourly_rate: number }[]
+  >([]);
   const [contractTemplates, setContractTemplates] = useState<
     { template_id: string; name: string }[]
   >([]);
@@ -115,11 +128,14 @@ export function InviteMemberDialog({
     supabase
       .schema("payroll")
       .from("employee_group")
-      .select("id, name")
+      .select("id, name, default_hourly_rate")
       .eq("workspace_id", workspaceData.workspace_id)
+      .eq("is_active", true)
       .order("name")
       .then(({ data }) => {
-        if (data) setEmployeeGroups(data as { id: string; name: string }[]);
+        if (data) {
+          setEmployeeGroups(data as { id: string; name: string; default_hourly_rate: number }[]);
+        }
       });
 
     supabase
@@ -209,6 +225,13 @@ export function InviteMemberDialog({
     setCsvTotalCount(0);
     setMode("single");
   }, [workspaceData?.workspace_id]);
+
+  // Avbryt + post-success "Lukk": full nuke (draft cleared, form reset, dialog closed).
+  // X / backdrop / ESC stay onClose-only so accidental close preserves draft.
+  const handleCancel = useCallback(() => {
+    resetAfterSuccess();
+    onClose();
+  }, [resetAfterSuccess, onClose]);
 
   // ── CSV file handling ──
 
@@ -472,45 +495,32 @@ export function InviteMemberDialog({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
             style={{
-              background:
-                "radial-gradient(circle at 50% 30%, oklch(0.18 0.04 55 / 0.55), oklch(0.08 0.02 50 / 0.78))",
-              backdropFilter: "blur(8px)",
+              background: "oklch(0.20 0.02 50 / 0.35)",
+              backdropFilter: "blur(4px)",
             }}
           >
             <motion.div
               key="invite-shell"
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 35, damping: 22, mass: 2.2 }}
-              className={`bg-background/80 ring-border/60 relative flex w-full flex-col overflow-hidden rounded-3xl shadow-[0_32px_120px_-24px_rgba(0,0,0,0.55)] ring-1 backdrop-blur-xl ${shellWidth}`}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ type: "spring", ...motionTokens.springSnappy }}
+              className={`bg-card ring-border/60 relative flex w-full flex-col overflow-hidden rounded-3xl shadow-[0_32px_120px_-24px_rgba(0,0,0,0.35)] ring-1 ${shellWidth}`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-3xl"
-                style={{
-                  background:
-                    "linear-gradient(135deg, oklch(1 0 0 / 0.10) 0%, oklch(1 0 0 / 0.02) 35%, transparent 60%)",
-                }}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -top-32 -right-24 h-64 w-64 rounded-full opacity-40 blur-3xl"
-                style={{
-                  background:
-                    "radial-gradient(circle, oklch(0.78 0.18 55 / 0.45), transparent 70%)",
-                }}
-              />
               <div className="relative flex flex-col">
                 {/* Header */}
                 <DialogHeader
+                  titleId={titleId}
                   title={mode === "csv" ? "CSV-import" : "Inviter ansatt"}
                   subtitle={
                     mode === "csv"
@@ -519,16 +529,20 @@ export function InviteMemberDialog({
                   }
                   icon={
                     mode === "single" ? (
-                      <UserPlus className="text-brand-orange h-5 w-5" />
+                      <UserPlus className="text-brand-orange h-5 w-5" aria-hidden="true" />
                     ) : undefined
                   }
                   onClose={onClose}
                   onBack={mode === "csv" ? () => setMode("single") : undefined}
-                  backIcon={mode === "csv" ? <ArrowLeft className="h-5 w-5" /> : undefined}
+                  backIcon={
+                    mode === "csv" ? (
+                      <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                    ) : undefined
+                  }
                 />
 
-                {/* Content */}
-                <div className="max-h-[60vh] overflow-y-auto px-7 pb-2">
+                {/* Content — no scroll: form is 2-col + collapsible employment block */}
+                <div className="px-7 pb-2">
                   {generatedLink ? (
                     <GeneratedLinkView
                       link={generatedLink}
@@ -581,7 +595,7 @@ export function InviteMemberDialog({
                     generatedLink ? (
                       <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleCancel}
                         className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                         Lukk
@@ -590,8 +604,8 @@ export function InviteMemberDialog({
                       <>
                         <button
                           type="button"
-                          onClick={onClose}
-                          className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
+                          onClick={handleCancel}
+                          className="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring/50 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
                           disabled={isSubmitting}
                         >
                           Avbryt
@@ -651,6 +665,8 @@ export function InviteMemberDialog({
 
 // ─── Single Invite Form ─────────────────────────────────────
 
+const CUSTOM_PROFILE_ID = "__custom__";
+
 function SingleInviteForm({
   row,
   onChange,
@@ -663,23 +679,45 @@ function SingleInviteForm({
   row: InviteRow;
   onChange: (row: InviteRow) => void;
   departments: Department[];
-  employeeGroups: { id: string; name: string }[];
+  employeeGroups: { id: string; name: string; default_hourly_rate: number }[];
   contractTemplates: { template_id: string; name: string }[];
   channels: Set<InviteChannel>;
   onToggleChannel: (ch: InviteChannel) => void;
 }) {
   const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
-  const [showEmployment, setShowEmployment] = useState(false);
+
+  // True when user picked a real group OR explicit "Egendefinert" — both reveal pay fields.
+  const isCustomProfile = row.employeeGroupId === CUSTOM_PROFILE_ID;
+  const hasProfileSelection = row.employeeGroupId !== "" || isCustomProfile;
+
+  const handleProfileChange = (value: string) => {
+    if (value === CUSTOM_PROFILE_ID) {
+      // Egendefinert: clear all pay defaults so user fills in everything.
+      update({ employeeGroupId: CUSTOM_PROFILE_ID, salary: "" });
+      return;
+    }
+    if (value === "") {
+      update({ employeeGroupId: "", salary: "" });
+      return;
+    }
+    // Real lønnsprofil picked: prefill salary with group's default_hourly_rate.
+    // User can still overstyre by typing.
+    const group = employeeGroups.find((g) => g.id === value);
+    update({
+      employeeGroupId: value,
+      salary: group ? String(group.default_hourly_rate) : row.salary,
+    });
+  };
 
   const sectionMotion = {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { type: "spring" as const, stiffness: 40, damping: 24, mass: 1.6 },
+    transition: { type: "spring" as const, ...motionTokens.springSnappy },
   };
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-4"
       initial="initial"
       animate="animate"
       variants={{
@@ -757,7 +795,7 @@ function SingleInviteForm({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
+            transition={{ type: "spring", ...motionTokens.springSnappy }}
           >
             <label className={`flex items-center gap-1.5 ${labelClass}`}>
               <Mail className="h-3.5 w-3.5" /> E-post
@@ -779,7 +817,7 @@ function SingleInviteForm({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
+            transition={{ type: "spring", ...motionTokens.springSnappy }}
           >
             <label className={`flex items-center gap-1.5 ${labelClass}`}>
               <Phone className="h-3.5 w-3.5" /> Telefon
@@ -836,114 +874,81 @@ function SingleInviteForm({
         </div>
       </motion.div>
 
-      {/* Employment type toggle */}
-      <motion.div className="space-y-2" variants={sectionMotion}>
-        <label className={labelClass}>Tilknytning</label>
-        <div className="grid grid-cols-2 gap-2">
-          {(["employee", "guest"] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => update({ inviteEmploymentType: type })}
-              className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                row.inviteEmploymentType === type
-                  ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_24px_-4px_oklch(0.78_0.18_55_/_0.35)] ring-1"
-                  : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border border"
-              }`}
-            >
-              {type === "employee" ? "Ansatt" : "Gjest"}
-            </button>
-          ))}
+      {/* Lønnsprofil — picker (or "Egendefinert") */}
+      <motion.div className="space-y-1.5" variants={sectionMotion}>
+        <label className={labelClass}>Lønnsprofil</label>
+        <div className="relative">
+          <select
+            value={row.employeeGroupId}
+            onChange={(e) => handleProfileChange(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">Velg profil...</option>
+            {employeeGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.default_hourly_rate} kr/t)
+              </option>
+            ))}
+            <option value={CUSTOM_PROFILE_ID}>Egendefinert</option>
+          </select>
+          <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
         </div>
       </motion.div>
 
-      {/* Employment details — collapsible (de-boxed: indent + chevron only) */}
-      {row.inviteEmploymentType === "employee" && (
-        <motion.div className="space-y-3" variants={sectionMotion}>
-          <button
-            type="button"
-            onClick={() => setShowEmployment(!showEmployment)}
-            className="text-muted-foreground hover:text-foreground flex w-full items-center justify-between text-xs font-semibold tracking-wider uppercase transition-colors"
+      {/* Pay details — shown when a profile (or Egendefinert) is selected.
+          Profile selection pre-fills salary; user can overstyre any field. */}
+      <AnimatePresence initial={false}>
+        {hasProfileSelection && (
+          <motion.div
+            key="pay-details"
+            className="space-y-3 overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", ...motionTokens.springSnappy }}
           >
-            <span>Ansettelsesprofil</span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform ${showEmployment ? "rotate-180" : ""}`}
-            />
-          </button>
-          <AnimatePresence initial={false}>
-            {showEmployment && (
-              <motion.div
-                key="employment-body"
-                className="border-brand-orange/20 space-y-3 overflow-hidden border-l-2 pl-4"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
-              >
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Ansattgruppe</label>
-                    <div className="relative">
-                      <select
-                        value={row.employeeGroupId}
-                        onChange={(e) => update({ employeeGroupId: e.target.value })}
-                        className={selectClass}
-                      >
-                        <option value="">Velg...</option>
-                        {employeeGroups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Lønn</label>
-                    <input
-                      type="number"
-                      value={row.salary}
-                      onChange={(e) => update({ salary: e.target.value })}
-                      placeholder="0"
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Startdato</label>
-                    <input
-                      type="date"
-                      value={row.startDate}
-                      onChange={(e) => update({ startDate: e.target.value })}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Kontrakttemplate</label>
-                    <div className="relative">
-                      <select
-                        value={row.contractTemplateId}
-                        onChange={(e) => update({ contractTemplateId: e.target.value })}
-                        className={selectClass}
-                      >
-                        <option value="">Velg...</option>
-                        {contractTemplates.map((t) => (
-                          <option key={t.template_id} value={t.template_id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className={labelClass}>Timelønn</label>
+                <input
+                  type="number"
+                  value={row.salary}
+                  onChange={(e) => update({ salary: e.target.value })}
+                  placeholder="0"
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelClass}>Startdato</label>
+                <input
+                  type="date"
+                  value={row.startDate}
+                  onChange={(e) => update({ startDate: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Kontrakttemplate</label>
+              <div className="relative">
+                <select
+                  value={row.contractTemplateId}
+                  onChange={(e) => update({ contractTemplateId: e.target.value })}
+                  className={selectClass}
+                >
+                  <option value="">Velg...</option>
+                  {contractTemplates.map((t) => (
+                    <option key={t.template_id} value={t.template_id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {row.errors.length > 0 && (
         <motion.div

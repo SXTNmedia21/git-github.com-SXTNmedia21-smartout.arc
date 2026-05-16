@@ -4,6 +4,8 @@ import { useContext } from "react";
 import { GraduationCap } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ProtocolList } from "./_components/ProtocolList";
+import { useAssignedProtocols } from "./_hooks/use-assigned-protocols";
+import { MyTrainingToolsBridge } from "./_tools/my-training-tools-bridge";
 
 // UI Events:
 // - nav: /dashboard/my-training (sidebar link)
@@ -11,10 +13,25 @@ import { ProtocolList } from "./_components/ProtocolList";
 // - action: complete step, submit test, sign confirmation
 
 export default function MyTrainingPage() {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, profileId } = useContext(DashboardContext);
+  const { data: protocols, isLoading } = useAssignedProtocols(profileId);
+
+  // Flatten to bridge-compatible summaries (strip procedure/test/confirmation detail)
+  const protocolSummaries = (protocols ?? []).map((p) => ({
+    assignmentId: p.assignmentId,
+    protocolName: p.protocolName,
+    protocolDescription: p.protocolDescription,
+    assignmentStatus: p.assignmentStatus,
+    assignedAt: p.assignedAt,
+    completedAt: p.completedAt,
+    progress: p.progress,
+  }));
 
   return (
     <div className="space-y-6">
+      {/* Botsson harness — register training tools for voice/chat */}
+      <MyTrainingToolsBridge loading={isLoading} protocols={protocolSummaries} />
+
       {/* Header */}
       <div>
         <div className="mb-1 flex items-center gap-3">

@@ -1,7 +1,7 @@
 ---
 id: "0017"
 title: Enterprise Infrastructure — Shared Configs, Design System, Monitoring
-status: Accepted
+status: accepted
 date: 2026-02-27
 layer: decision
 ---

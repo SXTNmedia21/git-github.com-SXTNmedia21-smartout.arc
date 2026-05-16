@@ -52,6 +52,8 @@ const IGNORE_PATH_SEGMENTS = [
   "/ios/",
   "/android/",
   "/database.types.ts",
+  "/__tests__/", // test fixtures may contain sentinel capability literals (e.g. "x") not requiring seeds
+  "/fixtures/", // fixture files are not production call sites
 ];
 
 const IGNORE_FILE_PATTERNS = [/\.test\.tsx?$/, /\.spec\.tsx?$/, /\.d\.ts$/, /\.stories\.tsx?$/];
@@ -360,7 +362,7 @@ function extractSeededCapabilities(migrationsDir: string): Set<string> {
     return seeded;
   }
 
-  // We recognize three seed shapes — and ONLY these three, so the seeded
+  // We recognize four seed shapes — and ONLY these four, so the seeded
   // set stays precise (no false positives leaking from unrelated INSERTs).
   //
   //   A. INSERT INTO [public.]engine_authority_config (...) VALUES ('cap', …);
@@ -375,9 +377,32 @@ function extractSeededCapabilities(migrationsDir: string): Set<string> {
   //      migration that runs the gate directly (used by
   //      20260516110000_consolidate_session_signoff_emitter.sql as
   //      side-effect seeding).
+  //
+  //   D. INSERT INTO [public.]engine_authority_config (...) SELECT w.workspace_id,
+  //      'cap', ... FROM public.workspace w ...;
+  //      Legacy single-INSERT-per-capability pattern used by older seeds
+  //      (e.g. 20260515130300_helpdesk_query_authority_seed.sql). The
+  //      capability literal appears as a bare string in the SELECT column list,
+  //      not inside a VALUES clause. We extract all string literals from the
+  //      SELECT column list of each matching INSERT..SELECT statement that are
+  //      allowlisted (single-word allowlist or dotted form).
 
   const DOTTED_RE = /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)+$/;
-  const SINGLE_WORD_ALLOWLIST = new Set(["billing_query", "helpdesk_query"]);
+  // Legacy single-word capabilities that predate dotted-form convention (ADR-0195/0201/0298).
+  // Migration to dotted form is deferred to a follow-up architectural sortie. Until then,
+  // these capabilities are seeded via single-word literals in migrations and must be
+  // allowlisted so the parity gate doesn't false-positive them.
+  const SINGLE_WORD_ALLOWLIST = new Set([
+    "billing_query",
+    "contract",
+    "handbook_chapter",
+    "helpdesk_query",
+    "memory",
+    "payroll",
+    "policy",
+    "protocol",
+    "task",
+  ]);
   const CAP_LIT = /'([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)'/g;
 
   function accept(candidate: string): boolean {
@@ -408,6 +433,22 @@ function extractSeededCapabilities(migrationsDir: string): Set<string> {
         const tupleRegion = vm[1];
         for (const m of tupleRegion.matchAll(CAP_LIT)) {
           if (accept(m[1])) seeded.add(m[1]);
+        }
+      }
+
+      // Shape D: INSERT INTO engine_authority_config (...) SELECT ... 'cap', ...
+      // Legacy pattern where capability literal appears bare in SELECT column list
+      // rather than inside a VALUES clause. Only extract allowlisted strings to
+      // stay precise (avoids false positives from string literals in WHERE clauses
+      // or COALESCE expressions that aren't capability names).
+      if (/\bSELECT\b/i.test(stmt) && !/\bCROSS\s+JOIN\b/i.test(stmt)) {
+        // Extract the SELECT column list (between SELECT and FROM).
+        const selectColMatch = stmt.match(/\bSELECT\b([\s\S]*?)\bFROM\b/i);
+        if (selectColMatch) {
+          const colList = selectColMatch[1];
+          for (const m of colList.matchAll(CAP_LIT)) {
+            if (accept(m[1])) seeded.add(m[1]);
+          }
         }
       }
     }

@@ -69,6 +69,11 @@ export const intentSchema = z.object({
     "outreach",
     "inquiry",
     "onboarding",
+    "pos_account_management",
+    "shift_marketplace", // ADR-0306 — open-shift marketplace (post/claim/approve/cancel offers)
+    "scheduler", // ADR-0307/0309 — greedy constraint-solver bundle propose/accept/reject
+    "timeline_template", // ADR-0335 — D6 authoring: save/list/apply/archive timeline templates (chat-only)
+    "channel_admin", // ADR-0336 — channel admin tooling: mute/leave/invite/rename/archive/role-change (chat-only)
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -179,6 +184,8 @@ Capabilities:
 - tips: Tip pool management — recording pool amounts, calculating distribution per employee, manual share adjustments, approving distributions at shift sign-off. Examples: "registrer tipsene fra i kveld" (set_pot), "juster Lisa sin andel" (adjust_share), "godkjenn fordelingen" (approve_distribution), "hvor mye fikk jeg i tips?" (query_own_share). Chat-only (PII-adjacent payroll amounts per ADR-0078). 4 tools. (campaign/tips-handling Sortie 1, spec 2026-04-28)
 - engine_world: Read shared agent world model — service health (vercel.web, supabase.prod), PR state (pr.323), worktree state, migration tail, cost surfaces, CI workflow status. Use when user asks "is X up?", "hvor er CI?", "hva er status på preview?", "er stacken grønn?", "kostnad i dag?". Read-only Phase 0; mutations via report_observation land in Phase 1.
 - outreach: Outbound voice + SMS to Smartout employees — send SMS via Twilio, place voice call via LiveKit SIP. Use when admin/manager wants to contact an employee outside in-channel chat. Examples: "send sms til Anna at vakten flyttes", "ring Marius om sykdommen", "varsle teamet via sms om endringen". Distinct from communication (in-channel). Both tools gated. Phase 1: manual trigger only.
+- timeline_template: Authoring reusable D6 session-canvas templates (save_template, list_templates, apply_template, archive_template). Use when a manager/owner says "lagre malen", "bruk julemalen på fredag", "vis malene mine", "arkiver gamlemalen", or otherwise references a named template of session-hooks/tasks/shifts/notes that should be saved or applied to a future date. Chat-only (4 tools, all mutateWithGate per ADR-0204). Distinct from schedule (single-shift ops) and operations (live session checklist). (ADR-0335)
+- channel_admin: Channel administrative tooling — mute/leave (self-act, autonomous), invite (PII, confirm + manager), rename/archive/role-change (structural, confirm + admin). Examples: "demp denne kanalen" (mute), "forlat kanalen" (leave), "inviter Anna inn" (invite), "endre navn på kanalen" (rename), "arkiver gamlechannelen" (archive), "gjør Lisa til moderator" (change_member_role). Chat-only (PII forces capability-wide ceiling). 6 tools. Distinct from communication (channel_message writes). (ADR-0336)
 - onboarding: Workspace and business setup during the /onboarding-flow wizard. Use when the user is setting up their workspace — providing business info, creating departments/locations/zones, bootstrapping a season, adding procedures, or looking up their company in BRREG. Examples: "vi heter Strøm Mat & Bar" (update_business), "vi er en restaurant" (update_business), "legg til avdeling kjøkken og bar" (add_departments), "vi åpner kl 11" (update_business), "legg til lokasjon Trondheim" (add_locations), "kjøkken er en avdeling" (add_departments), "vi har sommersesong fra juni til august" (update_season), "finn bedriften vår i BRREG" (search_company), "hent data fra nettsiden vår" (scrape_website). Do NOT use for operational dashboard tasks (schedule, operations, governance) outside the /onboarding-flow context. (ADR-0282 Phase E)
 - general: Greetings, small talk, unclear intent, meta-questions
 

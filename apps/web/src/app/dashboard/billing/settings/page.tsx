@@ -13,6 +13,8 @@ import {
   DUNNING_OPTOUT_CHANNEL,
   DUNNING_OPTOUT_TRIGGER_EVENT,
 } from "./_components/DunningOptOutToggle";
+import { BillingSettingsToolsBridge } from "./_tools/billing-settings-tools-bridge";
+import type { BillingSettingsWorkspace } from "./_tools/use-billing-settings-tools";
 
 // Workspace-admin billing settings — dispatch rules tab (Fase 2 B3).
 //
@@ -64,26 +66,60 @@ export default async function WorkspaceBillingSettingsPage() {
     name: w.name ?? w.workspace_id,
   }));
 
+  // Snapshot for Botsson bridge — counts only; per-rule detail stays in panel.
+  const [platformRulesForBridge, workspaceRulesForBridge] = await Promise.all([
+    listDispatchRules(admin, { scope: "platform" }),
+    workspaceIds.length > 0
+      ? listDispatchRules(admin, { scope: "workspace", workspace_ids: workspaceIds })
+      : Promise.resolve([]),
+  ]);
+  const suppressWorkspaceIds = new Set(
+    workspaceRulesForBridge
+      .filter(
+        (r) =>
+          r.action === "suppress" &&
+          r.is_enabled &&
+          r.channel === DUNNING_OPTOUT_CHANNEL &&
+          r.trigger_event === DUNNING_OPTOUT_TRIGGER_EVENT &&
+          r.workspace_id,
+      )
+      .map((r) => r.workspace_id as string),
+  );
+  const bridgeWorkspaces: BillingSettingsWorkspace[] = workspaceList.map((w) => ({
+    workspace_id: w.workspace_id,
+    name: w.name,
+    optOutOfAutoDunning: suppressWorkspaceIds.has(w.workspace_id),
+  }));
+
   return (
-    <div className="space-y-12">
-      <Suspense fallback={<WorkspaceDispatchRulesPanelSkeleton />}>
-        <WorkspaceDispatchRulesPanelLoader
-          workspaceIds={workspaceIds}
-          workspaceNames={workspaceNames}
-        />
-      </Suspense>
-
-      {/* B5-fase3a: dunning opt-out — spec §4.5 */}
-      <Suspense fallback={null}>
-        <DunningOptOutLoader workspaces={workspaceList} />
-      </Suspense>
-
-      {/* B6-fase3b: EHF-innstillinger — ADR-0139 */}
-      <EhfSettingsSection
-        initialEhfEnabled={companyRow?.ehf_enabled ?? false}
-        initialPeppolParticipantId={companyRow?.peppol_participant_id ?? null}
+    <>
+      <BillingSettingsToolsBridge
+        workspaces={bridgeWorkspaces}
+        ehfEnabled={companyRow?.ehf_enabled ?? false}
+        peppolParticipantId={companyRow?.peppol_participant_id ?? null}
+        platformRuleCount={platformRulesForBridge.length}
+        workspaceRuleCount={workspaceRulesForBridge.length}
       />
-    </div>
+      <div className="space-y-12">
+        <Suspense fallback={<WorkspaceDispatchRulesPanelSkeleton />}>
+          <WorkspaceDispatchRulesPanelLoader
+            workspaceIds={workspaceIds}
+            workspaceNames={workspaceNames}
+          />
+        </Suspense>
+
+        {/* B5-fase3a: dunning opt-out — spec §4.5 */}
+        <Suspense fallback={null}>
+          <DunningOptOutLoader workspaces={workspaceList} />
+        </Suspense>
+
+        {/* B6-fase3b: EHF-innstillinger — ADR-0139 */}
+        <EhfSettingsSection
+          initialEhfEnabled={companyRow?.ehf_enabled ?? false}
+          initialPeppolParticipantId={companyRow?.peppol_participant_id ?? null}
+        />
+      </div>
+    </>
   );
 }
 

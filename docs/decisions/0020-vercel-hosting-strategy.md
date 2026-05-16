@@ -1,7 +1,7 @@
 ---
 id: "0020"
 title: Vercel Hosting with Dual-Project Split
-status: Accepted
+status: accepted
 date: 2026-02-28
 layer: decision
 ---

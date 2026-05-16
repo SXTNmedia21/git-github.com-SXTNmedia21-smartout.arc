@@ -1,7 +1,7 @@
 ---
 id: ADR-0029
 title: Workspace API Gateway
-status: Accepted
+status: accepted
 date: 2026-03-01
 updated: 2026-04-22
 ---
