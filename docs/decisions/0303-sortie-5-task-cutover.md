@@ -53,7 +53,7 @@ Together, Sortie 5a + 5b complete the `operations.complete_task` → `task.compl
 
 **R11.** `apps/e2e/botsson-harness/A5-operations-complete.spec.ts` — E2E spec removed (spec existed for the deleted tool; removal eliminates orphan test coverage).
 
-**R12.** `supabase/migrations/20260608130000_drop_operations_complete_task_authority.sql` — Deletes `engine_authority_config` rows for `capability='operations.complete_task'`. Idempotent. Applied and verified locally (count=0).
+**R12.** `supabase/migrations/20260616130000_drop_operations_complete_task_authority.sql` (re-timestamped from `20260608130000` to satisfy L-0042 vs dev tip `20260616120000`) — Deletes `engine_authority_config` rows for `capability='operations.complete_task'`. Idempotent. Applied and verified locally (count=0).
 
 **R13.** ADR-0298 promoted `proposed → accepted` with Closure note appended.
 

@@ -40,7 +40,7 @@ The Server Action no longer owns the gate or the UPDATE. It calls `complete.exec
 
 Deleting the capability entirely would require an intent-classifier enum change and a registry removal. The capability is retained with 1 tool. This is a deliberate minimisation of blast radius — operations intelligence surface will grow again (D7 production deviations).
 
-**D3 — Authority cleanup via migration `20260608130000`**
+**D3 — Authority cleanup via migration `20260616130000`** (re-timestamped from `20260608130000` to satisfy L-0042 ordering — dev tip `20260616120000`)
 
 `engine_authority_config` rows for `capability='operations.complete_task'` deleted via dedicated migration. Idempotent (DELETE 0 on re-run). Migration applied and verified locally (count=0 before and after).
 
