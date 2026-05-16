@@ -1,7 +1,8 @@
 ---
 title: "Journey — Employee long-presses to react (motion polish)"
 feature: chat-whatsapp-phase2
-status: draft
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: mobile

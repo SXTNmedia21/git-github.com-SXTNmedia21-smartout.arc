@@ -1,7 +1,8 @@
 ---
 title: "Journey — Employee sees delivered → read progression"
 feature: chat-whatsapp-phase2
-status: draft
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: mobile

@@ -1,7 +1,8 @@
 ---
 title: "Journey — Employee sees typing indicator from other party"
 feature: chat-whatsapp-phase2
-status: done
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: mobile

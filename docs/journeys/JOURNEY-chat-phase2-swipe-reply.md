@@ -1,7 +1,8 @@
 ---
 title: "Journey — Employee swipes message to reply"
 feature: chat-whatsapp-phase2
-status: done
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: mobile
