@@ -18,20 +18,38 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, FlatList, type ViewStyle } from "react-native";
+import {
+  View,
+  FlatList,
+  type ViewabilityConfig,
+  type ViewToken,
+  type ViewStyle,
+} from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { createStyles } from "@/theme";
 import { EmptyState } from "@/components/ui";
 import { strings } from "@/constants/strings";
+import { DateDivider } from "@/components/chat/DateDivider";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { ReactionBar } from "@/components/chat/ReactionBar";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
+import { useMarkRead } from "@/hooks/mutations/use-mark-read";
+import { useChannelReadReceipts, getReceiptState } from "@/hooks/use-channel-read-receipts";
 import type { Database } from "@smartout/supabase/database.types";
 
 type PendingMessage = MessageWithSender & { _isPending?: boolean };
+
+/**
+ * Discriminated union for FlatList feed items.
+ * `divider` rows separate day-groups; `message` rows render message bubbles.
+ */
+type FeedItem =
+  | { kind: "message"; message: PendingMessage }
+  | { kind: "divider"; date: Date; key: string };
 
 export type ConversationBodyProps = {
   /** Channel (conversation) to render. */
@@ -69,8 +87,103 @@ export function ConversationBody({
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(channelId);
   const { sendMessage } = useSendMessage();
+  const { markRead } = useMarkRead();
 
-  const messages = useMemo(() => (data?.pages.flat() ?? []) as PendingMessage[], [data]);
+  // Sender side: track read receipts for own messages via Realtime.
+  const readReceipts = useChannelReadReceipts(channelId);
+
+  // FlatList requires onViewableItemsChanged to be stable (wrapped in a ref).
+  // Debounce 500ms: viewport events fire rapidly during scroll; batch IDs.
+  const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingViewableIdsRef = useRef<Set<string>>(new Set());
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    // Only mark messages sent by OTHER users as read on the receiver side.
+    // profileId is captured in the closure via the outer component prop.
+    for (const token of viewableItems) {
+      const item = token.item as FeedItem;
+      if (item.kind !== "message") continue;
+      const msg = item.message;
+      // Skip own messages (we don't mark-read our own) and pending optimistics.
+      if (!msg.id || msg._isPending || msg.sender_id === profileId) continue;
+      pendingViewableIdsRef.current.add(msg.id);
+    }
+
+    if (markReadDebounceRef.current) clearTimeout(markReadDebounceRef.current);
+    markReadDebounceRef.current = setTimeout(() => {
+      const ids = Array.from(pendingViewableIdsRef.current);
+      pendingViewableIdsRef.current.clear();
+      if (ids.length > 0) markRead(ids);
+    }, 500);
+  }).current;
+
+  // Viewability threshold: 50% of item visible before counting as "read".
+  const viewabilityConfig = useRef<ViewabilityConfig>({
+    itemVisiblePercentThreshold: 50,
+  }).current;
+
+  /**
+   * Build a FeedItem[] from paginated message pages.
+   *
+   * The FlatList is inverted, so index 0 renders at the bottom of the screen
+   * (newest messages). We preserve that order and place each day's divider
+   * at a higher index than its messages — i.e. right after the group's newest
+   * message and before the next (older) group. When the list is flipped by
+   * `inverted`, the divider appears above the group, between it and the
+   * previous (newer) day, which is the WhatsApp convention.
+   *
+   * Steps:
+   *   1. Flatten pages → PendingMessage[] (newest-first, as the RPC returns).
+   *   2. Group by calendar day (yyyy-MM-dd in local TZ).
+   *   3. Walk groups in newest-first order (preserving original sort).
+   *      For each group: emit all messages for the day, then the divider.
+   *   4. Drop the trailing divider for the most-recent day — it would float
+   *      above the last visible message with no older content above it, which
+   *      looks odd. Keep it only when there is more than one day-group so the
+   *      divider meaningfully separates groups.
+   */
+  const feed = useMemo<FeedItem[]>(() => {
+    const flat = (data?.pages.flat() ?? []) as PendingMessage[];
+    if (flat.length === 0) return [];
+
+    // Group messages by local calendar day, preserving newest-first order.
+    const groups = new Map<string, PendingMessage[]>();
+    for (const msg of flat) {
+      const dayKey = format(new Date(msg.created_at), "yyyy-MM-dd");
+      const bucket = groups.get(dayKey);
+      if (bucket) {
+        bucket.push(msg);
+      } else {
+        groups.set(dayKey, [msg]);
+      }
+    }
+
+    const result: FeedItem[] = [];
+    const dayKeys = Array.from(groups.keys()); // insertion order = newest-first
+
+    for (let i = 0; i < dayKeys.length; i++) {
+      const dayKey = dayKeys[i];
+      const dayMessages = groups.get(dayKey) ?? [];
+
+      // Emit messages for this day group (newest-first within the group).
+      for (const msg of dayMessages) {
+        result.push({ kind: "message", message: msg });
+      }
+
+      // Emit divider after the group's messages (will render above the group
+      // when FlatList is inverted). Skip the divider for the newest day when
+      // it's the only group — nothing older to separate from.
+      if (dayKeys.length > 1 || i > 0) {
+        result.push({
+          kind: "divider",
+          date: new Date(dayKey + "T00:00:00"),
+          key: `div-${dayKey}`,
+        });
+      }
+    }
+
+    return result;
+  }, [data]);
 
   // Realtime subscription: new messages in this channel land here.
   // Own messages dedupe the optimistic version by client_message_id.
@@ -237,35 +350,53 @@ export function ConversationBody({
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const renderMessage = useCallback(
-    ({ item }: { item: PendingMessage }) => (
-      <View>
-        <MessageBubble
-          message={item}
-          isOwnMessage={item.sender_id === profileId}
-          isPending={!!item._isPending}
-          onLongPress={() => handleLongPress(item.id)}
-          onSwipeReply={() => handleSwipeReply(item)}
-        />
-        {selectedMessageId === item.id && <ReactionBar onReaction={handleReaction} />}
-      </View>
-    ),
-    [profileId, selectedMessageId, handleLongPress, handleSwipeReply, handleReaction],
+  const renderItem = useCallback(
+    ({ item }: { item: FeedItem }) => {
+      if (item.kind === "divider") {
+        return <DateDivider date={item.date} />;
+      }
+      const { message } = item;
+      const isOwn = message.sender_id === profileId;
+      const isPending = !!message._isPending;
+      // Resolve receipt state for own messages — passed to MessageBubble once
+      // T2 lands the `readReceiptState` prop (feat/mobile-chat-whatsapp-phase1 T2).
+      // Computed here so T2 can wire it without changing this logic.
+      const _readReceiptState = isOwn
+        ? getReceiptState(message.id, isPending, readReceipts)
+        : undefined;
+      return (
+        <View>
+          <MessageBubble
+            message={message}
+            isOwnMessage={isOwn}
+            isPending={isPending}
+            onLongPress={() => handleLongPress(message.id)}
+            onSwipeReply={() => handleSwipeReply(message)}
+            readReceiptState={_readReceiptState}
+          />
+          {selectedMessageId === message.id && <ReactionBar onReaction={handleReaction} />}
+        </View>
+      );
+    },
+    [profileId, selectedMessageId, readReceipts, handleLongPress, handleSwipeReply, handleReaction],
   );
 
-  const keyExtractor = useCallback((item: PendingMessage) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: FeedItem) => (item.kind === "message" ? item.message.id : item.key),
+    [],
+  );
 
   return (
     <View style={[styles.root, style]}>
-      {messages.length === 0 ? (
+      {feed.length === 0 ? (
         <View style={styles.emptyContainer}>
           <EmptyState title={strings.chat.noMessages} />
         </View>
       ) : (
         <FlatList
           ref={listRef}
-          data={messages}
-          renderItem={renderMessage}
+          data={feed}
+          renderItem={renderItem}
           keyExtractor={keyExtractor}
           inverted
           contentContainerStyle={styles.messageList}
@@ -274,6 +405,8 @@ export function ConversationBody({
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       )}
 

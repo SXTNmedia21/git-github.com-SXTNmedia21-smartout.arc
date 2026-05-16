@@ -39,6 +39,9 @@ export const nativeTheme = {
     calendarTaskAccent: "#f0b14a", // task / priority chip selected — warm amber
     calendarBookingAccent: "#6aa6ef", // booking accent — periwinkle blue
     calendarEvidenceTaken: "#2dd4a5", // evidence-slot success / taken indicator
+    // Media overlay scrim — dark semi-transparent layer over video/image thumbnails.
+    // Use for play-button overlays and similar dark scrims on media surfaces.
+    scrim: "rgba(0, 0, 0, 0.3)",
   },
   dark: {
     background: "#151210", // oklch(0.12 0.015 50) — warm dark
@@ -74,6 +77,8 @@ export const nativeTheme = {
     calendarTaskAccent: "#e8a23a", // slightly deeper amber for dark bg
     calendarBookingAccent: "#7bb8f5", // brighter periwinkle for dark bg
     calendarEvidenceTaken: "#34ddb0", // brighter teal for dark bg
+    // Media overlay scrim — same value as light; scrim is always dark regardless of theme.
+    scrim: "rgba(0, 0, 0, 0.3)",
   },
   panel: {
     surface: "#1a1510", // oklch(0.18 0.03 50)
