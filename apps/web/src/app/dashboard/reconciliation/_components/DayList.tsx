@@ -174,9 +174,7 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
           <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
             Dagens oppgjør
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Avstemming
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm">Avstemming</p>
         </div>
         <div className="flex items-center gap-2">
           <CounterTile label="Venter oppgjør" value={counters.venter} tone="warning" />

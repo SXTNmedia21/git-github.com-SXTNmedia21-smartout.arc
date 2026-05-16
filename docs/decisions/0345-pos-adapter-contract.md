@@ -1,13 +1,13 @@
 ---
 title: "POS Adapter Contract & Vendor Lifecycle"
-id: ADR_0319
+id: ADR_0345
 status: accepted
 layer: decision
 created: 2026-05-14
 updated: 2026-05-14
 ---
 
-# ADR-0319: POS Adapter Contract & Vendor Lifecycle
+# ADR-0345: POS Adapter Contract & Vendor Lifecycle
 
 ## Context and Problem Statement
 

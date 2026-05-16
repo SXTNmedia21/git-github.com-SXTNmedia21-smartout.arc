@@ -311,7 +311,9 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
             </h1>
             <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
               <span>{departmentName}</span>
-              <span aria-hidden className="opacity-50">·</span>
+              <span aria-hidden className="opacity-50">
+                ·
+              </span>
               <span>Admin-gjennomgang</span>
             </div>
           </div>

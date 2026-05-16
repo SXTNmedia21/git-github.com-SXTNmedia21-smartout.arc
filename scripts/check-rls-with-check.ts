@@ -227,16 +227,12 @@ function selectFiles(): string[] {
       .filter((abs) => existsSync(abs));
 
     if (newFiles.length === 0) {
-      console.log(
-        `[check-rls-with-check] no new migrations vs ${baseRef} — nothing to check.`,
-      );
+      console.log(`[check-rls-with-check] no new migrations vs ${baseRef} — nothing to check.`);
       return [];
     }
     return newFiles;
   } catch {
-    console.warn(
-      `[check-rls-with-check] could not diff vs ${baseRef}; falling back to full scan.`,
-    );
+    console.warn(`[check-rls-with-check] could not diff vs ${baseRef}; falling back to full scan.`);
     return allFiles;
   }
 }

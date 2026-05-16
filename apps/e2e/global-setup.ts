@@ -26,6 +26,7 @@ import { resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
 import type { FullConfig } from "@playwright/test";
 
+import { ensurePayrollLockedPeriodSeed } from "./helpers/payroll-locked-period-seed";
 import { ensureRecorderAuthoritySeed } from "./helpers/recorder-seed-ensure";
 
 // Why: Playwright loads .ts config files via tsx, which transpiles them to CJS.
@@ -78,4 +79,8 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   }
 
   await ensureRecorderAuthoritySeed();
+
+  // Gate 3 — payroll locked period seed (unblocks Group B export round-trip
+  // specs in apps/e2e/tests/payroll-phase-{3,4}-*.spec.ts).
+  await ensurePayrollLockedPeriodSeed();
 }

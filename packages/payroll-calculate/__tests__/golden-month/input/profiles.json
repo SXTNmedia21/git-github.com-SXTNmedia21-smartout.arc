@@ -90,10 +90,11 @@
     "toil_agreement_signed_at": null,
     "toil_max_banked_hours": null,
     "seniority_start_date": "2016-08-01",
-    "tariff_category": "voksen_ufaglart",
+    "tariff_category": "voksen_faglart",
     "has_fagbrev": true,
     "sector_experience_years": 10,
-    "baseHourlyRateNok": 0
+    "baseHourlyRateNok": 0,
+    "_note": "E1 fixed: has_fagbrev=true corrected tariff_category from voksen_ufaglart → voksen_faglart per Riksavtalen §3"
   },
   {
     "id": "pp-007",

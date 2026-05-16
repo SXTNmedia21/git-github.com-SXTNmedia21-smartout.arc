@@ -252,16 +252,16 @@
     "shift_id": "sh-018",
     "profile_id": "prof-004",
     "workspace_id": "ws-golden-001",
-    "start_time": "2026-04-04T08:00:00Z",
-    "end_time": "2026-04-04T14:00:00Z",
-    "scheduled_start": "2026-04-04T08:00:00Z",
-    "scheduled_end": "2026-04-04T14:00:00Z",
+    "start_time": "2026-04-02T08:00:00Z",
+    "end_time": "2026-04-02T14:00:00Z",
+    "scheduled_start": "2026-04-02T08:00:00Z",
+    "scheduled_end": "2026-04-02T14:00:00Z",
     "scheduled_break_minutes": 0,
-    "shift_date": "2026-04-04",
+    "shift_date": "2026-04-02",
     "night_worker_category": null,
     "custom_rate": null,
     "custom_rate_type": null,
-    "_note": "Skjærtorsdag (holiday)"
+    "_note": "Skjærtorsdag (helligdag — verified 2026-04-02 per public_holidays.json)"
   },
   {
     "shift_id": "sh-019",

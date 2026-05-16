@@ -177,6 +177,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         period_end: period.end_date,
         profiles_count: profilesCount,
         total_lines: totalLines,
+        affected_profile_ids: affectedProfileIds,
         locked_by_profile_id: auth.profileId,
         gate_evaluation_id: null,
       },
