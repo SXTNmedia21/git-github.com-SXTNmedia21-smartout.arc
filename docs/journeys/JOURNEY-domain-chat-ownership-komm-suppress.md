@@ -1,7 +1,8 @@
 ---
 title: "Journey — Komm chat page mounts → Orb auto-suppresses"
 feature: domain-chat-ownership
-status: draft
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: web

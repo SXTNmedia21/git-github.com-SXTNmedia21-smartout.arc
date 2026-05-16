@@ -45,6 +45,7 @@ All three journeys need manual PWA + dashboard verification before flip to
 | 300ms ease transition | Smooth handoff, not jarring | Matches Nordic Split motion spec |
 | ADR-0337 promotes ADR-0238 from declared to enforced | Component never built since ADR-0238 accepted; promotion ensures real behavior matches doc | Future audits can grep for declaration presence |
 | ADR-0338 codifies 4-step visual verification methodology | Phase 1 token-collision trap (`secondary === muted === #f5f3f0`) caught only by Pontus PWA inspection; needs systematic gate | Mobile design-system PRs run methodology before merge |
+| **API deviation from ADR-0337 spec — `reason` + counter instead of `surfaceId` + imperative `setOrbMode`** | ADR-0337 §75-127 specifies `surfaceId` prop + imperative `setOrbMode("passive")`. Implementation uses `reason` prop + counter-based `declareDomainChatOwnership` returning cleanup. Counter version is functionally superior — handles concurrent owners safely (komm/chat + komm/thread can stack without race, shift-clock chat tab can mount/unmount without leak) and matches existing BotssonProvider declarative pattern. | ADR-0337 acceptance criteria still met (component exists, real behavior matches doc). Spec text deviation tracked here so future readers know counter API is intentional, not drift. Recommend ADR-0337 amendment on flip to `accepted`. |
 
 ADRs registered in council Phase 8 commit on development (`39de11e98`):
 0337-adr-0238-enforcement, 0338-visual-verification-methodology.
@@ -60,10 +61,17 @@ ADRs registered in council Phase 8 commit on development (`39de11e98`):
 
 ## Known Issues / Debt
 
-- Push blocked: WSL2 SIGTERM (exit 143) on husky pre-push tsc. Workstation has 15Gi RAM with 0 swap and 6+ concurrent claude sessions consuming 11Gi+. Retry when foreign tsc processes clear.
-- T5 (code-reviewer) + T6 (system-steward) review not yet run — blocked on push landing.
 - Audit doc at `docs/audits/2026-05-16-chat-whatsapp-visual-audit.md` documents methodology but not a live PWA run — methodology validation deferred to operator session.
 - No Playwright E2E for Orb suppression — manual verification only. Phase 3 verdict A sortie (E2E Suite for chat surface) addresses this.
+
+## Review History
+
+- T5 code-reviewer: APPROVE clean. Zero high-confidence issues. Cleanup symmetry, multi-owner counter, Orb passive mode, hardcoded color audit all pass.
+- T6 system-steward: APPROVE WITH CHANGES — required 3 fixes:
+  1. Wire missed surface `shift-clock-chat` (commit followup)
+  2. Update stale comments in `_tools/shift-clock-tools-bridge.tsx:16` + `_tools/use-shift-clock-tools.ts:32` (commit followup)
+  3. Document ADR-0337 API deviation in "Decisions Made" table (commit followup)
+  All three resolved before final close. Push originally blocked by WSL2 OOM on husky pre-push tsc, resolved at `346b3f91f` (52/52 typecheck green).
 
 ## Files Changed
 
@@ -98,10 +106,13 @@ Grep `<DomainChat|<ChatPanel|<MessageList|<ChatPageClient` across `apps/web/src/
 |---|---|---|---|
 | `/dashboard/komm/chat` | Yes (ChatPageClient) | Yes | Wired |
 | `/dashboard/komm/thread/[channelId]` | Yes (TicketConversationView) | Yes | Wired |
+| `/dashboard/shift-clock` Chat tab | Yes (local `ChatPanel` in ShiftClockTabs.tsx:88, session + shift chat) | Yes (only when chat tab active) | Wired — declaration inside `<TabsContent value="chat">` so suppression scoped to chat-tab visibility |
 | `/dashboard/help` | No (static help page) | No | — |
 | `/dashboard/notifications` | No (list only) | No | — |
 | `/dashboard/Botsson/*` | Owned by BotssonShell itself | No (would self-suppress) | Intentional skip |
 | `/dashboard/people/[id]` LonnsprofilSection | No (no chat input) | No | TODO downgraded to no-op intentional |
+
+T6 verification caught `shift-clock` surface missed by initial T3 audit. Fixed in followup commit. Updated stale "no DomainChatOwnership needed" comments in `_tools/shift-clock-tools-bridge.tsx:12-16` + `_tools/use-shift-clock-tools.ts:31-33`.
 
 No false-positive declarations. No missing declarations on chat-hosting pages.
 

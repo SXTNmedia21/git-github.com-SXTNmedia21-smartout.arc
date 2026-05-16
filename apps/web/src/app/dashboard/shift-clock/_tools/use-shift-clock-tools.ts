@@ -28,8 +28,9 @@
  *   carry full gating, telemetry, and compliance — tools are honest delegates.
  *   workspace_id / profile_id are auth-derived from DashboardContext.
  *
- * ADR-0238: page does not own a domain chat surface.
- * Orb runs in interactive mode — no <DomainChatOwnership> needed.
+ * ADR-0238 + ADR-0337: chat tab owns a domain chat surface (session + shift chat).
+ * ShiftClockTabs declares <DomainChatOwnership reason="shift-clock-chat" /> inside
+ * the chat TabsContent — Orb auto-suppresses to passive while chat tab active.
  */
 
 import { useEffect, useMemo, useRef } from "react";
