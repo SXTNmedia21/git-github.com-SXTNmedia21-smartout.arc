@@ -8370,6 +8370,60 @@ export type Database = {
           },
         ]
       }
+      engine_authority_pipeline: {
+        Row: {
+          action_type: string
+          capability: string
+          created_at: string
+          escalation_action: string | null
+          id: string
+          max_wait_minutes: number | null
+          required_role: string
+          stage_index: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          capability: string
+          created_at?: string
+          escalation_action?: string | null
+          id?: string
+          max_wait_minutes?: number | null
+          required_role: string
+          stage_index: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          capability?: string
+          created_at?: string
+          escalation_action?: string | null
+          id?: string
+          max_wait_minutes?: number | null
+          required_role?: string
+          stage_index?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_authority_pipeline_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "engine_authority_pipeline_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       engine_delayed_trigger: {
         Row: {
           cancelled_at: string | null
@@ -16213,6 +16267,7 @@ export type Database = {
           is_published: boolean
           location_id: string | null
           notes: string | null
+          pipeline_lock_state_id: string | null
           position_id: string | null
           role: string
           schedule_shift_id: string
@@ -16250,6 +16305,7 @@ export type Database = {
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
+          pipeline_lock_state_id?: string | null
           position_id?: string | null
           role: string
           schedule_shift_id?: string
@@ -16287,6 +16343,7 @@ export type Database = {
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
+          pipeline_lock_state_id?: string | null
           position_id?: string | null
           role?: string
           schedule_shift_id?: string
@@ -16344,6 +16401,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "location"
             referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_pipeline_lock_state_id_fkey"
+            columns: ["pipeline_lock_state_id"]
+            isOneToOne: false
+            referencedRelation: "engine_state"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "schedule_shift_position_id_fkey"

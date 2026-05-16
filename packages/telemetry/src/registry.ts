@@ -8577,6 +8577,13 @@ export type SmartoutEvent =
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
   | CommScheduledNoteDeleted
+  // ─── Pipeline stage envelope (ADR-0340) — additive, does NOT replace shift_swap.* / shift_offer.* ─
+  | PipelineStageProposed
+  | PipelineStageConsented
+  | PipelineStageApproved
+  | PipelineStageRejected
+  | PipelineStageCancelled
+  | PipelineStageOverridden
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ─────────────────
   | TimelineTemplateSaved
   | TimelineTemplateApplied
@@ -8710,6 +8717,113 @@ export interface ShiftOfferCancelled extends BaseEvent {
       cancelled_by_profile_id: string;
       cancel_reason: string | null;
       gate_evaluation_id: string | null;
+    };
+  };
+}
+
+// ─── Pipeline stage envelope events (ADR-0340) ───────────────────────────────
+// Additive lifecycle telemetry for shift_swap_lifecycle + marketplace_lifecycle
+// pipelines. These do NOT replace shift_swap.* or shift_offer.* events (ADR-0340
+// §Preservation 1+2). pipeline_instance_id + gate_evaluation_id carry the
+// ADR-0204 correlation chain across all stage transitions.
+
+export interface PipelineStageProposed extends BaseEvent {
+  event: "pipeline.stage_proposed";
+  properties: {
+    entity: EntityRef; // entity = schedule_shift being orchestrated
+    data: {
+      pipeline_instance_id: string; // engine_state.id
+      blueprint_id: string; // "shift_swap_lifecycle" | "marketplace_lifecycle"
+      stage_index: number; // 0-2
+      action_type: string; // e.g. "shift_swap_lifecycle.stage_0_propose"
+      gate_evaluation_id: string | null; // ADR-0204 correlation chain
+      entity_id: string; // schedule_shift_id
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageConsented extends BaseEvent {
+  event: "pipeline.stage_consented";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageApproved extends BaseEvent {
+  event: "pipeline.stage_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageRejected extends BaseEvent {
+  event: "pipeline.stage_rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+      rejection_reason: string; // may be empty string when not provided
+      rejected_by: string; // actor profile_id
+    };
+  };
+}
+
+export interface PipelineStageCancelled extends BaseEvent {
+  event: "pipeline.stage_cancelled";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageOverridden extends BaseEvent {
+  event: "pipeline.stage_overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+      override_reason: string; // admin justification, min 20 chars (ADR-0328)
+      overridden_from_status: string; // status that was overridden
+      overridden_by: string; // admin profile_id
     };
   };
 }
@@ -13278,6 +13392,45 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "comm.scheduled_note.deleted": {
     destinations: ["activity_trail", "logger"],
     category: "communication",
+  },
+
+  // ─── Pipeline stage envelope (ADR-0340) ─────────────────────────────────────
+  // Additive lifecycle telemetry — does NOT replace shift_swap.* / shift_offer.*
+  // (ADR-0340 §Preservation 1+2).
+  //
+  // proposed/consented/approved/cancelled: standard pipeline advancement.
+  //   4 destinations: posthog (funnel analytics) + logger + activity_trail (C4 audit
+  //   chain, ADR-0204 correlation_id linkage) + engine_event (downstream reaction e.g.
+  //   trigger notification, unlock next stage wait).
+  //
+  // rejected: pipeline reaches failed terminal state.
+  //   posthog + logger + activity_trail. No engine_event (no downstream D6 effect).
+  //
+  // overridden: admin C4 override (T5). All 4 destinations — override is a governance
+  //   event that must trigger downstream reset + notification fanout.
+  "pipeline.stage_proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_consented": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "pipeline.stage_cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "pipeline.stage_overridden": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
   },
 
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ───────────────────

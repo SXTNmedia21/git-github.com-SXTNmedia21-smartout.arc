@@ -1,11 +1,18 @@
 ---
 title: "Swap↔Marketplace Convergence: V2 Authority Pipeline"
 id: ADR_0321
-status: accepted
+status: superseded
 layer: decision
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-16
+superseded_by:
+  - ADR_0340
 ---
+
+> **Superseded 2026-05-16 by ADR-0340** — §V2 Schema Sketch and §V2 Capability
+> Convergence are superseded. §V2 Trigger Conditions is amended (third trigger
+> added: anticipated cross-capability reuse). See ADR-0340 for the V2 implementation
+> shape adopted by the swap-marketplace-convergence-v2 sortie.
 
 # ADR-0321: Swap↔Marketplace Convergence — V2 Authority Pipeline
 
