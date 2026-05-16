@@ -15,6 +15,7 @@ export type DayTimelineScope =
   | { type: "all" }
   | { type: "department"; id: string }
   | { type: "team"; id: string }
+  | { type: "location"; id: string }
   | { type: "shift"; id: string };
 
 /** Serialise scope → URL param string, e.g. "team:abc-123" */
@@ -31,7 +32,7 @@ function decodeScope(raw: string | null): DayTimelineScope {
   const type = raw.slice(0, colon) as DayTimelineScope["type"];
   const id = raw.slice(colon + 1);
   if (!id) return { type: "all" };
-  if (type === "department" || type === "team" || type === "shift") {
+  if (type === "department" || type === "team" || type === "location" || type === "shift") {
     return { type, id };
   }
   return { type: "all" };

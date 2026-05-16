@@ -193,7 +193,9 @@ export type EntityType =
   // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
   | "schedule_shift_offer"
   // ─── Dagslinjen targeted note (ADR-0331, Track E, 2026-05-15) ───────────────
-  | "session_note";
+  | "session_note"
+  // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ────────────────────
+  | "timeline_template";
 
 export type ActionVerb =
   | "created"
@@ -8540,7 +8542,13 @@ export type SmartoutEvent =
   // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
-  | CommScheduledNoteDeleted;
+  | CommScheduledNoteDeleted
+  // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ─────────────────
+  | TimelineTemplateSaved
+  | TimelineTemplateApplied
+  | TimelineTemplateArchived
+  | TimelineTemplateApplyFailed
+  | TimelineTemplateListed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9767,6 +9775,88 @@ export interface CommScheduledNoteDeleted extends BaseEvent {
   properties: {
     data: {
       note_id: string;
+    };
+  };
+}
+
+// ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ───────────────────
+//
+// timeline_template.saved
+//   Emitted by save_template tool on successful INSERT into timeline_template.
+//   posthog: adoption analytics (template-save funnel).
+//   activity_trail: audit — every template creation traceable to a manager.
+//   logger: stdout observability.
+//   engine_event: downstream workflow reactions (e.g. notify team of new template).
+//
+// timeline_template.applied
+//   Emitted by apply_template on successful exec callback (all inserts done).
+//   posthog: adoption analytics (apply funnel — most valuable event).
+//   activity_trail: audit — materialization is a D6 write event.
+//   logger + engine_event: downstream workflow reactions.
+//
+// timeline_template.archived
+//   Emitted by archive_template on successful UPDATE is_archived=true.
+//   posthog + activity_trail + logger + engine_event: parity with other archive events.
+//
+// timeline_template.apply_failed
+//   Emitted when exec callback throws inside apply_template.
+//   posthog + activity_trail + logger: observability for failure diagnosis.
+//   No engine_event — partial-apply failure should NOT trigger downstream reactions.
+//
+// timeline_template.listed
+//   Debug-only read event. logger only — no audit trail (read-path, no mutation).
+
+export interface TimelineTemplateSaved extends BaseEvent {
+  event: "timeline_template.saved";
+  properties: {
+    data: {
+      template_id: string;
+      scope_type: string;
+      item_count: number;
+      name: string;
+    };
+  };
+}
+
+export interface TimelineTemplateApplied extends BaseEvent {
+  event: "timeline_template.applied";
+  properties: {
+    data: {
+      template_id: string;
+      target_date: string;
+      materialized_count_by_kind: Record<string, number>;
+      freeform_skipped: number;
+    };
+  };
+}
+
+export interface TimelineTemplateArchived extends BaseEvent {
+  event: "timeline_template.archived";
+  properties: {
+    data: {
+      template_id: string;
+    };
+  };
+}
+
+export interface TimelineTemplateApplyFailed extends BaseEvent {
+  event: "timeline_template.apply_failed";
+  properties: {
+    data: {
+      template_id: string;
+      target_date: string;
+      error_code: string;
+      error_message: string;
+    };
+  };
+}
+
+export interface TimelineTemplateListed extends BaseEvent {
+  event: "timeline_template.listed";
+  properties: {
+    data: {
+      count: number;
+      scope_type: string;
     };
   };
 }
@@ -13142,5 +13232,34 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "comm.scheduled_note.deleted": {
     destinations: ["activity_trail", "logger"],
     category: "communication",
+  },
+
+  // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ───────────────────
+  // saved: 4 destinations — posthog (adoption), logger (observability),
+  //   activity_trail (audit: template creation must be traceable), engine_event (workflow).
+  // applied: 4 destinations — most valuable analytics event (apply funnel) + full audit.
+  // archived: 4 destinations — parity with other lifecycle-archive events.
+  // apply_failed: 3 destinations — posthog + logger + activity_trail.
+  //   No engine_event: partial-apply failure must NOT trigger downstream D6 reactions.
+  // listed: logger only — read-path debug, no audit trail required.
+  "timeline_template.saved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "timeline_template.applied": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "timeline_template.archived": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "timeline_template.apply_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "timeline_template.listed": {
+    destinations: ["logger"],
+    category: "scheduling",
   },
 };

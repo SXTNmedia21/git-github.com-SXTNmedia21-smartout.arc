@@ -8,7 +8,7 @@
  * Accepts channelId as a prop so both route files can be thin wrappers.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, KeyboardAvoidingView, Platform, Pressable, Text, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -128,12 +128,36 @@ export function ConversationScreen({ channelId }: ConversationScreenProps) {
     }
   }, [lkToken, lkServerUrl, isConnected, connect]);
 
+  // Tracks whether the current camera enable was user-requested during this
+  // call session. Reset each time the call sheet opens so that a reconnect
+  // (isConnected cycling false→true) does not silently re-enable the camera
+  // if isCameraEnabled persisted from a previous call. Guards the narrower
+  // bug class identified in L-livekit-dev (2026-05-03): stale state carry-over
+  // across LiveKit room reconnect cycles.
+  const cameraIntentRef = useRef(false);
+
   useEffect(() => {
-    if (!isConnected || !room || !isCameraEnabled) return;
+    if (isCallSheetOpen) {
+      // Capture user intent at the moment the sheet opens (set by handleStartCall).
+      cameraIntentRef.current = isCameraEnabled;
+    } else {
+      // Sheet closed — clear intent so a future reconnect doesn't auto-enable.
+      cameraIntentRef.current = false;
+    }
+  }, [isCallSheetOpen, isCameraEnabled]);
+
+  useEffect(() => {
+    // Only enable camera when: connected, room ready, user requested it, AND
+    // the call sheet is still open (user is actively in the call surface).
+    // Without the cameraIntentRef + isCallSheetOpen guard, a LiveKit reconnect
+    // (isConnected: false→true) would re-enable camera even after the sheet
+    // was dismissed — because isCameraEnabled is not reset by onDisconnected.
+    if (!isConnected || !room || !isCameraEnabled || !isCallSheetOpen || !cameraIntentRef.current)
+      return;
     void room.localParticipant.setCameraEnabled(true, { facingMode: cameraFacing }).catch((err) => {
       console.error("[CallStart] setCameraEnabled failed:", err);
     });
-  }, [isConnected, room, isCameraEnabled, cameraFacing]);
+  }, [isConnected, room, isCameraEnabled, cameraFacing, isCallSheetOpen]);
 
   const handleFlipCamera = useCallback(() => {
     setCameraFacing((prev) => (prev === "user" ? "environment" : "user"));

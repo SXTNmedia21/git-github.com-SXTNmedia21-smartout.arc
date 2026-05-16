@@ -1,8 +1,8 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-15
-last-event: reconciliation-page-policy-fix closing → development (7 commits, 12/12 drift findings closed, Page Policy first run complete).
+updated: 2026-05-16
+last-event: ui-shell-sidebar-reorg sub-sortie closed → campaign/ui-shell (8 commits, 6 journeys verified, 23/23 S12 smoke).
 last-reconciled: 2026-05-15T19:30Z
 module: meta
 scope: global
@@ -52,13 +52,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|---|
 | wt-3 | `~/dev/smartout.ai-sortie-5-task-cutover-wt-3` | `feat/sortie-5-task-cutover-premerge-conditions` | 21h ago — voice-agent omitCreateTask flag (L-0244) | 3 |
 
-### Parent: campaign/ui-shell
-
-| # | Path | Branch | Last Commit | Dirty |
-|---|---|---|---|---|
-| wt-1 | `~/dev/smartout.ai-ui-shell-wt-1` | `feat/ui-shell-sidebar-reorg` | 2026-05-15 — SidebarGroup wrapper + NavItem extracted | 1 (unrelated hook patch) |
-
-_None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffolds parked at `docs/plans/PLAN-mobile-phase-3f{2,3}-*.md` for future revival._
+_Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffolds parked at `docs/plans/PLAN-mobile-phase-3f{2,3}-*.md` for future revival. ui-shell sub-sortie sidebar-reorg closed 2026-05-16 → campaign/ui-shell._
 
 ## Other Worktrees
 
@@ -69,7 +63,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 ## Free Slots
 
 **Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (wfm-ui-pages), wt-2 used (botsson-voice-ux-polish), wt-3 used (schedule-card-density). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
-**Sub-sortie pool (ui-shell):** wt-2..wt-5 free (wt-1 active = sidebar-reorg)
+**Sub-sortie pool (ui-shell):** wt-1..wt-5 free
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
 **Sub-sortie pool (botsson-arena, daily-operation, mobile, payroll, world-best-wfm):** wt-1..wt-5 free at canonical path

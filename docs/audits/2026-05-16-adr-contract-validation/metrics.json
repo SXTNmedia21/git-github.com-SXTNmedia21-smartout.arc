@@ -1,0 +1,46 @@
+{
+  "date": "2026-05-16",
+  "mode": "smoke",
+  "run_id": "2026-05-16-adr-contract-validation",
+  "totals": {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 2
+  },
+  "delta": {
+    "new_critical": 0,
+    "new_high": 0,
+    "regressed": 0,
+    "closed": 4,
+    "unchanged_open": 3
+  },
+  "by_theme": {
+    "capability_gate_compliance": { "critical": 0, "high": 1, "medium": 0, "low": 1 },
+    "identity_workspace_scope": { "critical": 0, "high": 0, "medium": 1, "low": 0 },
+    "edge_function_auth_docs": { "critical": 0, "high": 0, "medium": 1, "low": 1 }
+  },
+  "coverage": {
+    "slices_run": ["capability-tools", "edge-functions", "db-rls-telemetry"],
+    "slices_skipped": [
+      "stage-engine-bff", "schedule-cascade", "mobile-surface",
+      "contracts-payroll-lovsen", "journeys", "adr-coverage-gaps",
+      "onboarding-wizard", "performance-design", "i18n-frontmatter",
+      "webhook-integration", "missions-e2e"
+    ],
+    "files_uncovered": []
+  },
+  "feature_focus": {
+    "timeline_templates": {
+      "verdict": "PASS",
+      "slices_verified": ["capability-tools", "edge-functions", "db-rls-telemetry"],
+      "findings_attributed": 0
+    }
+  },
+  "specialist_effectiveness": {
+    "capability-tools": { "findings": 3, "false_positives_filtered": 0 },
+    "edge-functions": { "findings": 2, "false_positives_filtered": 0 },
+    "db-rls-telemetry": { "findings": 0, "false_positives_filtered": 0 }
+  },
+  "external_blocker": "github_actions_budget_exhausted"
+}

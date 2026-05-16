@@ -10,7 +10,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Building, Clock, Users, X } from "lucide-react";
+import { Building, Clock, MapPin, Users, X } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -20,6 +20,7 @@ import type { DayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-s
 
 type DeptOption = { id: string; name: string; color: string | null };
 type TeamOption = { id: string; name: string; color: string | null };
+type LocationOption = { id: string; name: string };
 type ShiftOption = {
   id: string;
   label: string;
@@ -69,6 +70,27 @@ function useTeams(workspaceId: string, enabled: boolean) {
         id: t.team_id,
         name: t.name,
         color: t.color ?? null,
+      }));
+    },
+  });
+}
+
+function useLocations(workspaceId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["scope-filter", "locations", workspaceId],
+    enabled,
+    staleTime: 120_000,
+    queryFn: async (): Promise<LocationOption[]> => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("location")
+        .select("location_id, name")
+        .eq("workspace_id", workspaceId)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((l) => ({
+        id: l.location_id,
+        name: l.name,
       }));
     },
   });
@@ -156,6 +178,7 @@ export function ScopeFilterPopoverContent({
 }: ScopeFilterPopoverContentProps) {
   const deptsQuery = useDepartments(workspaceId, true);
   const teamsQuery = useTeams(workspaceId, true);
+  const locationsQuery = useLocations(workspaceId, true);
   const shiftsQuery = useShiftsToday(workspaceId, dateISO, true);
 
   // Authority filter: manager only sees own dept unless admin/owner (ownDepartmentId null = no restriction)
@@ -163,13 +186,16 @@ export function ScopeFilterPopoverContent({
     (d) => !ownDepartmentId || d.id === ownDepartmentId,
   );
   const teams = teamsQuery.data ?? [];
+  const locations = locationsQuery.data ?? [];
   const shifts = shiftsQuery.data ?? [];
 
   const noTeams = !teamsQuery.isLoading && teams.length === 0;
+  const noLocations = !locationsQuery.isLoading && locations.length === 0;
   const noShifts = !shiftsQuery.isLoading && shifts.length === 0;
 
   const selectedDeptId = scope.type === "department" ? scope.id : null;
   const selectedTeamId = scope.type === "team" ? scope.id : null;
+  const selectedLocationId = scope.type === "location" ? scope.id : null;
   const selectedShiftId = scope.type === "shift" ? scope.id : null;
 
   function handleReset() {
@@ -194,7 +220,7 @@ export function ScopeFilterPopoverContent({
       </div>
 
       <Tabs defaultValue="department">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           {/* Avdeling tab */}
           <TabsTrigger value="department" className="gap-1.5 text-xs">
             <Building className="h-3.5 w-3.5" />
@@ -220,6 +246,28 @@ export function ScopeFilterPopoverContent({
             <TabsTrigger value="team" className="gap-1.5 text-xs">
               <Users className="h-3.5 w-3.5" />
               Team
+            </TabsTrigger>
+          )}
+
+          {/* Lokasjon tab — disabled with tooltip if no locations */}
+          {noLocations ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <TabsTrigger value="location" disabled className="gap-1.5 text-xs opacity-40">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Lok
+                  </TabsTrigger>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Ingen lokasjoner
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <TabsTrigger value="location" className="gap-1.5 text-xs">
+              <MapPin className="h-3.5 w-3.5" />
+              Lok
             </TabsTrigger>
           )}
 
@@ -292,6 +340,27 @@ export function ScopeFilterPopoverContent({
                     />
                   )}
                   <span className="truncate">{t.name}</span>
+                </>
+              )}
+            />
+          )}
+        </TabsContent>
+
+        {/* Lokasjon content */}
+        <TabsContent value="location" className="mt-2">
+          {locationsQuery.isLoading ? (
+            <p className="text-muted-foreground px-3 py-4 text-center text-xs">Laster…</p>
+          ) : locations.length === 0 ? (
+            <p className="text-muted-foreground px-3 py-4 text-center text-xs">Ingen lokasjoner</p>
+          ) : (
+            <OptionList
+              items={locations}
+              selectedId={selectedLocationId}
+              onSelect={(id) => onScopeChange({ type: "location", id })}
+              renderItem={(l) => (
+                <>
+                  <MapPin className="text-muted-foreground h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate">{l.name}</span>
                 </>
               )}
             />
