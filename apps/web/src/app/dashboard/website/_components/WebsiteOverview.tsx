@@ -17,6 +17,7 @@ import { useWebsite } from "../_hooks/use-website";
 import { usePages } from "../_hooks/use-pages";
 import { publishWebsite } from "../_actions/publish-actions";
 import { createPreviewToken } from "../_actions/preview-actions";
+import { WebsiteToolsBridge } from "../_tools/website-tools-bridge";
 
 export default function WebsiteOverview() {
   const router = useRouter();
@@ -101,6 +102,7 @@ export default function WebsiteOverview() {
 
   return (
     <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
+      <WebsiteToolsBridge website={website} pages={pages} isLoading={false} />
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>

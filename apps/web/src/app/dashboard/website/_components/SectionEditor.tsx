@@ -10,6 +10,7 @@ import SectionForm from "./SectionForm";
 import SaveStatus from "./SaveStatus";
 import type { SaveState } from "./SaveStatus";
 import { getEditor } from "./editors/editor-registry";
+import { WebsitePageEditorToolsBridge } from "../pages/[pageId]/_tools/website-page-editor-tools-bridge";
 
 /**
  * Re-export SectionRow as WebsiteSection for use in sibling components.
@@ -43,8 +44,29 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
     [activeSection?.section_type],
   );
 
+  const sectionToolsInput = useMemo(
+    () => ({
+      pageId,
+      pageTitle,
+      // is_visible is not fetched at this level — default true (page is visible unless toggled in PageList)
+      isVisible: true,
+      sections: sections.map((s) => ({
+        website_section_id: s.website_section_id,
+        section_type: s.section_type,
+        is_visible: s.is_visible,
+        sort_order: s.sort_order,
+      })),
+      hasUnsavedChanges: saveState === "saving",
+      // websiteIsLive not known at this level — conservative default false
+      websiteIsLive: false,
+      lastSavedAt: saveState === "saved" ? new Date().toISOString() : null,
+    }),
+    [pageId, pageTitle, sections, saveState],
+  );
+
   return (
     <div className="flex h-full flex-col">
+      <WebsitePageEditorToolsBridge {...sectionToolsInput} />
       {/* Top bar */}
       <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 lg:px-6">
         <nav className="text-muted-foreground flex items-center gap-1 text-sm">
