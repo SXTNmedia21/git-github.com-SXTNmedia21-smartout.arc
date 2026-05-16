@@ -58,6 +58,8 @@ import { DateDivider } from "@/components/chat/DateDivider";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { ReactionBar } from "@/components/chat/ReactionBar";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { useEmitTyping } from "@/hooks/mutations/use-emit-typing";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
 import { useMarkRead } from "@/hooks/mutations/use-mark-read";
@@ -148,6 +150,9 @@ export function ConversationBody({
 
   // Sender side: track read receipts for own messages via Realtime.
   const readReceipts = useChannelReadReceipts(channelId);
+
+  // T4 — Typing presence: stable emitTyping() broadcast callback.
+  const emitTyping = useEmitTyping(channelId);
 
   // FlatList requires onViewableItemsChanged to be stable (wrapped in a ref).
   // Debounce 500ms: viewport events fire rapidly during scroll; batch IDs.
@@ -611,10 +616,13 @@ export function ConversationBody({
         </View>
       )}
 
+      {/* T4 — Typing indicator: renders above the composer when others are typing. */}
+      <TypingIndicator channelId={channelId} selfProfileId={profileId} />
       <MessageInput
         onSend={handleSend}
         replyTo={replyTo}
         onCancelReply={handleCancelReply}
+        onTyping={emitTyping}
         style={composerStyle}
       />
     </View>

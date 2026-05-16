@@ -2087,6 +2087,14 @@ export interface ChatMessageRead extends BaseEvent {
   };
 }
 
+// ─── Chat: Typing Presence ──────────────────────────
+export interface ChatTyping extends BaseEvent {
+  event: "chat typing";
+  properties: {
+    data: { channel_id: string; profile_id: string };
+  };
+}
+
 export interface RosterCreated extends BaseEvent {
   event: "roster created";
   properties: {
@@ -7913,6 +7921,7 @@ export type SmartoutEvent =
   | ChatMessageSent
   | ChatChannelMessageSent
   | ChatMessageRead
+  | ChatTyping
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -10472,6 +10481,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "chat message_read": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "chat typing": {
+    destinations: ["logger"],
     category: "channels",
   },
 
