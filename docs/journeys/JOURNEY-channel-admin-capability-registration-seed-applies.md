@@ -1,7 +1,9 @@
 ---
 title: "Journey — channel_admin seed migration applies clean to fresh DB"
 feature: channel-admin-capability-registration
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Migration 20260616120000_seed_channel_admin_authority.sql shipped at 83c46da3e. T3 system-steward confirmed: CROSS JOIN VALUES form correct, ON CONFLICT DO NOTHING idempotent, timestamp strictly > HEAD max (20260616110100). All 6 dotted-tool rows match ADR-0336 authority matrix. Rollback SQL documented in comment block."
 updated: 2026-05-16
 created: 2026-05-16
 module: ai

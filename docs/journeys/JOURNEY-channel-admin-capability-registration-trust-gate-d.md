@@ -1,7 +1,9 @@
 ---
 title: "Journey — channel_admin capability registers → Trust Gate D unblocks"
 feature: channel-admin-capability-registration
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Capability + 6 tools shipped at commit dfcfac0e1. T3 system-steward confirmed all 6 tools match ADR-0336 design table (per-tool authority + min_role + channel). emitPrefix 'channel_admin' verified unique via getAllCapabilities() self-check. Typecheck clean. Skeleton bodies fail-fast per ADR-0196 Invariant 11."
 updated: 2026-05-16
 created: 2026-05-16
 module: ai
