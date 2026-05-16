@@ -132,10 +132,17 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain open before Phase 1 is considered fully closed:
 
-- **G1 — Golden-month expected fixture (cents-exact §10.1):** PENDING. `packages/payroll-calculate/__tests__/golden-month/expected/` is empty. Spec §10.1 requires `aggregated_periods.json`, `payroll_lines.json`, `deviations.json`, `timebank_entries.json` with cents-exact match against engine output. Current integration test uses structural invariants only. Blocks §10.1 acceptance criterion sign-off.
-- **G3 — W11 Oslo-TZ bug:** PENDING. `checkW11` slices ISO date string for day grouping. Shifts starting 22:00 UTC (= 00:00 Oslo CEST) fall in the wrong day-bucket. Fix: replace string-slice grouping with Oslo timezone conversion before bucketing. Add boundary test scenario.
-- **G4 — W04 4-week rolling boundary test:** PENDING. Current negative test does not exercise the full 4-week rolling window (only 3 shifts in 1 week). Needed scenario: 4 weeks × 46h = 24h OT (under 25h cap, must NOT fire W04).
-- **G5 — 43-shift fixture vs §10.1 600-shift spec:** PENDING decision. Golden-month input uses 43 shifts vs the spec-stated ~600. Pontus to decide: scale up to 600 OR formally accept 43 with a documented scope-cut ADR. Blocking §10.1 criterion until resolved.
+- **G1 — Golden-month expected fixture (cents-exact §10.1):** IN PROGRESS. `packages/payroll-calculate/__tests__/golden-month/expected/` is empty. F2 worksheet built (session 2026-05-16): 43-shift inventory, 12-profile × 158-cell compute worksheet, Lovsen citation table. 4 fixture blockers resolved (B1 UUID seed migration, B2 monthly formula, B3 Skjærtorsdag date, B4 typo). Pending: **Pontus E3 Riksavtalen 2026 rate-verify + worksheet signature**, then ADR-0342 `verify_citation_freshness` implementation + transcribe-agent + test runner wire-up. Tracked: SMA-372. Close-out detail: HANDOFF-payroll-phase-1-closeout.md.
+- **G3 — W11 Oslo-TZ bug:** DONE (commit `d22645c4d`). `osloDateString` helper added; shifts starting 22:00 UTC bucket correctly to Oslo calendar day. Tests 230 → 232.
+- **G4 — W04 4-week rolling boundary test:** DONE (commit `acf3352bc`). 4-week × 46h negative boundary scenario added.
+- **G5 — 43-shift fixture vs §10.1 600-shift spec:** PENDING decision. Pontus to decide: scale to 600 OR accept 43 with scope-cut ADR. Blocking §10.1 sign-off. Tracked: SMA-372.
+- **SMA-328 local-only commits:** DONE (session 2026-05-16). `feat/sma-328-aml-14-15-trekk-consent` branch pushed to origin. Data-loss risk averted.
+- **ADR-0303 mis-attribution:** DONE (commit `d0e5f745f`). `notify_each_profile` attribution corrected to ADR-0319.
+- **O25-O29 open questions:** DONE (commit `13596f9b0`). All 5 marked resolved with migration references.
+
+### Post-session state (2026-05-16)
+
+ADR-0341 v1.1 + ADR-0342 both accepted. Engine bug fixes W11 + W04 + E2 shipped (tests 230 → 235). E1 tariff_category + E5 role_class CHECK extended. Full close-out detail: `docs/HANDOFF-payroll-phase-1-closeout.md`. Remaining load-bearing block: Pontus E3 verify + signature → ADR-0342 implementation → transcribe-agent → `pnpm test:golden-month` green.
 
 ---
 
