@@ -18,9 +18,20 @@
  *
  * Eligibility check: caller pre-loads context; eligibilityFor() is pure TS, no DB.
  *
- * Transactional approve: UPDATE schedule_shift.employee_id AND
- *   schedule_shift_offer.status='approved' in SINGLE mutateWithGate exec callback
- *   (one gate evaluation per ADR-0099).
+ * Transactional approve (ADR-0340 §Preservation Clause 3 — NON-NEGOTIABLE):
+ *   approve_claim does FOUR writes in ONE mutateWithGate exec callback:
+ *     1. UPDATE schedule_shift.employee_id (assign the shift — existing)
+ *     2. UPDATE schedule_shift_offer.status='approved' (close the offer — existing)
+ *     3. terminatePipelineInstance → engine_state (pipeline complete — new T3)
+ *     4. releasePipelineLock → schedule_shift.pipeline_lock_state_id=NULL (new T3)
+ *   All 4 writes share ONE gate_evaluation_id. Splitting would violate ADR-0287.
+ *
+ * Pipeline integration (ADR-0340 T3):
+ *   post_open   → createPipelineInstance(marketplace_lifecycle) + acquireLock
+ *   claim       → advancePipelineInstance(toStep:1)
+ *   approve_claim → advancePipelineInstance(toStep:2) + terminatePipelineInstance
+ *                   + releasePipelineLock inside SAME exec
+ *   cancel_offer → terminatePipelineInstance(cancel) + releasePipelineLock
  *
  * NEVER auto-approve V1: engine_authority_config.shift_marketplace.auto_approve_claim
  *   is a V2 feature. V1 always requires manager approval.
@@ -30,9 +41,11 @@
  *   ADR-0133 (web composes, mobile executes — claim = Approve verb)
  *   ADR-0134 (emit on every mutation)
  *   ADR-0151 (server-derived identity — ctx.profileId, never param)
+ *   ADR-0240 (no cross-namespace writes — pipeline writes go to engine_state only)
  *   ADR-0288 (chat-only for C4 irreversible acts)
- *   ADR-0287 (mutateWithGate mandatory on mutation tools)
+ *   ADR-0287 (mutateWithGate mandatory on mutation tools; single exec per atomic op)
  *   ADR-0306 (open-shift marketplace sidecar offer table)
+ *   ADR-0340 (shift lifecycle pipeline; §Preservation Clause 3 approve_claim atomic)
  *   L-0177 (fail-fast on empty IDs; no silent fallback)
  */
 
@@ -56,6 +69,20 @@ import {
   type EmploymentContract,
   type BlockerCode,
 } from "../../scheduler/eligibility.js";
+import {
+  createPipelineInstance,
+  advancePipelineInstance,
+  terminatePipelineInstance,
+  readActivePipelineInstancesForShift,
+  acquirePipelineLock,
+  releasePipelineLock,
+  emitStageProposed,
+  emitStageConsented,
+  emitStageApproved,
+  emitStageCancelled,
+  PipelineLockHeldError,
+  PipelineContextError,
+} from "../../engine/authority-pipeline/index.js";
 
 // ── Capability + action literals (ADR-0195 dotted form) ─────────────────────
 const CAP = "shift_marketplace";
@@ -173,8 +200,10 @@ export const postOpen = defineTool({
       return "Vakten ble ikke funnet i dette arbeidsområdet.";
     }
 
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
     try {
-      const { result: offerId } = await mutateWithGate(supabase, {
+      const { result, gateEvaluationId } = await mutateWithGate(supabase, {
         workspaceId: ctx.workspaceId,
         profileId: ctx.profileId,
         capability: CAP,
@@ -182,6 +211,7 @@ export const postOpen = defineTool({
         channel: ctx.channel ?? "chat",
         targetId: params.shift_id,
         exec: async (db) => {
+          // Write 1: INSERT schedule_shift_offer (offer ownership).
           const { data: offer, error } = await db
             .from("schedule_shift_offer")
             .insert({
@@ -196,11 +226,35 @@ export const postOpen = defineTool({
             .single();
 
           if (error) throw new Error(error.message);
-          return offer.schedule_shift_offer_id as string;
+          const offerId = offer.schedule_shift_offer_id as string;
+
+          // Write 2: CREATE pipeline instance in engine_state (ADR-0340 T3).
+          // gateEvaluationId not yet available inside exec — pass null; next
+          // stage will record it via lastGateEvaluationId contextPatch.
+          const pipeline = await createPipelineInstance(
+            db,
+            pipelineCtx,
+            "marketplace_lifecycle",
+            params.shift_id,
+            {
+              shiftId: params.shift_id,
+              sourceWorkspaceId: ctx.workspaceId,
+              initiatorProfileId: ctx.profileId,
+              lastGateEvaluationId: null,
+            },
+          );
+
+          // Write 3: ACQUIRE pipeline lock on the shift (CAS, ADR-0340 P0.6).
+          // Must happen AFTER pipeline instance exists (lock points at engine_state.id).
+          await acquirePipelineLock(db, pipelineCtx, params.shift_id, pipeline.id);
+
+          return { offerId, pipelineInstanceId: pipeline.id };
         },
       });
 
-      // ADR-0134: emit AFTER successful mutation. Shape per ShiftOfferPosted interface.
+      const { offerId, pipelineInstanceId } = result;
+
+      // ADR-0134: emit AFTER successful mutation — legacy event preserved (ADR-0340 §Preservation 2).
       await emit({
         event: "shift_offer.posted",
         workspace_id: ctx.workspaceId,
@@ -219,12 +273,31 @@ export const postOpen = defineTool({
         },
       });
 
+      // ADR-0340 T3: additive pipeline stage event (PENDING T4 registry wiring).
+      await emitStageProposed({
+        processId: "marketplace_lifecycle",
+        stage: "marketplace_lifecycle.stage_0_post",
+        pipelineInstanceId,
+        gateEvaluationId,
+        shiftId: params.shift_id,
+        workspaceId: ctx.workspaceId,
+        actorProfileId: ctx.profileId,
+      });
+
       return JSON.stringify({
         ok: true,
         offer_id: offerId,
+        pipeline_instance_id: pipelineInstanceId,
         message: "Vakten er nå lagt ut på markedsplassen.",
       });
     } catch (err) {
+      if (err instanceof PipelineLockHeldError) {
+        return JSON.stringify({
+          ok: false,
+          error: "pipeline_lock_held",
+          reason: err.message,
+        });
+      }
       if (err instanceof MutateWithGateDenied) {
         return JSON.stringify({ ok: false, error: "authority_denied", reason: err.message });
       }
@@ -373,9 +446,21 @@ export const claim = defineTool({
       });
     }
 
-    // Eligibility passed — gate + write.
+    // Eligibility passed — look up active pipeline instance, then gate + write.
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
+    // Resolve the active marketplace pipeline instance for this shift.
+    // If none exists (offer posted outside the pipeline path), skip pipeline advancement.
+    const activePipelines = await readActivePipelineInstancesForShift(
+      supabase,
+      pipelineCtx,
+      offer.shift_id as string,
+      "marketplace_lifecycle",
+    );
+    const activePipeline = activePipelines[0] ?? null;
+
     try {
-      const { result: claimedOfferId } = await mutateWithGate(supabase, {
+      const { result: claimedOfferId, gateEvaluationId } = await mutateWithGate(supabase, {
         workspaceId: ctx.workspaceId,
         profileId: ctx.profileId,
         capability: CAP,
@@ -383,7 +468,7 @@ export const claim = defineTool({
         channel: ctx.channel ?? "chat",
         targetId: params.offer_id,
         exec: async (db) => {
-          // Atomic filter: only UPDATE if status is still 'open' (prevents race).
+          // Write 1: UPDATE offer status (atomic guard — only if still 'open').
           const { error } = await db
             .from("schedule_shift_offer")
             .update({
@@ -396,11 +481,27 @@ export const claim = defineTool({
             .eq("status", "open"); // atomic guard against concurrent claim
 
           if (error) throw new Error(error.message);
+
+          // Write 2: ADVANCE pipeline to step 1 (if pipeline exists — ADR-0340 T3).
+          // gateEvaluationId not yet available inside exec — the mutateWithGate
+          // return value carries it; lastGateEvaluationId is updated by the
+          // approve_claim stage when it reads current context.
+          if (activePipeline) {
+            await advancePipelineInstance(
+              db,
+              pipelineCtx,
+              activePipeline.id,
+              1, // toStep: stage_1_claim
+              null, // gateEvaluationId: not yet available inside exec
+              { lastGateEvaluationId: null },
+            );
+          }
+
           return params.offer_id;
         },
       });
 
-      // ADR-0134: emit AFTER successful mutation. Shape per ShiftOfferClaimed interface.
+      // ADR-0134: emit AFTER successful mutation — legacy event preserved (ADR-0340 §Preservation 2).
       await emit({
         event: "shift_offer.claimed",
         workspace_id: ctx.workspaceId,
@@ -418,6 +519,19 @@ export const claim = defineTool({
           },
         },
       });
+
+      // ADR-0340 T3: additive pipeline stage event (PENDING T4 registry wiring).
+      if (activePipeline) {
+        await emitStageConsented({
+          processId: "marketplace_lifecycle",
+          stage: "marketplace_lifecycle.stage_1_claim",
+          pipelineInstanceId: activePipeline.id,
+          gateEvaluationId,
+          shiftId: offer.shift_id as string,
+          workspaceId: ctx.workspaceId,
+          actorProfileId: ctx.profileId,
+        });
+      }
 
       return JSON.stringify({
         ok: true,
@@ -481,10 +595,25 @@ export const approveClaim = defineTool({
 
     const claimedBy = offer.claimed_by_profile_id as string;
     const shiftId = offer.shift_id as string;
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
+    // Resolve the active marketplace pipeline instance for this shift.
+    const activePipelines = await readActivePipelineInstancesForShift(
+      supabase,
+      pipelineCtx,
+      shiftId,
+      "marketplace_lifecycle",
+    );
+    const activePipeline = activePipelines[0] ?? null;
 
     try {
-      // ADR-0306: transactional — both writes in one exec callback, one gate eval.
-      await mutateWithGate(supabase, {
+      // ADR-0340 §Preservation Clause 3 (NON-NEGOTIABLE):
+      // ALL four writes in ONE mutateWithGate exec = ONE gate_evaluation_id.
+      //   Write 1: UPDATE schedule_shift.employee_id (existing — assign shift)
+      //   Write 2: UPDATE schedule_shift_offer.status='approved' (existing — close offer)
+      //   Write 3: terminatePipelineInstance → engine_state.status='complete' (new T3)
+      //   Write 4: releasePipelineLock → schedule_shift.pipeline_lock_state_id=NULL (new T3)
+      const { gateEvaluationId } = await mutateWithGate(supabase, {
         workspaceId: ctx.workspaceId,
         profileId: ctx.profileId,
         capability: CAP,
@@ -492,7 +621,7 @@ export const approveClaim = defineTool({
         channel: ctx.channel ?? "chat",
         targetId: params.offer_id,
         exec: async (db) => {
-          // UPDATE schedule_shift.employee_id = claimedBy (assign the shift).
+          // Write 1: UPDATE schedule_shift.employee_id = claimedBy (assign the shift).
           const { error: shiftErr } = await db
             .from("schedule_shift")
             .update({ employee_id: claimedBy })
@@ -501,7 +630,7 @@ export const approveClaim = defineTool({
 
           if (shiftErr) throw new Error(`Kunne ikke oppdatere vakt: ${shiftErr.message}`);
 
-          // UPDATE schedule_shift_offer.status = 'approved' (close the offer).
+          // Write 2: UPDATE schedule_shift_offer.status = 'approved' (close the offer).
           const { error: offerUpdateErr } = await db
             .from("schedule_shift_offer")
             .update({
@@ -515,10 +644,26 @@ export const approveClaim = defineTool({
 
           if (offerUpdateErr)
             throw new Error(`Kunne ikke oppdatere tilbud: ${offerUpdateErr.message}`);
+
+          // Write 3 + Write 4: Pipeline terminate + lock release (ADR-0340 T3).
+          // Only if pipeline exists — backwards compat with offers posted outside pipeline.
+          if (activePipeline) {
+            // Write 3: Terminate pipeline instance (engine_state → complete).
+            await terminatePipelineInstance(
+              db,
+              pipelineCtx,
+              activePipeline.id,
+              { kind: "complete" },
+              null, // gateEvaluationId: not yet available inside exec
+            );
+
+            // Write 4: Release pipeline lock on the shift.
+            await releasePipelineLock(db, pipelineCtx, shiftId, activePipeline.id);
+          }
         },
       });
 
-      // ADR-0134: emit ONCE after both writes succeeded. Shape per ShiftOfferApproved interface.
+      // ADR-0134: emit ONCE after ALL writes succeeded — legacy event preserved (ADR-0340 §Preservation 2).
       await emit({
         event: "shift_offer.approved",
         workspace_id: ctx.workspaceId,
@@ -533,10 +678,23 @@ export const approveClaim = defineTool({
             shift_id: shiftId,
             approved_by_profile_id: ctx.profileId,
             claimed_by_profile_id: claimedBy,
-            gate_evaluation_id: null,
+            gate_evaluation_id: gateEvaluationId,
           },
         },
       });
+
+      // ADR-0340 T3: additive pipeline stage event (PENDING T4 registry wiring).
+      if (activePipeline) {
+        await emitStageApproved({
+          processId: "marketplace_lifecycle",
+          stage: "marketplace_lifecycle.stage_2_approve",
+          pipelineInstanceId: activePipeline.id,
+          gateEvaluationId,
+          shiftId,
+          workspaceId: ctx.workspaceId,
+          actorProfileId: ctx.profileId,
+        });
+      }
 
       return JSON.stringify({
         ok: true,
@@ -551,6 +709,9 @@ export const approveClaim = defineTool({
       }
       if (err instanceof MutateWithGateError) {
         return JSON.stringify({ ok: false, error: err.code, reason: err.message });
+      }
+      if (err instanceof PipelineContextError) {
+        return JSON.stringify({ ok: false, error: "pipeline_error", reason: err.message });
       }
       return `Feil ved godkjenning av krav: ${err instanceof Error ? err.message : String(err)}`;
     }
@@ -589,8 +750,20 @@ export const cancelOffer = defineTool({
       return `Tilbudet kan ikke kanselleres — nåværende status er '${offer.status as string}'.`;
     }
 
+    const shiftId = offer.shift_id as string;
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
+    // Resolve the active marketplace pipeline instance for this shift.
+    const activePipelines = await readActivePipelineInstancesForShift(
+      supabase,
+      pipelineCtx,
+      shiftId,
+      "marketplace_lifecycle",
+    );
+    const activePipeline = activePipelines[0] ?? null;
+
     try {
-      await mutateWithGate(supabase, {
+      const { gateEvaluationId } = await mutateWithGate(supabase, {
         workspaceId: ctx.workspaceId,
         profileId: ctx.profileId,
         capability: CAP,
@@ -598,6 +771,7 @@ export const cancelOffer = defineTool({
         channel: ctx.channel ?? "chat",
         targetId: params.offer_id,
         exec: async (db) => {
+          // Write 1: UPDATE offer status (guard against double-cancel).
           const { error } = await db
             .from("schedule_shift_offer")
             .update({
@@ -609,10 +783,25 @@ export const cancelOffer = defineTool({
             .in("status", ["open", "claimed"]); // guard against double-cancel
 
           if (error) throw new Error(error.message);
+
+          // Write 2 + Write 3: Pipeline terminate + lock release (ADR-0340 T3).
+          if (activePipeline) {
+            // Write 2: Terminate pipeline instance (engine_state → cancelled).
+            await terminatePipelineInstance(
+              db,
+              pipelineCtx,
+              activePipeline.id,
+              { kind: "cancel" },
+              null, // gateEvaluationId: not yet available inside exec
+            );
+
+            // Write 3: Release pipeline lock on the shift.
+            await releasePipelineLock(db, pipelineCtx, shiftId, activePipeline.id);
+          }
         },
       });
 
-      // ADR-0134: emit AFTER successful mutation. Shape per ShiftOfferCancelled interface.
+      // ADR-0134: emit AFTER successful mutation — legacy event preserved (ADR-0340 §Preservation 2).
       await emit({
         event: "shift_offer.cancelled",
         workspace_id: ctx.workspaceId,
@@ -624,13 +813,26 @@ export const cancelOffer = defineTool({
           },
           data: {
             schedule_shift_offer_id: params.offer_id,
-            shift_id: offer.shift_id as string,
+            shift_id: shiftId,
             cancelled_by_profile_id: ctx.profileId,
             cancel_reason: params.reason,
-            gate_evaluation_id: null,
+            gate_evaluation_id: gateEvaluationId,
           },
         },
       });
+
+      // ADR-0340 T3: additive pipeline stage event (PENDING T4 registry wiring).
+      if (activePipeline) {
+        await emitStageCancelled({
+          processId: "marketplace_lifecycle",
+          stage: "marketplace_lifecycle.stage_0_post", // pipeline terminated at whatever stage it was at
+          pipelineInstanceId: activePipeline.id,
+          gateEvaluationId,
+          shiftId,
+          workspaceId: ctx.workspaceId,
+          actorProfileId: ctx.profileId,
+        });
+      }
 
       return JSON.stringify({
         ok: true,
@@ -643,6 +845,9 @@ export const cancelOffer = defineTool({
       }
       if (err instanceof MutateWithGateError) {
         return JSON.stringify({ ok: false, error: err.code, reason: err.message });
+      }
+      if (err instanceof PipelineContextError) {
+        return JSON.stringify({ ok: false, error: "pipeline_error", reason: err.message });
       }
       return `Feil ved kansellering av tilbud: ${err instanceof Error ? err.message : String(err)}`;
     }
