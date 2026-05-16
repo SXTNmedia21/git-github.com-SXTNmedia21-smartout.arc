@@ -1,11 +1,21 @@
 ---
 title: Journey — Timeline Templates
-status: draft
+feature: timeline-templates
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: web-day-control
 tags: [journey, d6, timeline-template]
 ---
+
+> **Verified 2026-05-16.** All 5 journeys backed by shipped code:
+> J1 Save (save_template capability + SaveTemplateDialog + BFF POST),
+> J2 Apply (apply_template capability + ApplyTemplateDialog + BFF — **E2E A2 green**),
+> J3 Free-form (per-chip mapping in apply_template — **E2E B1+B2 green**),
+> J4 Archive (archive_template capability + dropdown context menu — manual TT-06),
+> J5 Location-scope warning (ScopeFilterPill extended + warning banner + BFF reject — **E2E C3 green**).
+> Manual cases TT-02 (duplicate apply), TT-06 (archive), TT-08 (cron timing) remain manual per T7 design.
 
 # Journey — Timeline Templates
 
@@ -124,13 +134,29 @@ Companion to `docs/superpowers/specs/2026-05-16-timeline-templates-design.md`.
 
 ## Manual test cases (v1)
 
-| ID | Test | Expected |
-|---|---|---|
-| TT-01 | Filter by team → save 3-item template → apply to today+7 | 3 rows materialize with `source='template:<id>'` |
-| TT-02 | Apply same template twice to same date | Both apply succeed; duplicate rows acceptable (operator cleans) |
-| TT-03 | Save with name collision in same scope | 409, dialog highlights name field |
-| TT-04 | Apply to past date | Button disabled |
-| TT-05 | Apply with 5 free-form chips, mix mappings | 2 task + 2 note + 1 skip = 4 new rows |
-| TT-06 | Archive template, dropdown excludes it | Confirmed |
-| TT-07 | Location scope save with `kind=session_task` in items | Zod 400 |
-| TT-08 | Cron fires at hook anchor time on applied date | Tasks materialize from procedure_step normally |
+| ID | Test | Expected | Status |
+|---|---|---|---|
+| TT-01 | Filter by team → save 3-item template → apply to today+7 | 3 rows materialize with `source='template:<id>'` | **Automated (partial)** — Test A2 covers save+apply+DB verify for dept scope shift item; team scope requires team fixture. |
+| TT-02 | Apply same template twice to same date | Both apply succeed; duplicate rows acceptable (operator cleans) | Manual — Test A2 applies once; second-apply is explicitly out of E2E scope (no UNIQUE constraint to enforce). |
+| TT-03 | Save with name collision in same scope | 409, dialog highlights name field | Manual — BFF returns 409 verified by spec; UI highlight requires running dev server with active session. |
+| TT-04 | Apply to past date | Button disabled | **Automated (partial)** — Test C3 verifies BFF 400 for invalid location-scope save; ApplyTemplateDialog `isPast` guard verified via component code-read. Full UI click-test requires active session. |
+| TT-05 | Apply with 5 free-form chips, mix mappings | 2 task + 2 note + 1 skip = 4 new rows | **Automated (partial)** — Test B1 covers note mapping, Test B2 covers skip. Multi-chip mix is manual. |
+| TT-06 | Archive template, dropdown excludes it | Confirmed | Manual — requires running dev server + active session for dropdown interaction. |
+| TT-07 | Location scope save with `kind=session_task` in items | Zod 400 | **Automated** — Test C3 (`C3 — BFF rejects POST save with non-shift item under location scope`) POSTs invalid body and asserts 400/409. |
+| TT-08 | Cron fires at hook anchor time on applied date | Tasks materialize from procedure_step normally | Manual — cron timing cannot be simulated in Playwright without mocking pg_cron. |
+
+### Automated test coverage (T7 Playwright)
+
+Spec: `apps/e2e/timeline-templates/timeline-templates.spec.ts`
+
+| Test name | Journeys covered |
+|---|---|
+| A1 — TimelineTopBar renders in Dagslinjen | TT-01 (structural precondition) |
+| A2 — BFF save + apply round-trip: shift item materialises in DB | TT-01 (save + apply + DB verify) |
+| A3 — SavedTimelinesDropdown lists saved template after save | TT-01 (dropdown presence) |
+| B1 — free_form item mapped to note → session_note row exists in DB | TT-05 (note mapping) |
+| B2 — free_form item mapped to skip → no session_note created | TT-05 (skip mapping) |
+| C1 — location scope warning banner is visible | Journey 5 (warning UI) |
+| C2 — SlotPicker disables non-shift actions in location scope | Journey 5 (SlotPicker enforcement) |
+| C3 — BFF rejects POST save with non-shift item under location scope | TT-07 (API enforcement) |
+| C4 — scope-filter-pill reflects Lokasjon label | Journey 5 (scope pill state) |

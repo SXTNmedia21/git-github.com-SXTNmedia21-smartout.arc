@@ -344,7 +344,13 @@ UI for `location` scope must show explicit notice: "Lokasjonsfilter viser kun va
        - mapping `skip` → no write
    - On any error: rollback transaction, return failure summary
    - On success: `emit("timeline_template.applied", { template_id, target_date, materialized_count_by_kind, freeform_skipped })`
-7. Per-row `emit()` for each materialized item (existing event ids: `shift.added`, `session_hook.created`, `session_task.pre_authored`, `session_note.created`, `deviation.created`)
+7. Per-row `emit()` for each materialized item via reused existing event ids (no new ids needed; `metadata.source: "template_apply"` carries provenance discrimination):
+   - `schedule_shift` → `shift created`
+   - `session_hook` → `session_hook created`
+   - `session_task` → `session_task.created` (with `metadata.source="template_apply"`)
+   - `session_note` → `comm.scheduled_note.created`
+   - `deviation` → `deviation reported`
+   Row-level template_id linkage is via `schedule_shift.source = 'template:<id>'` column + `metadata.template_id` available as Phase-2 enhancement if cross-row queries become hard.
 8. Returns `{ materialized: {...}, errors: [] }`
 9. Dialog closes, TimelineTab refetches via TanStack invalidate
 
@@ -407,7 +413,15 @@ Per ADR-0189: authority-seed-parity CI script (`scripts/authority-seed-parity.ts
 "timeline_template.listed":        { destinations: ["logger"] },  // debug-only
 ```
 
-Existing event ids reused on apply: `shift.added`, `session_hook.created`, `session_task.pre_authored`, `session_note.created`, `deviation.created`.
+Existing event ids reused on apply (verified present in registry; no new ids):
+
+- `schedule_shift` → `shift created`
+- `session_hook` → `session_hook created`
+- `session_task` → `session_task.created` (provenance via `metadata.source="template_apply"`)
+- `session_note` → `comm.scheduled_note.created`
+- `deviation` → `deviation reported`
+
+Rationale: each adapted event already routes to activity_trail + engine_event where appropriate; inserting 5 new event ids for cosmetic parity was registry bloat. Provenance discrimination is captured via `metadata.source` field and (where present) the `source` column on the row itself (`schedule_shift.source = 'template:<id>'`). T6 audit verified this design 2026-05-16.
 
 ## Error handling + edge cases
 

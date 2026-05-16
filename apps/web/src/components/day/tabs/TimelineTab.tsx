@@ -1,7 +1,8 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Info } from "lucide-react";
 import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import {
@@ -13,7 +14,9 @@ import { DayTimelineStrip } from "@/components/day/DayTimelineStrip";
 import { DayEventList } from "@/components/day/DayEventList";
 import { EventDetailPanel } from "@/components/day/EventDetailPanel";
 import { useEntityDrawerOptional } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
-import { SlotQuickAddPopover } from "@/components/day/SlotQuickAddPopover";
+import { SlotPicker, type SlotPickerAction } from "@/components/day/SlotPicker";
+import { FreeFormChipDialog } from "@/components/day/FreeFormChipDialog";
+import { TimelineTopBar } from "@/components/day/TimelineTopBar";
 import { ShiftStartDialog } from "@/components/day/ShiftStartDialog";
 import { AddTaskDialog } from "@/components/day/AddTaskDialog";
 import { DeviationDialog } from "@/app/dashboard/operations/_components/DeviationDialog";
@@ -22,15 +25,21 @@ import { DailyNoteSheet } from "@/components/dashboard/cockpit/sheets/DailyNoteS
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { useDayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
-import { ScopeFilterPill } from "@/components/day/ScopeFilterPill";
+import type { TimelineTemplateItemT } from "@smartout/types";
 
-// Local type for popover anchor — time + whether it is open.
-type QuickAddState = {
+// Local type for slot-picker anchor — time + whether it is open.
+type SlotPickerState = {
   open: boolean;
   time: string;
 };
 
-const CLOSED_QUICK_ADD: QuickAddState = { open: false, time: "" };
+const CLOSED_SLOT_PICKER: SlotPickerState = { open: false, time: "" };
+
+// Draft free-form chip: in-memory only until template is saved.
+type DraftChip = {
+  label: string;
+  time: string;
+};
 
 export function TimelineTab({
   session,
@@ -54,7 +63,11 @@ export function TimelineTab({
   const profileId = dashCtx.profileId;
 
   const [selected, setSelected] = useState<DayEvent | null>(null);
-  const [quickAdd, setQuickAdd] = useState<QuickAddState>(CLOSED_QUICK_ADD);
+  const [slotPicker, setSlotPicker] = useState<SlotPickerState>(CLOSED_SLOT_PICKER);
+  // In-memory draft chips — free-form items added by user, not yet saved as template
+  const [draftChips, setDraftChips] = useState<DraftChip[]>([]);
+  const [freeFormDialogOpen, setFreeFormDialogOpen] = useState(false);
+  const [freeFormTime, setFreeFormTime] = useState<string>("--:--");
 
   // ─── Sheet / dialog open-state ───────────────────────────────────────────────
   const [slotTime, setSlotTime] = useState<string>("--:--");
@@ -71,6 +84,7 @@ export function TimelineTab({
   const { scope } = useDayTimelineScope();
   const teamId = scope.type === "team" ? scope.id : null;
   const shiftId = scope.type === "shift" ? scope.id : null;
+  const isLocationScope = scope.type === "location";
 
   // Authority: managers restricted to own dept; admin/owner see all.
   const isRestricted = role !== null && role !== undefined && role !== "admin" && role !== "owner";
@@ -109,69 +123,101 @@ export function TimelineTab({
 
   function handleSlotClick(time: string) {
     if (!canEdit) return;
-    setQuickAdd({ open: true, time });
+    setSlotPicker({ open: true, time });
   }
 
-  function handleQuickAddAction(
-    action: "booking" | "note" | "task" | "deviation" | "shift_start",
-    time: string,
-  ) {
+  const handleSlotPickerAction = useCallback((action: SlotPickerAction, time: string) => {
     setSlotTime(time);
     switch (action) {
-      case "booking":
-        setBookingOpen(true);
-        break;
-      case "note":
-        setNoteOpen(true);
+      case "shift":
+        setShiftStartOpen(true);
         break;
       case "task":
         setTaskDialogOpen(true);
         break;
+      case "note":
+        setNoteOpen(true);
+        break;
       case "deviation":
         setAvvikDialogOpen(true);
         break;
-      case "shift_start":
-        setShiftStartOpen(true);
+      case "hook":
+        // Hook dialog not yet built — opens AddTask as nearest proxy for now.
+        // T6/T7 will wire a dedicated HookDialog once the session_hook form lands.
+        setTaskDialogOpen(true);
+        break;
+      case "free_form":
+        setFreeFormTime(time);
+        setFreeFormDialogOpen(true);
         break;
     }
+  }, []);
+
+  function handleAddDraftChip(label: string, time: string) {
+    setDraftChips((prev) => [...prev, { label, time }]);
   }
+
+  // Derive canvas items from draft chips (for SaveTemplateDialog preview)
+  const canvasItems: TimelineTemplateItemT[] = draftChips.map((chip) => ({
+    kind: "free_form" as const,
+    time_hhmm: chip.time.match(/^\d{2}:\d{2}$/) ? chip.time : "00:00",
+    duration_min: null,
+    payload: { label: chip.label },
+  }));
 
   if (events.isLoading) {
     return <div className="text-muted-foreground text-[13px]">Laster tidslinjen…</div>;
   }
 
   const data = events.data ?? [];
-  // Coerce role to WorkspaceRole | null for popover prop
-  const popoverRole = (role ?? null) as WorkspaceRole | null;
+  // Coerce role to WorkspaceRole | null for picker prop
+  const pickerRole = (role ?? null) as WorkspaceRole | null;
 
   return (
     <div className="scrollbar-thin flex h-full min-h-0 flex-1 flex-col overflow-y-auto pr-1">
       <div className="grid gap-3">
         {/* Sticky strip — never disappears while event-list scrolls below */}
         <div className="sticky top-0 z-20 pb-1">
-          {/* Scope filter pill — always visible, no auth required for filtering view */}
+          {/* Timeline Top Bar — scope filter + saved timelines dropdown */}
           {workspaceId && (
-            <div className="mb-2 flex items-center gap-2">
-              <ScopeFilterPill
+            <div className="mb-2">
+              <TimelineTopBar
                 workspaceId={workspaceId}
                 dateISO={dateISO}
                 ownDepartmentId={ownDeptForFilter}
                 profileId={profileId ?? ""}
+                scope={scope}
+                departmentId={departmentId}
+                sessionId={session.sessionId}
+                canvasItems={canvasItems}
               />
+            </div>
+          )}
+
+          {/* Location scope warning — shown below TopBar when location filter is active */}
+          {isLocationScope && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mb-2 flex items-start gap-2 rounded border border-[oklch(0.82_0.08_65)] bg-[oklch(0.96_0.03_65)] px-3 py-2 text-[11px] leading-snug text-[oklch(0.35_0.10_55)]"
+            >
+              <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+              <span>
+                Lokasjonsfilter viser kun vakter — hooks/oppgaver/notater er ikke lokasjons-merket.
+              </span>
             </div>
           )}
 
           {/* The popover trigger is rendered inline inside DayTimelineStrip hit-zones.
               We use a controlled popover here: DayTimelineStrip fires onSlotClick,
-              which opens the popover. The popover trigger is a transparent div wrapper. */}
-          <SlotQuickAddPopover
-            open={quickAdd.open}
-            onOpenChange={(o) => setQuickAdd((prev) => ({ ...prev, open: o }))}
-            time={quickAdd.time || "--:--"}
-            actorId={profileId}
-            workspaceId={workspaceId}
-            role={popoverRole}
-            onAction={handleQuickAddAction}
+              which opens SlotPicker. The popover trigger is a transparent div wrapper. */}
+          <SlotPicker
+            open={slotPicker.open}
+            onOpenChange={(o) => setSlotPicker((prev) => ({ ...prev, open: o }))}
+            time={slotPicker.time || "--:--"}
+            isLocationScope={isLocationScope}
+            role={pickerRole}
+            onAction={handleSlotPickerAction}
           >
             {/* Transparent div so popover attaches to the strip area */}
             <div className="relative w-full">
@@ -185,7 +231,7 @@ export function TimelineTab({
                 onSlotClick={handleSlotClick}
               />
             </div>
-          </SlotQuickAddPopover>
+          </SlotPicker>
         </div>
 
         {/* Empty state when scope filter is active but yields no events */}
@@ -243,7 +289,7 @@ export function TimelineTab({
         defaultSessionId={session.sessionId}
       />
 
-      {/* ── Deviation dialog — SlotQuickAddPopover "Avvik" path ──────────── */}
+      {/* ── Deviation dialog — SlotPicker "Avvik" path ──────────── */}
       {/* Controlled-open: slotTime + dateISO compose occurred_at for title context.
           workspaceId + profileId resolved from context (ADR-0151 server-derived). */}
       {workspaceId && profileId && (
@@ -256,6 +302,14 @@ export function TimelineTab({
           defaultDepartmentId={departmentId}
         />
       )}
+
+      {/* ── FreeFormChipDialog — SlotPicker "Fri tekst" path ──────────── */}
+      <FreeFormChipDialog
+        open={freeFormDialogOpen}
+        onOpenChange={setFreeFormDialogOpen}
+        time={freeFormTime}
+        onAdd={handleAddDraftChip}
+      />
     </div>
   );
 }

@@ -31,6 +31,7 @@ function scopeLabel(scope: DayTimelineScope): string {
   const prefixMap: Record<string, string> = {
     department: "Avdeling",
     team: "Team",
+    location: "Lokasjon",
     shift: "Vakt",
   };
   return `${prefixMap[scope.type] ?? scope.type}: …`;
