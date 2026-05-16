@@ -45,6 +45,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveMobileActor } from "../../_shared/actor";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 // ── Capability + action literal (must match capability tools.ts) ─────────────
 const CAP = "shift_marketplace";
@@ -55,25 +56,7 @@ const ClaimSchema = z.object({
   offer_id: z.string().uuid(),
 });
 
-// ── Gate helper ──────────────────────────────────────────────────────────────
-async function callGate(
-  admin: ReturnType<typeof createAdminClient>,
-  workspaceId: string,
-  profileId: string,
-  entityId: string,
-): Promise<{ allowed: boolean; reason: string | null }> {
-  const { data, error } = await admin.rpc("gate_action", {
-    p_workspace_id: workspaceId,
-    p_actor_profile_id: profileId,
-    p_capability: CAP,
-    p_action_type: ACTION_CLAIM,
-    p_entity_id: entityId,
-    p_channel: "chat", // ADR-0288: claim is chat-only; mobile surface = chat
-  });
-  if (error) throw new Error(`gate_action RPC failed: ${error.message}`);
-  const gate = data as { allowed: boolean; reason: string | null } | null;
-  return gate ?? { allowed: false, reason: "Gate returned null" };
-}
+// Gate routes through canonical orchestrator gateAction() per ADR-0204 §3.
 
 // ── Route handler ────────────────────────────────────────────────────────────
 
@@ -173,16 +156,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── Gate (ADR-0099) ───────────────────────────────────────────────────────
-  let gate: { allowed: boolean; reason: string | null };
-  try {
-    gate = await callGate(admin, workspaceId, profileId, offerId);
-  } catch (err) {
-    console.error("[mobile/marketplace/claim] gate_action RPC error:", err);
-    return NextResponse.json({ ok: false, error: "gate_error" }, { status: 502 });
-  }
+  // ── Gate (ADR-0099, routes via canonical orchestrator per ADR-0204 §3) ───
+  const gate = await gateAction({
+    workspaceId,
+    capability: CAP,
+    channel: "chat", // ADR-0288: claim is chat-only; mobile surface = chat
+    actorProfileId: profileId,
+    actionType: ACTION_CLAIM,
+    entityId: offerId,
+  });
 
-  if (!gate.allowed) {
+  if (!gate.allow) {
     return NextResponse.json(
       {
         ok: false,

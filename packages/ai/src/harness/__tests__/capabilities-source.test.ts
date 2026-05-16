@@ -52,19 +52,24 @@ const MANAGER_USER: UserContext = {
 /* ━━━ Test 1: definitions returned when role authorized ━━━━━━━━━━━━━━━━━━━━ */
 
 describe("CapabilitiesSource — real registry", () => {
-  it("1. returns at least one definition for an admin user with empty minRoleConfig", async () => {
-    const { createCapabilitiesSource } = await import("../sources/capabilities-source.js");
-    const source = createCapabilitiesSource();
-    const result = await source.getToolsFor("chat", ADMIN_USER);
+  // 30s timeout — cold-start of full real registry import + tools resolution can exceed 10s on loaded CI runners.
+  it(
+    "1. returns at least one definition for an admin user with empty minRoleConfig",
+    { timeout: 30000 },
+    async () => {
+      const { createCapabilitiesSource } = await import("../sources/capabilities-source.js");
+      const source = createCapabilitiesSource();
+      const result = await source.getToolsFor("chat", ADMIN_USER);
 
-    expect(result.definitions.length).toBeGreaterThan(0);
-    // Every definition must have the required shape.
-    for (const def of result.definitions) {
-      expect(def.temporaryTool).toBeDefined();
-      expect(typeof def.temporaryTool.modelToolName).toBe("string");
-      expect(def.temporaryTool.modelToolName.length).toBeGreaterThan(0);
-    }
-  });
+      expect(result.definitions.length).toBeGreaterThan(0);
+      // Every definition must have the required shape.
+      for (const def of result.definitions) {
+        expect(def.temporaryTool).toBeDefined();
+        expect(typeof def.temporaryTool.modelToolName).toBe("string");
+        expect(def.temporaryTool.modelToolName.length).toBeGreaterThan(0);
+      }
+    },
+  );
 
   it("4. channel='chat' and channel='voice' return the same definition set", async () => {
     const { createCapabilitiesSource } = await import("../sources/capabilities-source.js");

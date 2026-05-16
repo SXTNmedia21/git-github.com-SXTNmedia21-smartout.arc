@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frame 2 — SlotPicker popover (3-lane D6 / D2 / fri tekst)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Nordic Split CSS variables ── */
+    :root {
+      --background:           oklch(0.99 0.004 60);
+      --foreground:           oklch(0.12 0.02 55);
+      --card:                 oklch(0.97 0.006 58);
+      --card-foreground:      oklch(0.12 0.02 55);
+      --popover:              oklch(0.99 0.004 60);
+      --popover-foreground:   oklch(0.12 0.02 55);
+      --primary:              oklch(0.52 0.18 40);
+      --primary-foreground:   oklch(0.99 0.004 60);
+      --muted:                oklch(0.94 0.008 58);
+      --muted-foreground:     oklch(0.52 0.02 55);
+      --border:               oklch(0.88 0.01 58);
+      --input:                oklch(0.88 0.01 58);
+      --ring:                 oklch(0.52 0.18 40);
+      --accent:               oklch(0.93 0.015 55);
+      --accent-foreground:    oklch(0.22 0.02 55);
+      --destructive:          oklch(0.55 0.2 25);
+      --warning:              oklch(0.78 0.16 65);
+      --warning-foreground:   oklch(0.25 0.06 55);
+      --success:              oklch(0.58 0.18 145);
+      --radius:               6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Geist Sans', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: oklch(0.92 0.01 58);
+      padding: 24px;
+    }
+
+    .section-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* ── Layout: side-by-side popover variants ── */
+    .variants-row {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .variant-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .variant-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #777;
+    }
+
+    /* ── SlotPicker popover ── */
+    .slot-picker {
+      width: 300px;
+      background: var(--popover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 28px oklch(0 0 0 / 0.12), 0 2px 6px oklch(0 0 0 / 0.06);
+      overflow: hidden;
+    }
+
+    /* Header */
+    .picker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px 9px;
+      border-bottom: 1px solid var(--border);
+    }
+    .picker-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 15px;
+      color: var(--foreground);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .picker-title-time {
+      font-family: 'Geist Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .picker-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      border-radius: calc(var(--radius) - 2px);
+    }
+    .picker-close:hover { background: var(--muted); color: var(--foreground); }
+
+    /* Lane section */
+    .picker-lane {
+      padding: 8px 0 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .picker-lane:last-child { border-bottom: none; }
+
+    .lane-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted-foreground);
+      padding: 0 12px 4px;
+    }
+
+    /* Item button */
+    .item-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px 12px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      color: var(--foreground);
+      transition: background 0.1s;
+    }
+    .item-btn:hover { background: var(--muted); }
+    .item-btn:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: -2px;
+    }
+
+    .item-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: calc(var(--radius) - 2px);
+      border: 1px solid var(--border);
+      background: var(--muted);
+      color: var(--foreground);
+      flex-shrink: 0;
+    }
+
+    /* Icon color tints per lane */
+    .icon-d6-hook  { background: oklch(0.90 0.04 250); border-color: oklch(0.80 0.08 250); color: oklch(0.30 0.14 250); }
+    .icon-d6-task  { background: oklch(0.90 0.04 145); border-color: oklch(0.78 0.10 145); color: oklch(0.28 0.14 145); }
+    .icon-d6-note  { background: oklch(0.90 0.04 55);  border-color: oklch(0.80 0.08 55);  color: oklch(0.30 0.10 55); }
+    .icon-d6-dev   { background: oklch(0.90 0.04 25);  border-color: oklch(0.78 0.10 25);  color: oklch(0.32 0.14 25); }
+    .icon-d2-shift { background: oklch(0.90 0.04 310); border-color: oklch(0.78 0.10 310); color: oklch(0.30 0.14 310); }
+    .icon-free     { background: oklch(0.92 0.01 58);  border-color: oklch(0.84 0.01 58);  color: oklch(0.40 0.02 55); }
+
+    .item-text { display: flex; flex-direction: column; min-width: 0; }
+    .item-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--foreground);
+      line-height: 1.3;
+    }
+    .item-desc {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      line-height: 1.35;
+      margin-top: 1px;
+    }
+
+    /* ── Disabled variant ── */
+    .item-btn.disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .item-btn.disabled:hover { background: transparent; }
+
+    /* Tooltip-hint (static for mockup) */
+    .tooltip-hint {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      background: oklch(0.92 0.01 58);
+      border: 1px solid var(--border);
+      color: var(--muted-foreground);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    /* Location-scope notice banner */
+    .loc-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      margin: 8px 12px;
+      padding: 7px 9px;
+      border-radius: calc(var(--radius) - 2px);
+      background: oklch(0.96 0.03 65);
+      border: 1px solid oklch(0.82 0.08 65);
+      color: oklch(0.35 0.10 55);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    /* ── Context wrapper: show picker "floating" above a dimmed backdrop ── */
+    .mockup-context {
+      position: relative;
+      width: 600px;
+      height: 320px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--background);
+      overflow: hidden;
+    }
+
+    .backdrop-dim {
+      position: absolute;
+      inset: 0;
+      background: oklch(0 0 0 / 0.12);
+      border-radius: var(--radius);
+    }
+
+    .timeline-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .timeline-strip-bg {
+      width: 100%;
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--background);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slot-click-indicator {
+      position: absolute;
+      left: 39%;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: var(--primary);
+      opacity: 0.7;
+    }
+    .slot-click-dot {
+      position: absolute;
+      left: calc(39% - 4px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px oklch(0.52 0.18 40 / 0.25);
+    }
+
+    .popover-float {
+      position: absolute;
+      top: 16px;
+      left: calc(39% + 10px);
+    }
+  </style>
+</head>
+<body>
+
+<p class="section-label">Frame 2 — SlotPicker (3-lane grouping)</p>
+
+<!-- ── Contextual mockup: picker floating over timeline ── -->
+<div class="mockup-context" role="img" aria-label="Bruker klikket på 14:00-slot i tidslinja; SlotPicker popover åpnet">
+  <div class="timeline-bg">
+    <div class="timeline-strip-bg" aria-hidden="true">
+      <div class="slot-click-indicator"></div>
+      <div class="slot-click-dot"></div>
+    </div>
+  </div>
+  <div class="backdrop-dim" aria-hidden="true"></div>
+
+  <!-- Floating popover -->
+  <div class="popover-float">
+    <div class="slot-picker" role="dialog" aria-modal="true" aria-label="Legg til element kl. 14:00">
+      <!-- Header -->
+      <div class="picker-header">
+        <div class="picker-title">
+          Legg til kl.&nbsp;<span class="picker-title-time">14:00</span>
+        </div>
+        <button class="picker-close" aria-label="Lukk">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Lane D6: PRODUKSJON -->
+      <div class="picker-lane">
+        <div class="lane-label">Produksjon</div>
+
+        <!-- Hook -->
+        <button class="item-btn" aria-label="Hook — koble til procedure eller routine">
+          <span class="item-icon icon-d6-hook" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2a10 10 0 0 1 10 10v1a10 10 0 0 1-10 10"/>
+              <path d="M12 12h8"/><path d="m16 8 4 4-4 4"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Hook</span>
+            <span class="item-desc">Trigger procedure ved tidspunkt</span>
+          </span>
+        </button>
+
+        <!-- Oppgave -->
+        <button class="item-btn" aria-label="Oppgave — opprett en oppgave">
+          <span class="item-icon icon-d6-task" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="6" height="6" rx="1"/>
+              <path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Oppgave</span>
+            <span class="item-desc">Opprett en selvstendig oppgave</span>
+          </span>
+        </button>
+
+        <!-- Notat -->
+        <button class="item-btn" aria-label="Notat — skriv et sesjonnotat">
+          <span class="item-icon icon-d6-note" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Notat</span>
+            <span class="item-desc">Legg til et sesjonnotat</span>
+          </span>
+        </button>
+
+        <!-- Avvik -->
+        <button class="item-btn" aria-label="Avvik — registrer et avvik">
+          <span class="item-icon icon-d6-dev" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Avvik</span>
+            <span class="item-desc">Registrer et avvik for sesjon</span>
+          </span>
+        </button>
+      </div><!-- /lane D6 -->
+
+      <!-- Lane D2: BEMANNING -->
+      <div class="picker-lane">
+        <div class="lane-label">Bemanning</div>
+
+        <!-- Vakt -->
+        <button class="item-btn" aria-label="Vakt — legg til en vakt">
+          <span class="item-icon icon-d2-shift" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Vakt</span>
+            <span class="item-desc">Legg til en bemanningsvakt</span>
+          </span>
+        </button>
+      </div><!-- /lane D2 -->
+
+      <!-- Lane FREE-FORM -->
+      <div class="picker-lane">
+        <div class="lane-label">Fri tekst</div>
+
+        <!-- Fri tekst -->
+        <button class="item-btn" aria-label="Fri tekst — skriv en fritekst-post">
+          <span class="item-icon icon-free" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="21" y1="6" x2="3" y2="6"/>
+              <line x1="17" y1="12" x2="3" y2="12"/>
+              <line x1="13" y1="18" x2="3" y2="18"/>
+            </svg>
+          </span>
+          <span class="item-text">
+            <span class="item-label">Fri tekst</span>
+            <span class="item-desc">Friformatpost — velg type ved påføring</span>
+          </span>
+        </button>
+      </div><!-- /lane free-form -->
+
+    </div><!-- /.slot-picker -->
+  </div><!-- /.popover-float -->
+</div><!-- /.mockup-context -->
+
+
+<!-- ── Side-by-side: normal + location-scope disabled variant ── -->
+<div style="margin-top:32px;">
+  <p class="section-label">Begge picker-varianter side ved side</p>
+
+  <div class="variants-row">
+
+    <!-- Variant A: Normal (all enabled) -->
+    <div class="variant-block">
+      <span class="variant-label">Standard — alle aktivert</span>
+      <div class="slot-picker" role="dialog" aria-modal="true" aria-label="Legg til element kl. 14:00">
+        <div class="picker-header">
+          <div class="picker-title">
+            Legg til kl.&nbsp;<span class="picker-title-time">14:00</span>
+          </div>
+          <button class="picker-close" aria-label="Lukk">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- D6 -->
+        <div class="picker-lane">
+          <div class="lane-label">Produksjon</div>
+          <button class="item-btn" aria-label="Hook">
+            <span class="item-icon icon-d6-hook" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 0 1 10 10v1a10 10 0 0 1-10 10"/><path d="M12 12h8"/><path d="m16 8 4 4-4 4"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Hook</span><span class="item-desc">Trigger procedure ved tidspunkt</span></span>
+          </button>
+          <button class="item-btn" aria-label="Oppgave">
+            <span class="item-icon icon-d6-task" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Oppgave</span><span class="item-desc">Opprett en selvstendig oppgave</span></span>
+          </button>
+          <button class="item-btn" aria-label="Notat">
+            <span class="item-icon icon-d6-note" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Notat</span><span class="item-desc">Legg til et sesjonnotat</span></span>
+          </button>
+          <button class="item-btn" aria-label="Avvik">
+            <span class="item-icon icon-d6-dev" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Avvik</span><span class="item-desc">Registrer et avvik for sesjon</span></span>
+          </button>
+        </div>
+        <!-- D2 -->
+        <div class="picker-lane">
+          <div class="lane-label">Bemanning</div>
+          <button class="item-btn" aria-label="Vakt">
+            <span class="item-icon icon-d2-shift" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Vakt</span><span class="item-desc">Legg til en bemanningsvakt</span></span>
+          </button>
+        </div>
+        <!-- Free-form -->
+        <div class="picker-lane">
+          <div class="lane-label">Fri tekst</div>
+          <button class="item-btn" aria-label="Fri tekst">
+            <span class="item-icon icon-free" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="12" x2="3" y2="12"/><line x1="13" y1="18" x2="3" y2="18"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Fri tekst</span><span class="item-desc">Friformatpost — velg type ved påføring</span></span>
+          </button>
+        </div>
+      </div>
+    </div><!-- /variant A -->
+
+    <!-- Variant B: Location-scope active — only Vakt enabled -->
+    <div class="variant-block">
+      <span class="variant-label">Lokasjons-scope — kun Vakt aktivert</span>
+      <div class="slot-picker" role="dialog" aria-modal="true" aria-label="Legg til element kl. 14:00 — Lokasjons-malt godtar kun vakter">
+
+        <div class="picker-header">
+          <div class="picker-title">
+            Legg til kl.&nbsp;<span class="picker-title-time">14:00</span>
+          </div>
+          <button class="picker-close" aria-label="Lukk">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Location notice -->
+        <div class="loc-notice" role="note" aria-label="Lokasjons-malt godtar kun vakter">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Lokasjons-malt godtar kun vakter
+        </div>
+
+        <!-- D6 — all disabled -->
+        <div class="picker-lane">
+          <div class="lane-label" style="opacity:0.5;">Produksjon</div>
+          <button class="item-btn disabled" aria-label="Hook — ikke tilgjengelig for lokasjons-scope" aria-disabled="true" tabindex="-1">
+            <span class="item-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 0 1 10 10v1a10 10 0 0 1-10 10"/><path d="M12 12h8"/><path d="m16 8 4 4-4 4"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Hook</span><span class="item-desc">Ikke tilgjengelig — lokasjons-scope</span></span>
+          </button>
+          <button class="item-btn disabled" aria-label="Oppgave — ikke tilgjengelig" aria-disabled="true" tabindex="-1">
+            <span class="item-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Oppgave</span><span class="item-desc">Ikke tilgjengelig — lokasjons-scope</span></span>
+          </button>
+          <button class="item-btn disabled" aria-label="Notat — ikke tilgjengelig" aria-disabled="true" tabindex="-1">
+            <span class="item-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Notat</span><span class="item-desc">Ikke tilgjengelig — lokasjons-scope</span></span>
+          </button>
+          <button class="item-btn disabled" aria-label="Avvik — ikke tilgjengelig" aria-disabled="true" tabindex="-1">
+            <span class="item-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Avvik</span><span class="item-desc">Ikke tilgjengelig — lokasjons-scope</span></span>
+          </button>
+        </div>
+
+        <!-- D2 — Vakt enabled -->
+        <div class="picker-lane">
+          <div class="lane-label">Bemanning</div>
+          <button class="item-btn" aria-label="Vakt — tilgjengelig">
+            <span class="item-icon icon-d2-shift" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <span class="item-text">
+              <span class="item-label">Vakt</span>
+              <span class="item-desc">Legg til en bemanningsvakt</span>
+            </span>
+          </button>
+        </div>
+
+        <!-- Free-form — disabled -->
+        <div class="picker-lane">
+          <div class="lane-label" style="opacity:0.5;">Fri tekst</div>
+          <button class="item-btn disabled" aria-label="Fri tekst — ikke tilgjengelig" aria-disabled="true" tabindex="-1">
+            <span class="item-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="12" x2="3" y2="12"/><line x1="13" y1="18" x2="3" y2="18"/></svg>
+            </span>
+            <span class="item-text"><span class="item-label">Fri tekst</span><span class="item-desc">Ikke tilgjengelig — lokasjons-scope</span></span>
+          </button>
+        </div>
+
+      </div><!-- /.slot-picker location variant -->
+    </div><!-- /variant B -->
+
+  </div><!-- /.variants-row -->
+</div>
+
+</body>
+</html>

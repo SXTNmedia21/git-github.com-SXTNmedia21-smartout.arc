@@ -12,6 +12,13 @@ import type {
 export type CapabilityName =
   | "knowledge"
   | "kb_query" // ADR-0221 — bound capability for intent='knowledge'
+  | "channel_admin" // ADR-0336 — channel admin tooling (mute/leave/invite/rename/archive/role)
+  | "channel_admin.mute_channel" // ADR-0336 — autonomous/employee: mute channel for self
+  | "channel_admin.leave_channel" // ADR-0336 — autonomous/employee: leave channel
+  | "channel_admin.invite_to_channel" // ADR-0336 — confirm/manager: invite workspace member
+  | "channel_admin.rename_channel" // ADR-0336 — confirm/admin: rename channel
+  | "channel_admin.archive_channel" // ADR-0336 — confirm/admin: archive channel
+  | "channel_admin.change_member_role" // ADR-0336 — confirm/admin: change member role
   | "schedule"
   | "training"
   | "operations"
@@ -96,7 +103,24 @@ export type CapabilityName =
   /** ADR-0307 + ADR-0309 — Greedy constraint-solver scheduler (C3 sortie). 3 tools:
    *  propose_plan (manager+, chat-only, web Compose), accept_proposal + reject_proposal
    *  (manager+, chat-only, mobile Approve). Single-row bundle pattern per ADR-0309. */
-  | "scheduler"; // ADR-0307 (C3 sortie)
+  | "scheduler" // ADR-0307 (C3 sortie)
+  /** ADR-0334 — Timeline Templates: Dagslinjen save+apply+archive. 4 tools:
+   *  save_template + apply_template + archive_template (confirm, manager+, chat-only),
+   *  list_templates (read_only, chat-only). emitPrefix='timeline_template'.
+   *  Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql. */
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of organizational handbook chapters.
+   *  (confirm, manager) per T0 scope verification. */
+  | "handbook_chapter" // backlog closure — ADR-0343
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of policy records (HR/HACCP/safety/etc).
+   *  (confirm, manager) per T0 scope verification. */
+  | "policy" // backlog closure — ADR-0343
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of protocol records (training/compliance).
+   *  (confirm, manager) per T0 scope verification. */
+  | "protocol" // backlog closure — ADR-0343
+  | "timeline_template"; // ADR-0334 (timeline-templates sortie)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

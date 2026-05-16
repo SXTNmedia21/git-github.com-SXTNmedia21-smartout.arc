@@ -14,6 +14,7 @@ import { ListTodo, MessageCircle, StickyNote, Send } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
 import { NoteInput } from "./NoteInput";
 
 type ChatMessage = {
@@ -85,6 +86,7 @@ export function ShiftClockTabs({
 
       {/* Chat tab */}
       <TabsContent value="chat" className="flex flex-1 flex-col overflow-hidden">
+        <DomainChatOwnership reason="shift-clock-chat" />
         <ChatPanel
           sessionMessages={sessionMessages}
           shiftMessages={shiftMessages}

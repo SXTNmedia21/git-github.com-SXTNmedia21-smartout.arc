@@ -3,17 +3,14 @@ import type { FixtureFile } from "../../../__evals__/fixtures/_schema.js";
 /**
  * Tool-call seed fixtures for the operations capability.
  *
- * Operations is more interesting than schedule because it includes
- * WRITE operations (create_deviation, complete_task). Tool selection
- * for writes is more sensitive — the model has to be confident enough
- * to call a mutating action vs. asking for clarification.
- *
- * Tools available in `operationsCapability`:
+ * Operations capability tools after ADR-0298 Sortie 5b hard-delete:
  *  - get_my_tasks         — pending/in_progress/completed/overdue tasks
  *  - get_session_info     — today's department session state
  *  - get_department_status — staff count + pending task count
  *  - create_deviation     — WRITE: report a quality/safety/process issue
- *  - complete_task        — WRITE: mark a task as done
+ *
+ * complete_task has been hard-deleted from this capability. Task completion
+ * is now owned by the task capability (Sortie 5a, ADR-0298).
  */
 export const operationsSeed: FixtureFile = {
   suite: "operations-tool-calls-seed",
@@ -49,17 +46,6 @@ export const operationsSeed: FixtureFile = {
       context: "Role: manager. Department: Kitchen.",
       expected: { toolName: "get_department_status" },
       tags: ["english", "read", "metrics"],
-    },
-    {
-      id: "ops-complete-task-by-id",
-      note: "WRITE — model must call the mutating tool with the explicit ID",
-      prompt: "Please mark task 11111111-1111-1111-1111-111111111111 as completed.",
-      context: "Role: employee. Department: Kitchen.",
-      expected: {
-        toolName: "complete_task",
-        args: { task_id: "11111111-1111-1111-1111-111111111111" },
-      },
-      tags: ["english", "write", "by-id", "uuid"],
     },
     {
       id: "ops-create-deviation-with-severity",

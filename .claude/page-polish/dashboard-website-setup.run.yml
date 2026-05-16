@@ -1,0 +1,63 @@
+# Page Polish Run — /dashboard/website/setup
+
+route: /dashboard/website/setup
+status: done
+verified: true
+started_at: 2026-05-16T09:00:00+02:00
+verified_at: 2026-05-16T16:00:00+02:00
+tier: 3
+parent: /dashboard/website
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-ui-shell-wt-1
+  git_branch: feat/ui-shell-website-polish
+  url: https://app.smartout.ai/dashboard/website/setup
+  components_count: 2
+
+architecture:
+  entry: apps/web/src/app/dashboard/website/setup/page.tsx
+  rendering: Client Component
+  data_source: "Live website + templates via useWebsiteSetupTools"
+  client_bridge:
+    - apps/web/src/app/dashboard/website/setup/_tools/use-website-setup-tools.ts
+    - apps/web/src/app/dashboard/website/setup/_tools/website-setup-tools-bridge.tsx
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 2
+  scope: website-setup
+  registered_tools:
+    - { key: getSetupStatus, type: read, note: "current step, completed steps, missing prereqs" }
+    - { key: getTemplateOptions, type: read, note: "available template keys + names (no full template body)" }
+
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+  notes: |
+    All tools are read-only. No emit() required. Setup state changes
+    are handled by server actions (createWebsiteFromTemplate), not exposed via tools.
+
+mobile_parity: web_only
+mobile_rationale: |
+  ADR-0133: Authoring verb (D1-D5 compose, not D6 execute).
+  Website setup is a configuration/authoring flow. Mobile owns
+  Approve/Execute verbs only. Web-only per Surface Boundary.
+
+site_map_entry: /dashboard/website/setup
+
+notes: |
+  Sub-route under dashboard-website. Pre-commit hook does not enforce
+  sub-route run.yml — documentation-only per smartout-page-polish
+  skill Phase 8. Tools bridge wired to SetupWizard component.
+  All dataRef patterns closure-safe.
+
+checklist:
+  typecheck_pass: true
+  files_exist:
+    - apps/web/src/app/dashboard/website/setup/_tools/use-website-setup-tools.ts
+    - apps/web/src/app/dashboard/website/setup/_tools/website-setup-tools-bridge.tsx
+    - .claude/page-polish/dashboard-website-setup.run.yml
+  harness_tools_registered: true
+  adr_0244_compliant: true
