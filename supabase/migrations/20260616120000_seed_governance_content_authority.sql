@@ -1,5 +1,5 @@
--- ADR-NEXT — Governance content authority backlog closure
--- (ADR number to be filled at sortie close — see docs/plans/scope-fix-authority-seed-parity.md)
+-- ADR-0343 — Governance content authority backlog closure
+-- (docs/decisions/0343-authority-seed-parity-backlog-hybrid.md)
 --
 -- ============================================
 -- 20260616120000_seed_governance_content_authority.sql
