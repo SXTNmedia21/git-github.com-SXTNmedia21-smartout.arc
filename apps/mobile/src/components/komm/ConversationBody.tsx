@@ -7,6 +7,7 @@
  *   - Supabase Realtime subscription for new `channel_message` rows
  *   - Composer (MessageInput) with reply preview
  *   - Long-press reactions (ReactionBar)
+ *   - Sticky date dividers (Phase 2 T2)
  *
  * The parent owns chrome (header, FABs, call bars, keyboard avoidance).
  * ConversationBody only renders the message list + composer and routes
@@ -15,20 +16,42 @@
  * Phase 1A.2 cutover: this component replaces the "bruk Chat-fanen"
  * placeholder in `(app)/(komm)/[channelId].tsx` so reps can reply to
  * helpdesk tickets in place (Spec §Mobile, ADR-0165).
+ *
+ * Phase 2 T2 — sticky date dividers:
+ *   Path B (absolute overlay) chosen over stickyHeaderIndices because
+ *   stickyHeaderIndices is broken on inverted FlatLists — it sticks to
+ *   the bottom on iOS and is unreliable on RN web (PWA target uses CSS
+ *   scaleY(-1) inversion, which breaks the native sticky mechanism).
+ *
+ *   Mechanism:
+ *     1. Each FeedItem wrapper records its Y offset via onLayout into
+ *        itemLayoutRef (key → yOffset).
+ *     2. onScroll (throttled 50ms) updates scrollOffsetRef.
+ *     3. deriveStickyDivider() walks the feed's dividers in newest→oldest
+ *        order (ascending feed index, descending Y in inverted content
+ *        space) and returns the divider whose Y position is above the
+ *        current visible window top.
+ *     4. An absolute-positioned DateDivider overlay sits at the top of
+ *        the list container and shows the sticky divider.
+ *     5. The inline divider for the currently-sticky key is hidden
+ *        (opacity 0) to avoid visual duplication.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import {
   View,
   FlatList,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
   type ViewabilityConfig,
   type ViewToken,
   type ViewStyle,
+  type LayoutChangeEvent,
 } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
-import { createStyles } from "@/theme";
+import { createStyles, shadows } from "@/theme";
 import { EmptyState } from "@/components/ui";
 import { strings } from "@/constants/strings";
 import { DateDivider } from "@/components/chat/DateDivider";
@@ -68,6 +91,23 @@ export type ConversationBodyProps = {
   style?: ViewStyle;
 };
 
+// ─── StickyDateOverlay ────────────────────────────────────────────────────────
+
+/**
+ * Memoized overlay that renders the sticky date pill at the top of the list.
+ * Re-renders only when the active date changes.
+ */
+const StickyDateOverlay = memo(function StickyDateOverlay({ date }: { date: Date }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.stickyOverlay} pointerEvents="none">
+      <DateDivider date={date} />
+    </View>
+  );
+});
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ConversationBody({
   channelId,
   profileId,
@@ -82,6 +122,23 @@ export function ConversationBody({
 
   const [replyTo, setReplyTo] = useState<MessageWithSender | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+
+  // ── Sticky divider state (T2) ────────────────────────────────────────────
+  /**
+   * Key of the divider currently pinned to the top of the viewport.
+   * null = no sticky overlay visible (e.g. at the very bottom / single day).
+   */
+  const [stickyDividerKey, setStickyDividerKey] = useState<string | null>(null);
+  /**
+   * Per-item Y offsets in the FlatList's content coordinate space.
+   * Populated via onLayout callbacks on each rendered row wrapper.
+   * key → yOffset (top edge of item within content space).
+   */
+  const itemLayoutRef = useRef<Map<string, number>>(new Map());
+  /** Current scroll offset (contentOffset.y), updated on scroll events. */
+  const scrollOffsetRef = useRef<number>(0);
+  /** Viewport height, updated on the list container's onLayout. */
+  const listHeightRef = useRef<number>(0);
 
   const listRef = useRef<FlatList>(null);
 
@@ -184,6 +241,118 @@ export function ConversationBody({
 
     return result;
   }, [data]);
+
+  /**
+   * Derive which divider should be pinned at the top of the inverted list.
+   *
+   * In an inverted FlatList the content is rendered upside-down. The
+   * scroll origin (contentOffset.y = 0) sits at the *bottom* — the
+   * newest messages. As the user scrolls toward older content,
+   * contentOffset.y grows.
+   *
+   * onLayout fires in the *content coordinate space* (pre-inversion).
+   * In content space, item index 0 has the highest Y value (drawn last /
+   * physically at top of content block) and higher-index items have lower
+   * Y values. After inversion the "top of the screen" corresponds to
+   * items with the lowest Y in content space.
+   *
+   * Visible window in content space:
+   *   top    = totalContentHeight - listHeight - scrollOffset
+   *   bottom = totalContentHeight - scrollOffset
+   *
+   * We approximate totalContentHeight from the layout map.
+   *
+   * The sticky divider is the divider item whose Y offset falls within
+   * or just above the visible window top (i.e. the oldest visible day).
+   * We find it by collecting all divider Y offsets and picking the one
+   * that is *closest from above* to the visible top edge.
+   */
+  const deriveStickyDivider = useCallback(
+    (scrollOffset: number): string | null => {
+      const layoutMap = itemLayoutRef.current;
+      if (layoutMap.size === 0) return null;
+
+      // Collect all Y offsets from the layout map to estimate content height.
+      let totalContentHeight = 0;
+      layoutMap.forEach((y) => {
+        if (y > totalContentHeight) totalContentHeight = y;
+      });
+
+      const listHeight = listHeightRef.current;
+      if (listHeight === 0 || totalContentHeight === 0) return null;
+
+      // Top of the visible window in content coordinate space.
+      const visibleTop = totalContentHeight - listHeight - scrollOffset;
+
+      // Gather divider candidates from the feed.
+      const dividerItems = feed.filter(
+        (item): item is Extract<FeedItem, { kind: "divider" }> => item.kind === "divider",
+      );
+
+      // Find the divider whose Y is nearest to and <= visibleTop.
+      // This is the divider "at the top of the viewport" — the oldest visible day.
+      let bestKey: string | null = null;
+      let bestDelta = Infinity;
+
+      for (const d of dividerItems) {
+        const y = layoutMap.get(d.key);
+        if (y === undefined) continue;
+        // We want dividers above (in content space) or at the visible top.
+        // "Above" in content space = lower Y value (inverted list).
+        const delta = visibleTop - y;
+        if (delta >= 0 && delta < bestDelta) {
+          bestDelta = delta;
+          bestKey = d.key;
+        }
+      }
+
+      return bestKey;
+    },
+    [feed],
+  );
+
+  /**
+   * Scroll handler (JS thread, throttled by scrollEventThrottle).
+   * Runs at most every 50ms — sufficient for day-boundary detection.
+   * Updates stickyDividerKey only when the sticky candidate changes,
+   * preventing unnecessary re-renders.
+   */
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offset = event.nativeEvent.contentOffset.y;
+      scrollOffsetRef.current = offset;
+      const nextKey = deriveStickyDivider(offset);
+      setStickyDividerKey((prev) => (prev === nextKey ? prev : nextKey));
+    },
+    [deriveStickyDivider],
+  );
+
+  /** Called when the list container lays out — captures viewport height. */
+  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
+    listHeightRef.current = event.nativeEvent.layout.height;
+  }, []);
+
+  /**
+   * Returns an onLayout handler for a given feed item key.
+   * Stores the item's top Y offset in the layout map.
+   * Uses a stable factory to avoid creating new functions on every render.
+   */
+  const makeItemLayoutHandler = useCallback(
+    (itemKey: string) => (event: LayoutChangeEvent) => {
+      itemLayoutRef.current.set(itemKey, event.nativeEvent.layout.y);
+    },
+    [],
+  );
+
+  // Resolve which date the sticky divider represents (for the overlay render).
+  const stickyDividerItem = useMemo<Extract<FeedItem, { kind: "divider" }> | null>(() => {
+    if (!stickyDividerKey) return null;
+    const found = feed.find(
+      (item): item is Extract<FeedItem, { kind: "divider" }> =>
+        item.kind === "divider" && item.key === stickyDividerKey,
+    );
+    return found ?? null;
+  }, [stickyDividerKey, feed]);
 
   // Realtime subscription: new messages in this channel land here.
   // Own messages dedupe the optimistic version by client_message_id.
@@ -352,9 +521,25 @@ export function ConversationBody({
 
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => {
+      // Derive a stable item key for the layout map.
+      const itemKey = item.kind === "message" ? item.message.id : item.key;
+
       if (item.kind === "divider") {
-        return <DateDivider date={item.date} />;
+        // Hide the inline divider when it is the currently-sticky one —
+        // the absolute overlay already shows it. Preserves layout (avoids
+        // height jump) by using opacity rather than conditional rendering.
+        const isCurrentlySticky = item.key === stickyDividerKey;
+        return (
+          <View
+            key={itemKey}
+            onLayout={makeItemLayoutHandler(item.key)}
+            style={isCurrentlySticky ? styles.hiddenDivider : undefined}
+          >
+            <DateDivider date={item.date} />
+          </View>
+        );
       }
+
       const { message } = item;
       const isOwn = message.sender_id === profileId;
       const isPending = !!message._isPending;
@@ -365,7 +550,7 @@ export function ConversationBody({
         ? getReceiptState(message.id, isPending, readReceipts)
         : undefined;
       return (
-        <View>
+        <View key={itemKey} onLayout={makeItemLayoutHandler(itemKey)}>
           <MessageBubble
             message={message}
             isOwnMessage={isOwn}
@@ -378,7 +563,17 @@ export function ConversationBody({
         </View>
       );
     },
-    [profileId, selectedMessageId, readReceipts, handleLongPress, handleSwipeReply, handleReaction],
+    [
+      profileId,
+      selectedMessageId,
+      readReceipts,
+      stickyDividerKey,
+      handleLongPress,
+      handleSwipeReply,
+      handleReaction,
+      makeItemLayoutHandler,
+      styles,
+    ],
   );
 
   const keyExtractor = useCallback(
@@ -393,21 +588,27 @@ export function ConversationBody({
           <EmptyState title={strings.chat.noMessages} />
         </View>
       ) : (
-        <FlatList
-          ref={listRef}
-          data={feed}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          inverted
-          contentContainerStyle={styles.messageList}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          showsVerticalScrollIndicator={false}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-        />
+        <View style={styles.listContainer} onLayout={handleListLayout}>
+          <FlatList
+            ref={listRef}
+            data={feed}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            inverted
+            contentContainerStyle={styles.messageList}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            showsVerticalScrollIndicator={false}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            onScroll={handleScroll}
+            scrollEventThrottle={50}
+          />
+          {/* Sticky date pill — floats above the list, pointer-events blocked */}
+          {stickyDividerItem !== null && <StickyDateOverlay date={stickyDividerItem.date} />}
+        </View>
       )}
 
       <MessageInput
@@ -429,8 +630,38 @@ const useStyles = createStyles((theme) => ({
     flex: 1,
     justifyContent: "center",
   },
+  /** Wrapper that gives us a positioned ancestor for the sticky overlay. */
+  listContainer: {
+    flex: 1,
+    position: "relative",
+  },
   messageList: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.element,
+  },
+  /**
+   * Sticky date overlay — absolute-positioned at the top of the list
+   * container so the pill stays pinned while the list scrolls underneath.
+   *
+   * Shadow uses theme.shadows.sm (subtle lift via colors.scrim convention):
+   * the shadow tints match the scrim token intent (dark semi-transparent).
+   * `pointerEvents: "none"` is set via the JSX prop on the wrapper View
+   * to allow touches to pass through to underlying list items.
+   */
+  stickyOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    ...shadows.sm,
+  },
+  /**
+   * Applied to the inline divider row when it is the currently-sticky day.
+   * opacity: 0 hides the pill visually while preserving its layout height
+   * — prevents the list from jumping as the overlay takes over.
+   */
+  hiddenDivider: {
+    opacity: 0,
   },
 }));
