@@ -63,12 +63,17 @@ Every cell in every `expected/*.json` file MUST carry this exact shape:
 
 ```json
 {
-  "amount": 1247.00,
-  "amount_unit": "NOK",
-  "ruleId": "ot_50pct_first_2h",
+  "amount_ore": 124700,
+  "amount_nok_display": 1247.00,
+  "supplementRuleId": "0e6f1f8a-3b7c-4d9a-8e2f-1c5b6a7d8e9f",
+  "ruleLabel": "ot_50pct_first_2h",
   "paragrafRef": "Riksavtalen §11.2",
   "lovsenCitationHash": "sha256:abc...",
-  "tariffVersionHash": "sha256:def...",
+  "lovsenCitationText": "Riksavtalen §11.2 første ledd: Overtidsarbeid utover ordinær arbeidstid skal godtgjøres med tillegg på minst 50 %...",
+  "lovsenCitationUrl": "https://nhoreiseliv.no/avtaler/riksavtalen-2026",
+  "lovsenCitationFetchedAt": "2026-05-16T14:35:00Z",
+  "tariffRateTableId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "tariffLawVersion": "2026",
   "formula": "8h × 64.34 + 2h × 32.17",
   "computedBy": "pontus@smartout.no",
   "computedAt": "2026-05-16T14:30:00Z",
@@ -79,11 +84,17 @@ Every cell in every `expected/*.json` file MUST carry this exact shape:
 
 Field semantics:
 
-- `amount` — NOK with 2-decimal precision; the value the engine must hit within ±0.01.
-- `ruleId` — identifier matching the engine's internal rule registry (e.g. `ot_50pct_first_2h`).
+- `amount_ore` — integer øre (1 NOK = 100 øre); the value the engine must hit exactly. Matches `bigint` representation in `packages/payroll-calculate/src/types.ts` engine internals.
+- `amount_nok_display` — NOK float for human readability only; not compared by CI.
+- `supplementRuleId` — UUID matching `supplement_rule.id` and `FiredSupplement.rule_id`. The only ID the engine recognizes.
+- `ruleLabel` — human mnemonic authored by Pontus for fixture readability; not parsed by CI; not required to be unique.
 - `paragrafRef` — human-readable paragraph reference, used for debugging.
 - `lovsenCitationHash` — SHA-256 of the verbatim paragraph text Lovsen returned (ADR-0256 schema). Binds the cell to a specific text snapshot.
-- `tariffVersionHash` — SHA-256 of the tariff_rate_table row in force at `computedAt`; detects rate-table drift independently of paragraph drift.
+- `lovsenCitationText` — verbatim paragraph text (per ADR-0256 citation envelope); enables human verification without re-fetching.
+- `lovsenCitationUrl` — source URL (per ADR-0256); audit trail to original publication.
+- `lovsenCitationFetchedAt` — when Lovsen MCP fetched the text (per ADR-0256); pairs with `lovsenCitationHash` for stale-detection.
+- `tariffRateTableId` — UUID matching `tariff_rate_table.id` of the specific rate row used for this cell's amount. Already present in `FiredSupplement.tariff_rate_table_id`.
+- `tariffLawVersion` — matches `TariffRateInput.law_version` (e.g. `'2026'`). Mirrors skill `payroll-engine-developer.md` versjonering principle.
 - `formula` — human-readable derivation; not parsed by CI, but mandatory for the 2027-engineer audit walk.
 - `computedBy` / `computedAt` — Pontus's authority signature; who computed, when.
 - `verifiedBy` / `verifiedAt` — Lovsen MCP's citation-binding signature; which Lovsen version certified the paragraph, when.
@@ -93,13 +104,16 @@ Field semantics:
 ```
 packages/payroll-calculate/__tests__/golden-month/
 └── expected/
-    ├── aggregated_periods.json     // array of cells per period
-    ├── payroll_lines.json          // array of cells per line
-    ├── deviations.json             // array of cells per deviation
-    └── timebank_entries.json       // array of cells per timebank entry
+    ├── shift_snapshots.json       // array of cells per shift: worked_minutes + total_supplements_ore + supplementRuleIds fired
+    ├── aggregated_periods.json    // array of cells per period
+    ├── payroll_lines.json         // array of cells per line
+    ├── deviations.json            // array of cells per deviation
+    └── timebank_entries.json      // array of cells per timebank entry
 ```
 
 Each file is a JSON array of cells in the schema above. No nested wrappers, no metadata envelope at file level (per-cell `computedAt` carries the temporal context).
+
+**`shift_snapshots.json` purpose**: locks the `evaluateSupplements` regression class. Each cell carries `shiftId` + `workedMinutes` + `totalSupplementsOre` + `supplementRuleIds[]` (UUIDs of rules that fired). Hand-computation: Pontus does not need to compute NOK per supplement — just verify the total per shift and the rule-firing set.
 
 ### Stale handling
 
@@ -109,6 +123,8 @@ When `lovsen.citation.stale` (ADR-0256 telemetry) fires against a `paragrafRef` 
 2. The cited paragraph is rebound to the new Riksavtalen version (new `paragrafRef` + new `lovsenCitationHash` + Pontus re-confirms `amount` unchanged or updates it).
 
 The stale-check runs as part of `pnpm test:golden-month`. Detection mechanism: load all `lovsenCitationHash` values from `expected/*.json`, call Lovsen MCP `verify_citation_freshness(hashes[])`, fail on any stale return.
+
+**Forward dependency — Lovsen MCP `verify_citation_freshness(hashes[])` does not yet exist.** F6 stale-check is contingent on **ADR-0342 (Lovsen MCP freshness-verification tool)** being drafted + accepted. ADR-0341 ships `proposed` with this gate non-operative until ADR-0342 ships. Track via Linear ticket [SMA-372](https://linear.app/smartout/issue/SMA-372) Phase 1 close-out gap §H1.
 
 ### Authority separation
 
@@ -139,7 +155,7 @@ If a cell has Pontus computing AND Pontus signing the citation, the cell is inva
 
 ### Implementation gates
 
-- **F2 (golden-month build) MUST land schema-compliant fixture.** Every cell in every `expected/*.json` carries all 11 schema fields. PR review checklist explicitly verifies this.
+- **F2 (golden-month build) MUST land schema-compliant fixture.** Every cell in every `expected/*.json` carries all 14 schema fields. PR review checklist explicitly verifies this.
 - **F6 (verify step) MUST check every cell carries all schema fields.** Test runner loads `expected/*.json`, validates each cell against a Zod schema before running the equality comparison. A cell missing any field fails the run with `golden-month.cell_schema_violation`.
 - **F6 MUST run stale-check.** Per the stale-handling rule above; CI red on any stale citation.
 
@@ -171,12 +187,28 @@ Rejected because:
 - **LLM self-certification risk:** if Lovsen computes `247 NOK` from cited rule `Riksavtalen §11.2` and also certifies the citation, the test verifies Lovsen's interpretation of Lovsen's reading — circular, no external truth anchor.
 - **Determinism risk:** LLM-derived amounts may drift across Lovsen model versions; we lose the "frozen ground truth" property that golden cases exist to provide.
 
+## Deferred refinements (post-accept)
+
+The following council-flagged items are intentionally deferred:
+
+- **MEDIUM-1** tariff-binding scope: assumed `is_tariff_bound = true` for v1; non-tariff oracle separate
+- **MEDIUM-2** Aml. vs Riksavtalen MCP routing in `verifiedBy` field
+- **MEDIUM-3** batch-stale handling at Riksavtalen 2027 revision
+- **MEDIUM-4** ADR-0110 framing softening ("disqualifies" → "establishes caveats that disqualify")
+- **LOW-1** F-task IDs → permanent file-path anchors post Phase 1 close
+- **LOW-2** `computedBy` supervised-agent notation
+- **LOW-3** Phase 7+ framing: "principle inherited, schema differs"
+- **LOW-4** CI machine-vs-social-contract enforcement clause
+
+These are tracked for v1.2 revision before campaign/payroll → development merge.
+
 ## References
 
 - ADR-0110 — Payroll ledger archive semantics (Bubble oracle disqualification)
 - ADR-0251 — shift_pay_calculation_event audit module (audit-trail pattern this fixture mirrors)
 - ADR-0256 — Lovsen citation contract (citation schema + hash + stale-detection mechanism)
 - ADR-0258 — Lovsen MCP boundary (citation-only scope, not generation)
+- ADR-0342 — Lovsen MCP freshness-verification tool (planned, drafted in parallel session 2026-05-16; status `proposed`). Required for F6 stale-check operational.
 - `docs/modules/payroll/SORTIE-PHASE-1.md` §5 — golden-month directory layout
 - `docs/modules/payroll/PHASES.md` §Phase 1 — acceptance criterion 1 (±0.01 NOK)
 - `.claude/skills/payroll-engine-developer/SKILL.md` — four non-negotiables (versjonering, idempotens, audit-trail, golden-cases)
@@ -185,5 +217,7 @@ Rejected because:
 ---
 
 > Pontus regner. Lovsen siterer. Engine bevises. Ingen seat sertifiserer seg selv.
+
+> v1.1 — council-mandated edits applied 2026-05-16. Status remains `proposed` pending Pontus accept.
 
 > Registered in `docs/decisions/0000-decision-log.md`. Status `proposed` pending Pontus accept in next session.
