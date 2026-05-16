@@ -5,12 +5,18 @@
  *
  * Stub page: shows the contract ID and renders CompositionWizard.
  * Pre-filling from the existing contract will be wired in a later task.
+ *
+ * Telemetry: emits contracts.revise.opened once after workspace + actor are known.
+ * workspace_id + actor_id resolved from DashboardContext per ADR-0134 R1.
  */
 
+import { useContext, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { CompositionWizard } from "../../_components/CompositionWizard";
 import { ContractReviseToolsBridge } from "./_tools/contract-revise-tools-bridge";
 
@@ -18,6 +24,28 @@ export default function ReviseContractPage() {
   const { t } = useTranslation("contracts");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { workspaceData, profileId } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id ?? null;
+
+  const openedRef = useRef(false);
+  useEffect(() => {
+    if (!workspaceId || !profileId || !id || openedRef.current) return;
+    openedRef.current = true;
+    void emit({
+      event: "contracts.revise.opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "contract",
+          entity_id: id,
+        },
+        data: {
+          contract_id: id,
+        },
+      },
+    });
+  }, [workspaceId, profileId, id]);
 
   return (
     <>

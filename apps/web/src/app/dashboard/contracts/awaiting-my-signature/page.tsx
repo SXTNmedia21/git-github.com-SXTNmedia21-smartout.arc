@@ -130,7 +130,7 @@ export default async function AwaitingMySignaturePage() {
 
   return (
     <>
-      <AwaitingSignatureToolsBridge contracts={bridgeRows} />
+      <AwaitingSignatureToolsBridge contracts={bridgeRows} pendingCount={count} />
       <div className="flex flex-col gap-6">
         {/* Header */}
         <header className="flex flex-col gap-1">

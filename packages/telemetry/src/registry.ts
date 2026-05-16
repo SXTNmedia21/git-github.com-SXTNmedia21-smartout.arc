@@ -2563,6 +2563,26 @@ export interface ContractDetailViewed extends BaseEvent {
   };
 }
 
+export interface ContractReviseOpened extends BaseEvent {
+  event: "contracts.revise.opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+    };
+  };
+}
+
+export interface ContractAwaitingSignatureViewed extends BaseEvent {
+  event: "contracts.awaiting_signature.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pending_count: number;
+    };
+  };
+}
+
 export interface ContractDeleteDialogOpened extends BaseEvent {
   event: "contracts.delete.dialog_opened";
   properties: {
@@ -7841,6 +7861,8 @@ export type SmartoutEvent =
   | ContractTemplateOpenedInAdmin
   | ContractTemplateCloned
   | ContractDetailViewed
+  | ContractReviseOpened
+  | ContractAwaitingSignatureViewed
   | ContractResendSubmitted
   | ContractCancelDialogOpened
   | ContractCancelConfirmed
@@ -7979,6 +8001,8 @@ export type SmartoutEvent =
   | ContractDeleteDialogOpened
   | ContractDeleteConfirmed
   | ContractDetailViewed
+  | ContractReviseOpened
+  | ContractAwaitingSignatureViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
   | ContractBulkSubmitted
@@ -10840,6 +10864,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contracts.detail.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.revise.opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.awaiting_signature.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },

@@ -55,14 +55,16 @@ type ContractDetail = {
 // Status badge helper
 // ---------------------------------------------------------------------------
 
+// Nordic Split semantic tokens — dark-mode safe. All vars defined in
+// packages/design-tokens/src/tokens.css and mapped via @theme inline in globals.css.
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-50 text-blue-700",
-  viewed: "bg-blue-50 text-blue-700",
-  signed: "bg-green-50 text-green-700",
-  expired: "bg-amber-50 text-amber-700",
+  sent: "bg-info/10 text-info-foreground",
+  viewed: "bg-info/10 text-info-foreground",
+  signed: "bg-success/10 text-success-foreground",
+  expired: "bg-warning/10 text-warning-foreground",
   pending_data: "bg-warning/10 text-warning-foreground",
-  declined: "bg-red-50 text-red-700",
+  declined: "bg-destructive/10 text-destructive",
   cancelled: "bg-muted text-muted-foreground",
 };
 
