@@ -50,6 +50,7 @@ import type {
 } from "./types.js";
 import { resolveSeniorityTier } from "./seniority-resolver.js";
 import { oreToNok } from "./cents.js";
+import { osloDateString } from "./oslo-time.js";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -474,10 +475,13 @@ function checkW11(
   const deviations: Deviation[] = [];
   const threshold = workspaceSettings.split_shift_threshold_minutes;
 
-  // Group by (profile, date)
+  // Group by (profile, date).
+  // Oslo TZ matters for CEST shifts spanning midnight UTC — see Phase 1 close-out G3.
+  // A shift starting 22:00 UTC = 00:00 Oslo (CEST) falls in the NEXT calendar day;
+  // using UTC slice(0, 10) would bucket it in the wrong day.
   const byProfileDate = new Map<string, InterpretedShift[]>();
   for (const shift of shifts) {
-    const key = `${shift.profile_id}:${shift.effective_start.slice(0, 10)}`;
+    const key = `${shift.profile_id}:${osloDateString(shift.effective_start)}`;
     const arr = byProfileDate.get(key) ?? [];
     arr.push(shift);
     byProfileDate.set(key, arr);
