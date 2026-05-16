@@ -335,3 +335,75 @@ Three migration concerns surface from this ADR.
 > (correlation chain), ADR-0240 (no cross-namespace writes), ADR-0287
 > (mutateWithGate adoption), ADR-0288 (channel-guard inline — pending),
 > ADR-0306 (shift_marketplace), ADR-0321 (this ADR supersedes).
+
+---
+
+## Phase 0 Resolutions (2026-05-16, post-Council)
+
+### P0.2 — B1 dual-gate (G13): **INDEPENDENCE**
+
+G13 is auth-layer debt on the **Server Actions side** (`people-actions.ts`, `season-actions.ts`, `payroll/derive-shift-hours/route.ts` call `cascade_gate_write` directly without correlation chaining). Pipeline orchestration here is layered above the gate: T1–T3 tools call `mutateWithGate` / `callGateAction` (capability-tool side, already on SS-4 orchestrator path per `_shared/mutate-with-gate.ts:303` + `shift-lifecycle/gate.ts:73`). Pipeline never invokes Server Actions. Future G13 closure swaps the RPC behind `mutateWithGate` without touching pipeline contract. **No ADR-0340 revision required if G13 closes during sortie.**
+
+### P0.3 — authority.ts divergence: **FOLD (narrow scope into T2)**
+
+Two per-capability gate.ts wrappers (`shift-swap/gate.ts:49,54` direct-RPC, `shift_marketplace` via same shape per ADR-0287:112 grandfather) are NOT on the SS-4 `gatedMutation` orchestrator path. ADR-0340 §Preservation 4 delegates entity writes to these existing tools; §Q3 + §Decision-Drivers ADR-0204 require per-stage correlation chains in `pipeline.stage_*` audit rows.
+
+**Resolution:** T2 `advance_stage` MUST migrate `shift-swap/gate.ts` + `shift_marketplace` gate path to SS-4 shape (delegate to `gatedMutation`) as part of pipeline wiring. Template = `shift-lifecycle/gate.ts:39,73`. One-file-per-capability of mechanical adapter work. Shape preserved at `GateActionResult` boundary → caller-side `tools.ts` unchanged.
+
+**Trust Gate addition:** Regression test asserts each pipeline-delegated capability tool produces `gate_evaluation.correlation_id` matching the pipeline `engine_state.id` correlation thread.
+
+**Scope:** Other 17 `gate.ts` files (availability, communication, contract, contract-intake, guardian, helpdesk_query, journey, legal, memory, onboarding, operations, operations-intelligence, payroll, personal, season, task, tips) stay out of scope.
+
+### P0.4 — engine_state vs engine_sessions ontology: **CONFIRMED**
+
+- `engine_state` (`20260304100000_engine_process_tables.sql:129`) = pipeline INSTANCES (process_id, entity_type, entity_id, current_step, status, unique-active index)
+- `engine_sessions` (`20260301200000_engine_tables.sql:109`) = agent CONVERSATION SESSIONS (mission_id, channel, stage_index, collected_data, expires_at)
+- Stage-engine writes ONLY to `engine_sessions` for its own state; reads `engine_state` advisory at `mission-summary.ts:62` for prompt injection
+- shift-swap already writes to `engine_state` via RPCs; Q1=B confirmed structurally sound
+
+### P0.6 — schedule_shift lock column design
+
+**Column shape:**
+
+```sql
+ALTER TABLE public.schedule_shift
+  ADD COLUMN pipeline_lock_state_id uuid NULL
+    REFERENCES public.engine_state(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_schedule_shift_pipeline_lock
+  ON public.schedule_shift (pipeline_lock_state_id)
+  WHERE pipeline_lock_state_id IS NOT NULL;
+```
+
+Name `pipeline_lock_state_id` (not `pipeline_locked_by`) — points at process instance, not actor.
+
+**Lifecycle:**
+- **Acquire:** CAS-style `UPDATE schedule_shift SET pipeline_lock_state_id = $1 WHERE schedule_shift_id = $2 AND pipeline_lock_state_id IS NULL`. Inside same `exec` callback as stage-0 entry. 0 rows updated = 409.
+- **Release:** `SET pipeline_lock_state_id = NULL` inside terminal-state `exec` callback (status IN complete|failed|cancelled|escalated). Same gate-evaluation audit chain.
+- **Stale cleanup:** `ON DELETE SET NULL` handles hard-delete (tests); implicit reaper via pre-flight check at stage-0 entry.
+
+**FK:** `ON DELETE SET NULL` (CASCADE deletes shift → catastrophic; NO ACTION blocks engine_state archive; SET NULL self-heals).
+
+**RLS:** No change. Locked shift readable by workspace members. Mutations fail-fast 409 at pipeline-engine application layer, NOT via DB trigger.
+
+**Coexistence with `schedule_shift_offer` UNIQUE partial:** complementary. UNIQUE prevents double-claim WITHIN marketplace; pipeline lock prevents concurrent pipeline entry across capabilities.
+
+**🚨 CRITICAL trap for T0:** `enforce_schedule_shift_temporal_lock` trigger fires on every UPDATE. Setting `pipeline_lock_state_id` triggers `schedule_shift_is_temporally_locked()` check. Carve-out list currently does NOT include `pipeline_lock_state_id`. **T0 must extend trigger allow-list to permit pipeline lock/unlock writes within temporal window.**
+
+**5 open questions for T0 author:**
+1. Atomicity in existing RPCs — extend `initiate_shift_swap` + `post_open` in place, or acquire after RPC return (race window)?
+2. Temporal-lock trigger carve-out (above).
+3. Swap = 2 shifts (requester + target). Lock BOTH at stage-0 or only initiator?
+4. Mobile UI surface — `pipeline_lock_state_id IS NOT NULL` as pending-pipeline indicator, or derive from `schedule_shift_offer.status`?
+5. `override_pipeline` (T5) — does it clear pipeline lock as part of exec? Confirm before T0.5 author writes seed.
+
+### Phase 0 Status
+
+- ✅ P0.1 ADR-0340 drafted (this document)
+- ✅ P0.2 INDEPENDENCE
+- ✅ P0.3 FOLD into T2 (2-file SS-4 adapter; Trust Gate regression test added)
+- ✅ P0.4 engine_state CONFIRMED
+- ⏳ P0.5 ADR-0288 accept-or-remove — Pontus decision pending
+- ✅ P0.6 lock column design captured + 5 open questions for T0 author
+
+**Phase 0 exit gate:** P0.5 only remaining. Once Pontus decides ADR-0288 status, Phase 0 closes and T0 unblocks.
