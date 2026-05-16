@@ -18,20 +18,24 @@ Take `/dashboard/website` + sub-route `/dashboard/website/pages/[pageId]` from "
 ## Scope
 
 In scope:
-- `/dashboard/website` (Server Component shell + `WebsiteOverview` client island)
-- `/dashboard/website/pages/[pageId]` (editor surface)
-- `/dashboard/website/setup` if route exists
+- `/dashboard/website` (Server Component shell + `WebsiteOverview` client island, 205L)
+- `/dashboard/website/setup` (wizard shell + `SetupWizard`, 342L) — confirmed exists 2026-05-16 recon
+- `/dashboard/website/pages/[pageId]` (page editor + 17 lazy-loaded section editors)
 
 Out of scope:
 - New website features (polish, not build)
 - Mobile parity beyond Phase 9 data-layer check (ADR-0133: website = web-only authoring)
 - HarnessAdapter voice path (flag-gated, separate sortie when flag flips)
 
-## Pre-flight (Phase 0)
+## Phase 0 — Recon (DONE 2026-05-16)
 
-- [ ] Verify no relevant capability in `packages/ai/src/capabilities/` collides on tool names
-- [ ] `gate_action` seeded for test workspace
-- [ ] Identify existing website mutations → confirm telemetry registry entries exist or queue add
+- [x] Capability collision check: no `website*` capability in `packages/ai/src/capabilities/` — greenfield
+- [x] Telemetry: 19/19 events registered, 0 silent mutations (skip Track D)
+- [x] Design tokens: 0 zinc/gray/slate hits, 0 stiffness/damping (skip Track C)
+- [x] Skeleton matches content shape (Phase 2 minimal)
+- [x] Bundle: no heavy editor deps (RichTextEditor is plain Textarea)
+- [x] 20 server actions — `publish/unpublish/rollback/delete/togglePageVisibility` are ADR-0244 risk-tier (read-only tools only)
+- [x] 0 `useRegisterTools` in website tree — Phase 7 greenfield
 
 ## Tasks — 8 phases per route
 
