@@ -73,6 +73,7 @@ import {
   createPipelineInstance,
   advancePipelineInstance,
   terminatePipelineInstance,
+  readPipelineInstance,
   readActivePipelineInstancesForShift,
   acquirePipelineLock,
   releasePipelineLock,
@@ -80,6 +81,8 @@ import {
   emitStageConsented,
   emitStageApproved,
   emitStageCancelled,
+  emitStageOverridden,
+  isTerminalStatus,
   PipelineLockHeldError,
   PipelineContextError,
 } from "../../engine/authority-pipeline/index.js";
@@ -90,6 +93,8 @@ const ACTION_POST = "shift_marketplace.post_open";
 const ACTION_CLAIM = "shift_marketplace.claim";
 const ACTION_APPROVE = "shift_marketplace.approve_claim";
 const ACTION_CANCEL = "shift_marketplace.cancel_offer";
+// T5: admin override — seeded by T0.5 migration (min_role=admin, autonomous).
+const ACTION_OVERRIDE = "shift_marketplace.override";
 
 // ── Blocker code → Norwegian human-readable message ─────────────────────────
 const BLOCKER_MESSAGES: Record<BlockerCode, string> = {
@@ -851,5 +856,167 @@ export const cancelOffer = defineTool({
       }
       return `Feil ved kansellering av tilbud: ${err instanceof Error ? err.message : String(err)}`;
     }
+  },
+});
+
+// ── Admin Override Tool (T5) ─────────────────────────────────────────────────
+
+/**
+ * override_marketplace_pipeline — admin escalation that force-terminates a
+ * stuck marketplace_lifecycle pipeline instance.
+ *
+ * Authority: shift_marketplace.override (min_role=admin, level=autonomous).
+ * Seeded by T0.5 migration (20260617100000_seed_pipeline_override_authority.sql).
+ *
+ * Laws honoured:
+ *   ADR-0078 / ADR-0288 — chat-only (irreversible admin act, no voice)
+ *   ADR-0099            — gate_action via mutateWithGate before any write
+ *   ADR-0134            — emit pipeline.stage_overridden after successful write
+ *   ADR-0151            — workspace_id + profileId server-derived (ctx), never params
+ *   ADR-0240            — writes ONLY to engine_state (terminate) + schedule_shift
+ *                         (releasePipelineLock) — no cross-namespace writes
+ *   ADR-0287            — single mutateWithGate: terminate + release inside one exec
+ *   ADR-0306            — marketplace offer table not touched (lock is on schedule_shift only)
+ *   ADR-0328            — override_reason ≥ 20 chars, friendly Norwegian error on fail
+ *   L-0177              — fail-fast if pipeline not in this workspace
+ *
+ * Idempotency: if the instance is already in a terminal state (including
+ *   "overridden"), the tool returns the existing state without re-emitting.
+ *
+ * Note: this tool does NOT update the schedule_shift_offer row (e.g. reset
+ *   status to 'open'). The offer status is a domain concern — admins who
+ *   override the pipeline should also manually cancel the offer if needed
+ *   (or use cancel_offer). The override unblocks the pipeline lock only.
+ */
+export const overrideMarketplacePipeline = defineTool({
+  name: "override_marketplace_pipeline",
+  description:
+    "Admin override: force-terminate a stuck marketplace pipeline instance. Requires admin role. Chat-only. Provide a clear reason (minimum 20 characters).",
+  capability: CAP,
+  schema: z.object({
+    pipeline_instance_id: z
+      .string()
+      .uuid()
+      .describe("engine_state.id of the marketplace_lifecycle instance to override"),
+    override_reason: z
+      .string()
+      .min(20)
+      .describe("Reason for the override — minimum 20 characters (ADR-0328)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // ADR-0288 / ADR-0340 §Q5: chat-only — admin override is an irreversible act.
+    if (ctx.channel && ctx.channel !== "chat") {
+      return "Administrasjonsoverstyrelser må gjøres via chat, ikke stemme. Bytt til chat for å fortsette.";
+    }
+
+    // ADR-0328: friendly Norwegian validation error before any DB call.
+    if (params.override_reason.trim().length < 20) {
+      return "Begrunnelsen er for kort. Minst 20 tegn kreves for å dokumentere en overstyring (ADR-0328).";
+    }
+
+    const supabase = ctx.supabaseAdmin;
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
+    // 1. Load pipeline instance — fail-fast on not-found or workspace mismatch (L-0177 / ADR-0151).
+    let instance;
+    try {
+      instance = await readPipelineInstance(supabase, pipelineCtx, params.pipeline_instance_id);
+    } catch (err) {
+      if (err instanceof PipelineContextError) {
+        return `Pipeline-instansen ble ikke funnet eller tilhører et annet arbeidsområde: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved lasting av pipeline-instans: ${msg}`;
+    }
+
+    // 2. Idempotency: already terminal → return existing state without re-emit.
+    if (isTerminalStatus(instance.status)) {
+      return JSON.stringify({
+        ok: true,
+        pipeline_instance_id: instance.id,
+        overridden_from_status: instance.status,
+        message:
+          instance.status === "overridden"
+            ? "Pipeline-instansen er allerede overstyrt."
+            : `Pipeline-instansen er allerede i terminal tilstand '${instance.status}'. Ingen overstyring nødvendig.`,
+      });
+    }
+
+    // Capture pre-override status for the response + event payload.
+    const overriddenFromStatus = instance.status;
+
+    // Resolve the locked shift id from pipeline context for lock release.
+    const ctxData = (instance.context ?? {}) as Record<string, string>;
+    const shiftId = (ctxData.shiftId ?? instance.entityId) as string | undefined;
+
+    // 3. mutateWithGate: single atomic exec — terminate + release lock (ADR-0287).
+    let gateEvaluationId: string;
+    let correlationId: string;
+
+    try {
+      const mutResult = await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: ACTION_OVERRIDE,
+        actionType: "shift_marketplace.override",
+        channel: "chat",
+        targetId: params.pipeline_instance_id,
+        exec: async (db) => {
+          // Write 1: Terminate pipeline instance → status='overridden'.
+          await terminatePipelineInstance(
+            db,
+            pipelineCtx,
+            params.pipeline_instance_id,
+            { kind: "override" },
+            null, // gateEvaluationId not yet available inside exec
+          );
+
+          // Write 2: Release pipeline lock on the shift (unblocks marketplace).
+          if (shiftId) {
+            await releasePipelineLock(db, pipelineCtx, shiftId, params.pipeline_instance_id);
+          }
+
+          return { overriddenFromStatus };
+        },
+      });
+
+      gateEvaluationId = mutResult.gateEvaluationId;
+      correlationId = mutResult.correlationId;
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          ok: false,
+          reason: "authority_denied",
+          gate_reason: err.message,
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return JSON.stringify({ ok: false, reason: err.code, gate_reason: err.message });
+      }
+      if (err instanceof PipelineContextError) {
+        return `Feil i pipeline-kontekst ved overstyring: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved overstyring av pipeline: ${msg}`;
+    }
+
+    // 4. ADR-0134: emit pipeline.stage_overridden AFTER all writes succeeded.
+    await emitStageOverridden({
+      processId: "marketplace_lifecycle",
+      stage: "marketplace_lifecycle.override",
+      pipelineInstanceId: params.pipeline_instance_id,
+      gateEvaluationId,
+      shiftId: shiftId ?? params.pipeline_instance_id,
+      workspaceId: ctx.workspaceId,
+      actorProfileId: ctx.profileId,
+    });
+
+    return JSON.stringify({
+      ok: true,
+      pipeline_instance_id: params.pipeline_instance_id,
+      overridden_from_status: overriddenFromStatus,
+      gate_evaluation_id: gateEvaluationId,
+      correlation_id: correlationId,
+    });
   },
 });

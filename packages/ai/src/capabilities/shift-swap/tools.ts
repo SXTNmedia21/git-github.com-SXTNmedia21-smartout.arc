@@ -39,23 +39,32 @@ import {
   createPipelineInstance,
   advancePipelineInstance,
   terminatePipelineInstance,
+  readPipelineInstance,
   acquirePipelineLock,
   releasePipelineLock,
   emitStageProposed,
   emitStageConsented,
   emitStageRejected,
   emitStageCancelled,
+  emitStageOverridden,
+  isTerminalStatus,
   PipelineLockHeldError,
   PipelineContextError,
   PIPELINE_PROCESS_IDS,
 } from "../../engine/authority-pipeline/index.js";
-import { mutateWithGate } from "../_shared/mutate-with-gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 
 // Dotted per-tool capability literals (ADR-0195). Seeded by T0 migration
 // in engine_authority_config.
 const CAPABILITY_REQUEST = "shift_swap.request";
 const CAPABILITY_RESPOND = "shift_swap.respond";
 const CAPABILITY_CANCEL = "shift_swap.cancel";
+// T5: admin override — seeded by T0.5 migration (min_role=admin, autonomous).
+const CAPABILITY_OVERRIDE = "shift_swap.override";
 
 // Pipeline blueprint for shift swaps.
 const SWAP_PROCESS_ID = PIPELINE_PROCESS_IDS[0]; // "shift_swap_lifecycle"
@@ -613,5 +622,166 @@ export const cancelSwap = defineTool({
     }
 
     return "Byttforespørsel avbrutt.";
+  },
+});
+
+// ── Admin Override Tool (T5) ─────────────────────────────────────────────────
+
+/**
+ * override_swap_pipeline — admin escalation that force-terminates a stuck
+ * shift_swap_lifecycle pipeline instance.
+ *
+ * Authority: shift_swap.override (min_role=admin, level=autonomous).
+ * Seeded by T0.5 migration (20260617100000_seed_pipeline_override_authority.sql).
+ *
+ * Laws honoured:
+ *   ADR-0078 / ADR-0288 — chat-only (irreversible admin act, no voice)
+ *   ADR-0099            — gate_action via mutateWithGate before any write
+ *   ADR-0134            — emit pipeline.stage_overridden after successful write
+ *   ADR-0151            — workspace_id + profileId server-derived (ctx), never params
+ *   ADR-0240            — writes ONLY to engine_state (terminate) + schedule_shift
+ *                         (releasePipelineLock) — no cross-namespace writes
+ *   ADR-0287            — single mutateWithGate: terminate + release inside one exec
+ *   ADR-0328            — override_reason ≥ 20 chars, friendly Norwegian error on fail
+ *   L-0177              — fail-fast if pipeline not in this workspace
+ *
+ * Idempotency: if the instance is already in a terminal state (including
+ *   "overridden"), the tool returns the existing state without re-emitting.
+ */
+export const overrideSwapPipeline = defineTool({
+  name: "override_swap_pipeline",
+  description:
+    "Admin override: force-terminate a stuck shift swap pipeline instance. Requires admin role. Chat-only. Provide a clear reason (minimum 20 characters).",
+  capability: "shift_swap",
+  schema: z.object({
+    pipeline_instance_id: z
+      .string()
+      .uuid()
+      .describe("engine_state.id of the shift_swap_lifecycle instance to override"),
+    override_reason: z
+      .string()
+      .min(20)
+      .describe("Reason for the override — minimum 20 characters (ADR-0328)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // ADR-0288 / ADR-0340 §Q5: chat-only — admin override is an irreversible act.
+    if (ctx.channel && ctx.channel !== "chat") {
+      return "Administrasjonsoverstyrelser må gjøres via chat, ikke stemme. Bytt til chat for å fortsette.";
+    }
+
+    // ADR-0328: friendly Norwegian validation error before any DB call.
+    if (params.override_reason.trim().length < 20) {
+      return "Begrunnelsen er for kort. Minst 20 tegn kreves for å dokumentere en overstyring (ADR-0328).";
+    }
+
+    const supabase = ctx.supabaseAdmin;
+    const pipelineCtx = { workspaceId: ctx.workspaceId, profileId: ctx.profileId };
+
+    // 1. Load pipeline instance — fail-fast on not-found or workspace mismatch (L-0177 / ADR-0151).
+    let instance;
+    try {
+      instance = await readPipelineInstance(supabase, pipelineCtx, params.pipeline_instance_id);
+    } catch (err) {
+      if (err instanceof PipelineContextError) {
+        return `Pipeline-instansen ble ikke funnet eller tilhører et annet arbeidsområde: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved lasting av pipeline-instans: ${msg}`;
+    }
+
+    // 2. Idempotency: already terminal → return existing state without re-emit.
+    if (isTerminalStatus(instance.status)) {
+      return JSON.stringify({
+        ok: true,
+        pipeline_instance_id: instance.id,
+        overridden_from_status: instance.status,
+        message:
+          instance.status === "overridden"
+            ? "Pipeline-instansen er allerede overstyrt."
+            : `Pipeline-instansen er allerede i terminal tilstand '${instance.status}'. Ingen overstyring nødvendig.`,
+      });
+    }
+
+    // Capture pre-override status for the response + event payload.
+    const overriddenFromStatus = instance.status;
+
+    // Resolve locked shift IDs from pipeline context for lock release.
+    const ctxData = (instance.context ?? {}) as Record<string, string>;
+    const primaryShiftId = ctxData.shiftId as string | undefined;
+    const targetShiftId = ctxData.targetShiftId as string | undefined;
+
+    // 3. mutateWithGate: single atomic exec — terminate + release locks (ADR-0287).
+    let gateEvaluationId: string;
+    let correlationId: string;
+
+    try {
+      const mutResult = await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_OVERRIDE,
+        actionType: "shift_swap.override",
+        channel: "chat",
+        targetId: params.pipeline_instance_id,
+        exec: async (db) => {
+          // Write 1: Terminate pipeline instance → status='overridden'.
+          await terminatePipelineInstance(
+            db,
+            pipelineCtx,
+            params.pipeline_instance_id,
+            { kind: "override" },
+            null, // gateEvaluationId not yet available inside exec — context patched post-call
+          );
+
+          // Write 2 + 3: Release pipeline locks on both shifts (ADR-0340 §Q-lock-both).
+          // Both acquires happen in requestSwap, so both must be released on override.
+          if (primaryShiftId) {
+            await releasePipelineLock(db, pipelineCtx, primaryShiftId, params.pipeline_instance_id);
+          }
+          if (targetShiftId) {
+            await releasePipelineLock(db, pipelineCtx, targetShiftId, params.pipeline_instance_id);
+          }
+
+          return { overriddenFromStatus };
+        },
+      });
+
+      gateEvaluationId = mutResult.gateEvaluationId;
+      correlationId = mutResult.correlationId;
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          ok: false,
+          reason: "authority_denied",
+          gate_reason: err.message,
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return JSON.stringify({ ok: false, reason: err.code, gate_reason: err.message });
+      }
+      if (err instanceof PipelineContextError) {
+        return `Feil i pipeline-kontekst ved overstyring: ${err.message}`;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      return `Feil ved overstyring av pipeline: ${msg}`;
+    }
+
+    // 4. ADR-0134: emit pipeline.stage_overridden AFTER all writes succeeded.
+    await emitStageOverridden({
+      processId: SWAP_PROCESS_ID,
+      stage: "shift_swap_lifecycle.override",
+      pipelineInstanceId: params.pipeline_instance_id,
+      gateEvaluationId,
+      shiftId: primaryShiftId ?? params.pipeline_instance_id,
+      workspaceId: ctx.workspaceId,
+      actorProfileId: ctx.profileId,
+    });
+
+    return JSON.stringify({
+      ok: true,
+      pipeline_instance_id: params.pipeline_instance_id,
+      overridden_from_status: overriddenFromStatus,
+      gate_evaluation_id: gateEvaluationId,
+      correlation_id: correlationId,
+    });
   },
 });
