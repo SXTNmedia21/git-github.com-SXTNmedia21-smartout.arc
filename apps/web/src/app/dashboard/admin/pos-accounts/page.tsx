@@ -16,7 +16,6 @@
  *   smartout-nordic-split — font-heading, CSS vars, glassmorphism.
  */
 
-import { Suspense } from "react";
 import { Plug } from "lucide-react";
 import { createClient } from "@smartout/supabase/server";
 import { resolveDashboardContext } from "../../_data/resolve-page-context";
@@ -55,28 +54,22 @@ export default async function PosAccountsPage() {
   const accounts = await fetchPosAccounts(workspace.workspace_id);
 
   return (
-    <Suspense
-      fallback={
-        <div className="bg-muted h-32 w-full animate-pulse rounded-lg" aria-label="Laster..." />
-      }
-    >
-      <div className="flex flex-col gap-6">
-        {/* ─── Page header ─────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-foreground flex items-center gap-2 text-2xl">
-              <Plug className="text-muted-foreground h-6 w-6" aria-hidden="true" />
-              POS Integrasjoner
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Koble til kassasystemet for automatisk salgsdata og bedre bemanningsprognoser.
-            </p>
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* ─── Page header ─────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-foreground flex items-center gap-2 text-2xl">
+            <Plug className="text-muted-foreground h-6 w-6" aria-hidden="true" />
+            POS Integrasjoner
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Koble til kassasystemet for automatisk salgsdata og bedre bemanningsprognoser.
+          </p>
         </div>
-
-        {/* ─── Accounts list (client island) ───────────────────────────── */}
-        <PosAccountsList accounts={accounts} workspaceId={workspace.workspace_id} />
       </div>
-    </Suspense>
+
+      {/* ─── Accounts list (client island) ───────────────────────────── */}
+      <PosAccountsList accounts={accounts} workspaceId={workspace.workspace_id} />
+    </div>
   );
 }

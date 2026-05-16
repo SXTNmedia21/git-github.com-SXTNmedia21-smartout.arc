@@ -37,6 +37,13 @@ import { useRouter } from "next/navigation";
 import type { PosAccountRow } from "../page";
 import { PosAccountsToolsBridge } from "../_tools/pos-accounts-tools-bridge";
 
+// ─── Vendor name helper ────────────────────────────────────────────────────
+
+function displayVendorName(vendor: string): string {
+  if (vendor === "lightspeed_kseries") return "Lightspeed K-Series";
+  return vendor;
+}
+
 // ─── Status badge ──────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
@@ -241,7 +248,7 @@ export function PosAccountsList({
     () =>
       accounts.map((a) => ({
         pos_account_id: a.pos_account_id,
-        name: a.vendor === "lightspeed_kseries" ? "Lightspeed K-Series" : a.vendor,
+        name: displayVendorName(a.vendor),
         external_account_id: a.external_account_id,
         connected_at: a.created_at,
         is_active: a.status === "active",
@@ -252,6 +259,9 @@ export function PosAccountsList({
   return (
     <>
       {/* Botsson read-only tools — registers on mount, cleans up on unmount */}
+      {/* TODO(review): workspaceIsActive currently hardcoded to true. Resolve via
+          props from page.tsx once resolve-page-context exposes workspace.status or
+          equivalent active flag. WorkspaceData type currently lacks status field. */}
       <PosAccountsToolsBridge accounts={toolAccounts} workspaceIsActive={true} />
 
       <AnimatePresence>
@@ -314,9 +324,7 @@ export function PosAccountsList({
                   <Plug className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                   <div className="flex min-w-0 flex-col">
                     <span className="text-foreground truncate text-sm font-medium">
-                      {account.vendor === "lightspeed_kseries"
-                        ? "Lightspeed K-Series"
-                        : account.vendor}
+                      {displayVendorName(account.vendor)}
                     </span>
                     <span className="text-muted-foreground truncate text-xs">
                       {account.external_account_id}
