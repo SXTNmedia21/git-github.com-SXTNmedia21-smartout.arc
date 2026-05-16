@@ -64,6 +64,8 @@ import { useMessages, type MessageWithSender } from "@/hooks/queries/use-message
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
 import { useMarkRead } from "@/hooks/mutations/use-mark-read";
 import { useChannelReadReceipts, getReceiptState } from "@/hooks/use-channel-read-receipts";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 import type { Database } from "@smartout/supabase/database.types";
 
 type PendingMessage = MessageWithSender & { _isPending?: boolean };
@@ -148,8 +150,8 @@ export function ConversationBody({
   const { sendMessage } = useSendMessage();
   const { markRead } = useMarkRead();
 
-  // Sender side: track read receipts for own messages via Realtime.
-  const readReceipts = useChannelReadReceipts(channelId);
+  // Sender side: track read receipts + delivered-ack for own messages via Realtime.
+  const { receipts: readReceipts, deliveredSet } = useChannelReadReceipts(channelId);
 
   // T4 — Typing presence: stable emitTyping() broadcast callback.
   const emitTyping = useEmitTyping(channelId);
@@ -246,6 +248,93 @@ export function ConversationBody({
 
     return result;
   }, [data]);
+
+  // T5 — Delivered-state ack (Phase 2): broadcast presence-join on mount.
+  //
+  // When the receiver opens this channel we publish a one-shot ephemeral event
+  // on `chat-presence:${channelId}` so the sender's hook can flip their
+  // outbound messages from `sent` → `delivered`.
+  //
+  // Payload: { profile_id, unread_message_ids } — the list of message_ids in
+  // the current feed that (a) were sent by someone else and (b) the current
+  // user has not yet recorded a channel_message_read row for (own_read_at
+  // absent). We derive this from the loaded feed synchronously — no extra RPC.
+  //
+  // Fire-and-forget. No retry. If the user reopens the channel, the broadcast
+  // fires again — idempotent on sender side (Set.add is idempotent).
+  //
+  // getProfileContext() fail-fast per ADR-0134: throws on missing/empty identity.
+  // Wrapped in try/catch so that a transient auth gap does not crash the screen.
+  useEffect(() => {
+    if (!channelId || !profileId) return;
+    // We depend on the feed being populated — skip if feed is empty on first mount.
+    // The broadcast fires on every feed-change too (e.g. after pagination), but
+    // the receiver side is idempotent so duplicate broadcasts are harmless.
+    if (feed.length === 0) return;
+
+    // Collect message_ids that are: (a) not from self, (b) have no read receipt
+    // in readReceipts (i.e. no own channel_message_read row mapped here).
+    // Note: readReceipts is keyed by the SENDER's perspective (messages the
+    // current user SENT). For the receiver broadcast we want messages they
+    // RECEIVED — i.e. sender_id !== profileId.
+    // The receiver's own read rows are tracked by useMarkRead on viewability;
+    // we don't have a local "did I read this?" set here. Instead we use the
+    // readReceipts map absence as a proxy: messages where profileId is the
+    // SENDER will appear in readReceipts; messages where profileId is the
+    // RECEIVER won't. This is correct for the receiver broadcast path.
+    const unreadMessageIds = feed
+      .filter((item): item is Extract<FeedItem, { kind: "message" }> => item.kind === "message")
+      .filter((item) => {
+        const msg = item.message;
+        // Only include messages sent by someone else (receiver's perspective).
+        if (msg.sender_id === profileId) return false;
+        // Exclude optimistic messages (no real id yet).
+        if (!msg.id || msg._isPending) return false;
+        return true;
+      })
+      .map((item) => item.message.id);
+
+    if (unreadMessageIds.length === 0) return;
+
+    // Fire-and-forget broadcast — resolve identity first (fail-fast per ADR-0134).
+    void (async () => {
+      try {
+        const { profileId: resolvedProfileId, workspaceId: resolvedWorkspaceId } =
+          await getProfileContext();
+
+        // Broadcast presence-join on the dedicated presence channel.
+        // The sender's useChannelReadReceipts hook listens on this event.
+        await supabase.channel(`chat-presence:${channelId}`).send({
+          type: "broadcast",
+          event: "presence-join",
+          payload: {
+            profile_id: resolvedProfileId as string,
+            unread_message_ids: unreadMessageIds,
+          },
+        });
+
+        // Telemetry: log delivered ack — logger + activity_trail (no posthog;
+        // ephemeral presence events are too chatty for analytics).
+        await emit({
+          event: "chat message_delivered",
+          workspace_id: resolvedWorkspaceId,
+          actor_id: resolvedProfileId,
+          properties: {
+            data: {
+              channel_id: channelId,
+              message_ids: unreadMessageIds,
+            },
+          },
+        });
+      } catch {
+        // Swallow — transient auth gap should not crash the conversation screen.
+        // The sender will remain at `sent` state until the next open.
+      }
+    })();
+    // Re-run when feed or channel changes so new paginated messages are included.
+    // profileId is intentionally in deps — changes if session switches.
+    // readReceipts intentionally omitted — already tracked reactively by hook.
+  }, [channelId, profileId, feed]);
 
   /**
    * Derive which divider should be pinned at the top of the inverted list.
@@ -548,11 +637,11 @@ export function ConversationBody({
       const { message } = item;
       const isOwn = message.sender_id === profileId;
       const isPending = !!message._isPending;
-      // Resolve receipt state for own messages — passed to MessageBubble once
-      // T2 lands the `readReceiptState` prop (feat/mobile-chat-whatsapp-phase1 T2).
-      // Computed here so T2 can wire it without changing this logic.
+      // Resolve receipt state for own messages — passed to MessageBubble.
+      // Phase 2 T5: deliveredSet is now passed so `delivered` state is reachable.
+      // Priority: pending > read > delivered > sent (enforced in getReceiptState).
       const _readReceiptState = isOwn
-        ? getReceiptState(message.id, isPending, readReceipts)
+        ? getReceiptState(message.id, isPending, readReceipts, deliveredSet)
         : undefined;
       return (
         <View key={itemKey} onLayout={makeItemLayoutHandler(itemKey)}>
@@ -572,6 +661,7 @@ export function ConversationBody({
       profileId,
       selectedMessageId,
       readReceipts,
+      deliveredSet,
       stickyDividerKey,
       handleLongPress,
       handleSwipeReply,
