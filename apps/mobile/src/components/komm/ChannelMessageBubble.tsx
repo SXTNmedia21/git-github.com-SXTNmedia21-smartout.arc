@@ -20,6 +20,13 @@
  *   Threshold 48px → haptic + onSwipeReply (once per gesture).
  *   Spring back via motion.springSnappy from @smartout/design-tokens.
  *   CornerUpLeft reply icon fades in behind bubble, opposite side to drag.
+ *
+ * Long-press scale-spring (Phase 2 T3):
+ *   Mirrors MessageBubble T3 pattern exactly.
+ *   Gesture.LongPress() composed with pan via Gesture.Simultaneous.
+ *   On long-press start: scale 1.0 → 1.05 via springSnappy.
+ *   On finalize: scale returns to 1.0 via springSnappy.
+ *   onLongPress callback fires from Pressable (haptic + ReactionBar) — not duplicated in gesture.
  */
 import React, { useCallback, useRef } from "react";
 import { View, Text, Pressable, Platform, type ViewStyle } from "react-native";
@@ -87,6 +94,10 @@ function ChannelMessageBubbleInner({
   // Boolean shared value: 1 = fired this gesture, 0 = not fired yet.
   const hasFired = useSharedValue(0);
 
+  // ── Long-press scale shared value (gesture thread — never triggers React render) ──
+  const scale = useSharedValue(1);
+
+  // JS-thread callback — haptic + show ReactionBar. Called from Pressable onLongPress.
   const handleLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onLongPress();
@@ -101,6 +112,23 @@ function ChannelMessageBubbleInner({
     Haptics.selectionAsync();
     onSwipeReplyRef.current();
   }, []);
+
+  /**
+   * Long-press gesture (T3) — drives scale spring only.
+   * `minDuration` 300ms matches Pressable `delayLongPress` so scale animates in sync.
+   * onLongPress callback fires via Pressable — not duplicated here to avoid double-fire.
+   */
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(300)
+    .onStart(() => {
+      "worklet";
+      scale.value = withSpring(1.05, springSnappy);
+    })
+    .onFinalize(() => {
+      "worklet";
+      // Reset scale on release or cancel.
+      scale.value = withSpring(1, springSnappy);
+    });
 
   /**
    * Pan gesture — horizontal-only (activeOffsetX guards FlatList scroll).
@@ -133,9 +161,15 @@ function ChannelMessageBubbleInner({
       hasFired.value = 0;
     });
 
+  /**
+   * Compose pan + long-press simultaneously so both gestures can recognize
+   * without one cancelling the other (long-press is stationary, pan is horizontal).
+   */
+  const composedGesture = Gesture.Simultaneous(panGesture, longPressGesture);
+
   // ── Animated styles ───────────────────────────────────────────────────────
   const bubbleAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [{ translateX: translateX.value }, { scale: scale.value }],
   }));
 
   /**
@@ -202,7 +236,7 @@ function ChannelMessageBubbleInner({
   const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
         {/* Reply icon — shown on the side opposite to drag direction */}
         {isOwnMessage ? (

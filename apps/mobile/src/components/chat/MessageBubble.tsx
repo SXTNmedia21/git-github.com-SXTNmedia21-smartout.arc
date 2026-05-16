@@ -20,6 +20,13 @@
  *   Reply icon fades in proportionally behind the bubble on the opposite side.
  *   Spring back to 0 on release via motion.springSnappy from @smartout/design-tokens.
  *   Gesture state lives entirely in shared values — no React re-render during swipe.
+ *
+ * Long-press scale-spring (Phase 2 T3):
+ *   Gesture.LongPress() composed with pan via Gesture.Simultaneous so both can recognize.
+ *   On long-press start: scale 1.0 → 1.05 via springSnappy.
+ *   On long-press end/cancel: scale returns to 1.0 via springSnappy.
+ *   Existing onLongPress callback (haptic + show ReactionBar) is preserved — called via runOnJS.
+ *   Scale lives in a shared value — never triggers React re-render.
  */
 
 import React, { useCallback, useRef } from "react";
@@ -128,6 +135,10 @@ function MessageBubbleInner({
   // Boolean shared value: 1 = fired this gesture, 0 = not fired yet.
   const hasFired = useSharedValue(0);
 
+  // ── Long-press scale shared value (gesture thread — never triggers React render) ──
+  const scale = useSharedValue(1);
+
+  // JS-thread callback — haptic + show ReactionBar. Called from both Pressable and gesture worklet.
   const handleLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onLongPress();
@@ -142,6 +153,24 @@ function MessageBubbleInner({
     Haptics.selectionAsync();
     onSwipeReplyRef.current();
   }, []);
+
+  /**
+   * Long-press gesture (T3) — drives scale spring only.
+   * `minDuration` 300ms matches Pressable `delayLongPress` so scale animates in sync.
+   * onLongPress callback (haptic + ReactionBar) fires via the Pressable handlers below —
+   * Gesture.LongPress only owns the scale animation to avoid double-firing the callback.
+   */
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(300)
+    .onStart(() => {
+      "worklet";
+      scale.value = withSpring(1.05, springSnappy);
+    })
+    .onFinalize(() => {
+      "worklet";
+      // Reset scale on release or cancel.
+      scale.value = withSpring(1, springSnappy);
+    });
 
   /**
    * Pan gesture — horizontal-only (activeOffsetX guards FlatList scroll).
@@ -174,9 +203,15 @@ function MessageBubbleInner({
       hasFired.value = 0;
     });
 
+  /**
+   * Compose pan + long-press simultaneously so both gestures can recognize
+   * without one cancelling the other (long-press is stationary, pan is horizontal).
+   */
+  const composedGesture = Gesture.Simultaneous(panGesture, longPressGesture);
+
   // ── Animated styles ───────────────────────────────────────────────────────
   const bubbleAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [{ translateX: translateX.value }, { scale: scale.value }],
   }));
 
   /**
@@ -240,7 +275,7 @@ function MessageBubbleInner({
   const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
         {/* Reply icon — shown on the side opposite to drag direction */}
         {isOwnMessage ? (
