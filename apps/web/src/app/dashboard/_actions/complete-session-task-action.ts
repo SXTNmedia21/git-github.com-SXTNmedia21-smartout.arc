@@ -26,9 +26,6 @@ import type { NonEmptyString } from "@smartout/telemetry/server";
 
 import type { ResolvedActor } from "@/app/api/mobile/_shared/actor";
 
-// Re-export ResolvedActor so existing imports from this file continue to work.
-export type { ResolvedActor };
-
 export type CompleteSessionTaskResult = { ok: true; taskId: string } | { ok: false; error: string };
 
 export async function completeSessionTaskAction(
