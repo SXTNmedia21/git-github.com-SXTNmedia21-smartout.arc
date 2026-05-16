@@ -206,6 +206,10 @@
       "types": "./dist/context/memory-writer.d.ts",
       "default": "./dist/context/memory-writer.js"
     },
+    "./engine/authority-pipeline": {
+      "types": "./dist/engine/authority-pipeline/index.d.ts",
+      "default": "./dist/engine/authority-pipeline/index.js"
+    },
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
