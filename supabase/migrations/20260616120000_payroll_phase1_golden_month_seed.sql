@@ -29,6 +29,13 @@
 --           helgetillegg 56.02, helligdagstillegg 100.00) — effective 2025-04-01.
 --   Minstelonn: Riksavtalen §3 (voksen ufaglært begynner 195.00, etter 2 år 205.00).
 --
+-- E4 RESOLUTION (ADR-0341 v1.1 §E4): gm_ prefix is ENGINE-TRANSPARENT.
+--   evaluate-supplements.ts resolves rates via UUID FK:
+--     rates.find((r) => r.id === rule.tariff_rate_table_id)
+--   The rate_type string is never compared by the engine at resolve-time.
+--   gm_ prefix prevents EXCLUDE constraint collision at INSERT time only.
+--   No fixture or engine change needed. E4 is a verified NO-OP.
+--
 -- WORKSPACE_ID: NULL for all rows (platform-level K1a per cascade cascade-developer guide).
 --   supplement_rule.workspace_id IS nullable in public.supplement_rule (created by
 --   20260527100600_payroll_phase1_dynamic_supplements.sql). NULL = platform template.
