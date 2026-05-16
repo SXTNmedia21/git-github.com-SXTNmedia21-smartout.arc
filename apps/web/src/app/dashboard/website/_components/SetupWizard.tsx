@@ -148,7 +148,11 @@ export default function SetupWizard() {
       toast.success("Nettside opprettet!");
       router.push("/dashboard/website");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Kunne ikke opprette nettside");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Nettsiden kunne ikke opprettes. Sjekk at workspace er aktiv og prøv igjen.",
+      );
     } finally {
       setIsCreating(false);
     }

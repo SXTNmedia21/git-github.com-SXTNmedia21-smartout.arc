@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, Eye } from "lucide-react";
+import { ChevronRight, Eye, MousePointerClick } from "lucide-react";
 import { useSections } from "../_hooks/use-sections";
 import type { SectionRow } from "../_actions/section-actions";
 import SectionSidebar from "./SectionSidebar";
@@ -91,6 +91,13 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
         </div>
       </div>
 
+      {/* Page header description */}
+      <div className="px-6 pt-2 pb-4">
+        <p className="text-muted-foreground text-sm">
+          Rediger sider — legg til seksjoner, tilpass innhold, og publiser endringer.
+        </p>
+      </div>
+
       {/* Body — SectionSidebar handles responsive layout internally */}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {isLoading ? (
@@ -116,9 +123,14 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
                   EditorComponent={EditorComponent}
                 />
               ) : (
-                <div className="text-muted-foreground flex h-full items-center justify-center p-8 text-center text-sm">
-                  Velg en seksjon <span className="lg:hidden">&nbsp;fra fanene ovenfor</span>
-                  <span className="hidden lg:inline">&nbsp;fra sidepanelet</span>
+                <div className="flex h-full flex-col items-center justify-center gap-3 py-20 text-center">
+                  <MousePointerClick className="text-muted-foreground size-8" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Velg en seksjon</p>
+                    <p className="text-muted-foreground text-xs">
+                      Klikk på en seksjon i panelet eller legg til ny.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
