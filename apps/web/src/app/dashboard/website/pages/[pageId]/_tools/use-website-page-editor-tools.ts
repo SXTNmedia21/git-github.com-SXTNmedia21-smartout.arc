@@ -31,8 +31,6 @@ import type {
   ClientToolKit,
 } from "@smartout/agent-sdk";
 
-const PARAMETER_LOCATION_BODY = "PARAMETER_LOCATION_BODY" as const;
-
 // ── Input type ────────────────────────────────────────────────────────────
 
 export type WebsitePageEditorToolInput = {
@@ -140,7 +138,7 @@ export function useWebsitePageEditorTools(input: WebsitePageEditorToolInput): Cl
 
         let hint: string;
         if (d.hasUnsavedChanges) {
-          hint = "Endringer er ikke lagret ennå — autolагring pågår.";
+          hint = "Endringer er ikke lagret ennå — autolagring pågår.";
         } else if (!canPreview) {
           hint = "Ingen seksjoner ennå — legg til minst én seksjon for å forhåndsvise.";
         } else if (!d.websiteIsLive) {

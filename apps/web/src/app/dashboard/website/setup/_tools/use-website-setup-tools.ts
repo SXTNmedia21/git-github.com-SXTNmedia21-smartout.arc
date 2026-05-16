@@ -27,8 +27,6 @@ import type {
   ClientToolKit,
 } from "@smartout/agent-sdk";
 
-const PARAMETER_LOCATION_BODY = "PARAMETER_LOCATION_BODY" as const;
-
 // ── Input type ────────────────────────────────────────────────────────────
 
 export type WebsiteSetupToolInput = {

@@ -31,8 +31,6 @@ import type {
 import type { WebsiteRow } from "../_actions/website-actions";
 import type { PageRow } from "../_actions/page-actions";
 
-const PARAMETER_LOCATION_BODY = "PARAMETER_LOCATION_BODY" as const;
-
 // ── Input type ────────────────────────────────────────────────────────────
 
 export type WebsiteToolInput = {

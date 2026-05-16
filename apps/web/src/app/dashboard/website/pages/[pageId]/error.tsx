@@ -2,13 +2,13 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@smartout/ui";
 import { AlertCircle } from "lucide-react";
 
-interface ErrorProps {
+type ErrorProps = {
   error: Error & { digest?: string };
   reset: () => void;
-}
+};
 
 export default function PageEditorError({ error, reset }: ErrorProps) {
   useEffect(() => {

@@ -48,7 +48,7 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
     () => ({
       pageId,
       pageTitle,
-      // is_visible is not fetched at this level — default true (page is visible unless toggled in PageList)
+      // HACK: page-level visibility not threaded here; defaults to true. Follow-up: fetch from website_page row in SectionEditor.tsx parent.
       isVisible: true,
       sections: sections.map((s) => ({
         website_section_id: s.website_section_id,
@@ -57,7 +57,7 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
         sort_order: s.sort_order,
       })),
       hasUnsavedChanges: saveState === "saving",
-      // websiteIsLive not known at this level — conservative default false
+      // HACK: live status not threaded here; conservative default false. Follow-up: pass website.is_live from WebsiteOverview ancestor.
       websiteIsLive: false,
       lastSavedAt: saveState === "saved" ? new Date().toISOString() : null,
     }),
