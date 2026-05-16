@@ -177,12 +177,12 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 78 | shift_snapshots/sh-024 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 30 min × 70 øre/min = 2100 øre (21:00–21:30 Oslo) | [COMPUTED] 2100 | trt-supp-001 | 2025 |
 | 79 | shift_snapshots/sh-025 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 80 | shift_snapshots/sh-025 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 540 min × 93 øre/min = 50220 øre | [COMPUTED] 50220 | trt-supp-005 | 2025 |
-| 81 | aggregated_periods/prof-006 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY] [E1_FLAG: has_fagbrev=true but tariff_category=voksen_ufaglart — computed as voksen_ufaglart per fixture; see Phase 4] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
+| 81 | aggregated_periods/prof-006 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY — voksen_faglart rate may differ; E1 fixed: tariff_category corrected to voksen_faglart] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
 | 82 | aggregated_periods/prof-006 | helgetillegg_total | (n/a) | — | 64170+50220 = 114390 øre | [COMPUTED] 114390 | (n/a) | — |
 | 83 | aggregated_periods/prof-006 | kveldstillegg_total | (n/a) | — | 2100 øre | [COMPUTED] 2100 | (n/a) | — |
-| 84 | aggregated_periods/prof-006 | gross_pay | (n/a) | — | 3294643 + 114390 + 2100 = 3411133 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 3411133 | (n/a) | — |
-| 85 | aggregated_periods/prof-006 | total | (n/a) | — | 3411133 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 3411133 | (n/a) | — |
-| 86 | timebank_entries/prof-006 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3411133 × **0.125**) = 426392 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 426392 | (n/a) | — |
+| 84 | aggregated_periods/prof-006 | gross_pay | (n/a) | — | 3294643 + 114390 + 2100 = 3411133 øre [PENDING_E3_VERIFY] | [COMPUTED] 3411133 | (n/a) | — |
+| 85 | aggregated_periods/prof-006 | total | (n/a) | — | 3411133 øre [PENDING_E3_VERIFY] | [COMPUTED] 3411133 | (n/a) | — |
+| 86 | timebank_entries/prof-006 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3411133 × **0.125**) = 426392 øre [PENDING_E3_VERIFY] | [COMPUTED] 426392 | (n/a) | — |
 
 ---
 
