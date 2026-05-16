@@ -56,7 +56,8 @@ export type EventCategory =
   | "payroll" // ADR-0057 — Payroll Engine Phase 1
   | "pos" // ADR-0305 — POS integration adapter pattern
   | "shift_marketplace" // ADR-0306 — Open-shift marketplace
-  | "scheduler"; // ADR-0307/0309 — Constraint-solver scheduler greedy V1
+  | "scheduler" // ADR-0307/0309 — Constraint-solver scheduler greedy V1
+  | "cost"; // ui-shell-cost-polish — Cost overview telemetry
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -195,7 +196,9 @@ export type EntityType =
   // ─── Dagslinjen targeted note (ADR-0331, Track E, 2026-05-15) ───────────────
   | "session_note"
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ────────────────────
-  | "timeline_template";
+  | "timeline_template"
+  // ─── Cost overview (ui-shell-cost-polish) ────────────────────────────────────
+  | "cost_overview";
 
 export type ActionVerb =
   | "created"
@@ -2570,6 +2573,13 @@ export interface ContractReviseOpened extends BaseEvent {
     data: {
       contract_id: string;
     };
+  };
+}
+
+export interface CostOverviewViewed extends BaseEvent {
+  event: "cost.overview.viewed";
+  properties: {
+    entity: EntityRef;
   };
 }
 
@@ -7863,6 +7873,7 @@ export type SmartoutEvent =
   | ContractDetailViewed
   | ContractReviseOpened
   | ContractAwaitingSignatureViewed
+  | CostOverviewViewed
   | ContractResendSubmitted
   | ContractCancelDialogOpened
   | ContractCancelConfirmed
@@ -8003,6 +8014,7 @@ export type SmartoutEvent =
   | ContractDetailViewed
   | ContractReviseOpened
   | ContractAwaitingSignatureViewed
+  | CostOverviewViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
   | ContractBulkSubmitted
@@ -13500,5 +13512,9 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "timeline_template.listed": {
     destinations: ["logger"],
     category: "scheduling",
+  },
+  "cost.overview.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "cost",
   },
 };
