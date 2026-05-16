@@ -17291,30 +17291,42 @@ export type Database = {
       }
       session_note: {
         Row: {
+          audience: Json | null
           content: string
           created_at: string
           created_by: string
+          deleted_at: string | null
+          delivered_at: string | null
           department_session_id: string
           id: string
           note_type: Database["public"]["Enums"]["session_note_type"]
+          notify_at: string | null
           workspace_id: string
         }
         Insert: {
+          audience?: Json | null
           content: string
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           department_session_id: string
           id?: string
           note_type?: Database["public"]["Enums"]["session_note_type"]
+          notify_at?: string | null
           workspace_id: string
         }
         Update: {
+          audience?: Json | null
           content?: string
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           department_session_id?: string
           id?: string
           note_type?: Database["public"]["Enums"]["session_note_type"]
+          notify_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -22272,7 +22284,7 @@ export type Database = {
         | "scheduled"
         | "pre_close"
         | "close"
-      session_note_type: "handoff" | "closing" | "general"
+      session_note_type: "handoff" | "closing" | "general" | "targeted"
       session_task_status:
         | "pending"
         | "available"
@@ -23949,7 +23961,7 @@ export const Constants = {
         "pre_close",
         "close",
       ],
-      session_note_type: ["handoff", "closing", "general"],
+      session_note_type: ["handoff", "closing", "general", "targeted"],
       session_task_status: [
         "pending",
         "available",
