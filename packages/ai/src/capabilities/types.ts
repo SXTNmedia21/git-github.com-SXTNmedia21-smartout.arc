@@ -101,6 +101,18 @@ export type CapabilityName =
    *  save_template + apply_template + archive_template (confirm, manager+, chat-only),
    *  list_templates (read_only, chat-only). emitPrefix='timeline_template'.
    *  Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql. */
+  /** ADR-0XXX — governance content authority backlog closure.
+   *  Server-Action update of organizational handbook chapters.
+   *  (confirm, manager) per T0 scope verification. */
+  | "handbook_chapter" // backlog closure — see ADR-NEXT
+  /** ADR-0XXX — governance content authority backlog closure.
+   *  Server-Action update of policy records (HR/HACCP/safety/etc).
+   *  (confirm, manager) per T0 scope verification. */
+  | "policy" // backlog closure — see ADR-NEXT
+  /** ADR-0XXX — governance content authority backlog closure.
+   *  Server-Action update of protocol records (training/compliance).
+   *  (confirm, manager) per T0 scope verification. */
+  | "protocol" // backlog closure — see ADR-NEXT
   | "timeline_template"; // ADR-0334 (timeline-templates sortie)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.

@@ -62,6 +62,8 @@ async function callGate(
   profileId: string,
   entityId: string,
 ): Promise<{ allowed: boolean; reason: string | null }> {
+  // @authority-gate-ungated — CAP = "shift_marketplace" is a static module-level const.
+  // shift_marketplace is seeded in engine_authority_config migrations.
   const { data, error } = await admin.rpc("gate_action", {
     p_workspace_id: workspaceId,
     p_actor_profile_id: profileId,
