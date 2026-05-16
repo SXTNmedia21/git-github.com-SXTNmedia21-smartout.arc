@@ -21,9 +21,26 @@
  *   but the supplement rule itself is what fires the rate. These must be consistent.
  *
  * Zero I/O. All fixture data loaded via JSON imports.
+ *
+ * ADR-0341 NOTE: The "cents-exact dry-run" block at the end validates expected/*.json
+ *   fixtures against the schema (F6 gate) and checks amount_ore equality (acceptance
+ *   criterion 1). It is currently marked describe.todo pending Pontus completing
+ *   shift_snapshots.json / aggregated_periods.json / payroll_lines.json /
+ *   timebank_entries.json. deviations.json is live (empty array — 0 deviation cells).
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as url from "node:url";
+import {
+  ShiftSnapshotsSchema,
+  AggregatedPeriodsSchema,
+  PayrollLinesSchema,
+  TimebankEntriesSchema,
+  DeviationsSchema,
+  type ExpectedCell,
+} from "./expected-cell.schema.js";
 import {
   interpretShift,
   evaluateSupplements,
@@ -499,3 +516,163 @@ describe("golden-month — total payroll sanity", () => {
     }
   });
 });
+
+// ── ADR-0341 §10.1 CENTS-EXACT DRY-RUN ────────────────────────────────────
+//
+// F6 acceptance gate (ADR-0341):
+//   1. Load each expected/*.json — validate schema with Zod (golden-month.cell_schema_violation on failure)
+//   2. Compare actual engine amount_ore vs expected amount_ore — must match exactly (no tolerance)
+//   3. Cells where computedBy==="PENDING_PONTUS_SIGN" or verifiedBy==="PENDING_LOVSEN_CERTIFY"
+//      are excluded from equality comparison; a console.warn summary is emitted instead.
+//
+// STATUS: describe.todo — data JSON files (shift_snapshots, aggregated_periods,
+//   payroll_lines, timebank_entries) are authored by parallel agents and not yet
+//   present. deviations.json is live ({deviations:[]}). This block becomes active
+//   once all five expected/*.json files exist and carry Pontus-signed cells.
+//
+// Track via Linear SMA-372 (Phase 1 close-out gap §H1).
+
+// Helper: resolve path relative to THIS test file (works with ESM __dirname equivalent)
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const expectedDir = path.join(__dirname, "expected");
+
+/**
+ * Load and schema-validate one expected JSON file.
+ * Throws with golden-month.cell_schema_violation error message on schema failure.
+ */
+function loadExpected<T>(filename: string, parser: { parse: (v: unknown) => T }): T {
+  const filePath = path.join(expectedDir, filename);
+  const raw = JSON.parse(fs.readFileSync(filePath, "utf-8")) as unknown;
+  const result = parser.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`golden-month.cell_schema_violation in ${filename}:\n${result.error.message}`);
+  }
+  return result.data;
+}
+
+/**
+ * Count unsigned cells and emit a warning summary.
+ * A cell is "unsigned" if Pontus has not signed (computedBy) OR Lovsen has not verified.
+ */
+function countUnsigned(cells: ExpectedCell[]): number {
+  return cells.filter(
+    (c) => c.computedBy === "PENDING_PONTUS_SIGN" || c.verifiedBy === "PENDING_LOVSEN_CERTIFY",
+  ).length;
+}
+
+// ── deviations.json schema gate (live — always runs, array is empty) ─────────
+//
+// This test is NOT todo: deviations.json exists and contains an empty array.
+// The golden-month worksheet has 0 deviation cells (confirmed: grep returns no
+// "file: deviations/*" rows in 01-pontus-compute-worksheet.md).
+
+describe("ADR-0341 §10.1 — deviations.json schema gate (F6)", () => {
+  it("deviations.json validates against DeviationsSchema and is empty", () => {
+    const data = loadExpected("deviations.json", DeviationsSchema);
+    // Worksheet confirms 0 deviation cells — enforce the empty invariant.
+    expect(data.deviations).toHaveLength(0);
+  });
+});
+
+// ── Full cents-exact comparison (todo until data files authored) ──────────────
+
+describe.todo(
+  "ADR-0341 §10.1 — cents-exact dry-run vs shift_snapshots.json / aggregated_periods.json / payroll_lines.json / timebank_entries.json",
+  // TODO SMA-372: activate when all four data JSON files exist and carry Pontus-signed cells.
+  // Template below is the intended implementation:
+  //
+  // it("shift_snapshots.json: schema valid + amount_ore exact per shift", () => {
+  //   const data = loadExpected("shift_snapshots.json", ShiftSnapshotsSchema);
+  //   let unsignedTotal = 0;
+  //   for (const entry of data.shift_snapshots) {
+  //     const snap = snapshots.find((s) => s.shift_id === entry.shiftId);
+  //     if (!snap) {
+  //       expect.fail(`shift_snapshots.json references unknown shiftId="${entry.shiftId}"`);
+  //     }
+  //     for (let i = 0; i < entry.cells.length; i++) {
+  //       const cell = entry.cells[i]!;
+  //       if (
+  //         cell.computedBy === "PENDING_PONTUS_SIGN" ||
+  //         cell.verifiedBy === "PENDING_LOVSEN_CERTIFY"
+  //       ) {
+  //         unsignedTotal++;
+  //         continue;
+  //       }
+  //       // Find matching payroll line by supplementRuleId (or base line)
+  //       const actualLine = snap.lines.find(
+  //         (l) => l.supplement_rule_id === cell.supplementRuleId,
+  //       );
+  //       if (!actualLine) {
+  //         expect.fail(
+  //           `shift=${entry.shiftId} cell[${i}] ruleId="${cell.supplementRuleId}" not found in engine lines`,
+  //         );
+  //       }
+  //       const expectedOre = BigInt(cell.amount_ore);
+  //       const actualOre = actualLine.amount_ore;
+  //       if (actualOre !== expectedOre) {
+  //         const deltaOre = actualOre - expectedOre;
+  //         expect.fail(
+  //           `CENTS DRIFT shift=${entry.shiftId} cell[${i}] rule="${cell.ruleLabel}": ` +
+  //             `expected=${expectedOre}øre actual=${actualOre}øre delta=${deltaOre}øre`,
+  //         );
+  //       }
+  //     }
+  //   }
+  //   if (unsignedTotal > 0) {
+  //     console.warn(`[ADR-0341] shift_snapshots: ${unsignedTotal} unsigned cells skipped`);
+  //   }
+  // });
+  //
+  // it("aggregated_periods.json: schema valid + amount_ore exact per profile line", () => {
+  //   const data = loadExpected("aggregated_periods.json", AggregatedPeriodsSchema);
+  //   let unsignedTotal = 0;
+  //   for (const entry of data.aggregated_periods) {
+  //     const agg = aggregated.find((a) => a.profile_id === entry.profileId);
+  //     if (!agg) {
+  //       expect.fail(`aggregated_periods.json references unknown profileId="${entry.profileId}"`);
+  //     }
+  //     for (let i = 0; i < entry.cells.length; i++) {
+  //       const cell = entry.cells[i]!;
+  //       if (
+  //         cell.computedBy === "PENDING_PONTUS_SIGN" ||
+  //         cell.verifiedBy === "PENDING_LOVSEN_CERTIFY"
+  //       ) {
+  //         unsignedTotal++;
+  //         continue;
+  //       }
+  //       const actualLine = agg.lines.find(
+  //         (l) => l.supplement_rule_id === cell.supplementRuleId,
+  //       );
+  //       if (!actualLine) {
+  //         expect.fail(
+  //           `profile=${entry.profileId} cell[${i}] ruleId="${cell.supplementRuleId}" not found`,
+  //         );
+  //       }
+  //       const expectedOre = BigInt(cell.amount_ore);
+  //       if (actualLine.amount_ore !== expectedOre) {
+  //         const delta = actualLine.amount_ore - expectedOre;
+  //         expect.fail(
+  //           `CENTS DRIFT profile=${entry.profileId} cell[${i}] rule="${cell.ruleLabel}": ` +
+  //             `expected=${expectedOre}øre actual=${actualLine.amount_ore}øre delta=${delta}øre`,
+  //         );
+  //       }
+  //     }
+  //   }
+  //   if (unsignedTotal > 0) {
+  //     console.warn(`[ADR-0341] aggregated_periods: ${unsignedTotal} unsigned cells skipped`);
+  //   }
+  // });
+  //
+  // NOTE: payroll_lines.json and timebank_entries.json follow the same pattern.
+  // Import PayrollLinesSchema + TimebankEntriesSchema from ./expected-cell.schema.js,
+  // use the same loadExpected() / BigInt(cell.amount_ore) / expect.fail() idiom.
+  // countUnsigned() helper is available for batch unsigned-cell summary.
+);
+
+// ── Re-export helpers for use when activating the todo block ─────────────────
+// (Used above — TypeScript ensures they're referenced so no tree-shake warnings)
+void countUnsigned;
+void ShiftSnapshotsSchema;
+void AggregatedPeriodsSchema;
+void PayrollLinesSchema;
+void TimebankEntriesSchema;
