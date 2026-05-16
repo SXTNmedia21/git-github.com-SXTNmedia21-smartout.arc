@@ -114,24 +114,24 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 ## Profile: prof-004
 
 **Contract:** salary_type=hourly, baseHourlyRateNok=195.00, holiday_allowance_pct=12.0%, overtime_mode=paid_out, agreed_weekly=20.0h, seniority_start=2024-09-01, tier=begynner
-**Shifts in period:** 4 (sh-018 to sh-021) — all Saturdays, 6h each
+**Shifts in period:** 4 (sh-018 to sh-021) — sh-018 = Skjærtorsdag helligdag (B3 corrected), sh-019..021 = Saturdays
 **Total worked minutes:** 360×4 = 1440 min = 24.0h
 
 ### Cells to compute
 
 | Cell # | file | ruleLabel | supplementRuleId | paragrafRef | formula | amount_ore | tariffRateTableId | tariffLawVersion |
 |---|---|---|---|---|---|---|---|---|
-| 51 | shift_snapshots/sh-018 | base_hourly | (n/a) | Riksavtalen §3 minstelonn_begynner=195 NOK/t (rate 195 = at floor) | 360 min × 325 øre/min = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
-| 52 | shift_snapshots/sh-018 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 360 min × 93 øre/min = 33480 øre (note: date IS Saturday not Skjærtorsdag) | [COMPUTED] 33480 | trt-supp-005 | 2025 |
+| 51 | shift_snapshots/sh-018 | base_hourly | (n/a) | Riksavtalen §3 minstelonn_begynner=195 NOK/t | 360 min × 325 øre/min = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
+| 52 | shift_snapshots/sh-018 | helligdagstillegg | rule-helligdag-001 | Riksavtalen §6 | 360 min × 10000 øre/60 min = 60000 øre (Skjærtorsdag 2026-04-02, B3 corrected from helgetillegg) | [COMPUTED] 60000 | trt-supp-006 | 2025 |
 | 53 | shift_snapshots/sh-019 | base_hourly | (n/a) | — | 360 × 325 = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 54 | shift_snapshots/sh-019 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 360 × 93 = 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
 | 55 | shift_snapshots/sh-020 | base_hourly | (n/a) | — | 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 56 | shift_snapshots/sh-020 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
 | 57 | shift_snapshots/sh-021 | base_hourly | (n/a) | — | 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 58 | shift_snapshots/sh-021 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
-| 59 | aggregated_periods/prof-004 | gross_pay | (n/a) | — | 4 × (117000+33480) = 601920 øre | [COMPUTED] 601920 | (n/a) | — |
-| 60 | aggregated_periods/prof-004 | total | (n/a) | — | 601920 øre | [COMPUTED] 601920 | (n/a) | — |
-| 61 | timebank_entries/prof-004 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(601920 × 0.12) = 72230 øre | [COMPUTED] 72230 | (n/a) | — |
+| 59 | aggregated_periods/prof-004 | gross_pay | (n/a) | — | sh-018: (117000+60000) + sh-019..021: 3×(117000+33480) = 177000+451440 = 628440 øre | [COMPUTED] 628440 | (n/a) | — |
+| 60 | aggregated_periods/prof-004 | total | (n/a) | — | 628440 øre | [COMPUTED] 628440 | (n/a) | — |
+| 61 | timebank_entries/prof-004 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(628440 × 0.12) = 75413 øre | [COMPUTED] 75413 | (n/a) | — |
 
 ---
 
@@ -354,7 +354,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 ## Pontus Action Items
 
 1. **[CONTRACT] cells** — look up `employment_contract.gross_monthly` for prof-005, 006, 007, 008 and fill cells 69, 73, 74, 75, 81, 84, 85, 86, 91, 93, 94, 95, 100, 102, 103, 104.
-2. **Verify sh-018 day type** — confirm you agree: 2026-04-04 = Saturday (not a holiday). Engine will apply helgetillegg, NOT helligdagstillegg.
-3. **Kveldstillegg rule ID typo** — rule ID is `rule-kveldstillegg-001` (double-i). Flag if this matches your seed data or needs correction before F6.
+2. **sh-018 FIXED (B3 council)** — shift_date moved to 2026-04-02 = Skjærtorsdag. Engine will apply helligdagstillegg (60000 øre), not helgetillegg. Cell 52 updated. Prof-004 gross recalculated to 628440 øre.
+3. **Kveldstillegg rule ID typo FIXED (B4 council)** — rule ID is now `rule-kveldstillegg-001` (single-i, correct Bokmål). Rename complete across fixture + tests + worksheets.
 4. **prof-010 recheck** — gross 678450 vs earlier draft 678450 — arithmetic confirmed. Feriepenger = 81414 øre.
 5. **Sign each completed cell** with `computedBy: pontus@smartout.no` + `computedAt: [ISO timestamp]` before handing to Lovsen for citation.

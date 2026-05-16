@@ -14,11 +14,13 @@ tags: [payroll, golden-month, worksheet, shift-inventory]
 **Actual shift count: 43** (matches ADR-0341 claim of 43 shifts — exact match)
 **Profile count: 12** (matches ADR-0341 claim of 12 profiles — exact match)
 
-## Fixture Anomaly Found
+## sh-018 Date Correction (B3 council)
 
-**sh-018 note says "Skjærtorsdag"** but shift_date=2026-04-04 = **Saturday** (not a holiday).
+**sh-018** was previously shift_date=2026-04-04 (Saturday) with a misleading `_note: "Skjærtorsdag"`.
+**Fixed per B3 council:** shift_date moved to 2026-04-02, the actual Skjærtorsdag.
 Public holidays in fixture: 2026-04-02 (Skjærtorsdag), 2026-04-03 (Langfredag), 2026-04-05 (1. påskedag), 2026-04-06 (2. påskedag).
-The shift_date=2026-04-04 is a non-holiday Saturday. The `_note` field is misleading — engine treats 2026-04-04 as a regular Saturday (helgetillegg applies, not helligdagstillegg).
+2026-04-02 = Thursday. Engine classifies this as `holiday` → helligdagstillegg applies (not helgetillegg).
+This gives rule-helligdag-001 its first regression coverage in the golden-month fixture.
 
 ## Tariff Context
 
@@ -107,7 +109,7 @@ Columns: shift_id | profile_id | date (Oslo) | start UTC | end UTC | break_min |
 
 | shift_id | date | start UTC | end UTC | break_min | worked_min | day_type | supplements | notes |
 |---|---|---|---|---|---|---|---|---|
-| sh-018 | 2026-04-04 **Sat** (NOTE: _note says Skjærtorsdag but date=Sat, NOT a holiday) | 08:00 | 14:00 | 0 | 360 | **saturday** | helgetillegg 360 min | fixture _note is WRONG — April 4 = Saturday, public holiday is April 2 |
+| sh-018 | 2026-04-02 **Thu Skjærtorsdag** (helligdag — B3 corrected from 2026-04-04) | 08:00 | 14:00 | 0 | 360 | **holiday** | helligdagstillegg 360 min | rule-helligdag-001 coverage |
 | sh-019 | 2026-04-11 Sat | 08:00 | 14:00 | 0 | 360 | saturday | helgetillegg 360 min | — |
 | sh-020 | 2026-04-18 Sat | 08:00 | 14:00 | 0 | 360 | saturday | helgetillegg 360 min | — |
 | sh-021 | 2026-04-25 Sat | 08:00 | 14:00 | 0 | 360 | saturday | helgetillegg 360 min | — |
