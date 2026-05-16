@@ -1,8 +1,9 @@
 ---
 title: "Calc-engine test oracle provenance contract — B-anchored Lovsen-citation per cell"
 id: ADR_0341
-status: proposed
+status: accepted
 date: 2026-05-16
+accepted_date: 2026-05-16
 layer: decision
 created: 2026-05-16
 updated: 2026-05-16

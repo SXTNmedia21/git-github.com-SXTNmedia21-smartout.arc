@@ -1,8 +1,9 @@
 ---
 title: "Lovsen MCP freshness-verification tool — verify_citation_freshness(hashes[]) contract"
 id: ADR_0342
-status: proposed
+status: accepted
 date: 2026-05-16
+accepted_date: 2026-05-16
 layer: decision
 created: 2026-05-16
 updated: 2026-05-16
