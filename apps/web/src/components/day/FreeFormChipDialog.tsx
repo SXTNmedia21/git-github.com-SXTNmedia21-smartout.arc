@@ -68,7 +68,11 @@ export function FreeFormChipDialog({ open, onOpenChange, time, onAdd }: FreeForm
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-sm" aria-labelledby="freeform-chip-title">
+      <DialogContent
+        className="sm:max-w-sm"
+        aria-labelledby="freeform-chip-title"
+        data-testid="freeform-chip-dialog"
+      >
         <DialogHeader>
           <DialogTitle id="freeform-chip-title" className="flex items-center gap-2">
             <Type className="text-muted-foreground h-4 w-4" aria-hidden />

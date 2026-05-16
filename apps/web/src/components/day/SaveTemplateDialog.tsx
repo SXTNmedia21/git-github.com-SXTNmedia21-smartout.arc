@@ -172,7 +172,11 @@ export function SaveTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" aria-labelledby="save-template-title">
+      <DialogContent
+        className="sm:max-w-md"
+        aria-labelledby="save-template-title"
+        data-testid="save-template-dialog"
+      >
         <DialogHeader>
           <DialogTitle id="save-template-title" className="flex items-center gap-2">
             <Save className="text-muted-foreground h-4 w-4" aria-hidden />

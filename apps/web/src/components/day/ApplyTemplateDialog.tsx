@@ -224,7 +224,11 @@ export function ApplyTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg" aria-labelledby="apply-template-title">
+      <DialogContent
+        className="sm:max-w-lg"
+        aria-labelledby="apply-template-title"
+        data-testid="apply-template-dialog"
+      >
         <DialogHeader>
           <DialogTitle id="apply-template-title" className="flex items-center gap-2">
             <Calendar className="text-muted-foreground h-4 w-4" aria-hidden />
