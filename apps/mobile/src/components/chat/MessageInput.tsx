@@ -60,6 +60,8 @@ type MessageInputProps = {
   onSend: (content: string, attachments?: Attachment[]) => void;
   replyTo?: MessageWithSender | null;
   onCancelReply?: () => void;
+  /** Called on every text change — caller provides debounced emitTyping(). */
+  onTyping?: () => void;
   style?: ViewStyle;
 };
 
@@ -67,7 +69,13 @@ const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👏", "😊", "🙏", 
 
 type PanelMode = "none" | "shortcuts" | "emoji";
 
-export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageInputProps) {
+export function MessageInput({
+  onSend,
+  replyTo,
+  onCancelReply,
+  onTyping,
+  style,
+}: MessageInputProps) {
   const styles = useStyles();
   const theme = useTheme();
   const [text, setText] = useState("");
@@ -315,7 +323,12 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
             ref={inputRef}
             style={styles.input}
             value={text}
-            onChangeText={setText}
+            onChangeText={(value) => {
+              setText(value);
+              // Notify parent so it can broadcast typing presence (T4).
+              // onTyping is debounced by use-emit-typing — safe to call on every keystroke.
+              onTyping?.();
+            }}
             placeholder={placeholder}
             placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
             multiline

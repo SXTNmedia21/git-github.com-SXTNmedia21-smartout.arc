@@ -7,16 +7,29 @@
  *
  * 6 reactions chosen for operational context (not social):
  * thumbs up, check, eyes, fire, warning, heart.
+ *
+ * Mount/unmount motion (Phase 2 T3):
+ *   Uses Reanimated v3 layout animation API (entering/exiting) — same pattern
+ *   as ShiftClockSummary and SwapRequestSheet in this codebase.
+ *   entering: FadeInDown.springify() — opacity 0→1 + slide from below (springSnappy feel).
+ *   exiting:  FadeOut.duration(sheetSlideMs) — clean fade-out matching dismissal token.
+ *   Consumer mounts/unmounts via conditional render; this component handles its own motion.
  */
 import React, { useCallback } from "react";
-import { View, Pressable, Text, type ViewStyle } from "react-native";
+import { Pressable, Text, type ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { createStyles } from "@/theme";
 
 type ReactionBarProps = {
   onReaction: (emoji: string) => void;
   style?: ViewStyle;
 };
+
+// Exit duration uses the dismissal token (sheetSlideMs = 200ms) — consistent with
+// sheet/dropdown dismissal feel across the app.
+const { sheetSlideMs } = nativeTheme.motion;
 
 /** Operational reactions — acknowledge, done, eyes, fire, warning, heart. */
 const REACTION_EMOJIS = [
@@ -40,7 +53,11 @@ export function ReactionBar({ onReaction, style }: ReactionBarProps) {
   );
 
   return (
-    <View style={[styles.container, style]}>
+    <Animated.View
+      entering={FadeInDown.springify()}
+      exiting={FadeOut.duration(sheetSlideMs)}
+      style={[styles.container, style]}
+    >
       {REACTION_EMOJIS.map((emoji) => (
         <Pressable
           key={emoji}
@@ -52,7 +69,7 @@ export function ReactionBar({ onReaction, style }: ReactionBarProps) {
           <Text style={styles.emoji}>{emoji}</Text>
         </Pressable>
       ))}
-    </View>
+    </Animated.View>
   );
 }
 

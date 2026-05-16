@@ -19,6 +19,7 @@ import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
 import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import { useShiftLifecycle } from "@/hooks/useShiftLifecycle";
 import { useIsOnline } from "@/hooks/useIsOnline";
+import { useShiftPipeline, resolvePipelineLabel } from "@/hooks/queries/use-shift-pipeline";
 import { PhaseStrip, PHASE_STRIP_HEIGHT } from "@/components/shift-timeline";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -99,6 +100,8 @@ export function ShiftCard({
   // card usages (swap, roster lists) on the same lightweight footprint.
   const { data: lifecycle } = useShiftLifecycle(showPhaseStrip ? shift.schedule_shift_id : null);
   const isOnline = useIsOnline();
+  const { data: pipelineData } = useShiftPipeline(shift.schedule_shift_id);
+  const pipelineInfo = pipelineData?.pipeline ?? null;
 
   const supplements = useMemo(() => {
     if (!supplementData?.rules || supplementData.rules.length === 0) return [];
@@ -155,6 +158,13 @@ export function ShiftCard({
               <SupplementBadges supplements={supplements} />
             </View>
           )}
+          {pipelineInfo && (
+            <View style={styles.pipelineLockRow}>
+              <Text style={styles.pipelineLockText}>
+                🔒 {resolvePipelineLabel(pipelineInfo.blueprint_id)}
+              </Text>
+            </View>
+          )}
         </Pressable>
       ) : (
         <>
@@ -176,6 +186,13 @@ export function ShiftCard({
           {supplements.length > 0 && (
             <View style={styles.badgeRow}>
               <SupplementBadges supplements={supplements} />
+            </View>
+          )}
+          {pipelineInfo && (
+            <View style={styles.pipelineLockRow}>
+              <Text style={styles.pipelineLockText}>
+                🔒 {resolvePipelineLabel(pipelineInfo.blueprint_id)}
+              </Text>
             </View>
           )}
         </>
@@ -226,6 +243,15 @@ const useStyles = createStyles((theme) => ({
   },
   badgeRow: {
     marginTop: theme.spacing.xs,
+  },
+  pipelineLockRow: {
+    marginTop: theme.spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pipelineLockText: {
+    ...theme.typography.caption,
+    color: "#f59e0b",
   },
   confirmRow: {
     marginTop: theme.spacing.element,

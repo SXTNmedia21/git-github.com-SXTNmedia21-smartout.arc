@@ -36,6 +36,7 @@ import {
   rejectCrossOrigin,
   resolveShiftSwapAuth,
 } from "@/app/api/shift-swap/_shared";
+import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
 
 // No identity fields allowed in the body (ADR-0176 Invariant 3).
 const RequestSchema = z.object({
@@ -89,24 +90,66 @@ export async function POST(request: NextRequest) {
   // 4. Call SECURITY DEFINER RPC via JWT-scoped client so `auth.uid()`
   // inside the function matches the caller. Keeps the RPC's own ownership
   // + workspace checks intact.
-  const userClient = createUserClient(auth.accessToken);
-  const { data, error } = await userClient.rpc(
-    "initiate_shift_swap" as never,
-    {
-      p_requester_shift_id: body.requester_shift_id,
-      p_target_profile_id: body.target_profile_id,
-      p_target_shift_id: body.target_shift_id,
-      p_reason: body.reason ?? null,
-    } as never,
-  );
+  //
+  // Pipeline lock contention (PipelineLockHeldError / ADR-0340) surfaces here
+  // as either a thrown Error from the capability layer or an RPC error message
+  // carrying the canonical code. Both are mapped to 409 PIPELINE_LOCK_HELD
+  // (ADR-0328) so clients can distinguish contention from generic 5xx.
+  try {
+    const userClient = createUserClient(auth.accessToken);
+    const { data, error } = await userClient.rpc(
+      "initiate_shift_swap" as never,
+      {
+        p_requester_shift_id: body.requester_shift_id,
+        p_target_profile_id: body.target_profile_id,
+        p_target_shift_id: body.target_shift_id,
+        p_reason: body.reason ?? null,
+      } as never,
+    );
 
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message ?? "rpc_error" }, { status: 500 });
+    if (error) {
+      if (isLockHeldMessage(error.message)) {
+        return pipelineLockResponse("shift_swap_lifecycle");
+      }
+      return NextResponse.json({ ok: false, error: error.message ?? "rpc_error" }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      swap_id: data as string | null,
+      surface: auth.surface,
+    });
+  } catch (err) {
+    if (err instanceof PipelineLockHeldError) {
+      return pipelineLockResponse("shift_swap_lifecycle");
+    }
+    if (err instanceof Error && isLockHeldMessage(err.message)) {
+      return pipelineLockResponse("shift_swap_lifecycle");
+    }
+    throw err;
   }
+}
 
-  return NextResponse.json({
-    ok: true,
-    swap_id: data as string | null,
-    surface: auth.surface,
-  });
+// ── Pipeline lock helpers (ADR-0328) ────────────────────────────────────────
+
+/** Returns true for error messages that signal a held pipeline lock. */
+function isLockHeldMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return (
+    msg.includes("PIPELINE_LOCK_HELD") ||
+    msg.includes("pipeline_lock_held") ||
+    msg.includes("Pipeline lock is already held")
+  );
+}
+
+/** Structured 409 response for pipeline lock contention (ADR-0328). */
+function pipelineLockResponse(lockingBlueprintId: string): NextResponse {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "PIPELINE_LOCK_HELD",
+      locking_blueprint_id: lockingBlueprintId,
+    },
+    { status: 409 },
+  );
 }

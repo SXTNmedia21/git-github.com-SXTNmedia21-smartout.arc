@@ -1960,6 +1960,36 @@ Week 3 (gated):
 
 **Knowledge captured:** L-0270, L-0271. Phase 9 self-improvement: agents may complete reviews while parent action proceeds — council verdict can land "in retrospect" and remediation moves from pre-merge gate to post-merge cleanup commits. Worth tracking in `council_meta.md` as a precedent class.
 
+## 2026-05-16 — swap-marketplace-convergence-v2 schema decisions
+**Type:** architecture (pre-implementation, 5 schema decisions before T0)
+**Verdict:** APPROVE WITH CHANGES + mandatory Phase 0 gate
+**Agents consulted:** system-steward (chair, REVERSED Q1 via L-0147), supervisor, system-agent-coordinator, botsson-harness-builder (frontend-designer skipped — no UI in scope)
+**Prior verdict held?** Partial. ADR-0321 (G3 council 2026-05-14) baseline — accepted V2 path; this council resolved what 0321 left open. ADR-0321's `engine_authority_pipeline_instance` DDL sketch superseded by Q1=B (reuse engine_state).
+
+**Key decisions:**
+- Q1 (pipeline instance state) = **B reuse engine_state** (per ADR-0067; chair REVERSED from Phase 3 C, 6th L-0147 precedent)
+- Q2 (cross-workspace policy) = **DEFER + scope-bound single-ws + CHECK constraint** (unanimous; 3 options deferred to V2.1 ADR)
+- Q3 (multi-stage gate) = **A per-stage gate_action** (unanimous; action_type encodes stage)
+- Q4 (capability rename `shift_lifecycle_marketplace`) = **B defer** (unanimous; preserve V1 names)
+- Q5 (channel restriction) = **A chat-only at pipeline** (unanimous; per-tool inline ADR-0288 guards retained as Layer 3 defense-in-depth)
+- Phase 0 gate (6 items) MANDATORY before T0 migration
+- T0.5 seed migration for `<cap>.override` rows required before override_pipeline ships
+
+**Trust Gate:** 9 V1 tools PASS; `override_pipeline` FAIL until T0.5 seed lands; `approve_claim` 2-writes-1-gate atomic pattern at `marketplace/tools.ts:494-518` PRESERVED verbatim.
+
+**Preservation clauses (non-negotiable):** shift_swap.* telemetry (registry 5341-5397), shift_offer.* telemetry (registry 8610-8666), ADR-0173 frozen-4 capability names, ADR-0240 cross-namespace write-ban honored.
+
+**ADR created:** ADR-0340 (Shift Lifecycle Pipeline Implementation — supersedes ADR-0321)
+**Learnings created:** L-0279 (chair Phase 3 internal inconsistency), L-0280 (ADR DDL sketches != current truth), L-0281 (default-allow CVE recurrence on pipeline override), L-0282 (Phase 0 gate beats split-into-campaigns), L-0283 (6th L-0147 precedent)
+
+**Sortie context:** sub-sortie `feat/world-best-wfm-swap-marketplace-convergence-v2` in worktree `~/dev/smartout.ai-world-best-wfm-wt-1`. Council took 4 reviewers + chair synthesis + Phase 8 capture; Phase 0 work begins next. T0 migration blocked on Phase 0 exit gate (Pontus sign-off).
+
+**Phase 9 self-improvement (council_meta delta):**
+- 3-mot-1 split resolved via Phase 0 gate (new pattern documented as L-0282)
+- Chair Phase 3 internal inconsistency = mechanism BY WHICH chair generalizes incorrectly (L-0279) — sibling to L-0147 reversal protocol
+- Briefing fact-check skipped (same-session research, no stale-claim risk) — pattern reused from prior councils; explicit note kept
+- All 4 reviewers responded; no degraded mode
+
 ---
 
 ## 2026-05-16 — Chat-WhatsApp Phase 3 priority + scope

@@ -14,6 +14,7 @@ import {
   requestSwap,
   respondToSwap,
   cancelSwap,
+  overrideSwapPipeline,
 } from "./tools.js";
 
 const allTools = [
@@ -22,12 +23,16 @@ const allTools = [
   requestSwap,
   respondToSwap,
   cancelSwap,
+  overrideSwapPipeline,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [getSwapRequests, getSwapEligibility] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
 
+// overrideSwapPipeline is autonomous-level (admin only) — omitted from
+// suggestTools. It appears in allTools only; the tier-unlock gate exposes
+// it when the caller's role >= admin (T0.5 seed: min_role=admin, autonomous).
 const suggestTools = [requestSwap, respondToSwap, cancelSwap] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
