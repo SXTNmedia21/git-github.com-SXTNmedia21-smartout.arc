@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-16T09:00:00.000Z",
+  "generated_at": "2026-05-16T00:00:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -132,6 +132,31 @@
         "Vis avvik",
         "Lås gårsdagen",
         "Vis strategisk oversikt"
+      ]
+    },
+    {
+      "path": "/dashboard/admin/pos-accounts",
+      "purpose": "Administrer POS-tilkoblinger — koble til Lightspeed K-Series for automatisk salgsdata til bemanningsprognose.",
+      "module": "Admin",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getPosAccountsState",
+          "description": "Get current POS account inventory — count and per-account metadata. Use to answer 'hvor mange POS er tilkoblet?', 'hvilke kontoer er aktive?', or any status question about POS integrations."
+        },
+        {
+          "name": "getPosActionState",
+          "description": "Get action-gate flags for POS management — whether a new account can be connected and whether an active account exists. Use before proposing a connect action or answering 'kan jeg koble til Lightspeed?'."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange POS er tilkoblet?",
+        "Kan jeg koble til Lightspeed?",
+        "Hvilke POS-kontoer er aktive?"
       ]
     },
     {

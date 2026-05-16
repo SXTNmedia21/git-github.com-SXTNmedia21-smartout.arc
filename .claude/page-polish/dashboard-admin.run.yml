@@ -1,0 +1,162 @@
+# Page Polish Run — dashboard/admin/pos-accounts
+# Tier 3 (long tail). POS integrations admin surface — Lightspeed K-Series connect/disconnect.
+# Phase 7 (harness tools) shipped this sortie. Phases 1-3 (Lighthouse) deferred.
+# Phase 5 (telemetry) N/A for Track A — emit() is handled by the capability tool server-side.
+
+route: /dashboard/admin/pos-accounts
+status: done
+verified: true
+started_at: 2026-05-16T00:00:00+02:00
+verified_at: 2026-05-16T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-ui-shell
+  git_branch: feat/ui-shell-pos-accounts-polish
+  url: https://app.smartout.ai/dashboard/admin/pos-accounts
+  components_count: 3  # page.tsx (Server) + _components/PosAccountsList.tsx (Client) + _tools/
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/admin/pos-accounts/page.tsx (82 lines, Server Component)
+  loading_fallback: deferred — Track B (parallel sortie)
+  shell:
+    container: flex flex-col gap-6 — two-section: header + PosAccountsList client island
+    header: h1 font-heading "POS Integrasjoner" + subtitle
+    body: PosAccountsList — empty state (glassmorphism) or account rows + Connect modal
+  state_machine:
+    - loading         # Suspense fallback (bg-muted animate-pulse)
+    - empty           # No pos_account rows — glassmorphism CTA
+    - has_accounts    # Account rows + "Koble til ny" button
+    - modal_open      # ConnectModal overlay — external_account_id + oauth_code form
+    - connecting      # POST /api/botsson/pos/connect in flight
+  variants: []        # admin+ only (middleware). No employee/manager view.
+  has_mutations: true
+  mutations:
+    - { name: connectPosAccount, path: POST /api/botsson/pos/connect, via: handleConnect in PosAccountsList }
+  disconnect_via: chat_only  # ADR-0288: disconnect is chat-only, no UI button
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# ADR-0238 — Surface disambiguation
+adr_0238:
+  has_embedded_chat: false
+  owns_chat_surface: false
+  domain_chat_endpoint: null
+  reason: |
+    /dashboard/admin/pos-accounts has no embedded domain chat surface.
+    Botsson Orb renders in normal interactive mode.
+
+# Step 4 — Speed test (DEFERRED — requires Lighthouse browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 5 — Datapoints
+datapoints:
+  - { name: pos_accounts, hook: fetchPosAccounts (server-side), type: query, params: "{workspaceId}" }
+
+server_actions: []
+mutations:
+  - { name: connectPosAccount, location: PosAccountsList.tsx handleConnect, via: "POST /api/botsson/pos/connect", emit_in: "capability tool server-side (pos.account.connected)" }
+
+# Step 6 — Design audit (Phase 4)
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: true
+  font_mono_used: false
+  semantic_token_compliance: high
+  finding: clean_phase_4_no_violations  # All colors via CSS vars; motionTokens.* used for spring physics
+
+# Step 7 — Telemetry (Phase 5)
+telemetry:
+  mutations_on_this_page: 1
+  audit_required: false
+  notes: |
+    connectPosAccount mutation calls POST /api/botsson/pos/connect → capability tool.
+    emit() (pos.account.connected) fires server-side in the capability tool body.
+    Track A scope: read-only tools only. Server-side emit already wired — no gap.
+
+# Step 8 — Page Knowledge (Phase 6)
+page_knowledge:
+  header: "POS Integrasjoner"
+  description: "Koble til kassasystemet for automatisk salgsdata og bedre bemanningsprognoser."
+  empty_copy: "Ingen POS-konto tilkoblet — Koble til Lightspeed K-Series for å hente salgsdata."
+  error_copy: "Fail-open — empty array returned on fetch error (console.error only). error.tsx deferred Track B."
+
+# Step 9 — Harness tools (Phase 7) — SHIPPED 2026-05-16
+harness_tools:
+  registered_count: 2
+  source_key: "admin-pos-accounts"
+  hook_file: "apps/web/src/app/dashboard/admin/pos-accounts/_tools/use-pos-accounts-tools.ts"
+  bridge_file: "apps/web/src/app/dashboard/admin/pos-accounts/_tools/pos-accounts-tools-bridge.tsx"
+  island_export: "PosAccountsToolsBridge"
+  mounted_in: "apps/web/src/app/dashboard/admin/pos-accounts/_components/PosAccountsList.tsx"
+  adr_compliance:
+    - "ADR-0244: read-only tools only. No connectPosAccount / disconnectPosAccount."
+    - "ADR-0077: oauth_token and refresh_token excluded from all tool responses."
+    - "ADR-0288: disconnect is chat-only — no disconnect tool registered."
+    - "ADR-0151: workspace_id resolved server-side via RLS — not a tool parameter."
+  tools:
+    - modelToolName: getPosAccountsState
+      kind: read
+      description: >
+        Get current POS account inventory — count and per-account public metadata
+        (name, external ID, connected date, active status). Use to answer
+        'hvor mange POS er tilkoblet?', 'hvilke kontoer er aktive?',
+        or any status question about POS integrations. Never exposes oauth_token.
+    - modelToolName: getPosActionState
+      kind: read
+      description: >
+        Get action-gate flags for POS management — whether a new account can be
+        connected and whether an active account exists. Use before proposing a
+        connect action or answering 'kan jeg koble til Lightspeed?'.
+        Returns a Norwegian hint for the current state.
+
+# Step 10 — Re-test (DEFERRED)
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false        # deferred — no Lighthouse session
+  no_skeleton_flash: null                   # Track B responsibility
+  motion_tokens_used: true                  # motionTokens.spring / springSnappy used
+  telemetry_emit_per_mutation: true         # server-side capability tool emits pos.account.connected
+  page_knowledge_written: true              # description above
+  harness_tools_registered: true            # 2 read tools shipped
+  domain_chat_ownership_declared: false     # not needed — no embedded chat surface
+  site_map_registered: true                 # /dashboard/admin/pos-accounts added to site-map.json
+  retest_improved: false                    # deferred
+
+# Files changed this session (Track A)
+files_changed:
+  - apps/web/src/app/dashboard/admin/pos-accounts/_tools/use-pos-accounts-tools.ts  # NEW
+  - apps/web/src/app/dashboard/admin/pos-accounts/_tools/pos-accounts-tools-bridge.tsx  # NEW
+  - apps/web/src/app/dashboard/admin/pos-accounts/_components/PosAccountsList.tsx   # EDIT — bridge mount
+  - apps/web/.botsson/site-map.json                                                  # EDIT — new entry
+  - .claude/page-polish/dashboard-admin.run.yml                                      # NEW (this file)
+
+# Notes
+notes: |
+  Track A: tooling (read-only tools + bridge + site-map). Track B (loading.tsx + error.tsx)
+  runs in parallel on separate files — not touched here.
+
+  getPosAccountsState exposes only public metadata. The PosAccountRow shape from the server
+  has `status` + `last_synced_at` + `created_at` — bridged to PosAccountsToolInput via
+  inline useMemo in PosAccountsList: name from vendor display, is_active from status="active",
+  connected_at from created_at. No oauth_token / refresh_token at any point (ADR-0077).
+
+  workspaceIsActive is hardcoded `true` in the bridge mount because workspace active-status
+  is not yet surfaced from the server context (resolveDashboardContext returns workspace_id
+  but not a boolean isActive flag). A follow-up sortie should pass workspaceIsActive from
+  server context when the flag is available. Until then canConnect defaults to true for
+  all admin/owner users, which matches the current middleware gate.

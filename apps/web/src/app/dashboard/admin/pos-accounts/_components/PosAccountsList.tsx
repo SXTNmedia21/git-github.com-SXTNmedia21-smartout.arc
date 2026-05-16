@@ -29,12 +29,20 @@
  *   smartout-nordic-split — CSS vars, motion tokens, glassmorphism recipe.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import { Plug, CheckCircle2, XCircle, RefreshCw, Plus, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { PosAccountRow } from "../page";
+import { PosAccountsToolsBridge } from "../_tools/pos-accounts-tools-bridge";
+
+// ─── Vendor name helper ────────────────────────────────────────────────────
+
+function displayVendorName(vendor: string): string {
+  if (vendor === "lightspeed_kseries") return "Lightspeed K-Series";
+  return vendor;
+}
 
 // ─── Status badge ──────────────────────────────────────────────────────────
 
@@ -234,8 +242,28 @@ export function PosAccountsList({
 
   const hasAccounts = accounts.length > 0;
 
+  // Serialized snapshot for the Botsson tool bridge — public metadata only.
+  // ADR-0077: never forward oauth_token / refresh_token.
+  const toolAccounts = useMemo(
+    () =>
+      accounts.map((a) => ({
+        pos_account_id: a.pos_account_id,
+        name: displayVendorName(a.vendor),
+        external_account_id: a.external_account_id,
+        connected_at: a.created_at,
+        is_active: a.status === "active",
+      })),
+    [accounts],
+  );
+
   return (
     <>
+      {/* Botsson read-only tools — registers on mount, cleans up on unmount */}
+      {/* TODO(review): workspaceIsActive currently hardcoded to true. Resolve via
+          props from page.tsx once resolve-page-context exposes workspace.status or
+          equivalent active flag. WorkspaceData type currently lacks status field. */}
+      <PosAccountsToolsBridge accounts={toolAccounts} workspaceIsActive={true} />
+
       <AnimatePresence>
         {modalOpen && (
           <ConnectModal
@@ -296,9 +324,7 @@ export function PosAccountsList({
                   <Plug className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                   <div className="flex min-w-0 flex-col">
                     <span className="text-foreground truncate text-sm font-medium">
-                      {account.vendor === "lightspeed_kseries"
-                        ? "Lightspeed K-Series"
-                        : account.vendor}
+                      {displayVendorName(account.vendor)}
                     </span>
                     <span className="text-muted-foreground truncate text-xs">
                       {account.external_account_id}
