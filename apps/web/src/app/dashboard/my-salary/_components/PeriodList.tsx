@@ -50,7 +50,7 @@ export function PeriodList({ payslips, selectedPeriodId, onSelect, isLoading }: 
             ))}
           </div>
         ) : payslips.length === 0 ? (
-          <p className="text-muted-foreground p-4 text-center text-sm">Ingen lønnsslipp ennå</p>
+          <p className="text-muted-foreground p-4 text-center text-sm">Ingen lønnsgrunnlag ennå</p>
         ) : (
           <ScrollArea className="h-full">
             <div className="space-y-1 pr-3">
