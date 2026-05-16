@@ -1,7 +1,7 @@
 ---
 id: ADR-0338
 title: "Visual Verification Methodology for Mobile Design System"
-status: proposed
+status: accepted
 date: 2026-05-16
 deciders: [pontus, council]
 tags: [mobile, design-system, testing, visual-regression, nordic-split]
@@ -9,14 +9,17 @@ supersedes: null
 superseded_by: null
 created: 2026-05-16
 updated: 2026-05-16
+accepted_at: 2026-05-16
+implementation_commit: 16b000387
 layer: decision
 ---
 
 # ADR-0338: Visual Verification Methodology for Mobile Design System
 
-**Status:** Proposed
+**Status:** Accepted (2026-05-16 — methodology + audit scaffold + gap-list shipped at `16b000387`)
 **Date:** 2026-05-16
 **Council:** Chat-WhatsApp Phase 3 priority council — APPROVE WITH CHANGES
+**Implementation:** `docs/protocols/VISUAL-VERIFICATION-MOBILE.md` (275 lines) + `docs/audits/2026-05-16-chat-whatsapp-visual-audit.md` (331 lines, AMBER verdict — 7 NEEDS-PWA-MANUAL items enumerated)
 
 ## Context and Problem Statement
 

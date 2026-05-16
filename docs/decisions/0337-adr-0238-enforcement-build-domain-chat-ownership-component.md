@@ -1,7 +1,7 @@
 ---
 id: ADR-0337
 title: "ADR-0238 Enforcement: Build DomainChatOwnership Component"
-status: proposed
+status: accepted
 date: 2026-05-16
 deciders: [pontus, council]
 tags: [botsson, surface-disambiguation, adr-0238, component]
@@ -9,15 +9,19 @@ supersedes: null
 superseded_by: null
 created: 2026-05-16
 updated: 2026-05-16
+accepted_at: 2026-05-16
+implementation_commit: 16b000387
 layer: decision
 ---
 
 # ADR-0337: ADR-0238 Enforcement — Build `<DomainChatOwnership>` Component
 
-**Status:** Proposed
+**Status:** Accepted (2026-05-16 — implementation merged at `16b000387`)
 **Date:** 2026-05-16
 **Council:** Chat-WhatsApp Phase 3 priority council — APPROVE WITH CHANGES
 **Closes critical gap from:** ADR-0238, L-0178, L-0257
+
+> **API deviation from this ADR:** Implementation uses `reason` prop + counter-based `declareDomainChatOwnership` returning cleanup (multi-owner safe), rather than the spec's `surfaceId` prop + imperative `setOrbMode("passive")`. Counter version is functionally superior — handles concurrent owners (komm/chat + komm/thread + shift-clock chat tab can all declare independently without race). Acceptance criteria still met. See `docs/HANDOFF-domain-chat-ownership.md` Decisions Made table. Future amendment may update spec text to match shipped API.
 
 ## Context and Problem Statement
 
