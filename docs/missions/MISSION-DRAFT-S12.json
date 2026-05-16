@@ -13,7 +13,8 @@
       "name": "Dashboard shell laster ved /dashboard",
       "goal": "Manager navigerer til /dashboard. Dashboard shell er montert.",
       "instructions": "Guide brukeren gjennom: Dashboard shell laster ved /dashboard.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard (eller /dashboard?) — bekrefter at DashboardShell er montert uten server-error.",
+      "success_criteria": "URL er /dashboard (eller /dashboard?) — bekrefter at DashboardShell er montert uten server-error. Sidebar-nav er synlig.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-nav']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "1_dashboard_loads"
@@ -23,7 +24,8 @@
       "name": "Drift > Forslag — /dashboard/proposals er nåbar",
       "goal": "Naviger til /dashboard/proposals.",
       "instructions": "Guide brukeren gjennom: Drift > Forslag — /dashboard/proposals er nåbar.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard/proposals — ingen 500-redirect til /error.",
+      "success_criteria": "URL er /dashboard/proposals — ingen 500-redirect til /error. Drift-gruppen er synlig i sidebar.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-group-drift']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "2_proposals"
@@ -33,7 +35,8 @@
       "name": "Planlegging > Årshjul — /dashboard/year-wheel er nåbar",
       "goal": "Naviger til /dashboard/year-wheel.",
       "instructions": "Guide brukeren gjennom: Planlegging > Årshjul — /dashboard/year-wheel er nåbar.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard/year-wheel — ingen 500-redirect.",
+      "success_criteria": "URL er /dashboard/year-wheel — ingen 500-redirect. Planlegging-gruppen er synlig i sidebar.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-group-planlegging']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "3_year_wheel"
@@ -53,7 +56,8 @@
       "name": "Administrasjon > Kontrakter — /dashboard/contracts er nåbar",
       "goal": "Naviger til /dashboard/contracts.",
       "instructions": "Guide brukeren gjennom: Administrasjon > Kontrakter — /dashboard/contracts er nåbar.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard/contracts — ingen 500-redirect.",
+      "success_criteria": "URL er /dashboard/contracts — ingen 500-redirect. Administrasjon-gruppen er synlig i sidebar.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-group-administrasjon']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "5_contracts"
@@ -93,7 +97,8 @@
       "name": "HMS & Compliance > HMS-oversikt — /dashboard/hms er nåbar",
       "goal": "Naviger til /dashboard/hms.",
       "instructions": "Guide brukeren gjennom: HMS & Compliance > HMS-oversikt — /dashboard/hms er nåbar.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard/hms — ingen 500-redirect.",
+      "success_criteria": "URL er /dashboard/hms — ingen 500-redirect. HMS & Compliance-gruppen er synlig i sidebar.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-group-hms-&-compliance']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "9_hms"
@@ -173,7 +178,8 @@
       "name": "Kommunikasjon > Desks — /dashboard/komm/desks er nåbar",
       "goal": "Naviger til /dashboard/komm/desks.",
       "instructions": "Guide brukeren gjennom: Kommunikasjon > Desks — /dashboard/komm/desks er nåbar.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL er /dashboard/komm/desks — ingen 500-redirect.",
+      "success_criteria": "URL er /dashboard/komm/desks — ingen 500-redirect. Kommunikasjon-gruppen er synlig i sidebar.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-group-kommunikasjon']" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "17_komm_desks"
@@ -223,7 +229,8 @@
       "name": "Disabled: Rutiner (/dashboard/tasks) — ikke-klikkbar placeholder",
       "goal": "Naviger til /dashboard (med sidebar synlig). Verifiser at Rutiner-elementet er til stede men ikke-klikkbart (data-disabled='true', ingen <a>-tag).",
       "instructions": "Guide brukeren gjennom: Disabled: Rutiner (/dashboard/tasks) — ikke-klikkbar placeholder.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "URL forblir /dashboard. Rutiner-placeholder finnes i DOM med data-disabled='true'. BLOKKERT: mangler data-testid='sidebar-disabled-tasks' for direkte gate-sjekk.",
+      "success_criteria": "URL forblir /dashboard. Rutiner-placeholder finnes i DOM med data-testid='sidebar-disabled-tasks' og data-disabled='true'. Ingen <a>-tag — elementet er ikke-klikkbart.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-disabled-tasks']", "attr": "data-disabled", "expect": "true" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "22_placeholder_tasks"
@@ -233,7 +240,8 @@
       "name": "Disabled: Manualer (/dashboard/manuals) — ikke-klikkbar placeholder",
       "goal": "Verifiser at Manualer-elementet i Veiledning-gruppen er til stede men ikke-klikkbart (data-disabled='true', ingen <a>-tag, tooltip 'Kommer snart').",
       "instructions": "Guide brukeren gjennom: Disabled: Manualer (/dashboard/manuals) — ikke-klikkbar placeholder.\n[HUMAN REVIEW REQUIRED]",
-      "success_criteria": "Manualer-placeholder finnes i DOM med data-disabled='true'. BLOKKERT: mangler data-testid='sidebar-disabled-manuals' for direkte gate-sjekk.",
+      "success_criteria": "Manualer-placeholder finnes i DOM med data-testid='sidebar-disabled-manuals' og data-disabled='true'. Ingen <a>-tag — elementet er ikke-klikkbart. Tooltip viser 'Kommer snart'.",
+      "gate": { "type": "ui_state", "selector": "[data-testid='sidebar-disabled-manuals']", "attr": "data-disabled", "expect": "true" },
       "is_required": true,
       "creative_freedom": 0.3,
       "journey_step_slug": "23_placeholder_manuals"
