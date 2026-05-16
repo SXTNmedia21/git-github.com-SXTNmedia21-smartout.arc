@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T18:55:00.000Z",
+  "generated_at": "2026-05-16T09:00:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -2004,6 +2004,95 @@
         "Lag nytt team",
         "Hvem leder teamet?",
         "Tildel leder"
+      ]
+    },
+    {
+      "path": "/dashboard/website",
+      "purpose": "Nettside-oversikt — vis og administrer arbeidsplassens nettside, sider og publiseringsstatus.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getWebsiteState",
+          "description": "Get the workspace website's current state — whether a website has been set up, its name, visibility (live/draft), domain slug, template key, and when it was last updated. Call first when answering open-ended questions about the workspace website."
+        },
+        {
+          "name": "getPagesList",
+          "description": "List all website pages with title, URL slug, visibility status, and sort order. Use when the user asks 'hvilke sider finnes?', 'er forsiden synlig?', 'vis alle sider', or wants a page overview."
+        },
+        {
+          "name": "getPublishActionState",
+          "description": "Get the current publish action availability — canPublish, canUnpublish, canRollback, and a short hint explaining the current state. Use when the user asks 'kan jeg publisere?', 'er nettsiden live?', 'hva er publiseringsstatusen?'."
+        }
+      ],
+      "common_intents": [
+        "Er nettsiden publisert?",
+        "Hvilke sider har vi?",
+        "Kan jeg publisere nå?",
+        "Hva er domenenavnet?",
+        "Vis nettside-status"
+      ]
+    },
+    {
+      "path": "/dashboard/website/setup",
+      "purpose": "Nettside-oppsett — 3-stegs veiviser for å opprette nettside fra mal med navn og fargetema.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSetupStatus",
+          "description": "Get the current state of the website setup wizard — which step the user is on, which steps are completed, and what is missing before proceeding. Use when the user asks 'hvor langt er jeg?', 'hva gjenstår?', 'kan jeg gå videre?', or needs guidance in the wizard."
+        },
+        {
+          "name": "getTemplateOptions",
+          "description": "List available website templates with name and key. Use when the user asks 'hvilke maler finnes?', 'vis malalternativene', 'hva slags nettside kan jeg lage?'. Does NOT return full template content — names and keys only."
+        }
+      ],
+      "common_intents": [
+        "Hvilke maler finnes?",
+        "Hvor er jeg i veiviseren?",
+        "Hva gjenstår for å opprette nettsiden?",
+        "Kan jeg gå videre til neste steg?",
+        "Hjelp meg velge mal"
+      ]
+    },
+    {
+      "path": "/dashboard/website/pages/[pageId]",
+      "purpose": "Side-editor — rediger seksjoner på en nettside-side, administrer seksjonsrekkefølge og synlighet.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getPageState",
+          "description": "Get the current state of the page being edited — title, visibility, section count, unsaved changes status, and last saved timestamp. Call first when answering open-ended questions about the page editor."
+        },
+        {
+          "name": "getSectionsList",
+          "description": "List all sections on the current page — section type, visibility, and sort order. Use when the user asks 'hvilke seksjoner er det?', 'hva inneholder siden?', 'er hero-seksjonen synlig?'. Does NOT return section content."
+        },
+        {
+          "name": "getSaveActionState",
+          "description": "Get the current save and publish action availability — hasUnsavedChanges, canPublish, canPreview, and a hint. Use when the user asks 'er endringene lagret?', 'kan jeg publisere siden?', 'hva gjenstår?'."
+        }
+      ],
+      "common_intents": [
+        "Hvilke seksjoner er på denne siden?",
+        "Er endringene lagret?",
+        "Hvor mange seksjoner er synlige?",
+        "Hva er tittelen på siden?",
+        "Kan jeg forhåndsvise siden?"
       ]
     }
   ]
