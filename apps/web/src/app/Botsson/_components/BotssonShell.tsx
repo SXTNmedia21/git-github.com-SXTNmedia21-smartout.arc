@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, MicOff } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
+import { useDomainChatOwnership } from "./DomainChatOwnership";
 import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
@@ -87,6 +88,9 @@ export function BotssonShell() {
     setVoiceCallStatus,
     pushVoiceActivity,
   } = useBotsson();
+  // ADR-0238 — suppress Orb to passive mode when a domain chat surface owns the UI.
+  const { isOwned: isDomainChatOwned, reason: domainChatReason } = useDomainChatOwnership();
+
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [stickySide, setStickySide] = useState<DockedSide>("right");
@@ -598,11 +602,36 @@ export function BotssonShell() {
         </div>
       )}
 
-      {/* Orb */}
+      {/* Orb — ADR-0238: passive mode when a domain chat surface owns the UI */}
       {isOrb && (
-        <div className="relative h-full w-full" {...dragHandleProps}>
+        <div
+          className="relative h-full w-full"
+          // Passive mode: no drag, no click interaction. Full mode: drag + click to expand.
+          {...(isDomainChatOwned ? {} : dragHandleProps)}
+          style={
+            isDomainChatOwned
+              ? {
+                  transform: "scale(0.7)",
+                  opacity: 0.5,
+                  // Smooth transition into/out of passive mode
+                  transition: "transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease",
+                  // Block pointer events — Orb is purely decorative when passive
+                  pointerEvents: "none",
+                }
+              : {
+                  transition: "transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease",
+                }
+          }
+          // Tooltip indicates why the Orb is passive — helpful for debugging
+          title={
+            isDomainChatOwned
+              ? `Botsson watching — ${domainChatReason ?? "domain chat"} owns chat`
+              : undefined
+          }
+          aria-hidden={isDomainChatOwned ? true : undefined}
+        >
           <BotssonOrb />
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !isDomainChatOwned && (
             <div
               className="bg-brand-orange absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[8px] font-bold text-white shadow-sm"
               style={{ width: 16, height: 16 }}
@@ -611,9 +640,8 @@ export function BotssonShell() {
             </div>
           )}
 
-          {/* Mic button — Botsson/LiveKit only (ADR-0282 R1.1). Floats below Orb,
-              visible on hover or when active. Pointer-events isolated. */}
-          {workspaceId && (
+          {/* Mic button — hidden in passive mode (ADR-0238 + ADR-0282 R1.1) */}
+          {workspaceId && !isDomainChatOwned && (
             <button
               type="button"
               aria-label={voiceActive ? "Avslutt Botsson-samtale" : "Start Botsson-samtale"}
