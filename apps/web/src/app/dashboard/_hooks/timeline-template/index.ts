@@ -27,8 +27,8 @@
  * ADR ref:  ADR-0334
  */
 
-export * from "./keys.js";
-export * from "./use-timeline-templates.js";
-export * from "./use-save-template.js";
-export * from "./use-apply-template.js";
-export * from "./use-archive-template.js";
+export * from "./keys";
+export * from "./use-timeline-templates";
+export * from "./use-save-template";
+export * from "./use-apply-template";
+export * from "./use-archive-template";

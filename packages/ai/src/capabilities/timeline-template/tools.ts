@@ -205,23 +205,31 @@ async function findOrCreateDepartmentSession(
 }
 
 /**
- * buildStartEndFromHhMm — construct TIMESTAMPTZ strings for schedule_shift insert.
+ * buildStartEndFromHhMm — construct HH:MM:SS strings for schedule_shift insert.
  *
- * The template stores time as HH:MM (Europe/Oslo wall-clock) and
- * duration_min.  We combine target_date (YYYY-MM-DD) + time_hhmm to produce
- * an ISO string that Supabase can store as TIMESTAMPTZ.  We use a simple
- * date-local approach: the DB stores the provided string; TZ handling is
- * consistent with how other shifts are authored through the web UI.
+ * schedule_shift.start_time and end_time are PostgreSQL TIME (HH:MM:SS) columns
+ * holding Europe/Oslo wall-clock — NOT TIMESTAMPTZ. Output must be a plain
+ * time-of-day string; no date, no timezone offset. Pure arithmetic; we do not
+ * cross a Date object so there is no UTC conversion that could shift the hour.
+ * Overflow past midnight wraps via mod 24 (rare but well-defined for double
+ * shifts that close just past midnight).
  */
 function buildStartEnd(
   targetDate: string,
   timeHhmm: string,
   durationMin: number | null,
 ): { start_time: string; end_time: string } {
-  const start = new Date(`${targetDate}T${timeHhmm}:00`);
-  const durationMs = (durationMin ?? 60) * 60_000;
-  const end = new Date(start.getTime() + durationMs);
-  return { start_time: start.toISOString(), end_time: end.toISOString() };
+  void targetDate;
+  const [hh, mm] = timeHhmm.split(":").map(Number);
+  const startMin = (hh ?? 0) * 60 + (mm ?? 0);
+  const endMin = startMin + (durationMin ?? 60);
+  const fmt = (mins: number): string => {
+    const total = ((mins % (24 * 60)) + 24 * 60) % (24 * 60);
+    const h = String(Math.floor(total / 60)).padStart(2, "0");
+    const m = String(total % 60).padStart(2, "0");
+    return `${h}:${m}:00`;
+  };
+  return { start_time: fmt(startMin), end_time: fmt(endMin) };
 }
 
 /**
@@ -258,9 +266,13 @@ async function insertItemsInExec(
 
     switch (item.kind) {
       case "schedule_shift": {
-        // Spec §Apply flow §6: INSERT schedule_shift with source=provenance.
+        // schedule_shift.source is the ADR-0108 provenance discriminator with a
+        // CHECK constraint limited to ('operational','bubble_migration','v3_engine').
+        // Template-application is operational; the per-row template_id linkage
+        // travels via the notes field instead (free-text, no constraint).
         // day_category defaults to 'morning' — template doesn't store it;
         // the manager can update post-apply via web UI.
+        const taggedNotes = `${item.payload.notes ?? ""} [${provenance}]`.trim();
         const { data: shiftRow, error } = await supabase
           .from("schedule_shift")
           .insert({
@@ -270,12 +282,11 @@ async function insertItemsInExec(
             end_time,
             shift_date: targetDate,
             day_category: "morning",
-            source: provenance,
             position_id: item.payload.position_id ?? null,
             team_id: item.payload.team_id ?? null,
             location_id: item.payload.location_id ?? null,
             zone: item.payload.zone ?? null,
-            notes: item.payload.notes ?? null,
+            notes: taggedNotes,
             is_published: false,
           })
           .select("schedule_shift_id")

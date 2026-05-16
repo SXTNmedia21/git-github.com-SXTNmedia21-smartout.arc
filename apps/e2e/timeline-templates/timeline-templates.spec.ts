@@ -97,18 +97,18 @@ async function cleanupSessionNotesByContent(contentPrefix: string): Promise<void
     .like("content", `${contentPrefix}%`);
 }
 
-/** Clean up schedule_shift rows seeded by the apply flow (by source prefix). */
-async function cleanupShiftsBySource(sourcePrefix: string): Promise<void> {
+/** Clean up schedule_shift rows seeded by the apply flow (by notes tag). */
+async function cleanupShiftsBySource(notesTag: string): Promise<void> {
   await supabase
     .from("schedule_shift")
     .delete()
     .eq("workspace_id", WORKSPACE_ID)
-    .like("source", `${sourcePrefix}%`);
+    .like("notes", `%[${notesTag}%]%`);
 }
 
 // ─── Test A — Journey 2: Save → apply round-trip ──────────────────────────────
 
-test.describe("Test A — Journey 2: Save then apply round-trip @smoke", () => {
+test.describe.serial("Test A — Journey 2: Save then apply round-trip @smoke", () => {
   const TEMPLATE_NAME_PREFIX = "E2E-TT-A-";
 
   test.beforeEach(async () => {
@@ -247,17 +247,19 @@ test.describe("Test A — Journey 2: Save then apply round-trip @smoke", () => {
     expect(applyBody.materialized["schedule_shift"]).toBeGreaterThanOrEqual(1);
 
     // Step 5: Verify DB row exists with source provenance
+    // schedule_shift.source is ADR-0108 enum (operational|bubble_migration|v3_engine);
+    // template provenance lives in `notes` as `[template:<uuid>]` instead.
     const { data: shiftRows, error: shiftErr } = await supabase
       .from("schedule_shift")
-      .select("schedule_shift_id, role, shift_date, source")
+      .select("schedule_shift_id, role, shift_date, notes")
       .eq("workspace_id", WORKSPACE_ID)
       .eq("shift_date", targetDate)
       .eq("role", "E2E Server")
-      .like("source", `template:${templateId}%`);
+      .like("notes", `%[template:${templateId}]%`);
 
     expect(shiftErr, "schedule_shift DB fetch error").toBeNull();
     expect(shiftRows?.length).toBeGreaterThanOrEqual(1);
-    expect(shiftRows?.[0]?.source).toContain(`template:${templateId}`);
+    expect(shiftRows?.[0]?.notes).toContain(`[template:${templateId}]`);
 
     // Cleanup shift rows
     if (shiftRows?.[0]) {
@@ -353,7 +355,7 @@ test.describe("Test A — Journey 2: Save then apply round-trip @smoke", () => {
 
 // ─── Test B — Journey 3: Free-form per-chip materialization ───────────────────
 
-test.describe("Test B — Journey 3: Free-form chip materialization", () => {
+test.describe.serial("Test B — Journey 3: Free-form chip materialization", () => {
   const TEMPLATE_NAME_PREFIX = "E2E-TT-B-";
   const CHIP_LABEL = "E2E fri tekst — set opp julestjerne bord 5";
 
@@ -541,7 +543,7 @@ test.describe("Test B — Journey 3: Free-form chip materialization", () => {
 
 // ─── Test C — Journey 5: Location scope warning + shifts-only enforcement ─────
 
-test.describe("Test C — Journey 5: Location-scope warning + shifts-only @smoke", () => {
+test.describe.serial("Test C — Journey 5: Location-scope warning + shifts-only @smoke", () => {
   test("C1 — location scope warning banner is visible when ?scope=location:<id>", async ({
     page,
   }) => {
