@@ -1,12 +1,20 @@
 ---
 title: "Journey — Pipeline-aware UI surfaces (admin override + lock indicator + race feedback + audit)"
 feature: swap-marketplace-pipeline-ui
-status: draft
-updated: 2026-05-16
+status: verified
+verified_at: 2026-05-16
 created: 2026-05-16
+updated: 2026-05-16
 module: scheduler
 tags: [journey, scheduler, pipeline, ui, admin, web]
 ---
+
+> **Verified 2026-05-16.** 4 journeys backed by shipped code.
+> J1 admin override → U1 (5 files at `apps/web/src/app/dashboard/schedule/pipeline/`) + U0.1 endpoint (commit `c82a5ced2`).
+> J2 lock indicator → U2 web `PipelineLockBadge` + mobile `useShiftPipeline` (commit `19ce8ae5d`).
+> J3 race feedback → U3 BFF 409 + sonner toast (commit `02271a8ca`).
+> J4 audit trail → U4 `audit-drawer.tsx` + U0.2 detail endpoint (commit `c82a5ced2`).
+> Verification: code-read + scoped typecheck green. Full repo typecheck running pre-close. Manual UI smoke deferred to post-merge campaign integration.
 
 # Journey — Pipeline-aware UI surfaces
 
