@@ -152,13 +152,13 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 66 | shift_snapshots/sh-023 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 67 | shift_snapshots/sh-023 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 570 × 93 = 53010 øre | [COMPUTED] 53010 | trt-supp-005 | 2025 |
 | 68 | shift_snapshots/sh-023 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 150 × 70 = 10500 øre | [COMPUTED] 10500 | trt-supp-001 | 2025 |
-| 69 | aggregated_periods/prof-005 | base_monthly | (n/a) | — | [CONTRACT] — from employment_contract.gross_monthly. Pontus must look up and fill. | _____ | (n/a) | — |
+| 69 | aggregated_periods/prof-005 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
 | 70 | aggregated_periods/prof-005 | helgetillegg_total | (n/a) | — | 53010+53010 = 106020 øre | [COMPUTED] 106020 | (n/a) | — |
 | 71 | aggregated_periods/prof-005 | kveldstillegg_total | (n/a) | — | 10500+10500 = 21000 øre | [COMPUTED] 21000 | (n/a) | — |
 | 72 | aggregated_periods/prof-005 | manual_supplement | (n/a) | — | ms-004: 175.00 NOK = 17500 øre | [COMPUTED] 17500 | (n/a) | — |
-| 73 | aggregated_periods/prof-005 | gross_pay | (n/a) | — | [CONTRACT] monthly_ore + 106020 + 21000 = monthly_ore + 127020 | _____ | (n/a) | — |
-| 74 | aggregated_periods/prof-005 | total | (n/a) | — | gross_pay + 17500 (manual) = [CONTRACT] | _____ | (n/a) | — |
-| 75 | timebank_entries/prof-005 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(gross_amount_ore × 0.12) = [CONTRACT] | _____ | (n/a) | — |
+| 73 | aggregated_periods/prof-005 | gross_pay | (n/a) | — | 3294643 + 106020 + 21000 = 3421663 øre [PENDING_E3_VERIFY] | [COMPUTED] 3421663 | (n/a) | — |
+| 74 | aggregated_periods/prof-005 | total | (n/a) | — | 3421663 + 17500 (manual) = 3439163 øre [PENDING_E3_VERIFY] | [COMPUTED] 3439163 | (n/a) | — |
+| 75 | timebank_entries/prof-005 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3421663 × 0.12) = 410600 øre [PENDING_E3_VERIFY] | [COMPUTED] 410600 | (n/a) | — |
 
 ---
 
@@ -177,12 +177,12 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 78 | shift_snapshots/sh-024 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 30 min × 70 øre/min = 2100 øre (21:00–21:30 Oslo) | [COMPUTED] 2100 | trt-supp-001 | 2025 |
 | 79 | shift_snapshots/sh-025 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 80 | shift_snapshots/sh-025 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 540 min × 93 øre/min = 50220 øre | [COMPUTED] 50220 | trt-supp-005 | 2025 |
-| 81 | aggregated_periods/prof-006 | base_monthly | (n/a) | — | [CONTRACT] | _____ | (n/a) | — |
+| 81 | aggregated_periods/prof-006 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY] [E1_FLAG: has_fagbrev=true but tariff_category=voksen_ufaglart — computed as voksen_ufaglart per fixture; see Phase 4] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
 | 82 | aggregated_periods/prof-006 | helgetillegg_total | (n/a) | — | 64170+50220 = 114390 øre | [COMPUTED] 114390 | (n/a) | — |
 | 83 | aggregated_periods/prof-006 | kveldstillegg_total | (n/a) | — | 2100 øre | [COMPUTED] 2100 | (n/a) | — |
-| 84 | aggregated_periods/prof-006 | gross_pay | (n/a) | — | [CONTRACT] monthly_ore + 116490 | _____ | (n/a) | — |
-| 85 | aggregated_periods/prof-006 | total | (n/a) | — | gross_pay [CONTRACT] | _____ | (n/a) | — |
-| 86 | timebank_entries/prof-006 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(gross_ore × **0.125**) — 12.5% (fagbrev) = [CONTRACT] | _____ | (n/a) | — |
+| 84 | aggregated_periods/prof-006 | gross_pay | (n/a) | — | 3294643 + 114390 + 2100 = 3411133 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 3411133 | (n/a) | — |
+| 85 | aggregated_periods/prof-006 | total | (n/a) | — | 3411133 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 3411133 | (n/a) | — |
+| 86 | timebank_entries/prof-006 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3411133 × **0.125**) = 426392 øre [PENDING_E3_VERIFY] [E1_FLAG] | [COMPUTED] 426392 | (n/a) | — |
 
 ---
 
@@ -199,11 +199,11 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 88 | shift_snapshots/sh-026 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 660 min × 93 øre/min = 61380 øre | [COMPUTED] 61380 | trt-supp-005 | 2025 |
 | 89 | shift_snapshots/sh-027 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 90 | shift_snapshots/sh-027 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 450 min × 93 øre/min = 41850 øre | [COMPUTED] 41850 | trt-supp-005 | 2025 |
-| 91 | aggregated_periods/prof-007 | base_monthly | (n/a) | — | [CONTRACT] | _____ | (n/a) | — |
+| 91 | aggregated_periods/prof-007 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
 | 92 | aggregated_periods/prof-007 | helgetillegg_total | (n/a) | — | 61380+41850 = 103230 øre | [COMPUTED] 103230 | (n/a) | — |
-| 93 | aggregated_periods/prof-007 | gross_pay | (n/a) | — | [CONTRACT] monthly_ore + 103230 | _____ | (n/a) | — |
-| 94 | aggregated_periods/prof-007 | total | (n/a) | — | gross_pay [CONTRACT] | _____ | (n/a) | — |
-| 95 | timebank_entries/prof-007 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(gross_ore × 0.12) = [CONTRACT] | _____ | (n/a) | — |
+| 93 | aggregated_periods/prof-007 | gross_pay | (n/a) | — | 3294643 + 103230 = 3397873 øre [PENDING_E3_VERIFY] | [COMPUTED] 3397873 | (n/a) | — |
+| 94 | aggregated_periods/prof-007 | total | (n/a) | — | 3397873 øre [PENDING_E3_VERIFY] | [COMPUTED] 3397873 | (n/a) | — |
+| 95 | timebank_entries/prof-007 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3397873 × 0.12) = 407745 øre [PENDING_E3_VERIFY] | [COMPUTED] 407745 | (n/a) | — |
 
 ---
 
@@ -220,11 +220,11 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 97 | shift_snapshots/sh-028 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 450 min × 93 øre/min = 41850 øre | [COMPUTED] 41850 | trt-supp-005 | 2025 |
 | 98 | shift_snapshots/sh-029 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 99 | shift_snapshots/sh-029 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 450 × 93 = 41850 øre | [COMPUTED] 41850 | trt-supp-005 | 2025 |
-| 100 | aggregated_periods/prof-008 | base_monthly | (n/a) | — | [CONTRACT] | _____ | (n/a) | — |
+| 100 | aggregated_periods/prof-008 | base_monthly | (n/a) | Riksavtalen §3 | formula: 205.00 × 37.5 × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY] | [COMPUTED] 3294643 | trt-min-002 | 2025 |
 | 101 | aggregated_periods/prof-008 | helgetillegg_total | (n/a) | — | 41850+41850 = 83700 øre | [COMPUTED] 83700 | (n/a) | — |
-| 102 | aggregated_periods/prof-008 | gross_pay | (n/a) | — | [CONTRACT] monthly_ore + 83700 | _____ | (n/a) | — |
-| 103 | aggregated_periods/prof-008 | total | (n/a) | — | gross_pay [CONTRACT] | _____ | (n/a) | — |
-| 104 | timebank_entries/prof-008 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(gross_ore × 0.12) = [CONTRACT] | _____ | (n/a) | — |
+| 102 | aggregated_periods/prof-008 | gross_pay | (n/a) | — | 3294643 + 83700 = 3378343 øre [PENDING_E3_VERIFY] | [COMPUTED] 3378343 | (n/a) | — |
+| 103 | aggregated_periods/prof-008 | total | (n/a) | — | 3378343 øre [PENDING_E3_VERIFY] | [COMPUTED] 3378343 | (n/a) | — |
+| 104 | timebank_entries/prof-008 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(3378343 × 0.12) = 405401 øre [PENDING_E3_VERIFY] | [COMPUTED] 405401 | (n/a) | — |
 
 ---
 
@@ -353,7 +353,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 
 ## Pontus Action Items
 
-1. **[CONTRACT] cells** — look up `employment_contract.gross_monthly` for prof-005, 006, 007, 008 and fill cells 69, 73, 74, 75, 81, 84, 85, 86, 91, 93, 94, 95, 100, 102, 103, 104.
+1. **[CONTRACT] cells RESOLVED (B2 council)** — base_monthly computed via formula: `minstelonn_2_aar (205.00) × 37.5h × 30/7 = 32946.43 NOK = 3294643 øre` for all 4 monthly profiles (all are 2+ yr tier). Cells 69, 81, 91, 100 filled. Derived cells (gross, total, feriepenger) also computed. All marked [PENDING_E3_VERIFY] pending Riksavtalen 2026 rate confirmation.
 2. **sh-018 FIXED (B3 council)** — shift_date moved to 2026-04-02 = Skjærtorsdag. Engine will apply helligdagstillegg (60000 øre), not helgetillegg. Cell 52 updated. Prof-004 gross recalculated to 628440 øre.
 3. **Kveldstillegg rule ID typo FIXED (B4 council)** — rule ID is now `rule-kveldstillegg-001` (single-i, correct Bokmål). Rename complete across fixture + tests + worksheets.
 4. **prof-010 recheck** — gross 678450 vs earlier draft 678450 — arithmetic confirmed. Feriepenger = 81414 øre.
