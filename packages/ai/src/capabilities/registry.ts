@@ -33,6 +33,7 @@ import { onboardingCapability } from "./onboarding/index.js";
 import { posAccountManagementCapability } from "./pos_account_management/index.js";
 import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 import { schedulerCapability } from "./scheduler/index.js";
+import { timelineTemplateCapability } from "./timeline-template/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -130,6 +131,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // pattern per ADR-0309. Authority seeded in PLAN Phase 1 foundation migration.
   // mutateWithGate per ADR-0287 (first capability to use the forward-looking wrapper).
   scheduler: schedulerCapability,
+  // Timeline Template capability — ADR-0334. Dagslinjen template save+apply+archive.
+  // 4 tools: save_template + apply_template + archive_template (confirm, manager+, chat-only),
+  // list_templates (read_only, chat-only). mutateWithGate per ADR-0287.
+  // emitPrefix='timeline_template'. 5 telemetry events (T2 sortie).
+  // Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql.
+  timeline_template: timelineTemplateCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
