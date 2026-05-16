@@ -19,15 +19,15 @@ type ComplianceBadgeProps = {
 const CONFIG = {
   ok: {
     icon: CheckCircle,
-    className: "text-green-600 bg-green-50 border-green-200",
+    className: "text-success-foreground bg-success/10 border-success/30",
   },
   warning: {
     icon: AlertTriangle,
-    className: "text-amber-600 bg-amber-50 border-amber-200",
+    className: "text-warning-foreground bg-warning/10 border-warning/30",
   },
   blocker: {
     icon: XCircle,
-    className: "text-red-600 bg-red-50 border-red-200",
+    className: "text-destructive bg-destructive/10 border-destructive/30",
   },
 } as const;
 
