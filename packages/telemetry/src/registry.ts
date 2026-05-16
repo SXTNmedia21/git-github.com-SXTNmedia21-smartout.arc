@@ -2077,6 +2077,37 @@ export interface ChatChannelMessageSent extends BaseEvent {
   };
 }
 
+// ─── Chat: Message Read Receipt ─────────────────────
+export interface ChatMessageRead extends BaseEvent {
+  event: "chat message_read";
+  properties: {
+    data: {
+      channel_message_id: string;
+      profile_id: string;
+      read_at: string;
+    };
+  };
+}
+
+// ─── Chat: Typing Presence ──────────────────────────
+export interface ChatTyping extends BaseEvent {
+  event: "chat typing";
+  properties: {
+    data: { channel_id: string; profile_id: string };
+  };
+}
+
+// ─── Chat: Message Delivered (presence-join ack) ────
+// Fired on the SENDER side when a receiver broadcasts their presence-join
+// event, transitioning sender's outbound messages from `sent` → `delivered`.
+// Ephemeral — no durable column (Phase 2 T5, G1 decision: broadcast only).
+export interface ChatMessageDelivered extends BaseEvent {
+  event: "chat message_delivered";
+  properties: {
+    data: { channel_id: string; message_ids: string[] };
+  };
+}
+
 export interface RosterCreated extends BaseEvent {
   event: "roster created";
   properties: {
@@ -7902,6 +7933,9 @@ export type SmartoutEvent =
   | HandoffSubmitted
   | ChatMessageSent
   | ChatChannelMessageSent
+  | ChatMessageRead
+  | ChatTyping
+  | ChatMessageDelivered
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -10545,6 +10579,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "chat channel_message_sent": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "chat message_read": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "chat typing": {
+    destinations: ["logger"],
+    category: "channels",
+  },
+  "chat message_delivered": {
+    destinations: ["logger", "activity_trail"],
     category: "channels",
   },
 
