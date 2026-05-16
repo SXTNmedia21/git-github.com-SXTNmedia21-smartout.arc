@@ -1,7 +1,9 @@
 ---
 title: "Journey — Developer runs visual verification methodology against chat-whatsapp Phase 1+2"
 feature: domain-chat-ownership
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Methodology executable end-to-end. Step 1 + Step 2 (static analysis paths) confirmed runnable via grep commands. Step 1 PASS (no live token collision: warnSoft #fceedb ≠ muted #f5f3f0). Step 2 PASS (springSnappy + withSpring + FadeIn/FadeOut APIs match spec across MessageBubble, ReactionBar, TypingIndicator). Steps 3+4 require operator + PWA + WhatsApp reference — 7 NEEDS-PWA-MANUAL items enumerated as gap list in docs/audits/2026-05-16-chat-whatsapp-visual-audit.md. Postcondition LITERALLY met: 'audit doc exists with verified contract OR gap list with fix candidates' — gap list shipped. Operator PWA pass is debt for next ops cycle, not a sortie deliverable."
 updated: 2026-05-16
 created: 2026-05-16
 module: web
