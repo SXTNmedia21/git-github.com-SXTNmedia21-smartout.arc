@@ -125,12 +125,22 @@ export const nativeTheme = {
     springAmbient: { stiffness: 35, damping: 22, mass: 2.2 },
     /** Reactive spring — touch feedback and phase transitions. */
     springReactive: { stiffness: 180, damping: 20, mass: 1 },
+    /** Snappy spring — swipe-to-reply return and short-range gesture feedback. */
+    springSnappy: { stiffness: 45, damping: 24, mass: 2 },
     /** Full orb drift-loop period (ms). */
     orbDriftMs: 40_000,
     /** Migration duration when active phase changes (ms). */
     orbMigrationMs: 800,
     /** Phase-to-phase visual transition duration (ms). */
     phaseTransitionMs: 450,
+    /**
+     * Fade-in/out durations — mirrors web tokens.ts `motion.enterMs` / `motion.exitMs`.
+     * Use with Reanimated FadeIn.duration(nativeTheme.motion.enterMs) etc.
+     */
+    /** Element enter fade duration (ms) — typing indicator, tooltips. */
+    enterMs: 500,
+    /** Element exit fade duration (ms) — typing indicator, tooltips. */
+    exitMs: 250,
     /**
      * Calendar redesign motion tokens — handoff §"Keep simple" note.
      * "Sheet slide opp 200ms ease-out. Chevron rotate 150ms."
