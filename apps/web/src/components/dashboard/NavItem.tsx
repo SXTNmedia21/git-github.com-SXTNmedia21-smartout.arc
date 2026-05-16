@@ -31,6 +31,8 @@ export type NavItemProps = {
   isCollapsed?: boolean;
   onClick?: () => void;
   useButton?: boolean;
+  /** Test identifier for e2e / protocol assertions. */
+  "data-testid"?: string;
 };
 
 export function NavItem({
@@ -46,6 +48,7 @@ export function NavItem({
   isCollapsed,
   onClick,
   useButton,
+  "data-testid": dataTestId,
 }: NavItemProps) {
   // Fold legacy props into the indicators array so rendering has a
   // single source of truth. Live ranks first so it wins the collapsed dot.
@@ -126,6 +129,7 @@ export function NavItem({
       type="button"
       onClick={onClick}
       data-autoplay={navButtonAutoplayId}
+      data-testid={dataTestId}
       className={baseClassName}
     >
       {inner}
@@ -136,6 +140,7 @@ export function NavItem({
       prefetch={false}
       onClick={onClick}
       data-autoplay={navAutoplayId}
+      data-testid={dataTestId}
       className={baseClassName}
     >
       {inner}

@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Eye, MousePointerClick } from "lucide-react";
 import { useSections } from "../_hooks/use-sections";
+import { usePages } from "../_hooks/use-pages";
+import { useWebsite } from "../_hooks/use-website";
 import type { SectionRow } from "../_actions/section-actions";
 import SectionSidebar from "./SectionSidebar";
 import SectionForm from "./SectionForm";
@@ -35,6 +37,8 @@ type Props = {
  */
 export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
   const { sections, isLoading } = useSections(websiteId, pageId);
+  const { pages } = usePages(websiteId);
+  const { website } = useWebsite();
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
 
@@ -44,12 +48,16 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
     [activeSection?.section_type],
   );
 
+  // Resolve page-level visibility from the pages list; defaults to true while the list is loading.
+  const currentPage = pages.find((p) => p.website_page_id === pageId);
+  // Resolve website live state from visibility enum; defaults to false while loading.
+  const websiteIsLive = website?.visibility === "live";
+
   const sectionToolsInput = useMemo(
     () => ({
       pageId,
       pageTitle,
-      // HACK: page-level visibility not threaded here; defaults to true. Follow-up: fetch from website_page row in SectionEditor.tsx parent.
-      isVisible: true,
+      isVisible: currentPage?.is_visible ?? true,
       sections: sections.map((s) => ({
         website_section_id: s.website_section_id,
         section_type: s.section_type,
@@ -57,11 +65,10 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
         sort_order: s.sort_order,
       })),
       hasUnsavedChanges: saveState === "saving",
-      // HACK: live status not threaded here; conservative default false. Follow-up: pass website.is_live from WebsiteOverview ancestor.
-      websiteIsLive: false,
+      websiteIsLive,
       lastSavedAt: saveState === "saved" ? new Date().toISOString() : null,
     }),
-    [pageId, pageTitle, sections, saveState],
+    [pageId, pageTitle, currentPage?.is_visible, sections, saveState, websiteIsLive],
   );
 
   return (
