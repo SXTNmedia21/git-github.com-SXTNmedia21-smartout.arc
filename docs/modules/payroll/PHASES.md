@@ -1,7 +1,7 @@
 ---
 title: Payroll Implementation Phases
 status: draft
-updated: 2026-05-06
+updated: 2026-05-16
 created: 2026-05-06
 module: payroll
 tags: [payroll, phases, roadmap, sortie-plan]
@@ -127,6 +127,15 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 - O1: Period rollback semantics (corrective period vs unlock)? — see [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) §6
 - O2: Four-eyes default for approve_period — needed if Phase 1.5 ships in same sortie
+
+### Close-out gaps
+
+Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain open before Phase 1 is considered fully closed:
+
+- **G1 — Golden-month expected fixture (cents-exact §10.1):** PENDING. `packages/payroll-calculate/__tests__/golden-month/expected/` is empty. Spec §10.1 requires `aggregated_periods.json`, `payroll_lines.json`, `deviations.json`, `timebank_entries.json` with cents-exact match against engine output. Current integration test uses structural invariants only. Blocks §10.1 acceptance criterion sign-off.
+- **G3 — W11 Oslo-TZ bug:** PENDING. `checkW11` slices ISO date string for day grouping. Shifts starting 22:00 UTC (= 00:00 Oslo CEST) fall in the wrong day-bucket. Fix: replace string-slice grouping with Oslo timezone conversion before bucketing. Add boundary test scenario.
+- **G4 — W04 4-week rolling boundary test:** PENDING. Current negative test does not exercise the full 4-week rolling window (only 3 shifts in 1 week). Needed scenario: 4 weeks × 46h = 24h OT (under 25h cap, must NOT fire W04).
+- **G5 — 43-shift fixture vs §10.1 600-shift spec:** PENDING decision. Golden-month input uses 43 shifts vs the spec-stated ~600. Pontus to decide: scale up to 600 OR formally accept 43 with a documented scope-cut ADR. Blocking §10.1 criterion until resolved.
 
 ---
 
