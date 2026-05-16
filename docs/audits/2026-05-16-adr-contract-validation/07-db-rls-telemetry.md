@@ -69,7 +69,7 @@ No orphaned events. EVENT_ROUTING is a `Record<SmartoutEvent["event"], EventMeta
 
 **`timeline_template`** Row/Insert/Update types present at `database.types.ts:19135–19197`. All 10 columns from the migration (`id`, `workspace_id`, `name`, `scope_type`, `scope_id`, `items_json`, `notes`, `created_by`, `created_at`, `updated_at`, `is_archived`) are represented with correct nullability. FK relationships to `workspace` and `profile` tables registered. Types in sync with migration.
 
-**`session_note`** (0331/0332/0333 columns): `audience: Json | null`, `notify_at: string | null`, `delivered_at: string | null`, `deleted_at: string | null` all present in Row/Insert/Update at `database.types.ts:17294–17329`. In sync with `20260616100500_session_note_targeted_fanout.sql` which adds these four columns.
+**`session_note`** (0331/0332/0333 columns): `audience: Json | null`, `notify_at: string | null`, `delivered_at: string | null`, `deleted_at: string | null` all present in Row/Insert/Update at `database.types.ts:17294–17329`. In sync with `20260616100501_session_note_targeted_fanout.sql` which adds these four columns.
 
 ---
 

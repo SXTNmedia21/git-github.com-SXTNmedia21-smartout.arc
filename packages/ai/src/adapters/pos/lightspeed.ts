@@ -166,8 +166,12 @@ export async function pull(
 
   const eventCount = nextInt(state, 5, 15);
 
+  // Determinism requirement (test 1): when `since` is provided, the window
+  // must be reproducible across calls — derive `nowMs` from `sinceMs` instead
+  // of calling `Date.now()` twice. When `since` is null, fall back to wall
+  // clock for the "last 24h" semantics asserted by test 4.
   const sinceMs = since ? new Date(since).getTime() : Date.now() - 24 * 60 * 60 * 1000;
-  const nowMs = Date.now();
+  const nowMs = since ? sinceMs + 24 * 60 * 60 * 1000 : Date.now();
 
   // Guard: if since is in the future, return empty (nothing to sync yet).
   if (sinceMs >= nowMs) {

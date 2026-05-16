@@ -106,10 +106,11 @@ function makeAdminMock({
   const fromFn = vi.fn((table: string) => {
     if (table === "contract") {
       return {
-        // .select().eq("docuseal_submission_id", ...).single()
+        // .select().eq("docuseal_submission_id", ...).maybeSingle() — F-WH-05
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue(contractFindData),
+            maybeSingle: vi.fn().mockResolvedValue(contractFindData),
           }),
         }),
         // .update(updates).eq("contract_id", id) — single eq, resolves directly
