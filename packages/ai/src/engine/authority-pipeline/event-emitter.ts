@@ -1,21 +1,14 @@
 /**
  * event-emitter.ts — Pipeline stage event emission.
  *
- * Emits structured log events for every pipeline stage transition.
+ * Emits structured telemetry events for every pipeline stage transition.
  * Each event carries the correlation fields required by ADR-0204:
  *   - pipeline_instance_id (== engine_state.id)
  *   - gate_evaluation_id (from the mutateWithGate call at this stage)
  *
- * PENDING T4: pipeline.stage_* events are not yet registered in
- * @smartout/telemetry registry. This emitter uses structured logging
- * until T4 adds the registry entries and routes these events to
- * posthog + activity_trail + engine_event destinations.
- *
- * T4 MIGRATION CONTRACT:
- *   1. T4 adds pipeline.stage_* interfaces to packages/telemetry/src/registry.ts.
- *   2. T4 replaces the `structuredLog()` call in `emitPipelineStageEvent` below
- *      with `emit(event)` where event satisfies the new SmartoutEvent union member.
- *   3. T4 removes the `// PENDING T4` comment.
+ * Routes to all 4 telemetry destinations (posthog + logger + activity_trail +
+ * engine_event) via the @smartout/telemetry registry (ADR-0134).
+ * Registry entries added in T4 (packages/telemetry/src/registry.ts).
  *
  * ADR-0204 correlation chain: pipelineInstanceId + gateEvaluationId must be
  * present on every emission. gateEvaluationId may be null when the gate was
@@ -26,38 +19,51 @@
  * replace shift_swap.* or shift_offer.* events. Existing event consumers
  * continue unchanged.
  *
+ * ADR-0151: workspaceId is server-derived, never body-supplied (L-0177 guard
+ * in PipelineStageEventPayloadSchema.parse() throws on empty workspaceId).
+ *
  * References:
+ *   ADR-0134 — every mutation emits to 4 destinations
  *   ADR-0204 — correlation chain (gate_evaluation_id + correlation_id)
  *   ADR-0340 §Preservation §3 — additive envelope, not replacement
  *   L-0177 — workspace_id must be non-empty on every event
  */
 
+import type { NonEmptyString } from "@smartout/telemetry";
+import { emit } from "@smartout/telemetry";
 import type { PipelineStageEventPayload } from "./types.js";
 import { PipelineStageEventPayloadSchema } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────
-// Internal structured logger
-//
-// PENDING T4: Replace with emit() from @smartout/telemetry once
-// pipeline.stage_* events are registered in registry.ts.
+// Internal emit helper — maps PipelineStageEventPayload onto the
+// registry's pipeline.stage_* event shape.
 // ─────────────────────────────────────────────────────────────────
 
-function structuredLog(payload: PipelineStageEventPayload): void {
-  // Use JSON-serialisable format so log aggregators can parse it.
-  console.log(
-    JSON.stringify({
-      level: "info",
-      event: `pipeline.stage_${payload.stageStatus}`,
-      process_id: payload.processId,
-      stage: payload.stage,
-      stage_status: payload.stageStatus,
+function buildEventPayload(
+  payload: PipelineStageEventPayload,
+  stageStatus: PipelineStageEventPayload["stageStatus"],
+) {
+  const baseProperties = {
+    entity: {
+      entity_type: "schedule_shift" as const,
+      entity_id: payload.shiftId,
+    },
+    data: {
       pipeline_instance_id: payload.pipelineInstanceId,
+      blueprint_id: payload.processId,
+      stage_index: 0 as number, // callers that need the exact index supply it via opts
+      action_type: payload.stage,
       gate_evaluation_id: payload.gateEvaluationId,
-      shift_id: payload.shiftId,
-      workspace_id: payload.workspaceId,
-      actor_profile_id: payload.actorProfileId,
-    }),
-  );
+      entity_id: payload.shiftId,
+      entity_type: "schedule_shift" as const,
+    },
+  };
+
+  return {
+    workspace_id: payload.workspaceId as NonEmptyString,
+    actor_id: payload.actorProfileId as NonEmptyString,
+    properties: baseProperties,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -71,7 +77,8 @@ function structuredLog(payload: PipelineStageEventPayload): void {
  * pipelineInstanceId uuid guard). Throws on invalid payload — the caller
  * should never send a stage event with missing correlation ids.
  *
- * Currently logs to stdout (PENDING T4 registry wiring).
+ * Routes to posthog + logger + activity_trail + engine_event via
+ * @smartout/telemetry registry (ADR-0134).
  *
  * @param payload — validated stage event payload
  */
@@ -79,8 +86,84 @@ export async function emitPipelineStageEvent(payload: PipelineStageEventPayload)
   // Validate before emitting — malformed correlation ids break the audit chain.
   PipelineStageEventPayloadSchema.parse(payload);
 
-  // PENDING T4: replace structuredLog with emit() from @smartout/telemetry.
-  structuredLog(payload);
+  const base = buildEventPayload(payload, payload.stageStatus);
+
+  switch (payload.stageStatus) {
+    case "proposed":
+      await emit({
+        event: "pipeline.stage_proposed",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: base.properties,
+      });
+      break;
+
+    case "consented":
+      await emit({
+        event: "pipeline.stage_consented",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: base.properties,
+      });
+      break;
+
+    case "approved":
+      await emit({
+        event: "pipeline.stage_approved",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: base.properties,
+      });
+      break;
+
+    case "rejected":
+      await emit({
+        event: "pipeline.stage_rejected",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: {
+          ...base.properties,
+          data: {
+            ...base.properties.data,
+            rejection_reason: "",
+            rejected_by: payload.actorProfileId,
+          },
+        },
+      });
+      break;
+
+    case "cancelled":
+      await emit({
+        event: "pipeline.stage_cancelled",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: base.properties,
+      });
+      break;
+
+    case "overridden":
+      await emit({
+        event: "pipeline.stage_overridden",
+        workspace_id: base.workspace_id,
+        actor_id: base.actor_id,
+        properties: {
+          ...base.properties,
+          data: {
+            ...base.properties.data,
+            override_reason: "",
+            overridden_from_status: "",
+            overridden_by: payload.actorProfileId,
+          },
+        },
+      });
+      break;
+
+    default: {
+      // Exhaustiveness guard — TypeScript narrows stageStatus to never here.
+      const _exhaustive: never = payload.stageStatus;
+      throw new Error(`Unhandled pipeline stageStatus: ${String(_exhaustive)}`);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
