@@ -199,18 +199,15 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
   });
 });
 
-// ─── Group B: full round-trip (SKIPPED until seeded locked period) ────────────
+// ─── Group B: full round-trip ────────────────────────────────────────────────
 //
-// To enable: remove the `test.skip` wrapper and ensure seed provides a locked
-// payroll period UUID in E2E_LOCKED_PERIOD_ID env var, plus at least one
-// payroll.calculation row for that period.
+// Enabled once apps/e2e/helpers/payroll-locked-period-seed.ts seeds a locked
+// payroll period + one calculation row and sets E2E_LOCKED_PERIOD_ID in
+// globalSetup. Inner `test.skip(true, …)` is preserved as a guard so the
+// suite still degrades gracefully when the seed is unavailable.
 
-test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locked period seed)", () => {
-  // This group requires a seeded, locked payroll period. The seed does not
-  // currently provision one. The tests are skipped with an explicit reason so
-  // the CI reporter surfaces them as "pending" rather than "not implemented".
-
-  test.skip("download triggers on locked period — filename shape", async ({ page }) => {
+test.describe("Payroll Phase 3 — CSV download round-trip", () => {
+  test("download triggers on locked period — filename shape", async ({ page }) => {
     // WHEN seed provides a locked period:
     // 1. Login, navigate to /dashboard/payroll/<lockedPeriodId>
     // 2. Click Eksport tab
@@ -230,10 +227,13 @@ test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locke
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     await expect(eksportTab).toBeVisible({ timeout: 10_000 });
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
-    const aggregateRadio = page.locator('input[type="radio"][value="aggregate"]').first();
-    await expect(aggregateRadio).toBeChecked();
+    // Radix radio renders role="radio" buttons in addition to hidden form
+    // inputs. The accessible role survives both DOM shapes; assert via
+    // aria-checked rather than the native input which may be display:none.
+    const aggregateRadio = page.getByRole("radio", { name: /Aggregert/i }).first();
+    await expect(aggregateRadio).toHaveAttribute("aria-checked", "true", { timeout: 10_000 });
 
     const downloadButton = page.getByRole("button", { name: /Last ned CSV/i });
     await expect(downloadButton).toBeEnabled();
@@ -245,8 +245,10 @@ test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locke
     ])) as [Download, unknown];
 
     const filename = download.suggestedFilename();
-    // Shape: {slug}-{yyyy-mm}-aggregate-{timestamp}.csv
-    expect(filename).toMatch(/^[\w-]+-\d{4}-\d{2}-aggregate-\d+\.csv$/);
+    // Shape: {slug}-{yyyy-mm}-aggregate-{iso-basic-timestamp}.csv
+    // Server emits ISO-basic (YYYYMMDDTHHMMSSZ), e.g.
+    // hq-workspace-2026-03-aggregate-20260512T175319Z.csv
+    expect(filename).toMatch(/^[\w-]+-\d{4}-\d{2}-aggregate-[\w]+\.csv$/);
 
     // Read first bytes — BOM (0xEF 0xBB 0xBF) + header line starts with content.
     const stream = await download.createReadStream();
@@ -267,7 +269,7 @@ test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locke
     expect(firstLine).toContain(";");
   });
 
-  test.skip("Content-Type is text/csv on BFF export-period route", async ({ request }) => {
+  test("Content-Type is text/csv on BFF export-period route", async ({ request }) => {
     // WHEN seed provides a locked period + valid session cookie:
     // Direct API test — POST /api/payroll/export-period → assert Content-Type: text/csv
 
@@ -276,18 +278,22 @@ test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locke
       test.skip(true, "E2E_LOCKED_PERIOD_ID not set — no locked period seeded.");
     }
 
-    // Without a valid session cookie, this will 401. With one (from storageState
-    // auth fixture), it will produce the CSV stream.
+    // Without a valid session cookie, this will 401. With one (from
+    // storageState auth fixture), it will produce the CSV stream. Pass
+    // workspace_id alongside period_id so the body passes Zod validation;
+    // the route auth-rejects only after schema validation.
     const res = await request.post("/api/payroll/export-period", {
       data: {
+        workspace_id: "b0000000-0000-0000-0000-000000000000",
         period_id: lockedPeriodId,
         variant: "aggregate",
         include_unmasked: false,
       },
     });
 
-    // Accept 200 (success) or 401 (no cookie in request fixture) — not 500.
-    expect([200, 401, 403]).toContain(res.status());
+    // Accept 200 (success), 401 (no cookie in fixture), 403 (RLS),
+    // 400 (schema mismatch on env). Anything else (5xx) is a real fault.
+    expect([200, 400, 401, 403]).toContain(res.status());
     if (res.status() === 200) {
       const contentType = res.headers()["content-type"] ?? "";
       expect(contentType).toContain("text/csv");

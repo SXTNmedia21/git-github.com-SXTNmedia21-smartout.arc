@@ -1,0 +1,340 @@
+{
+  "timebank_entries": [
+    {
+      "profileId": "prof-001",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 157434,
+          "amount_nok_display": 1574.34,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(1311950 × 0.12) = 157434 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-002",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 149663,
+          "amount_nok_display": 1496.63,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(1247190 × 0.12) = 149663 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-003",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 126283,
+          "amount_nok_display": 1262.83,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(1052360 × 0.12) = 126283 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        },
+        {
+          "amount_ore": 0,
+          "amount_nok_display": 0,
+          "supplementRuleId": null,
+          "ruleLabel": "toil_accrual",
+          "paragrafRef": "Aml. §10-12",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "0 hours banked (all shifts ≤ 7.5h worked, below 9h threshold)",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-004",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 75413,
+          "amount_nok_display": 754.13,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(628440 × 0.12) = 75413 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-005",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 410600,
+          "amount_nok_display": 4106,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(3421663 × 0.12) = 410600 øre [PENDING_E3_VERIFY]",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-006",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 426392,
+          "amount_nok_display": 4263.92,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12.5% = round(3411133 × 0.125) = 426392 øre [PENDING_E3_VERIFY]",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-007",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 407745,
+          "amount_nok_display": 4077.45,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(3397873 × 0.12) = 407745 øre [PENDING_E3_VERIFY]",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-008",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 405401,
+          "amount_nok_display": 4054.01,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(3378343 × 0.12) = 405401 øre [PENDING_E3_VERIFY]",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-009",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 43213,
+          "amount_nok_display": 432.13,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(360110 × 0.12) = 43213 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-010",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 81414,
+          "amount_nok_display": 814.14,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(678450 × 0.12) = 81414 øre (gross corrected from 677450 to 678450 per worksheet recount)",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-011",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 72230,
+          "amount_nok_display": 722.3,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(601920 × 0.12) = 72230 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        },
+        {
+          "amount_ore": 0,
+          "amount_nok_display": 0,
+          "supplementRuleId": null,
+          "ruleLabel": "toil_accrual",
+          "paragrafRef": "Aml. §10-12",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "0 hours (all shifts 8.0h < 9h threshold)",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    },
+    {
+      "profileId": "prof-012",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-04-30",
+      "entries": [
+        {
+          "amount_ore": 138413,
+          "amount_nok_display": 1384.13,
+          "supplementRuleId": null,
+          "ruleLabel": "feriepenger_accrual",
+          "paragrafRef": "Ferieloven §10",
+          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
+          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
+          "tariffRateTableId": null,
+          "tariffLawVersion": null,
+          "formula": "gross_amount_ore × 12% = round(1153440 × 0.12) = 138413 øre",
+          "computedBy": "pontus@smartout.no",
+          "computedAt": "2026-05-16T19:07:22.875Z",
+          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
+          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+        }
+      ]
+    }
+  ]
+}
