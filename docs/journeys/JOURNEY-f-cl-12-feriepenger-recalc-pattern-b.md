@@ -1,7 +1,7 @@
 ---
 title: "Journey — F-CL-12 Pattern B recalc on agent-invoked supplement + override mutations"
 feature: f-cl-12-feriepenger-recalc-pattern-b
-status: draft
+status: verified
 updated: 2026-05-16
 created: 2026-05-16
 module: payroll
