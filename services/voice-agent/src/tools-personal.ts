@@ -56,6 +56,7 @@ export function buildPersonalTools(ask: AskFn) {
         'Bruk når brukeren sier "gjør X i morgen", "minn meg om Y", "jeg må huske å Z",',
         '"legg til oppgave", "ny oppgave". Bruk set_reminder i stedet hvis brukeren',
         "vil ha en varsling på et eksakt klokkeslett.",
+        "MERK (ADR-0298 row 5a): bruk create_personal_task i task-namespace hvis tilgjengelig — denne er fallback.",
       ].join(" "),
       parameters: {
         type: "object",

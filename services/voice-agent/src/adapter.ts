@@ -29,6 +29,7 @@ import { orbTools } from "./tools-orb.js";
 import { buildPersonalTools } from "./tools-personal.js";
 import { buildCapabilityQueryTools } from "./tools-capability.js";
 import { scheduleTools } from "./tools-schedule.js";
+import { buildTaskTools } from "./tools-task.js";
 import { getSessionContextSnapshot } from "./context.js";
 
 // ---------------------------------------------------------------------------
@@ -166,6 +167,8 @@ export function setActiveLkRoomForAdapter(room: Room | undefined): void {
  *                      cite_legal_paragraph, get_governance_summary,
  *                      get_helpdesk_status, get_training_progress,
  *                      query_operations, get_my_profile, get_knowledge
+ *   Task surface     : list_my_tasks, complete_task, create_personal_task,
+ *                      create_session_task, create_day_task, cancel_personal_task
  *   Fallback         : query_smartout (free-form → stage-engine)
  *
  * Channel policy (ADR-0078):
@@ -177,10 +180,12 @@ export function setActiveLkRoomForAdapter(room: Room | undefined): void {
 export function buildAllBotssonTools(): llm.ToolContext {
   const personalTools = buildPersonalTools(ask);
   const capabilityTools = buildCapabilityQueryTools(ask);
+  const taskTools = buildTaskTools(ask);
   return {
     ...orbTools,
     ...personalTools,
     ...capabilityTools,
     ...scheduleTools, // ADR-0289: last deliberate addition to parallel tool array (Fase 4)
+    ...taskTools, // ADR-0298 row 5a — task ontology voice surface
   };
 }

@@ -120,17 +120,17 @@ Routing table verified at `packages/telemetry/src/registry.ts:13110-13125`.
 
 New migrations (forward-only):
 
-- `20260616100500_session_note_targeted_fanout.sql` — adds
+- `20260616100501_session_note_targeted_fanout.sql` — adds
   `audience JSONB`, `notify_at TIMESTAMPTZ`, `delivered_at TIMESTAMPTZ`,
   `deleted_at TIMESTAMPTZ`, `note_type TEXT` (CHECK
   `('handoff','signoff','reminder','targeted')`) on `session_note`;
   GIN index on `audience`; partial B-tree on `notify_at WHERE
   delivered_at IS NULL`; CHECK enforces audience non-empty when
   `notify_at IS NOT NULL`
-- `20260616100600_note_fanout_scheduler_cron.sql` — pg_cron job
+- `20260616100601_note_fanout_scheduler_cron.sql` — pg_cron job
   `note-fanout-scheduler` at `*/5 * * * *` invoking Edge Function via
   `net.http_post` with `WATCHDOG_CRON_SECRET` bearer
-- `20260616100700_seed_comm_note_fanout_cross_dept_authority.sql` —
+- `20260616100701_seed_comm_note_fanout_cross_dept_authority.sql` —
   two-part seed (ADR-0192): Part A inserts
   `capability_default_registry` for `comm.note_fanout_cross_dept`;
   Part B backfills `engine_authority_config` for all existing

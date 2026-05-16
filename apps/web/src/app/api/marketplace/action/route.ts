@@ -39,6 +39,7 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 // ── Capability + action literals (must match capability tools.ts) ────────────
 const CAP = "shift_marketplace";
@@ -61,30 +62,7 @@ const ActionSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
-// ── Gate action helper ───────────────────────────────────────────────────────
-// Calls the gate_action RPC (ADR-0099). Returns { allowed, reason }.
-async function callGate(
-  admin: ReturnType<typeof createAdminClient>,
-  workspaceId: string,
-  profileId: string,
-  capability: string,
-  actionType: string,
-  entityId: string,
-): Promise<{ allowed: boolean; reason: string | null }> {
-  // @authority-gate-ungated — thunk-wrapper: capability is CAP = "shift_marketplace" at all call sites.
-  // shift_marketplace is seeded in engine_authority_config migrations.
-  const { data, error } = await admin.rpc("gate_action", {
-    p_workspace_id: workspaceId,
-    p_actor_profile_id: profileId,
-    p_capability: capability,
-    p_action_type: actionType,
-    p_entity_id: entityId,
-    p_channel: "chat",
-  });
-  if (error) throw new Error(`gate_action RPC failed: ${error.message}`);
-  const gate = data as { allowed: boolean; reason: string | null } | null;
-  return gate ?? { allowed: false, reason: "Gate returned null" };
-}
+// Gate routes through canonical orchestrator gateAction() per ADR-0204 §3.
 
 // ── Route handler ────────────────────────────────────────────────────────────
 
@@ -234,16 +212,17 @@ async function handleApproveClaim(
   const claimedBy = offer.claimed_by_profile_id as string;
   const shiftId = offer.shift_id as string;
 
-  // ── Gate (ADR-0099) ───────────────────────────────────────────────────────
-  let gate: { allowed: boolean; reason: string | null };
-  try {
-    gate = await callGate(admin, workspaceId, profileId, CAP, ACTION_APPROVE, offerId);
-  } catch (err) {
-    console.error("[marketplace/action] gate_action RPC error:", err);
-    return NextResponse.json({ ok: false, error: "gate_error" }, { status: 502 });
-  }
+  // ── Gate (ADR-0099, routes via canonical orchestrator per ADR-0204 §3) ───
+  const gate = await gateAction({
+    workspaceId,
+    capability: CAP,
+    channel: "chat",
+    actorProfileId: profileId,
+    actionType: ACTION_APPROVE,
+    entityId: offerId,
+  });
 
-  if (!gate.allowed) {
+  if (!gate.allow) {
     return NextResponse.json(
       { ok: false, error: "authority_denied", reason: gate.reason ?? "Ikke tillatt." },
       { status: 403 },
@@ -347,16 +326,17 @@ async function handleCancelOffer(
     );
   }
 
-  // ── Gate (ADR-0099) ───────────────────────────────────────────────────────
-  let gate: { allowed: boolean; reason: string | null };
-  try {
-    gate = await callGate(admin, workspaceId, profileId, CAP, ACTION_CANCEL, offerId);
-  } catch (err) {
-    console.error("[marketplace/action] gate_action RPC error:", err);
-    return NextResponse.json({ ok: false, error: "gate_error" }, { status: 502 });
-  }
+  // ── Gate (ADR-0099, routes via canonical orchestrator per ADR-0204 §3) ───
+  const gate = await gateAction({
+    workspaceId,
+    capability: CAP,
+    channel: "chat",
+    actorProfileId: profileId,
+    actionType: ACTION_CANCEL,
+    entityId: offerId,
+  });
 
-  if (!gate.allowed) {
+  if (!gate.allow) {
     return NextResponse.json(
       { ok: false, error: "authority_denied", reason: gate.reason ?? "Ikke tillatt." },
       { status: 403 },
