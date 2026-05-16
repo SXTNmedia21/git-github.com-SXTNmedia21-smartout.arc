@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 /**
  * GET /api/emma/memory — load memories for Emma's context.
@@ -92,25 +92,18 @@ export async function POST(req: Request) {
 
   // SE02-03: mandatory C4 authority gate before mutation (ADR-0099 §2).
   // The 'memory' capability is seeded suggest-level for all workspaces
-  // (migrations 20260528000000 + 20260530000000). Fail CLOSED on RPC error.
-  const admin = createAdminClient();
-  const { data: gateRaw, error: gateErr } = await admin.rpc("gate_action", {
-    p_workspace_id: ctx.workspaceId,
-    p_actor_profile_id: ctx.profileId,
-    p_capability: "memory",
-    p_action_type: "memory.add",
-    p_channel: "chat",
+  // (migrations 20260528000000 + 20260530000000). Routes through canonical
+  // web orchestrator per ADR-0204 §3; orchestrator fails CLOSED on RPC error.
+  const gate = await gateAction({
+    workspaceId: ctx.workspaceId,
+    capability: "memory",
+    channel: "chat",
+    actorProfileId: ctx.profileId,
+    actionType: "memory.add",
   });
-  if (gateErr) {
+  if (!gate.allow) {
     return NextResponse.json(
-      { error: `gate_action unavailable: ${gateErr.message}` },
-      { status: 503 },
-    );
-  }
-  const gate = gateRaw as { allowed: boolean; reason: string | null } | null;
-  if (!gate?.allowed) {
-    return NextResponse.json(
-      { error: "memory write not authorised", reason: gate?.reason ?? "denied" },
+      { error: "memory write not authorised", reason: gate.reason ?? "denied" },
       { status: 403 },
     );
   }

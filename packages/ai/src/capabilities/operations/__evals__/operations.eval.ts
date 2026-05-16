@@ -22,9 +22,9 @@ import { operationsSeed } from "./fixtures/operations-seed.js";
  * Operations capability — tool-call eval.
  *
  * Mirrors `schedule.eval.ts`. The interesting twist is that operations
- * has WRITE tools (`create_deviation`, `complete_task`). The fixtures
- * test whether the model is willing to call write tools when the user
- * is explicit, and that it picks the right one.
+ * has a WRITE tool (`create_deviation`). The fixtures test whether the
+ * model is willing to call the write tool when the user is explicit.
+ * complete_task was hard-deleted from this capability (ADR-0298 Sortie 5b).
  *
  * As with the schedule eval, `execute()` is stubbed so no Supabase
  * writes happen during the eval.

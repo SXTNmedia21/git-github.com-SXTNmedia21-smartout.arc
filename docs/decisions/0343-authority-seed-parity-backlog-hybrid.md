@@ -75,7 +75,7 @@ Docstrings reference ADR-0343.
 
 ### 3. Governance content seed migration
 
-`supabase/migrations/20260616120000_seed_governance_content_authority.sql` — seeds 3
+`supabase/migrations/20260616120001_seed_governance_content_authority.sql` — seeds 3
 capabilities across all workspaces via CROSS JOIN, idempotent via
 `ON CONFLICT (workspace_id, capability) DO NOTHING`. Pattern mirrors
 `20260516100000_seed_reconciliation_authority.sql` (DO $$ block, godmode-user fallback,
@@ -211,7 +211,7 @@ The correct fix is making the parser understand all real SQL patterns in the cod
 
 - [x] `pnpm exec tsx scripts/authority-seed-parity.ts` exits 0 on `feat/fix-authority-seed-parity`
       (verified against commit `a203cc8a4`)
-- [x] Migration `20260616120000_seed_governance_content_authority.sql` idempotency confirmed
+- [x] Migration `20260616120001_seed_governance_content_authority.sql` idempotency confirmed
       (`ON CONFLICT ... DO NOTHING`; godmode-user fallback with `RAISE NOTICE`)
 - [x] `CapabilityName` union in `packages/ai/src/capabilities/types.ts` includes
       `handbook_chapter`, `policy`, `protocol`; `pnpm --filter @smartout/ai typecheck` passes
@@ -223,7 +223,7 @@ The correct fix is making the parser understand all real SQL patterns in the cod
 - T0 decision matrix: `docs/plans/scope-fix-authority-seed-parity.md`
 - Feature plan: `docs/plans/PLAN-fix-authority-seed-parity.md`
 - Seed pattern reference: `supabase/migrations/20260516100000_seed_reconciliation_authority.sql`
-- Governance seed (this sortie): `supabase/migrations/20260616120000_seed_governance_content_authority.sql`
+- Governance seed (this sortie): `supabase/migrations/20260616120001_seed_governance_content_authority.sql`
 - Parity script: `scripts/authority-seed-parity.ts`
 - CapabilityName union: `packages/ai/src/capabilities/types.ts`
 - ADR-0189: seed-at-introduction principle

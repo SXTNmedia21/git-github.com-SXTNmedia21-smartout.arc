@@ -53,7 +53,7 @@ All decisions registered in ADR-0343.
 ## Next Steps
 
 1. **Local Supabase apply test** — operator runs `pnpm exec supabase db reset` (or `db push`), then re-runs parity script + manual `/dashboard/governance` smoke on handbook chapter / policy / protocol edit flow.
-2. **Production deploy** — migration `20260616120000_seed_governance_content_authority.sql` queued for next preview promote (HOP A). Idempotency contract: ON CONFLICT DO NOTHING + graceful no-godmode exit.
+2. **Production deploy** — migration `20260616120001_seed_governance_content_authority.sql` queued for next preview promote (HOP A). Idempotency contract: ON CONFLICT DO NOTHING + graceful no-godmode exit.
 3. **Follow-up — dotted-form alignment sortie** (post-Phase-3 stability): rename contract → contract.{compose,send,revise,...}, payroll → payroll.{lock,snapshot,...}, etc. Drop SINGLE_WORD_ALLOWLIST entries as caps migrate. Touches 31+ call sites + 6 seed migrations + IntentClassifier; estimate 1-day sortie with high regression-test surface.
 4. **Follow-up — allowlist-growth CI gate**: new audit/lint that blocks `SINGLE_WORD_ALLOWLIST` growth without an accompanying ADR. Prevents quiet exemption creep.
 5. **Audit re-run** — next `/audit smoke` should drop F-CT-01 from HIGH backlog (or reclassify if 14 legacy `gate.ts` files still trigger the separate F-CT-01 finding under ADR-0204 §SS-5).
