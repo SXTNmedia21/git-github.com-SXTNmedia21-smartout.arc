@@ -1,7 +1,8 @@
 ---
 title: "Journey — lønnsslipp→lønnsgrunnlag label sweep"
-status: draft
+status: verified
 updated: 2026-05-16
+verified: 2026-05-16
 created: 2026-05-16
 module: payroll
 tags: [payroll, ux, label-sweep, adr-0346]
