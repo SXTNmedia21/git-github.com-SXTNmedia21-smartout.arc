@@ -1,7 +1,7 @@
 ---
 id: ADR-0336
 title: "Channel-Admin Capability Split"
-status: proposed
+status: accepted
 date: 2026-05-16
 deciders: [pontus, council]
 tags: [communication, capability, authority, c4, channel-admin]
@@ -9,14 +9,29 @@ supersedes: null
 superseded_by: null
 created: 2026-05-16
 updated: 2026-05-16
+accepted_at: 2026-05-16
+acceptance_model: design-only
+acceptance_rationale: |
+  Design-only flip per system-agent-coordinator review (2026-05-16).
+  ADR locks the capability-split decision (Option B); implementation
+  contract (per-tool authority matrix, seed migration shape) deferred
+  to follow-on registration sortie. Precedent: ADR-0212, ADR-0196,
+  ADR-0182 (all flipped accepted on design with implementation tracked
+  separately). 3 minor doc gaps documented for resolution in
+  implementation sortie.
 layer: decision
 ---
 
 # ADR-0336: Channel-Admin Capability Split
 
-**Status:** Proposed
+**Status:** Accepted — design-only (2026-05-16). Implementation tracked in follow-on `feat/channel-admin-capability-registration` sortie.
 **Date:** 2026-05-16
 **Council:** Chat-WhatsApp Phase 3 priority council — APPROVE WITH CHANGES
+
+> **Doc gaps to resolve in implementation sortie** (from system-agent-coordinator design review 2026-05-16):
+> 1. Tool-table not written out per-tool — capability block at lines 87-95 shows only inline comments. Implementation sortie must write structured per-tool authority + min_role + channel triples in `packages/ai/src/capabilities/channel-admin/index.ts`.
+> 2. PII `allowedChannels: ["chat"]` is capability-wide; mute/leave have no PII surface and could later voice-unlock. Implementation sortie should add comment justifying capability-wide chat-pin OR per-tool `channelOverride` for non-PII tools.
+> 3. Seed migration shape at line 98-100 is placeholder. Implementation sortie writes concrete `<TS>_seed_channel_admin_authority.sql` following `20260428100007_tips_authority_seed.sql` shape.
 
 ## Context and Problem Statement
 
