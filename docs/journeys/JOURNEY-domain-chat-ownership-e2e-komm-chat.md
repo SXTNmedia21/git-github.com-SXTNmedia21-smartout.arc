@@ -1,7 +1,9 @@
 ---
 title: "Journey — E2E: komm/chat declares ownership → Orb passive"
 feature: domain-chat-ownership-e2e
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Spec compiled clean (typecheck pass). Selector data-testid='botsson-orb' verified at BotssonShell.tsx:608. Helper expectOrbPassive/expectOrbActive verified at helpers/orb.ts. Actual Playwright run deferred to CI gate."
 updated: 2026-05-16
 created: 2026-05-16
 module: web

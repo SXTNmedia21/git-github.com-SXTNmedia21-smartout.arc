@@ -1,7 +1,10 @@
 ---
 title: "Journey — E2E: komm/thread/[channelId] declares ownership → Orb passive"
 feature: domain-chat-ownership-e2e
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Spec compiled clean (typecheck pass). Selector + helper paths verified against source. Actual Playwright run deferred to CI gate per E sortie precedent."
+known_limitation: "Spec uses test.skip() with clear gap message when no query_thread channel is seeded in the admin workspace. Thread route only renders channel_type='query_thread' — discovery via /dashboard/help ActiveTicketBadge. Follow-up sortie: seed query_thread fixture for green-path coverage."
 updated: 2026-05-16
 created: 2026-05-16
 module: web

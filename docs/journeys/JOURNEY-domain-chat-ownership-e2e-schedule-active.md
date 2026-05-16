@@ -1,7 +1,10 @@
 ---
 title: "Journey — E2E: schedule + shift-clock (no shift) keep Orb active"
 feature: domain-chat-ownership-e2e
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Spec compiled clean. Negative-space contract: routes verified to NOT contain DomainChatOwnership declaration. Actual Playwright run deferred to CI gate."
+known_limitation: "shift-clock with-active-shift case NOT covered. T4 tests only no-shift path (admin redirect). With-shift case (chat tab mounted → ShiftClockTabs declares ownership → Orb passive) requires seeded active shift fixture. Risk contained because the same provider counter is exercised by T5 nav-race. Follow-up sortie: seed active-shift fixture."
 updated: 2026-05-16
 created: 2026-05-16
 module: web

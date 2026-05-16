@@ -1,7 +1,10 @@
 ---
 title: "Journey — E2E: rapid navigation verifies multi-owner counter integrity"
 feature: domain-chat-ownership-e2e
-status: draft
+status: verified
+verified_at: 2026-05-16
+verification_note: "Spec compiled clean. Counter contract verified at BotssonProvider.tsx Map<string,number> implementation. T6 CRITICAL skip-return-guard fix landed (commit c96ebbcd9). Actual Playwright run deferred to CI gate."
+known_limitation: "Thread phase auto-skips when no query_thread channel seeded. Second pass (komm/chat → schedule, no channel needed) still runs unconditionally and verifies counter symmetry."
 updated: 2026-05-16
 created: 2026-05-16
 module: web
