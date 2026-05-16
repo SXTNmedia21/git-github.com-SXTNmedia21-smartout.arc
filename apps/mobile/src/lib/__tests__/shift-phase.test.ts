@@ -53,6 +53,7 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     location_id: null,
     zone: null,
     template_shift_id: null,
+    pipeline_lock_state_id: null,
     created_at: "2026-03-17T10:00:00Z",
     updated_at: "2026-03-17T10:00:00Z",
   };
