@@ -1,7 +1,8 @@
 ---
 title: "Journey — Fix Authority Seed Parity"
 feature: fix-authority-seed-parity
-status: draft
+status: verified
+verified_at: 2026-05-16
 created: 2026-05-16
 updated: 2026-05-16
 module: governance
@@ -10,9 +11,18 @@ tags: [journey, authority, seed, gate]
 
 # Journey — Fix Authority Seed Parity
 
-Companion to `docs/plans/PLAN-fix-authority-seed-parity.md`.
+Companion to `docs/plans/PLAN-fix-authority-seed-parity.md`. ADR: `docs/decisions/0343-authority-seed-parity-backlog-hybrid.md`.
 
 This sortie has no end-user journeys — pure governance-plane fix. Journeys here track **system invariants** verified at closure.
+
+## Verification summary (2026-05-16)
+
+| Journey | Method | Result |
+|---|---|---|
+| J1 — fresh DB graceful exit | Code-read of `DO $$` block + RAISE NOTICE path (mirrors `20260516100000_seed_reconciliation_authority.sql` proven pattern) | ✅ verified |
+| J2 — populated DB cross-join idempotent | Code-read of CROSS JOIN + ON CONFLICT clause matching reconciliation reference | ✅ verified |
+| J3 — parity script FAIL → PASS | Automated: `pnpm exec tsx scripts/authority-seed-parity.ts` exit 0 (post-commit `a203cc8a4`) | ✅ verified |
+| J4 — UI flows unaffected | Code-read: (confirm, manager) floor matches `/dashboard/governance` layout guard at manager+ level | ⚠ verified-via-code-read; runtime smoke deferred to post-deploy |
 
 ## Journey 1: Migration applies cleanly on fresh DB
 
