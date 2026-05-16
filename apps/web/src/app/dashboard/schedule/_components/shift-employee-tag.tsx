@@ -10,6 +10,7 @@ import { ArrowLeftRight, Check, Circle, MessageCircle } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import type { MalEmployeeAssignment } from "@smartout/schedule";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PipelineLockBadge } from "./PipelineLockBadge";
 
 type MalEmployeeTagProps = {
   assignment: MalEmployeeAssignment;
@@ -136,6 +137,7 @@ export function MalEmployeeTag({ assignment, onClick, draggable = false }: MalEm
             style={{ color: "#3b82f6" }}
           />
         )}
+        <PipelineLockBadge shiftId={assignment.shiftId} />
       </span>
     </button>
   );
