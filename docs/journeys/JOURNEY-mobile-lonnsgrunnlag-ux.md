@@ -1,6 +1,6 @@
 ---
 title: Mobile Lønnsgrunnlag UX — User Journeys
-status: in_progress
+status: verified
 updated: 2026-05-16
 created: 2026-05-16
 module: payroll-mobile
