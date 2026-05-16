@@ -1,7 +1,7 @@
 ---
 title: "Journey — Swap↔Marketplace Convergence V2 (Authority Pipeline)"
 feature: swap-marketplace-convergence-v2
-status: draft
+status: verified
 updated: 2026-05-16
 created: 2026-05-16
 module: scheduler

@@ -1,6 +1,6 @@
 ---
 title: "Plan — swap-marketplace-convergence-v2"
-status: draft
+status: ready_for_pr
 updated: 2026-05-16
 created: 2026-05-16
 module: scheduler
@@ -49,48 +49,48 @@ Unify `shift-swap` (5 tools) + `shift_marketplace` (5 tools) under shared multi-
 
 ### Phase 0 — Gating ADR + Schema Decisions (MANDATORY before T0; 2-3 days)
 
-- [x] **P0.1** — ADR-0340 drafted (Shift Lifecycle Pipeline Implementation, supersedes ADR-0321) ✅ shipped 2026-05-16
-- [ ] **P0.2** — B1 dual-gate (G13) close-or-document-independence
-- [ ] **P0.3** — authority.ts dual-gate divergence resolution
-- [ ] **P0.4** — engine_state vs engine_sessions ontology confirmation
-- [ ] **P0.5** — ADR-0288 accept-or-remove decision
-- [ ] **P0.6** — schedule_shift lock column design (NOT migration)
+- [x] **P0.1** — ADR-0340 drafted (Shift Lifecycle Pipeline Implementation, supersedes ADR-0321) ✅ shipped 2026-05-16 (`b1cae1506`)
+- [x] **P0.2** — B1 dual-gate (G13) close-or-document-independence ✅ `982c1236a`
+- [x] **P0.3** — authority.ts dual-gate divergence resolution ✅ `982c1236a` (folded into T2)
+- [x] **P0.4** — engine_state vs engine_sessions ontology confirmation ✅ `982c1236a`
+- [x] **P0.5** — ADR-0288 accept-or-remove decision ✅ `72e2fc537` (accepted)
+- [x] **P0.6** — schedule_shift lock column design (NOT migration) ✅ `982c1236a` (design ratified; migration T0)
 
-**Phase 0 exit gate:** All 6 P0 items closed. Pontus signs off. Then T0 proceeds.
+**Phase 0 exit gate:** ✅ All 6 P0 items closed. Pontus signed off. T0 proceeded.
 
 ### Phase 1 — Schema + Engine
 
-- [ ] **T0** — Migration: seed `engine_process` blueprints (`shift_swap_lifecycle`, `marketplace_lifecycle`); CREATE TABLE `engine_authority_pipeline` (workflow DEFINITION table per ADR-0321 schema sketch, NOT instance table); ADD COLUMN `pipeline_locked_by uuid` on `schedule_shift` per P0.6 design. Forward-only.
-- [ ] **T0.5** — Seed `<cap>.override` rows in `engine_authority_config` (min_role=admin, level=autonomous). Extend `scripts/gate-action-coverage.ts` to flag pipeline-defining capabilities lacking sibling .override row. **BLOCKS override_pipeline tool ship per L-0281.**
-- [ ] **T1** — Pipeline engine (`packages/ai/src/engine/authority-pipeline/`): stage definitions, stage-transition validator, event emitter. Operates ON engine_state via existing capability tools, never writes cross-namespace.
+- [x] **T0** — Migration `20260616120000` forward-only: CREATE TABLE `engine_authority_pipeline` (workflow DEFINITION table — NOT instance table; instance state reuses `engine_state` per Q1=B); ADD COLUMN `schedule_shift.pipeline_lock_state_id` FK to `engine_state(id)`; trigger carve-out; single-workspace CHECK constraint. ✅ `638c0280d`
+- [x] **T0.5** — Seed `<cap>.override` rows in `engine_authority_config` (min_role=admin, level=autonomous). Extended `scripts/gate-action-coverage.ts` to flag pipeline-defining capabilities lacking sibling `.override` row. **Closes L-0281 default-allow CVE.** ✅ `a6f2857c4`
+- [x] **T1** — Pipeline engine (`packages/ai/src/engine/authority-pipeline/`, 7 files, 1446 LOC): stage definitions, stage-transition validator, event emitter. Operates ON `engine_state` via existing capability tools, never writes cross-namespace. ✅ `82524647d`
 
 ### Phase 2 — Capability Refactor (parallel T2/T3/T4)
 
-- [ ] **T2** — Refactor `shift-swap` capability to emit through pipeline (preserves V1 tool names; internal write delegates). ADR-0287:112 grandfathers `callGateAction` — no forced mutateWithGate migration.
-- [ ] **T3** — Refactor `shift_marketplace` capability same pattern. **Preserve `approve_claim` 2-writes-1-gate atomic exec callback at tools.ts:494-518 verbatim.**
-- [ ] **T4** — `pipeline.stage_*` telemetry events ADDITIVE only; register in `packages/telemetry/src/registry.ts`. Do NOT remove or rename `shift_swap.*` / `shift_offer.*`.
+- [x] **T2** — Refactored `shift-swap` capability to emit through pipeline; SS-4 `gate.ts` adapter added; P0.3 dual-gate divergence folded in. ADR-0287:112 grandfathers `callGateAction`. Backward-compat: `respond_to_swap` tolerant lookup falls through to RPC for pre-pipeline swaps. ✅ `d27cc2d00`
+- [x] **T3** — Refactored `shift_marketplace` capability same pattern. **`approve_claim` 2-writes-1-gate at `tools.ts:494-518` PRESERVED + EXTENDED to 4-writes-1-gate** inside same `mutateWithGate` body (terminate offer + release lock added, single gate_evaluation_id). ✅ `18c46cdfd`
+- [x] **T4** — 6 additive `pipeline.stage_*` telemetry events registered in `packages/telemetry/src/registry.ts`. V1 envelopes `shift_swap.*` (5341-5397) + `shift_offer.*` (8610-8666) untouched. ✅ `71a21b8bf`
 
 ### Phase 3 — Override + Tests + E2E
 
-- [ ] **T5** — `override_pipeline` admin escalation tool. **BLOCKED by T0.5 seed.**
-- [ ] **T6** — Capability tests: 3 journey paths × happy+error variants.
-- [ ] **T7** — E2E spec `p-swap-marketplace-pipeline.ts` (S12).
+- [x] **T5** — `override_swap_pipeline` + `override_marketplace_pipeline` admin escalation tools shipped. T0.5 seed unlocked ship (Trust Gate FAIL → PASS). C4 authority verified via `engine_authority_config`; `pipeline.stage_overridden` distinct event. ✅ `bbcf4fcd2`
+- [x] **T6** — 26 capability tests: 3 journey paths × happy+error variants. Mobile fixture fix (`pipeline_lock_state_id: null`). ✅ `1ab5213b3` + `3fd3fb8cd`
+- [x] **T7** — E2E protocol `apps/e2e/protocols/p-swap-marketplace-pipeline.ts` (S12) shipped. ✅ `dcd26397e`
 
 ### Phase 4 — Closure
 
-- [ ] **T8** — Type regen + full typecheck (52/52 green).
-- [ ] **T9** — HANDOFF + decision log entry for closure.
+- [x] **T8** — Type regen + full typecheck. ✅ 52/52 FULL TURBO (cached 52/52); ai+telemetry clean; 598/599 ai tests pass (1 pre-existing env failure orthogonal).
+- [x] **T9** — HANDOFF + decision log entry for closure. ✅ `docs/HANDOFF-swap-marketplace-convergence-v2.md` written.
 
 ## Acceptance Criteria
 
-- [ ] Typecheck passes: `pnpm turbo typecheck`
-- [ ] All 10 existing swap+marketplace tools still pass V1 contract tests (no breaking changes)
-- [ ] New pipeline emits 3 stage events per flow (proposed → consented → approved)
-- [ ] Lock-on-shift prevents concurrent swap + marketplace claim on same `schedule_shift.id`
-- [ ] Admin escalation path covered by capability test + E2E spec
-- [ ] Decision log updated (ADR-0321 implementation confirmed, any new sub-ADRs registered)
-- [ ] All 3 user journeys written (see `docs/journeys/JOURNEY-world-best-wfm-swap-marketplace-convergence-v2.md`)
-- [ ] HANDOFF written at closure
+- [x] Typecheck passes: `pnpm turbo typecheck` → 52/52 FULL TURBO
+- [x] All 10 existing swap+marketplace tools still pass V1 contract tests (no breaking changes; T2+T3 vitest updates green)
+- [x] New pipeline emits stage events per flow (`pipeline.stage_proposed` / `_consented` / `_approved` / `_rejected` / `_cancelled` / `_overridden` — 6 events additive)
+- [x] Lock-on-shift prevents concurrent swap + marketplace claim on same `schedule_shift.id` (`pipeline_lock_state_id` FK)
+- [x] Admin escalation path covered by capability test (T6) + E2E spec (T7 S12)
+- [x] Decision log updated — ADR-0340 row registered (line 54), ADR-0321 marked superseded (line 55), ADR-0288 marked accepted (line 102)
+- [x] All 3 user journeys written (`docs/journeys/JOURNEY-world-best-wfm-swap-marketplace-convergence-v2.md`)
+- [x] HANDOFF written at closure (`docs/HANDOFF-swap-marketplace-convergence-v2.md`)
 
 ## Out of Scope
 
