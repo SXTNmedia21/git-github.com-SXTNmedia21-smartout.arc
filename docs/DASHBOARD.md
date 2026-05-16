@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-14
-last-event: /gitzel — 20 remote feat/* + 5 local + 6 worktree dirs cleaned; 4 campaigns FF-synced
-last-reconciled: 2026-05-14T21:30Z
+updated: 2026-05-15
+last-event: reconciliation-page-policy-fix closing → development (7 commits, 12/12 drift findings closed, Page Policy first run complete).
+last-reconciled: 2026-05-15T19:30Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -21,7 +21,9 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
-| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-phase3-chat` | latest | unknown — concurrent session |
+| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/wfm-ui-pages` | latest | unknown — concurrent session |
+| wt-2 | `~/dev/smartout.ai-wt-2` | `feat/botsson-voice-ux-polish` | latest | unknown — concurrent session |
+| wt-3 | `~/dev/smartout.ai-wt-3` | `feat/schedule-card-density` | latest | unknown — concurrent session |
 
 ## Active Campaigns
 
@@ -33,6 +35,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | mobile | `campaign/mobile` | FF-synced to dev | 0 | 0 behind / 0 ahead | ✓ remote synced; local needs pull |
 | payroll | `campaign/payroll` | 8h ago — merge dev | 0 | 141 behind / 14 ahead | milestone-ready candidate; needs sync |
 | sortie-5-task-cutover | `campaign/sortie-5-task-cutover` | 8h ago — merge dev | 0 | 141 behind / 21 ahead | milestone-ready candidate; needs sync |
+| ui-shell | `campaign/ui-shell` | 2026-05-15 — scaffold | 0 | 0 behind / 1 ahead | ✓ new (sidebar reorg + DashboardShell decomposition) |
 | world-best-wfm | `campaign/world-best-wfm` | FF-synced to dev (post PR #385) | 0 | 0 behind / 0 ahead | ✓ campaign synced; worktree obsolete |
 
 ## Active Sub-Sorties
@@ -49,6 +52,12 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|---|
 | wt-3 | `~/dev/smartout.ai-sortie-5-task-cutover-wt-3` | `feat/sortie-5-task-cutover-premerge-conditions` | 21h ago — voice-agent omitCreateTask flag (L-0244) | 3 |
 
+### Parent: campaign/ui-shell
+
+| # | Path | Branch | Last Commit | Dirty |
+|---|---|---|---|---|
+| wt-1 | `~/dev/smartout.ai-ui-shell-wt-1` | `feat/ui-shell-sidebar-reorg` | 2026-05-15 — SidebarGroup wrapper + NavItem extracted | 1 (unrelated hook patch) |
+
 _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffolds parked at `docs/plans/PLAN-mobile-phase-3f{2,3}-*.md` for future revival._
 
 ## Other Worktrees
@@ -59,13 +68,15 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-3, wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (harness-phase3-chat). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (wfm-ui-pages), wt-2 used (botsson-voice-ux-polish), wt-3 used (schedule-card-density). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
+**Sub-sortie pool (ui-shell):** wt-2..wt-5 free (wt-1 active = sidebar-reorg)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
 **Sub-sortie pool (botsson-arena, daily-operation, mobile, payroll, world-best-wfm):** wt-1..wt-5 free at canonical path
 
 ## Recent Merges (last 24h)
 
+- `1405b8e6c` chore(release): merge feat/dagslinjen-quickadd → development (close-with-followups) — 8 commits + ADR-0331/0332/0333 + 4 E2E specs + HANDOFF
 - `5bc30862b` salvage mobile-phase-3f2/3f3 plan scaffolds (worktree cleanup)
 - `55f44469e` dashboard regen
 - `0b13c5b8a` council log + L-0270 + L-0271

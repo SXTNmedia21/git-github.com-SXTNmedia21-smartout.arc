@@ -43,6 +43,8 @@ import { baseLogger } from "../lib/logger.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
 import type { ToolBundle } from "@smartout/ai/harness/types";
 import type { ClientToolCall } from "@smartout/ai/harness/types";
+import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 /**
  * SMA-301 diagnostic — extracts upstream provider error context from
@@ -356,6 +358,50 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     // Recorder must never throw into the primary path.
   }
 
+  // ADR-0327 Phase 3 + ADR-0184 — authority audit for HarnessAdapter bundles.
+  // When bundle is present and authority filtering blocked tools, emit a telemetry
+  // event so the authority decision lands in activity_trail + PostHog. Without
+  // this, blocked tools are a black hole: the LLM simply never sees them and
+  // there is no audit record of WHY.
+  // Fire-and-forget: telemetry failure must not break the primary chat path.
+  if (bundle?.authority?.blockedTools && bundle.authority.blockedTools.length > 0) {
+    void emit({
+      event: "botsson.authority_filtered",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        entity: { entity_type: "agent_session", entity_id: sessionId },
+        data: {
+          session_id: sessionId,
+          channel: (channel ?? "chat") as "chat" | "voice",
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
+
+    // Also record to session recorder (ADR-0184 replay support).
+    try {
+      getRecorder()?.recordTurn({
+        sessionId,
+        workspaceId,
+        profileId,
+        turnKind: "agent_response",
+        phase: "authority_filtered",
+        content: {
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      });
+    } catch {
+      // Recorder must never throw into the primary path.
+    }
+  }
+
   // Step 2: Classify intent
   // ADR-0112 + Phase A5: feed role/department/channel into classifier context
   // so it can disambiguate e.g. "når jobber jeg?" (employee read) vs manager
@@ -577,6 +623,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     finalSystemPrompt += `\n\n${renderWorkforceSlice(workforceContext)}`;
   }
 
+  // Inject HarnessAdapter system prompt slices (ADR-0327 Phase 3).
+  // When bundle is present (HARNESS_ADAPTER_CHAT=true path), append
+  // per-page-scope system prompts to give the LLM page-context
+  // alongside the tool definitions. Position: last — page-specific
+  // context receives highest LLM attention weight.
+  if (bundle?.systemPromptSlices && bundle.systemPromptSlices.length > 0) {
+    finalSystemPrompt = finalSystemPrompt + "\n\n" + bundle.systemPromptSlices.join("\n\n");
+  }
+
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
   let augmentedMessage = message;
@@ -669,6 +724,25 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
       const isClientTool = clientToolNames?.has(toolName) ?? false;
 
+      // Live smoke 2026-05-15 found: bundle.implementations holds STUBS from
+      // capabilities-source.ts (Phase 1+2 design — "Tool X requires agent
+      // context — wire via Phase 3 consumer adapter"). Phase 3 was supposed
+      // to replace these but never did. Real capability impls live in
+      // vercelTools (line 681) with proper toolContext (workspaceId,
+      // profileId, supabase clients, etc.).
+      //
+      // For capability tools: KEEP the existing vercelTools entry. Only
+      // overwrite mergedTools[toolName] for CLIENT tools (browser-shipped).
+      // Capability tools that don't exist in vercelTools (because they
+      // weren't selected by intent classifier) get skipped — LLM won't
+      // see them anyway since intent-based filtering already happened.
+      if (!isClientTool) {
+        // Capability tool — vercelTools already provided a real impl with
+        // toolContext. Don't overwrite. If vercelTools didn't have it,
+        // don't manufacture a stub.
+        continue;
+      }
+
       mergedTools[toolName] = tool({
         description: def.temporaryTool.description,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -677,17 +751,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
         // invoked in the normal path — stage-engine intercepts the call before
         // executing (see client_tool_calls detection below). The stub exists
         // only as a fallback if detection logic is bypassed.
-        execute: isClientTool
-          ? async (_params: Record<string, unknown>): Promise<string> => {
-              return "client-side tool — not directly invokable from stage-engine";
-            }
-          : async (params: Record<string, unknown>): Promise<string> => {
-              const impl = bundle.implementations[toolName];
-              if (impl === undefined) {
-                return `tool implementation not found for "${toolName}"`;
-              }
-              return impl(params);
-            },
+        execute: async (_params: Record<string, unknown>): Promise<string> => {
+          return "client-side tool — not directly invokable from stage-engine";
+        },
       });
     }
   }

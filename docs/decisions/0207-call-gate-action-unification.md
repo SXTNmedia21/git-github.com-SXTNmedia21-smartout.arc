@@ -1,7 +1,7 @@
 ---
 title: "callGateAction Unification to Single Canonical Wrapper"
 id: ADR-0207
-status: Accepted
+status: accepted
 layer: decision
 module: authority
 created: 2026-04-24

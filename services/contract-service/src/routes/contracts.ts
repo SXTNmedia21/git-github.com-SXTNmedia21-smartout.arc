@@ -13,7 +13,19 @@ export async function contractRoutes(app: FastifyInstance) {
     const query = listContractsQuery.parse(request.query);
     let q = supabase.from("contract").select("*");
 
-    if (query.workspace_id) q = q.eq("workspace_id", query.workspace_id);
+    // F-CL-15 / ADR-0151: server-derived workspaceId is authoritative
+    // when present. Refuse cross-tenant query.workspace_id from a scoped
+    // API key.
+    if (request.workspaceId) {
+      if (query.workspace_id && query.workspace_id !== request.workspaceId) {
+        return reply.status(403).send({
+          error: "workspace_id mismatch: query does not match API-key workspace",
+        });
+      }
+      q = q.eq("workspace_id", request.workspaceId);
+    } else if (query.workspace_id) {
+      q = q.eq("workspace_id", query.workspace_id);
+    }
     if (query.status) q = q.eq("status", query.status);
     if (query.contract_type) q = q.eq("contract_type", query.contract_type);
     if (query.recipient_email) q = q.eq("recipient_email", query.recipient_email);
@@ -42,6 +54,18 @@ export async function contractRoutes(app: FastifyInstance) {
   // Create contract from template
   app.post("/contracts", async (request, reply) => {
     const body = createContractSchema.parse(request.body);
+
+    // F-CL-15 / ADR-0151: cross-check body workspace_id against the
+    // server-derived workspaceId from API key validation (server.ts:53).
+    // When request.workspaceId is undefined we are on the legacy
+    // SERVICE_KEY fallback path that has no workspace context — accept
+    // the body value. When it IS set, refuse mismatched body to prevent
+    // a leaked/cross-tenant API key from writing into another workspace.
+    if (request.workspaceId && body.workspace_id !== request.workspaceId) {
+      return reply.status(403).send({
+        error: "workspace_id mismatch: body does not match API-key workspace",
+      });
+    }
 
     // Fetch template and workspace (for company_id) in parallel
     const [templateResult, workspaceResult] = await Promise.all([

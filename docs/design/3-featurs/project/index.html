@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Gap Closure — World-Best-WFM</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="shell.jsx"></script>
+  <script type="text/babel" src="marketplace.jsx"></script>
+  <script type="text/babel" src="pos-accounts.jsx"></script>
+  <script type="text/babel" src="manuals.jsx"></script>
+
+  <script type="text/babel">
+    const { useEffect } = React;
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "palette": "warm",
+      "density": "comfortable",
+      "showOrbs": true
+    }/*EDITMODE-END*/;
+
+    const PALETTES = {
+      warm: { // default — terracotta + cream
+        primary: "oklch(0.62 0.155 42)",
+        primarySoft: "oklch(0.92 0.045 50)",
+        primaryInk: "oklch(0.32 0.110 40)",
+        bg: "oklch(0.985 0.008 78)",
+        bgSoft: "oklch(0.965 0.012 75)",
+      },
+      forest: { // Nordic dusk
+        primary: "oklch(0.50 0.115 165)",
+        primarySoft: "oklch(0.93 0.035 165)",
+        primaryInk: "oklch(0.30 0.080 165)",
+        bg: "oklch(0.985 0.006 165)",
+        bgSoft: "oklch(0.965 0.010 165)",
+      },
+      ink: { // Mono editorial
+        primary: "oklch(0.30 0.025 60)",
+        primarySoft: "oklch(0.93 0.010 60)",
+        primaryInk: "oklch(0.20 0.020 60)",
+        bg: "oklch(0.985 0.004 60)",
+        bgSoft: "oklch(0.960 0.006 60)",
+      },
+    };
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+      useEffect(() => {
+        const p = PALETTES[tweaks.palette] || PALETTES.warm;
+        const r = document.documentElement.style;
+        r.setProperty("--primary", p.primary);
+        r.setProperty("--primary-soft", p.primarySoft);
+        r.setProperty("--primary-ink", p.primaryInk);
+        r.setProperty("--background", p.bg);
+        r.setProperty("--background-soft", p.bgSoft);
+      }, [tweaks.palette]);
+
+      useEffect(() => {
+        document.documentElement.style.setProperty("--r-lg", tweaks.density === "compact" ? "10px" : "14px");
+      }, [tweaks.density]);
+
+      useEffect(() => {
+        document.querySelectorAll(".orb-bg").forEach(el => {
+          el.style.display = tweaks.showOrbs ? "" : "none";
+        });
+      }, [tweaks.showOrbs]);
+
+      return (
+        <>
+          <DesignCanvas title="3 Features — UI Gap Closure" subtitle="Nordic Split · Compose verb · chat-confirmed mutations">
+            <DCSection id="surfaces" title="Three surfaces" subtitle="Each is the missing web piece called out in the spec — interactive, not static.">
+              <DCArtboard id="marketplace" label="01 · Vaktbørs (manager)" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="01 Vaktbørs">
+                  <MarketplacePage />
+                </div>
+              </DCArtboard>
+
+              <DCArtboard id="pos" label="02 · POS-integrasjoner (admin)" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="02 POS">
+                  <PosAccountsPage />
+                </div>
+              </DCArtboard>
+
+              <DCArtboard id="manuals" label="03 · Onboarding-manualer" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="03 Manuals">
+                  <ManualsPage />
+                </div>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Visual">
+              <TweakRadio
+                label="Palette"
+                value={tweaks.palette}
+                onChange={(v) => setTweak("palette", v)}
+                options={[
+                  { value: "warm",   label: "Warm" },
+                  { value: "forest", label: "Forest" },
+                  { value: "ink",    label: "Ink" },
+                ]}
+              />
+              <TweakRadio
+                label="Density"
+                value={tweaks.density}
+                onChange={(v) => setTweak("density", v)}
+                options={[
+                  { value: "compact",     label: "Tight" },
+                  { value: "comfortable", label: "Roomy" },
+                ]}
+              />
+              <TweakToggle
+                label="Ambient orbs"
+                value={tweaks.showOrbs}
+                onChange={(v) => setTweak("showOrbs", v)}
+              />
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

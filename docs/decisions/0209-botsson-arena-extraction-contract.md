@@ -1,7 +1,7 @@
 ---
 title: "Botsson Arena extraction — web-only + mobile sibling + tokens single-source"
 id: ADR-0209
-status: Accepted
+status: accepted
 layer: decision
 module: botsson-arena
 created: 2026-04-24

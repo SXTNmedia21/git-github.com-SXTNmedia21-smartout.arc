@@ -24,6 +24,8 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { motion as motionTokens } from "@smartout/design-tokens";
 
 import {
   useReconciliationDetail,
@@ -251,8 +253,8 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
   const canApprove = detail.status === "awaiting_approval" && preflightBlockers.length === 0;
 
   const tabSpring = reduceMotion
-    ? { duration: 0.18 }
-    : { type: "spring" as const, stiffness: 38, damping: 22, mass: 2.2 };
+    ? { duration: motionTokens.exitMs / 1000 }
+    : { type: "spring" as const, ...motionTokens.spring };
 
   async function handleApprove() {
     await approveMutation.mutateAsync({
@@ -297,20 +299,21 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
       </div>
 
       {/* Detail header */}
-      <header className="border-border bg-card rounded-xl border p-5">
+      <header className="border-border bg-card rounded-2xl border p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.18em] uppercase">
-              Admin-gjennomgang
-            </p>
-            <h1 className="font-heading text-foreground mt-1 text-3xl tracking-[-0.02em]">
+            <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
               {new Date(detail.reconciliation_date + "T00:00:00").toLocaleDateString("nb-NO", {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
               })}
             </h1>
-            <p className="text-muted-foreground mt-0.5 text-sm">{departmentName}</p>
+            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
+              <span>{departmentName}</span>
+              <span aria-hidden className="opacity-50">·</span>
+              <span>Admin-gjennomgang</span>
+            </div>
           </div>
           <PhaseBadge phase={phase} />
         </div>
@@ -340,34 +343,12 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
             )}
 
             {/* Tab bar */}
-            <div
-              role="tablist"
-              aria-label="Oppgjør-seksjoner"
-              className="border-border bg-card flex items-center gap-0.5 overflow-x-auto rounded-xl border p-1"
-            >
-              {TABS.map((t) => {
-                const active = tab === t.key;
-                return (
-                  <button
-                    key={t.key}
-                    role="tab"
-                    type="button"
-                    aria-selected={active}
-                    aria-controls={`tab-${t.key}`}
-                    onClick={() => setTab(t.key)}
-                    className={cn(
-                      "focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                      active
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                    )}
-                  >
-                    <t.Icon className="h-3.5 w-3.5" aria-hidden />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
+            <PageTabNav
+              tabs={TABS.map((t) => ({ key: t.key, label: t.label, icon: t.Icon }))}
+              active={tab}
+              onChange={(k) => setTab(k as TabKey)}
+              ariaLabel="Oppgjør-seksjoner"
+            />
 
             {/* Tab content */}
             <AnimatePresence mode="wait">

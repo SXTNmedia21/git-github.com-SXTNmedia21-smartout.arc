@@ -2,8 +2,8 @@
 id: ADR-0273
 title: "Deviation + Day-Info: Server Action Migration (ADR-0114 closure)"
 status: proposed
-created: 2026-05-25
-updated: 2026-05-25
+created: 2026-05-13
+updated: 2026-05-13
 module: hms, schedule, mobile
 tags: [adr-0114, server-action, deviation, day-info, mobile-bff, gate-action, telemetry]
 ---

@@ -1,7 +1,7 @@
 ---
 id: "0021"
 title: Subdomain-Based Workspace Routing
-status: Accepted
+status: accepted
 date: 2026-02-28
 updated: 2026-04-20
 layer: decision

@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 # dev-startup.sh — Signs into 1Password, starts Docker, Supabase, infra stack
 #                  (caddy/scrapling/shift-mcp/stage-engine/contract-service/n8n),
-#                  web (3060), landing (3055), and mobile (Expo).
-# Usage: ./scripts/dev-startup.sh [--restart|-r]
-#   --restart / -r   Kill any process holding a dev-server port before starting.
-#                    Use after lockfile/dep changes so the new bundler picks them up.
+#                  web (3060), landing (3055), mobile (Expo), voice-agent.
+#
+# Default: live dev servers spawn in a tmux session `smartout-dev` with four
+# tiled panes (web | landing / mobile | voice-agent). Attach via
+# `tmux attach -t smartout-dev`. Ctrl-b q numbers panes; Ctrl-b arrow navigates.
+#
+# Usage: ./scripts/dev-startup.sh [--restart|-r] [--detached|-d] [--no-attach]
+#   --restart / -r   Kill any process holding a dev-server port AND any existing
+#                    tmux session before starting. Use after lockfile/dep changes
+#                    so the new bundler picks them up.
+#   --detached / -d  Run dev servers as nohup background processes writing to
+#                    .dev-*.log files (legacy behavior). Use for headless / CI runs.
+#   --no-attach      Create tmux session but don't auto-attach. Default attaches
+#                    when run from an interactive terminal.
 # Alias: dev start
 
 set -euo pipefail
@@ -14,9 +24,13 @@ cd "$PROJECT_ROOT"
 
 # ── Args ────────────────────────────────────────────────────
 RESTART=0
+DETACHED=0
+NO_ATTACH=0
 for arg in "$@"; do
   case "$arg" in
     --restart|-r) RESTART=1 ;;
+    --detached|-d) DETACHED=1 ;;
+    --no-attach) NO_ATTACH=1 ;;
     -h|--help)
       grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -24,6 +38,8 @@ for arg in "$@"; do
     *) echo "Unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
+
+TMUX_SESSION="smartout-dev"
 
 # ── Colors ──────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -183,7 +199,7 @@ else
   fi
 fi
 
-# ── 5. Dev servers (web + landing + mobile) ────────────────
+# ── Port helpers (used by detached mode + tmux --restart) ──
 check_port() {
   local port=$1
   if ss -tln 2>/dev/null | grep -q ":${port} " || \
@@ -237,7 +253,7 @@ kill_port() {
   ok "${name} port ${port} freed"
 }
 
-start_dev_server() {
+start_dev_server_detached() {
   local name=$1
   local port=$2
   local filter=$3
@@ -291,13 +307,7 @@ start_dev_server() {
   warn "${name} may still be starting (pid ${pid}). Check log: ${logfile}"
 }
 
-start_dev_server "web"     3060 "web"
-start_dev_server "landing" 3055 "landing"
-
-# Mobile PWA — `expo start --web --port 8083` per feedback_mobile_pwa_for_testing
-# (memory 2026-05-06). Native Expo (8081 / Expo Go) is reserved for native-only
-# features (haptics, push, GPS, biometric) and started manually when needed.
-start_mobile_pwa() {
+start_mobile_pwa_detached() {
   local logfile="${PROJECT_ROOT}/.dev-mobile.log"
 
   if [ "$RESTART" -eq 1 ]; then
@@ -308,12 +318,10 @@ start_mobile_pwa() {
   fi
 
   log "Starting Mobile PWA..."
-  # On --restart, also wipe Metro's transform cache so dep/lockfile changes are picked up.
   local expo_args=()
   if [ "$RESTART" -eq 1 ]; then
     expo_args+=(-- --clear)
   fi
-  # `pnpm --filter mobile dev` resolves to `expo start --web --port 8083`.
   nohup op run --env-file=.env.template -- pnpm --filter mobile dev "${expo_args[@]}" > "$logfile" 2>&1 &
   local pid=$!
 
@@ -328,13 +336,7 @@ start_mobile_pwa() {
   warn "Mobile PWA may still be starting (pid ${pid}). Check log: ${logfile}"
 }
 
-start_mobile_pwa
-
-# ── 6. Voice-agent (LiveKit dialog worker) ──
-# Connects to LiveKit Cloud as a worker, autojoins rooms when a call starts
-# (purpose=ai_voice or any human_call). Uses OpenAI Realtime for STT+LLM+TTS.
-# Not a port-bound server — registers with LiveKit Cloud over wss.
-start_voice_agent() {
+start_voice_agent_detached() {
   local logfile="${PROJECT_ROOT}/.dev-voice-agent.log"
   local pid_file="${PROJECT_ROOT}/.dev-voice-agent.pid"
 
@@ -351,8 +353,7 @@ start_voice_agent() {
 
   log "Starting Voice-agent (LiveKit dialog worker)..."
   # Voice-agent has its own .env.template that maps LIVEKIT_URL (the agent SDK's
-  # required var name) to op://smartout_ai/livekit/wss-url. The root .env.template
-  # only exposes NEXT_PUBLIC_LIVEKIT_URL, which the SDK does not read.
+  # required var name) to op://smartout_ai/livekit/wss-url.
   (
     cd "${PROJECT_ROOT}/services/voice-agent" && \
     nohup op run --env-file=.env.template -- pnpm dev > "$logfile" 2>&1 &
@@ -371,7 +372,73 @@ start_voice_agent() {
   fi
 }
 
-start_voice_agent
+# ── 5. Dev servers — tmux (default) or detached (--detached) ──
+#
+# tmux mode spawns four tiled panes in session `smartout-dev`:
+#   ┌──────────────┬──────────────┐
+#   │ web :3060    │ landing :3055│
+#   ├──────────────┼──────────────┤
+#   │ mobile :8083 │ voice-agent  │
+#   └──────────────┴──────────────┘
+# Each pane runs the dev server in the foreground, so live output streams in
+# situ. Detach with Ctrl-b d; attach later with `tmux attach -t smartout-dev`.
+#
+# Detached mode (--detached) preserves the legacy nohup+.dev-*.log behavior
+# for headless / CI / scripted runs where no tty is available.
+
+if [ "$DETACHED" -eq 1 ]; then
+  log "Detached mode — running dev servers as background processes (legacy)"
+  start_dev_server_detached "web"     3060 "web"
+  start_dev_server_detached "landing" 3055 "landing"
+  start_mobile_pwa_detached
+  start_voice_agent_detached
+else
+  log "Starting dev servers in tmux session '$TMUX_SESSION'..."
+
+  if ! command -v tmux >/dev/null; then
+    fail "tmux not installed — install via 'sudo apt install tmux' or pass --detached."
+  fi
+
+  # Existing session handling
+  if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+    if [ "$RESTART" -eq 1 ]; then
+      warn "Killing existing tmux session '$TMUX_SESSION'"
+      tmux kill-session -t "$TMUX_SESSION"
+      # Free ports too — surviving processes from the killed session may still hold them briefly.
+      kill_port 3060 "web"
+      kill_port 3055 "landing"
+      kill_port 8083 "Mobile PWA"
+      [ -f "${PROJECT_ROOT}/.dev-voice-agent.pid" ] && \
+        kill -TERM "$(cat "${PROJECT_ROOT}/.dev-voice-agent.pid")" 2>/dev/null || true
+    else
+      ok "tmux session '$TMUX_SESSION' already running — attach with: tmux attach -t $TMUX_SESSION"
+      echo ""
+      log "Dev environment ready (existing session)"
+      exit 0
+    fi
+  fi
+
+  # Build the four-pane layout. Each pane sources .env.sh so 1Password vars
+  # are available, then runs op-wrapped dev command. Trailing bash keeps the
+  # pane alive after the server exits so Pontus can see crash output.
+  WEB_CMD="cd '$PROJECT_ROOT' && source .env.sh && echo '[web :3060]' && op run --env-file=.env.template -- pnpm --filter web dev; exec bash"
+  LANDING_CMD="cd '$PROJECT_ROOT' && source .env.sh && echo '[landing :3055]' && op run --env-file=.env.template -- pnpm --filter landing dev; exec bash"
+  MOBILE_CLEAR=""
+  [ "$RESTART" -eq 1 ] && MOBILE_CLEAR=" -- --clear"
+  MOBILE_CMD="cd '$PROJECT_ROOT' && source .env.sh && echo '[mobile :8083]' && op run --env-file=.env.template -- pnpm --filter mobile dev${MOBILE_CLEAR}; exec bash"
+  VOICE_CMD="cd '$PROJECT_ROOT/services/voice-agent' && source '$PROJECT_ROOT/.env.sh' && echo '[voice-agent]' && op run --env-file=.env.template -- pnpm dev; exec bash"
+
+  # Create session with web pane (pane 0), then split landing right (pane 1),
+  # mobile below web (pane 2), voice-agent below landing (pane 3).
+  tmux new-session -d -s "$TMUX_SESSION" -n servers -c "$PROJECT_ROOT" "$WEB_CMD"
+  tmux split-window -h -t "${TMUX_SESSION}:servers.0" -c "$PROJECT_ROOT" "$LANDING_CMD"
+  tmux split-window -v -t "${TMUX_SESSION}:servers.0" -c "$PROJECT_ROOT" "$MOBILE_CMD"
+  tmux split-window -v -t "${TMUX_SESSION}:servers.1" -c "$PROJECT_ROOT" "$VOICE_CMD"
+  tmux select-layout -t "${TMUX_SESSION}:servers" tiled
+  tmux select-pane -t "${TMUX_SESSION}:servers.0"
+
+  ok "tmux session '$TMUX_SESSION' created with 4 panes (web | landing / mobile | voice-agent)"
+fi
 
 # ── Summary ────────────────────────────────────────────────
 echo ""
@@ -386,3 +453,17 @@ echo -e "  ${GREEN}Landing${NC}       — http://localhost:3055"
 echo -e "  ${GREEN}Mobile PWA${NC}    — http://localhost:8083"
 echo -e "  ${GREEN}Voice-agent${NC}   — LiveKit worker (autojoins rooms)"
 echo ""
+
+if [ "$DETACHED" -eq 0 ]; then
+  echo -e "  Live output: ${CYAN}tmux attach -t ${TMUX_SESSION}${NC}"
+  echo -e "  Detach pane: ${CYAN}Ctrl-b d${NC}   Navigate panes: ${CYAN}Ctrl-b <arrow>${NC}   Zoom: ${CYAN}Ctrl-b z${NC}"
+  echo ""
+
+  # Auto-attach when invoked from interactive terminal and not already inside tmux.
+  if [ "$NO_ATTACH" -eq 0 ] && [ -t 0 ] && [ -t 1 ] && [ -z "${TMUX:-}" ]; then
+    log "Attaching to tmux session..."
+    exec tmux attach -t "$TMUX_SESSION"
+  elif [ -n "${TMUX:-}" ]; then
+    warn "Already inside a tmux session — run 'tmux attach -t ${TMUX_SESSION}' from another terminal to view."
+  fi
+fi

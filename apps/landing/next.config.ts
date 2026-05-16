@@ -29,7 +29,24 @@ const nextConfig: NextConfig = {
     "/sitemap.xml": ["../../docs/User Manual/**/*.md"],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion", "@radix-ui/react-icons"],
+    // F-01 (audit 2026-05-15 slice 11): mirror apps/web optimizePackageImports
+    // for parity. Packages not imported by landing are a no-op here.
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "@radix-ui/react-icons",
+      "recharts",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "@smartout/ui",
+      "@smartout/types",
+      "@smartout/telemetry",
+      "date-fns",
+      "posthog-js",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "sonner",
+    ],
   },
   images: {
     formats: ["image/avif", "image/webp"],
@@ -86,8 +103,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  org: "smartout",
-  project: "landing",
-});
+// F-02 (audit 2026-05-15 slice 11): Skip Sentry source-map upload on local +
+// preview builds — only run on production Vercel deploys. Mirrors apps/web
+// gate (shipped 2026-04-29 Wave 1). Cuts 30-60s off non-prod build time and
+// avoids leaking landing source maps from preview environments.
+const shouldUploadSourceMaps = process.env.VERCEL_ENV === "production";
+
+export default shouldUploadSourceMaps
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      org: "smartout",
+      project: "landing",
+    })
+  : nextConfig;
