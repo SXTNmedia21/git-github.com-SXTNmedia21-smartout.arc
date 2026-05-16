@@ -24,7 +24,7 @@
  *   500 — unexpected tool error
  *
  * Spec ref: docs/superpowers/specs/2026-05-16-timeline-templates-design.md §Archive flow
- * ADR refs: ADR-0078, ADR-0099, ADR-0134, ADR-0151, ADR-0204, ADR-0287, ADR-0334
+ * ADR refs: ADR-0078, ADR-0099, ADR-0134, ADR-0151, ADR-0204, ADR-0287, ADR-0335
  *
  * ─── Manual smoke test examples ────────────────────────────────────────────────
  * # PATCH — archive template (replace <id> and <session-cookie>)

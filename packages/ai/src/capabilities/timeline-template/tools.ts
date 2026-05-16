@@ -1,5 +1,5 @@
 /**
- * timeline_template capability tools — ADR-0334.
+ * timeline_template capability tools — ADR-0335.
  *
  * Four tools covering the full save → list → apply → archive lifecycle for
  * TimelineTab templates.  Every mutating tool routes through `mutateWithGate`
@@ -36,7 +36,7 @@
  *   ADR-0189  — authority-seed-parity CI (timeline_template capability seeded by T1 migration)
  *   ADR-0204  — composition orchestrator (Pathway A + B)
  *   ADR-0287  — mutateWithGate mandatory on mutation capability tools
- *   ADR-0334  — Timeline Templates feature ADR
+ *   ADR-0335  — Timeline Templates feature ADR
  *   L-0175    — gate_action mandatory before any DB write (enforced by mutateWithGate)
  *   L-0176    — docstring claims must match body (verified; body is the source)
  *   L-0177    — fail-fast on missing workspace_id / profile_id

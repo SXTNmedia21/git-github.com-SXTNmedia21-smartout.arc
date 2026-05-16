@@ -23,7 +23,7 @@
 -- Soft-delete: hard DELETE is intentionally policy-less. Archive via
 --   UPDATE SET is_archived = true (T2 archive_template tool).
 --
--- ADR ref: ADR-0334 (Timeline Templates — D6 authoring + filter+save+apply)
+-- ADR ref: ADR-0335 (Timeline Templates — D6 authoring + filter+save+apply)
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS public.timeline_template (
@@ -118,4 +118,4 @@ COMMENT ON TABLE public.timeline_template IS
   'Managers save a scope-filtered view of D6 items as a named template; '
   'apply materialises real D6 rows (schedule_shift, session_hook, session_task, '
   'session_note, deviation) in a single transaction for a target date. '
-  'Soft-delete only via is_archived. ADR-0334.';
+  'Soft-delete only via is_archived. ADR-0335.';

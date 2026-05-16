@@ -21,7 +21,7 @@
 -- Idempotent: ON CONFLICT (workspace_id, capability) DO NOTHING ensures safe
 --   replay on fresh DBs or after db reset.
 --
--- ADR ref: ADR-0334 (Timeline Templates), ADR-0189 (authority-seed-parity)
+-- ADR ref: ADR-0335 (Timeline Templates), ADR-0189 (authority-seed-parity)
 -- ============================================
 
 -- ─── Part A: Backfill existing workspaces ─────────────────────────────────────
@@ -81,7 +81,7 @@ VALUES
     'admin',
     false,
     72,
-    'ADR-0334. Timeline Templates: save/apply/archive scope-filtered D6 authoring canvases. '
+    'ADR-0335. Timeline Templates: save/apply/archive scope-filtered D6 authoring canvases. '
     'Chat-only per ADR-0078 (no voice apply — D6 writes are irreversible). '
     'save_template (gate: timeline_template.save): INSERT timeline_template row. '
     'apply_template (gate: timeline_template.apply): transactional D6 row materialization. '

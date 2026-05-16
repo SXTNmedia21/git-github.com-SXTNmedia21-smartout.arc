@@ -1,5 +1,5 @@
 /**
- * timeline_template capability definition — ADR-0334.
+ * timeline_template capability definition — ADR-0335.
  *
  * Four tools covering the save → list → apply → archive lifecycle for
  * TimelineTab (Dagslinjen) templates.  All tools are CHAT-ONLY (ADR-0078):
