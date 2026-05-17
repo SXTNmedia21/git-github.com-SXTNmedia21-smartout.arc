@@ -299,3 +299,78 @@ Disse må avklares **før Phase 1 produksjon**:
 *Confidence-merking per seksjon: §1 HØY på seeded satser/paragraf-sitat, MEDIUM på bransjetolkninger; §3 MEDIUM på useedede satser; §5 MEDIUM/LAV på gråsone-endringer (alle LAV anbefaler advokatvurdering).*
 
 *Anbefalt før Phase 1 prod: seed manglende Riksavtalen-satser (nattillegg, delt vakt) via ADR-0252; avklar §7.1 og §7.2 med advokat eller NHO Reiseliv.*
+
+---
+
+## 9. Amendment-Classifier — Aml. §14-6 rule matrix (Lovsen-owned)
+
+Single source of truth for classification av kontrakt-/tariff-endringer. Pure function — zero I/O. Bor i `packages/ai/src/capabilities/legal/amendment-classifier.ts` og brukes av alle payroll-/contract-tools som muterer §14-6 felter. ADR-0173 frozen-4: legal eier matrisen, andre capabilities kaller den (eksempel: `payroll.change_workspace_tariff`).
+
+### 9.1 Output-kontrakt
+
+```ts
+type AmendmentClassification = {
+  classifier: 'UP' | 'MATERIAL' | 'ENDRINGSOPPSIGELSE';
+  reason: string;              // norsk, paragraf-sitert
+  aml_refs: string[];          // Aml./Riksavtalen §-referanser
+  requires_resigning: boolean; // true for ENDRINGSOPPSIGELSE
+  notice_period_days: number | null; // §15-3 default 30, null ellers
+};
+```
+
+### 9.2 Rule matrix
+
+Reglene evalueres i prioritert rekkefølge — første treff vinner.
+
+| # | Trigger | Klassifisering | Aml. §-ref | requires_resigning |
+|---|---|---|---|---|
+| 1 | No-op (samme union, samme law_version, ingen endring i lønn/stilling/arbeidstid) | UP | §14-6 | false |
+| 2 | Endring av stilling (bokstav c) | ENDRINGSOPPSIGELSE | §14-6 c + §15-7 + §15-3 | true |
+| 2 | Endring av avtalt arbeidstid (bokstav d) | ENDRINGSOPPSIGELSE | §14-6 d + §15-7 + §15-3 | true |
+| 3 | Lønn-reduksjon ≥15% | ENDRINGSOPPSIGELSE | §14-6 b + §15-7 + §15-3 | true |
+| 4 | Tariff-bundet → ikke-tariff-bundet (tap av floor) | ENDRINGSOPPSIGELSE | §14-6 m + §15-7 + §15-3 | true |
+| 4b | Ikke-tariff-bundet → tariff-bundet (forbedring) | MATERIAL | §14-6 m | false |
+| 5 | Union-bytte med >5% rate-floor-fall | ENDRINGSOPPSIGELSE | §14-6 b + m + §15-7 + §15-3 | true |
+| 6 | Union-bytte uten signifikant reduksjon | MATERIAL | §14-6 m | false |
+| 7 | Samme union, ny law_version (Riksavtalen-revisjon) | UP | §14-6 + **Riksavtalen §4 carve-out** | false |
+| 8 | Mindre lønn-justering <15% | MATERIAL | §14-6 b | false |
+| 9 | Fallback (ingen observerbar §14-6 endring) | UP | §14-6 | false |
+
+### 9.3 Riksavtalen §4 carve-out
+
+Regel 7 koder den eksplisitte unntaket: indeksregulering / mellomoppgjør på SAMME union-binding (eks. `taro-79` `2024-2026` → `2025-mellomoppgjor`) er **UP**, ikke MATERIAL. Ansatt har implisitt avtalt tariff-revisjoner via tariffmedlemskap; §14-6 krever ikke ny signering for slike justeringer. Bryter ikke §14-6 b (lønn) fordi tariff-revisjon historisk er forbedring eller justering.
+
+### 9.4 ENDRINGSOPPSIGELSE → cascade BLOCK
+
+Når klassifikatoren returnerer MATERIAL eller ENDRINGSOPPSIGELSE, blokker cascade-laget (`cascade.bind_workspace_union`) skrivingen med `AMENDMENT_BLOCKED` og `aml_ref: §14-6(m)`. Phase 7f amendment-handler-kapabiliteten eier signerings-flyten med §15-3 oppsigelsesfrist (default 30 dager hvis ikke annet er avtalt). Klassifikatorens `reason` + `aml_refs` returneres til kaller for visning i UI.
+
+### 9.5 15%-terskel — bevisst konservativt valg
+
+§5 over angir gråsone 5–19% som MEDIUM. Klassifikatoren legger ENDRINGSOPPSIGELSE-grensen på **15%** — midten av gråsonen — for å fange Pontus' §7.10 standardpolicy ("ALL reduksjon krever ny signering" som konservativt forslag) uten å overhåndheve på små justeringer. Reduksjon 5–14% returnerer MATERIAL med eksplisitt prosent i `reason` slik at admin kan vurdere advokatkonsultasjon før commit.
+
+### 9.6 Test-coverage
+
+`packages/ai/src/capabilities/legal/__tests__/amendment-classifier.test.ts` har 10 unit-tester, alle paragraf-siterte i testnavn + `reason`-assertion:
+
+1. No-op (Rule 1) → UP
+2. Riksavtalen-revisjon (Rule 7) → UP
+3. Union-bytte uten reduksjon (Rule 6) → MATERIAL
+4. Union-bytte med >5% reduksjon (Rule 5) → ENDRINGSOPPSIGELSE
+5. Tariff → non-bound (Rule 4) → ENDRINGSOPPSIGELSE
+6. Non-bound → tariff (Rule 4b) → MATERIAL
+7. Lønn-reduksjon 20% (Rule 3) → ENDRINGSOPPSIGELSE
+8a. Stilling-endring (Rule 2) → ENDRINGSOPPSIGELSE
+8b. Arbeidstid-endring (Rule 2) → ENDRINGSOPPSIGELSE
+9. Lønn-reduksjon 10% (Rule 8) → MATERIAL
+
+### 9.7 Konsumenter
+
+Forbudt å duplisere klassifiseringen — kall `classifyAmendmentLogic` fra `@smartout/ai/capabilities/legal`.
+
+| Konsument | Hvor | Notat |
+|---|---|---|
+| `payroll.change_workspace_tariff` | `packages/ai/src/capabilities/payroll/tariff-tools.ts` | Erstattet inline TARIFF_REVISION/UNION_CHANGE-heuristikk (Phase 7d Track 5) |
+| Phase 7f amendment-handler | (pending) | Eier signerings-flyt for MATERIAL + ENDRINGSOPPSIGELSE |
+| `contract` amendment-tools | (pending) | Skal kalle klassifikatoren før endringer på `employment_contract` |
+
+[**HØY confidence** på Rule 7 Riksavtalen-carve-out; **MEDIUM** på 15%-terskel; **HØY** på Rule 2 stilling/arbeidstid (Aml. §14-6 c/d er load-bearing)]

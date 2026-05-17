@@ -1,7 +1,7 @@
 """
 test_fetch_paragraph.py — Tests for fetch_paragraph tool.
 
-All tests run in LOVSEN_MCP_FIXTURE=1 mode — no outbound HTTP.
+All tests run in LOVSEN_FIXTURE_MODE=true mode — no outbound HTTP.
 Network blocking is enforced by the fixture-mode guard in lovdata_client.py
 (raises RuntimeError on any http_get call) and confirmed via pytest-httpx mock
 which would fail if httpx.AsyncClient were used without interception.
@@ -14,7 +14,7 @@ import pytest
 import pytest_asyncio
 
 # Ensure fixture mode is active for all tests in this module
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 # Re-import module after env var is set so FIXTURE_MODE constant is correct
 import importlib
@@ -30,8 +30,8 @@ def _reload_client():
 
 @pytest.fixture(autouse=True)
 def fixture_mode_env(monkeypatch):
-    """Guarantee LOVSEN_MCP_FIXTURE=1 for every test."""
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    """Guarantee LOVSEN_FIXTURE_MODE=true for every test."""
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 @pytest.mark.asyncio

@@ -6,15 +6,46 @@ date: 2026-05-16
 accepted_date: 2026-05-16
 layer: decision
 created: 2026-05-16
-updated: 2026-05-16
+updated: 2026-05-17
 module: MODULE_AGENT_SDK
 tags: [lovsen, mcp, citation, freshness, golden-month, ci, payroll, p1]
 supersedes: none
 superseded_by: none
-related_adrs: [ADR-0256, ADR-0258, ADR-0341]
+related_adrs: [ADR-0256, ADR-0258, ADR-0341, ADR-0347, ADR-0348]
+amended_by: [ADR-0347, ADR-0348]
 ---
 
 # ADR-0342: Lovsen MCP freshness-verification tool
+
+## 2026-05-17 AMENDMENT — Routing Updated per ADR-0347
+
+Original ADR-0342 routed Riksavtalen citations to NHO Reiseliv MCP `verify_citation_freshness`. Phase 7 pre-flight (2026-05-17) verified nhoreiseliv.no does NOT host Riksavtalen at any HTML URL — ADR-0258 routing was ontology fiction (see L-0286).
+
+**Effective 2026-05-17:** New Riksavtalen citations route to Lovdata MCP (per ADR-0347) via mirrored `verify_citation_freshness` tool on lovdata-mcp. NHO Reiseliv MCP `verify_citation_freshness` remains callable for the 358 cells stamped 2026-05-17 with `lovsen-mcp@v1` (legacy lineage), but is marked HISTORICAL pending re-cert in Phase 7c.
+
+**Updated MCP server placement** (supersedes original table row):
+
+| Source | MCP target | Status |
+|---|---|---|
+| Riksavtalen Fellesforbundet (taro-79) | `services/lovsen-lovdata-mcp/` | Canonical post-2026-05-17 |
+| Riksavtalen NHO Reiseliv routing (legacy) | `services/lovsen-nho-reiseliv-mcp/` | HISTORICAL — 358 cells pending re-cert (Phase 7c) |
+
+Stale-detection model supersession: see ADR-0348 (two-hash supersedes single-hash).
+
+---
+
+## 2026-05-17 AMENDMENT — Dynamic-MCP-Fetch Pivot (Round 2)
+
+**`verify_citation_freshness` role SPLITS into two consumers** per Phase 7d council (2026-05-17):
+
+- **(a) CI/batch staleness consumer:** `pnpm test:golden-month` (F6 gate, ADR-0341) calls `verify_citation_freshness` in batch against all fixture cells. Behavior contract unchanged — same MCP method, same routing table, same fixture-mode determinism.
+- **(b) Production drift detector:** Heartbeat cron (ADR-0354) calls `verify_citation_freshness` on a scheduled basis against the materialized tariff snapshot (ADR-0353), not against fixture cells. Drift detected → Telegram alert + Linear ticket `deploy-drift`. This is a new consumer class; it does NOT replace the CI consumer.
+
+**MCP method contract unchanged.** `verify_citation_freshness(hashes: string[]): Promise<FreshnessResult[]>` signature, behavior, and routing table are unmodified by this amendment. Only the consumer pattern is split.
+
+**Routing table UPDATED** per ADR-0347 amendment from earlier today (already applied in §"2026-05-17 AMENDMENT — Routing Updated per ADR-0347" above).
+
+---
 
 > ADR-0341 låste forventningen om at hver krone i `expected/` bærer sin egen `lovsenCitationHash`. Den forventningen er bare meningsfull hvis CI faktisk kan spørre Lovsen "er denne hashen fortsatt i kraft?" — uten den spørringen er stale-detection en bokstav på papiret, ikke en kontroll i pipelinen.
 

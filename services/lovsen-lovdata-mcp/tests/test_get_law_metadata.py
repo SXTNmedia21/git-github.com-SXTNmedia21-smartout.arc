@@ -1,7 +1,7 @@
 """
 test_get_law_metadata.py — Tests for get_law_metadata tool.
 
-All tests run in LOVSEN_MCP_FIXTURE=1 mode — no outbound HTTP.
+All tests run in LOVSEN_FIXTURE_MODE=true mode — no outbound HTTP.
 In fixture mode, metadata is derived from available fixture files.
 """
 
@@ -11,7 +11,7 @@ import os
 import sys
 import pytest
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload_client():
@@ -22,7 +22,7 @@ def _reload_client():
 
 @pytest.fixture(autouse=True)
 def fixture_mode_env(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 @pytest.mark.asyncio

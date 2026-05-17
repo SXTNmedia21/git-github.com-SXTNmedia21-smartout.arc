@@ -3,7 +3,7 @@ get_law_metadata.py — MCP tool: fetch metadata for a Norwegian law from Lovdat
 
 Returns: { name, version, last_updated, total_paragraphs, source_url }
 NOT a Citation — metadata only (per plan contract).
-In LOVSEN_MCP_FIXTURE=1 mode: derived from available fixtures — zero HTTP.
+In LOVSEN_FIXTURE_MODE=true mode: derived from available fixtures — zero HTTP.
 In live mode: rate-limited via lovdata_client (1 req/sec, ADR-0244).
 """
 

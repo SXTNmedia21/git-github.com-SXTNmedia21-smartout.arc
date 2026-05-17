@@ -35,6 +35,7 @@ import { posAccountManagementCapability } from "./pos_account_management/index.j
 import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 import { schedulerCapability } from "./scheduler/index.js";
 import { timelineTemplateCapability } from "./timeline-template/index.js";
+import { cascadeCapability } from "./cascade/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -143,6 +144,14 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // emitPrefix='timeline_template'. 5 telemetry events (T2 sortie).
   // Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql.
   timeline_template: timelineTemplateCapability,
+  // Cascade-namespace delegation tools — ADR-0356 + ADR-0173 frozen-4. 2 tools:
+  //   bind_workspace_union (→ workspace_union_binding, ADR-0355 lifecycle contract),
+  //   add_supplement_rule (→ public.supplement_rule, workspace-scoped override).
+  // Called by payroll Phase 7f tools (setup_workspace_tariff, change_workspace_tariff,
+  // add_supplement_override); NEVER invoked directly by users. chat-only, direct_admin.
+  // Both the caller gate AND the cascade gate fire independently per ADR-0356 §"Gate convention".
+  // emitPrefix='cascade'. Authority seeded at autonomous by 20260618200000.
+  cascade: cascadeCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

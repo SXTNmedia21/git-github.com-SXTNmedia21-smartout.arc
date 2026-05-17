@@ -194,13 +194,16 @@ describe("lovsen telemetry contract — payload shapes (ADR-0134/ADR-0193)", () 
       workspace_id: WS,
       actor_id: ACTOR,
       properties: {
-        paragraph: "Aml. §14-6",
+        hash: "abc123" + "0".repeat(58),
+        paragraph_ref: "Aml. §14-6",
         fetched_at: "2026-03-01T00:00:00.000Z",
         age_hours: 1416,
       },
     };
     expect(payload.workspace_id).toBeTruthy();
     expect(payload.actor_id).toBeTruthy();
+    expect(payload.properties.hash).toHaveLength(64);
+    expect(payload.properties.paragraph_ref).toBe("Aml. §14-6");
   });
 });
 
