@@ -45,7 +45,7 @@ Forward-fix sortie remediating the post-implementation R1 council findings on th
 
 1. **Telemetry view-event data fields are placeholders.** 3 of 4 events emit with `0` for their data field (workspace_readiness_percent, protocol_count, active_session_count). TODO comments + tracker in plan. Requires hoisting hooks to page level — Sortie 4 scope per ADR-0115 admin pattern blocker.
 2. **Pre-existing palette debt in `apps/web/src/app/dashboard/hms/_components/{DeviationKanban,DeviationDetailDrawer,ProcedureDetailTabs}.tsx`** — hardcoded `bg-red-500`, `bg-yellow-500`, `bg-blue-500`. Flagged by predecessor HANDOFF; not scope here.
-3. **`animate-spin` on Loader2 across 6 HMS components without `useReducedMotion()` gate.** WCAG 2.3.3 AAA (not AA). Sortie 4 / broader motion-preferences pass.
+3. **`animate-spin` on Loader2 — actual count 297 occurrences across 180+ files (dashboard-wide), NOT 6 HMS-local as originally claimed.** Count updated post-R2 council 2026-05-17 PM2 (R1 said 6, R2 reviewer said 20, R2 chair grep verified 297 in 180+ files). WCAG 2.3.3 AAA (not AA). Sortie 4 scope reframed: dashboard-wide `useReducedMotion()` convention shift + ESLint rule, NOT HMS-local fix.
 4. **Cardinality concern on `activity_trail` from view events** — predecessor HANDOFF Known Issue #4. Deferred (broader question, applies to all read-side events that route to activity_trail).
 
 ## Next steps

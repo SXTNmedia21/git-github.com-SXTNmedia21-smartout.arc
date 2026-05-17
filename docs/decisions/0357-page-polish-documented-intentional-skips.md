@@ -92,3 +92,57 @@ When evaluating a Phase 0 FAIL during a council:
 ## Author
 
 System Council R1 verdict on hms-cluster-polish-read 2026-05-17 (Phase 5 chair synthesis). Drafted by Pontus + Claude Opus 4.7 (sub-sortie hms-cluster-polish-fixup).
+
+---
+
+## V2 Addendum — Page-Header Inheritance Carve-Out (proposed, 2026-05-17 PM2)
+
+Added after R2 council on hms-cluster-polish-read + fixup exposed an edge case in the original carve-out.
+
+### Context
+
+R2 council Phase 3 Supervisor downgraded `/dashboard/hms/training` Phase 6 verdict from PASS (R1) to PARTIAL. Evidence: `apps/web/src/app/dashboard/hms/training/page.tsx:42` body is `return isAdminMode ? <CompetenceMatrix /> : <ProtocolList />` — 1-line conditional delegation. Page-file has ZERO page-level header JSX of its own. Header inheritance is entirely via:
+- (a) parent layout sub-nav (`HmsSubNav.tsx:17` "Opplæring" label) — Botsson-readable section context
+- (b) child component primary `<h2>` (CompetenceMatrix + ProtocolList own their own headings)
+
+V1 ADR-0357 NEVER-skippable (b) reads as page-file ownership of header + description. Strict mechanical application would force adding redundant page-level `<h1>` even when sub-nav + child header already satisfy Botsson's "what is this page?" answer.
+
+This pattern is widespread across the HMS cluster (5+ pages) and likely common across other dashboard surfaces with admin/employee role-conditional delegation.
+
+### Decision (v2 addendum)
+
+NEVER-skippable (b) "page header + description" can be satisfied via inheritance pattern when ALL of:
+
+1. Page-file body is thin-shell (1-N line conditional render to ≥2 sibling components)
+2. Parent layout provides section-level labeling (sub-nav with route label OR breadcrumb segment)
+3. Each child component branch owns a primary heading (typically `<h2>` for the route's main concept)
+
+In this case, Botsson can resolve "what is this page?" via:
+- Site-map entry `purpose` field (canonical answer source, always present per NEVER-skippable (a))
+- Layout breadcrumb (visual + accessible label)
+- Active child component heading (visual + screen-reader announcement)
+
+When inheritance pattern is used, HANDOFF MUST document:
+- The thin-shell delegation pattern (which components are delegated to)
+- That header inheritance is intentional (not a missing implementation)
+- That site-map `purpose` is the canonical source-of-truth for Botsson's route knowledge
+
+### Consequences
+
+- Removes false BLOCKED verdicts on legitimate thin-shell delegating pages with role-conditional headers
+- Strengthens site-map `purpose` field as canonical Botsson route knowledge
+- Risk: pages with mismatched delegation (no child heading + no sub-nav label + no site-map entry) still pass strict NEVER-skippable (b). Mitigated by site-map entry being NEVER-skippable on its own (catches the worst case)
+
+### Status
+
+Proposed. Promote to accepted after 2nd independent council exercises the inheritance carve-out cleanly.
+
+### Reference precedent
+
+HMS training page (`apps/web/src/app/dashboard/hms/training/page.tsx:42`) verified 2026-05-17 PM2:
+- Thin-shell: 1-line conditional render to CompetenceMatrix or ProtocolList
+- Parent layout: HmsSubNav.tsx:17 "Opplæring" section label
+- Child heading: CompetenceMatrix + ProtocolList own primary headings
+- Site-map purpose: ≤140 chars after B1 trim (validator passes)
+
+R2 chair classified Phase 6 PARTIAL → ACCEPTABLE under this addendum.

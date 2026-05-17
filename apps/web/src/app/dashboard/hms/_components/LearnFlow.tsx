@@ -76,7 +76,7 @@ export function LearnFlow({ procedureId, readOnly = false }: Props) {
               key={stage.id}
               onClick={() => !readOnly && setActiveStage(stage.id)}
               disabled={readOnly}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-all ${
+              className={`focus-visible:ring-ring flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
                 isActive
                   ? "bg-primary/10 text-primary border-primary/30 border"
                   : isPast

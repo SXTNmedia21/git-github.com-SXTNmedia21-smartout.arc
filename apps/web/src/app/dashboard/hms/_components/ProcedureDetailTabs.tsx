@@ -103,7 +103,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`focus-visible:ring-ring flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
                 isActive
                   ? "bg-background text-foreground shadow"
                   : "text-muted-foreground hover:text-foreground"
