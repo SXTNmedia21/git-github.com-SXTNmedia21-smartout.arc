@@ -58,6 +58,8 @@ const GlobalCreateMenu = dynamic(
   { ssr: false },
 );
 
+import { BotssonHost } from "@/app/Botsson/_components/BotssonHost";
+
 const EmmaOverlay = dynamic(
   () =>
     import("@/app/Botsson/_components/EmmaOverlay").then((m) => ({
@@ -1117,6 +1119,10 @@ function DashboardShellInner({
             isDark ? "dark" : ""
           } bg-background text-foreground`}
         >
+          {/* Setup page intentionally bypasses BotssonHost / EmmaOverlay.
+              No workspace context yet → no BotssonProvider needed.
+              Any future setup-page child that needs DomainChatOwnership
+              must declare a local BotssonProvider. ADR-0348 §boundary. */}
           {children}
         </div>
       </DashboardContext.Provider>
@@ -1772,7 +1778,15 @@ function DashboardShellInner({
                               </div>
                             </>
                           )}
-                          {children}
+                          {/* BotssonHost owns BotssonProvider scope (SSR-safe, server-side
+                              rendered). EmmaOverlay is the floating Orb/Shell mounted as
+                              sibling under the same provider. Together they let
+                              DomainChatOwnership consumers in children share one provider
+                              with the Orb (ADR-0238 + ADR-0337 + ADR-0348). */}
+                          <BotssonHost>
+                            {children}
+                            <EmmaOverlay />
+                          </BotssonHost>
                         </div>
                         <AnimatePresence>
                           <EntityDrawer />
@@ -1785,9 +1799,6 @@ function DashboardShellInner({
 
               {/* Global incoming call overlay — works from any dashboard page */}
               <GlobalCallAlert />
-
-              {/* Emma — floating voice overlay (inside EntityDrawerProvider for agent bridge) */}
-              <EmmaOverlay />
             </div>
           </ChatPanelProvider>
         </EntityDrawerProvider>

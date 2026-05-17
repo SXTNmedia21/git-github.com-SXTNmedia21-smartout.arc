@@ -2,7 +2,6 @@
 
 import { Suspense } from "react";
 import { BotssonChat } from "@/app/Botsson/_components/BotssonChat";
-import { BotssonProvider } from "@/app/Botsson/_components/BotssonProvider";
 
 type Props = { firstName: string; workspaceId: string };
 
@@ -23,15 +22,12 @@ export function BotssonChatHero({ firstName, workspaceId }: Props) {
         for å søke i håndboken.
       </p>
 
-      {/* BotssonChat consumes useBotsson() for sessionId state. Dashboard chrome's
-          EmmaOverlay provider is a sibling subtree, not an ancestor, so the chat
-          surface needs its own provider scoped to the hero. */}
+      {/* BotssonChat inherits BotssonProvider scope from ancestor BotssonHost
+          in DashboardShell (ADR-0348). No nested provider needed. */}
       <Suspense>
-        <BotssonProvider workspaceId={workspaceId}>
-          <div className="mt-4 max-h-[360px] overflow-auto">
-            <BotssonChat workspaceId={workspaceId} />
-          </div>
-        </BotssonProvider>
+        <div className="mt-4 max-h-[360px] overflow-auto">
+          <BotssonChat workspaceId={workspaceId} />
+        </div>
       </Suspense>
     </section>
   );
