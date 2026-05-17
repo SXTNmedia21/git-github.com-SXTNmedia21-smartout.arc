@@ -101,6 +101,7 @@ Per supervisor verdict: "Once CONDITION 1 lands, no re-council needed."
 | 1Password vault item `Supabase Preview Branch` not archived | Low | Doc-only debt. Restoration path documents unarchive step. Operator can archive at convenience or leave with descriptive note. |
 | Edge Function + RLS pre-main smoke now opt-in only (CI workflow_dispatch) | Medium | Trade-off explicit in ADR-0360 §Bad. Mitigation: adjacent sortie to add `workflow_dispatch` to `pgtap.yml` + Edge Function workflows = one-click pre-main smoke. |
 | 0000-decision-log.md ADR-0071 row no `[amended]` suffix | Trivial | Optional log-level marker; ADR file itself carries amendment marker. Not load-bearing for grepability. |
+| `pnpm ci:local` FAIL=1 — mobile jest worker SIGTERM (4 suites killed, 190 tests pass) | Medium | **Not caused by this sortie.** Sortie's diff is 100% infra/scripts + docs + ADR; zero `apps/mobile/**` files. Pre-existing L-jest-vitest-OOM family. Mobile jest is NOT in the 11 required CI checks (separate workflow). Retried with `NODE_OPTIONS=--max-old-space-size=8192 CI=true` in isolation — same SIGTERM. Structural mobile jest config issue. Defer to separate sortie. ci:local r2: PASS:21 / FAIL:1 (mobile only) / WARN:1 (authority-seed-parity tolerated per skill) / SKIP:14. |
 
 ## Acceptance criteria (per PLAN)
 
