@@ -854,7 +854,7 @@
     },
     {
       "path": "/dashboard/hms/training",
-      "purpose": "Training mode for protocols + competence matrix. Trainee sees assigned protocols (ProtocolList) or admin sees readiness matrix (CompetenceMatrix) — role-conditional.",
+      "purpose": "Training mode for protocols + competence matrix. Admin sees readiness matrix; employee sees assigned protocols (role-conditional).",
       "module": "HMS",
       "tier": 3,
       "access": ["employee", "manager", "admin", "owner"],
