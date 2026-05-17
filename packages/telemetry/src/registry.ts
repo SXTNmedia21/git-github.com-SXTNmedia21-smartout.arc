@@ -12357,9 +12357,9 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // EHF-innstillinger er company-scoped (workspace_id null).
   // posthog: adopsjonskurve for EHF-aktivering.
   // logger: drift-synlighet.
-  // activity_trail: audit-trail for compliancehistorikk.
+  // activity_trail utelatt: provider har early-return på workspace_id === null — company-scoped events faller gjennom; audit dekkes av posthog + logger.
   "company.ehf_settings_updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger"],
     category: "billing",
   },
 
