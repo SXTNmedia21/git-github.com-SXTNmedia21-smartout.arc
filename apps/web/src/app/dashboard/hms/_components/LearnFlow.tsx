@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { useProcedureSteps, type ProcedureStepWithTraining } from "../_hooks/use-procedure-steps";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
+import remarkGfm from "remark-gfm";
 
 type Stage = "understand" | "practice" | "test" | "confirm" | "done";
 
@@ -208,7 +211,9 @@ function StepContent({
         {/* Training content (rich) or fallback to description */}
         <div className="prose prose-sm dark:prose-invert max-w-none">
           {step.trainingContent ? (
-            <div dangerouslySetInnerHTML={{ __html: step.trainingContent }} />
+            <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
+              {step.trainingContent}
+            </ReactMarkdown>
           ) : (
             <p>{step.description}</p>
           )}

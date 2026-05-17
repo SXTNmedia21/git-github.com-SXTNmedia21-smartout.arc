@@ -30,10 +30,7 @@ export function HmsSubNav() {
 
   return (
     <nav aria-label="HMS navigasjon">
-      <div
-        role="tablist"
-        className="bg-muted/50 border-border mb-6 flex gap-1 rounded-xl border p-1"
-      >
+      <div className="bg-muted/50 border-border mb-6 flex gap-1 rounded-xl border p-1">
         {HMS_TABS.map((tab) => {
           const active = isActive(tab.href);
           const Icon = tab.icon;
@@ -42,9 +39,8 @@ export function HmsSubNav() {
             <Link
               key={tab.id}
               href={tab.href}
-              role="tab"
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`focus-visible:ring-ring flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
                 active
                   ? "bg-background text-foreground shadow"
                   : "text-muted-foreground hover:text-foreground"
