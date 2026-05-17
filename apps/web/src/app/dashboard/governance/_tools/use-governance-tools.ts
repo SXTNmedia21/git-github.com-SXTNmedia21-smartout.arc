@@ -3,16 +3,21 @@
 /**
  * use-governance-tools.ts — Botsson tools for the /dashboard/governance surface.
  *
- * Eight tools — five read, two write proposals, one navigation:
+ * Seven tools — four read, two write proposals, one navigation:
  *
  *   getGovernanceState       — overall readiness + deviation summary + tab state
  *   listProtocols            — D3-layer protocols with completion % + policy type
  *   getProtocolDetail        — single protocol: assignee list + status breakdown
  *   listOverdueItems         — protocols with expired or low-completion assignments
- *   listOpenDeviations       — open/escalated C4-layer deviations (blocks day-approval)
  *   proposeAssignProtocol    — open AssignProtocolSheet pre-filled for a protocol
  *   proposeCreateDeviation   — navigate to /dashboard/hms/deviations with form hint
  *   switchGovernanceTab      — navigate to a sub-tab (oversikt/drift/training/documents/deviations/governance)
+ *
+ * Removed tools (ADR-0348 collision fix — M5 Sortie 2, 2026-05-17):
+ *   listOpenDeviations — REMOVED: single owner is hms/deviations sub-tab
+ *                        (use-hms-deviations-tools.ts). Governance surface
+ *                        surfaces deviation counts via getGovernanceState;
+ *                        for full list, manager navigates to hms/deviations.
  *
  * Write tools follow the proposal pattern — Botsson opens the sheet/form and
  * the user confirms + saves. No direct DB writes from tool handlers (workspace_id
@@ -120,19 +125,6 @@ function summarizeProtocol(p: GovernanceProtocolSummary) {
   };
 }
 
-function summarizeDeviation(d: GovernanceDeviationSummary) {
-  return {
-    deviationId: d.deviationId,
-    title: d.title,
-    severity: d.severity,
-    status: d.status,
-    domain: d.domain,
-    department: d.departmentName,
-    blocksDayApproval: d.blocksDayApproval,
-    createdAt: d.createdAt,
-  };
-}
-
 /* ━━━ Hook ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 export function useGovernanceTools(input: GovernanceToolInput): ClientToolKit {
@@ -212,24 +204,6 @@ export function useGovernanceTools(input: GovernanceToolInput): ClientToolKit {
                 type: "number",
                 description:
                   "Completion percent below which a protocol is flagged. Default 80. Range 0–100.",
-              },
-            },
-          ],
-          client: {},
-        },
-      },
-      {
-        temporaryTool: {
-          modelToolName: "listOpenDeviations",
-          description:
-            "List open C4-layer deviations (open + acknowledged + escalated). Includes severity, domain, department, and whether the deviation blocks day-approval. Use when manager asks 'hvilke avvik er åpne?', 'blokkerer noe dag-godkjenning?'.",
-          dynamicParameters: [
-            {
-              name: "blocking_only",
-              location: PARAMETER_LOCATION_BODY,
-              schema: {
-                type: "boolean",
-                description: "If true, only return deviations that block day-approval.",
               },
             },
           ],
@@ -367,20 +341,6 @@ export function useGovernanceTools(input: GovernanceToolInput): ClientToolKit {
             expiredCount: p.expiredCount,
             reason: p.expiredCount > 0 ? "expired_assignments" : "low_completion",
           })),
-        });
-      },
-
-      listOpenDeviations: (params) => {
-        const d = dataRef.current;
-        const blockingOnly = params.blocking_only === true;
-        const list = blockingOnly
-          ? d.openDeviations.filter((x) => x.blocksDayApproval)
-          : d.openDeviations;
-
-        return JSON.stringify({
-          count: list.length,
-          blockingOnly,
-          deviations: list.map(summarizeDeviation),
         });
       },
 

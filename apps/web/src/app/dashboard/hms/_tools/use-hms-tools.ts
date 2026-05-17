@@ -11,14 +11,20 @@
  * HMS-scope = umbrella overview state, open-count summaries, and
  * switching between the six HMS sub-tabs.
  *
- * Tools (6):
- *   getHmsOverview      — counts: open deviations, governance readiness%,
+ * Tools (4):
+ *   getHmsOverview       — counts: open deviations, governance readiness%,
  *                          overdue protocols, upcoming reviews (30d)
- *   listOpenDeviations  — open/acknowledged/escalated deviations (summary)
  *   listOverdueProtocols — protocols with expiredCount > 0
- *   getDriftStatus      — today's session stats (active/closed/missed/overdue-tasks)
- *   switchHmsTab        — navigate to any of the 6 HMS sub-tabs
- *   focusDeviation      — navigate to deviations tab for a specific deviation id
+ *   switchHmsTab         — navigate to any of the 6 HMS sub-tabs
+ *   focusDeviation       — navigate to deviations tab for a specific deviation id
+ *
+ * Removed tools (ADR-0348 collision fix — M5 Sortie 2, 2026-05-17):
+ *   listOpenDeviations — REMOVED: single owner is hms/deviations sub-tab
+ *                        (use-hms-deviations-tools.ts). HMS umbrella users
+ *                        must navigate to the deviations tab first.
+ *   getDriftStatus     — REMOVED: single owner is hms/drift sub-tab
+ *                        (use-hms-drift-tools.ts). Object.assign last-wins
+ *                        collision with drift scope resolved.
  *
  * Pattern: dataRef (refreshed every render) + stable useMemo definitions.
  * Scope: useRegisterTools("hms", tools) — distinct from "governance" scope.
@@ -36,7 +42,6 @@ import type {
   ClientToolKit,
 } from "@smartout/agent-sdk";
 import type { DeviationRow } from "@smartout/hms";
-import type { DriftInsights } from "../_hooks/use-drift-insights";
 
 /** The 6 HMS sub-tabs, matching HmsSubNav hrefs. */
 export type HmsTab = "oversikt" | "drift" | "training" | "documents" | "deviations" | "governance";
@@ -52,8 +57,6 @@ export type HmsToolInput = {
   upcomingReviewCount: number;
   /** Open/acknowledged/escalated deviations (list for detail, length for count). */
   openDeviations: DeviationRow[];
-  /** Today's drift insight stats (can be null when data not yet loaded). */
-  driftInsights: DriftInsights | null;
   /** UI actions for navigation. */
   uiActions: {
     /** Navigate to a specific HMS sub-tab by routing to its href. */
@@ -83,19 +86,6 @@ function isValidHmsTab(value: unknown): value is HmsTab {
   );
 }
 
-function summarizeDeviation(d: DeviationRow) {
-  return {
-    id: d.deviationId,
-    title: d.title,
-    status: d.status,
-    severity: d.severity,
-    domain: d.domain,
-    department: d.departmentName ?? null,
-    blocksDayApproval: d.blocksDayApproval,
-    createdAt: d.createdAt,
-  };
-}
-
 /* ━━━ Hook ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 export function useHmsTools(input: HmsToolInput): ClientToolKit {
@@ -117,37 +107,9 @@ export function useHmsTools(input: HmsToolInput): ClientToolKit {
       },
       {
         temporaryTool: {
-          modelToolName: "listOpenDeviations",
-          description:
-            "List open, acknowledged, and escalated C4-layer deviations with severity, domain, and department. Use when manager asks 'hvilke avvik er åpne?', 'er det noen blokkerende avvik?', or wants to see current deviation status.",
-          dynamicParameters: [
-            {
-              name: "blocking_only",
-              location: "PARAMETER_LOCATION_BODY",
-              schema: {
-                type: "boolean",
-                description:
-                  "If true, return only deviations that block day-approval. Default false.",
-              },
-            },
-          ],
-          client: {},
-        },
-      },
-      {
-        temporaryTool: {
           modelToolName: "listOverdueProtocols",
           description:
             "List D3-layer protocols that have expired assignments — employees whose certification has lapsed. Use when manager asks 'hvem er utgått på opplæring?', 'hvilke protokoller er overdue?', or needs compliance gap overview.",
-          dynamicParameters: [],
-          client: {},
-        },
-      },
-      {
-        temporaryTool: {
-          modelToolName: "getDriftStatus",
-          description:
-            "Get today's D6-layer session stats — active/closed/missed session counts, task completion %, overdue tasks, and blocking deviations. Use when manager asks 'hvordan går driften i dag?', 'er det noen sesjoner som ikke er lukket?'.",
           dynamicParameters: [],
           client: {},
         },
@@ -211,19 +173,6 @@ export function useHmsTools(input: HmsToolInput): ClientToolKit {
         });
       },
 
-      listOpenDeviations: (params) => {
-        const d = dataRef.current;
-        const blockingOnly = params.blocking_only === true;
-        const rows = blockingOnly
-          ? d.openDeviations.filter((dev) => dev.blocksDayApproval)
-          : d.openDeviations;
-        return JSON.stringify({
-          count: rows.length,
-          blocking_only: blockingOnly,
-          deviations: rows.map(summarizeDeviation),
-        });
-      },
-
       listOverdueProtocols: () => {
         // HMS overview doesn't carry the full protocol list — returns counts only.
         // For full list, manager should switchHmsTab("governance") to see detail.
@@ -234,27 +183,6 @@ export function useHmsTools(input: HmsToolInput): ClientToolKit {
             d.overdueProtocolCount > 0
               ? `${d.overdueProtocolCount} protokoll(er) har utgåtte sertifiseringer. Gå til Training-fanen for full liste.`
               : "Ingen utgåtte protokoller.",
-        });
-      },
-
-      getDriftStatus: () => {
-        const d = dataRef.current;
-        if (!d.driftInsights) {
-          return JSON.stringify({ ok: false, message: "Drift-data ikke lastet ennå." });
-        }
-        const ins = d.driftInsights;
-        return JSON.stringify({
-          totalSessions: ins.totalSessions,
-          activeSessions: ins.activeSessions,
-          closedSessions: ins.closedSessions,
-          missedSessions: ins.missedSessions,
-          pendingSignoffSessions: ins.pendingSignoffSessions,
-          taskCompletionPercent: ins.taskCompletionPercent,
-          totalTasks: ins.totalTasks,
-          completedTasks: ins.completedTasks,
-          overdueTasks: ins.overdueTasks,
-          openDeviations: ins.openDeviations,
-          blockingDeviations: ins.blockingDeviations,
         });
       },
 

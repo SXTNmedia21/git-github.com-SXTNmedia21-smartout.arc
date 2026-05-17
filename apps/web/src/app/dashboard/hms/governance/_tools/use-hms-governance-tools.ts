@@ -3,13 +3,19 @@
 /**
  * use-hms-governance-tools.ts — Botsson tools for /dashboard/hms/governance.
  *
- * Three read tools. Surface owns: protocol overview (D3 governance read) +
+ * Two read tools. Surface owns: protocol overview (D3 governance read) +
  * maintenance procedure form (admin write surface, separate component-local
  * state — no tool exposure beyond a status flag).
  *
  *   getHmsGovernanceOverview  — counts: total protocols, avg completion, worst, blocking
  *   listGovernanceProtocols   — name + policy type + completion% + assignee counts
- *   getProtocolDetail         — single protocol by id with all count breakdowns
+ *
+ * Removed tools (ADR-0348 collision fix — M5 Sortie 2, 2026-05-17):
+ *   getProtocolDetail — REMOVED: single owner is /dashboard/governance (top-level).
+ *                       Use-governance-tools.ts:getProtocolDetail is authoritative.
+ *                       Manager must navigate to /dashboard/governance to access
+ *                       per-protocol detail. hms/governance sub-tab shows
+ *                       overview + list only.
  *
  * Why no protocol-mutation tools:
  *   Protocol authoring + assignment lives under the platform `journey_authoring`
@@ -66,25 +72,6 @@ export function useHmsGovernanceTools(input: HmsGovernanceToolInput): ClientTool
           description:
             "List all active protocols with name, policy type (handbook/training/procedure/custom), completion percent, and assignee counts (total/completed/expired/in_progress/not_started/waived). Sorted by worst completion first. Use when the user asks 'vis alle protokoller', 'hvilke har jeg?', or 'list opp opplæring'.",
           dynamicParameters: [],
-          client: {},
-        },
-      },
-      {
-        temporaryTool: {
-          modelToolName: "getProtocolDetail",
-          description:
-            "Get the full count breakdown for one specific protocol — total assigned, completed, in_progress, not_started, expired, waived, plus policy type and completion percent. Use when the user asks about a specific protocol by name or id, or after listing.",
-          dynamicParameters: [
-            {
-              name: "protocolId",
-              location: "PARAMETER_LOCATION_BODY" as const,
-              schema: {
-                type: "string",
-                description: "UUID of the protocol to read.",
-              },
-              required: true,
-            },
-          ],
           client: {},
         },
       },
@@ -153,39 +140,6 @@ export function useHmsGovernanceTools(input: HmsGovernanceToolInput): ClientTool
               notStartedCount: p.notStartedCount,
               waivedCount: p.waivedCount,
             })),
-          }),
-        );
-      },
-
-      getProtocolDetail: (params: Record<string, unknown>) => {
-        const d = dataRef.current;
-        const id = String(params.protocolId ?? "");
-        if (!id) {
-          return Promise.resolve(JSON.stringify({ ok: false, error: "protocolId required" }));
-        }
-        const protocol = d.protocols.find((p) => p.protocolId === id);
-        if (!protocol) {
-          return Promise.resolve(JSON.stringify({ ok: false, error: "protocol not found", id }));
-        }
-        return Promise.resolve(
-          JSON.stringify({
-            ok: true,
-            protocol: {
-              id: protocol.protocolId,
-              name: protocol.protocolName,
-              description: protocol.protocolDescription,
-              policyType: protocol.policyType,
-              completionPercent: protocol.completionPercent,
-              counts: {
-                total: protocol.totalAssigned,
-                completed: protocol.completedCount,
-                pending: protocol.pendingCount,
-                inProgress: protocol.inProgressCount,
-                notStarted: protocol.notStartedCount,
-                expired: protocol.expiredCount,
-                waived: protocol.waivedCount,
-              },
-            },
           }),
         );
       },

@@ -20,7 +20,6 @@ import { useMemo } from "react";
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useGovernanceFiltered } from "../_hooks/use-governance-filtered";
 import { useDeviations } from "../_hooks/use-deviations";
-import { useDriftInsights } from "../_hooks/use-drift-insights";
 import { useHmsTools, type HmsTab } from "./use-hms-tools";
 
 /** Tab href map — matches HmsSubNav. */
@@ -42,10 +41,6 @@ export function HmsToolsBridge() {
   // Open deviations — same query as OversiktDashboard (TanStack cache shared)
   const { data: openDeviations } = useDeviations({ status: ["open", "acknowledged", "escalated"] });
 
-  // Drift insights for today — same date key as DriftInsightStrip
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const { insights: driftInsights } = useDriftInsights(today);
-
   // Count overdue protocols (those with expiredCount > 0)
   const overdueProtocolCount = useMemo(
     () => protocols.filter((p) => p.expiredCount > 0).length,
@@ -58,7 +53,6 @@ export function HmsToolsBridge() {
     overdueProtocolCount,
     upcomingReviewCount: 0, // Fetched inline in OversiktDashboard — not exposed from hook; surfaced as 0 at umbrella level
     openDeviations: openDeviations ?? [],
-    driftInsights: driftInsights ?? null,
     uiActions: {
       navigateToTab: (tab: HmsTab) => {
         router.push(TAB_HREFS[tab]);
