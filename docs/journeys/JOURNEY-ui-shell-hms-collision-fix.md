@@ -1,6 +1,6 @@
 ---
 title: "Journey — HMS bridge tools resolve unambiguously after L-0258 dedupe"
-status: draft
+status: verified
 feature: hms-collision-fix
 updated: 2026-05-17
 created: 2026-05-17
