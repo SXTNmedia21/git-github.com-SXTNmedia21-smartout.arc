@@ -19,26 +19,8 @@
           "formula": "450 min × 358 øre/min = 161100 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 15000,
-          "amount_nok_display": 150,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "150.00 NOK × 100 = 15000 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -61,8 +43,8 @@
           "formula": "570 min × 358 øre/min = 204060 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -79,8 +61,8 @@
           "formula": "179 min × 70 øre/min = 12530 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -103,8 +85,8 @@
           "formula": "600 min × 358 øre/min = 214800 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 55800,
@@ -121,8 +103,8 @@
           "formula": "600 min × 93 øre/min = 55800 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -145,8 +127,8 @@
           "formula": "720 min × 358 øre/min = 257760 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -169,8 +151,8 @@
           "formula": "450 min × 358 øre/min = 161100 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -187,8 +169,8 @@
           "formula": "450 min × 93 øre/min = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -211,8 +193,8 @@
           "formula": "450 min × 358 øre/min = 161100 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -229,8 +211,8 @@
           "formula": "450 min × 93 øre/min = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -253,8 +235,8 @@
           "formula": "480 min × 333 øre/min = 159840 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -271,26 +253,8 @@
           "formula": "179 min × 70 øre/min = 12530 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 20000,
-          "amount_nok_display": 200,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "200.00 NOK = 20000 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -313,8 +277,8 @@
           "formula": "540 min × 333 øre/min = 179820 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -337,8 +301,8 @@
           "formula": "540 min × 333 øre/min = 179820 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -355,8 +319,8 @@
           "formula": "179 min × 70 øre/min = 12530 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -379,8 +343,8 @@
           "formula": "690 min × 333 øre/min = 229770 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 64170,
@@ -397,8 +361,8 @@
           "formula": "690 min × 93 øre/min = 64170 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -421,8 +385,8 @@
           "formula": "450 min × 333 øre/min = 149850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -439,8 +403,8 @@
           "formula": "450 min × 93 øre/min = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -463,12 +427,12 @@
           "formula": "480 min × 333 øre/min = 159840 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 44640,
-          "amount_nok_display": 446.4,
+          "amount_ore": 44547,
+          "amount_nok_display": 445.47,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -478,11 +442,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "480 min × 93 øre/min = 44640 øre",
+          "formula": "479 min × 93 øre/min = 44547 øre (23:59 minute excluded per worksheet exclusive-boundary convention)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -499,8 +463,8 @@
           "formula": "179 min × 70 øre/min = 12530 øre (Sat 21:00-23:59, stacks with helgetillegg)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -523,8 +487,8 @@
           "formula": "450 min × 366 øre/min = 164700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -541,12 +505,12 @@
           "formula": "119 min × 70 øre/min = 8330 øre (Sat 22:00-23:59 Oslo)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -556,11 +520,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 øre/min = 11160 øre (Sat 120 min)",
+          "formula": "119 min × 93 øre/min = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 23100,
@@ -577,8 +541,8 @@
           "formula": "330 min × 70 øre/min = 23100 øre (00:00-05:30 Oslo Apr5, night_watch)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -595,8 +559,8 @@
           "formula": "330 min × 93 øre/min = 30690 øre (1.påskedag=Sun=weekday 7)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 54780,
@@ -613,8 +577,8 @@
           "formula": "330 min × 166 øre/min = 54780 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -637,8 +601,8 @@
           "formula": "450 min × 366 øre/min = 164700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 25200,
@@ -655,8 +619,8 @@
           "formula": "360 min × 70 øre/min = 25200 øre (00:00-06:00 Oslo Wed, night_watch)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -679,8 +643,8 @@
           "formula": "450 × 366 = 164700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 25200,
@@ -697,8 +661,8 @@
           "formula": "360 × 70 = 25200 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -721,8 +685,8 @@
           "formula": "450 min × 366 øre/min = 164700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 25200,
@@ -739,8 +703,8 @@
           "formula": "360 × 70 = 25200 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -763,8 +727,8 @@
           "formula": "450 min × 366 øre/min = 164700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 25200,
@@ -781,8 +745,8 @@
           "formula": "360 × 70 = 25200 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -805,12 +769,12 @@
           "formula": "360 min × 325 øre/min = 117000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 60000,
-          "amount_nok_display": 600,
+          "amount_ore": 59760,
+          "amount_nok_display": 597.6,
           "supplementRuleId": "rule-helligdag-001",
           "ruleLabel": "helligdagstillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -820,11 +784,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-006",
           "tariffLawVersion": "2025",
-          "formula": "360 min × 10000 øre/60 min = 60000 øre (Skjærtorsdag 2026-04-02, B3 corrected from helgetillegg)",
+          "formula": "360 min × 166 øre/min = 59760 øre (Skjærtorsdag 2026-04-02; re-signed 2026-05-17 to align with truncated øre/min convention used in every other rate-fractional cell)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -847,8 +811,8 @@
           "formula": "360 × 325 = 117000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 33480,
@@ -865,8 +829,8 @@
           "formula": "360 × 93 = 33480 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -889,8 +853,8 @@
           "formula": "360 min × 325 øre/min = 117000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 33480,
@@ -907,8 +871,8 @@
           "formula": "360 × 93 = 33480 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -931,8 +895,8 @@
           "formula": "360 min × 325 øre/min = 117000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 33480,
@@ -949,8 +913,8 @@
           "formula": "360 × 93 = 33480 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -973,8 +937,8 @@
           "formula": "0 øre per shift (monthly salary — base resolved at period level)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 53010,
@@ -991,8 +955,8 @@
           "formula": "570 min × 93 øre/min = 53010 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 10500,
@@ -1009,26 +973,8 @@
           "formula": "150 min × 70 øre/min = 10500 øre (Oslo 21:00-23:30)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 17500,
-          "amount_nok_display": 175,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "175.00 NOK = 17500 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1051,8 +997,8 @@
           "formula": "0 øre per shift (monthly salary — base resolved at period level)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 53010,
@@ -1069,8 +1015,8 @@
           "formula": "570 × 93 = 53010 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 10500,
@@ -1087,8 +1033,8 @@
           "formula": "150 × 70 = 10500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1111,8 +1057,8 @@
           "formula": "0 øre per shift (monthly salary — base resolved at period level)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 64170,
@@ -1129,8 +1075,8 @@
           "formula": "690 min × 93 øre/min = 64170 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 2100,
@@ -1147,8 +1093,8 @@
           "formula": "30 min × 70 øre/min = 2100 øre (21:00-21:30 Oslo)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1171,8 +1117,8 @@
           "formula": "0 øre per shift (monthly salary — base resolved at period level)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 50220,
@@ -1189,8 +1135,8 @@
           "formula": "540 min × 93 øre/min = 50220 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1213,8 +1159,8 @@
           "formula": "0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 61380,
@@ -1231,8 +1177,8 @@
           "formula": "660 min × 93 øre/min = 61380 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1255,8 +1201,8 @@
           "formula": "0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -1273,8 +1219,8 @@
           "formula": "450 min × 93 øre/min = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1297,8 +1243,8 @@
           "formula": "0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -1315,8 +1261,8 @@
           "formula": "450 min × 93 øre/min = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1339,8 +1285,8 @@
           "formula": "0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -1357,8 +1303,8 @@
           "formula": "450 × 93 = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1381,8 +1327,8 @@
           "formula": "450 min × 325 øre/min = 146250 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -1399,12 +1345,12 @@
           "formula": "119 min × 70 = 8330 øre (Sat 22:00–23:59 Oslo)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1414,11 +1360,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 = 11160 øre",
+          "formula": "119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 13200,
@@ -1435,8 +1381,8 @@
           "formula": "330 min × 40 øre/min = 13200 øre (00:00–05:30 Oslo Sun Apr12, manual category)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1453,8 +1399,8 @@
           "formula": "330 min × 93 = 30690 øre (Sun weekday=7)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1477,8 +1423,8 @@
           "formula": "360 min × 325 = 117000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 33480,
@@ -1495,8 +1441,8 @@
           "formula": "360 min × 93 = 33480 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1519,8 +1465,8 @@
           "formula": "450 min × 333 øre/min = 149850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -1537,12 +1483,12 @@
           "formula": "119 min × 70 = 8330 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1552,11 +1498,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 = 11160 øre",
+          "formula": "119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1573,8 +1519,8 @@
           "formula": "330 min × 93 øre/min = 30690 øre (00:00–05:30 Oslo Sun, ordinary category)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1591,8 +1537,8 @@
           "formula": "330 min × 93 = 30690 øre (Sun weekday=7)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1615,8 +1561,8 @@
           "formula": "450 × 333 = 149850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -1633,12 +1579,12 @@
           "formula": "119 × 70 = 8330 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1648,11 +1594,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 × 93 = 11160 øre",
+          "formula": "119 × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1669,8 +1615,8 @@
           "formula": "330 × 93 = 30690 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1687,8 +1633,8 @@
           "formula": "330 × 93 = 30690 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1711,12 +1657,12 @@
           "formula": "480 min × 333 = 159840 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
-          "amount_ore": 44640,
-          "amount_nok_display": 446.4,
+          "amount_ore": 44547,
+          "amount_nok_display": 445.47,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -1726,11 +1672,11 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "480 min × 93 = 44640 øre (Sun)",
+          "formula": "479 min × 93 øre/min = 44547 øre (23:59 minute excluded per worksheet exclusive-boundary convention)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "computedAt": "2026-05-17T00:00:00.000Z",
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -1747,8 +1693,8 @@
           "formula": "179 min × 70 = 12530 øre (21:00–23:59 Oslo Sun)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1771,8 +1717,8 @@
           "formula": "480 min × 325 øre/min = 156000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 44640,
@@ -1789,8 +1735,8 @@
           "formula": "480 min × 93 øre/min = 44640 øre (Sun)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1813,8 +1759,8 @@
           "formula": "480 × 325 = 156000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 44640,
@@ -1831,8 +1777,8 @@
           "formula": "480 × 93 = 44640 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1855,8 +1801,8 @@
           "formula": "156000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 44640,
@@ -1873,8 +1819,8 @@
           "formula": "44640 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1897,8 +1843,8 @@
           "formula": "330 min × 350 øre/min = 115500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 30690,
@@ -1915,26 +1861,8 @@
           "formula": "330 min × 93 = 30690 øre (Sat)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 30000,
-          "amount_nok_display": 300,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "300.00 NOK = 30000 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1957,8 +1885,8 @@
           "formula": "450 min × 350 = 157500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -1975,8 +1903,8 @@
           "formula": "450 × 93 = 41850 øre (Sun)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -1999,8 +1927,8 @@
           "formula": "450 × 350 = 157500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -2017,8 +1945,8 @@
           "formula": "450 × 93 = 41850 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 10500,
@@ -2035,8 +1963,8 @@
           "formula": "150 min × 70 = 10500 øre (21:00–23:30 Oslo Sat)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -2059,8 +1987,8 @@
           "formula": "450 × 350 = 157500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -2077,8 +2005,8 @@
           "formula": "450 × 93 = 41850 øre (Sun)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -2101,8 +2029,8 @@
           "formula": "450 × 350 = 157500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -2119,8 +2047,8 @@
           "formula": "450 × 93 = 41850 øre (Sat)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -2143,8 +2071,8 @@
           "formula": "450 × 350 = 157500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41850,
@@ -2161,8 +2089,8 @@
           "formula": "450 × 93 = 41850 øre (Sun)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     }

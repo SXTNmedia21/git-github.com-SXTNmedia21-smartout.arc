@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload_client():
@@ -30,7 +30,7 @@ def _reload_client():
 
 @pytest.fixture(autouse=True)
 def fixture_mode_env(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 _FIXTURES_DIR = Path(__file__).parent.parent / "src" / "fixtures"
