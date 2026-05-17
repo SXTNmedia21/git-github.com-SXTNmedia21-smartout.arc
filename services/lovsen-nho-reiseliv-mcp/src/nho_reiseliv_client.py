@@ -4,7 +4,7 @@ nho_reiseliv_client.py — HTTP client for nhoreiseliv.no (Riksavtalen)
 Responsibilities:
   - 1 req/sec rate limit per ADR-0244
   - 24h TTL file-system cache at ~/.cache/lovsen-mcp/nho-reiseliv/
-  - Zero network in fixture mode (LOVSEN_MCP_FIXTURE=1)
+  - Zero network in fixture mode (LOVSEN_FIXTURE_MODE=true canonical per ADR-0258)
   - Version-routing: every fetch requires an explicit version; no silent fallback
   - Emit logs to stderr only — stdout is reserved for MCP JSON-RPC
 
@@ -44,8 +44,14 @@ _CACHE_DIR = Path(
     )
 )
 
-# Fixture mode flag — read at import time; tools must check before calling fetch_url
-FIXTURE_MODE = os.environ.get("LOVSEN_MCP_FIXTURE", "").strip() in ("1", "true", "yes")
+# Fixture mode flag — read at import time; tools must check before calling fetch_url.
+# ADR-0258 canonical envvar: LOVSEN_FIXTURE_MODE=true (checked first).
+# Legacy fallback: LOVSEN_MCP_FIXTURE=1 (still honoured during cutover; removed post-cert-pass).
+_FIXTURE_MODE_CANONICAL = os.environ.get("LOVSEN_FIXTURE_MODE", "").strip().lower() in (
+    "true", "1", "yes"
+)
+_FIXTURE_MODE_LEGACY = os.environ.get("LOVSEN_MCP_FIXTURE", "").strip() in ("1", "true", "yes")
+FIXTURE_MODE: bool = _FIXTURE_MODE_CANONICAL or _FIXTURE_MODE_LEGACY
 
 _BASE_URL = "https://www.nhoreiseliv.no"
 

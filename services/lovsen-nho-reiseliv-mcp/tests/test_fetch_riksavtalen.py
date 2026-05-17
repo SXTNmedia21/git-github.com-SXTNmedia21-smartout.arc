@@ -5,7 +5,7 @@ Covers:
   - Happy path: 2024 kveldstillegg → correct Citation
   - Happy path: 2025 garantilonn → correct Citation
   - Unsupported version → ValueError with supported-versions list
-  - LOVSEN_MCP_FIXTURE=1 required (zero network)
+  - LOVSEN_FIXTURE_MODE=true required (zero network; canonical per ADR-0258)
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import sys
 
 import pytest
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload():
@@ -26,7 +26,7 @@ def _reload():
 
 @pytest.fixture(autouse=True)
 def fixture_mode(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 # ── Happy path: 2024 kveldstillegg ───────────────────────────────────────────

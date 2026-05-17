@@ -7370,7 +7370,8 @@ export interface LovsenCitationStale extends BaseEvent {
   workspace_id: NonEmptyString;
   actor_id: NonEmptyString;
   properties: {
-    paragraph: string;
+    hash: string;
+    paragraph_ref: string;
     fetched_at: string;
     age_hours: number;
   };
