@@ -8556,7 +8556,13 @@ export type SmartoutEvent =
   | TimelineTemplateListed
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────
   | CascadeWorkspaceUnionBindingCreated
-  | CascadeSupplementRuleAdded;
+  | CascadeSupplementRuleAdded
+  // ─── Payroll Tariff Delegation (Phase 7f, ADR-0356, 2026-05-17) ──────────
+  // Payroll-layer events — mirror the cascade-layer events above.
+  // Both layers emit per ADR-0356 §"Audit trail symmetry".
+  | PayrollWorkspaceTariffSetup
+  | PayrollWorkspaceTariffChanged
+  | PayrollSupplementOverrideAdded;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9932,6 +9938,109 @@ export interface CascadeSupplementRuleAdded extends BaseEvent {
        */
       actor_capability: string;
       /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
+      delegated_via: string;
+      actor_id: string;
+    };
+  };
+}
+
+// ─── Payroll Tariff Delegation Events (Phase 7f, ADR-0356, 2026-05-17) ───────
+//
+// Three payroll-layer events that mirror the cascade-layer events above.
+// These represent the PAYROLL side of the audit chain — the cascade side
+// already has cascade.workspace_union_binding_created + cascade.supplement_rule_added.
+//
+// ADR-0356 §"Audit trail symmetry": BOTH layers emit.
+//   Payroll emit: actor_capability='payroll', delegated_via='cascade'
+//   Cascade emit: actor_capability=input.caller_capability, delegated_via='cascade'
+//
+// Routing rationale:
+//   payroll.workspace_tariff_setup: 4 destinations — tariff binding is a significant
+//     workspace configuration change that drives engine_event reactions (calc engine
+//     tariff-awareness, ADR-0354 snapshot-freshness) AND needs compliance audit trail.
+//   payroll.workspace_tariff_changed: 4 destinations — same rationale as setup;
+//     tariff switch is a workspace lifecycle event with downstream state-machine reactions.
+//   payroll.supplement_override_added: 3 destinations (no engine_event) — mirrors
+//     cascade.supplement_rule_added reasoning: calc engine polls on next recalc,
+//     not event-driven.
+
+export interface PayrollWorkspaceTariffSetup extends BaseEvent {
+  event: "payroll.workspace_tariff_setup";
+  properties: {
+    entity: { entity_type: "workspace_union_binding"; entity_id: string };
+    data: {
+      workspace_union_binding_id: string;
+      workspace_id: string;
+      union_id: string;
+      law_version: string;
+      effective_from: string;
+      amendment_classifier: string;
+      /**
+       * Which capability initiated this cross-namespace write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       * Always 'payroll' for this event — identifies the PAYROLL LAYER of the chain.
+       */
+      actor_capability: string;
+      /**
+       * Which capability performed the actual DB write (the delegate).
+       * Always 'cascade' for this event.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      delegated_via: string;
+      actor_id: string;
+    };
+  };
+}
+
+export interface PayrollWorkspaceTariffChanged extends BaseEvent {
+  event: "payroll.workspace_tariff_changed";
+  properties: {
+    entity: { entity_type: "workspace_union_binding"; entity_id: string };
+    data: {
+      old_workspace_union_binding_id: string;
+      new_workspace_union_binding_id: string;
+      workspace_id: string;
+      new_union_id: string;
+      new_law_version: string;
+      effective_from: string;
+      /** Semantic classifier: 'TARIFF_REVISION' (same union, new version) or 'UNION_CHANGE' (different union). */
+      amendment_classifier: string;
+      reason: string | null;
+      /**
+       * Always 'payroll' for this event.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability: string;
+      /**
+       * Always 'cascade' for this event.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      delegated_via: string;
+      actor_id: string;
+    };
+  };
+}
+
+export interface PayrollSupplementOverrideAdded extends BaseEvent {
+  event: "payroll.supplement_override_added";
+  properties: {
+    entity: { entity_type: "supplement_rule"; entity_id: string };
+    data: {
+      supplement_rule_id: string;
+      workspace_id: string;
+      supplement_type: string;
+      rate_value: number;
+      rate_type: string;
+      paragraf_ref: string | null;
+      /**
+       * Always 'payroll' for this event.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability: string;
+      /**
+       * Always 'cascade' for this event.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
       delegated_via: string;
       actor_id: string;
     };
@@ -13358,5 +13467,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "cascade.supplement_rule_added": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "cascade",
+  },
+
+  // ─── Payroll Tariff Delegation (Phase 7f, ADR-0356, 2026-05-17) ────────────
+  // Payroll-layer events — pair with cascade-layer events above for full audit chain.
+  // Both layers required per ADR-0356 §"Audit trail symmetry".
+  //   payroll.workspace_tariff_setup: 4 destinations — tariff binding is a workspace
+  //     lifecycle change with engine_event reactions (calc engine + ADR-0354 snapshot-freshness).
+  //   payroll.workspace_tariff_changed: 4 destinations — same rationale as setup;
+  //     tariff switch triggers downstream state-machine reactions.
+  //   payroll.supplement_override_added: 3 destinations (no engine_event) — mirrors
+  //     cascade.supplement_rule_added: calc engine polls on next recalc (not event-driven).
+  "payroll.workspace_tariff_setup": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.workspace_tariff_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.supplement_override_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
   },
 };
