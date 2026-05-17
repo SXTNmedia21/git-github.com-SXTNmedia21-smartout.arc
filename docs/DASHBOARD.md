@@ -1,8 +1,8 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-17
-last-event: /status regenerate — campaign/payroll merged to development (88a0c2a94 merge-commit, 39 commits, ADR-0213 ancestry preserved); registry-uniqueness 30s budget fix + pnpm ci:local infrastructure (19 gates green).
+updated: 2026-05-18
+last-event: feat/email-domain-fix sortie opened (wt-3) — PR #402 fixes dead SendGrid Link Branding wrapper (smartout.io NXDOMAIN → smartout.ai live).
 last-reconciled: 2026-05-17T16:15Z
 module: meta
 scope: global
@@ -23,6 +23,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/wfm-ui-pages` | 3d ago | 3 |
 | wt-2 | `~/dev/smartout.ai-wt-2` | `feat/botsson-voice-ux-polish` | 2d ago | 1 |
+| wt-3 | `~/dev/smartout.ai-wt-3` | `feat/email-domain-fix` | active | 0 |
 
 ## Active Campaigns
 
@@ -67,7 +68,7 @@ _botsson-arena, bubble-migration, daily-operation, mobile, world-best-wfm: no ac
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-3, wt-4, wt-5+ free. wt-1, wt-2 used.
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-4, wt-5+ free. wt-1, wt-2, wt-3 used.
 **Sub-sortie pool (payroll):** wt-9+ free. wt-1..wt-8 all used.
 **Sub-sortie pool (ui-shell):** wt-1, wt-3..wt-5 free. wt-2 used.
 **Sub-sortie pool (botsson-arena, bubble-migration, daily-operation, mobile, world-best-wfm):** wt-1..wt-5 free at canonical path.
