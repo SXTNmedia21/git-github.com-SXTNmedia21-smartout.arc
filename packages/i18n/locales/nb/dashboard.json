@@ -644,6 +644,8 @@
     "todo": "Å gjøre"
   },
   "sidebar": {
+    "disabled_tooltip": "Kommer snart",
+    "disabled_badge": "Snart",
     "group_oversikt": "Oversikt",
     "group_drift": "Drift",
     "group_planlegging": "Planlegging",

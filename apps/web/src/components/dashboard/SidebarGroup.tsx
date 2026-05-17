@@ -47,6 +47,8 @@ export function SidebarGroup({
   if (visibleItems.length === 0) return null;
 
   const groupLabel = t(group.labelKey);
+  const disabledTooltip = t("dashboard.sidebar.disabled_tooltip");
+  const disabledBadge = t("dashboard.sidebar.disabled_badge");
 
   return (
     <div
@@ -76,6 +78,8 @@ export function SidebarGroup({
               key={item.href}
               item={item}
               label={label}
+              tooltip={disabledTooltip}
+              badge={disabledBadge}
               routeSlug={routeSlug}
               isDark={isDark}
               isCollapsed={isCollapsed}
@@ -114,12 +118,16 @@ function computeActive(item: SidebarItem, pathname: string): boolean {
 function DisabledNavItem({
   item,
   label,
+  tooltip,
+  badge,
   routeSlug,
   isDark: _isDark,
   isCollapsed,
 }: {
   item: SidebarItem;
   label: string;
+  tooltip: string;
+  badge: string;
   routeSlug: string;
   isDark: boolean;
   isCollapsed: boolean;
@@ -130,7 +138,7 @@ function DisabledNavItem({
     <div
       data-testid={`sidebar-disabled-${routeSlug}`}
       data-disabled="true"
-      title="Kommer snart"
+      title={tooltip}
       className={`group flex cursor-not-allowed items-center rounded-xl opacity-50 ${
         isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
       } text-muted-foreground border border-transparent`}
@@ -140,7 +148,9 @@ function DisabledNavItem({
         {!isCollapsed && <span className="text-[12px] font-medium tracking-wide">{label}</span>}
       </div>
       {!isCollapsed && (
-        <span className="text-muted-foreground/70 text-[9px] tracking-wider uppercase">Snart</span>
+        <span className="text-muted-foreground/70 text-[9px] tracking-wider uppercase">
+          {badge}
+        </span>
       )}
     </div>
   );

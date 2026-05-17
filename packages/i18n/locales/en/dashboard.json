@@ -644,6 +644,8 @@
     "todo": "To Do"
   },
   "sidebar": {
+    "disabled_tooltip": "Coming soon",
+    "disabled_badge": "Soon",
     "group_oversikt": "Overview",
     "group_drift": "Operations",
     "group_planlegging": "Planning",
