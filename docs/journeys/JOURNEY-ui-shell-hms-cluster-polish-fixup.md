@@ -1,6 +1,7 @@
 ---
 title: "Journey — hms-cluster-polish-fixup"
-status: draft
+status: verified
+feature: hms-cluster-polish-fixup
 updated: 2026-05-17
 created: 2026-05-17
 module: hms
