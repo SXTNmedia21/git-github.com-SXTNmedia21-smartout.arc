@@ -12,7 +12,7 @@ import {
 } from "./smtp-dev";
 import type { SendEmailResult, SendGridTemplateData } from "./types";
 
-const DEFAULT_FROM = "noreply@smartout.io";
+const DEFAULT_FROM = "noreply@smartout.ai";
 
 /** Temporary env var fallback — callers should pass apiKey from Vault instead. */
 function requireEnvKey(name: string): string {

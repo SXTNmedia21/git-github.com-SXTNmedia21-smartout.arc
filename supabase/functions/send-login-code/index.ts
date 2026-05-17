@@ -182,7 +182,7 @@ async function sendEmailLoginCode(
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: recipientEmail }] }],
-      from: { email: "noreply@smartout.io", name: "Smartout" },
+      from: { email: "noreply@smartout.ai", name: "Smartout" },
       subject: `Logg inn pa ${workspaceName}`,
       content: [
         {
