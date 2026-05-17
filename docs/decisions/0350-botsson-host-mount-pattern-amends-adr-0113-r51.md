@@ -1,10 +1,12 @@
 ---
 title: "BotssonHost mount pattern — SSR-preserving provider scope, amends ADR-0113 R51"
 id: ADR_0350
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-17
 updated: 2026-05-17
+accepted_at: 2026-05-17
+implementation_commit: 04aa7e9e7
 module: botsson
 tags: [botsson, provider, ssr, adr-amendment]
 ---
