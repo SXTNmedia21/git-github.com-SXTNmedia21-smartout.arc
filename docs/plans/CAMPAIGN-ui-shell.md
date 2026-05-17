@@ -35,11 +35,11 @@ Take Smartout's web dashboard from "all routes reachable" to "all routes feel pr
 - [x] **M1 — Sidebar foundation.** Data-driven `SIDEBAR_GROUPS_{ADMIN,EMPLOYEE,DEMO}` config + `<SidebarGroup>` + S12 protocol. 23 orphan routes reachable, 0 returning 500. *Shipped via `feat/ui-shell-sidebar-reorg` 2026-05-15.*
 - [x] **M2 — Quick wins (2 of 20 routes).** `/dashboard/website` cluster (3 sub-routes) + `/dashboard/admin/pos-accounts`. *Shipped via `website-polish` + `pos-accounts-polish` 2026-05-16.*
 - [x] **M3 — Foundation debt closeout.** Sidebar testids + SectionEditor real values + `WorkspaceData.is_active` threading. *Shipped via `debt-closeout` + `workspace-status-context` 2026-05-16.*
-- [ ] **M4 — Admin cluster (3 routes).** Contracts, cost, billing — high-traffic admin surfaces. Each its own polish sortie.
+- [x] **M4 — Admin cluster (3 routes).** Contracts, cost, billing — high-traffic admin surfaces. *Shipped via `contracts-polish` + `cost-polish` + `billing-polish` 2026-05-17.*
 - [ ] **M5 — HMS cluster (8 routes).** Overview, deviations, documents, training, drift, governance, policies, handbook. Possible shared-foundation sortie first (common loading/empty patterns), then per-route polish.
 - [ ] **M6 — Planning cluster (3 routes).** Proposals, year-wheel, setup. Touches Cascade D4/D5 — coordinate with `world-best-wfm` if scheduler work overlaps.
 - [ ] **M7 — Kommunikasjon + AI + Min Tid (4 routes).** Komm/desks, komm/oversikt, onboarding-assistant, shift-clock.
-- [ ] **M8 — Cleanup.** i18n migration of `sidebar-config.ts` labels. Delete stale `PLAN-sidebar-reorg.md` duplicate. Final S12 re-run to confirm no regression.
+- [x] **M8 — Cleanup.** i18n migration of `sidebar-config.ts` labels (59 → labelKey, 56 keys per locale). Stale `PLAN-sidebar-reorg.md` duplicate verified non-existent (no-op). *Shipped via `i18n-cleanup` 2026-05-17.*
 - [ ] **M9 — Campaign milestone PR.** `campaign/ui-shell` → `development` via merge-commit (ADR-0213). Pontus decides cut point — does not need all milestones complete; partial value can land independently.
 
 ## Active Sub-Sorties
@@ -55,6 +55,10 @@ _none_
 | 3 | `debt-closeout` | `3abc3049b` | Sidebar testids + SectionEditor `isVisible`/`websiteIsLive` real values from `usePages` |
 | 4 | `pos-accounts-polish` | `09c3a667f` | `/dashboard/admin/pos-accounts` admin overview + Botsson `getPosActionState` tool |
 | 5 | `workspace-status-context` | `eff0dccd5` | `WorkspaceData.is_active` threading — closes ccb794dca TODO debt from sortie 4 |
+| 6 | `contracts-polish` | `4eda8806c` | M4 sortie 1/3 — 5 contracts routes (`overview`, `reusable`, `await-signature`, `revise-policy`, `revise-content`) + 4 bridges + Botsson tools |
+| 7 | `cost-polish` | `c6bea43aa` | M4 sortie 2/3 — `/dashboard/cost` overview, single sonnet agent |
+| 8 | `billing-polish` | `023d3f3a1` | M4 sortie 3/3 — 3 routes + 14 tools, ADR-0244 finance read-only compliant |
+| 9 | `i18n-cleanup` | `4d318536f` | M8 — 59 sidebar labels → i18n keys, 56 keys per locale, council-verified (Option B hard cutover) |
 
 ## Decisions
 
