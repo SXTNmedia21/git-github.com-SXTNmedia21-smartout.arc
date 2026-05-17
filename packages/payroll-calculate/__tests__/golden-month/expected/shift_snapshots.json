@@ -21,24 +21,6 @@
           "computedAt": "2026-05-16T19:07:22.875Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 15000,
-          "amount_nok_display": 150,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "150.00 NOK × 100 = 15000 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
       ]
     },
@@ -273,24 +255,6 @@
           "computedAt": "2026-05-16T19:07:22.875Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 20000,
-          "amount_nok_display": 200,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "200.00 NOK = 20000 øre",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
       ]
     },
@@ -467,8 +431,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 44640,
-          "amount_nok_display": 446.4,
+          "amount_ore": 44547,
+          "amount_nok_display": 445.47,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -478,9 +442,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "480 min × 93 øre/min = 44640 øre",
+          "formula": "479 min × 93 øre/min = 44547 øre (23:59 minute excluded per worksheet exclusive-boundary convention)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -545,8 +509,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -556,9 +520,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 øre/min = 11160 øre (Sat 120 min)",
+          "formula": "119 min × 93 øre/min = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -809,8 +773,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 60000,
-          "amount_nok_display": 600,
+          "amount_ore": 59760,
+          "amount_nok_display": 597.6,
           "supplementRuleId": "rule-helligdag-001",
           "ruleLabel": "helligdagstillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -820,9 +784,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-006",
           "tariffLawVersion": "2025",
-          "formula": "360 min × 10000 øre/60 min = 60000 øre (Skjærtorsdag 2026-04-02, B3 corrected from helgetillegg)",
+          "formula": "360 min × 166 øre/min = 59760 øre (Skjærtorsdag 2026-04-02; re-signed 2026-05-17 to align with truncated øre/min convention used in every other rate-fractional cell)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
@@ -1007,24 +971,6 @@
           "tariffRateTableId": "trt-supp-001",
           "tariffLawVersion": "2025",
           "formula": "150 min × 70 øre/min = 10500 øre (Oslo 21:00-23:30)",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 17500,
-          "amount_nok_display": 175,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "175.00 NOK = 17500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
@@ -1403,8 +1349,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1414,9 +1360,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 = 11160 øre",
+          "formula": "119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -1541,8 +1487,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1552,9 +1498,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 min × 93 = 11160 øre",
+          "formula": "119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -1637,8 +1583,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 11160,
-          "amount_nok_display": 111.6,
+          "amount_ore": 11067,
+          "amount_nok_display": 110.67,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg (Sat bucket)",
           "paragrafRef": "Riksavtalen §6",
@@ -1648,9 +1594,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "120 × 93 = 11160 øre",
+          "formula": "119 × 93 = 11067 øre (Sat 22:00-23:59 exclusive)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -1715,8 +1661,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 44640,
-          "amount_nok_display": 446.4,
+          "amount_ore": 44547,
+          "amount_nok_display": 445.47,
           "supplementRuleId": "rule-helgetillegg-001",
           "ruleLabel": "helgetillegg",
           "paragrafRef": "Riksavtalen §6",
@@ -1726,9 +1672,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
-          "formula": "480 min × 93 = 44640 øre (Sun)",
+          "formula": "479 min × 93 øre/min = 44547 øre (23:59 minute excluded per worksheet exclusive-boundary convention)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -1913,24 +1859,6 @@
           "tariffRateTableId": "trt-supp-005",
           "tariffLawVersion": "2025",
           "formula": "330 min × 93 = 30690 øre (Sat)",
-          "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
-        },
-        {
-          "amount_ore": 30000,
-          "amount_nok_display": 300,
-          "supplementRuleId": null,
-          "ruleLabel": "drikkepenger_manual",
-          "paragrafRef": null,
-          "lovsenCitationHash": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationText": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationUrl": "PENDING_LOVSEN_CERTIFY",
-          "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
-          "tariffRateTableId": null,
-          "tariffLawVersion": null,
-          "formula": "300.00 NOK = 30000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",

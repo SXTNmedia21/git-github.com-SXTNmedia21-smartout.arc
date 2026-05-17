@@ -67,8 +67,8 @@
       "periodEnd": "2026-04-30",
       "cells": [
         {
-          "amount_ore": 1247190,
-          "amount_nok_display": 12471.9,
+          "amount_ore": 1247097,
+          "amount_nok_display": 12470.97,
           "supplementRuleId": null,
           "ruleLabel": "gross_pay",
           "paragrafRef": null,
@@ -78,9 +78,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "(159840+12530)+(179820)+(179820+12530)+(229770+64170)+(149850+41850)+(159840+44640+12530) = 1247190 øre",
+          "formula": "(159840+12530)+(179820)+(179820+12530)+(229770+64170)+(149850+41850)+(159840+44547+12530) = 1247097 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
@@ -103,8 +103,8 @@
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 1267190,
-          "amount_nok_display": 12671.9,
+          "amount_ore": 1267097,
+          "amount_nok_display": 12670.97,
           "supplementRuleId": null,
           "ruleLabel": "total",
           "paragrafRef": null,
@@ -114,9 +114,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "1247190 + 20000 = 1267190 øre",
+          "formula": "1247097 + 20000 = 1267097 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
@@ -128,8 +128,8 @@
       "periodEnd": "2026-04-30",
       "cells": [
         {
-          "amount_ore": 1052360,
-          "amount_nok_display": 10523.6,
+          "amount_ore": 1052267,
+          "amount_nok_display": 10522.67,
           "supplementRuleId": null,
           "ruleLabel": "gross_pay",
           "paragrafRef": null,
@@ -139,15 +139,15 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "(164700+8330+11160+23100+30690+54780)+(164700+25200)×4 = 292760+755600 = 1052360 øre",
+          "formula": "(164700+8330+11067+23100+30690+54780)+(164700+25200)×4 = 292667+759600 = 1052267 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 1052360,
-          "amount_nok_display": 10523.6,
+          "amount_ore": 1052267,
+          "amount_nok_display": 10522.67,
           "supplementRuleId": null,
           "ruleLabel": "total",
           "paragrafRef": null,
@@ -157,9 +157,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "1052360 øre (no manual supps, no tips)",
+          "formula": "1052267 øre (no manual supps, no tips; cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
@@ -171,8 +171,8 @@
       "periodEnd": "2026-04-30",
       "cells": [
         {
-          "amount_ore": 628440,
-          "amount_nok_display": 6284.4,
+          "amount_ore": 628200,
+          "amount_nok_display": 6282.0,
           "supplementRuleId": null,
           "ruleLabel": "gross_pay",
           "paragrafRef": null,
@@ -182,15 +182,15 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "sh-018: (117000+60000) + sh-019..021: 3×(117000+33480) = 177000+451440 = 628440 øre",
+          "formula": "sh-018: (117000+59760) + sh-019..021: 3×(117000+33480) = 176760+451440 = 628200 øre (sh-018 re-signed 2026-05-17 helligdag truncated øre/min)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 628440,
-          "amount_nok_display": 6284.4,
+          "amount_ore": 628200,
+          "amount_nok_display": 6282.0,
           "supplementRuleId": null,
           "ruleLabel": "total",
           "paragrafRef": null,
@@ -200,9 +200,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "628440 øre",
+          "formula": "628200 øre (cascade from sh-018 re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
@@ -404,8 +404,8 @@
       "periodEnd": "2026-04-30",
       "cells": [
         {
-          "amount_ore": 360110,
-          "amount_nok_display": 3601.1,
+          "amount_ore": 360017,
+          "amount_nok_display": 3600.17,
           "supplementRuleId": null,
           "ruleLabel": "gross_pay",
           "paragrafRef": null,
@@ -415,15 +415,15 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "(146250+8330+11160+13200+30690)+(117000+33480) = 209630+150480 = 360110 øre",
+          "formula": "(146250+8330+11067+13200+30690)+(117000+33480) = 209537+150480 = 360017 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 360110,
-          "amount_nok_display": 3601.1,
+          "amount_ore": 360017,
+          "amount_nok_display": 3600.17,
           "supplementRuleId": null,
           "ruleLabel": "total",
           "paragrafRef": null,
@@ -433,9 +433,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "360110 øre",
+          "formula": "360017 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
@@ -447,8 +447,8 @@
       "periodEnd": "2026-04-30",
       "cells": [
         {
-          "amount_ore": 678450,
-          "amount_nok_display": 6784.5,
+          "amount_ore": 678171,
+          "amount_nok_display": 6781.71,
           "supplementRuleId": null,
           "ruleLabel": "gross_pay",
           "paragrafRef": null,
@@ -458,15 +458,15 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "(149850+8330+11160+30690+30690)+(149850+8330+11160+30690+30690)+(159840+44640+12530) = 230720+230720+217010 = 678450 øre",
+          "formula": "(149850+8330+11067+30690+30690)+(149850+8330+11067+30690+30690)+(159840+44547+12530) = 230627+230627+216917 = 678171 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         },
         {
-          "amount_ore": 678450,
-          "amount_nok_display": 6784.5,
+          "amount_ore": 678171,
+          "amount_nok_display": 6781.71,
           "supplementRuleId": null,
           "ruleLabel": "total",
           "paragrafRef": null,
@@ -476,9 +476,9 @@
           "lovsenCitationFetchedAt": "PENDING_LOVSEN_CERTIFY",
           "tariffRateTableId": null,
           "tariffLawVersion": null,
-          "formula": "678450 øre",
+          "formula": "678171 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
-          "computedAt": "2026-05-16T19:07:22.875Z",
+          "computedAt": "2026-05-17T00:00:00.000Z",
           "verifiedBy": "PENDING_LOVSEN_CERTIFY",
           "verifiedAt": "PENDING_LOVSEN_CERTIFY"
         }
