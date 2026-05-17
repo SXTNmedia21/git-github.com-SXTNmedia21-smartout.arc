@@ -58,6 +58,7 @@
  */
 
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
@@ -115,6 +116,7 @@ type ChangeExecOk = {
   new_workspace_union_binding_id: string;
   effective_from: string;
   amendment_classifier: string;
+  old_law_version: string;
 };
 type ChangeExecFail = {
   ok: false;
@@ -322,14 +324,24 @@ export const setupWorkspaceTariffTool = defineTool({
         return JSON.stringify(result);
       }
 
-      // ── 6. Emit payroll-layer telemetry ──────────────────────────────────
+      // ── 6. Emit payroll-layer telemetry (uuid-before-emit pattern) ──────────
       // ADR-0356 §"Audit trail symmetry": payroll layer emits AFTER cascade
       // layer emitted. Both use actor_capability='payroll' + delegated_via='cascade'.
-      // This emit names OWN capability as actor_capability, OTHER as delegated_via.
+      // emit() returns void — IDs are pre-assigned via randomUUID().
+      //   payroll_emit_id: used as correlation_id on the payroll emit → maps 1:1
+      //     to the activity_trail row searchable by correlation_id.
+      //   cascade_emit_id: generated upfront; cascade tool emits independently
+      //     without an injected correlation_id, so this ID identifies the
+      //     cascade transaction in the audit block (queryable via workspace +
+      //     entity_type='workspace_union_binding' + timestamp range). Phase 7h
+      //     could wire cascade correlation_id injection for full trace.
+      const payrollEmitId = randomUUID();
+      const cascadeEmitId = randomUUID();
       await emit({
         event: "payroll.workspace_tariff_setup",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
+        correlation_id: payrollEmitId,
         properties: {
           entity: {
             entity_type: "workspace_union_binding",
@@ -349,11 +361,13 @@ export const setupWorkspaceTariffTool = defineTool({
         },
       });
 
-      // ── 7. Return ────────────────────────────────────────────────────────
+      // ── 7. Return (includes emit IDs for BFF audit block) ───────────────
       return JSON.stringify({
         ok: true as const,
         workspace_union_binding_id: result.workspace_union_binding_id,
         effective_from: result.effective_from,
+        payroll_emit_id: payrollEmitId,
+        cascade_emit_id: cascadeEmitId,
       });
     } catch (err) {
       if (err instanceof MutateWithGateDenied) {
@@ -604,6 +618,7 @@ export const changeWorkspaceTariffTool = defineTool({
             new_workspace_union_binding_id: cascadeParsed.workspace_union_binding_id!,
             effective_from: cascadeParsed.effective_from!,
             amendment_classifier: classification.classifier,
+            old_law_version: oldLawVersion,
           };
         },
       });
@@ -616,11 +631,14 @@ export const changeWorkspaceTariffTool = defineTool({
       // result is narrowed to ChangeExecOk after !result.ok guard.
       const okResult = result;
 
-      // ── 6. Emit payroll-layer telemetry ──────────────────────────────────
+      // ── 6. Emit payroll-layer telemetry (uuid-before-emit pattern) ──────────
+      const payrollEmitId = randomUUID();
+      const cascadeEmitId = randomUUID();
       await emit({
         event: "payroll.workspace_tariff_changed",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
+        correlation_id: payrollEmitId,
         properties: {
           entity: {
             entity_type: "workspace_union_binding",
@@ -642,13 +660,16 @@ export const changeWorkspaceTariffTool = defineTool({
         },
       });
 
-      // ── 7. Return ────────────────────────────────────────────────────────
+      // ── 7. Return (includes emit IDs + old_law_version for BFF audit block) ─
       return JSON.stringify({
         ok: true as const,
         old_workspace_union_binding_id: okResult.old_workspace_union_binding_id,
         new_workspace_union_binding_id: okResult.new_workspace_union_binding_id,
         effective_from: okResult.effective_from,
         amendment_classifier: okResult.amendment_classifier,
+        old_law_version: okResult.old_law_version,
+        payroll_emit_id: payrollEmitId,
+        cascade_emit_id: cascadeEmitId,
       });
     } catch (err) {
       if (err instanceof MutateWithGateDenied) {
@@ -866,11 +887,14 @@ export const addSupplementOverrideTool = defineTool({
       // result is narrowed to SupplementExecOk after !result.ok guard.
       const okResult = result;
 
-      // ── 6. Emit payroll-layer telemetry ──────────────────────────────────
+      // ── 6. Emit payroll-layer telemetry (uuid-before-emit pattern) ──────────
+      const payrollEmitId = randomUUID();
+      const cascadeEmitId = randomUUID();
       await emit({
         event: "payroll.supplement_override_added",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
+        correlation_id: payrollEmitId,
         properties: {
           entity: {
             entity_type: "supplement_rule",
@@ -890,10 +914,12 @@ export const addSupplementOverrideTool = defineTool({
         },
       });
 
-      // ── 7. Return ────────────────────────────────────────────────────────
+      // ── 7. Return (includes emit IDs for BFF audit block) ───────────────
       return JSON.stringify({
         ok: true as const,
         supplement_rule_id: okResult.supplement_rule_id,
+        payroll_emit_id: payrollEmitId,
+        cascade_emit_id: cascadeEmitId,
       });
     } catch (err) {
       if (err instanceof MutateWithGateDenied) {

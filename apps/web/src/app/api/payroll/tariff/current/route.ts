@@ -38,6 +38,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { enrichParagrafRefs } from "@/lib/tariff/lovsen-client";
 import {
   payrollTariffErrorCodeSchema,
+  unionIdSchema,
   type PayrollTariffErrorCode,
   type CurrentTariffResponse,
 } from "@smartout/types";
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(resp, { status: 200 });
   }
 
-  const unionId = binding.union_id as string;
+  const unionId = unionIdSchema.parse(binding.union_id);
   const unionName = UNION_DISPLAY_NAMES[unionId] ?? unionId;
 
   const resp: CurrentTariffResponse = {

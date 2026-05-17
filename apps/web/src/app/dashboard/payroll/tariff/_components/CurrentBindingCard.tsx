@@ -135,8 +135,8 @@ export function CurrentBindingCard({ data, isLoading, error }: Props) {
                   <span className="text-foreground shrink-0 font-medium tabular-nums">
                     {ref.rate_type === "percentage"
                       ? `${ref.rate_value}%`
-                      : ref.rate_type === "fixed_amount"
-                        ? `kr ${ref.rate_value.toFixed(2)}`
+                      : ref.rate_type === "fixed_per_shift"
+                        ? `kr ${ref.rate_value.toFixed(2)}/vakt`
                         : `kr ${ref.rate_value.toFixed(2)}/t`}
                   </span>
                 )}

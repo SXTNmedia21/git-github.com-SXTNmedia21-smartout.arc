@@ -25,12 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { tariffKeys } from "@/hooks/payroll/use-current-tariff";
-import type { AddSupplementResponse, PayrollTariffError } from "@smartout/types";
+import type {
+  AddSupplementResponse,
+  PayrollTariffError,
+  SupplementType,
+  RateType,
+} from "@smartout/types";
 import { PAYROLL_TARIFF_BFF_ROUTES, supplementTypeSchema, rateTypeSchema } from "@smartout/types";
-import type { z } from "zod";
-
-type SupplementType = z.infer<typeof supplementTypeSchema>;
-type RateType = z.infer<typeof rateTypeSchema>;
 
 type Props = {
   /** When false the form is locked — server will reject but UX prevents attempt */
@@ -43,28 +44,20 @@ type FloorError = {
   aml_ref?: string;
 };
 
-// Human-readable supplement type labels in Norwegian
+// Human-readable supplement type labels in Norwegian (Phase 7g: DB taxonomy keys)
 const SUPPLEMENT_TYPE_LABELS: Record<SupplementType, string> = {
-  evening: "Kveldstillegg",
-  night: "Nattillegg",
-  weekend: "Helgetillegg",
+  normal: "Normalt tillegg (per skift / time)",
+  week_based: "Ukebasert tillegg (helg/kveld per uke)",
+  day_based: "Dagsbasert tillegg (kveld/natt per dag)",
+  manual: "Manuelt diskresjonært tillegg",
   holiday: "Helligdagstillegg",
-  overtime: "Overtidstillegg",
-  split_shift: "Splittevakttillegg",
-  callout: "Kortvarseltillegg",
-  shoe_allowance: "Skotilskudd",
-  uniform_allowance: "Uniformstilskudd",
-  transport_allowance: "Transportgodtgjørelse",
-  meal_allowance: "Måltidsgodtgjørelse",
-  language_allowance: "Språktillegg",
-  responsibility_allowance: "Ansvarstillegg",
-  other: "Annet",
+  contract_rule: "Kontraktsregel-basert tillegg",
 };
 
 const RATE_TYPE_LABELS: Record<RateType, string> = {
+  fixed_per_hour: "Fast timesats (kr/t)",
   percentage: "Prosentsats (%)",
-  fixed_amount: "Fast beløp (kr)",
-  hourly_rate: "Timesats (kr/t)",
+  fixed_per_shift: "Fast vaktsats (kr per vakt)",
 };
 
 export function AddSupplementForm({ canSubmit }: Props) {
@@ -76,7 +69,7 @@ export function AddSupplementForm({ canSubmit }: Props) {
   const rateTypes = rateTypeSchema.options;
 
   const [name, setName] = useState("");
-  const [supplementType, setSupplementType] = useState<SupplementType>("evening");
+  const [supplementType, setSupplementType] = useState<SupplementType>("normal");
   const [rateValue, setRateValue] = useState("");
   const [rateType, setRateType] = useState<RateType>("percentage");
   const [paragrafRef, setParagrafRef] = useState("");
@@ -134,7 +127,7 @@ export function AddSupplementForm({ canSubmit }: Props) {
       setName("");
       setRateValue("");
       setParagrafRef("");
-      setSupplementType("evening");
+      setSupplementType("normal");
       setRateType("percentage");
       // Invalidate tariff query so SupplementOverridesList refreshes
       void queryClient.invalidateQueries({ queryKey: tariffKeys.current(workspaceId) });

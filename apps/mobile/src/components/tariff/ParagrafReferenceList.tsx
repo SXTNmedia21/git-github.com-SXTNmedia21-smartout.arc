@@ -31,10 +31,10 @@ function formatRate(entry: ParagrafEntry): string | null {
   if (entry.rate_type === "percentage") {
     return `${entry.rate_value}%`;
   }
-  if (entry.rate_type === "fixed_amount") {
-    return `${entry.rate_value.toLocaleString("nb-NO")} kr`;
+  if (entry.rate_type === "fixed_per_shift") {
+    return `${entry.rate_value.toLocaleString("nb-NO")} kr/vakt`;
   }
-  if (entry.rate_type === "hourly_rate") {
+  if (entry.rate_type === "fixed_per_hour") {
     return `${entry.rate_value.toLocaleString("nb-NO")} kr/t`;
   }
   return null;

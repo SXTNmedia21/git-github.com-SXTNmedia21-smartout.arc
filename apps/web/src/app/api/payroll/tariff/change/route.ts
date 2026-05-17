@@ -11,29 +11,25 @@
  *   - Cross-workspace block (ADR-0151)
  *   - gatedMutation payroll authority gate (ADR-0204 + ADR-0287)
  *   - NO_EXISTING_BINDING guard
- *   - amendment_classifier derivation (TARIFF_REVISION | UNION_CHANGE)
- *   - cascade.bind_workspace_union delegation with amendment_classifier="UP" (ADR-0356)
+ *   - amendment_classifier derivation (Lovsen rule matrix, legal.classifyAmendmentLogic)
+ *   - cascade.bind_workspace_union delegation (ADR-0356)
  *   - Dual-layer audit emit (ADR-0356 audit-symmetry)
  *
- * CONTRACT GAPs (flagged — do NOT fix in this file per hard rule):
- *   1. new_union_id type mismatch: BFF contract says z.string().uuid() but tool schema
- *      requires z.enum(["taro-79", "taro-226", "non-bound"]). Same gap as /setup.
- *   2. Audit emit IDs: see /setup route for full explanation.
- *   3. amendment_classifier in response: BFF contract uses z.enum(["UP", "MATERIAL",
- *      "ENDRINGSOPPSIGELSE"]) but tool returns semantic values ("TARIFF_REVISION" or
- *      "UNION_CHANGE"). The BFF maps these to the contract enum "UP" (the wire value
- *      that matches the cascade schema). MATERIAL/ENDRINGSOPPSIGELSE are blocked at
- *      the cascade layer per ADR-0252 §F and will not be returned by this tool in V1.
+ * Phase 7g reconciliation: CONTRACT GAPS closed.
+ *   new_union_id: contract now z.enum([...]) — no UUID→enum translation needed.
+ *   audit block: real payroll_emit_id + cascade_emit_id from tool (uuid-before-emit).
+ *   old_law_version: now read from DB by tool, passed through directly.
+ *   amendment_classifier: tool returns UP/MATERIAL/ENDRINGSOPPSIGELSE directly
+ *     (Lovsen classifier). toContractAmendmentClassifier() mapping removed.
  *
  * ADR compliance (body verified before docstring — L-0176):
  *   ADR-0078  — channel forced "chat" in synthetic ctx; tool enforces defence-in-depth.
  *   ADR-0151  — workspace_id derived server-side via resolvePayrollAuth (never from body).
  *   ADR-0152  — all errors use payrollTariffErrorSchema (code + message + optional ext).
- *   ADR-0252  — amendment_classifier derivation (simplified; ENDRINGSOPPSIGELSE deferred).
+ *   ADR-0252  — amendment_classifier derivation (Lovsen rule matrix per §14-6 + §15-7).
  *   ADR-0356  — audit block carries actor_capability='payroll', delegated_via='cascade'.
  *   L-0177    — resolvePayrollAuth returns null on missing/empty IDs → 401.
  */
-import { randomUUID } from "crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -72,25 +68,6 @@ function toStatus(code: PayrollTariffErrorCode): number {
     default:
       return 500;
   }
-}
-
-/**
- * Map tool semantic amendment_classifier to the BFF contract enum.
- * The tool returns "TARIFF_REVISION" | "UNION_CHANGE" (semantic).
- * The BFF contract requires "UP" | "MATERIAL" | "ENDRINGSOPPSIGELSE".
- * Both TARIFF_REVISION and UNION_CHANGE map to "UP" (the cascade wire value).
- * MATERIAL/ENDRINGSOPPSIGELSE are blocked at cascade layer (ADR-0252 §F).
- */
-function toContractAmendmentClassifier(
-  toolValue: string,
-): "UP" | "MATERIAL" | "ENDRINGSOPPSIGELSE" {
-  // TARIFF_REVISION and UNION_CHANGE both use "UP" as the cascade wire value.
-  if (toolValue === "TARIFF_REVISION" || toolValue === "UNION_CHANGE") return "UP";
-  // MATERIAL and ENDRINGSOPPSIGELSE pass through if the cascade layer ever returns them.
-  if (toolValue === "MATERIAL") return "MATERIAL";
-  if (toolValue === "ENDRINGSOPPSIGELSE") return "ENDRINGSOPPSIGELSE";
-  // Unknown value — default to UP (the most common case for tariff updates).
-  return "UP";
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -136,28 +113,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build synthetic AgentToolContext (ADR-0078: channel forced to chat) ─
-  const correlationId = randomUUID();
   const admin = createAdminClient();
 
   const ctx: AgentToolContext = {
     workspaceId: auth.workspaceId as NonEmptyString,
     profileId: auth.profileId as NonEmptyString,
     userId: auth.userId,
-    sessionId: `tariff-change-${correlationId}`,
+    sessionId: `tariff-change-${auth.workspaceId}`,
     channel: "chat" as const,
     supabaseAdmin: admin as unknown as SupabaseClient,
   };
 
   // ─── Invoke capability tool ────────────────────────────────────────────────
-  // CONTRACT GAP — new_union_id mismatch: contract says UUID; tool requires enum.
-  const toolNewUnionId = body.new_union_id as "taro-79" | "taro-226" | "non-bound";
-
+  // Phase 7g: new_union_id is now z.enum([...]) in both contract and tool schema.
+  // body.new_union_id is already typed as UnionId — no cast required.
   let toolResult: string;
   try {
     toolResult = await changeWorkspaceTariffTool.execute(
       {
         workspace_id: auth.workspaceId,
-        new_union_id: toolNewUnionId,
+        new_union_id: body.new_union_id,
         new_law_version: body.new_law_version,
         official_effective_date: body.official_effective_date,
         effective_from: body.effective_from,
@@ -203,29 +178,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build success response with audit block (ADR-0356) ──────────────────
-  // CONTRACT GAP: tool does not return emit IDs. Using correlation UUIDs.
-  //
-  // amendment_classifier: tool returns "TARIFF_REVISION" | "UNION_CHANGE" (semantic).
-  // BFF contract requires "UP" | "MATERIAL" | "ENDRINGSOPPSIGELSE".
-  // See toContractAmendmentClassifier() above for mapping rationale.
-  const toolAmendmentClassifier =
-    typeof result.amendment_classifier === "string"
-      ? result.amendment_classifier
-      : "TARIFF_REVISION";
-
+  // Phase 7g: real emit IDs from tool + old_law_version read from DB by tool.
+  // amendment_classifier: tool returns UP/MATERIAL/ENDRINGSOPPSIGELSE directly
+  // (Lovsen classifier — no translation needed).
   const resp: ChangeTariffResponse = {
     ok: true,
     data: {
       old_workspace_union_binding_id: result.old_workspace_union_binding_id as string,
       new_workspace_union_binding_id: result.new_workspace_union_binding_id as string,
       effective_from: result.effective_from as string,
-      amendment_classifier: toContractAmendmentClassifier(toolAmendmentClassifier),
-      old_law_version: body.new_law_version, // tool doesn't return old_law_version — use body as proxy
+      amendment_classifier: result.amendment_classifier as "UP" | "MATERIAL" | "ENDRINGSOPPSIGELSE",
+      old_law_version: result.old_law_version as string,
       new_law_version: body.new_law_version,
     },
     audit: {
-      payroll_emit_id: correlationId,
-      cascade_emit_id: randomUUID(),
+      payroll_emit_id: result.payroll_emit_id as string,
+      cascade_emit_id: result.cascade_emit_id as string,
       actor_capability: "payroll",
       delegated_via: "cascade",
     },
