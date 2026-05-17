@@ -2186,3 +2186,46 @@ N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability c
 - `docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md` Known Issue #3 (B5)
 - `docs/decisions/0357-page-polish-documented-intentional-skips.md` (v2 addendum)
 
+---
+
+## 2026-05-17 PM3 — campaign/ui-shell Shippability R1
+
+**Type:** post-implementation (campaign promotion gate)
+**Verdict:** REJECT — REMEDIATE BEFORE HOP A
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, feature-dev:code-reviewer + general-purpose (Phase 2.5 fact-check) + narrator (Phase 4)
+**Prior verdict held?** N/A — first council on campaign tip; HMS R1 + R2 + Tidslinjen R1 are sub-sortie councils, not campaign-level
+**Key decision:** 3 hard blockers (B1 migrations × 2 + IF NOT EXISTS, B2 phantom telemetry × 2) + 4 required-before-promote (J3-J5) + governance gate on tri-campaign scope (world-best-wfm + mobile merged into ui-shell tip)
+**Chair self-reversals (L-0147):** 4 — phantom contract (telemetry-contract pipeline), tri-campaign scope drift (merge-ancestry), WCAG 4.1.2 ProcedureDetailTabs, ADR-0349 toothless. 7th per-component L-0147 precedent (component-level ARIA repeats HMS R1 HmsSubNav defect class).
+**ADR created:** ADR-0358 (telemetry-registry-requires-emit-wiring, L-NEW-1 2nd occurrence promoted)
+**Learnings created:** L-0295 (7th-L-0147-component-ARIA), L-0296 (chair-self-reversal-4-pattern), L-0297 (ADR-to-enforcement-code-receipt-rule)
+**Fixup sortie:** feat/ui-shell-r1-fixup (this sortie)
+
+### Blockers identified
+
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| B1a | HARD | `supabase/migrations/20260514120001_ui_shell_hms_cluster_deviation_event.sql` — missing `IF NOT EXISTS` guards on `CREATE TYPE` + `CREATE TABLE` — not idempotent | Closed by T1 (feat/ui-shell-r1-fixup) |
+| B1b | HARD | `supabase/migrations/20260514120002_ui_shell_hms_cluster_handbook_event.sql` — same pattern | Closed by T1 |
+| B2 | HARD | `deviation_viewed` + `handbook_chapter_opened` registered in `packages/telemetry/src/registry.ts` — 0 emit() call-sites in `apps/` | Closed by T2 (feat/ui-shell-r1-fixup) |
+
+### Required-before-promote
+
+| ID | Description | Status |
+|---|---|---|
+| J3 | `/help` Tier 1 polish baseline — page-header + instructions pass smartout-page-polish Phase 6-8 | Addressed by T3 |
+| J4 | WCAG a11y fixes — `ProcedureDetailTabs.tsx:98-117` mixed-ARIA pattern + `HmsSubNav` any residual | Addressed by T4 |
+| J5 | i18n migration `ProcedureDetailTabs` — hardcoded Norwegian text `"Opplaeringsinnhold:"` (typo) → i18n key | Addressed by T5 |
+
+### Governance question (user-resolved)
+
+Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign/mobile (23 unique commits) merged into campaign/ui-shell tip. User confirmed this is intentional — ui-shell is the integration campaign for the promotion wave. No governance block.
+
+### Knowledge captured
+
+- ADR-0358 (proposed) — telemetry-registry-requires-emit-wiring. L-NEW-1 2nd occurrence → ADR-grade promotion threshold met.
+- L-0295 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
+- L-0296 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
+- L-0297 — ADR-to-enforcement-code receipt rule (toothless ADR class)
+- run-council SKILL.md amended: 3 new Phase 3 checks (telemetry-contract, merge-ancestry, ADR-to-enforcement)
+- ADR-0238 flipped to accepted (enforcement shipped via ADR-0337 + DomainChatOwnership implementation 2026-05-16)
+
