@@ -21,8 +21,8 @@
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 
 export function HelpToolsBridge() {
-  // L-0287 documented thin-shell: empty tools array intentional, registration
+  // L-0287 documented thin-shell: empty toolkit intentional, registration
   // declares route ownership without phantom tools.
-  useRegisterTools("help", []);
+  useRegisterTools("help", { definitions: [], implementations: {} });
   return null;
 }
