@@ -1122,7 +1122,7 @@ function DashboardShellInner({
           {/* Setup page intentionally bypasses BotssonHost / EmmaOverlay.
               No workspace context yet → no BotssonProvider needed.
               Any future setup-page child that needs DomainChatOwnership
-              must declare a local BotssonProvider. ADR-0348 §boundary. */}
+              must declare a local BotssonProvider. ADR-0362 §boundary. */}
           {children}
         </div>
       </DashboardContext.Provider>
@@ -1782,7 +1782,7 @@ function DashboardShellInner({
                               rendered). EmmaOverlay is the floating Orb/Shell mounted as
                               sibling under the same provider. Together they let
                               DomainChatOwnership consumers in children share one provider
-                              with the Orb (ADR-0238 + ADR-0337 + ADR-0348). */}
+                              with the Orb (ADR-0238 + ADR-0337 + ADR-0362). */}
                           <BotssonHost>
                             {children}
                             <EmmaOverlay />

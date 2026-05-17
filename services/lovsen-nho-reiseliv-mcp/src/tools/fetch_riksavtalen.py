@@ -13,7 +13,7 @@ Why version is required and never defaulted:
   Tariff rates change year-over-year. Returning 2025 rates when 2024 was asked is a
   legal accuracy failure. Version-confusion is the primary risk in Lovsen (README §Risiko).
 
-In fixture mode (LOVSEN_MCP_FIXTURE=1): delegates to fixtures.fixture_fetch_riksavtalen().
+In fixture mode (LOVSEN_FIXTURE_MODE=true canonical per ADR-0258; legacy LOVSEN_MCP_FIXTURE=1 also accepted): delegates to fixtures.fixture_fetch_riksavtalen().
 In live mode: fetches from nhoreiseliv.no, parses HTML, builds Citation.
 """
 

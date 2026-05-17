@@ -17,9 +17,9 @@ M5 Sortie 1 of 4. Closes 3 direct-browser mutation sites in the HMS/policy surfa
 - `docs/plans/PLAN-pre-m5-mutation-closure.md`
 - `docs/journeys/JOURNEY-ui-shell-pre-m5-mutation-closure.md`
 - `docs/council/COUNCIL-LOG.md` — row "2026-05-17 — M5 HMS cluster scoping"
-- `docs/decisions/0348-l-0258-collision-detector-mandatory-ci.md` (renumbered from 0347)
-- `docs/learnings/0286-polish-prs-gild-half-converted-patterns.md`
-- `docs/learnings/0287-bridge-tool-description-phantom-amplifier.md`
+- `docs/decisions/0360-l-0258-collision-detector-mandatory-ci.md` (renumbered from 0347)
+- `docs/learnings/0295-polish-prs-gild-half-converted-patterns.md`
+- `docs/learnings/0296-bridge-tool-description-phantom-amplifier.md`
 
 ## Commits
 
@@ -71,14 +71,14 @@ Conducted by `supervisor` (sonnet). Findings:
 |----------|---------|--------|
 | HIGH | `escalateDeviationAction` called `gate_action("hms.update_deviation_manual")` — capability NOT seeded → L-0066 default-allow CVE | **FIXED** in `4a21b9e4c` — renamed literal to `hms.escalate_deviation` + seeded in extended migration |
 | LOW | Comment/literal alignment | **FIXED** same commit |
-| LOW | Stale ADR-0347 refs in COUNCIL-LOG + PLAN + JOURNEY (after collision-driven renumber to ADR-0348) | **FIXED** same commit |
+| LOW | Stale ADR-0359 refs in COUNCIL-LOG + PLAN + JOURNEY (after collision-driven renumber to ADR-0360) | **FIXED** same commit |
 | LOW | `completeTaskAction` cookie wrapper re-resolves identity that `_shared.resolveCurrentProfile()` already provides — duplication, not bug | **Deferred** — not a correctness issue |
 | LOW | Hardcoded Norwegian error strings ("Ugyldig oppgave-ID.", "Ikke autentisert.") — not i18n | **Deferred** — next polish wave |
 
 ## Decisions
 
-**ADR-0348 (proposed) — L-0258 collision detector mandatory in CI**
-Renumbered from 0347 → 0348 in this sortie's G4 fix. `0347-schedule-density-persistence.md` already existed (inherited from merge `0c6b7afb6`) — collision caught by builder's pre-commit hook. Cross-refs updated in COUNCIL-LOG, PLAN, JOURNEY, decision-log.
+**ADR-0360 (proposed) — L-0258 collision detector mandatory in CI**
+Originally written as ADR-0347 in this sortie, renumbered to 0348 in G4 fix (schedule-density-persistence conflict), then renumbered to 0360 in sync-campaign outsider-renumber (payroll claimed 0347-0356). `0359-schedule-density-persistence.md` (originally `0347-`) already existed from merge `0c6b7afb6` — collision caught by builder's pre-commit hook. Cross-refs updated in COUNCIL-LOG, PLAN, JOURNEY, decision-log.
 
 **Capability naming — `hms.escalate_deviation`**
 Original builder code used `hms.update_deviation_manual` (unseeded). G4 fix renamed to match existing pattern (`hms.resolve_deviation` / `hms.acknowledge_deviation`). Seeded in extended migration.
@@ -90,7 +90,7 @@ Original builder code used `hms.update_deviation_manual` (unseeded). G4 fix rena
 ## Learnings
 
 **L-1: ADR collision detection at write-time is insufficient**
-Wrote ADR-0347 in campaign commit `9bd168434` after grepping `git log --all --name-only`. Missed `0347-schedule-density-persistence.md` from earlier merge `0c6b7afb6`. This is the 5th occurrence of ADR collision. Detection at write-time via grep is fragile across branches. Builder's pre-commit hook is the load-bearing safety net. Strengthen Phase 8 Step 0 in `run-council` skill: also run `ls docs/decisions/ | awk -F'-' '{print $1}' | sort | uniq -d` to surface numeric prefix duplicates regardless of cross-branch state.
+Wrote ADR-0360 (originally 0347, then 0348) in campaign commit `9bd168434` after grepping `git log --all --name-only`. Missed `0347-schedule-density-persistence.md` (now 0359) from earlier merge `0c6b7afb6`. This is the 5th occurrence of ADR collision. Detection at write-time via grep is fragile across branches. Builder's pre-commit hook is the load-bearing safety net. Strengthen Phase 8 Step 0 in `run-council` skill: also run `ls docs/decisions/ | awk -F'-' '{print $1}' | sort | uniq -d` to surface numeric prefix duplicates regardless of cross-branch state.
 
 **L-2: Builder scope expansion can be necessary**
 Adding `escalateDeviationAction` was beyond the original 2-site Phase 3 scope. Correct call: original `use-update-deviation.ts` handled 3 status paths (resolve/acknowledge/escalate); existing Server Actions only handled 2. Splitting would have left escalate as a direct browser write, defeating the sortie goal. Scope creep ≠ scope error when the alternative is partial mutation closure.
@@ -114,10 +114,9 @@ apps/web/src/app/dashboard/hms/_hooks/use-update-deviation.ts                   
 apps/web/src/app/dashboard/hms/_hooks/use-complete-task.ts                       delegation refactor
 apps/web/src/app/dashboard/policies/_actions/policy-actions.ts                   gate_action added, role-string removed
 supabase/migrations/20260617110000_policy_create_manual_capability_seed.sql      NEW — 2 capabilities (Part A + Part B)
-docs/decisions/0347-l-0258-collision-detector-mandatory-ci.md                    DELETED — renumbered
-docs/decisions/0348-l-0258-collision-detector-mandatory-ci.md                    NEW — was 0347
+docs/decisions/0360-l-0258-collision-detector-mandatory-ci.md                    NEW — was 0347→0348, now 0360 (outsider-renumber)
 docs/decisions/0000-decision-log.md                                               renumber entry
-docs/council/COUNCIL-LOG.md                                                       ADR-0347 → ADR-0348
+docs/council/COUNCIL-LOG.md                                                       ADR-0359 → ADR-0360
 docs/plans/PLAN-pre-m5-mutation-closure.md                                        cross-ref update
 docs/journeys/JOURNEY-ui-shell-pre-m5-mutation-closure.md                         cross-ref update
 docs/HANDOFF-ui-shell-pre-m5-mutation-closure.md                                  this file
@@ -129,7 +128,7 @@ docs/HANDOFF-ui-shell-pre-m5-mutation-closure.md                                
 2. Sub-sortie merges to `campaign/ui-shell` (merge-commit per ADR-0213).
 3. Worktree removed by close-feature.
 4. Update `docs/plans/CAMPAIGN-ui-shell.md` Completed Sub-Sorties table with merge SHA.
-5. Dispatch Sortie 2 `hms-collision-fix` per council verdict (ADR-0348 detector + 3 LIVE collision resolutions).
+5. Dispatch Sortie 2 `hms-collision-fix` per council verdict (ADR-0360 detector + 3 LIVE collision resolutions).
 
 ## Verification Commands (rerun-able)
 

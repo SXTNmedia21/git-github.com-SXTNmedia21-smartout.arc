@@ -28,12 +28,13 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m server
 
 # Fixture mode — zero HTTP outbound, reads src/fixtures/*.json
-LOVSEN_MCP_FIXTURE=1 PYTHONPATH=src python -m server
+LOVSEN_FIXTURE_MODE=true PYTHONPATH=src python -m server
 ```
 
 ## Fixture mode
 
-Set `LOVSEN_MCP_FIXTURE=1` to disable all outbound HTTP.
+Set `LOVSEN_FIXTURE_MODE=true` to disable all outbound HTTP (canonical per ADR-0258).
+Legacy alias `LOVSEN_MCP_FIXTURE=1` is still honoured during cutover.
 Tools read from `src/fixtures/aml_14_6.json`, `aml_15_3.json`, `aml_15_6.json`.
 Missing fixture → explicit error; NEVER silently falls back to network (CI safety).
 

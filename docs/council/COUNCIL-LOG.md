@@ -2038,7 +2038,7 @@ Week 3 (gated):
 **Chair provenance check (`git blame`):**
 | Design finding | Provenance | Verdict |
 |---|---|---|
-| `TimelineTab.tsx:242` 3× OKLCH literals | `d0deaa6a9a` 2026-05-16 | **Pre-existing** — inherited debt, deferred to ADR-0349 migration sortie |
+| `TimelineTab.tsx:242` 3× OKLCH literals | `d0deaa6a9a` 2026-05-16 | **Pre-existing** — inherited debt, deferred to ADR-0361 migration sortie |
 | `DayTimelineStrip.tsx:481` `animate-pulse` no rm-gate | `5a236d7d82` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
 | `ClusterMarker.tsx:213` `focus-visible:outline-none` no ring | `be0b43a4eb` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
 
@@ -2047,9 +2047,9 @@ Steward also discovered OKLCH-literal pattern is systemic across 6+ files in `ap
 **Decisions:**
 - Ship `94888a3f1` as-is on `campaign/ui-shell` (already pushed).
 - Open sub-sortie `feat/ui-shell-ui-shell-tidslinjen-a11y-polish` for 2 sortie-introduced fixes (WCAG 2.3.3 + 2.4.11). Effort ~30 min. No new tests, no emit changes.
-- Defer `TimelineTab.tsx:242` OKLCH literal to broader Nordic Split token migration sortie driven by ADR-0349.
+- Defer `TimelineTab.tsx:242` OKLCH literal to broader Nordic Split token migration sortie driven by ADR-0361.
 
-**ADRs created:** ADR-0349 (proposed) Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`. ADR-0351 (proposed) `getPhaseBoundaries` presentation-layer ontology disambiguation. Slot allocation under same-day concurrent-session pressure: original draft 0348+0349 blocked by ADR-0348 (L-0258 collision detector) and ADR-0350 (BotssonHost mount pattern) both landing same day; this sortie yielded per L-0147 outsider-renumber to 0349 (free slot) + 0351 (next free after 0350).
+**ADRs created:** ADR-0361 (proposed) Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`. ADR-0363 (proposed) `getPhaseBoundaries` presentation-layer ontology disambiguation. Slots renumbered 0349→0361 and 0351→0363 per outsider-renumber convention (payroll kept 0347-0356 after merging to development first).
 
 **Learnings created:** `learning_phase3_coverage_gap_design_axis` — Phase 3 multi-agent triplet (steward+supervisor+coord) systematically misses token + a11y semantics; mandate design+a11y reviewer when Phase 3 touches `apps/web/src/components/**` visual surfaces.
 
@@ -2186,3 +2186,51 @@ N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability c
 - `docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md` Known Issue #3 (B5)
 - `docs/decisions/0357-page-polish-documented-intentional-skips.md` (v2 addendum)
 
+---
+
+## 2026-05-17 — Phase 7 Architectural Reframe: Lovdata as Riksavtalen Canonical
+**Prior verdict held?** N/A (first council on this topic)
+**Reviewers:** system-steward (chair), system-agent-coordinator, supervisor, lovsen
+**Verdict:** APPROVE WITH CHANGES + 5-blocker trust gate. Steward Phase 3 self-reversal on Q2 (no new schema field per Coordinator code-trace).
+**Key decisions:** Lovdata MCP becomes Riksavtalen canonical (ADR-0347); two-hash model supersedes ADR-0341 §H single-hash (ADR-0348); paragraph-ref translation map at docs/reference/ (ADR-0349); NHO MCP repurposed as employer-interpretive auxiliary; 358 already-cert'd cells re-cert in Phase 7c (dual-lineage transition).
+**ADR created:** ADR-0347, ADR-0348, ADR-0349 (proposed). ADR-0342 amended.
+**Blockers tracked:** 5 (live curl proof, lovsen rate verify, ADR map review, lovdata-mcp envvar canonicalization, verify_citation_freshness mirror).
+**Full audit:** docs/audits/2026-05-17-phase-7-lovdata-reframe-council.md
+
+## 2026-05-17 — Dynamic-MCP-Fetch Architectural Pivot (Phase 7 reframe round 2)
+**Type:** architecture (pre-implementation, MAJOR pivot)
+**Prior verdict held?** PARTIAL — 2026-05-17 (earlier today) Phase 7 reframe ADRs 0347/0348/0349 SURVIVE; cert-pass model SUPERSEDED.
+**Reviewers:** system-steward (chair), system-agent-coordinator, supervisor, lovsen, botsson-harness-builder (5)
+**Verdict:** APPROVE WITH CHANGES + DEGRADED-MODE during foundations. Q1=(c) workspace-bootstrap dynamic with materialized snapshot; (b) per-calc fetch REJECTED.
+**Chair self-reversals:** 6th L-0147 precedent — (1) ADR-0250 misread (Skatteetaten DEFERRED not workspace-tariff); (2) source-priority — NHO cirkulær official_effective_date PRIMARY, Lovdata verbatim SECONDARY.
+**Key decisions:** Q1=(c) chosen. New capability tools `setup_workspace_tariff` + `change_workspace_tariff` + `add_supplement_override` (last gated on policy ADR). 5 new ADRs in Phase 7d. 4 amendments to ADR-0341/0342/0348/0349.
+**Cell count corrected:** 895 cert + 182 PENDING (briefing 358+716 stale by 2 days).
+**ADR created:** 0350 (bridge), 0351 (floor), 0352 (derive MCP), 0353 (binding lifecycle), 0354 (freshness ops) — all proposed.
+**Learnings created:** L-0289, L-0290, L-0291 (see audit doc).
+**Blockers tracked:** 3 hottest — bridge ADR delay (HIGH), override floor missing (MEDIUM), is_tariff_bound ownership leak (MEDIUM).
+**Full audit:** docs/audits/2026-05-17-dynamic-mcp-fetch-pivot-council.md
+
+## 2026-05-17 — Phase 7d-followup Schema Migration Scope (post-implementation code-trace of ADRs 0350–0354)
+**Type:** plan + schema-locking ADR validation (Phase 3 Hard Rules per ADR-0341 council precedent 2026-05-16)
+**Prior verdict held?** PARTIAL REVERSAL — earlier today Phase 7d council ratified ADRs 0350–0354 on prose. First code-trace of those ADRs found 5 falsifications. ADR-0353 §A, ADR-0353 §D, ADR-0351 Option C all APPROVED → REVERSED.
+**Reviewers:** system-steward (chair), supervisor, system-agent-coordinator, general-purpose+payroll-engine-developer skill, general-purpose+smartout-database-guide skill — 5 reviewers, no degraded mode.
+**Verdict:** APPROVE WITH CHANGES + 11 blocking conditions.
+**Chair self-reversals (7th L-0147 precedent):**
+1. Gap 4 (`is_tariff_bound` vs `active_union_id`): Phase 3 Option (a) derive → Phase 5 Option (b) keep-both-with-trigger. Falsifying evidence: payroll-tracer cited `golden-month.test.ts:81` + `evaluate-supplements.ts:328` + `deviation-checks.ts:458,476,501` + fixture `input/workspace_settings.json`. Classification: REVERSED.
+2. Gap 5 (`tariff_snapshot` schema): Phase 3 `public` → Phase 5 `payroll`. Falsifying evidence: payroll-tracer namespace-ownership argument (zero non-payroll consumers; cross-namespace FK ambiguity). Classification: REVERSED.
+**Key findings (file:line evidence in agent outputs):**
+- `workspace_framework_binding` already exists with cascade D3 shape (`framework_id` FK, `is_active`, auto-seed trigger to `hospitality.no.default.v1`), 8 consumers, 2 dependent FKs. ADR-0353 §A net-new CREATE TABLE conflicts.
+- ADR-0351 Option C CHECK constraint is structurally invalid PostgreSQL (cross-table subquery forbidden). TRIGGER required.
+- `shift_pay_calculation_event.tariff_binding_id` does NOT exist (4 reviewers explicit). ADR-0353 §D claim fabricated.
+- `REFERENCES workspace(id)` in ADR-0353 pseudo-SQL is wrong (real PK is `workspace_id`).
+- ADR-0173 frozen-4 violation: payroll capability cross-namespace writes to `public.workspace_union_binding` need delegation pattern (mirrors ADR-0240 journey_authoring fix).
+**Key decision (sortie split):**
+- Sortie 1: ADR amendments only (no migration code). Writes ADR-0355 + ADR-0356, amends ADR-0353 §A+§D + ADR-0351 Option C, writes L-0292/0293/0294, promotes L-0147 from advisory to SKILL.md hard rule.
+- Sortie 2: Migration sortie. New `public.workspace_union_binding` + `payroll.tariff_snapshot` + columns + cache trigger + tariff-floor TRIGGER + `shift_pay_calculation_event.tariff_binding_id` column. Timestamp ≥ `20260618000000`. Golden-month fixture update + determinism re-run.
+- Sortie 3: Delegation tools (`cascade.bind_workspace_union` + `cascade.add_supplement_rule`) per ADR-0356. Blocks Phase 7f.
+**Phase 7f Agent Trust Gate:** All 3 proposed tools (`setup_workspace_tariff`, `change_workspace_tariff`, `add_supplement_override`) FAIL — blocked on Sortie 3 delegation tools per ADR-0173.
+**ADRs to write (slots reserved):** ADR-0355 (workspace_union_binding + cache trigger), ADR-0356 (cascade-namespace delegation pattern).
+**ADRs to amend:** ADR-0353 §A + §D, ADR-0351 Option C.
+**Learnings to log:** L-0292 (pre-council schema-reality-check pattern), L-0293 (denormalized cache + canonical lifecycle), L-0294 (7th L-0147 precedent + SKILL.md promotion).
+**Phase 2.5 fact-check:** 12/12 claims VERIFIED + bonus finding (`tariff_binding_id` column doesn't exist) confirmed false. Briefing was structurally accurate.
+**Process improvement:** Pre-council schema-reality-check (read 5 most-cited tables/columns before Phase 2 dispatch) saved this council from at least 5 false-premised ADR claims surviving Phase 3.

@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * check-tool-name-collisions.ts — ADR-0348 enforcement CI detector.
+ * check-tool-name-collisions.ts — ADR-0360 enforcement CI detector.
  *
  * Scans all Botsson tool-hook files under
  * `apps/web/src/app/dashboard/**\/_tools/use-*-tools.ts` and fails if
@@ -26,7 +26,7 @@
  *   L-0258 (2026-05-14) documented 9 confirmed tool-name collisions
  *   across useRegisterTools bridges; ADR-0325 Phase 1 used Object.assign
  *   last-wins routing which silently overwrites tool implementations on
- *   mount. ADR-0348 mandates a CI detector to block NEW collisions at
+ *   mount. ADR-0360 mandates a CI detector to block NEW collisions at
  *   PR time while permitting tracked pre-existing debt.
  *
  * What it checks:
@@ -273,7 +273,7 @@ function main(): void {
       }
     }
     console.error(
-      `\nTo resolve: either fix the collision (ADR-0348 pattern — assign single ownership) or, if intentionally pending, add to scripts/known-tool-name-collisions.json with sortie/PR reference.\n`,
+      `\nTo resolve: either fix the collision (ADR-0360 pattern — assign single ownership) or, if intentionally pending, add to scripts/known-tool-name-collisions.json with sortie/PR reference.\n`,
     );
     process.exit(1);
   }

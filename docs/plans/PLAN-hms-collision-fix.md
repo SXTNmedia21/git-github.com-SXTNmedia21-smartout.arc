@@ -4,7 +4,7 @@ status: draft
 updated: 2026-05-17
 created: 2026-05-17
 module: MODULE_01
-tags: [plan, ui-shell, collision-fix, ADR-0348, L-0258, council-verified, campaign-ui-shell, M5-prereq]
+tags: [plan, ui-shell, collision-fix, ADR-0360, L-0258, council-verified, campaign-ui-shell, M5-prereq]
 ---
 
 # Plan — hms-collision-fix
@@ -13,11 +13,11 @@ tags: [plan, ui-shell, collision-fix, ADR-0348, L-0258, council-verified, campai
 
 ## Goal
 
-Resolve 3 LIVE L-0258 tool-name collisions in HMS cluster bridges + ship ADR-0348 CI detector. Closes ADR-0325 Phase 2 dedupe trigger for HMS surface. M5 Sortie 2 of 4 — **BLOCKER for Sortie 3 (`hms-cluster-polish-read`)**.
+Resolve 3 LIVE L-0258 tool-name collisions in HMS cluster bridges + ship ADR-0360 CI detector. Closes ADR-0325 Phase 2 dedupe trigger for HMS surface. M5 Sortie 2 of 4 — **BLOCKER for Sortie 3 (`hms-cluster-polish-read`)**.
 
 ## Council Decision (2026-05-17 — verdict ref COUNCIL-LOG.md row "M5 HMS cluster scoping")
 
-Verdict: APPROVE WITH CHANGES Option C+ (4 sorties). Sortie 1 closed (commit `9ef0fbb60`). This sortie ships ADR-0348 detector + dedupe to ensure Sortie 3 polish can refine bridge tool descriptions safely.
+Verdict: APPROVE WITH CHANGES Option C+ (4 sorties). Sortie 1 closed (commit `9ef0fbb60`). This sortie ships ADR-0360 detector + dedupe to ensure Sortie 3 polish can refine bridge tool descriptions safely.
 
 ## Three LIVE collisions (file:line traced by Agent-Coord 2026-05-17 Phase 3)
 
@@ -33,7 +33,7 @@ Routing today: ADR-0325 Phase 1 grace = `console.error` only; Object.assign last
 
 **In scope:**
 - Remove duplicate tool definitions per ownership table above. Each removed tool: drop from definitions array + drop from implementations record.
-- ADR-0348 CI detector script: `scripts/check-tool-name-collisions.ts` greps all `useRegisterTools(scope, kit)` call sites in `apps/web/src/app/dashboard/**/_tools/`, extracts every `modelToolName` string, fails if duplicates found across bridges.
+- ADR-0360 CI detector script: `scripts/check-tool-name-collisions.ts` greps all `useRegisterTools(scope, kit)` call sites in `apps/web/src/app/dashboard/**/_tools/`, extracts every `modelToolName` string, fails if duplicates found across bridges.
 - Wire detector into pre-push or pre-commit hook (or new `pnpm turbo lint` task).
 - Document semantic change per removed tool in HANDOFF.
 

@@ -26,7 +26,7 @@ tags: [plan, council-followup, r1-fixup, migration, telemetry, wcag, i18n]
 | Council ID | campaign-ui-shell-shippability-r1 |
 | Verdict | REJECT — REMEDIATE BEFORE HOP A |
 | Chair | System Steward |
-| 4 Chair self-reversals | Phantom contract, tri-campaign scope drift, WCAG 4.1.2 mixed-ARIA, ADR-0349 ESLint absence |
+| 4 Chair self-reversals | Phantom contract, tri-campaign scope drift, WCAG 4.1.2 mixed-ARIA, ADR-0361 ESLint absence |
 | L-0147 precedent count | 7th (component-level ARIA on ProcedureDetailTabs identical to HMS R1 HmsSubNav) |
 | L-NEW-1 occurrence | 2nd (deviation_viewed + handbook_chapter_opened registered, 0 emit-sites) — ADR-grade threshold met |
 
@@ -102,7 +102,7 @@ Phase 7+8 council closure folded into this sortie's HANDOFF:
 ## Deferred (post-HOP-A follow-up sortie)
 
 Out of scope for F1:
-- ADR-0349 ESLint rule implementation in `packages/eslint-config/next.mjs` (OKLCH literal ban) — toothless ADR but no new violations this campaign
+- ADR-0361 ESLint rule implementation in `packages/eslint-config/next.mjs` (OKLCH literal ban) — toothless ADR but no new violations this campaign
 - 7 surviving `transition-all` on HMS components (DepartmentReadiness, TaskCard, OversiktEmployee, MaintenanceProcedureForm)
 - Palette literals (`green-500`, `red-500`, `rose-*`) → semantic tokens
 - `LearnFlow.tsx:68-91` stage buttons need `aria-current` (Code-reviewer IMPORTANT)

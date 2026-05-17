@@ -13,7 +13,7 @@
  *   proposeCreateDeviation   — navigate to /dashboard/hms/deviations with form hint
  *   switchGovernanceTab      — navigate to a sub-tab (oversikt/drift/training/documents/deviations/governance)
  *
- * Removed tools (ADR-0348 collision fix — M5 Sortie 2, 2026-05-17):
+ * Removed tools (ADR-0360 collision fix — M5 Sortie 2, 2026-05-17):
  *   listOpenDeviations — REMOVED: single owner is hms/deviations sub-tab
  *                        (use-hms-deviations-tools.ts). Governance surface
  *                        surfaces deviation counts via getGovernanceState;

@@ -12,7 +12,7 @@
 /*  client-only without affecting children    */
 /*  SSR.                                       */
 /*                                            */
-/*  ADR-0238, ADR-0337, ADR-0348.             */
+/*  ADR-0238, ADR-0337, ADR-0362.             */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 import "./Botsson.css";

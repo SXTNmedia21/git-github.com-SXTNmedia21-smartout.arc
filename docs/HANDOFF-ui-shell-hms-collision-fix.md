@@ -4,7 +4,7 @@ status: done
 updated: 2026-05-17
 created: 2026-05-17
 module: MODULE_01
-tags: [handoff, ui-shell, collision-fix, ADR-0348, L-0258, M5-sortie-2]
+tags: [handoff, ui-shell, collision-fix, ADR-0360, L-0258, M5-sortie-2]
 ---
 
 # HANDOFF — hms-collision-fix
@@ -13,7 +13,7 @@ tags: [handoff, ui-shell, collision-fix, ADR-0348, L-0258, M5-sortie-2]
 
 ## What Was Built
 
-Resolved 3 LIVE L-0258 tool-name collisions in the HMS cluster Botsson bridges + shipped the ADR-0348 CI detector script to prevent recurrence. This was M5 Sortie 2 of 4 — blocker for Sortie 3 (`hms-cluster-polish-read`).
+Resolved 3 LIVE L-0258 tool-name collisions in the HMS cluster Botsson bridges + shipped the ADR-0360 CI detector script to prevent recurrence. This was M5 Sortie 2 of 4 — blocker for Sortie 3 (`hms-cluster-polish-read`).
 
 ## Collisions Resolved
 
@@ -42,7 +42,7 @@ Resolved 3 LIVE L-0258 tool-name collisions in the HMS cluster Botsson bridges +
 
 ### CI detector (new)
 
-- `scripts/check-tool-name-collisions.ts` — ADR-0348 detector. Globs 46 `use-*-tools.ts` files under `apps/web/src/app/dashboard/**/_tools/`, extracts `modelToolName` literals (with comment stripping), fails on duplicates.
+- `scripts/check-tool-name-collisions.ts` — ADR-0360 detector. Globs 46 `use-*-tools.ts` files under `apps/web/src/app/dashboard/**/_tools/`, extracts `modelToolName` literals (with comment stripping), fails on duplicates.
 - `package.json` — added `"lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts"` script.
 - `.husky/pre-push` — added `pnpm lint:tool-collisions` after existing `pnpm lint` + `pnpm typecheck` gates.
 
@@ -58,7 +58,7 @@ No other input types changed. `GovernanceToolInput.openDeviations` retained (use
 
 | ID | Decision |
 |---|---|
-| ADR-0348 | L-0258 collision detector mandatory in CI (proposed → accepted by this sortie shipping the implementation). |
+| ADR-0360 | L-0258 collision detector mandatory in CI (proposed → accepted by this sortie shipping the implementation). |
 
 ## Detector Ratchet Pattern (G3 spot-check follow-up)
 
@@ -82,7 +82,7 @@ G3 review found that wiring the detector to `pre-push` without a ratchet would b
     "proposeActivateSeason",
     "proposeArchiveSeason"
   ],
-  "note": "L-0258 cross-domain collisions pending follow-up sortie. ADR-0348 ratchet: detector PASSES on these, FAILS on any NEW collision. Shrink this list when collisions are resolved.",
+  "note": "L-0258 cross-domain collisions pending follow-up sortie. ADR-0360 ratchet: detector PASSES on these, FAILS on any NEW collision. Shrink this list when collisions are resolved.",
   "lastUpdated": "2026-05-17",
   "trackingRef": "M5 HMS hms-collision-fix sortie HANDOFF"
 }

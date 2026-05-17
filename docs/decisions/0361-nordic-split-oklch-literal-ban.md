@@ -1,5 +1,5 @@
 ---
-id: ADR_0349
+id: ADR_0361
 title: Nordic Split — OKLCH literals forbidden in app code
 status: proposed
 created: 2026-05-17
@@ -9,11 +9,11 @@ related: [ADR-0028, ADR-0335]
 tags: [design-system, nordic-split, a11y, lint, css-variables]
 ---
 
-# ADR-0349 — Nordic Split: OKLCH literals forbidden in app code
+# ADR-0361 — Nordic Split: OKLCH literals forbidden in app code
 
 ## Status
 
-**proposed** — drafted 2026-05-17 from Council R1 Tidslinjen post-implementation verdict. Awaits ratification + migration sortie. (Slot allocation: 0348 + 0350 occupied by concurrent same-day campaign sorties — L-0258 detector and BotssonHost mount pattern respectively. This ADR claims the 0349 free slot per L-0147 outsider-renumber convention.)
+**proposed** — drafted 2026-05-17 from Council R1 Tidslinjen post-implementation verdict. Awaits ratification + migration sortie. (Original slot: 0349; renumbered to 0361 per outsider-renumber convention — payroll kept 0347-0356 after merging to development first.)
 
 ## Context
 
@@ -89,4 +89,4 @@ Equivalent semantic tokens already exist and have correct light + dark variants:
 - `learning_phase3_coverage_gap_design_axis.md` — why design axis was missed in Phase 3
 - ADR-0028 (Nordic Split design system, OKLCH adoption)
 - ADR-0335 (Timeline Templates testids — adjacent design surface)
-- Sibling ADR-0351 (`getPhaseBoundaries` presentation-layer ontology — same R1 council)
+- Sibling ADR-0363 (`getPhaseBoundaries` presentation-layer ontology — same R1 council)

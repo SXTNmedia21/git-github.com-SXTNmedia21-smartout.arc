@@ -1,19 +1,19 @@
 ---
-id: ADR_0351
+id: ADR_0363
 title: getPhaseBoundaries — presentation-layer ontology, NOT cascade D6 truth
 status: proposed
 created: 2026-05-17
 updated: 2026-05-17
 deciders: [pontus, council-r1-tidslinjen]
-related: [ADR-0156, ADR-0335, ADR-0349]
+related: [ADR-0156, ADR-0335, ADR-0361]
 tags: [cascade, ontology, dagslinjen, presentation, invariants]
 ---
 
-# ADR-0351 — `getPhaseBoundaries` is presentation-layer ontology, not cascade D6 truth
+# ADR-0363 — `getPhaseBoundaries` is presentation-layer ontology, not cascade D6 truth
 
 ## Status
 
-**proposed** — drafted 2026-05-17 from Council R1 Tidslinjen Steward review. Low urgency; documentation + naming fix only. (Slot 0349-0350 occupied by concurrent same-day work — see ADR-0349 status note.)
+**proposed** — drafted 2026-05-17 from Council R1 Tidslinjen Steward review. Low urgency; documentation + naming fix only. (Original slot: 0351; renumbered to 0363 per outsider-renumber convention — payroll kept 0347-0356 after merging to development first.)
 
 ## Context
 
@@ -103,7 +103,7 @@ A single-line edit to `packages/utils/src/cascade/derive-phase.ts` adds the docu
 
 - Council R1 verdict, 2026-05-17 — `docs/council/COUNCIL-LOG.md`
 - ADR-0156 — canonical `derivePhase` D6 helper (sibling)
-- ADR-0349 — Nordic Split OKLCH literal ban (same R1 council)
+- ADR-0361 — Nordic Split OKLCH literal ban (same R1 council)
 - `learning_phase3_coverage_gap_design_axis.md` — adjacent ontology learning
 - Cascade spec invariant #6 — `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 - `packages/utils/src/cascade/derive-phase.ts:84-117` — target symbol

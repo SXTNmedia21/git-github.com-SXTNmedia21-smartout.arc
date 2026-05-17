@@ -34,7 +34,7 @@ purely topological — a class of bug TypeScript cannot catch.
 Council R1 2026-05-17 reviewed the in-place fix (rewriting `EmmaOverlay` to
 wrap `{children}` as well as its own shell) and REVERSED Phase 3 chair verdict
 (8th L-0147 self-reversal precedent). Solution C (split `BotssonHost`
-SSR-safe wrapper from `EmmaOverlay` dynamic-Orb-only) shipped under ADR-0350.
+SSR-safe wrapper from `EmmaOverlay` dynamic-Orb-only) shipped under ADR-0362.
 
 ## Discovery
 
@@ -94,7 +94,7 @@ caused by the in-place fix; 3-of-5 reviewers caught it independently.
 
 - ADR-0238 — Botsson Surface Disambiguation
 - ADR-0337 — DomainChatOwnership component build
-- ADR-0350 — BotssonHost mount pattern, amends ADR-0113 §R51
+- ADR-0362 — BotssonHost mount pattern, amends ADR-0113 §R51
 - L-0147 — Chair Self-Reversal Protocol (8th precedent today)
 - L-0176, L-0177 — sibling artifact-vs-body / contract-vs-fallback class
 - L-0257 — phantom-contract accumulator

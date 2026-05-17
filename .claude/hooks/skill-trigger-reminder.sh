@@ -44,6 +44,12 @@ match "smartout-database-guide" \
 match "smartout-cascade-developer" \
   '(\b(cascade|sesong|season|vakt|year[- ]?wheel|årshjul|vaktplan|framework|tariff|riksavtalen|overenskomst|day_factor|hour_factor|planning_cycle|planning_event|deviation|trainee|readiness|bootstrap|framework_rule|tariff_rate_table|regulatory_framework|public_holiday|d1|d2|d3|d4|d5|d6|c1|c2|c3|c4|k1a|k1b)\b|schedule_shift|schedule_absence|department_session|session_hook|session_task|department_operating_hours|department_hours_override|season_budget|workspace_budget|shift_cost_snapshot|daily_reconciliation|workspace_kpi_target|change_proposal|engine_authority_config|\bshift\b)'
 
+# ── Payroll Engine — calc-engine/lønn/tariff/audit-trail ──
+# Compound names (payroll.X, table_name with underscores) bypass \b since dots/underscores break grep -E word boundaries.
+# Norwegian stems use [a-zæøå]*\b suffix to match inflected forms (lønn → lønnen/lønna/lønnene/lønningen).
+match "payroll-engine-developer" \
+  '(\b(payroll|payroll-engine|calc-engine|paycheck|paycomponent|paycode|payslip|salary|wage|ruleset|time-entry|timesheet|time-bank|toil|holiday-pay|vacation-pay|lock-period|manual-supplement|dynamic-supplement|golden-month|period-close|a-melding|tripletex|audit-trail)\b|\b(lønn|lønnsslipp|lønnskjøring|lønnsperiode|lønnsart|lønnsprofil|ansiennitet|kveldstillegg|helgetillegg|nattillegg|overtidstillegg|helligdagstillegg|kort-varsel-tillegg|minstelønn|feriepenger|tidskonto|avspasering|vaktsupplement|regelmotor|avvik|tariff|tariffbinding|riksavtalen|feriepeng)[a-zæøå]*\b|payroll\.workspace_settings|payroll\.shift_type|payroll\.timebank_entry|payroll\.payroll_calculation|payroll\.payroll_period|payroll\.payroll_line|payroll\.shift_pay_calculation_event|payroll\.manual_supplement|payroll\.supplement_rule|payroll\.break_rule|supplement_rule|tariff_rate_table|framework_rule|regulatory_framework|employee_payroll_profile|employment_contract|public_holiday|shift_cost_snapshot|packages/payroll-calculate|apps/web/src/app/dashboard/payroll|apps/web/src/app/dashboard/my-salary|apps/mobile/src/app/\(me\)/payroll|packages/ai/src/capabilities/payroll|services/lovsen-nho-reiseliv-mcp|docs/modules/payroll)'
+
 # ── Edge Functions — API gateway ──
 match "smartout-edge-function-guide" \
   '\b(edge function|edge-function|supabase/functions|workspace-api|scope guard|dual-auth|api endpoint|api gateway)\b'

@@ -1,6 +1,6 @@
 ---
 title: "BotssonHost mount pattern — SSR-preserving provider scope, amends ADR-0113 R51"
-id: ADR_0350
+id: ADR_0362
 status: accepted
 layer: decision
 created: 2026-05-17
@@ -11,9 +11,9 @@ module: botsson
 tags: [botsson, provider, ssr, adr-amendment]
 ---
 
-# ADR-0350: BotssonHost mount pattern — SSR-preserving provider scope, amends ADR-0113 R51
+# ADR-0362: BotssonHost mount pattern — SSR-preserving provider scope, amends ADR-0113 R51
 
-> **Slot note:** ADR-0348 (collision-detector + two-hash-citation) and ADR-0349 (paragraph-ref translation map) were already claimed across branches at draft time. Advanced to ADR-0350 per L-0147 outsider-renumbers convention.
+> **Slot note:** Original slot ADR-0350; renumbered to ADR-0362 per outsider-renumber convention — payroll kept 0347-0356 after merging to development first.
 
 ## Context and Problem Statement
 
