@@ -57,7 +57,8 @@ export type EventCategory =
   | "pos" // ADR-0305 — POS integration adapter pattern
   | "shift_marketplace" // ADR-0306 — Open-shift marketplace
   | "scheduler" // ADR-0307/0309 — Constraint-solver scheduler greedy V1
-  | "cost"; // ui-shell-cost-polish — Cost overview telemetry
+  | "cost" // ui-shell-cost-polish — Cost overview telemetry
+  | "hms"; // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -2580,6 +2581,59 @@ export interface CostOverviewViewed extends BaseEvent {
   event: "cost.overview.viewed";
   properties: {
     entity: EntityRef;
+  };
+}
+
+// ─── HMS Read-surface events (ui-shell-hms-cluster-polish-read) ─────────────
+// hms.umbrella.viewed — emitted when manager lands on /dashboard/hms.
+//   activity_trail records manager readiness-surface engagement; posthog tracks adoption.
+// hms.drift.viewed — emitted when /dashboard/hms/drift loads; helps us know
+//   how often drift is actively monitored vs. ignored.
+// hms.documents.opened — emitted when /dashboard/hms/documents loads;
+//   distinguishes passive-document vs. training engagement patterns.
+// hms.training.viewed — emitted when /dashboard/hms/training loads;
+//   training funnel analytics entry point.
+// No engine_event: read-side HMS views do NOT trigger downstream workflow steps.
+
+export interface HmsUmbrellaViewed extends BaseEvent {
+  event: "hms.umbrella.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Snapshot of aggregate readiness at view time (0-100). Useful for cohort
+      // analysis: managers who see low readiness → do they take action?
+      workspace_readiness_percent: number;
+    };
+  };
+}
+
+export interface HmsDriftViewed extends BaseEvent {
+  event: "hms.drift.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Number of active sessions visible to the user at view time.
+      active_session_count: number;
+    };
+  };
+}
+
+export interface HmsDocumentsOpened extends BaseEvent {
+  event: "hms.documents.opened";
+  properties: {
+    entity: EntityRef;
+  };
+}
+
+export interface HmsTrainingViewed extends BaseEvent {
+  event: "hms.training.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Total protocols in scope at view time; lets us see how readiness-load
+      // affects return visit frequency.
+      protocol_count: number;
+    };
   };
 }
 
@@ -8652,7 +8706,12 @@ export type SmartoutEvent =
   | TimelineTemplateApplyFailed
   | TimelineTemplateListed
   // ─── Schedule Density (feat/schedule-card-density) ───────────────────────────
-  | ScheduleDensityChanged;
+  | ScheduleDensityChanged
+  // ─── HMS Read-surface (ui-shell-hms-cluster-polish-read) ─────────────────────
+  | HmsUmbrellaViewed
+  | HmsDriftViewed
+  | HmsDocumentsOpened
+  | HmsTrainingViewed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -13655,5 +13714,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "cost.overview.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "cost",
+  },
+
+  // ─── HMS Read-surface (ui-shell-hms-cluster-polish-read) ─────────────────
+  // Read-side views: posthog (adoption funnel) + logger (observability) +
+  // activity_trail (manager engagement audit). No engine_event — reads do
+  // NOT trigger downstream workflow reactions.
+  "hms.umbrella.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.drift.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.documents.opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.training.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
   },
 };

@@ -77,7 +77,7 @@ export function LearnFlow({ procedureId, readOnly = false }: Props) {
                 isActive
                   ? "bg-primary/10 text-primary border-primary/30 border"
                   : isPast
-                    ? "bg-green-500/10 text-green-600"
+                    ? "bg-success/10 text-success"
                     : "text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -156,8 +156,8 @@ export function LearnFlow({ procedureId, readOnly = false }: Props) {
       )}
 
       {activeStage === "done" && (
-        <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-6 text-center">
-          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-green-500" />
+        <div className="border-success/30 bg-success/5 rounded-xl border p-6 text-center">
+          <CheckCircle2 className="text-success mx-auto mb-3 h-8 w-8" />
           <p className="text-foreground font-semibold">{t("hms.learn_flow.done_title")}</p>
           <p className="text-muted-foreground mt-1 text-sm">{t("hms.learn_flow.done_desc")}</p>
         </div>
