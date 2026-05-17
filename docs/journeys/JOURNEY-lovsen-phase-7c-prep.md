@@ -1,7 +1,8 @@
 ---
 title: "Journey — lovsen-phase-7c-prep"
 feature: lovsen-phase-7c-prep
-status: done
+status: verified
+verified_at: 2026-05-17
 updated: 2026-05-17
 created: 2026-05-17
 module: payroll
