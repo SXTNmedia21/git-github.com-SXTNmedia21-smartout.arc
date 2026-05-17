@@ -1,6 +1,6 @@
 ---
 title: "Journey — Write-heavy HMS routes ship production polish"
-status: draft
+status: verified
 feature: policies-handbook-polish-write
 updated: 2026-05-17
 created: 2026-05-17
