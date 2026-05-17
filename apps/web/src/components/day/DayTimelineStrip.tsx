@@ -1,15 +1,27 @@
 "use client";
 
+import { useMemo, useState, useContext } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import { Calendar, CheckCircle2, AlertTriangle, StickyNote, LogIn, LogOut } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  StickyNote,
+  LogIn,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@smartout/ui";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import type { SelectionSource } from "./use-timeline-selection";
+
+const SPARSE_THRESHOLD = 4; // events within bounds at/below this → auto-zoom near now
+const ZOOM_HALF_WINDOW = 180; // minutes either side of now
 
 export type DayTimelineStripProps = {
   events: DayEvent[];
@@ -107,6 +119,13 @@ const TYPE_META: Record<
     label: "Utsjekk",
   },
 };
+
+function minutesToHHMM(m: number): string {
+  const wrapped = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const mm = wrapped % 60;
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
 
 function timeToMinutes(hhmm: string | null): number | null {
   if (!hhmm) return null;
@@ -235,55 +254,105 @@ export function DayTimelineStrip({
   const wsCtx = useWorkspaceOptional();
   const profileId = dashCtx.profileId;
   const workspaceId = wsCtx?.workspace.workspace_id;
-  const startMin = timeToMinutes(startHHMM) ?? 6 * 60;
-  let endMin = timeToMinutes(endHHMM) ?? 26 * 60;
-  if (endMin <= startMin) endMin += 24 * 60;
-  const span = endMin - startMin;
 
-  // Hour ticks every 2 hours
-  const ticks: { min: number; label: string }[] = [];
-  for (let m = Math.ceil(startMin / 60) * 60; m <= endMin; m += 120) {
-    const h = Math.floor((m % (24 * 60)) / 60);
-    ticks.push({
-      min: m - startMin,
-      label: `${String(h).padStart(2, "0")}:00`,
-    });
-  }
+  // Session bounds — the full operating window.
+  const boundsStart = timeToMinutes(startHHMM) ?? 6 * 60;
+  let boundsEnd = timeToMinutes(endHHMM) ?? 26 * 60;
+  if (boundsEnd <= boundsStart) boundsEnd += 24 * 60;
 
-  // Now marker
+  // Now marker (computed against bounds — visible-window decision uses this).
   const now = new Date();
   const todayISO = now.toISOString().slice(0, 10);
   const isToday = todayISO === dateISO;
   const nowMin = isToday ? now.getHours() * 60 + now.getMinutes() : null;
+
+  // Normalise events to absolute minutes within bounds (handles post-midnight).
+  const normalised = useMemo(
+    () =>
+      events
+        .map((e) => {
+          const m = timeToMinutes(e.time);
+          if (m == null) return null;
+          let normM = m;
+          if (normM < boundsStart && normM + 24 * 60 <= boundsEnd) normM += 24 * 60;
+          if (normM < boundsStart || normM > boundsEnd) return null;
+          let normEnd: number | null = null;
+          if (e.endTime) {
+            const em = timeToMinutes(e.endTime);
+            if (em != null) {
+              let nem = em;
+              if (nem < boundsStart && nem + 24 * 60 <= boundsEnd) nem += 24 * 60;
+              if (nem >= boundsStart && nem <= boundsEnd) normEnd = nem;
+            }
+          }
+          return { event: e, normM, normEnd };
+        })
+        .filter((x): x is { event: DayEvent; normM: number; normEnd: number | null } => x !== null)
+        .sort((a, b) => a.normM - b.normM),
+    [events, boundsStart, boundsEnd],
+  );
+
+  // Zoom mode — "auto" means: today + sparse + now-in-bounds → zoom near now.
+  const [zoomMode, setZoomMode] = useState<"auto" | "full">("auto");
+
+  const isSparse = normalised.length <= SPARSE_THRESHOLD;
+  const nowInBounds = nowMin != null && nowMin >= boundsStart && nowMin <= boundsEnd;
+  const shouldZoom = zoomMode === "auto" && isSparse && nowInBounds;
+
+  let visibleStart = boundsStart;
+  let visibleEnd = boundsEnd;
+  if (shouldZoom && nowMin != null) {
+    // Snap window to 30-min boundaries for clean ticks.
+    const rawStart = Math.max(boundsStart, nowMin - ZOOM_HALF_WINDOW);
+    const rawEnd = Math.min(boundsEnd, nowMin + ZOOM_HALF_WINDOW);
+    visibleStart = Math.floor(rawStart / 30) * 30;
+    visibleEnd = Math.ceil(rawEnd / 30) * 30;
+    // Re-clamp after snapping.
+    if (visibleStart < boundsStart) visibleStart = boundsStart;
+    if (visibleEnd > boundsEnd) visibleEnd = boundsEnd;
+  }
+  const span = visibleEnd - visibleStart;
+
+  // Hour ticks — interval adapts to visible span.
+  const tickInterval = span <= 8 * 60 ? 60 : 120;
+  const ticks: { min: number; label: string }[] = [];
+  for (let m = Math.ceil(visibleStart / 60) * 60; m <= visibleEnd; m += tickInterval) {
+    const h = Math.floor((m % (24 * 60)) / 60);
+    ticks.push({
+      min: m - visibleStart,
+      label: `${String(h).padStart(2, "0")}:00`,
+    });
+  }
+
   const nowPct =
-    nowMin != null && nowMin >= startMin && nowMin <= endMin
-      ? ((nowMin - startMin) / span) * 100
+    nowInBounds && nowMin! >= visibleStart && nowMin! <= visibleEnd
+      ? ((nowMin! - visibleStart) / span) * 100
       : null;
 
-  // Map events to position percent + optional end percent (for duration bars).
-  const positioned = events
-    .map((e) => {
-      const m = timeToMinutes(e.time);
-      if (m == null) return null;
-      let normM = m;
-      if (normM < startMin && normM + 24 * 60 <= endMin) normM += 24 * 60;
-      if (normM < startMin || normM > endMin) return null;
-      const pct = ((normM - startMin) / span) * 100;
-      let pctEnd: number | null = null;
-      if (e.endTime) {
-        const em = timeToMinutes(e.endTime);
-        if (em != null) {
-          let nem = em;
-          if (nem < startMin && nem + 24 * 60 <= endMin) nem += 24 * 60;
-          if (nem >= startMin && nem <= endMin) {
-            pctEnd = ((nem - startMin) / span) * 100;
-          }
-        }
+  // Position events using visible window. Events outside window counted for edge pills.
+  let offscreenLeft = 0;
+  let offscreenRight = 0;
+  const positioned = normalised
+    .map(({ event, normM, normEnd }) => {
+      if (normM < visibleStart) {
+        offscreenLeft += 1;
+        return null;
       }
-      return { event: e, pct, pctEnd };
+      if (normM > visibleEnd) {
+        offscreenRight += 1;
+        return null;
+      }
+      const pct = ((normM - visibleStart) / span) * 100;
+      let pctEnd: number | null = null;
+      if (normEnd != null && normEnd >= visibleStart && normEnd <= visibleEnd) {
+        pctEnd = ((normEnd - visibleStart) / span) * 100;
+      }
+      return { event, pct, pctEnd };
     })
-    .filter((x): x is { event: DayEvent; pct: number; pctEnd: number | null } => x !== null)
-    .sort((a, b) => a.pct - b.pct);
+    .filter((x): x is { event: DayEvent; pct: number; pctEnd: number | null } => x !== null);
+  // Keep backwards-compat names below (startMin/endMin) so following hit-zone code untouched.
+  const startMin = visibleStart;
+  const endMin = visibleEnd;
 
   // Simple lane assignment to avoid overlap when markers within 2% of each other
   const LANES = 3;
@@ -323,11 +392,26 @@ export function DayTimelineStrip({
   return (
     <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-5 shadow-sm">
       <div className="relative z-10">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-foreground text-sm font-bold tracking-tight">Dagslinjen</h3>
-          <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
-            {startHHMM ?? "—"}–{endHHMM ?? "—"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
+              {minutesToHHMM(visibleStart)}–{minutesToHHMM(visibleEnd)}
+            </span>
+            {nowInBounds && isSparse && (
+              <button
+                type="button"
+                onClick={() => setZoomMode((m) => (m === "auto" ? "full" : "auto"))}
+                className={cn(
+                  "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-colors",
+                  "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                )}
+                aria-label={zoomMode === "auto" ? "Vis hele dagen" : "Zoom inn på nå"}
+              >
+                {zoomMode === "auto" ? "Hele dagen" : "Nær nå"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Track */}
@@ -335,14 +419,42 @@ export function DayTimelineStrip({
           {/* Background bar */}
           <div className="border-border bg-muted/40 absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full border" />
 
+          {/* Off-screen counters (auto-zoom only) */}
+          {offscreenLeft > 0 && (
+            <button
+              type="button"
+              onClick={() => setZoomMode("full")}
+              className="bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border-border focus-visible:ring-ring absolute top-1/2 left-1 z-20 flex -translate-y-1/2 items-center gap-0.5 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tabular-nums shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              aria-label={`${offscreenLeft} hendelser før dette vinduet — vis hele dagen`}
+            >
+              <ChevronLeft className="h-3 w-3" aria-hidden />
+              {offscreenLeft}
+            </button>
+          )}
+          {offscreenRight > 0 && (
+            <button
+              type="button"
+              onClick={() => setZoomMode("full")}
+              className="bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border-border focus-visible:ring-ring absolute top-1/2 right-1 z-20 flex -translate-y-1/2 items-center gap-0.5 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tabular-nums shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              aria-label={`${offscreenRight} hendelser etter dette vinduet — vis hele dagen`}
+            >
+              {offscreenRight}
+              <ChevronRight className="h-3 w-3" aria-hidden />
+            </button>
+          )}
+
           {/* Now marker */}
           {nowPct != null ? (
             <div
-              className="absolute top-2 bottom-2 w-px bg-orange-500/60"
+              className="absolute top-2 bottom-2 z-[1] w-0.5 rounded-full bg-orange-500/80"
               style={{ left: `${nowPct}%` }}
-              aria-label={`Klokken er nå ${String(Math.floor(nowMin! / 60)).padStart(2, "0")}:${String(nowMin! % 60).padStart(2, "0")}`}
+              role="img"
+              aria-label={`Klokken er nå ${minutesToHHMM(nowMin!)}`}
             >
-              <span className="absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50" />
+              <span className="absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 animate-pulse rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50" />
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-sm bg-orange-500 px-1 py-px font-mono text-[9px] font-bold tracking-wider text-white tabular-nums shadow-sm">
+                NÅ {minutesToHHMM(nowMin!)}
+              </span>
             </div>
           ) : null}
 

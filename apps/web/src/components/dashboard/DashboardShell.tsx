@@ -1339,7 +1339,7 @@ function DashboardShellInner({
 
                     <nav
                       data-testid="sidebar-nav"
-                      className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
+                      className={`relative flex-1 space-y-0 overflow-x-hidden overflow-y-auto py-1 [scrollbar-width:thin] ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
                     >
                       {isDocumentMode ? (
                         <DocumentModeSidebar isDark={isDark} />
