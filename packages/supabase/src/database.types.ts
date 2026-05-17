@@ -21364,6 +21364,22 @@ export type Database = {
         Args: { p_actor_profile_id: string }
         Returns: undefined
       }
+      bind_workspace_union_atomic: {
+        Args: {
+          p_amendment_classifier: string
+          p_created_by: string
+          p_derivation_snapshot_id?: string
+          p_effective_from: string
+          p_law_version: string
+          p_official_effective_date: string
+          p_union_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          effective_from: string
+          workspace_union_binding_id: string
+        }[]
+      }
       bootstrap_botsson_channel: {
         Args: { p_workspace_id: string }
         Returns: string
