@@ -36,7 +36,7 @@ Take Smartout's web dashboard from "all routes reachable" to "all routes feel pr
 - [x] **M2 — Quick wins (2 of 20 routes).** `/dashboard/website` cluster (3 sub-routes) + `/dashboard/admin/pos-accounts`. *Shipped via `website-polish` + `pos-accounts-polish` 2026-05-16.*
 - [x] **M3 — Foundation debt closeout.** Sidebar testids + SectionEditor real values + `WorkspaceData.is_active` threading. *Shipped via `debt-closeout` + `workspace-status-context` 2026-05-16.*
 - [x] **M4 — Admin cluster (3 routes).** Contracts, cost, billing — high-traffic admin surfaces. *Shipped via `contracts-polish` + `cost-polish` + `billing-polish` 2026-05-17.*
-- [ ] **M5 — HMS cluster (8 routes).** Overview, deviations, documents, training, drift, governance, policies, handbook. Possible shared-foundation sortie first (common loading/empty patterns), then per-route polish.
+- [x] **M5 — HMS cluster (8 routes).** Overview, deviations, documents, training, drift, governance, policies, handbook. Council 2026-05-17 mandated 4-sortie Option C+ sequence: pre-m5-mutation-closure + hms-collision-fix (2 BLOCKER prereqs) + hms-cluster-polish-read + policies-handbook-polish-write. *Shipped 2026-05-17.*
 - [ ] **M6 — Planning cluster (3 routes).** Proposals, year-wheel, setup. Touches Cascade D4/D5 — coordinate with `world-best-wfm` if scheduler work overlaps.
 - [ ] **M7 — Kommunikasjon + AI + Min Tid (4 routes).** Komm/desks, komm/oversikt, onboarding-assistant, shift-clock.
 - [x] **M8 — Cleanup.** i18n migration of `sidebar-config.ts` labels (59 → labelKey, 56 keys per locale). Stale `PLAN-sidebar-reorg.md` duplicate verified non-existent (no-op). *Shipped via `i18n-cleanup` 2026-05-17.*
@@ -62,6 +62,7 @@ _none_
 | 10 | `pre-m5-mutation-closure` | `9ef0fbb60` | M5 Sortie 1 of 4 (council 2026-05-17 Option C+) — close ADR-0099/0114/0204 gaps: 2 hooks → Server Actions w/ gate_action, createPolicy gated, capability seed migration `20260617110000`. Blocker for Sortie 2-4. |
 | 11 | `hms-collision-fix` | `379036989` | M5 Sortie 2 of 4 — close 3 LIVE L-0258 collisions (listOpenDeviations 3-way → hms/deviations, getDriftStatus 2-way → hms/drift, getProtocolDetail 2-way → governance) + ship ADR-0348 CI detector with ratchet allowlist (8 cross-domain entries pending follow-up). Blocker for Sortie 3. |
 | 12 | `hms-cluster-polish-read` | `430563d27` | M5 Sortie 3 of 4 — polish 5 read-heavy routes (hms umbrella + training + drift + documents + governance). 5 error.tsx + 4 loading.tsx, Nordic Split sweep across 11 components, 4 telemetry events registered, HmsSubNav ARIA tablist + tab + aria-current, Opplæring typo fix. G4 found 2 HIGH (CompetenceMatrix tokens + HmsSubNav ARIA) → fixed `21e066252`. 4 LOWs deferred per HANDOFF. |
+| 13 | `policies-handbook-polish-write` | `369e80b38` | **M5 Sortie 4 of 4 — FINAL.** Polish 4 write-heavy routes (hms/deviations + hms/procedure/[id] + policies + handbook). 4 error.tsx + 2 loading.tsx (outline button variant absorbing Sortie 3 G4 LOW), Nordic Split sweep across 11 components (~38 hardcoded → semantic), 2 telemetry events (`deviation viewed`, `handbook chapter_opened` SPACE-separator), DeviationKanban motion audit (no AnimatePresence found, satisfies guard by absence). **M5 milestone COMPLETE (4/4).** |
 
 ## Decisions
 
