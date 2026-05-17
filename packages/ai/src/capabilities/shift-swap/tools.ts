@@ -632,7 +632,7 @@ export const cancelSwap = defineTool({
  * shift_swap_lifecycle pipeline instance.
  *
  * Authority: shift_swap.override (min_role=admin, level=autonomous).
- * Seeded by T0.5 migration (20260617100000_seed_pipeline_override_authority.sql).
+ * Seeded by T0.5 migration (20260620100200_seed_pipeline_override_authority.sql).
  *
  * Laws honoured:
  *   ADR-0078 / ADR-0288 — chat-only (irreversible admin act, no voice)
