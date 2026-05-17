@@ -76,10 +76,10 @@ export default function PayslipListScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Lønnsslipper</Text>
+          <Text style={styles.headerTitle}>Lønnsgrunnlag</Text>
         </View>
         <EmptyState
-          title="Ingen lønnsslipper"
+          title="Ingen lønnsgrunnlag"
           subtitle="Når din første lønnsperiode er ferdigbehandlet, vises den her."
         />
       </SafeAreaView>
@@ -102,7 +102,7 @@ export default function PayslipListScreen() {
           <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
         <View>
-          <Text style={styles.headerTitle}>Lønnsslipper</Text>
+          <Text style={styles.headerTitle}>Lønnsgrunnlag</Text>
           <Text style={styles.headerSubtitle}>{payslips.length} perioder</Text>
         </View>
         <View style={{ width: 40 }} />

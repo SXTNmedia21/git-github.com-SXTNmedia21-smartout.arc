@@ -12,3 +12,4 @@ export * from "./industry.js";
 export * from "./cockpit.js";
 export * from "./session-note.js";
 export * from "./timeline-template.js";
+export * from "./payroll-tariff-bff-contract.js";

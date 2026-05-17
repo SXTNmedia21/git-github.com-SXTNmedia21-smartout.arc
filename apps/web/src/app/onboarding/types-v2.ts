@@ -15,6 +15,7 @@ import type {
   RoleOption,
 } from "./types";
 import { EMPTY_BUSINESS_DATA } from "./types";
+import { defaultTariffSectionState, type TariffSectionState } from "@/lib/onboarding/tariff-state";
 
 export interface OnboardingConfirmState extends Record<string, unknown> {
   /** Business identity — pre-filled from intelligence pipeline */
@@ -40,6 +41,9 @@ export interface OnboardingConfirmState extends Record<string, unknown> {
 
   /** Professions with positions, loaded from K1a platform data */
   professions: ProfessionOption[];
+
+  /** Tariff binding state — populated by TariffSection step */
+  tariff: TariffSectionState;
 }
 
 export const defaultOnboardingConfirmState: OnboardingConfirmState = {
@@ -51,4 +55,5 @@ export const defaultOnboardingConfirmState: OnboardingConfirmState = {
   workspaceId: null,
   workspaceSlug: null,
   professions: [],
+  tariff: defaultTariffSectionState,
 };

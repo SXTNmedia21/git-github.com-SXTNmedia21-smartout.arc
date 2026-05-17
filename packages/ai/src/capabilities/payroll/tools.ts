@@ -1533,6 +1533,61 @@ export const overrideCalculationLine = defineTool({
       },
     });
 
+    // ADR-0293 Pattern B — sync-recalc feriepenger_basis after line override proposal.
+    // The override changes the proposed amount of a wage line; emit the recomputed basis
+    // so the accountant view reflects the proposed new state before admin approval.
+    // parentCalc.profile_id is verified above (fail-fast, L-0177) — safe to use here.
+    type OverrideHolidayPctRow = { holiday_allowance_pct: number | null };
+    type OverrideBasePayRow = { base_pay: number | null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const overridePayrollProfileResult = (await (supabase as any)
+      .from("employee_payroll_profile")
+      .select("holiday_allowance_pct")
+      .eq("profile_id", parentCalc.profile_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle()) as { data: OverrideHolidayPctRow | null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const overrideCalcResult = (await (supabase as any)
+      .schema("payroll")
+      .from("calculation")
+      .select("base_pay")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("period_id", params.period_id)
+      .eq("profile_id", parentCalc.profile_id)
+      .order("calculation_version", { ascending: false })
+      .limit(1)
+      .maybeSingle()) as { data: OverrideBasePayRow | null };
+
+    const overrideHolidayPct = Number(
+      overridePayrollProfileResult.data?.holiday_allowance_pct ?? 12,
+    );
+    const overrideBasePay = Number(overrideCalcResult.data?.base_pay ?? 0);
+    const overrideBasisAmount = computeFeriepengerBasis({
+      basePayTotal: overrideBasePay,
+      holidayAllowancePct: overrideHolidayPct,
+    });
+
+    await emit({
+      event: "payroll.feriepenger_basis_computed",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: {
+          entity_type: "payroll_period" as const,
+          entity_id: params.period_id,
+        },
+        data: {
+          workspace_id: ctx.workspaceId,
+          period_id: params.period_id,
+          profile_id: parentCalc.profile_id,
+          basis_amount: overrideBasisAmount,
+          pct_applied: overrideHolidayPct,
+          base_pay_total: overrideBasePay,
+          channel: "system" as const,
+        },
+      },
+    });
+
     return JSON.stringify({
       ok: true,
       change_proposal_id: proposal.change_proposal_id,
@@ -1636,6 +1691,62 @@ export const addManualSupplement = defineTool({
         },
       },
     });
+
+    // ADR-0293 Pattern B — sync-recalc feriepenger_basis after supplement add.
+    // Fetch holiday_allowance_pct + latest base_pay for the affected employee, then
+    // emit payroll.feriepenger_basis_computed so the BFF/accountant view stays current.
+    // base_pay may be 0 if the period calculation hasn't run yet — still emit so the
+    // basis is recorded at supplement-add time (matches audit trail intent ADR-0295).
+    if (period?.id && shift.employee_id) {
+      type HolidayPctRow = { holiday_allowance_pct: number | null };
+      type BasePayRow = { base_pay: number | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const addPayrollProfileResult = (await (supabase as any)
+        .from("employee_payroll_profile")
+        .select("holiday_allowance_pct")
+        .eq("profile_id", shift.employee_id)
+        .eq("workspace_id", ctx.workspaceId)
+        .maybeSingle()) as { data: HolidayPctRow | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const addCalcResult = (await (supabase as any)
+        .schema("payroll")
+        .from("calculation")
+        .select("base_pay")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("period_id", period.id)
+        .eq("profile_id", shift.employee_id)
+        .order("calculation_version", { ascending: false })
+        .limit(1)
+        .maybeSingle()) as { data: BasePayRow | null };
+
+      const addHolidayPct = Number(addPayrollProfileResult.data?.holiday_allowance_pct ?? 12);
+      const addBasePay = Number(addCalcResult.data?.base_pay ?? 0);
+      const addBasisAmount = computeFeriepengerBasis({
+        basePayTotal: addBasePay,
+        holidayAllowancePct: addHolidayPct,
+      });
+
+      await emit({
+        event: "payroll.feriepenger_basis_computed",
+        workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+        actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+        properties: {
+          entity: {
+            entity_type: "payroll_period" as const,
+            entity_id: period.id,
+          },
+          data: {
+            workspace_id: ctx.workspaceId,
+            period_id: period.id,
+            profile_id: shift.employee_id,
+            basis_amount: addBasisAmount,
+            pct_applied: addHolidayPct,
+            base_pay_total: addBasePay,
+            channel: "system" as const,
+          },
+        },
+      });
+    }
 
     return JSON.stringify({
       ok: true,
@@ -2555,12 +2666,17 @@ export const deleteManualSupplement = defineTool({
     if (supErr || !sup) return "Tillegg ikke funnet i dette arbeidsområdet.";
 
     // Verify the shift's period is still open (L-0177).
+    // F-CL-17 fix: also fetch employee_id so target_profile_id in emit is the
+    // supplement owner (the employee), not the actor who performs the delete.
     const { data: shift } = await supabase
       .from("schedule_shift")
-      .select("start_time")
+      .select("start_time, employee_id")
       .eq("schedule_shift_id", sup.schedule_shift_id)
       .eq("workspace_id", ctx.workspaceId)
       .maybeSingle();
+
+    // Keep period reference in outer scope for Pattern B recalc after delete.
+    let deletePeriodId: string | null = null;
 
     if (shift) {
       const shiftDate = shift.start_time.slice(0, 10);
@@ -2576,7 +2692,13 @@ export const deleteManualSupplement = defineTool({
       if (period && (period.status === "locked" || period.status === "approved")) {
         return `Kan ikke slette tillegg: Perioden er ${period.status}.`;
       }
+      deletePeriodId = period?.id ?? null;
     }
+
+    // F-CL-17 fix: attribute deletion to the employee whose supplement is removed,
+    // not to the admin actor performing the delete. If shift.employee_id is unavailable
+    // (e.g. shift not found), fall back to ctx.profileId to avoid null emit.
+    const deleteTargetProfileId = shift?.employee_id ?? ctx.profileId;
 
     // Delete the supplement (DB trigger fires DELETE event automatically).
     const { error: deleteErr } = await supabase
@@ -2596,8 +2718,9 @@ export const deleteManualSupplement = defineTool({
         entity: { entity_type: "shift" as const, entity_id: sup.schedule_shift_id },
         data: {
           supplement_id: sup.id,
-          period_id: "",
-          target_profile_id: ctx.profileId,
+          period_id: deletePeriodId ?? "",
+          // F-CL-17 fix: use employee who owned the supplement (not the admin actor).
+          target_profile_id: deleteTargetProfileId,
           shift_id: sup.schedule_shift_id,
           salary_code: sup.salary_code ?? null,
           amount: Number(sup.amount),
@@ -2605,6 +2728,59 @@ export const deleteManualSupplement = defineTool({
         },
       },
     });
+
+    // ADR-0293 Pattern B — sync-recalc feriepenger_basis after supplement delete.
+    // Re-compute basis for the affected employee so the BFF view reflects the deletion.
+    if (deletePeriodId && deleteTargetProfileId) {
+      type DelHolidayPctRow = { holiday_allowance_pct: number | null };
+      type DelBasePayRow = { base_pay: number | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const delPayrollProfileResult = (await (supabase as any)
+        .from("employee_payroll_profile")
+        .select("holiday_allowance_pct")
+        .eq("profile_id", deleteTargetProfileId)
+        .eq("workspace_id", ctx.workspaceId)
+        .maybeSingle()) as { data: DelHolidayPctRow | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const delCalcResult = (await (supabase as any)
+        .schema("payroll")
+        .from("calculation")
+        .select("base_pay")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("period_id", deletePeriodId)
+        .eq("profile_id", deleteTargetProfileId)
+        .order("calculation_version", { ascending: false })
+        .limit(1)
+        .maybeSingle()) as { data: DelBasePayRow | null };
+
+      const delHolidayPct = Number(delPayrollProfileResult.data?.holiday_allowance_pct ?? 12);
+      const delBasePay = Number(delCalcResult.data?.base_pay ?? 0);
+      const delBasisAmount = computeFeriepengerBasis({
+        basePayTotal: delBasePay,
+        holidayAllowancePct: delHolidayPct,
+      });
+
+      await emit({
+        event: "payroll.feriepenger_basis_computed",
+        workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+        actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+        properties: {
+          entity: {
+            entity_type: "payroll_period" as const,
+            entity_id: deletePeriodId,
+          },
+          data: {
+            workspace_id: ctx.workspaceId,
+            period_id: deletePeriodId,
+            profile_id: deleteTargetProfileId,
+            basis_amount: delBasisAmount,
+            pct_applied: delHolidayPct,
+            base_pay_total: delBasePay,
+            channel: "system" as const,
+          },
+        },
+      });
+    }
 
     return JSON.stringify({
       ok: true,
@@ -2806,3 +2982,12 @@ export const viewLonnsgrunnlag = defineTool({
     });
   },
 });
+
+// ─── Phase 7f tariff tools (delegated to cascade per ADR-0356) ───────────────
+// Implemented in tariff-tools.ts to keep this file manageable.
+// Three delegation tools: setup_workspace_tariff, change_workspace_tariff, add_supplement_override.
+export {
+  setupWorkspaceTariffTool,
+  changeWorkspaceTariffTool,
+  addSupplementOverrideTool,
+} from "./tariff-tools.js";

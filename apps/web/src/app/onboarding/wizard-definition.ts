@@ -8,7 +8,16 @@
  * The user reviews and adjusts before finalizing the workspace.
  */
 
-import { Layers, MapPin, ClipboardCheck, CheckCircle, Users, Crown, Briefcase } from "lucide-react";
+import {
+  Layers,
+  MapPin,
+  ClipboardCheck,
+  CheckCircle,
+  Users,
+  Crown,
+  Briefcase,
+  FileText,
+} from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
@@ -31,6 +40,7 @@ import { ConfirmPositions } from "./steps/ConfirmPositions";
 import { ConfirmLocations } from "./steps/ConfirmLocations";
 import { ConfirmProcedures } from "./steps/ConfirmProcedures";
 import { ConfirmSummary } from "./steps/ConfirmSummary";
+import { TariffSection } from "./steps/TariffSection";
 
 /**
  * Load pre-filled onboarding state from workspace.intelligence_data.
@@ -334,6 +344,10 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
         heading: "brandPanel.confirmProcedures_heading",
         sub: "brandPanel.confirmProcedures_sub",
       },
+      tariff: {
+        heading: "brandPanel.tariff_heading",
+        sub: "brandPanel.tariff_sub",
+      },
       summary: {
         heading: "brandPanel.summary_heading",
         sub: "brandPanel.summary_sub",
@@ -376,6 +390,13 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
       labelKey: "confirm.procedures_title",
       icon: ClipboardCheck,
       component: ConfirmProcedures,
+    },
+    {
+      id: "tariff",
+      labelKey: "confirm.tariff_title",
+      icon: FileText,
+      component: TariffSection,
+      skippable: true,
     },
     {
       id: "summary",

@@ -1,21 +1,24 @@
 """
 server.py — Lovsen NHO Reiseliv MCP stdio entrypoint (P1.S1d)
 
-Registers 2 tools per ADR-0244:
-  - fetch_riksavtalen          → Citation | dict  (ADR-0242)
-  - lookup_tariff_supplement   → Citation          (ADR-0242)
+Registers 3 tools:
+  - fetch_riksavtalen            → Citation | dict  (ADR-0242, ADR-0244)
+  - lookup_tariff_supplement     → Citation          (ADR-0242, ADR-0244)
+  - verify_citation_freshness    → list[FreshnessResult]  (ADR-0342)
 
 All tools are version-aware — explicit version arg required; no silent fallback.
-All tools return ADR-0242-compliant Citation JSON.
+All tools return ADR-0242/ADR-0342-compliant JSON.
 Logging goes to stderr only — MCP protocol uses stdin/stdout.
 
 Usage:
-  LOVSEN_MCP_FIXTURE=1 python -m src.server   # fixture/offline mode — no network
-  python -m src.server                          # live mode (rate-limited 1 req/sec)
+  LOVSEN_FIXTURE_MODE=true python -m src.server  # fixture/offline mode (ADR-0258 canonical)
+  LOVSEN_MCP_FIXTURE=1 python -m src.server      # legacy fixture mode (still honoured; T2 updates README)
+  python -m src.server                            # live mode (rate-limited 1 req/sec)
 
 Reference:
   docs/decisions/0244-lovsen-mcp-boundary.md
   docs/decisions/0242-lovsen-citation-contract.md
+  docs/decisions/0342-lovsen-mcp-freshness-verification-tool.md
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ from mcp.server.models import InitializationOptions
 
 from .tools.fetch_riksavtalen import fetch_riksavtalen
 from .tools.lookup_tariff_supplement import lookup_tariff_supplement
+from .tools.verify_citation_freshness import verify_citation_freshness
 
 # --- Logging — stderr only (stdout is reserved for MCP JSON-RPC) ---
 _handler = logging.StreamHandler(sys.stderr)
@@ -49,7 +53,7 @@ server = Server("lovsen-nho-reiseliv-mcp")
 
 @server.list_tools()
 async def list_tools() -> list[types.Tool]:
-    """Declare the 2 tools exposed by this MCP server (ADR-0244)."""
+    """Declare the 3 tools exposed by this MCP server (ADR-0244, ADR-0342)."""
     return [
         types.Tool(
             name="fetch_riksavtalen",
@@ -119,6 +123,45 @@ async def list_tools() -> list[types.Tool]:
                 "required": ["category", "version"],
             },
         ),
+        types.Tool(
+            name="verify_citation_freshness",
+            description=(
+                "Check freshness of a batch of Riksavtalen citation hashes (ADR-0342). "
+                "Accepts 1–100 SHA-256 hex strings (64 chars, lowercase) that were stored "
+                "alongside golden-month fixture cells via ADR-0341 lovsenCitationHash. "
+                "Returns a list of FreshnessResult objects — one per input hash — with: "
+                "hash, stale (bool), current_hash (if stale), current_verbatim_text (if stale), "
+                "paragraph_ref, checked_at (ISO-8601), source ('nho-reiseliv'). "
+                "stale=true means the cited paragraph has changed since the hash was recorded. "
+                "FIXTURE MODE: LOVSEN_FIXTURE_MODE=true → all hashes return stale=false "
+                "deterministically with paragraph_ref='fixture-mode'. No network I/O. "
+                "LIVE V1: unknown hashes return stale=true (Phase 7 live diff deferred). "
+                "Hard limit: >100 hashes → error; split into smaller batches. "
+                "Telemetry: each stale result emits lovsen.citation.stale to stderr (ADR-0256). "
+                "Schema-routing note: in V1 all golden-month cells route here (NHO Reiseliv); "
+                "Lovdata routing deferred until ExpectedCellSchema gains a source field (ADR-0341 §H)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "hashes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "64-character lowercase hex SHA-256 string.",
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "description": (
+                            "List of SHA-256 citation hashes to check. "
+                            "1–100 entries. Each must be exactly 64 lowercase hex chars. "
+                            "Split larger sets and make multiple calls."
+                        ),
+                    },
+                },
+                "required": ["hashes"],
+            },
+        ),
     ]
 
 
@@ -145,6 +188,10 @@ async def call_tool(
             result = lookup_tariff_supplement(
                 category=arguments["category"],
                 version=arguments["version"],
+            )
+        elif name == "verify_citation_freshness":
+            result = verify_citation_freshness(
+                hashes=arguments["hashes"],
             )
         else:
             raise ValueError(f"Unknown tool: {name!r}")

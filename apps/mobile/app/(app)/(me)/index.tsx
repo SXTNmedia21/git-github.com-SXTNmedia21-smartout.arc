@@ -168,7 +168,7 @@ export default function MeScreen() {
         {/* Recent Payslips */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Siste lønnsslipper</Text>
+            <Text style={styles.sectionTitle}>Siste lønnsgrunnlag</Text>
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
