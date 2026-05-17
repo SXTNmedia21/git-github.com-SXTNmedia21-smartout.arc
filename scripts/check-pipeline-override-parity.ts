@@ -51,7 +51,7 @@
  * Adding a new pipeline-defining capability:
  *   1. Add the base capability name to PIPELINE_DEFINING_CAPABILITIES below.
  *   2. Write a migration seeding `<cap>.override` in capability_default_registry
- *      + engine_authority_config (follow 20260617100000_seed_pipeline_override_authority.sql).
+ *      + engine_authority_config (follow 20260620100200_seed_pipeline_override_authority.sql).
  *   3. Run this script locally (--strict) to verify.
  *
  * ADR: docs/decisions/0340-shift-lifecycle-pipeline-implementation.md §T0.5
@@ -75,10 +75,7 @@ const MIGRATIONS_DIR = join(ROOT, "supabase", "migrations");
 // MAINTENANCE: add new pipeline-defining capabilities here as they land.
 // The CI check will reject any capability missing its .override seed.
 // ─────────────────────────────────────────────────────────────────────────────
-const PIPELINE_DEFINING_CAPABILITIES: readonly string[] = [
-  "shift_swap",
-  "shift_marketplace",
-];
+const PIPELINE_DEFINING_CAPABILITIES: readonly string[] = ["shift_swap", "shift_marketplace"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scan migrations for seeded override rows
@@ -141,11 +138,7 @@ type CapabilityResult = {
 
 function renderTable(results: CapabilityResult[]): string {
   const rows: string[] = [];
-  rows.push(
-    "Pipeline capability".padEnd(36) +
-      "Override seed".padEnd(36) +
-      "Status".padStart(10),
-  );
+  rows.push("Pipeline capability".padEnd(36) + "Override seed".padEnd(36) + "Status".padStart(10));
   rows.push("-".repeat(82));
   for (const r of results) {
     const status = r.seeded ? "PASS" : "MISSING";
@@ -168,15 +161,15 @@ function renderViolations(results: CapabilityResult[]): string {
   lines.push("");
   lines.push("Fix: write a migration seeding `<cap>.override` in both:");
   lines.push("  1. public.capability_default_registry (Part A — platform-wide default)");
-  lines.push("  2. public.engine_authority_config INSERT ... SELECT FROM workspace (Part B — backfill)");
+  lines.push(
+    "  2. public.engine_authority_config INSERT ... SELECT FROM workspace (Part B — backfill)",
+  );
   lines.push("");
-  lines.push("Template: supabase/migrations/20260617100000_seed_pipeline_override_authority.sql");
+  lines.push("Template: supabase/migrations/20260620100200_seed_pipeline_override_authority.sql");
   lines.push("ADR:      docs/decisions/0340-shift-lifecycle-pipeline-implementation.md §T0.5");
   lines.push("Learning: docs/learnings/0281-default-allow-cve-recurrence-pipeline-override.md");
   lines.push("");
-  lines.push(
-    "After adding the migration, add the capability to PIPELINE_DEFINING_CAPABILITIES",
-  );
+  lines.push("After adding the migration, add the capability to PIPELINE_DEFINING_CAPABILITIES");
   lines.push("in scripts/check-pipeline-override-parity.ts if it is not yet listed.");
   return lines.join("\n");
 }

@@ -1,8 +1,11 @@
 -- ============================================================
--- 20260616120000_shift_lifecycle_pipeline_v2.sql
+-- 20260620100100_shift_lifecycle_pipeline_v2.sql
 -- Shift Lifecycle Pipeline V2 — ADR-0340 T0 implementation
--- (Timestamp bumped 110000 → 120000 to avoid collision with
--- 20260616110000_timeline_template.sql on origin/development)
+-- (Timestamp bumped 110000 → 120000 → 20260617110100 → 20260620100100 to clear
+-- collision with 20260616120000_seed_channel_admin_authority.sql,
+-- 20260617100000_payroll_period_locked_notifier_process.sql, and
+-- dev tip 20260619100000_payroll_tariff_tools_authority_seed.sql.
+-- B1 R1-fixup, council ref campaign-ui-shell-shippability-r1)
 --
 -- WHAT THIS MIGRATION DOES
 -- ------------------------
@@ -105,7 +108,7 @@ COMMENT ON TABLE public.engine_process IS
 -- Workspace bootstrap hook seeds default rows; workspace admin may override (future UI).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS public.engine_authority_pipeline (
+CREATE TABLE public.engine_authority_pipeline (
   id                UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   workspace_id      UUID        NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   capability        TEXT        NOT NULL,

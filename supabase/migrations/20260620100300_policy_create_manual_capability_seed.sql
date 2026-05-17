@@ -1,6 +1,7 @@
 -- ============================================================
--- 20260617110000_policy_create_manual_capability_seed.sql
+-- 20260620100300_policy_create_manual_capability_seed.sql
 -- Capability seeds: policy.create_manual + hms.escalate_deviation
+-- (Retimestamped from 20260617110000 — B1 R1-fixup, below dev tip 20260619100000)
 --
 -- PURPOSE
 -- -------
@@ -123,7 +124,7 @@ ON CONFLICT (capability) DO NOTHING;
 -- ─── Part B — engine_authority_config: backfill for all existing workspaces ───
 -- The trigger (Part A) covers only FUTURE workspace INSERTs. This CROSS JOIN
 -- fills the gap for all workspaces that existed before this migration lands.
--- COALESCE chain mirrors 20260617100000_seed_pipeline_override_authority.sql.
+-- COALESCE chain mirrors 20260620100200_seed_pipeline_override_authority.sql.
 -- Per L-0129: capability literal must appear explicitly in VALUES tuple for the
 -- parity scanner (scripts/authority-seed-parity.ts) to detect this seed.
 
@@ -176,7 +177,7 @@ ON CONFLICT (workspace_id, capability) DO NOTHING;
 
 
 -- ─── Update capability_default_registry COMMENT ───────────────────────────────
--- Extends the COMMENT set by 20260617100000_seed_pipeline_override_authority.sql.
+-- Extends the COMMENT set by 20260620100200_seed_pipeline_override_authority.sql.
 -- Adds policy.create_manual to the canonical list.
 
 COMMENT ON TABLE public.capability_default_registry IS

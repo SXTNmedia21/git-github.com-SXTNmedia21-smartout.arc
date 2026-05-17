@@ -73,4 +73,4 @@ Unit-level: `apps/web/e2e/hms/` could extend with deviation-update flow assertin
 
 L-0286 (Polish PRs gild half-converted patterns) — this sortie closes the half-conversion BEFORE polish ships.
 L-0287 (Bridge tool description = phantom amplifier) — defers tool description polish until L4 capability exists.
-ADR-0360 (L-0258 collision detector) — Sortie 2 ships, depends on this sortie completing first. Originally 0347→0348 in Sortie 1 G4 to resolve schedule-density-persistence collision; renumbered to 0360 in sync-campaign outsider-renumber (payroll kept 0347-0356). Schedule-density-persistence is now ADR-0359.
+ADR-0360 (L-0258 collision detector) — Sortie 2 ships, depends on this sortie completing first. Originally 0347→0348 in Sortie 1 G4 to resolve schedule-density-persistence collision; renumbered to 0360 in sync-campaign outsider-renumber (payroll kept 0347-0356). Schedule-density-persistence is now ADR-0364.

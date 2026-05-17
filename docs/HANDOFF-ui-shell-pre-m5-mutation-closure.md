@@ -71,14 +71,14 @@ Conducted by `supervisor` (sonnet). Findings:
 |----------|---------|--------|
 | HIGH | `escalateDeviationAction` called `gate_action("hms.update_deviation_manual")` — capability NOT seeded → L-0066 default-allow CVE | **FIXED** in `4a21b9e4c` — renamed literal to `hms.escalate_deviation` + seeded in extended migration |
 | LOW | Comment/literal alignment | **FIXED** same commit |
-| LOW | Stale ADR-0359 refs in COUNCIL-LOG + PLAN + JOURNEY (after collision-driven renumber to ADR-0360) | **FIXED** same commit |
+| LOW | Stale ADR-0364 refs in COUNCIL-LOG + PLAN + JOURNEY (after collision-driven renumber to ADR-0360) | **FIXED** same commit |
 | LOW | `completeTaskAction` cookie wrapper re-resolves identity that `_shared.resolveCurrentProfile()` already provides — duplication, not bug | **Deferred** — not a correctness issue |
 | LOW | Hardcoded Norwegian error strings ("Ugyldig oppgave-ID.", "Ikke autentisert.") — not i18n | **Deferred** — next polish wave |
 
 ## Decisions
 
 **ADR-0360 (proposed) — L-0258 collision detector mandatory in CI**
-Originally written as ADR-0347 in this sortie, renumbered to 0348 in G4 fix (schedule-density-persistence conflict), then renumbered to 0360 in sync-campaign outsider-renumber (payroll claimed 0347-0356). `0359-schedule-density-persistence.md` (originally `0347-`) already existed from merge `0c6b7afb6` — collision caught by builder's pre-commit hook. Cross-refs updated in COUNCIL-LOG, PLAN, JOURNEY, decision-log.
+Originally written as ADR-0347 in this sortie, renumbered to 0348 in G4 fix (schedule-density-persistence conflict), then renumbered to 0360 in sync-campaign outsider-renumber (payroll claimed 0347-0356). `0364-schedule-density-persistence.md` (originally `0347-`) already existed from merge `0c6b7afb6` — collision caught by builder's pre-commit hook. Cross-refs updated in COUNCIL-LOG, PLAN, JOURNEY, decision-log.
 
 **Capability naming — `hms.escalate_deviation`**
 Original builder code used `hms.update_deviation_manual` (unseeded). G4 fix renamed to match existing pattern (`hms.resolve_deviation` / `hms.acknowledge_deviation`). Seeded in extended migration.
@@ -116,7 +116,7 @@ apps/web/src/app/dashboard/policies/_actions/policy-actions.ts                  
 supabase/migrations/20260617110000_policy_create_manual_capability_seed.sql      NEW — 2 capabilities (Part A + Part B)
 docs/decisions/0360-l-0258-collision-detector-mandatory-ci.md                    NEW — was 0347→0348, now 0360 (outsider-renumber)
 docs/decisions/0000-decision-log.md                                               renumber entry
-docs/council/COUNCIL-LOG.md                                                       ADR-0359 → ADR-0360
+docs/council/COUNCIL-LOG.md                                                       ADR-0364 → ADR-0360
 docs/plans/PLAN-pre-m5-mutation-closure.md                                        cross-ref update
 docs/journeys/JOURNEY-ui-shell-pre-m5-mutation-closure.md                         cross-ref update
 docs/HANDOFF-ui-shell-pre-m5-mutation-closure.md                                  this file

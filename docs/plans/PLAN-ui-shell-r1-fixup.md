@@ -1,7 +1,7 @@
 ---
 title: "Plan — campaign/ui-shell R1 council fixup"
 status: in_progress
-feature: ui-shell-r1-fixup
+feature: r1-fixup
 parent_campaign: ui-shell
 council: campaign-ui-shell-shippability-r1
 council_date: 2026-05-17

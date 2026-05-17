@@ -1,7 +1,7 @@
 ---
 title: "Journey — ui-shell-r1-fixup"
-status: draft
-feature: ui-shell-r1-fixup
+status: verified
+feature: r1-fixup
 updated: 2026-05-17
 created: 2026-05-17
 module: ui-shell

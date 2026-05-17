@@ -531,7 +531,7 @@ export function DayTimelineStrip({
                   className={cn(
                     "group absolute top-0 bottom-0 z-0",
                     "cursor-pointer",
-                    "focus-visible:outline-none",
+                    "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
                   )}
                   style={{ left: `${slot.pct}%`, width: `${widthPct}%` }}
                 >
@@ -615,8 +615,11 @@ export function DayTimelineStrip({
                 }
                 className={cn(
                   "absolute top-1/2 z-10",
+                  // Selection state: outline-based indicator (decoupled from focus ring)
+                  isHighlighted && "outline-ring rounded-full outline outline-2 outline-offset-1",
+                  // Focus ring: always present for keyboard users, independent of selection
                   "hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
-                  isHighlighted && "ring-ring rounded-full ring-2 ring-offset-1",
+                  "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2",
                 )}
                 style={{
                   left: `${pct}%`,

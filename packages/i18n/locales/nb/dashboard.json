@@ -293,6 +293,24 @@
       "sign_with_exceptions": "Signer med unntak",
       "sign_session": "Signer økt",
       "sent_to_review": "Sendt til oppgjør"
+    },
+    "procedureDetailTabs": {
+      "overview": "Oversikt",
+      "steps": "Steg",
+      "quiz": "Quiz",
+      "confirmation": "Bekreftelse",
+      "required": "Påkrevd",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "not_found": "Prosedyre ikke funnet.",
+      "no_steps": "Ingen steg definert.",
+      "knowledge_tests_placeholder": "Kunnskapstester vises her. Kobles i neste iterasjon.",
+      "confirmations_placeholder": "Bekreftelser vises her. Kobles i neste iterasjon.",
+      "protocol_label": "Protokoll",
+      "policy_label": "Policy",
+      "steps_count": "Steg",
+      "last_updated": "Sist oppdatert",
+      "training_content_label": "Opplæringsinnhold:"
     }
   },
   "setup": {

@@ -293,6 +293,24 @@
       "sign_with_exceptions": "Sign with exceptions",
       "sign_session": "Sign session",
       "sent_to_review": "Sent for review"
+    },
+    "procedureDetailTabs": {
+      "overview": "Overview",
+      "steps": "Steps",
+      "quiz": "Quiz",
+      "confirmation": "Confirmation",
+      "required": "Required",
+      "active": "Active",
+      "inactive": "Inactive",
+      "not_found": "Procedure not found.",
+      "no_steps": "No steps defined.",
+      "knowledge_tests_placeholder": "Knowledge tests shown here. Connected in next iteration.",
+      "confirmations_placeholder": "Confirmations shown here. Connected in next iteration.",
+      "protocol_label": "Protocol",
+      "policy_label": "Policy",
+      "steps_count": "Steps",
+      "last_updated": "Last updated",
+      "training_content_label": "Training content:"
     }
   },
   "setup": {
