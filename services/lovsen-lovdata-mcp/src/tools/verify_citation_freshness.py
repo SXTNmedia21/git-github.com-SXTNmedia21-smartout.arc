@@ -7,14 +7,8 @@ Tool contract (ADR-0342):
   hashes: REQUIRED — 1–100 entries, each exactly 64 lowercase hex chars (SHA-256).
   Returns list of FreshnessResult dicts (one per input hash).
 
-Schema-routing note (ADR-0341 §H + ADR-0342 V1 resolution):
-  ExpectedCellSchema in packages/payroll-calculate/__tests__/golden-month/expected-cell.schema.ts
-  is locked to 16 fields per ADR-0341 §H — it has NO `source` field. The ADR-0342 assumption
-  that CI can route per source-field is therefore unworkable against the locked schema for V1.
-  RESOLUTION: single-MCP routing — all golden-month cells route to NHO Reiseliv (Riksavtalen §6).
-  Lovdata MCP routing is deferred to a future ADR when the first golden-month cell cites a
-  non-Riksavtalen source and the schema is extended.
-  Reference: ADR-0341 §H, ADR-0342 §"Schema-routing in MCP client".
+Source discriminator (ADR-0347):
+  source = "lovdata" — always this literal for this MCP instance.
 
 FreshnessResult TypeScript shape (ADR-0342 Method contract):
   {
@@ -24,23 +18,23 @@ FreshnessResult TypeScript shape (ADR-0342 Method contract):
     current_verbatim_text?: string;      // present if stale=true; verbatim text now in force
     paragraph_ref: string;               // mirrors original citation's paragrafRef for audit
     checked_at: string;                  // ISO-8601 timestamp of freshness check
-    source: 'nho-reiseliv';             // always this literal for this MCP instance
+    source: 'lovdata';                   // always this literal for this MCP instance
   }
 
 Fixture-mode determinism (ADR-0258, ADR-0342 Behavior contract):
   LOVSEN_FIXTURE_MODE=true (canonical per ADR-0258) → ALL hashes return stale: false,
-  paragraph_ref: "fixture-mode", source: "nho-reiseliv". NO network I/O, NO cache lookup.
-  Note: legacy envvar LOVSEN_MCP_FIXTURE (read by nho_reiseliv_client.py) is checked as
+  paragraph_ref: "fixture-mode", source: "lovdata". NO network I/O, NO cache lookup.
+  Note: legacy envvar LOVSEN_LOVDATA_FIXTURE (lovdata-mcp local legacy) is checked as
   fallback — ADR-0258 canonicalises LOVSEN_FIXTURE_MODE; T2 updates README.
 
 Live path (V1):
   Any hash not seen in the fixture cache → stale: true, current_hash: None,
-  current_verbatim_text: None. Real diff-against-live nhoreiseliv.no is Phase 7 — out of scope.
+  current_verbatim_text: None. Real diff-against-live Lovdata.no is Phase 7c+ work.
 
 Telemetry stub (stale events):
   When stale: true, emits JSON line to stderr via lovsen_shared.telemetry.
   Shape: {"event": "lovsen.citation.stale", "payload": {"hash": "...", "paragraph_ref": "..."}}
-  This matches the ADR-0256 registered event shape (telemetry/src/registry.ts lines 7275, 12366).
+  This matches the ADR-0256 registered event shape (telemetry/src/registry.ts).
   Python MCP has no @smartout/telemetry SDK; the TypeScript test runner (T5) picks up these
   stderr lines and re-emits through @smartout/telemetry. See ADR-0342 §"Telemetry hand-off".
 
@@ -50,7 +44,6 @@ Shared module (ADR-0347):
     lovsen_shared.types.FreshnessResult
     lovsen_shared.validation.validate_hashes
     lovsen_shared.telemetry.emit_stale_event_stderr
-  lovsen-lovdata-mcp will import the same shared module (B4/B5).
 
 stdio transport: stdout is reserved for MCP JSON-RPC. ALL logs to stderr.
 """
@@ -70,10 +63,10 @@ from typing import Any
 # imports work without pip install. No src.* name collision with this MCP's own
 # src package (lovsen_shared.* is a distinct top-level namespace).
 #
-# Path: services/lovsen-nho-reiseliv-mcp/src/tools/verify_citation_freshness.py
+# Path: services/lovsen-lovdata-mcp/src/tools/verify_citation_freshness.py
 #   parents[0] = .../src/tools
 #   parents[1] = .../src
-#   parents[2] = .../lovsen-nho-reiseliv-mcp
+#   parents[2] = .../lovsen-lovdata-mcp
 #   parents[3] = .../services  ← parent of lovsen-shared/
 # ---------------------------------------------------------------------------
 _SHARED_ROOT = str(Path(__file__).resolve().parents[3] / "lovsen-shared")
@@ -84,23 +77,23 @@ from lovsen_shared.types import FreshnessResult  # noqa: E402 — after sys.path
 from lovsen_shared.validation import validate_hashes as _validate_hashes  # noqa: E402
 from lovsen_shared.telemetry import emit_stale_event_stderr as _emit_stale_event  # noqa: E402
 
-logger = logging.getLogger("lovsen.nho_reiseliv.verify_citation_freshness")
+logger = logging.getLogger("lovsen.lovdata.verify_citation_freshness")
 
 # ---------------------------------------------------------------------------
 # Fixture-mode detection (per-MCP concern — fixture state is local)
 # ADR-0258 canonical envvar: LOVSEN_FIXTURE_MODE=true
-# Legacy fallback: LOVSEN_MCP_FIXTURE=1 (still read by nho_reiseliv_client.py)
+# Legacy fallback: LOVSEN_LOVDATA_FIXTURE=1 (lovdata-mcp local legacy)
 # T2 task: align README to use LOVSEN_FIXTURE_MODE=true.
 # ---------------------------------------------------------------------------
 _FIXTURE_MODE_NEW = os.environ.get("LOVSEN_FIXTURE_MODE", "").strip().lower() in (
     "true", "1", "yes"
 )
 # Legacy read — do NOT remove until T2 confirms README+CI updated
-_FIXTURE_MODE_LEGACY = os.environ.get("LOVSEN_MCP_FIXTURE", "").strip() in ("1", "true", "yes")
+_FIXTURE_MODE_LEGACY = os.environ.get("LOVSEN_LOVDATA_FIXTURE", "").strip() in ("1", "true", "yes")
 FIXTURE_MODE: bool = _FIXTURE_MODE_NEW or _FIXTURE_MODE_LEGACY
 
 # The literal source identifier for this MCP (ADR-0342 Method contract, ADR-0347)
-_SOURCE = "nho-reiseliv"
+_SOURCE = "lovdata"
 
 
 def _now_iso() -> str:
@@ -114,7 +107,7 @@ def _now_iso() -> str:
 
 def verify_citation_freshness(hashes: list[str]) -> list[dict[str, Any]]:
     """
-    Check freshness of a batch of citation hashes against NHO Reiseliv (Riksavtalen).
+    Check freshness of a batch of citation hashes against Lovdata.no.
 
     Delegates input validation to lovsen_shared.validation.validate_hashes (ADR-0347).
     Delegates telemetry emission to lovsen_shared.telemetry.emit_stale_event_stderr.
@@ -155,7 +148,7 @@ def verify_citation_freshness(hashes: list[str]) -> list[dict[str, Any]]:
 
     # ------------------------------------------------------------------
     # LIVE MODE V1 — unknown-hash → stale: true
-    # Real diff-against-live nhoreiseliv.no is Phase 7 (out of scope).
+    # Real diff-against-live Lovdata.no is Phase 7c+ (out of scope).
     # Any hash not in the local fixture cache is treated as unknown → stale.
     # ------------------------------------------------------------------
     results: list[dict[str, Any]] = []
@@ -167,7 +160,7 @@ def verify_citation_freshness(hashes: list[str]) -> list[dict[str, Any]]:
 
         logger.warning(
             "verify_citation_freshness [live-v1]: hash %s... unknown → stale=true "
-            "(Phase 7 live diff deferred; no MCP cache warm-up yet)",
+            "(Phase 7c live diff deferred; no MCP cache warm-up yet)",
             h[:12],
         )
 
@@ -179,7 +172,7 @@ def verify_citation_freshness(hashes: list[str]) -> list[dict[str, Any]]:
                 "hash": h,
                 "stale": True,
                 # current_hash and current_verbatim_text absent in V1
-                # (Phase 7 will populate these from live nhoreiseliv.no fetch)
+                # (Phase 7c will populate these from live Lovdata.no fetch)
                 "paragraph_ref": paragraph_ref,
                 "checked_at": checked_at,
                 "source": _SOURCE,
