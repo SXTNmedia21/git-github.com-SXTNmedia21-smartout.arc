@@ -1,18 +1,30 @@
 -- ============================================================
 -- 20260617110000_policy_create_manual_capability_seed.sql
--- Capability seed: policy.create_manual authority row
+-- Capability seeds: policy.create_manual + hms.escalate_deviation
 --
 -- PURPOSE
 -- -------
--- Seeds engine_authority_config rows for the `policy.create_manual` capability.
--- This capability is called by `createPolicy` Server Action in:
---   apps/web/src/app/dashboard/policies/_actions/policy-actions.ts
+-- Seeds engine_authority_config rows for TWO capabilities:
 --
--- WITHOUT this seed, gate_action() hits the default-allow path (L-0189 /
+--   1. policy.create_manual — called by `createPolicy` Server Action in:
+--        apps/web/src/app/dashboard/policies/_actions/policy-actions.ts
+--      min_role='admin', level='confirm'
+--
+--   2. hms.escalate_deviation — called by `escalateDeviationAction` in:
+--        apps/web/src/app/dashboard/_actions/update-deviation-action.ts
+--      min_role='manager', level='confirm'
+--      Added at G4 supervisor review 2026-05-17 (HIGH blocker fix): the original
+--      escalateDeviationAction called gate_action with capability literal
+--      'hms.update_deviation_manual' which was UNSEEDED → default-allow CVE.
+--      Renamed to 'hms.escalate_deviation' (matches naming pattern of sibling
+--      hms.acknowledge_deviation + hms.resolve_deviation) and seeded here.
+--
+-- WITHOUT these seeds, gate_action() hits the default-allow path (L-0189 /
 -- L-0066 documented behavior: no engine_authority_config row → allow=true
 -- regardless of caller role) — silently authorising ANY caller.
 --
--- WITH this seed, the gate enforces min_role='admin', so managers and employees
+-- WITH these seeds, the gate enforces min_role floors per capability above.
+-- For policy.create_manual: managers and employees
 -- receive downgrade_to='suggest' (treated as deny by the Server Action caller).
 --
 -- WHY CONFIRM LEVEL
@@ -87,6 +99,23 @@ VALUES
     'requires_four_eyes=false — single-admin governance write. '
     '24h observer_escalation: governance writes warrant visibility. '
     'Absent this row gate_action default-allows (L-0066 CVE class). 2026-05-17.'
+  ),
+  (
+    'hms.escalate_deviation',
+    'confirm',
+    'manager',
+    false,
+    24,
+    'M5 HMS Sortie 1 (G4 follow-up). Deviation escalation from DeviationDetailDrawer. '
+    'hms.escalate_deviation (manager+, confirm): manager escalates an open or acknowledged deviation. '
+    'Called by escalateDeviationAction (update-deviation-action.ts). '
+    'min_role=manager — matches sibling hms.resolve_deviation pattern (manager-level workspace action). '
+    'level=confirm — drawer-initiated action; single confirmation step. '
+    'requires_four_eyes=false — single-manager workspace write. '
+    '24h observer_escalation: deviation lifecycle writes warrant visibility. '
+    'Absent this row gate_action default-allows (L-0066 CVE class). Renamed from '
+    'hms.update_deviation_manual at G4 review 2026-05-17 (naming consistency with '
+    'sibling hms.acknowledge_deviation + hms.resolve_deviation seeds).'
   )
 ON CONFLICT (capability) DO NOTHING;
 
@@ -138,9 +167,10 @@ SELECT
     )
   ) AS updated_by
 FROM public.workspace w
--- L-0129: capability literal in VALUES tuple for parity scanner detection.
+-- L-0129: capability literals in VALUES tuples for parity scanner detection.
 CROSS JOIN (VALUES
-  ('policy.create_manual', 'confirm', 'admin', false, 24)
+  ('policy.create_manual',    'confirm', 'admin',   false, 24),
+  ('hms.escalate_deviation',  'confirm', 'manager', false, 24)
 ) AS caps(capability, level, min_role, requires_four_eyes, observer_escalation_hours)
 ON CONFLICT (workspace_id, capability) DO NOTHING;
 
@@ -163,5 +193,6 @@ COMMENT ON TABLE public.capability_default_registry IS
   '  comm.note_fanout_cross_dept (ADR-0333, 2026-05-15), '
   '  shift_swap.override (ADR-0340 T0.5, 2026-05-16), '
   '  shift_marketplace.override (ADR-0340 T0.5, 2026-05-16), '
-  '  policy.create_manual (M5 HMS Sortie 1, 2026-05-17). '
+  '  policy.create_manual (M5 HMS Sortie 1, 2026-05-17), '
+  '  hms.escalate_deviation (M5 HMS Sortie 1 G4 follow-up, 2026-05-17). '
   'For the full list query: SELECT capability FROM capability_default_registry ORDER BY 1.';

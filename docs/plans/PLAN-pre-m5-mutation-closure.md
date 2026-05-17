@@ -29,7 +29,7 @@ Close 3 ADR-0099 / ADR-0114 / ADR-0204 violations on HMS + policies surface befo
 - Register `"policy created"` event in `packages/telemetry/src/registry.ts` (currently emitted at policy-actions.ts:111 but unregistered)
 
 **Out of scope:**
-- L-0258 collision fix (Sortie 2 ships ADR-0347 detector + dedupe)
+- L-0258 collision fix (Sortie 2 ships ADR-0348 detector + dedupe; renumbered from 0347 → 0348 in Sortie 1 G4 to resolve collision with schedule-density-persistence ADR-0347)
 - HMS surface polish (Sortie 3+4)
 - New capabilities for hms/policies/handbook/deviations (separate ADR'd sortie if needed; L-0287 flag)
 - BotssonProvider lift (ADR-0238) — separate ongoing work, foreign WIP stashed
