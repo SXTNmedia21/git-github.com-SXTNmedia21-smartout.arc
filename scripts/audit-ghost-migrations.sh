@@ -115,7 +115,7 @@ verbose "Diff output captured (${#DIFF_OUTPUT} bytes). Extracting drop statement
 #   drop view if exists public.bar;
 #   drop table if exists public.baz;
 # Capture the schema-qualified identifier (word after "exists ")
-declare -a DROPPED_IDENTIFIERS
+DROPPED_IDENTIFIERS=()
 while IFS= read -r line; do
   # normalise to lowercase for matching
   lower_line="${line,,}"
@@ -139,7 +139,7 @@ if [[ "${#DROPPED_IDENTIFIERS[@]}" -eq 0 ]]; then
 fi
 
 # ── match each dropped identifier to its creating migration ───────────────────
-declare -a GHOSTS  # each entry: "timestamp|identifier|migration_file"
+GHOSTS=()  # each entry: "timestamp|identifier|migration_file"
 
 for entry in "${DROPPED_IDENTIFIERS[@]}"; do
   full_id="${entry%%|*}"
