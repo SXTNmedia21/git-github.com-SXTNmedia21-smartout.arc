@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-16
+updated: 2026-05-17
 last-event: sortie-5-task-cutover campaign closed → development (PR #392 merged 0233ea3f1). ADR-0298 accepted + ADR-0344 closure. 11 dev-tip drift fixes ridden along (4 mig retimestamps + 3 vitest fixes + ADR-0204 §3 refactor + Turbopack fix + capabilities-source timeout).
 last-reconciled: 2026-05-16T21:30Z
 module: meta
