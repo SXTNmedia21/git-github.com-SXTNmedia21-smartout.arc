@@ -89,5 +89,5 @@ S12 protocol already covers all 4 routes for HTTP < 500 (M1 sidebar-reorg). Per-
 
 - L-0286 (Polish PRs gild half-converted patterns) — Sortie 1 closed mutation surface; this sortie clean
 - L-0287 (Bridge tool description phantom amplifier) — no new tools this sortie
-- ADR-0348 ratchet — verified post-merge
+- ADR-0360 ratchet — verified post-merge
 - L-0271 (Frontend-designer hook loop) — G4 dispatched via general-purpose sonnet fallback

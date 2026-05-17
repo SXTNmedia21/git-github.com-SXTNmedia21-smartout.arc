@@ -73,4 +73,4 @@ S12 protocol covers HTTP < 500 for these routes already (M1 sidebar-reorg). Per-
 
 - L-0286 (Polish PRs gild half-converted patterns) — Sortie 1 closed prereq; this sortie clean
 - L-0287 (Bridge tool description = phantom amplifier) — defers tool surface expansion
-- ADR-0348 ratchet — `pnpm lint:tool-collisions` exit 0 mandatory
+- ADR-0360 ratchet — `pnpm lint:tool-collisions` exit 0 mandatory

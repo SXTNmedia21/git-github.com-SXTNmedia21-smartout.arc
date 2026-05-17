@@ -9,7 +9,7 @@
     "proposeActivateSeason",
     "proposeArchiveSeason"
   ],
-  "note": "L-0258 cross-domain collisions pending follow-up sortie. ADR-0348 ratchet: detector PASSES on these, FAILS on any NEW collision. Shrink this list when collisions are resolved.",
+  "note": "L-0258 cross-domain collisions pending follow-up sortie. ADR-0360 ratchet: detector PASSES on these, FAILS on any NEW collision. Shrink this list when collisions are resolved.",
   "lastUpdated": "2026-05-17",
   "trackingRef": "M5 HMS hms-collision-fix sortie HANDOFF"
 }

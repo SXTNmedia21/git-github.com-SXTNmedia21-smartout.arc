@@ -13,7 +13,7 @@ tags: [handoff, a11y, wcag, sub-sortie, council-r1-follow-up]
 
 ## Summary
 
-Closes two sortie-introduced WCAG defects on the Dagslinjen Tidslinjen surface that the post-implementation R1 Council (2026-05-17) flagged on the parent Tidslinjen redesign sortie. The parent sortie shipped 3 commits to `campaign/ui-shell` (tip `94888a3f1` at council time) — the design+a11y reviewer surfaced 3 concrete defects, Steward `git blame` confirmed 2 of 3 were introduced by sortie commits (the third predated the sortie and is inherited Nordic Split debt deferred to ADR-0349).
+Closes two sortie-introduced WCAG defects on the Dagslinjen Tidslinjen surface that the post-implementation R1 Council (2026-05-17) flagged on the parent Tidslinjen redesign sortie. The parent sortie shipped 3 commits to `campaign/ui-shell` (tip `94888a3f1` at council time) — the design+a11y reviewer surfaced 3 concrete defects, Steward `git blame` confirmed 2 of 3 were introduced by sortie commits (the third predated the sortie and is inherited Nordic Split debt deferred to ADR-0361).
 
 ## What was built
 
@@ -28,9 +28,9 @@ Closes two sortie-introduced WCAG defects on the Dagslinjen Tidslinjen surface t
 
 ## Decisions made
 
-1. **Defer `TimelineTab.tsx:242` OKLCH literal migration.** Steward `git blame` showed the 3× hardcoded `oklch(...)` literals were committed in `d0deaa6a9a` (2026-05-16), pre-dating the Tidslinjen sortie. Pattern is systemic across 6+ files in `apps/web/src/components/day/` (SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog). Migration belongs in a dedicated sortie driven by **ADR-0349 (proposed)** — Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`.
+1. **Defer `TimelineTab.tsx:242` OKLCH literal migration.** Steward `git blame` showed the 3× hardcoded `oklch(...)` literals were committed in `d0deaa6a9a` (2026-05-16), pre-dating the Tidslinjen sortie. Pattern is systemic across 6+ files in `apps/web/src/components/day/` (SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog). Migration belongs in a dedicated sortie driven by **ADR-0361 (proposed)** — Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`.
 
-2. **Document `getPhaseBoundaries` ontology, do not relocate.** Steward Phase 3 review noted the helper lives in `packages/utils/src/cascade/derive-phase.ts` next to the canonical ADR-0156 `derivePhase` function but operates as presentation-only with a hardcoded `PREP_WIN_MIN = 30` constant. File-relocation would split a sensible phase-helper family. **ADR-0351 (proposed)** mandates a header comment forbidding business-logic binding without ADR amendment to cascade invariant #6.
+2. **Document `getPhaseBoundaries` ontology, do not relocate.** Steward Phase 3 review noted the helper lives in `packages/utils/src/cascade/derive-phase.ts` next to the canonical ADR-0156 `derivePhase` function but operates as presentation-only with a hardcoded `PREP_WIN_MIN = 30` constant. File-relocation would split a sensible phase-helper family. **ADR-0363 (proposed)** mandates a header comment forbidding business-logic binding without ADR amendment to cascade invariant #6.
 
 3. **Sub-sortie scope limited to sortie-introduced regressions.** Trail of P3 polish (Coord-flagged `departmentId`/`sessionId` prop hardening, `eventTypeKind` union tightening, `event.time` `""` analytics drop) and Phase 3 nits (`use-timeline-selection.ts` colocation in `_hooks/`, hardcoded Norwegian i18n debt) all deferred. Council R1 chair recommended single-purpose sub-sortie to keep the scope tight.
 
@@ -38,8 +38,8 @@ Closes two sortie-introduced WCAG defects on the Dagslinjen Tidslinjen surface t
 
 ## Decisions registered
 
-- **ADR-0349** (proposed) — Nordic Split: OKLCH literals forbidden in app code. File: `docs/decisions/0349-nordic-split-oklch-literal-ban.md`. Sets the contract that ALL OKLCH values live in `packages/design-tokens/src/tokens.{ts,css}` and `apps/web/src/app/globals.css` `@theme` block, with ESLint enforcement via `nordic-split/no-oklch-literal`. Migration sortie required (not this one).
-- **ADR-0351** (proposed) — `getPhaseBoundaries` presentation-layer ontology disambiguation. File: `docs/decisions/0351-get-phase-boundaries-presentation-ontology.md`. Header comment forbids business-logic binding without ADR amendment. Documentation-only fix; can ship as part of any maintenance commit.
+- **ADR-0361** (proposed) — Nordic Split: OKLCH literals forbidden in app code. File: `docs/decisions/0361-nordic-split-oklch-literal-ban.md`. Sets the contract that ALL OKLCH values live in `packages/design-tokens/src/tokens.{ts,css}` and `apps/web/src/app/globals.css` `@theme` block, with ESLint enforcement via `nordic-split/no-oklch-literal`. Migration sortie required (not this one).
+- **ADR-0363** (proposed) — `getPhaseBoundaries` presentation-layer ontology disambiguation. File: `docs/decisions/0363-get-phase-boundaries-presentation-ontology.md`. Header comment forbids business-logic binding without ADR amendment. Documentation-only fix; can ship as part of any maintenance commit.
 
 Both registered in `docs/decisions/0000-decision-log.md` at the top of the table (newest-first).
 
@@ -57,9 +57,9 @@ Appended to `docs/council/COUNCIL-LOG.md` as `2026-05-17 — Tidslinjen Redesign
 
 ## Known issues / debt
 
-- **`TimelineTab.tsx:242` OKLCH literals** — 3× inline `oklch(...)` in Tailwind class strings. Pre-existing, inherited debt. Resolution: ADR-0349 migration sortie.
-- **OKLCH literal sprawl across `components/day/`** — SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog all carry inline literals. Resolution: same ADR-0349 sortie.
-- **`getPhaseBoundaries` header comment** — ADR-0351 calls for the comment; not applied in this sub-sortie because the comment-edit blast radius is on `packages/utils/src/cascade/derive-phase.ts` which is outside the Tidslinjen visual-surface scope. Ship the comment in any maintenance commit.
+- **`TimelineTab.tsx:242` OKLCH literals** — 3× inline `oklch(...)` in Tailwind class strings. Pre-existing, inherited debt. Resolution: ADR-0361 migration sortie.
+- **OKLCH literal sprawl across `components/day/`** — SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog all carry inline literals. Resolution: same ADR-0361 sortie.
+- **`getPhaseBoundaries` header comment** — ADR-0363 calls for the comment; not applied in this sub-sortie because the comment-edit blast radius is on `packages/utils/src/cascade/derive-phase.ts` which is outside the Tidslinjen visual-surface scope. Ship the comment in any maintenance commit.
 - **Dark-mode phase tint vars are identical to light-mode.** Comment in `globals.css` says "dark tuning deferred to follow-up". Existing tech debt; not regression.
 - **Hardcoded Norwegian in `components/day/`** — bypasses i18n. Pre-existing pattern across the folder. Track separately.
 - **Phase 3 design+a11y coverage gap fixed via the new learning + ADR candidates above.** Adds a binding rule for future councils, not an immediate code change.
@@ -67,8 +67,8 @@ Appended to `docs/council/COUNCIL-LOG.md` as `2026-05-17 — Tidslinjen Redesign
 ## Next steps
 
 1. Run `~/.claude/scripts/close-feature.sh 2` (from main repo at `~/dev/smartout.ai-ui-shell`) to merge `feat/ui-shell-ui-shell-tidslinjen-a11y-polish` → `campaign/ui-shell`. Journey Guardian gate verifies the JOURNEY file. Sync of `origin/development` into the campaign happens automatically at tail of closure.
-2. After closure: schedule the ADR-0349 migration sortie (sortie name: `ui-shell-nordic-split-oklch-migration` or similar). Acceptance: zero `oklch(` matches in `grep -r 'oklch(' apps/ | grep -v test | grep -v stories`. Add the lint rule first, then migrate consumers.
-3. Apply the ADR-0351 header comment to `packages/utils/src/cascade/derive-phase.ts` in any maintenance commit (does not require its own sortie).
+2. After closure: schedule the ADR-0361 migration sortie (sortie name: `ui-shell-nordic-split-oklch-migration` or similar). Acceptance: zero `oklch(` matches in `grep -r 'oklch(' apps/ | grep -v test | grep -v stories`. Add the lint rule first, then migrate consumers.
+3. Apply the ADR-0363 header comment to `packages/utils/src/cascade/derive-phase.ts` in any maintenance commit (does not require its own sortie).
 4. Update `run-council` skill Phase 1 INTAKE topic-class selector to mandate frontend-designer / code-reviewer when topic touches `apps/web/src/components/**`. Captured as next-step in `learning_phase3_coverage_gap_design_axis.md`.
 
 ## Acceptance verification
@@ -78,7 +78,7 @@ Appended to `docs/council/COUNCIL-LOG.md` as `2026-05-17 — Tidslinjen Redesign
 - [x] Only 2 files modified (`git diff --stat` shows +7 -1).
 - [x] No telemetry registry changes.
 - [x] No new files in `apps/web/src/components/day/`.
-- [x] ADR-0349 + ADR-0351 written + registered.
+- [x] ADR-0361 + ADR-0363 written + registered.
 - [x] 2 learnings logged + indexed in MEMORY.md.
 - [x] Council log entry appended.
 - [x] JOURNEY + PLAN files written.
@@ -88,8 +88,8 @@ Appended to `docs/council/COUNCIL-LOG.md` as `2026-05-17 — Tidslinjen Redesign
 - Parent sortie commits: `ed3854d33` + `5a236d7d82` + `be0b43a4eb` on `campaign/ui-shell`.
 - Parent sortie payload-cleanup commit: `94888a3f1` (payroll seed removal — out of scope here, but pushed in same window).
 - Council R1 entry: `docs/council/COUNCIL-LOG.md` (2026-05-17 — Tidslinjen Redesign R1).
-- ADR-0349: `docs/decisions/0349-nordic-split-oklch-literal-ban.md`.
-- ADR-0351: `docs/decisions/0351-get-phase-boundaries-presentation-ontology.md`.
+- ADR-0361: `docs/decisions/0361-nordic-split-oklch-literal-ban.md`.
+- ADR-0363: `docs/decisions/0363-get-phase-boundaries-presentation-ontology.md`.
 - Learnings: `~/.claude/projects/-home-sxtnl-dev-smartout-ai/memory/learning_phase3_coverage_gap_design_axis.md` + `learning_builder_agent_report_fabrication_2026_05_17.md` (R1 postscript).
 - Canonical `useReducedMotion()` pattern: `apps/web/src/components/day/DayEventList.tsx:44`.
 - Nordic Split `--warn-soft` tokens: `packages/design-tokens/src/tokens.css:66-67` (light) + `:201-202` (dark).

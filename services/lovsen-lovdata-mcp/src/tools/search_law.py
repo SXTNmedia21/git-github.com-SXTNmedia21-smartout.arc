@@ -2,7 +2,7 @@
 search_law.py — MCP tool: full-text search within a Norwegian law on Lovdata.no.
 
 Returns a list of ADR-0242-compliant Citation dicts (at most `limit` items).
-In LOVSEN_MCP_FIXTURE=1 mode: searches across available fixtures — zero HTTP.
+In LOVSEN_FIXTURE_MODE=true mode: searches across available fixtures — zero HTTP.
 In live mode: rate-limited via lovdata_client (1 req/sec, ADR-0244).
 """
 

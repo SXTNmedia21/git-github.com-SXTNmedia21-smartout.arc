@@ -13,7 +13,7 @@
 /*  dynamic({ ssr: false }) for Orb only —    */
 /*  this split preserves SSR for {children}.  */
 /*                                            */
-/*  ADR-0348 (proposed) amends ADR-0113 R51   */
+/*  ADR-0362 (proposed) amends ADR-0113 R51   */
 /*  to permit BotssonHost mount inside        */
 /*  DashboardShell with SSR-preservation +    */
 /*  provider-scope locality rationale.        */

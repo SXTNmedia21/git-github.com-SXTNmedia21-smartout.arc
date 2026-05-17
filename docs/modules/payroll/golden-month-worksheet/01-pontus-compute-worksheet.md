@@ -1,13 +1,31 @@
 ---
 title: "Golden-Month Compute Worksheet — Pontus Fill-In"
 status: draft
-updated: 2026-05-16
+updated: 2026-05-17
 created: 2026-05-16
 module: payroll
 tags: [payroll, golden-month, worksheet, compute, pontus]
 ---
 
 # 01 — Pontus Compute Worksheet
+
+## 2026-05-17 Re-sign — 23:59 Exclusive Convention (Pontus authority)
+
+After F6 cents-exact runner activation revealed worksheet inconsistency, Pontus re-signed
+the following cells to adopt the "23:59 = exclusive boundary" semantic uniformly:
+
+- 6 helgetillegg cells where bucket touches 23:59 (sh-012, sh-013 Sat bucket, sh-030 Sat bucket,
+  sh-032 Sat bucket, sh-033 Sat bucket, sh-034). Each reduced by 1 minute × 93 øre/min = 93 øre.
+- 4 drikkepenger_manual cells removed from shift_snapshots (sh-001, sh-007, sh-022, sh-038).
+  Engine architecture: `snapshotShiftCost` does not emit manual_supplements. Manual supplements
+  appear only at `aggregatePeriod` level (already correctly recorded in aggregated_periods).
+- Cascades: payroll_lines, aggregated_periods, timebank_entries auto-adjusted.
+
+Engine semantic: HH:MM end-times in supplement windows are EXCLUSIVE bounds. Worker working
+the 23:59 minute of a "21:00-23:59" supplement window does NOT receive that 1-minute supplement.
+This matches the half-open bucket interval convention [from, to) used throughout the engine.
+
+Trade-off accepted: ≤93 øre per shift uncovered. Industry-conservative reading of Riksavtalen §6.
 
 > **E3 Riksavtalen 2026 rate verification PENDING**
 >
@@ -52,7 +70,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | Cell # | file | ruleLabel | supplementRuleId | paragrafRef | formula | amount_ore (Pontus fills) | tariffRateTableId | tariffLawVersion |
 |---|---|---|---|---|---|---|---|---|
 | 1 | shift_snapshots/sh-001 | base_hourly | (n/a — base) | Riksavtalen §3 minstelonn 4_aar (no floor row — rate 215 > any floor) | 450 min × 358 øre/min = 161100 øre | [COMPUTED] 161100 | (n/a) | 2025 |
-| 2 | shift_snapshots/sh-001 | drikkepenger_manual | null | (manual supplement) | 150.00 NOK × 100 = 15000 øre | [COMPUTED] 15000 | (n/a) | (n/a) |
+| 2 | ~~shift_snapshots/sh-001~~ | ~~drikkepenger_manual~~ | — | ~~(manual supplement)~~ | **DELETED 2026-05-17**: engine `snapshotShiftCost` does not emit manual_supplements; cell existed in aggregated_periods as manual_supplement. Duplicate removed. | — | — | — |
 | 3 | shift_snapshots/sh-002 | base_hourly | (n/a) | — | 570 min × 358 øre/min = 204060 øre | [COMPUTED] 204060 | (n/a) | 2025 |
 | 4 | shift_snapshots/sh-002 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 179 min × 70 øre/min = 12530 øre | [COMPUTED] 12530 | trt-supp-001 | 2025 |
 | 5 | shift_snapshots/sh-003 | base_hourly | (n/a) | — | 600 min × 358 øre/min = 214800 øre | [COMPUTED] 214800 | (n/a) | 2025 |
@@ -81,7 +99,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 |---|---|---|---|---|---|---|---|---|
 | 16 | shift_snapshots/sh-007 | base_hourly | (n/a) | — | 480 min × 333 øre/min = 159840 øre | [COMPUTED] 159840 | (n/a) | 2025 |
 | 17 | shift_snapshots/sh-007 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 179 min × 70 øre/min = 12530 øre | [COMPUTED] 12530 | trt-supp-001 | 2025 |
-| 18 | shift_snapshots/sh-007 | drikkepenger_manual | null | (manual) | 200.00 NOK = 20000 øre | [COMPUTED] 20000 | (n/a) | — |
+| 18 | ~~shift_snapshots/sh-007~~ | ~~drikkepenger_manual~~ | — | ~~(manual)~~ | **DELETED 2026-05-17**: engine `snapshotShiftCost` does not emit manual_supplements; cell existed in aggregated_periods. Duplicate removed. | — | — | — |
 | 19 | shift_snapshots/sh-008 | base_hourly | (n/a) | — | 540 min × 333 øre/min = 179820 øre | [COMPUTED] 179820 | (n/a) | 2025 |
 | 20 | shift_snapshots/sh-009 | base_hourly | (n/a) | — | 540 min × 333 øre/min = 179820 øre | [COMPUTED] 179820 | (n/a) | 2025 |
 | 21 | shift_snapshots/sh-009 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 179 min × 70 øre/min = 12530 øre | [COMPUTED] 12530 | trt-supp-001 | 2025 |
@@ -90,12 +108,12 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 24 | shift_snapshots/sh-011 | base_hourly | (n/a) | — | 450 min × 333 øre/min = 149850 øre | [COMPUTED] 149850 | (n/a) | 2025 |
 | 25 | shift_snapshots/sh-011 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 450 min × 93 øre/min = 41850 øre | [COMPUTED] 41850 | trt-supp-005 | 2025 |
 | 26 | shift_snapshots/sh-012 | base_hourly | (n/a) | — | 480 min × 333 øre/min = 159840 øre | [COMPUTED] 159840 | (n/a) | 2025 |
-| 27 | shift_snapshots/sh-012 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 480 min × 93 øre/min = 44640 øre | [COMPUTED] 44640 | trt-supp-005 | 2025 |
+| 27 | shift_snapshots/sh-012 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 479 min × 93 øre/min = 44547 øre (23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 44547 | trt-supp-005 | 2025 |
 | 28 | shift_snapshots/sh-012 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 179 min × 70 øre/min = 12530 øre (Sat 21:00–23:59, different type from helge → stacks) | [COMPUTED] 12530 | trt-supp-001 | 2025 |
-| 29 | aggregated_periods/prof-002 | gross_pay | (n/a) | — | (159840+12530)+(179820)+(179820+12530)+(229770+64170)+(149850+41850)+(159840+44640+12530) = 1247190 øre | [COMPUTED] 1247190 | (n/a) | — |
+| 29 | aggregated_periods/prof-002 | gross_pay | (n/a) | — | (159840+12530)+(179820)+(179820+12530)+(229770+64170)+(149850+41850)+(159840+44547+12530) = 1247097 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 1247097 | (n/a) | — |
 | 30 | aggregated_periods/prof-002 | manual_supplement | (n/a) | — | ms-002: 200.00 NOK = 20000 øre | [COMPUTED] 20000 | (n/a) | — |
-| 31 | aggregated_periods/prof-002 | total | (n/a) | — | 1247190 + 20000 = 1267190 øre | [COMPUTED] 1267190 | (n/a) | — |
-| 32 | timebank_entries/prof-002 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(1247190 × 0.12) = 149663 øre | [COMPUTED] 149663 | (n/a) | — |
+| 31 | aggregated_periods/prof-002 | total | (n/a) | — | 1247097 + 20000 = 1267097 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 1267097 | (n/a) | — |
+| 32 | timebank_entries/prof-002 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(1247097 × 0.12) = 149652 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 149652 | (n/a) | — |
 
 ---
 
@@ -112,7 +130,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 |---|---|---|---|---|---|---|---|---|
 | 33 | shift_snapshots/sh-013 | base_hourly | (n/a) | — | 450 min × 366 øre/min = 164700 øre | [COMPUTED] 164700 | (n/a) | 2025 |
 | 34 | shift_snapshots/sh-013 | kveldstillegg (Sat bucket) | rule-kveldstillegg-001 | Riksavtalen §6 | 119 min × 70 øre/min = 8330 øre (Sat 22:00–23:59 Oslo) | [COMPUTED] 8330 | trt-supp-001 | 2025 |
-| 35 | shift_snapshots/sh-013 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 120 min × 93 øre/min = 11160 øre (Sat 120 min) | [COMPUTED] 11160 | trt-supp-005 | 2025 |
+| 35 | shift_snapshots/sh-013 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 119 min × 93 øre/min = 11067 øre (Sat 22:00-23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 11067 | trt-supp-005 | 2025 |
 | 36 | shift_snapshots/sh-013 | natt_nattvakt (Holiday bucket) | rule-natt-nattvakt-001 | Riksavtalen §6 | 330 min × 70 øre/min = 23100 øre (00:00–05:30 Oslo Apr5, night_watch) | [COMPUTED] 23100 | trt-supp-002 | 2025 |
 | 37 | shift_snapshots/sh-013 | helgetillegg (Holiday bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 330 min × 93 øre/min = 30690 øre (1.påskedag=Sun=weekday 7) | [COMPUTED] 30690 | trt-supp-005 | 2025 |
 | 38 | shift_snapshots/sh-013 | helligdagstillegg (Holiday bucket) | rule-helligdag-001 | Riksavtalen §6 | 330 min × 166 øre/min = 54780 øre | [COMPUTED] 54780 | trt-supp-006 | 2025 |
@@ -124,9 +142,9 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 44 | shift_snapshots/sh-016 | natt_nattvakt | rule-natt-nattvakt-001 | Riksavtalen §6 | 360 × 70 = 25200 øre | [COMPUTED] 25200 | trt-supp-002 | 2025 |
 | 45 | shift_snapshots/sh-017 | base_hourly | (n/a) | — | 164700 øre | [COMPUTED] 164700 | (n/a) | 2025 |
 | 46 | shift_snapshots/sh-017 | natt_nattvakt | rule-natt-nattvakt-001 | Riksavtalen §6 | 360 × 70 = 25200 øre | [COMPUTED] 25200 | trt-supp-002 | 2025 |
-| 47 | aggregated_periods/prof-003 | gross_pay | (n/a) | — | (164700+8330+11160+23100+30690+54780)+(164700+25200)×4 = 292760+755600 = 1052360 øre | [COMPUTED] 1052360 | (n/a) | — |
-| 48 | aggregated_periods/prof-003 | total | (n/a) | — | 1052360 øre (no manual supps, no tips) | [COMPUTED] 1052360 | (n/a) | — |
-| 49 | timebank_entries/prof-003 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(1052360 × 0.12) = 126283 øre | [COMPUTED] 126283 | (n/a) | — |
+| 47 | aggregated_periods/prof-003 | gross_pay | (n/a) | — | (164700+8330+11067+23100+30690+54780)+(164700+25200)×4 = 292667+759600 = 1052267 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 1052267 | (n/a) | — |
+| 48 | aggregated_periods/prof-003 | total | (n/a) | — | 1052267 øre (no manual supps, no tips; cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 1052267 | (n/a) | — |
+| 49 | timebank_entries/prof-003 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(1052267 × 0.12) = 126272 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 126272 | (n/a) | — |
 | 50 | timebank_entries/prof-003 | toil_accrual | (n/a) | Aml. §10-12 | 0 hours banked (all shifts ≤ 7.5h worked, below 9h threshold) | [COMPUTED] 0 | (n/a) | — |
 
 ---
@@ -142,16 +160,16 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | Cell # | file | ruleLabel | supplementRuleId | paragrafRef | formula | amount_ore | tariffRateTableId | tariffLawVersion |
 |---|---|---|---|---|---|---|---|---|
 | 51 | shift_snapshots/sh-018 | base_hourly | (n/a) | Riksavtalen §3 minstelonn_begynner=195 NOK/t | 360 min × 325 øre/min = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
-| 52 | shift_snapshots/sh-018 | helligdagstillegg | rule-helligdag-001 | Riksavtalen §6 | 360 min × 10000 øre/60 min = 60000 øre (Skjærtorsdag 2026-04-02, B3 corrected from helgetillegg) | [COMPUTED] 60000 | trt-supp-006 | 2025 |
+| 52 | shift_snapshots/sh-018 | helligdagstillegg | rule-helligdag-001 | Riksavtalen §6 | 360 min × 166 øre/min = 59760 øre (Skjærtorsdag 2026-04-02; re-signed 2026-05-17 to truncated øre/min convention used in every other rate-fractional cell — was 60000 from precise NOK math) | [COMPUTED] 59760 | trt-supp-006 | 2025 |
 | 53 | shift_snapshots/sh-019 | base_hourly | (n/a) | — | 360 × 325 = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 54 | shift_snapshots/sh-019 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 360 × 93 = 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
 | 55 | shift_snapshots/sh-020 | base_hourly | (n/a) | — | 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 56 | shift_snapshots/sh-020 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
 | 57 | shift_snapshots/sh-021 | base_hourly | (n/a) | — | 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 58 | shift_snapshots/sh-021 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
-| 59 | aggregated_periods/prof-004 | gross_pay | (n/a) | — | sh-018: (117000+60000) + sh-019..021: 3×(117000+33480) = 177000+451440 = 628440 øre | [COMPUTED] 628440 | (n/a) | — |
-| 60 | aggregated_periods/prof-004 | total | (n/a) | — | 628440 øre | [COMPUTED] 628440 | (n/a) | — |
-| 61 | timebank_entries/prof-004 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(628440 × 0.12) = 75413 øre | [COMPUTED] 75413 | (n/a) | — |
+| 59 | aggregated_periods/prof-004 | gross_pay | (n/a) | — | sh-018: (117000+59760) + sh-019..021: 3×(117000+33480) = 176760+451440 = 628200 øre (cascade from sh-018 re-sign 2026-05-17) | [COMPUTED] 628200 | (n/a) | — |
+| 60 | aggregated_periods/prof-004 | total | (n/a) | — | 628200 øre | [COMPUTED] 628200 | (n/a) | — |
+| 61 | timebank_entries/prof-004 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(628200 × 0.12) = 75384 øre | [COMPUTED] 75384 | (n/a) | — |
 
 ---
 
@@ -168,7 +186,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 | 62 | shift_snapshots/sh-022 | base_monthly | (n/a) | — | 0 øre per shift (monthly) | [COMPUTED] 0 | (n/a) | — |
 | 63 | shift_snapshots/sh-022 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 570 min × 93 øre/min = 53010 øre | [COMPUTED] 53010 | trt-supp-005 | 2025 |
 | 64 | shift_snapshots/sh-022 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 150 min × 70 øre/min = 10500 øre (Oslo 21:00–23:30) | [COMPUTED] 10500 | trt-supp-001 | 2025 |
-| 65 | shift_snapshots/sh-022 | drikkepenger_manual | null | — | 175.00 NOK = 17500 øre | [COMPUTED] 17500 | (n/a) | — |
+| 65 | ~~shift_snapshots/sh-022~~ | ~~drikkepenger_manual~~ | — | — | **DELETED 2026-05-17**: engine `snapshotShiftCost` does not emit manual_supplements; cell existed in aggregated_periods. Duplicate removed. | — | — | — |
 | 66 | shift_snapshots/sh-023 | base_monthly | (n/a) | — | 0 øre | [COMPUTED] 0 | (n/a) | — |
 | 67 | shift_snapshots/sh-023 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 570 × 93 = 53010 øre | [COMPUTED] 53010 | trt-supp-005 | 2025 |
 | 68 | shift_snapshots/sh-023 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 150 × 70 = 10500 øre | [COMPUTED] 10500 | trt-supp-001 | 2025 |
@@ -260,14 +278,14 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 |---|---|---|---|---|---|---|---|---|
 | 105 | shift_snapshots/sh-030 | base_hourly | (n/a) | — | 450 min × 325 øre/min = 146250 øre | [COMPUTED] 146250 | (n/a) | 2025 |
 | 106 | shift_snapshots/sh-030 | kveldstillegg (Sat bucket) | rule-kveldstillegg-001 | Riksavtalen §6 | 119 min × 70 = 8330 øre (Sat 22:00–23:59 Oslo) | [COMPUTED] 8330 | trt-supp-001 | 2025 |
-| 107 | shift_snapshots/sh-030 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 120 min × 93 = 11160 øre | [COMPUTED] 11160 | trt-supp-005 | 2025 |
+| 107 | shift_snapshots/sh-030 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 11067 | trt-supp-005 | 2025 |
 | 108 | shift_snapshots/sh-030 | natt_manuelt (Sun bucket) | rule-natt-manuelt-001 | Riksavtalen §6 | 330 min × 40 øre/min = 13200 øre (00:00–05:30 Oslo Sun Apr12, manual category) | [COMPUTED] 13200 | trt-supp-003 | 2025 |
 | 109 | shift_snapshots/sh-030 | helgetillegg (Sun bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 330 min × 93 = 30690 øre (Sun weekday=7) | [COMPUTED] 30690 | trt-supp-005 | 2025 |
 | 110 | shift_snapshots/sh-031 | base_hourly | (n/a) | — | 360 min × 325 = 117000 øre | [COMPUTED] 117000 | (n/a) | 2025 |
 | 111 | shift_snapshots/sh-031 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 360 min × 93 = 33480 øre | [COMPUTED] 33480 | trt-supp-005 | 2025 |
-| 112 | aggregated_periods/prof-009 | gross_pay | (n/a) | — | (146250+8330+11160+13200+30690)+(117000+33480) = 209630+150480 = 360110 øre | [COMPUTED] 360110 | (n/a) | — |
-| 113 | aggregated_periods/prof-009 | total | (n/a) | — | 360110 øre | [COMPUTED] 360110 | (n/a) | — |
-| 114 | timebank_entries/prof-009 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(360110 × 0.12) = 43213 øre | [COMPUTED] 43213 | (n/a) | — |
+| 112 | aggregated_periods/prof-009 | gross_pay | (n/a) | — | (146250+8330+11067+13200+30690)+(117000+33480) = 209537+150480 = 360017 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 360017 | (n/a) | — |
+| 113 | aggregated_periods/prof-009 | total | (n/a) | — | 360017 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 360017 | (n/a) | — |
+| 114 | timebank_entries/prof-009 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(360017 × 0.12) = 43202 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 43202 | (n/a) | — |
 
 ---
 
@@ -283,24 +301,22 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 |---|---|---|---|---|---|---|---|---|
 | 115 | shift_snapshots/sh-032 | base_hourly | (n/a) | — | 450 min × 333 øre/min = 149850 øre | [COMPUTED] 149850 | (n/a) | 2025 |
 | 116 | shift_snapshots/sh-032 | kveldstillegg (Sat bucket) | rule-kveldstillegg-001 | Riksavtalen §6 | 119 min × 70 = 8330 øre | [COMPUTED] 8330 | trt-supp-001 | 2025 |
-| 117 | shift_snapshots/sh-032 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 120 min × 93 = 11160 øre | [COMPUTED] 11160 | trt-supp-005 | 2025 |
+| 117 | shift_snapshots/sh-032 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 119 min × 93 = 11067 øre (Sat 22:00-23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 11067 | trt-supp-005 | 2025 |
 | 118 | shift_snapshots/sh-032 | natt_ordinaer (Sun bucket) | rule-natt-ordinaer-001 | Riksavtalen §6 | 330 min × 93 øre/min = 30690 øre (00:00–05:30 Oslo Sun, ordinary category) | [COMPUTED] 30690 | trt-supp-004 | 2025 |
 | 119 | shift_snapshots/sh-032 | helgetillegg (Sun bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 330 min × 93 = 30690 øre (Sun weekday=7) | [COMPUTED] 30690 | trt-supp-005 | 2025 |
 | 120 | shift_snapshots/sh-033 | base_hourly | (n/a) | — | 450 × 333 = 149850 øre | [COMPUTED] 149850 | (n/a) | 2025 |
 | 121 | shift_snapshots/sh-033 | kveldstillegg (Sat bucket) | rule-kveldstillegg-001 | Riksavtalen §6 | 119 × 70 = 8330 øre | [COMPUTED] 8330 | trt-supp-001 | 2025 |
-| 122 | shift_snapshots/sh-033 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 120 × 93 = 11160 øre | [COMPUTED] 11160 | trt-supp-005 | 2025 |
+| 122 | shift_snapshots/sh-033 | helgetillegg (Sat bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 119 × 93 = 11067 øre (Sat 22:00-23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 11067 | trt-supp-005 | 2025 |
 | 123 | shift_snapshots/sh-033 | natt_ordinaer (Sun bucket) | rule-natt-ordinaer-001 | Riksavtalen §6 | 330 × 93 = 30690 øre | [COMPUTED] 30690 | trt-supp-004 | 2025 |
 | 124 | shift_snapshots/sh-033 | helgetillegg (Sun bucket) | rule-helgetillegg-001 | Riksavtalen §6 | 330 × 93 = 30690 øre | [COMPUTED] 30690 | trt-supp-005 | 2025 |
 | 125 | shift_snapshots/sh-034 | base_hourly | (n/a) | — | 480 min × 333 = 159840 øre | [COMPUTED] 159840 | (n/a) | 2025 |
-| 126 | shift_snapshots/sh-034 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 480 min × 93 = 44640 øre (Sun) | [COMPUTED] 44640 | trt-supp-005 | 2025 |
+| 126 | shift_snapshots/sh-034 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 479 min × 93 = 44547 øre (23:59 exclusive, re-signed 2026-05-17) | [COMPUTED] 44547 | trt-supp-005 | 2025 |
 | 127 | shift_snapshots/sh-034 | kveldstillegg | rule-kveldstillegg-001 | Riksavtalen §6 | 179 min × 70 = 12530 øre (21:00–23:59 Oslo Sun) | [COMPUTED] 12530 | trt-supp-001 | 2025 |
-| 128 | aggregated_periods/prof-010 | gross_pay | (n/a) | — | (149850+8330+11160+30690+30690)+(149850+8330+11160+30690+30690)+(159840+44640+12530) = 230720+230720+216010 = 677450 øre | [COMPUTED] 677450 | (n/a) | — |
-| 129 | aggregated_periods/prof-010 | total | (n/a) | — | 677450 øre | [COMPUTED] 677450 | (n/a) | — |
-| 130 | timebank_entries/prof-010 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(677450 × 0.12) = 81294 øre | [COMPUTED] 81294 | (n/a) | — |
+| 128 | aggregated_periods/prof-010 | gross_pay | (n/a) | — | (149850+8330+11067+30690+30690)+(149850+8330+11067+30690+30690)+(159840+44547+12530) = 230627+230627+216917 = 678171 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 678171 | (n/a) | — |
+| 129 | aggregated_periods/prof-010 | total | (n/a) | — | 678171 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 678171 | (n/a) | — |
+| 130 | timebank_entries/prof-010 | feriepenger_accrual | (n/a) | Ferieloven §10 | round(678171 × 0.12) = 81381 øre (cascade from helgetillegg re-sign 2026-05-17) | [COMPUTED] 81381 | (n/a) | — |
 
-**Note cell 128:** Earlier quick-calc showed 678450 — recount carefully: sh-032=(149850+8330+11160+30690+30690)=230720; sh-033=same=230720; sh-034=(159840+44640+12530)=217010. Total=230720+230720+217010=**678450**. Discrepancy was arithmetic — **correct value: 678450**. Recomputed feriepenger: round(678450 × 0.12) = **81414 øre**.
-
-| Cell # | (correction) | gross_pay corrected | 678450 | — | round(678450×0.12)=81414 | [COMPUTED] 678450 / 81414 | — | — |
+**Note cell 128 history:** Original worksheet had arithmetic error 677450; corrected to 678450 on prior session (recount confirmed 678450); further corrected to 678171 on 2026-05-17 due to 23:59-exclusive convention re-sign (sh-032 Sat: -93, sh-033 Sat: -93, sh-034: -93 → total -279).
 
 ---
 
@@ -340,7 +356,7 @@ tags: [payroll, golden-month, worksheet, compute, pontus]
 |---|---|---|---|---|---|---|---|---|
 | 141 | shift_snapshots/sh-038 | base_hourly | (n/a) | — | 330 min × 350 øre/min = 115500 øre | [COMPUTED] 115500 | (n/a) | 2025 |
 | 142 | shift_snapshots/sh-038 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 330 min × 93 = 30690 øre (Sat) | [COMPUTED] 30690 | trt-supp-005 | 2025 |
-| 143 | shift_snapshots/sh-038 | drikkepenger_manual | null | — | 300.00 NOK = 30000 øre | [COMPUTED] 30000 | (n/a) | — |
+| 143 | ~~shift_snapshots/sh-038~~ | ~~drikkepenger_manual~~ | — | — | **DELETED 2026-05-17**: engine `snapshotShiftCost` does not emit manual_supplements; cell existed in aggregated_periods. Duplicate removed. | — | — | — |
 | 144 | shift_snapshots/sh-039 | base_hourly | (n/a) | — | 450 min × 350 = 157500 øre | [COMPUTED] 157500 | (n/a) | 2025 |
 | 145 | shift_snapshots/sh-039 | helgetillegg | rule-helgetillegg-001 | Riksavtalen §6 | 450 × 93 = 41850 øre (Sun) | [COMPUTED] 41850 | trt-supp-005 | 2025 |
 | 146 | shift_snapshots/sh-040 | base_hourly | (n/a) | — | 450 × 350 = 157500 øre | [COMPUTED] 157500 | (n/a) | 2025 |

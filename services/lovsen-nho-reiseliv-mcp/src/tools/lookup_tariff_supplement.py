@@ -16,7 +16,7 @@ Why version is required:
   Returning 2025 kveldstillegg (27%) when 2024 was asked (25%) is a legal error.
   Version-confusion is the primary Lovsen risk (README §Risiko, ADR-0244).
 
-In fixture mode (LOVSEN_MCP_FIXTURE=1): delegates to fixtures.fixture_lookup_tariff_supplement().
+In fixture mode (LOVSEN_FIXTURE_MODE=true canonical per ADR-0258; legacy LOVSEN_MCP_FIXTURE=1 also accepted): delegates to fixtures.fixture_lookup_tariff_supplement().
 In live mode: fetches from nhoreiseliv.no, parses HTML, builds Citation.
 """
 

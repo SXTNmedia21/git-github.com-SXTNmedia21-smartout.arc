@@ -5,7 +5,7 @@ feature: hms-collision-fix
 updated: 2026-05-17
 created: 2026-05-17
 module: MODULE_01
-tags: [journey, ui-shell, collision-fix, ADR-0348, L-0258, council-verified, campaign-ui-shell, M5-prereq]
+tags: [journey, ui-shell, collision-fix, ADR-0360, L-0258, council-verified, campaign-ui-shell, M5-prereq]
 ---
 
 # Journey — HMS bridge tools resolve unambiguously after L-0258 dedupe
@@ -81,7 +81,7 @@ Synthetic test: introduce intentional duplicate in fixture → run detector → 
 
 ## Council learning ref
 
-- ADR-0348 (this sortie ships) — L-0258 CI collision detector mandatory
+- ADR-0360 (this sortie ships) — L-0258 CI collision detector mandatory
 - L-0258 (2026-05-14) — Tool-registry Object.assign collision
 - L-0267 (2026-05-14) — Briefing collision counts are spot-checks (3 confirmed today; ~6-8 cross-domain remain for follow-up sortie)
 - ADR-0325 Phase 2 (this sortie executes for HMS cluster)

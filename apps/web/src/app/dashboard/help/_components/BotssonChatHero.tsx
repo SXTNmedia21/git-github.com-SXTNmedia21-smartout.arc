@@ -23,7 +23,7 @@ export function BotssonChatHero({ firstName, workspaceId }: Props) {
       </p>
 
       {/* BotssonChat inherits BotssonProvider scope from ancestor BotssonHost
-          in DashboardShell (ADR-0348). No nested provider needed. */}
+          in DashboardShell (ADR-0362). No nested provider needed. */}
       <Suspense>
         <div className="mt-4 max-h-[360px] overflow-auto">
           <BotssonChat workspaceId={workspaceId} />

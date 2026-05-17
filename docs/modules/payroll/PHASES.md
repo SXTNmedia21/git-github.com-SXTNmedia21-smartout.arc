@@ -1,7 +1,7 @@
 ---
 title: Payroll Implementation Phases
 status: draft
-updated: 2026-05-16
+updated: 2026-05-17
 created: 2026-05-06
 module: payroll
 tags: [payroll, phases, roadmap, sortie-plan]
@@ -132,7 +132,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain open before Phase 1 is considered fully closed:
 
-- **G1 — Golden-month expected fixture (cents-exact §10.1):** IN PROGRESS. ~~`expected/` empty~~ — 5 `expected/*.json` files DONE (commit `573ed5c99`): shift_snapshots (106 cells), aggregated_periods (28 cells), payroll_lines (41 lines), timebank_entries (14 cells), deviations (0 cells). Pontus authority-half SIGNED — 189 cells with `computedBy=pontus@smartout.no` (commit `9d29b90c3`). Pending: **Lovsen-certify authority-half** (blocked on ADR-0342 MCP T1-T4 implementation — separate sortie) + `describe.todo` cents-exact activation + E6 fixture UUID alignment. Tracked: SMA-372. Close-out detail: HANDOFF-payroll-phase-1-closeout.md.
+- **G1 — Golden-month expected fixture (cents-exact §10.1):** **DONE** (2026-05-17). ~~`expected/` empty~~ — 5 `expected/*.json` files DONE (`573ed5c99`). Pontus authority-half SIGNED — 189 cells (`9d29b90c3`). `describe.todo` block ACTIVATED — 4 live it() blocks passing, 240/240 tests green, 0 drift across all §10.1 surfaces (`[uncommitted]`). Worksheet re-signed via Path C (23:59 exclusive semantic + drikkepenger_manual architectural fix). Remaining: Lovsen-certify authority-half (ADR-0342 MCP T1-T4 separate sortie) + E6 fixture UUID alignment. Tracked: SMA-372. Close-out detail: HANDOFF-payroll-phase-1-closeout.md.
 - **G3 — W11 Oslo-TZ bug:** DONE (commit `d22645c4d`). `osloDateString` helper added; shifts starting 22:00 UTC bucket correctly to Oslo calendar day. Tests 230 → 232.
 - **G4 — W04 4-week rolling boundary test:** DONE (commit `acf3352bc`). 4-week × 46h negative boundary scenario added.
 - **G5 — 43-shift fixture vs §10.1 600-shift spec:** PENDING decision. Pontus to decide: scale to 600 OR accept 43 with scope-cut ADR. Blocking §10.1 sign-off. Tracked: SMA-372.
@@ -143,6 +143,10 @@ Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain ope
 ### Post-session state (2026-05-16)
 
 ADR-0341 v1.1 + ADR-0342 both accepted. Engine bug fixes W11 + W04 + E2 shipped (tests 230 → 235). E1 tariff_category + E5 role_class CHECK extended. F2.transcribe complete — 5 `expected/*.json` files written (commit `573ed5c99`). Pontus authority-half signed on 189 cells (commit `9d29b90c3`). Full close-out detail: `docs/HANDOFF-payroll-phase-1-closeout.md`. Remaining load-bearing block: ADR-0342 MCP T1-T4 implementation → Lovsen-certify → `describe.todo` activation → `pnpm test:golden-month` green.
+
+### Post-session state (2026-05-17) — F6 closure
+
+G1 cents-exact convergence complete. `describe.todo` block activated (4 live it() blocks). 240/240 tests green. 0 drift across all 4 ADR-0341 §10.1 surfaces. Engine held at HEAD; worksheet re-signed (Path C — 23:59 exclusive boundary semantic, drikkepenger_manual architectural fix). Pontus authority-half (189 cells) cents-exact verified. Remaining: Lovsen-certify authority-half (PENDING_LOVSEN_CERTIFY passes schema gate) → ADR-0342 MCP T1-T4 sortie. E6 fixture UUID alignment also deferred. Full close-out detail: `docs/HANDOFF-payroll-phase-1-closeout.md`.
 
 ---
 

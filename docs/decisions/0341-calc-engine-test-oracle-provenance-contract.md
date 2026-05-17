@@ -16,6 +16,16 @@ related_adrs: [ADR-0110, ADR-0251, ADR-0256, ADR-0258]
 
 # ADR-0341: Calc-engine test oracle provenance contract
 
+## 2026-05-17 AMENDMENT — Dynamic-MCP-Fetch Pivot
+
+**Cell schema 16-field lock SURVIVES at fixture-author layer.** The per-cell schema contract (§"Per-cell schema") is unchanged for worksheet authors and the CI schema validator.
+
+**Citation envelope field sourcing changes.** Fields `lovsenCitationHash`, `lovsenCitationText`, `lovsenCitationUrl`, and `lovsenCitationFetchedAt` are now sourced from the tariff_snapshot envelope (ADR-0353 workspace_framework_binding) at re-cert time — not from a standalone Lovdata fetch triggered per cell. The re-cert tool (Phase 7c) pulls these values from the materialized snapshot produced by ADR-0352 `derive_supplement_set`, then writes them into each cell.
+
+**F6 gate refactored.** F6 stale-check is split: (a) CI/batch staleness check via `verify_citation_freshness` (ADR-0342, unchanged) + (b) production drift detection via heartbeat cron (ADR-0354). The fixture-level F6 gate in `pnpm test:golden-month` continues to call ADR-0342 in CI; production drift detection is handled by ADR-0354 ops layer, not the golden-month test runner.
+
+**No field removals.** Backward-compatible. Legacy `lovsenCitationHash` field (single-hash, ADR-0341 §H) remains in schema as deprecated per ADR-0348 dual-lineage model.
+
 > Lønnsslippen må kunne forklares krone for krone, om så ti år fra nå. Phase 1 acceptance (±0.01 NOK per employee) er bare meningsfull hvis den forventede verdien selv er reviderbar — ellers tester vi engine mot et orakel ingen kan forsvare.
 
 **Tre ekstremt-viktige punkter for leseren i 2027:**
