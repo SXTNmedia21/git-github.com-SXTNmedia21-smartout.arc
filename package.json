@@ -11,6 +11,7 @@
     "dev:mobile": "op run --env-file=.env.template -- pnpm --filter mobile dev",
     "dev:journey-control": "pnpm --filter @smartout/journey-control dev",
     "lint": "turbo run lint",
+    "lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
