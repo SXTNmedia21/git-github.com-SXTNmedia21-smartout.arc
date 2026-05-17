@@ -16,6 +16,16 @@ related_adrs: [ADR-0341, ADR-0347, ADR-0348]
 
 # ADR-0349: Paragraph-ref translation map — Smartout worksheet shorthand → Lovdata canonical
 
+## 2026-05-17 AMENDMENT — Dynamic-MCP-Fetch Pivot (Round 2)
+
+**Translation map is LOAD-BEARING for ADR-0352 `derive_supplement_set`.** Phase 7d council (2026-05-17) established that the Python MCP implementing `derive_supplement_set` consumes this map at synthesis time — not only the Phase 7c re-cert tool.
+
+When `derive_supplement_set` is called with a workspace's configured supplement types, the MCP resolves each supplement type's `paragrafRef` shorthand to a Lovdata canonical address using this map, then fetches the live paragraph text. The map is therefore a runtime dependency of the dynamic-tariff system, not only a fixture-author artifact.
+
+**Phase 7c-prep verification (2026-05-17) confirmed 6/6 rows.** All currently populated map entries were verified against taro-79 on Lovdata. Remaining `TBD` entries (helligdagstillegg, §3 context audit) must be resolved before Phase 7e ships `derive_supplement_set` capability tool integration.
+
+**Map authorship unchanged.** Lovsen owns the map; Pontus owns worksheet `paragrafRef` values. Three-seat authority separation per ADR-0341 §H is preserved. The new consumer (ADR-0352 Python MCP) reads the map as a read-only artifact — it does not write to it.
+
 ## Intro
 
 Three facts set the problem:
