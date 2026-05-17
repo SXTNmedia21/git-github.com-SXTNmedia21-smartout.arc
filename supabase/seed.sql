@@ -2773,125 +2773,16 @@ INSERT INTO public.schedule_shift (
 
 
 -- ============================================================================
--- 21. PAYROLL — Periods, Calculations, Lines (for Anna)
+-- 21. PAYROLL SEED — REMOVED 2026-05-17
 -- ============================================================================
-
--- ── 21.1 Payroll Periods (3 months) ──
-INSERT INTO payroll.period (id, workspace_id, start_date, end_date, status, exported_at) VALUES
-  ('ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' - interval '1 day')::date,
-   'exported', (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' + interval '11 days')::timestamptz),
-  ('ab000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '1 day')::date,
-   'exported', (date_trunc('month', CURRENT_DATE) + interval '11 days')::timestamptz),
-  ('ab000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   date_trunc('month', CURRENT_DATE)::date,
-   (date_trunc('month', CURRENT_DATE) + interval '1 month' - interval '1 day')::date,
-   'approved', NULL);
-
--- ── 21.2 Calculations for Anna (3 months) ──
-INSERT INTO payroll.calculation (
-  id, workspace_id, period_id, profile_id, schedule_shift_id,
-  shift_date, scheduled_start, scheduled_end,
-  base_rate, gross_minutes, net_working_minutes, break_minutes_paid, break_minutes_unpaid,
-  base_pay, total_supplements, total_deductions, total_pay, calculation_version
-) VALUES
-  -- January: 162.5 hrs, 280kr/hr
-  ('ac000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000050',
-   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '18 hours')::timestamptz,
-   280.00, 9750, 9750, 0, 30,
-   45500.00, 5220.00, 16230.40, 34489.60, 1),
-  -- February: 150 hrs
-  ('ac000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000051',
-   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '18 hours')::timestamptz,
-   280.00, 9000, 9000, 0, 30,
-   42000.00, 4850.00, 14992.00, 31858.00, 1),
-  -- March (current): 127.5 hrs so far
-  ('ac000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000052',
-   date_trunc('month', CURRENT_DATE)::date,
-   (date_trunc('month', CURRENT_DATE) + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) + interval '18 hours')::timestamptz,
-   280.00, 7650, 7650, 0, 30,
-   35700.00, 3980.00, 12697.60, 26982.40, 1);
-
--- ── 21.3 Calculation Lines (January detail) ──
-INSERT INTO payroll.calculation_line (
-  id, workspace_id, calculation_id, line_type, salary_code, description, amount, hours, rate
-) VALUES
-  ('ad000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'base', 'BASE', 'Grunnlønn', 45500.00, 162.5, 280.00),
-  ('ad000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'EVE', 'Kveldstillegg', 2450.00, 35.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
-  ('ad000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'HOL', 'Helligdagstillegg', 950.00, 8.0, 118.75),
-  ('ad000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'deduction', 'TAX', 'Skattetrekk (32%)', 16230.40, NULL, NULL),
-  ('ad000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'deduction', 'PEN', 'Pensjonsinnskudd (2%)', 1014.40, NULL, NULL),
-
-  -- February lines
-  ('ad000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'base', 'BASE', 'Grunnlønn', 42000.00, 150.0, 280.00),
-  ('ad000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'EVE', 'Kveldstillegg', 2100.00, 30.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
-  ('ad000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'OT50', 'Overtid 50%', 930.00, 3.0, 310.00),
-  ('ad000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'deduction', 'TAX', 'Skattetrekk (32%)', 14992.00, NULL, NULL),
-
-  -- March lines (partial)
-  ('ad000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'base', 'BASE', 'Grunnlønn', 35700.00, 127.5, 280.00),
-  ('ad000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'supplement', 'EVE', 'Kveldstillegg', 1960.00, 28.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000022', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'supplement', 'WKD', 'Helgetillegg', 2020.00, 17.75, 113.75),
-  ('ad000000-0000-0000-0000-000000000023', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'deduction', 'TAX', 'Skattetrekk (32%)', 12697.60, NULL, NULL);
+-- Removed: payroll.period (3 rows) + payroll.calculation (3 rows for Anna) +
+-- payroll.calculation_line (~20 rows) + payroll.timebank_entry (9 rows).
+-- Reason: rendered as "fake PDFs" in mobile my-salary surface — calculation
+-- rows showed seed numbers but no payroll.export_event existed → PDF download
+-- 404. Decision 2026-05-17 (decision-log): clean dev state, generate real
+-- PDFs via admin /api/payroll/generate-pdf-bundle when needed for testing.
 
 
--- ============================================================================
--- 22. TIMEBANK — Entries for Anna
--- ============================================================================
-
-INSERT INTO payroll.timebank_entry (
-  id, workspace_id, profile_id, entry_type, hours, effective_date, description
-) VALUES
-  ('db000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 30, 'Overtid 50%'),
-  ('db000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 3.5, CURRENT_DATE - 25, 'Merarbeid prosjekt'),
-  ('db000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 4.0, CURRENT_DATE - 20, 'Uttak avspasering'),
-  ('db000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 15, 'Overtid kveldsvakt'),
-  ('db000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 2.0, CURRENT_DATE - 10, 'Tidlig avgang fredag'),
-  ('db000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 5, 'Overtid 50%'),
-  ('db000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 2, 'Ekstra timer selskap'),
-  -- Ole (Bartender)
-  ('db000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000004', 'accrual', 3.0, CURRENT_DATE - 14, 'Overtid helg'),
-  ('db000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000004', 'withdrawal', 1.5, CURRENT_DATE - 7, 'Uttak avspasering');
 
 
 -- ============================================================================
