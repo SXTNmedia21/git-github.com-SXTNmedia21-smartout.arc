@@ -141,6 +141,19 @@ export const priority = {
   low: "oklch(0.55 0 0)",
 } as const;
 
+// ─── Tidslinjen Phase Tinting ─────────────────────────────────────────────────
+// Three OKLCH surfaces for the D6 phase bands rendered on DayTimelineStrip.
+// Warm hue range 30-80, low chroma — subtle tint, not a design element.
+// CSS vars: --color-phase-prep, --color-phase-service, --color-phase-winddown
+export const phase = {
+  /** Prep phase band — warm amber, first 30 min of session. */
+  phasePrep: "oklch(0.95 0.04 60)",
+  /** Service phase band — warm yellow, middle of session. */
+  phaseService: "oklch(0.97 0.02 80)",
+  /** Wind-down phase band — warm red-orange, last 30 min. */
+  phaseWindDown: "oklch(0.93 0.05 30)",
+} as const;
+
 // ─── Spacing ──────────────────────────────────────────
 export const spacing = {
   page: "2rem",

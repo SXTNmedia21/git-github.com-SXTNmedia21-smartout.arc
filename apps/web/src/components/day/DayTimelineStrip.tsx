@@ -1,24 +1,18 @@
 "use client";
 
 import { useMemo, useState, useContext } from "react";
+import type React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import {
-  Calendar,
-  CheckCircle2,
-  AlertTriangle,
-  StickyNote,
-  LogIn,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@smartout/ui";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import type { SelectionSource } from "./use-timeline-selection";
+import { EVENT_TYPE_META, EVENT_TYPE_ORDER, type ShapeKind } from "./event-types";
+import { ClusterMarker } from "./ClusterMarker";
 
 const SPARSE_THRESHOLD = 4; // events within bounds at/below this → auto-zoom near now
 const ZOOM_HALF_WINDOW = 180; // minutes either side of now
@@ -48,77 +42,29 @@ export type DayTimelineStripProps = {
   highlightedId?: string | null;
   /** Which surface triggered the current selection — "list" → pulse marker. */
   pulseSource?: SelectionSource;
-  /** Department id — passed through to telemetry. */
+  /**
+   * Department ID — passed through to telemetry and ClusterMarker.
+   * Required for ui.dagslinjen.cluster_expanded (ADR-0134).
+   */
   departmentId?: string;
-  /** Session id — passed through to telemetry. */
+  /**
+   * Session ID — passed through to telemetry and ClusterMarker.
+   */
   sessionId?: string;
+  /**
+   * Phase boundaries in minute-of-day space. When provided, renders three
+   * subtle phase-tint bands between the background bar and now-marker.
+   * Computed by getPhaseBoundaries() from @smartout/utils.
+   * null = session bounds missing; undefined = not yet computed.
+   */
+  phaseBoundaries?: {
+    prep: [number, number];
+    service: [number, number];
+    windDown: [number, number];
+  } | null;
 };
 
-type ShapeKind = "dot" | "flag" | "diamond" | "arrow-down" | "arrow-up" | "ring";
-
-const TYPE_META: Record<
-  DayEventType,
-  {
-    icon: typeof Calendar;
-    shape: ShapeKind;
-    /** Tailwind class for fill color (use /80 for soft). */
-    fill: string;
-    /** Ring color for halo. */
-    ring: string;
-    /** Icon color (white for solid shapes, inherits when ring-only). */
-    iconColor: string;
-    label: string;
-  }
-> = {
-  booking: {
-    icon: Calendar,
-    shape: "dot",
-    fill: "bg-blue-400/90 dark:bg-blue-500/80",
-    ring: "ring-blue-300/40 dark:ring-blue-500/25",
-    iconColor: "text-white",
-    label: "Booking",
-  },
-  note: {
-    icon: StickyNote,
-    shape: "flag",
-    fill: "bg-purple-400/90 dark:bg-purple-500/80",
-    ring: "ring-purple-300/40 dark:ring-purple-500/25",
-    iconColor: "text-white",
-    label: "Notat",
-  },
-  task: {
-    icon: CheckCircle2,
-    shape: "ring",
-    fill: "bg-emerald-400/85 dark:bg-emerald-500/75",
-    ring: "ring-emerald-300/40 dark:ring-emerald-500/25",
-    iconColor: "text-white",
-    label: "Oppgave",
-  },
-  deviation: {
-    icon: AlertTriangle,
-    shape: "diamond",
-    fill: "bg-rose-400/90 dark:bg-rose-500/80",
-    ring: "ring-rose-300/40 dark:ring-rose-500/25",
-    iconColor: "text-white",
-    label: "Avvik",
-  },
-  checkin: {
-    icon: LogIn,
-    shape: "arrow-down",
-    fill: "bg-amber-400/90 dark:bg-amber-500/80",
-    ring: "ring-amber-300/40 dark:ring-amber-500/25",
-    iconColor: "text-white",
-    label: "Innsjekk",
-  },
-  checkout: {
-    icon: LogOut,
-    shape: "arrow-up",
-    fill: "bg-muted-foreground/60",
-    ring: "ring-muted-foreground/20",
-    iconColor: "text-background",
-    label: "Utsjekk",
-  },
-};
+// ShapeKind is imported from ./event-types above; used by the Marker component below.
 
 function minutesToHHMM(m: number): string {
   const wrapped = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
@@ -147,7 +93,7 @@ function Marker({
   fill: string;
   ring: string;
   iconColor: string;
-  Icon: typeof Calendar;
+  Icon: React.FC<React.SVGProps<SVGSVGElement>>;
 }) {
   if (shape === "dot") {
     return (
@@ -246,8 +192,9 @@ export function DayTimelineStrip({
   onSlotClick,
   highlightedId,
   pulseSource,
-  departmentId,
-  sessionId,
+  departmentId = "",
+  sessionId = "",
+  phaseBoundaries,
 }: DayTimelineStripProps) {
   const reduceMotion = useReducedMotion();
   const dashCtx = useContext(DashboardContext);
@@ -354,17 +301,58 @@ export function DayTimelineStrip({
   const startMin = visibleStart;
   const endMin = visibleEnd;
 
-  // Simple lane assignment to avoid overlap when markers within 2% of each other
+  // ─── Cluster pre-processing ───────────────────────────────────────────────
+  // Group positioned entries by 15-min bucket. Buckets with 2+ events collapse
+  // to a ClusterMarker; buckets with 1 event remain as normal markers.
+  const CLUSTER_BUCKET_MIN = 15;
+  type ClusterBucket = {
+    bucketIdx: number;
+    startMin: number;
+    endMin: number;
+    entries: typeof positioned;
+    pct: number; // center pct of the bucket's first entry (anchor)
+  };
+
+  const bucketMap = new Map<number, typeof positioned>();
+  for (const p of positioned) {
+    // Reconstruct normM from pct: normM = startMin + (pct/100)*span
+    const normM = startMin + (p.pct / 100) * span;
+    const bucketKey = Math.floor((normM - startMin) / CLUSTER_BUCKET_MIN);
+    const bucket = bucketMap.get(bucketKey) ?? [];
+    bucket.push(p);
+    bucketMap.set(bucketKey, bucket);
+  }
+
+  const clusters: ClusterBucket[] = [];
+  const singlesPositioned: typeof positioned = [];
+
+  for (const [key, entries] of bucketMap.entries()) {
+    if (entries.length >= 2) {
+      const bucketStartAbsMin = startMin + key * CLUSTER_BUCKET_MIN;
+      const bucketEndAbsMin = bucketStartAbsMin + CLUSTER_BUCKET_MIN;
+      clusters.push({
+        bucketIdx: key,
+        startMin: bucketStartAbsMin,
+        endMin: bucketEndAbsMin,
+        entries,
+        pct: entries[0]?.pct ?? 0,
+      });
+    } else if (entries[0]) {
+      singlesPositioned.push(entries[0]);
+    }
+  }
+
+  // Lane assignment for singles only — clusters get their own marker.
   const LANES = 3;
   const laneTails: number[] = [-100, -100, -100];
-  const withLanes = positioned.map((p) => {
+  const withLanes = singlesPositioned.map((p) => {
     let lane = 0;
     for (let i = 0; i < LANES; i++) {
       if (p.pct - (laneTails[i] ?? -100) > 2) {
         lane = i;
         break;
       }
-      if (i === LANES - 1) lane = 0; // overflow → top
+      if (i === LANES - 1) lane = 0;
     }
     laneTails[lane] = p.pct;
     return { ...p, lane };
@@ -443,6 +431,45 @@ export function DayTimelineStrip({
             </button>
           )}
 
+          {/* Phase tinting — three bands rendered between background bar and now-marker.
+              Only rendered when phaseBoundaries is provided (calculated in TimelineTab). */}
+          {phaseBoundaries != null && (
+            <>
+              {(
+                [
+                  ["prep", phaseBoundaries.prep, "var(--color-phase-prep)"] as const,
+                  ["service", phaseBoundaries.service, "var(--color-phase-service)"] as const,
+                  ["winddown", phaseBoundaries.windDown, "var(--color-phase-winddown)"] as const,
+                ] as const
+              ).map(([key, [rangeStart, rangeEnd], color]) => {
+                // Skip degenerate bands or those fully outside visible range.
+                if (rangeEnd <= rangeStart) return null;
+                if (rangeEnd < startMin || rangeStart > endMin) return null;
+                const clampedStart = Math.max(rangeStart, startMin);
+                const clampedEnd = Math.min(rangeEnd, endMin);
+                const leftPct = ((clampedStart - startMin) / span) * 100;
+                const widthPct = ((clampedEnd - clampedStart) / span) * 100;
+                return (
+                  <div
+                    key={key}
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      height: 8,
+                      top: "50%",
+                      transform: "translateY(2px)",
+                      backgroundColor: color,
+                      opacity: 0.4,
+                      borderRadius: 4,
+                    }}
+                  />
+                );
+              })}
+            </>
+          )}
+
           {/* Now marker */}
           {nowPct != null ? (
             <div
@@ -516,13 +543,13 @@ export function DayTimelineStrip({
           {/* Duration bars (tasks with start+end). Rendered behind markers. */}
           {withLanes.map(({ event, pct, pctEnd, lane }) => {
             if (pctEnd == null || pctEnd <= pct) return null;
-            const meta = TYPE_META[event.type];
+            const meta = EVENT_TYPE_META[event.type];
             const offsetY = lane === 0 ? "0" : lane === 1 ? "-22px" : "22px";
             return (
               <div
                 key={`bar-${event.id}`}
                 aria-hidden
-                className={cn("absolute top-1/2 h-2 rounded-full", meta.fill)}
+                className={cn("absolute top-1/2 h-2 rounded-full", meta.stripFill)}
                 style={{
                   left: `${pct}%`,
                   width: `${pctEnd - pct}%`,
@@ -533,9 +560,9 @@ export function DayTimelineStrip({
             );
           })}
 
-          {/* Event markers in lanes */}
+          {/* Single event markers in lanes */}
           {withLanes.map(({ event, pct, lane }) => {
-            const meta = TYPE_META[event.type];
+            const meta = EVENT_TYPE_META[event.type];
             const Icon = meta.icon;
             const offsetY = lane === 0 ? "0" : lane === 1 ? "-22px" : "22px";
             const isHighlighted = highlightedId === event.id;
@@ -570,7 +597,7 @@ export function DayTimelineStrip({
                   }
                 }}
                 title={`${event.time} · ${event.title}${event.actor ? ` · ${event.actor}` : ""}`}
-                aria-label={`${event.time} — ${TYPE_META[event.type].label}: ${event.title}`}
+                aria-label={`${event.time} — ${EVENT_TYPE_META[event.type].label}: ${event.title}`}
                 initial={false}
                 animate={shouldPulse ? { scale: [1, 1.3, 1] } : { scale: 1 }}
                 transition={
@@ -590,36 +617,56 @@ export function DayTimelineStrip({
               >
                 <Marker
                   shape={meta.shape}
-                  fill={meta.fill}
-                  ring={meta.ring}
-                  iconColor={meta.iconColor}
+                  fill={meta.stripFill}
+                  ring={meta.stripRing}
+                  iconColor={meta.stripIconColor}
                   Icon={Icon}
                 />
               </motion.button>
+            );
+          })}
+
+          {/* Cluster markers — collapsed from buckets with 2+ events */}
+          {clusters.map((cluster) => {
+            const bucketAbsStartMin = cluster.startMin % (24 * 60);
+            const bucketAbsEndMin = cluster.endMin % (24 * 60);
+            const fmt = (m: number) =>
+              `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+            return (
+              <ClusterMarker
+                key={`cluster-${cluster.bucketIdx}`}
+                events={cluster.entries.map((e) => e.event)}
+                pct={cluster.pct}
+                offsetY="0"
+                onSelect={(e) => onSelect?.(e)}
+                bucketIdx={cluster.bucketIdx}
+                departmentId={departmentId}
+                sessionId={sessionId}
+                bucketStartHHMM={fmt(bucketAbsStartMin)}
+                bucketEndHHMM={fmt(bucketAbsEndMin)}
+              />
             );
           })}
         </div>
 
         {/* Legend */}
         <div className="text-muted-foreground/80 mt-4 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px]">
-          {(["booking", "note", "task", "deviation", "checkin", "checkout"] as DayEventType[]).map(
-            (k) => {
-              const meta = TYPE_META[k];
-              const Icon = meta.icon;
-              return (
-                <span key={k} className="inline-flex items-center gap-1.5">
-                  <Marker
-                    shape={meta.shape}
-                    fill={meta.fill}
-                    ring={meta.ring}
-                    iconColor={meta.iconColor}
-                    Icon={Icon}
-                  />
-                  {meta.label}
-                </span>
-              );
-            },
-          )}
+          {EVENT_TYPE_ORDER.map((k) => {
+            const meta = EVENT_TYPE_META[k];
+            const Icon = meta.icon;
+            return (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <Marker
+                  shape={meta.shape}
+                  fill={meta.stripFill}
+                  ring={meta.stripRing}
+                  iconColor={meta.stripIconColor}
+                  Icon={Icon}
+                />
+                {meta.label}
+              </span>
+            );
+          })}
         </div>
       </div>
     </div>

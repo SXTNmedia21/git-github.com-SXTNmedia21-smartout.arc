@@ -8632,6 +8632,8 @@ export type SmartoutEvent =
   // ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ───────
   | UiDagslinjenMarkerClicked
   | UiDagslinjenListRowClicked
+  // ─── Dagslinjen ClusterMarker telemetry (Tidslinjen-redesign sortie) ────────
+  | UiDagslinjenClusterExpanded
   // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
@@ -9987,6 +9989,29 @@ export interface UiDagslinjenListRowClicked extends BaseEvent {
       time: string;
       /** Active filter value: "all" or a specific DayEventType */
       filterActive: string;
+    };
+  };
+}
+
+// ─── Dagslinjen ClusterMarker telemetry (ui-shell Tidslinjen-redesign sortie) ───
+//
+// Emitted when a cluster marker is expanded (popover opens).
+// posthog: product analytics — how often dense timelines collapse.
+// logger: debugging.
+// No activity_trail (view interaction only, no write).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenClusterExpanded extends BaseEvent {
+  event: "ui.dagslinjen.cluster_expanded";
+  properties: {
+    data: {
+      /** HH:MM bucket start — which 15-min window was clustered. */
+      bucketStart: string;
+      /** Number of events collapsed into this cluster. */
+      eventCount: number;
+      /** Department context for the strip. */
+      departmentId: string;
+      /** Session context for the strip. */
+      sessionId: string;
     };
   };
 }
@@ -13532,6 +13557,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "ui.dagslinjen.list_row_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ClusterMarker expanded — user tapped a collapsed bucket on DayTimelineStrip.
+  // posthog: dense-timeline adoption funnel. logger: debug. No audit trail (view only).
+  "ui.dagslinjen.cluster_expanded": {
     destinations: ["posthog", "logger"],
     category: "navigation",
   },

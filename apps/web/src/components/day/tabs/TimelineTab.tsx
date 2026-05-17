@@ -1,9 +1,9 @@
 "use client";
 
-import { useContext, useState, useCallback } from "react";
+import { useContext, useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Info } from "lucide-react";
-import type { UiPhase } from "@smartout/utils";
+import { type UiPhase, getPhaseBoundaries } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import {
   useDayTimelineEvents,
@@ -80,6 +80,17 @@ export function TimelineTab({
 
   // Manager and above can write; employees get read-only strip.
   const canEdit = role !== null && role !== undefined && role !== "employee";
+
+  // Phase boundaries — computed from session bounds for phase-tinting bands on the strip.
+  // Memoised: recomputes only when session open/close changes.
+  const phaseBoundaries = useMemo(
+    () =>
+      getPhaseBoundaries({
+        plannedOpen: session.plannedOpen,
+        plannedClose: session.plannedClose,
+      }),
+    [session.plannedOpen, session.plannedClose],
+  );
 
   // Scope filter (URL search-param ?scope=type:<id>)
   const { scope } = useDayTimelineScope();
@@ -262,6 +273,7 @@ export function TimelineTab({
                 pulseSource={selection.pulseSource}
                 departmentId={departmentId}
                 sessionId={session.sessionId}
+                phaseBoundaries={phaseBoundaries}
               />
             </div>
           </SlotPicker>

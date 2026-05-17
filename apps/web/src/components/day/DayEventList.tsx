@@ -3,78 +3,22 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import {
-  Calendar,
-  CheckCircle2,
-  AlertTriangle,
-  StickyNote,
-  LogIn,
-  LogOut,
-  Filter,
-} from "lucide-react";
+import { Filter } from "lucide-react";
 import { cn } from "@smartout/ui";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import type { SelectionSource } from "./use-timeline-selection";
+import { EVENT_TYPE_META, EVENT_FILTER_KEYS } from "./event-types";
 
-const TYPE_META: Record<
-  DayEventType,
-  { icon: typeof Calendar; label: string; iconColor: string; bgColor: string; borderColor: string }
-> = {
-  booking: {
-    icon: Calendar,
-    label: "Booking",
-    iconColor: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-50 dark:bg-blue-500/10",
-    borderColor: "border-blue-200 dark:border-blue-500/20",
-  },
-  note: {
-    icon: StickyNote,
-    label: "Notat",
-    iconColor: "text-purple-600 dark:text-purple-400",
-    bgColor: "bg-purple-50 dark:bg-purple-500/10",
-    borderColor: "border-purple-200 dark:border-purple-500/20",
-  },
-  task: {
-    icon: CheckCircle2,
-    label: "Oppgave",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
-    borderColor: "border-emerald-200 dark:border-emerald-500/20",
-  },
-  deviation: {
-    icon: AlertTriangle,
-    label: "Avvik",
-    iconColor: "text-rose-600 dark:text-rose-400",
-    bgColor: "bg-rose-50 dark:bg-rose-500/10",
-    borderColor: "border-rose-200 dark:border-rose-500/20",
-  },
-  checkin: {
-    icon: LogIn,
-    label: "Innsjekk",
-    iconColor: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-50 dark:bg-amber-500/10",
-    borderColor: "border-amber-200 dark:border-amber-500/20",
-  },
-  checkout: {
-    icon: LogOut,
-    label: "Utsjekk",
-    iconColor: "text-muted-foreground",
-    bgColor: "bg-muted",
-    borderColor: "border-border",
-  },
-};
-
-const FILTERS: { key: DayEventType | "all"; label: string }[] = [
-  { key: "all", label: "Alle" },
-  { key: "booking", label: "Bookinger" },
-  { key: "note", label: "Notater" },
-  { key: "task", label: "Oppgaver" },
-  { key: "deviation", label: "Avvik" },
-  { key: "checkin", label: "Innsjekk" },
-];
+// Build filter pills from the shared filter-key order.
+// filterLabel carries the Norwegian plural form (e.g. "Bookinger") for pill display.
+const FILTERS: { key: DayEventType | "all"; label: string }[] = EVENT_FILTER_KEYS.map((k) =>
+  k === "all"
+    ? { key: "all" as const, label: "Alle" }
+    : { key: k, label: EVENT_TYPE_META[k].filterLabel },
+);
 
 export type DayEventListProps = {
   events: DayEvent[];
@@ -151,7 +95,7 @@ export function DayEventList({
         ) : (
           <ul className="grid gap-2">
             {filtered.map((e) => {
-              const meta = TYPE_META[e.type];
+              const meta = EVENT_TYPE_META[e.type];
               const Icon = meta.icon;
               const isHighlighted = highlightedId === e.id;
               const shouldPulse = isHighlighted && pulseSource === "strip";
@@ -218,11 +162,11 @@ export function DayEventList({
                     <span
                       className={cn(
                         "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-                        meta.bgColor,
-                        meta.borderColor,
+                        meta.listBg,
+                        meta.listBorder,
                       )}
                     >
-                      <Icon className={cn("h-4 w-4", meta.iconColor)} aria-hidden />
+                      <Icon className={cn("h-4 w-4", meta.listIconColor)} aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">

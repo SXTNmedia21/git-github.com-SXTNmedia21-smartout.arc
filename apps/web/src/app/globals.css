@@ -107,6 +107,10 @@
   --color-join-glow-2: oklch(0.35 0.14 35);
   /* Nyheter — Pin marker warm-amber */
   --color-pin: oklch(0.7 0.18 65);
+  /* Tidslinjen phase tinting — D6 session phase bands (warm OKLCH, hue 30-80) */
+  --color-phase-prep: oklch(0.95 0.04 60);
+  --color-phase-service: oklch(0.97 0.02 80);
+  --color-phase-winddown: oklch(0.93 0.05 30);
   /* Display font */
   --font-heading: var(--font-instrument-serif);
 }
@@ -114,6 +118,10 @@
 .dark {
   /* Nyheter — Pin marker warm-amber (lighter for dark surface contrast) */
   --color-pin: oklch(0.78 0.16 65);
+  /* Tidslinjen phase tinting — dark mode (same OKLCH values; dark tuning deferred to follow-up) */
+  --color-phase-prep: oklch(0.95 0.04 60);
+  --color-phase-service: oklch(0.97 0.02 80);
+  --color-phase-winddown: oklch(0.93 0.05 30);
 }
 
 /* Wizard Shell Theme Variants */

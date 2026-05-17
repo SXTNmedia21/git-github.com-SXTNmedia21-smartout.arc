@@ -92,6 +92,11 @@
     --priority-normal: oklch(0.6 0.15 250);
     --priority-low: oklch(0.55 0 0);
 
+    /* Tidslinjen phase tinting — D6 session phase bands */
+    --color-phase-prep: oklch(0.95 0.04 60);
+    --color-phase-service: oklch(0.97 0.02 80);
+    --color-phase-winddown: oklch(0.93 0.05 30);
+
     /* Komm — Communication semantic colors */
     --komm-announcement: oklch(0.75 0.12 55);
     --komm-brief: oklch(0.6 0.15 250);
