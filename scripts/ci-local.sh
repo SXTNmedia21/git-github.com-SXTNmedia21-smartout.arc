@@ -243,6 +243,9 @@ coverage_check() {
     '^docs/journeys/.+\.md$|—|WARN|journey change — verify code parity manually'
     '^package\.json$|—|PAIR|must pair with pnpm-lock.yaml'
     '^pnpm-lock\.yaml$|—|PAIR|must pair with package.json'
+    '^apps/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^packages/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^services/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
     '^tsconfig.*\.json$|typecheck,build|REQUIRE|'
     '^turbo\.json$|typecheck,build|REQUIRE|'
     '^infra/.+|—|WARN|no local gate'
@@ -300,7 +303,7 @@ coverage_check() {
   # Pair check: package.json ↔ pnpm-lock.yaml, database.types.ts ↔ migrations
   local has_pkg has_lock has_dbtypes has_mig
   has_pkg=0; has_lock=0; has_dbtypes=0; has_mig=0
-  echo "$changed" | grep -qE '^package\.json$' && has_pkg=1
+  echo "$changed" | grep -qE '(^|/)package\.json$' && has_pkg=1
   echo "$changed" | grep -qE '^pnpm-lock\.yaml$' && has_lock=1
   echo "$changed" | grep -qE '^packages/supabase/src/database\.types\.ts$' && has_dbtypes=1
   echo "$changed" | grep -qE '^supabase/migrations/.+\.sql$' && has_mig=1
