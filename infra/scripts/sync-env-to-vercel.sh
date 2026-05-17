@@ -187,10 +187,17 @@ smartout-web|shared|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai_prod/livekit/webhook
 # ── Supabase — preview ────────────────────────────────────────
 # REMOVED 2026-05-17 per ADR-0360: preview tier no longer maintains a
 # persistent Branch DB. Vercel preview deploys are code-rendering smoke,
-# not data-functional. Operator should manually `vercel env rm` the 4
-# existing preview Supabase entries for smartout-web (or leave as harmless
-# dead URLs). To restore: uncomment + update `op://smartout_ai/Supabase
-# Preview Branch` vault item with provisioned ref + re-run sync.
+# not data-functional.
+#
+# Vercel-side cleanup: next `./infra/scripts/sync-env-to-vercel.sh` run
+# will DELETE these 4 dead Vercel preview Supabase entries automatically.
+# Mechanism: `nuke_project_env()` deletes all existing Vercel env vars,
+# then re-adds from filtered manifest (`grep -v '^#'`). Commented lines
+# below are filtered out and therefore not re-added → effectively removed.
+#
+# To restore (Option A regret): uncomment + update vault item
+# `op://smartout_ai/Supabase Preview Branch` with provisioned ref +
+# re-run sync. See ADR-0360 §Rules 7 for full restoration steps.
 # smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
 # smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
 # smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true

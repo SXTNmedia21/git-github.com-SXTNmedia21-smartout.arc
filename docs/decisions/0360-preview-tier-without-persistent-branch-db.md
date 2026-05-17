@@ -60,12 +60,12 @@ Two ways to resolve:
 ### Rules
 
 1. **`smoke-probe.sh preview`** SKIPs Supabase REST + Edge Functions surfaces when `SUPABASE_PREVIEW_REF` is empty/unset. SKIP is yellow + reason-tagged + does NOT count toward FAILED. Override: export `SUPABASE_PREVIEW_REF=<ref>` if a Branch DB has been provisioned.
-2. **`smoke-probe.sh production`** behavior unchanged. Production ref is load-bearing; SUPABASE_PREVIEW_REF empty in production env = explicit FAIL.
+2. **`smoke-probe.sh production`** behavior unchanged. Production ref is load-bearing; `SUPABASE_PROD_REF` (or `SUPABASE_REF`) empty in production env = explicit FAIL with "unexpected" message. Default `yljaglomadbhyqpcigff` at smoke-probe.sh:80 means production effectively cannot hit the empty-ref branch unless an operator explicitly nullifies the default — code path is defensive guard, not a reachable path under current defaults.
 3. **HOP A `promote-preview.sh` wrapper** Stage 2 accepts smoke green when smoke-probe exits 0, regardless of how many surfaces SKIPped. SKIP ≠ FAIL.
 4. **Vercel preview env vars** (Supabase URL, anon key, service role key) point to local-dev placeholder or are removed from preview shared. Preview Vercel deploys do not need live Supabase backing — they're code-rendering smoke, not data smoke.
 5. **1Password vault item `Supabase Preview Branch`** archived OR marked with note: "Per ADR-0360, preview tier has no persistent Branch DB. Restore if Option C ephemeral integration adopted."
 6. **CI workflow `pgtap.yml` + RLS coverage** continue to run on PR (current behavior unchanged). Edge Function regressions slip to post-merge unless explicit workflow_dispatch run; document this trade-off in `deploying` skill body.
-7. **Restoration path:** If preview Branch DB must return (Option A regret), the work is: (a) provision in Supabase Cloud, (b) `export SUPABASE_PREVIEW_REF=<new-ref>` or update default in smoke-probe.sh:67, (c) update vault item, (d) update sync-env-to-vercel.sh preview entries, (e) ADR-0360 amendment marking SUPERSEDED-BY-X.
+7. **Restoration path:** If preview Branch DB must return (Option A regret), the work is: (a) unarchive 1Password vault item `Supabase Preview Branch` (if archived per Rule 5), (b) provision in Supabase Cloud, (c) `export SUPABASE_PREVIEW_REF=<new-ref>` OR update default at smoke-probe.sh:74 (`SUPABASE_REF="${SUPABASE_PREVIEW_REF:-}"` → `:-<new-ref>`), (d) update vault item URL + project ref + anon key + service role key, (e) uncomment the 8 preview Supabase manifest entries in sync-env-to-vercel.sh (smartout-web: 4 lines around 188–197; smartout-landing: 4 lines around 222–228), (f) re-run `./infra/scripts/sync-env-to-vercel.sh` (nuke-and-replace will re-add the 8 entries automatically), (g) revert ADR-0071 amendment marker + ADR-0360 amendment notes in `docs/protocols/ENV_PROTOCOL.md` + `docs/protocols/DEPLOYMENT.md`, (h) ADR-0360 amendment marking SUPERSEDED-BY-X with the new ADR ID.
 
 ### Good, because
 
