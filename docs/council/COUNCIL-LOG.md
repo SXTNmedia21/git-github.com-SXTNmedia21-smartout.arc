@@ -2012,3 +2012,28 @@ Week 3 (gated):
 **Learnings created:** L-0289, L-0290, L-0291 (see audit doc).
 **Blockers tracked:** 3 hottest — bridge ADR delay (HIGH), override floor missing (MEDIUM), is_tariff_bound ownership leak (MEDIUM).
 **Full audit:** docs/audits/2026-05-17-dynamic-mcp-fetch-pivot-council.md
+
+## 2026-05-17 — Phase 7d-followup Schema Migration Scope (post-implementation code-trace of ADRs 0350–0354)
+**Type:** plan + schema-locking ADR validation (Phase 3 Hard Rules per ADR-0341 council precedent 2026-05-16)
+**Prior verdict held?** PARTIAL REVERSAL — earlier today Phase 7d council ratified ADRs 0350–0354 on prose. First code-trace of those ADRs found 5 falsifications. ADR-0353 §A, ADR-0353 §D, ADR-0351 Option C all APPROVED → REVERSED.
+**Reviewers:** system-steward (chair), supervisor, system-agent-coordinator, general-purpose+payroll-engine-developer skill, general-purpose+smartout-database-guide skill — 5 reviewers, no degraded mode.
+**Verdict:** APPROVE WITH CHANGES + 11 blocking conditions.
+**Chair self-reversals (7th L-0147 precedent):**
+1. Gap 4 (`is_tariff_bound` vs `active_union_id`): Phase 3 Option (a) derive → Phase 5 Option (b) keep-both-with-trigger. Falsifying evidence: payroll-tracer cited `golden-month.test.ts:81` + `evaluate-supplements.ts:328` + `deviation-checks.ts:458,476,501` + fixture `input/workspace_settings.json`. Classification: REVERSED.
+2. Gap 5 (`tariff_snapshot` schema): Phase 3 `public` → Phase 5 `payroll`. Falsifying evidence: payroll-tracer namespace-ownership argument (zero non-payroll consumers; cross-namespace FK ambiguity). Classification: REVERSED.
+**Key findings (file:line evidence in agent outputs):**
+- `workspace_framework_binding` already exists with cascade D3 shape (`framework_id` FK, `is_active`, auto-seed trigger to `hospitality.no.default.v1`), 8 consumers, 2 dependent FKs. ADR-0353 §A net-new CREATE TABLE conflicts.
+- ADR-0351 Option C CHECK constraint is structurally invalid PostgreSQL (cross-table subquery forbidden). TRIGGER required.
+- `shift_pay_calculation_event.tariff_binding_id` does NOT exist (4 reviewers explicit). ADR-0353 §D claim fabricated.
+- `REFERENCES workspace(id)` in ADR-0353 pseudo-SQL is wrong (real PK is `workspace_id`).
+- ADR-0173 frozen-4 violation: payroll capability cross-namespace writes to `public.workspace_union_binding` need delegation pattern (mirrors ADR-0240 journey_authoring fix).
+**Key decision (sortie split):**
+- Sortie 1: ADR amendments only (no migration code). Writes ADR-0355 + ADR-0356, amends ADR-0353 §A+§D + ADR-0351 Option C, writes L-0292/0293/0294, promotes L-0147 from advisory to SKILL.md hard rule.
+- Sortie 2: Migration sortie. New `public.workspace_union_binding` + `payroll.tariff_snapshot` + columns + cache trigger + tariff-floor TRIGGER + `shift_pay_calculation_event.tariff_binding_id` column. Timestamp ≥ `20260618000000`. Golden-month fixture update + determinism re-run.
+- Sortie 3: Delegation tools (`cascade.bind_workspace_union` + `cascade.add_supplement_rule`) per ADR-0356. Blocks Phase 7f.
+**Phase 7f Agent Trust Gate:** All 3 proposed tools (`setup_workspace_tariff`, `change_workspace_tariff`, `add_supplement_override`) FAIL — blocked on Sortie 3 delegation tools per ADR-0173.
+**ADRs to write (slots reserved):** ADR-0355 (workspace_union_binding + cache trigger), ADR-0356 (cascade-namespace delegation pattern).
+**ADRs to amend:** ADR-0353 §A + §D, ADR-0351 Option C.
+**Learnings to log:** L-0292 (pre-council schema-reality-check pattern), L-0293 (denormalized cache + canonical lifecycle), L-0294 (7th L-0147 precedent + SKILL.md promotion).
+**Phase 2.5 fact-check:** 12/12 claims VERIFIED + bonus finding (`tariff_binding_id` column doesn't exist) confirmed false. Briefing was structurally accurate.
+**Process improvement:** Pre-council schema-reality-check (read 5 most-cited tables/columns before Phase 2 dispatch) saved this council from at least 5 false-premised ADR claims surviving Phase 3.
