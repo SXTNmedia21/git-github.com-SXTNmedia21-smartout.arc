@@ -1,6 +1,6 @@
 ---
 title: "HANDOFF — payroll-lovsen-cert-pass"
-feature: payroll-lovsen-cert-pass
+feature: lovsen-cert-pass
 branch: feat/payroll-lovsen-cert-pass
 spec: docs/plans/PLAN-lovsen-cert-pass.md
 status: done

@@ -1,6 +1,6 @@
 ---
 title: "Journey — payroll-lovsen-cert-pass"
-feature: payroll-lovsen-cert-pass
+feature: lovsen-cert-pass
 journey: lovsen-cert-pass
 status: verified
 verified_at: 2026-05-17
