@@ -1,13 +1,15 @@
 ---
 title: "L-0258 collision detector mandatory in CI"
-id: ADR_0360
+id: ADR-0365
 status: proposed
 layer: decision
 created: 2026-05-17
 updated: 2026-05-17
 ---
 
-# ADR-0360: L-0258 collision detector mandatory in CI
+# ADR-0365: L-0258 collision detector mandatory in CI
+
+> Renumbered 0347 → 0360 → 0365 per outsider-renumber convention. 0360 collided with `0360-preview-tier-without-persistent-branch-db.md` (development branch, accepted 2026-05-17) after second sync wave brought both into campaign/ui-shell tip. R2 council 2026-05-17 PM3 caught collision pre-HOP-A; renumbered to next free slot.
 
 ## Context and Problem Statement
 

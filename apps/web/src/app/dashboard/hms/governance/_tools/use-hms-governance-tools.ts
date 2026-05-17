@@ -10,7 +10,7 @@
  *   getHmsGovernanceOverview  — counts: total protocols, avg completion, worst, blocking
  *   listGovernanceProtocols   — name + policy type + completion% + assignee counts
  *
- * Removed tools (ADR-0360 collision fix — M5 Sortie 2, 2026-05-17):
+ * Removed tools (ADR-0365 collision fix — M5 Sortie 2, 2026-05-17):
  *   getProtocolDetail — REMOVED: single owner is /dashboard/governance (top-level).
  *                       Use-governance-tools.ts:getProtocolDetail is authoritative.
  *                       Manager must navigate to /dashboard/governance to access

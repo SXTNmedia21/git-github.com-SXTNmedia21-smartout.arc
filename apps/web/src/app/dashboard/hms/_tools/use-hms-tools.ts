@@ -18,7 +18,7 @@
  *   switchHmsTab         — navigate to any of the 6 HMS sub-tabs
  *   focusDeviation       — navigate to deviations tab for a specific deviation id
  *
- * Removed tools (ADR-0360 collision fix — M5 Sortie 2, 2026-05-17):
+ * Removed tools (ADR-0365 collision fix — M5 Sortie 2, 2026-05-17):
  *   listOpenDeviations — REMOVED: single owner is hms/deviations sub-tab
  *                        (use-hms-deviations-tools.ts). HMS umbrella users
  *                        must navigate to the deviations tab first.
