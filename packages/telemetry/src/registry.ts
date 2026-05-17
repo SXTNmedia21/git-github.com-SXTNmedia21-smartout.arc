@@ -1277,6 +1277,20 @@ export interface DeviationResolved extends BaseEvent {
   };
 }
 
+// Interaction event: manager opens the deviation detail drawer.
+// posthog (engagement funnel) + logger (observability) + activity_trail (audit).
+// No engine_event — viewing is not a state-machine input.
+export interface DeviationViewed extends BaseEvent {
+  event: "deviation viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      status: string;
+      severity: string;
+    };
+  };
+}
+
 // ─── Onboarding: Invitation ─────────────────────
 export interface InvitationAccepted extends BaseEvent {
   event: "invitation accepted";
@@ -1483,6 +1497,18 @@ export interface ReconciliationLocked extends BaseEvent {
 // ─── Handbook ───────────────────────────────────
 export interface HandbookChapterSaved extends BaseEvent {
   event: "handbook chapter_saved";
+  properties: {
+    data: {
+      chapter_key: string;
+    };
+  };
+}
+
+// Interaction event: user clicks a chapter in the sidebar nav.
+// posthog (content engagement) + logger (observability) + activity_trail (audit).
+// No engine_event — navigation is not a state-machine input.
+export interface HandbookChapterOpened extends BaseEvent {
+  event: "handbook chapter_opened";
   properties: {
     data: {
       chapter_key: string;
@@ -7963,6 +7989,7 @@ export type SmartoutEvent =
   | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
+  | HandbookChapterOpened
   | CommunicationSent
   | CommunicationCancelled
   | CommunicationFailed
@@ -8226,6 +8253,7 @@ export type SmartoutEvent =
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
+  | DeviationViewed
   | SessionDutyLeaderUpdated
   | ChannelCallStarted
   | ChannelCallEnded
@@ -10595,6 +10623,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "engine_event"],
     category: "training",
   },
+  // Interaction: user navigates to a handbook chapter via sidebar click.
+  // Read-path: posthog (content engagement) + logger + activity_trail. No engine_event.
+  "handbook chapter_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "training",
+  },
 
   "signup completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
@@ -11624,6 +11658,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "deviation resolved": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // Interaction: manager opens deviation detail drawer.
+  // Read-path: posthog (engagement) + logger + activity_trail. No engine_event.
+  "deviation viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
 

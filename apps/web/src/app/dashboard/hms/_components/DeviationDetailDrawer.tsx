@@ -17,10 +17,10 @@ type Props = {
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "bg-red-500 text-white",
-  high: "bg-red-500/80 text-white",
-  medium: "bg-yellow-500 text-white",
-  low: "bg-blue-500 text-white",
+  critical: "bg-destructive text-destructive-foreground",
+  high: "bg-destructive/80 text-destructive-foreground",
+  medium: "bg-warning text-warning-foreground",
+  low: "bg-info text-info-foreground",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -146,10 +146,10 @@ export function DeviationDetailDrawer({ deviation, open, onClose }: Props) {
 
           {/* Resolution info (if resolved) */}
           {isResolved && (
-            <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+            <div className="border-success/30 bg-success/5 rounded-lg border p-3">
               <div className="mb-1 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-green-600">Lukket</span>
+                <CheckCircle2 className="text-success h-4 w-4" />
+                <span className="text-success text-sm font-medium">Lukket</span>
               </div>
               {deviation.resolutionNotes && (
                 <p className="text-foreground mt-1 text-xs">{deviation.resolutionNotes}</p>
