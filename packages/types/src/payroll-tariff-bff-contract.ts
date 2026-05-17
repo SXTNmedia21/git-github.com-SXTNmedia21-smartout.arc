@@ -20,6 +20,18 @@
 import { z } from "zod";
 
 // =============================================================================
+// Domain vocabulary enums — single source of truth for consumers
+// =============================================================================
+
+/**
+ * Union binding identifiers — matches workspace_union_binding.union_id CHECK constraint
+ * and tools/DB taxonomy (ADR-0355). Phase 7g: changed from z.string().uuid() to enum
+ * so callers never need UUID→taro-ID translation layers.
+ */
+export const unionIdSchema = z.enum(["taro-79", "taro-226", "non-bound"]);
+export type UnionId = z.infer<typeof unionIdSchema>;
+
+// =============================================================================
 // Common — error envelope (ADR-0152)
 // =============================================================================
 
@@ -72,7 +84,7 @@ export type PayrollTariffAudit = z.infer<typeof payrollTariffAuditSchema>;
 // =============================================================================
 
 export const setupTariffRequestSchema = z.object({
-  union_id: z.string().uuid(),
+  union_id: unionIdSchema,
   law_version: z.string().min(1), // "2024" / "2025" / "2026"
   official_effective_date: z.string().date(), // ISO YYYY-MM-DD
   effective_from: z.string().date().optional(), // defaults to today server-side
@@ -84,7 +96,7 @@ export const setupTariffResponseSchema = z.discriminatedUnion("ok", [
     data: z.object({
       workspace_union_binding_id: z.string().uuid(),
       effective_from: z.string().date(),
-      union_id: z.string().uuid(),
+      union_id: unionIdSchema,
       law_version: z.string(),
     }),
     audit: payrollTariffAuditSchema,
@@ -103,7 +115,7 @@ export type SetupTariffResponse = z.infer<typeof setupTariffResponseSchema>;
 // =============================================================================
 
 export const changeTariffRequestSchema = z.object({
-  new_union_id: z.string().uuid(),
+  new_union_id: unionIdSchema,
   new_law_version: z.string().min(1),
   official_effective_date: z.string().date(),
   effective_from: z.string().date().optional(),
@@ -136,24 +148,28 @@ export type ChangeTariffResponse = z.infer<typeof changeTariffResponseSchema>;
 // POST /api/payroll/tariff/supplement
 // =============================================================================
 
+/**
+ * Supplement type — DB taxonomy per CHECK constraint on public.supplement_rule.
+ * Phase 7g: changed from UX labels (evening/night/…) to DB taxonomy
+ * (normal/week_based/…). Consumers submit DB values directly; no BFF translation layer.
+ */
 export const supplementTypeSchema = z.enum([
-  "evening",
-  "night",
-  "weekend",
+  "normal",
+  "week_based",
+  "day_based",
+  "manual",
   "holiday",
-  "overtime",
-  "split_shift",
-  "callout",
-  "shoe_allowance",
-  "uniform_allowance",
-  "transport_allowance",
-  "meal_allowance",
-  "language_allowance",
-  "responsibility_allowance",
-  "other",
+  "contract_rule",
 ]);
+export type SupplementType = z.infer<typeof supplementTypeSchema>;
 
-export const rateTypeSchema = z.enum(["percentage", "fixed_amount", "hourly_rate"]);
+/**
+ * Rate type — matches rate_type column on public.supplement_rule.
+ * Phase 7g: changed from UX labels (fixed_amount/hourly_rate) to DB values
+ * (fixed_per_hour/fixed_per_shift). Callers pass DB values directly.
+ */
+export const rateTypeSchema = z.enum(["fixed_per_hour", "percentage", "fixed_per_shift"]);
+export type RateType = z.infer<typeof rateTypeSchema>;
 
 export const addSupplementRequestSchema = z.object({
   supplement_type: supplementTypeSchema,
