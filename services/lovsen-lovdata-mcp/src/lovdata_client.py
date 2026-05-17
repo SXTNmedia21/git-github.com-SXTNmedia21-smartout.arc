@@ -2,7 +2,8 @@
 lovdata_client.py — HTTP client for Lovdata.no with rate-limiting and caching.
 
 ADR-0244 rules enforced here:
-- LOVSEN_MCP_FIXTURE=1  → fixture-only mode, ZERO outbound HTTP
+- LOVSEN_FIXTURE_MODE=true  → fixture-only mode, ZERO outbound HTTP (ADR-0258 canonical)
+- LOVSEN_MCP_FIXTURE=1      → legacy alias, still honoured during cutover
 - 1 req/sec rate-limit per domain (token bucket via asyncio)
 - 24h TTL cache: in-memory dict primary, filesystem fallback at ~/.cache/lovsen-mcp/lovdata/
 """
@@ -28,7 +29,14 @@ LOVDATA_BASE_URL = "https://lovdata.no"
 RATE_LIMIT_RPS = 1.0  # requests per second per domain (ADR-0244)
 CACHE_TTL_SECONDS = 86_400  # 24 hours
 
-FIXTURE_MODE = os.environ.get("LOVSEN_MCP_FIXTURE", "").strip() in ("1", "true", "yes")
+# Fixture mode flag — read at import time; tools must check before calling http_get.
+# ADR-0258 canonical envvar: LOVSEN_FIXTURE_MODE=true (checked first).
+# Legacy fallback: LOVSEN_MCP_FIXTURE=1 (still honoured during cutover; removed post-cert-pass).
+_FIXTURE_MODE_CANONICAL = os.environ.get("LOVSEN_FIXTURE_MODE", "").strip().lower() in (
+    "true", "1", "yes"
+)
+_FIXTURE_MODE_LEGACY = os.environ.get("LOVSEN_MCP_FIXTURE", "").strip() in ("1", "true", "yes")
+FIXTURE_MODE: bool = _FIXTURE_MODE_CANONICAL or _FIXTURE_MODE_LEGACY
 
 _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 _CACHE_DIR = Path.home() / ".cache" / "lovsen-mcp" / "lovdata"
@@ -138,7 +146,7 @@ def load_fixture(lov: str, paragraph: str) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(
             f"fixture not found at {path} — "
-            f"set LOVSEN_MCP_FIXTURE=0 to use live Lovdata, or add the fixture file"
+            f"unset LOVSEN_FIXTURE_MODE to use live Lovdata, or add the fixture file"
         )
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -169,7 +177,7 @@ async def http_get(url: str, params: dict[str, str] | None = None) -> httpx.Resp
     """
     if FIXTURE_MODE:
         raise RuntimeError(
-            "LOVSEN_MCP_FIXTURE=1 is active — outbound HTTP calls are forbidden in fixture mode"
+            "LOVSEN_FIXTURE_MODE=true is active — outbound HTTP calls are forbidden in fixture mode"
         )
     bucket = _get_bucket(LOVDATA_BASE_URL)
     await bucket.acquire()

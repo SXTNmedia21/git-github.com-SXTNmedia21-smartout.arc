@@ -120,7 +120,14 @@ export type CapabilityName =
    *  Server-Action update of protocol records (training/compliance).
    *  (confirm, manager) per T0 scope verification. */
   | "protocol" // backlog closure — ADR-0343
-  | "timeline_template"; // ADR-0334 (timeline-templates sortie)
+  | "timeline_template" // ADR-0334 (timeline-templates sortie)
+  /** ADR-0356 — Cascade-namespace delegation tools for cross-namespace writes (ADR-0173 frozen-4).
+   *  Two tools: bind_workspace_union (→ workspace_union_binding, ADR-0355),
+   *  add_supplement_rule (→ public.supplement_rule). Called by payroll Phase 7f tools;
+   *  NEVER invoked directly by users. chat-only, direct_admin. Both gates fire:
+   *  caller gate + cascade gate independently (ADR-0356 §"Gate convention").
+   *  Authority seeded in 20260618200000_cascade_capability_authority_seed.sql. */
+  | "cascade"; // ADR-0356
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

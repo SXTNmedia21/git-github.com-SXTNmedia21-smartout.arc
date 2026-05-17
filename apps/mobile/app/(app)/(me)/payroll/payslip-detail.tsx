@@ -127,7 +127,7 @@ export default function PayslipDetailScreen() {
         >
           <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
-        <Text style={styles.topBarTitle}>Lønnsslipp</Text>
+        <Text style={styles.topBarTitle}>Lønnsgrunnlag</Text>
         <View style={{ width: 40 }} />
       </Animated.View>
 

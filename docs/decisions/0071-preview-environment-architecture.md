@@ -1,13 +1,16 @@
 ---
 title: "ADR-0071: Preview Environment Architecture"
 status: accepted
-updated: 2026-05-06
+updated: 2026-05-17
 created: 2026-04-06
 module: infra
 tags: [deployment, preview, branching, architecture]
+amended_by: [ADR-0360]
 ---
 
 # ADR-0071: Preview Environment Architecture
+
+> **AMENDED 2026-05-17 by [ADR-0360](0360-preview-tier-without-persistent-branch-db.md)** — preview tier no longer maintains a persistent Supabase Branch DB. Sections referencing `cibmhhgsrdmpnmcikalu` / `rrjfrisxvrrhyzzitlxd` are SUPERSEDED. Preview smoke = Vercel-only; Edge Function + RLS pre-main testing routes through CI workflow_dispatch or post-merge prod smoke. See ADR-0360 for rationale (4-day-revealed-preference + zero recurring cost + drift-surface reduction).
 
 ## Context
 
@@ -27,7 +30,7 @@ development → preview → main
 | Branch | Purpose | Vercel | Supabase | Docker (DO) |
 |--------|---------|--------|----------|-------------|
 | `development` | Integration. All feature branches merge here | Preview deploys | Local only | None |
-| `preview` | Staging. Fast-forward from development when ready to release | Preview deploy (target=preview) | **Persistent Branch DB** (`cibmhhgsrdmpnmcikalu`) | Shared production droplet |
+| `preview` | Staging. Fast-forward from development when ready to release | Preview deploy (target=preview) | ~~Persistent Branch DB~~ → **None** (ADR-0360 amendment; Vercel-only smoke). Edge Function + RLS testing via CI workflow_dispatch or post-merge prod smoke. | Shared production droplet |
 | `main` | Production. Fast-forward from preview after validation | Production deploy | Production DB (`yljaglomadbhyqpcigff`) | Shared production droplet |
 
 ### Asymmetry: Docker Services

@@ -1,0 +1,14 @@
+[project]
+name = "lovsen-shared"
+version = "0.1.0"
+description = "Shared types, validation, and telemetry helpers for Lovsen MCP services"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lovsen_shared*"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends.legacy:build"

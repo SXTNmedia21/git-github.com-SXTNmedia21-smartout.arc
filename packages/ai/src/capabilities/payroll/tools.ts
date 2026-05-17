@@ -2982,3 +2982,12 @@ export const viewLonnsgrunnlag = defineTool({
     });
   },
 });
+
+// ─── Phase 7f tariff tools (delegated to cascade per ADR-0356) ───────────────
+// Implemented in tariff-tools.ts to keep this file manageable.
+// Three delegation tools: setup_workspace_tariff, change_workspace_tariff, add_supplement_override.
+export {
+  setupWorkspaceTariffTool,
+  changeWorkspaceTariffTool,
+  addSupplementOverrideTool,
+} from "./tariff-tools.js";

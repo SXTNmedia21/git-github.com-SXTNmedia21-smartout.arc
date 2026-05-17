@@ -227,13 +227,13 @@ export const strings = {
     // Empty states
     noPayData: "Ingen lønnsdata ennå",
     noPayslips:
-      "Ingen lønnsslipp tilgjengelig ennå. Din første lønnsslipp vises her etter første lønnskjøring.",
+      "Ingen lønnsgrunnlag tilgjengelig ennå. Ditt første lønnsgrunnlag vises her etter første lønnskjøring.",
     noQuotas: "Ingen fraværskvoter er satt opp ennå. Kontakt din leder.",
     noTimebank: "Ingen timer i timebanken ennå.",
     // Error states
     loadError: "Kunne ikke laste fraværssaldo",
     loadErrorTimebank: "Kunne ikke laste timebank",
-    loadErrorPayslip: "Kunne ikke laste lønnsslipp",
+    loadErrorPayslip: "Kunne ikke laste lønnsgrunnlag",
     // Fallback labels
     unknownType: "Ukjent type",
     // Balance display

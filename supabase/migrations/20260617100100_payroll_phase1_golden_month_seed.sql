@@ -262,6 +262,15 @@ ON CONFLICT (id) DO NOTHING;
 -- Table: public.supplement_rule (created by 20260527100600_payroll_phase1_dynamic_supplements.sql)
 -- workspace_id IS NULL = platform-level template rule (allowed by schema).
 --
+-- ADD provenance column: public.supplement_rule was created without a provenance
+-- column. B4 migration (20260617100200) references provenance->>'fixture_id' for
+-- the rename UPDATE. This ALTER TABLE adds the column before the INSERT below.
+-- No IF NOT EXISTS guard per L-0042 — column does not exist anywhere; guard
+-- would mask ordering bugs if migrations are applied out of order.
+ALTER TABLE public.supplement_rule
+  ADD COLUMN provenance JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+--
 -- UUID derivation log:
 --   rule-kveldstiilegg-001 → 35ae076e-b27d-5677-a5a0-449542ba6a52
 --   rule-natt-nattvakt-001 → d5c20ac9-57f9-5d17-bbf0-031ff162752c
@@ -278,6 +287,11 @@ ON CONFLICT (id) DO NOTHING;
 --   provenance->>'fixture_id' and the fixture JSON simultaneously.
 --
 -- tariff_rate_table_id FK points to the 8 gm_* rows seeded in PART 1 above.
+--
+-- provenance: fixture_id matches rules.json short-IDs (ADR-0341 v1.1 §B4).
+--   golden_month stored as string 'true' (consistent with tariff_rate_table
+--   provenance convention in PART 1 above, where guard queries
+--   provenance->>'golden_month' = 'true').
 
 INSERT INTO public.supplement_rule (
   id,
@@ -291,7 +305,8 @@ INSERT INTO public.supplement_rule (
   match_predicate,
   paragraf_ref,
   valid_from,
-  valid_until
+  valid_until,
+  provenance
 )
 VALUES
 
@@ -311,7 +326,8 @@ VALUES
     '{"windows": [{"weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "21:00", "time_to": "23:59"}]}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-kveldstiilegg-001", "golden_month": "true"}'::jsonb
   ),
 
   -- rule-natt-nattvakt-001
@@ -330,7 +346,8 @@ VALUES
     '{"windows": [{"weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00"}], "night_worker_category": "night_watch"}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-natt-nattvakt-001", "golden_month": "true"}'::jsonb
   ),
 
   -- rule-natt-manuelt-001
@@ -349,7 +366,8 @@ VALUES
     '{"windows": [{"weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00"}], "night_worker_category": "manual"}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-natt-manuelt-001", "golden_month": "true"}'::jsonb
   ),
 
   -- rule-natt-ordinaer-001
@@ -368,7 +386,8 @@ VALUES
     '{"windows": [{"weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00"}], "night_worker_category": "ordinary"}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-natt-ordinaer-001", "golden_month": "true"}'::jsonb
   ),
 
   -- rule-helgetillegg-001
@@ -387,7 +406,8 @@ VALUES
     '{"windows": [{"weekdays": [6, 7], "time_from": "00:00", "time_to": "23:59"}]}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-helgetillegg-001", "golden_month": "true"}'::jsonb
   ),
 
   -- rule-helligdag-001
@@ -406,7 +426,8 @@ VALUES
     '{}'::jsonb,
     'Riksavtalen §6',
     '2025-04-01',
-    NULL
+    NULL,
+    '{"fixture_id": "rule-helligdag-001", "golden_month": "true"}'::jsonb
   )
 
 ON CONFLICT (id) DO NOTHING;

@@ -23,6 +23,7 @@
     "perf:audit:landing": "node scripts/perf/audit.mjs apps/landing/perf-budgets.json",
     "perf:audit": "pnpm perf:audit:web && pnpm perf:audit:landing",
     "check": "turbo run lint typecheck",
+    "ci:local": "bash scripts/ci-local.sh",
     "clean": "turbo run clean && rimraf node_modules/.cache",
     "db:start": "npx supabase start",
     "infra:start": "./infra/scripts/start.sh",
