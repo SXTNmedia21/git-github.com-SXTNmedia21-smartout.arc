@@ -4,7 +4,8 @@ id: PROTO_ENV
 status: canonical
 layer: protocol
 created: 2026-03-09
-updated: 2026-04-28
+updated: 2026-05-17
+amended_by: [ADR-0360]
 depends_on:
   - PROTO_SECURITY
 ---
@@ -15,6 +16,8 @@ depends_on:
 > **Enforced by:** CLAUDE.md reference, PR checklist, deploy pipeline
 > **Parent protocol:** `docs/protocols/SECURITY.md` (Three Laws)
 > **Verification snapshot:** `docs/protocols/ENV_VERIFICATION.md`
+>
+> **AMENDED 2026-05-17 by [ADR-0360](../decisions/0360-preview-tier-without-persistent-branch-db.md)** — preview tier no longer maintains a persistent Supabase Branch DB. References to `Supabase Preview Branch` vault item, preview-target Supabase env vars, and `PostgreSQL preview` Branch DB connection string are SUPERSEDED. Preview tier in Vercel currently has 0 Supabase env vars (down from 4). Restoration path: see ADR-0360 §Rules 7. Production tier unchanged — `Supabase` vault item + `PostgreSQL prod` remain load-bearing for production env.
 
 ---
 

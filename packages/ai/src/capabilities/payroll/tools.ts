@@ -36,6 +36,7 @@ import {
   generateFilename,
   computeFileHash,
   generateBundlePdfs,
+  computeFeriepengerBasis,
 } from "@smartout/payroll-export";
 import type {
   AggregateRow,
@@ -898,23 +899,12 @@ export const lockPeriod = defineTool({
 
     if (lockErr) return `Feil ved låsing: ${lockErr.message}`;
 
-    await emit({
-      event: "payroll.period_locked",
-      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
-      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
-      properties: {
-        entity: { entity_type: "payroll_period" as const, entity_id: params.period_id },
-        data: {
-          period_id: params.period_id,
-          period_start: period.start_date,
-          period_end: period.end_date,
-          profiles_count: 0,
-          total_lines: 0,
-          locked_by_profile_id: ctx.profileId,
-          gate_evaluation_id: gate.gateEvaluationId,
-        },
-      },
-    });
+    // ADR-0303 Amendment 2 (L-0237, F-CT-01 5th occurrence): capability-tool emit removed.
+    // BFF route at apps/web/src/app/api/payroll/lock-period/route.ts:163 is canonical
+    // emit-site — it computes real profiles_count/total_lines + affected_profile_ids[].
+    // This capability tool delegates emit to the route to preserve single source of truth
+    // for the payroll.period_locked subscriber (engine_process payroll_period_locked_notifier).
+    // Re-introducing emit here will cause N×2 notifications per lock once subscriber ships.
 
     return JSON.stringify({
       ok: true,
@@ -1816,11 +1806,12 @@ export const exportPeriod = defineTool({
         });
       }
 
-      // Fetch PII + display_name.
+      // Fetch PII + display_name + holiday_allowance_pct (ADR-0295 feriepenger_basis).
       type PdfPii = {
         profile_id: string;
         personal_id_number: string | null;
         bank_account_number: string | null;
+        holiday_allowance_pct: number | null;
       };
       const pdfProfileIds = latestPdfCalcs.map((c) => c.profile_id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1829,7 +1820,7 @@ export const exportPeriod = defineTool({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (supabase as any)
             .from("employee_payroll_profile")
-            .select("profile_id, personal_id_number, bank_account_number")
+            .select("profile_id, personal_id_number, bank_account_number, holiday_allowance_pct")
             .in("profile_id", pdfProfileIds)
             .eq("workspace_id", ctx.workspaceId),
           supabase
@@ -1859,24 +1850,73 @@ export const exportPeriod = defineTool({
       );
       const pdfWorkspaceSlug = workspace.slug ?? ctx.workspaceId.slice(0, 8);
 
+      // ADR-0295: compute feriepenger basis per profile via canonical helper.
+      // Capability tool parity with BFF routes (apps/web/src/app/api/payroll/export-period
+      // and generate-pdf-{bundle,single}). F-CL-13 (audit 2026-05-13) closed by this site.
+      type FeriepengerEmitInput = {
+        profile_id: string;
+        basePay: number;
+        pctApplied: number;
+        basisAmount: number;
+      };
+      const pdfFeriepengerEmits: FeriepengerEmitInput[] = [];
+
       const pdfAggRows: AggregateRow[] = latestPdfCalcs.map((c) => {
         const pp = pdfPiiMap.get(c.profile_id);
         const prof = pdfProfileMap.get(c.profile_id);
+        const basePay = Number(c.base_pay ?? 0);
+        const pctApplied = Number(pp?.holiday_allowance_pct ?? 12);
+        const basisAmount = computeFeriepengerBasis({
+          basePayTotal: basePay,
+          holidayAllowancePct: pctApplied,
+        });
+        pdfFeriepengerEmits.push({
+          profile_id: c.profile_id,
+          basePay,
+          pctApplied,
+          basisAmount,
+        });
         return {
           profile_id: c.profile_id,
           profile_name: prof?.display_name ?? c.profile_id,
           personnummer: pp?.personal_id_number ?? null,
           bankkonto: pp?.bank_account_number ?? null,
-          base_pay: Number(c.base_pay ?? 0),
+          base_pay: basePay,
           total_supplements: Number(c.total_supplements ?? 0),
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0),
-          // ADR-0295: feriepenger_basis renamed from feriepenger_accrued; BFF routes compute real basis.
-          // Capability tool uses 0 as Phase 1 proxy — full compute lives in BFF routes.
-          feriepenger_basis: 0,
+          // ADR-0295: basis = base_pay × holiday_allowance_pct / 100 (default 12 %).
+          feriepenger_basis: basisAmount,
         } satisfies AggregateRow;
       });
+
+      // Emit payroll.feriepenger_basis_computed per profile (ADR-0295, ADR-0134).
+      // Logger + activity_trail routing only (no PostHog) per registry config.
+      await Promise.allSettled(
+        pdfFeriepengerEmits.map((f) =>
+          emit({
+            event: "payroll.feriepenger_basis_computed",
+            workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+            actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+            properties: {
+              entity: {
+                entity_type: "payroll_period" as const,
+                entity_id: params.period_id,
+              },
+              data: {
+                workspace_id: ctx.workspaceId,
+                period_id: params.period_id,
+                profile_id: f.profile_id,
+                basis_amount: f.basisAmount,
+                pct_applied: f.pctApplied,
+                base_pay_total: f.basePay,
+                channel: "system" as const,
+              },
+            },
+          }),
+        ),
+      );
 
       // Build PDF options.
       const pdfPeriod = period as { start_date: string; end_date: string };
@@ -2077,18 +2117,20 @@ export const exportPeriod = defineTool({
         });
       }
 
-      // Fetch PII from employee_payroll_profile (personnummer, bankkonto).
+      // Fetch PII from employee_payroll_profile (personnummer, bankkonto)
+      // + holiday_allowance_pct for ADR-0295 feriepenger_basis compute.
       // personal_id_number + bank_account_number not yet in generated types — cast.
       type AggPii = {
         profile_id: string;
         personal_id_number: string | null;
         bank_account_number: string | null;
+        holiday_allowance_pct: number | null;
       };
       const profileIds = latestCalcs.map((c) => c.profile_id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: payrollProfilesRaw, error: ppErr } = await (supabase as any)
         .from("employee_payroll_profile")
-        .select("profile_id, personal_id_number, bank_account_number")
+        .select("profile_id, personal_id_number, bank_account_number, holiday_allowance_pct")
         .in("profile_id", profileIds)
         .eq("workspace_id", ctx.workspaceId);
 
@@ -2120,22 +2162,71 @@ export const exportPeriod = defineTool({
       const ppMap = new Map(payrollProfiles.map((pp) => [pp.profile_id, pp]));
       const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
+      // ADR-0295: compute feriepenger_basis per profile via canonical helper.
+      // F-CL-13 (audit 2026-05-13) closed by this site — capability path now matches BFF.
+      type AggFeriepengerEmitInput = {
+        profile_id: string;
+        basePay: number;
+        pctApplied: number;
+        basisAmount: number;
+      };
+      const aggFeriepengerEmits: AggFeriepengerEmitInput[] = [];
+
       csvRows = latestCalcs.map((c) => {
         const pp = ppMap.get(c.profile_id);
         const prof = profileMap.get(c.profile_id);
+        const basePay = Number(c.base_pay ?? 0);
+        const pctApplied = Number(pp?.holiday_allowance_pct ?? 12);
+        const basisAmount = computeFeriepengerBasis({
+          basePayTotal: basePay,
+          holidayAllowancePct: pctApplied,
+        });
+        aggFeriepengerEmits.push({
+          profile_id: c.profile_id,
+          basePay,
+          pctApplied,
+          basisAmount,
+        });
         return {
           profile_id: c.profile_id,
           profile_name: prof?.display_name ?? c.profile_id,
           personnummer: pp?.personal_id_number ?? null,
           bankkonto: pp?.bank_account_number ?? null,
-          base_pay: Number(c.base_pay ?? 0),
+          base_pay: basePay,
           total_supplements: Number(c.total_supplements ?? 0),
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0), // Phase 1 proxy: taxable = total_pay
-          feriepenger_basis: 0, // ADR-0295 rename; BFF routes compute real basis
+          // ADR-0295: basis = base_pay × holiday_allowance_pct / 100 (default 12 %).
+          feriepenger_basis: basisAmount,
         } satisfies AggregateRow;
       });
+
+      // Emit payroll.feriepenger_basis_computed per profile (ADR-0295, ADR-0134).
+      await Promise.allSettled(
+        aggFeriepengerEmits.map((f) =>
+          emit({
+            event: "payroll.feriepenger_basis_computed",
+            workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+            actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+            properties: {
+              entity: {
+                entity_type: "payroll_period" as const,
+                entity_id: params.period_id,
+              },
+              data: {
+                workspace_id: ctx.workspaceId,
+                period_id: params.period_id,
+                profile_id: f.profile_id,
+                basis_amount: f.basisAmount,
+                pct_applied: f.pctApplied,
+                base_pay_total: f.basePay,
+                channel: "system" as const,
+              },
+            },
+          }),
+        ),
+      );
     } else {
       // Audit variant: 1 row per calculation row joined with shift_pay_calculation_event.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2212,12 +2303,13 @@ export const exportPeriod = defineTool({
         }
       }
 
-      // Fetch PII + profile names.
+      // Fetch PII + profile names + holiday_allowance_pct (ADR-0295 feriepenger_basis).
       // personal_id_number + bank_account_number not yet in generated types — cast.
       type AuditPii = {
         profile_id: string;
         personal_id_number: string | null;
         bank_account_number: string | null;
+        holiday_allowance_pct: number | null;
       };
       const profileIds = [...new Set(typedCalcs.map((c) => c.profile_id))];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2225,7 +2317,7 @@ export const exportPeriod = defineTool({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any)
           .from("employee_payroll_profile")
-          .select("profile_id, personal_id_number, bank_account_number")
+          .select("profile_id, personal_id_number, bank_account_number, holiday_allowance_pct")
           .in("profile_id", profileIds)
           .eq("workspace_id", ctx.workspaceId),
         supabase
@@ -2239,23 +2331,47 @@ export const exportPeriod = defineTool({
       const ppMap = new Map(auditPayrollProfiles.map((pp) => [pp.profile_id, pp]));
       const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
+      // ADR-0295: compute feriepenger_basis per row via canonical helper.
+      // Audit variant emits per-row (matches BFF apps/web/.../export-period/route.ts).
+      // F-CL-13 (audit 2026-05-13) closed by this site.
+      type AuditFeriepengerEmitInput = {
+        profile_id: string;
+        basePay: number;
+        pctApplied: number;
+        basisAmount: number;
+      };
+      const auditFeriepengerEmits: AuditFeriepengerEmitInput[] = [];
+
       csvRows = typedCalcs.map((c) => {
         const pp = ppMap.get(c.profile_id);
         const prof = profileMap.get(c.profile_id);
         const ev = eventMap.get(c.schedule_shift_id);
         // Extract provenance from the calculation row (set by override applier or calculator).
         const prov = c.provenance as Record<string, unknown> | null;
+        const auditBasePay = Number(c.base_pay ?? 0);
+        const auditPctApplied = Number(pp?.holiday_allowance_pct ?? 12);
+        const auditBasisAmount = computeFeriepengerBasis({
+          basePayTotal: auditBasePay,
+          holidayAllowancePct: auditPctApplied,
+        });
+        auditFeriepengerEmits.push({
+          profile_id: c.profile_id,
+          basePay: auditBasePay,
+          pctApplied: auditPctApplied,
+          basisAmount: auditBasisAmount,
+        });
         return {
           profile_id: c.profile_id,
           profile_name: prof?.display_name ?? c.profile_id,
           personnummer: pp?.personal_id_number ?? null,
           bankkonto: pp?.bank_account_number ?? null,
-          base_pay: Number(c.base_pay ?? 0),
+          base_pay: auditBasePay,
           total_supplements: Number(c.total_supplements ?? 0),
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0),
-          feriepenger_basis: 0, // ADR-0295 rename; BFF routes compute real basis
+          // ADR-0295: basis = base_pay × holiday_allowance_pct / 100 (default 12 %).
+          feriepenger_basis: auditBasisAmount,
           // Audit-specific columns:
           calculation_line_id: c.id,
           shift_id: c.schedule_shift_id,
@@ -2267,6 +2383,33 @@ export const exportPeriod = defineTool({
           derivation_version: c.calculation_version ?? 1,
         } satisfies AuditRow;
       });
+
+      // Emit payroll.feriepenger_basis_computed per row (ADR-0295, ADR-0134).
+      // Audit-variant parity with BFF: one event per calculation line.
+      await Promise.allSettled(
+        auditFeriepengerEmits.map((f) =>
+          emit({
+            event: "payroll.feriepenger_basis_computed",
+            workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+            actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+            properties: {
+              entity: {
+                entity_type: "payroll_period" as const,
+                entity_id: params.period_id,
+              },
+              data: {
+                workspace_id: ctx.workspaceId,
+                period_id: params.period_id,
+                profile_id: f.profile_id,
+                basis_amount: f.basisAmount,
+                pct_applied: f.pctApplied,
+                base_pay_total: f.basePay,
+                channel: "system" as const,
+              },
+            },
+          }),
+        ),
+      );
     }
 
     // Step 7 — Generate CSV via @smartout/payroll-export (pure, deterministic).
@@ -2663,3 +2806,12 @@ export const viewLonnsgrunnlag = defineTool({
     });
   },
 });
+
+// ─── Phase 7f tariff tools (delegated to cascade per ADR-0356) ───────────────
+// Implemented in tariff-tools.ts to keep this file manageable.
+// Three delegation tools: setup_workspace_tariff, change_workspace_tariff, add_supplement_override.
+export {
+  setupWorkspaceTariffTool,
+  changeWorkspaceTariffTool,
+  addSupplementOverrideTool,
+} from "./tariff-tools.js";

@@ -319,7 +319,10 @@ export function useVoiceTranscripts({
               entity_id: sessionIdRef.current ?? livekitRoomId,
             },
             data: {
-              session_id: sessionIdRef.current ?? "",
+              // Fall back to the LiveKit room id (also a stable identifier)
+              // rather than an empty string — ADR-0134 / L-0083. Same
+              // fallback as `entity_id` above; both columns are routed.
+              session_id: sessionIdRef.current ?? livekitRoomId,
               livekit_room_id: livekitRoomId,
               channel_id: channelId ?? null,
               // Hook is mounted ⇒ token had to allow at least listen_only;
@@ -378,7 +381,10 @@ async function emitVoiceSessionEnded(params: {
           entity_id: params.sessionId ?? params.livekitRoomId,
         },
         data: {
-          session_id: params.sessionId ?? "",
+          // Same fallback as `entity_id` above — never empty-string an
+          // identifier column (ADR-0134 / L-0083). The LiveKit room id is
+          // the stable session anchor when the agent_session id is missing.
+          session_id: params.sessionId ?? params.livekitRoomId,
           livekit_room_id: params.livekitRoomId,
           duration_ms: durationMs,
           end_reason: params.reason,

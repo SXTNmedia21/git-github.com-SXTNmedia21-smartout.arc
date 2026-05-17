@@ -11,8 +11,8 @@
  * workspace_id + actor_id resolved from DashboardContext per ADR-0134 R1.
  */
 
-import { useContext, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2, UserPlus } from "lucide-react";
 import { Button } from "@smartout/ui";
@@ -21,6 +21,8 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ComplianceBadge } from "../_components/ComplianceBadge";
 import type { ComplianceLevel } from "@smartout/utils";
+import { ContractDetailToolsBridge } from "./_tools/contract-detail-tools-bridge";
+import type { ContractDetailRow } from "./_tools/use-contract-detail-tools";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,9 +84,41 @@ function StatusBadge({ status }: { status: string }) {
 export default function ContractDetailPage() {
   const { t } = useTranslation("contracts");
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { workspaceData, profileId } = useContext(DashboardContext);
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const bridgeRow = useMemo<ContractDetailRow | null>(
+    () =>
+      contract
+        ? {
+            contract_id: contract.contract_id,
+            profile_id: contract.profile_id,
+            status: contract.status,
+            position_title: contract.position_title,
+            hourly_rate: contract.hourly_rate,
+            monthly_salary: contract.monthly_salary,
+            employment_percentage: contract.employment_percentage,
+            start_date: contract.start_date,
+            compliance_overrides: contract.compliance_overrides,
+            parent_contract_id: contract.parent_contract_id,
+            decline_reason_code: contract.decline_reason_code,
+            decline_reason_text: contract.decline_reason_text,
+            employee_display_name: contract.profile?.display_name ?? null,
+          }
+        : null,
+    [contract],
+  );
+
+  const bridge = (
+    <ContractDetailToolsBridge
+      loading={loading}
+      contractId={id ?? ""}
+      contract={bridgeRow}
+      navigateTo={(href) => router.push(href)}
+    />
+  );
 
   // Track whether we've already emitted for this page load so the effect
   // doesn't double-fire if the component re-renders after contract loads.
@@ -134,20 +168,26 @@ export default function ContractDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground text-sm">{t("detail_page.loading")}</p>
-      </div>
+      <>
+        {bridge}
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground text-sm">{t("detail_page.loading")}</p>
+        </div>
+      </>
     );
   }
 
   if (!contract) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-muted-foreground text-sm">{t("detail_page.not_found")}</p>
-        <Link href="/dashboard/contracts" className="text-primary mt-2 text-sm underline">
-          {t("detail_page.back_to_contracts")}
-        </Link>
-      </div>
+      <>
+        {bridge}
+        <div className="flex flex-col items-center justify-center py-20">
+          <p className="text-muted-foreground text-sm">{t("detail_page.not_found")}</p>
+          <Link href="/dashboard/contracts" className="text-primary mt-2 text-sm underline">
+            {t("detail_page.back_to_contracts")}
+          </Link>
+        </div>
+      </>
     );
   }
 
@@ -159,142 +199,147 @@ export default function ContractDetailPage() {
   const employeeName = contract.profile?.display_name ?? t("detail_page.unknown_employee");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {/* Back link */}
-      <Link
-        href="/dashboard/contracts"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        {t("detail_page.all_contracts")}
-      </Link>
+    <>
+      {bridge}
+      <div className="mx-auto max-w-3xl space-y-6">
+        {/* Back link */}
+        <Link
+          href="/dashboard/contracts"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t("detail_page.all_contracts")}
+        </Link>
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">{employeeName}</h1>
-          <p className="text-muted-foreground text-sm">{contract.position_title}</p>
-          <div className="mt-2">
-            <StatusBadge status={contract.status} />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {isDraft && (
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link href={`/dashboard/contracts/${contract.contract_id}/revise`}>
-                <FileEdit className="h-3.5 w-3.5" />
-                {t("detail_page.edit")}
-              </Link>
-            </Button>
-          )}
-          {isPendingData && contract.profile_id && (
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link href={`/dashboard/people/${contract.profile_id}/complete-data`}>
-                <UserPlus className="h-3.5 w-3.5" />
-                {t("detail_page.complete_data")}
-              </Link>
-            </Button>
-          )}
-          {isSigned && (
-            <Button variant="outline" size="sm" className="gap-1.5" disabled>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {t("detail_page.regenerate")}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Decline info */}
-      {isDeclined && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        {/* Header */}
+        <div className="flex items-start justify-between">
           <div>
-            <p className="font-medium">{t("detail_page.declined_title")}</p>
-            {contract.decline_reason_code && (
-              <p className="mt-1 text-xs">
-                {t("detail_page.decline_reason", { code: contract.decline_reason_code })}
-              </p>
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">{employeeName}</h1>
+            <p className="text-muted-foreground text-sm">{contract.position_title}</p>
+            <div className="mt-2">
+              <StatusBadge status={contract.status} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {isDraft && (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link href={`/dashboard/contracts/${contract.contract_id}/revise`}>
+                  <FileEdit className="h-3.5 w-3.5" />
+                  {t("detail_page.edit")}
+                </Link>
+              </Button>
             )}
-            {contract.decline_reason_text && <p className="mt-1">{contract.decline_reason_text}</p>}
+            {isPendingData && contract.profile_id && (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link href={`/dashboard/people/${contract.profile_id}/complete-data`}>
+                  <UserPlus className="h-3.5 w-3.5" />
+                  {t("detail_page.complete_data")}
+                </Link>
+              </Button>
+            )}
+            {isSigned && (
+              <Button variant="outline" size="sm" className="gap-1.5" disabled>
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("detail_page.regenerate")}
+              </Button>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Pending data info */}
-      {isPendingData && (
-        <div className="border-warning/30 bg-warning/10 text-warning-foreground flex items-start gap-3 rounded-lg border p-4 text-sm">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <p className="font-medium">{t("detail_page.pending_data_title")}</p>
-            <p className="mt-1">{t("detail_page.pending_data_description")}</p>
+        {/* Decline info */}
+        {isDeclined && (
+          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">{t("detail_page.declined_title")}</p>
+              {contract.decline_reason_code && (
+                <p className="mt-1 text-xs">
+                  {t("detail_page.decline_reason", { code: contract.decline_reason_code })}
+                </p>
+              )}
+              {contract.decline_reason_text && (
+                <p className="mt-1">{contract.decline_reason_text}</p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Terms */}
-      <section className="rounded-lg border p-4">
-        <h2 className="text-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-          {t("detail_page.terms")}
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <div>
-            <dt className="text-muted-foreground">{t("detail_page.hourly_rate")}</dt>
-            <dd className="text-foreground font-medium">
-              {contract.hourly_rate != null
-                ? `${contract.hourly_rate} kr/t`
-                : t("detail_page.not_set")}
-            </dd>
+        {/* Pending data info */}
+        {isPendingData && (
+          <div className="border-warning/30 bg-warning/10 text-warning-foreground flex items-start gap-3 rounded-lg border p-4 text-sm">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">{t("detail_page.pending_data_title")}</p>
+              <p className="mt-1">{t("detail_page.pending_data_description")}</p>
+            </div>
           </div>
-          <div>
-            <dt className="text-muted-foreground">{t("detail_page.monthly_salary")}</dt>
-            <dd className="text-foreground font-medium">
-              {contract.monthly_salary != null
-                ? `${contract.monthly_salary} kr`
-                : t("detail_page.not_set")}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("detail_page.employment_percentage")}</dt>
-            <dd className="text-foreground font-medium">
-              {contract.employment_percentage != null
-                ? `${contract.employment_percentage}%`
-                : t("detail_page.not_set")}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("detail_page.start_date")}</dt>
-            <dd className="text-foreground font-medium">{contract.start_date}</dd>
-          </div>
-        </dl>
-      </section>
+        )}
 
-      {/* Compliance overrides */}
-      {overrides.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
-            {t("detail_page.compliance_overrides")}
+        {/* Terms */}
+        <section className="rounded-lg border p-4">
+          <h2 className="text-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
+            {t("detail_page.terms")}
           </h2>
-          <div className="flex flex-wrap gap-2">
-            {overrides.map((o) => (
-              <ComplianceBadge key={o.rule_id} level={o.level} message={o.message} />
-            ))}
-          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+              <dt className="text-muted-foreground">{t("detail_page.hourly_rate")}</dt>
+              <dd className="text-foreground font-medium">
+                {contract.hourly_rate != null
+                  ? `${contract.hourly_rate} kr/t`
+                  : t("detail_page.not_set")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("detail_page.monthly_salary")}</dt>
+              <dd className="text-foreground font-medium">
+                {contract.monthly_salary != null
+                  ? `${contract.monthly_salary} kr`
+                  : t("detail_page.not_set")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("detail_page.employment_percentage")}</dt>
+              <dd className="text-foreground font-medium">
+                {contract.employment_percentage != null
+                  ? `${contract.employment_percentage}%`
+                  : t("detail_page.not_set")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("detail_page.start_date")}</dt>
+              <dd className="text-foreground font-medium">{contract.start_date}</dd>
+            </div>
+          </dl>
         </section>
-      )}
 
-      {/* Parent lineage */}
-      {contract.parent_contract_id && (
-        <div className="flex items-center gap-2 text-sm">
-          <Link2 className="text-muted-foreground h-4 w-4" />
-          <span className="text-muted-foreground">{t("detail_page.parent_contract")}</span>
-          <Link
-            href={`/dashboard/contracts/${contract.parent_contract_id}`}
-            className="text-primary underline"
-          >
-            {contract.parent_contract_id}
-          </Link>
-        </div>
-      )}
-    </div>
+        {/* Compliance overrides */}
+        {overrides.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
+              {t("detail_page.compliance_overrides")}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {overrides.map((o) => (
+                <ComplianceBadge key={o.rule_id} level={o.level} message={o.message} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Parent lineage */}
+        {contract.parent_contract_id && (
+          <div className="flex items-center gap-2 text-sm">
+            <Link2 className="text-muted-foreground h-4 w-4" />
+            <span className="text-muted-foreground">{t("detail_page.parent_contract")}</span>
+            <Link
+              href={`/dashboard/contracts/${contract.parent_contract_id}`}
+              className="text-primary underline"
+            >
+              {contract.parent_contract_id}
+            </Link>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

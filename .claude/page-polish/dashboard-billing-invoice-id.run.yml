@@ -1,0 +1,54 @@
+# Page Polish Run — /dashboard/billing/[invoice_id]
+
+route: /dashboard/billing/[invoice_id]
+status: done
+verified: true
+started_at: 2026-05-14T18:50:00+02:00
+verified_at: 2026-05-14T18:50:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/billing/[invoice_id]
+  components_count: 3 # page.tsx (server) + use-tools + bridge (client island)
+
+architecture:
+  entry: apps/web/src/app/dashboard/billing/[invoice_id]/page.tsx
+  rendering: Server Component
+  data_source: getMyInvoiceDetail(invoiceId) — auth-derived company scope
+  client_bridge:
+    - apps/web/src/app/dashboard/billing/[invoice_id]/_tools/use-invoice-detail-tools.ts
+    - apps/web/src/app/dashboard/billing/[invoice_id]/_tools/invoice-detail-tools-bridge.tsx
+  mutation_buttons_owned_by_components:
+    - MarkPaidButton (server-action mutation flow)
+    - PayNowButton (Stripe checkout flow)
+    - PostPaymentConfirmation / PostPaymentCancelled (return-url handlers)
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 5
+  scope: invoice-detail
+  registered_tools:
+    - { key: getInvoiceDetail, type: read }
+    - { key: listInvoiceLineItems, type: read }
+    - { key: getInvoicePaymentInfo, type: read }
+    - { key: getInvoiceActionState, type: read, note: canMarkPaid / canPayNow flags }
+    - { key: getInvoiceTotalsSummary, type: read }
+
+telemetry:
+  emit_in_route: 0 # mutation buttons own their own emit
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Server-component host with client-island bridge. No Botsson mutation
+  tools — payment + mark-paid are explicit human-driven buttons (per
+  ADR-0244 risk tier for financial mutations).
+  access: admin + owner. ADR-0238 owns_chat_surface=false.

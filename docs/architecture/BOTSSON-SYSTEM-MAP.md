@@ -1,8 +1,8 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-05-10
-verified_against_code: 2026-05-11
+updated: 2026-05-14
+verified_against_code: 2026-05-14
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
 created: 2026-04-22
@@ -75,12 +75,12 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
                     │ tool dispatch
                     ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│  L4  CAPABILITIES — Emmas verktøykasse (14 registrerte)          │
+│  L4  CAPABILITIES — Emmas verktøykasse (30 registrerte)          │
 │       packages/ai/src/capabilities/*                             │
 │       profile · ui · guardian · schedule · operations            │
 │       communication · contract · contract_intake · shift_swap    │
 │       operations_intelligence · training · shift_lifecycle       │
-│       governance · billing_query · onboarding (🟢 T1.6-T1.9)     │
+│       governance · billing_query · task · onboarding (🟢)        │
 └──────────────────────────────────────────────────────────────────┘
                     │ DB writes via gate_action / Server Actions
                     ▼
@@ -118,7 +118,13 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Immersive backdrop** | `docs/design/botsson/project/components/immersive.jsx` → `BotssonShell.tsx` | 🔴 | **Ikke implementert.** Bare radius 0, ingen bakgrunnsdesign. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Overlay pixel-parity audit** | `docs/design/botsson/project/**` vs `apps/web/src/app/Botsson/_components/` | 🟡 | **Handoff-bundle lastet ned 2026-04-22** (Claude Design). Arena/Orb/Sticky finnes men ikke validert mot mockup. Plan: `docs/plans/PLAN-botsson-overlay-implementation.md`. |
-| **Komm tool bridge** | `apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx` | 🟢 | **Landed komm-gate-action-wiring (2026-04-29).** 5 read tools (listChannels, getActiveChannel, getRecentMessages, getUnreadCount, getMyHelpdeskCount) + 3 action tools (sendMessage, createChat, joinCall). Mounted on all 5 komm sub-routes under "komm" registry source. sendMessage + createChat wired to gate_action (ADR-0099, capability slugs komm.send_message / komm.create_channel) + ADR-0078 voice guard. Authority seed: `20260519200000_seed_komm_authority.sql`. |
+| **Komm tool bridge** | `apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx` | 🟢 | **Landed komm-gate-action-wiring (2026-04-29).** 5 read tools (listChannels, getActiveChannel, getRecentMessages, getUnreadCount, getMyHelpdeskCount) + 3 action tools (sendMessage, createChat, joinCall). Mounted on all 5 komm sub-routes under "komm" registry source. sendMessage + createChat wired to gate_action (ADR-0099, capability slugs komm.send_message / komm.create_channel) + ADR-0078 voice guard. Authority seed: `20260519200000_seed_komm_authority.sql`. **Debt (ADR-0238):** `DomainChatOwnership` component not built — Orb does not suppress to passive mode on /dashboard/komm. Council D5 ticket. |
+| **Notifications tool bridge** | `apps/web/src/app/dashboard/notifications/_tools/notifications-tools-bridge.tsx` | 🟢 | **Landed 2026-05-14.** 5 tools: listNotifications, getUnreadCount, markAsRead, markAllAsRead, filterNotifications. markAsRead + markAllAsRead emit `notification.marked_read` / `notification.marked_all_read` (ADR-0134, agent-callable mutations). workspaceId + actorId required; L-0177 fail-fast on empty string. |
+| **Calendar tool bridge** | `apps/web/src/app/dashboard/calendar/_tools/` | 🟢 | **Landed 2026-05-14.** 12 tools: getCalendarState, getEventsForRange, getBookingsForRange, getEventsForDay, getBookingsForDay, getNextEvents, proposeNewEvent, proposeNewBooking, navigateCalendar, switchCalendarView, switchCalendarTab, openDayInDayControl. |
+| **Governance tool bridge** | `apps/web/src/app/dashboard/governance/_tools/` | 🟢 | **Landed 2026-05-14.** 8 tools: getGovernanceState, listProtocols, getProtocolDetail, listOverdueItems, listOpenDeviations, proposeAssignProtocol, proposeCreateDeviation, switchGovernanceTab. |
+| **Year-wheel tool bridge** | `apps/web/src/app/dashboard/year-wheel/_tools/` | 🟢 | **Landed 2026-05-14.** 7 tools: getYearWheelState, listSeasons, getSeasonDetail, listPlanningEvents, getSeasonProgress, proposeActivateSeason, proposeArchiveSeason. |
+| **Reconciliation tool bridge** | `apps/web/src/app/dashboard/reconciliation/_tools/` | 🟢 | **Landed 2026-05-14.** 6 tools: getReconciliationState, listReconciliationDays, getReconciliationDetail, listPendingHours, listDeviationsForDay, switchDate. |
+| **Season tool bridge** | `apps/web/src/app/dashboard/season/[seasonId]/_tools/` | 🟢 | **Landed 2026-05-14.** 6 tools: getSeasonStatus, getActivationReadiness, getBudgetSummary, getFactorSummary, proposeActivateSeason, proposeArchiveSeason. |
 
 ### L1 — PLATFORM ADMIN (recorder intervention surfaces)
 
@@ -210,9 +216,9 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-**29 registrerte** i `capabilities/registry.ts` per `grep -c "Capability,$"` 2026-05-10.
+**30 registrerte** i `capabilities/registry.ts` per `grep -c "Capability,$"` 2026-05-14. Added: `task` (ADR-0298/ADR-0301).
 
-Cap-count is recurring drift surface (L-0229). Always verify count from registry, not from prose lists in this map. Full 29 names: `profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`, `memory`, `helpdesk_query`, `kb_query`, `journey`, `journey_authoring`, `season`, `availability`, `tips`, `payroll`, `mission`, `personal`, `legal`, `business_intelligence`, `engine_world`, `onboarding`.
+Cap-count is recurring drift surface (L-0229). Always verify count from registry, not from prose lists in this map. Full 30 names: `profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`, `memory`, `helpdesk_query`, `kb_query`, `journey`, `journey_authoring`, `season`, `availability`, `tips`, `payroll`, `mission`, `personal`, `legal`, `business_intelligence`, `engine_world`, `onboarding`, `task`.
 
 Detailed status for the historically-tracked subset:
 
@@ -232,11 +238,15 @@ Detailed status for the historically-tracked subset:
 | shift_lifecycle | `shift-lifecycle/` | 🟢 | 5-lag model (ADR-0095) |
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
-| **memory** | `memory/` | 🟢 | **Phase A3 Item 5 closed 2026-05-10 (G1).** Authority seeded for 3 dev workspaces (hq-workspace, may2026-demo, system) via migration `20260528000000`. Production workspaces stay default `read_only` (opt-in pending). save_memory tool visible in dev. Items 3+4 (auto-summary, TTL) still open. |
+| **memory** | `memory/` | 🟢 | **Phase A3 fully closed (F-MEM-UNBLOCK-A3, 2026-05-11).** Authority seeded for 3 dev workspaces via migration `20260528000000`. Items 3+4 (auto-summary + pg_cron TTL) closed via F-MEM-UNBLOCK-A3 sortie — `buildSessionSummary` TDD, auto-summary on session close, pg_cron TTL wired. Production workspaces stay default `read_only` (opt-in pending). |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
 | **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
 | **engine_world** | `engine-world/` | 🟢 | Phase 0 read tools (PR #332). Phase 1 adds `report_observation` (gatedMutation, ADR-0204) + channel split (chat+voice reads, chat+system writes per ADR-0275 onboarding pattern) + stage-engine reader/writer integration. ADR-0281 accepted, ADR-0290 accepted (platform RPC bypass — G2 closed 2026-05-11, authenticated GRANT revoked via migration `20260528010000`). |
 | **onboarding** | `onboarding/` | 🟢 | **Bodies implemented T1.6-T1.9 (2026-05-04).** 10 tools: `update_business` (confirm, gate+emit, workspace UPDATE), `update_season` (confirm, gate+emit, season+season_budget INSERT), `add_departments`/`add_locations`/`add_zones` (read_only, IN-MEMORY only per Option A), `add_procedures` (suggest, chat-only, gate+emit, protocol INSERT), `scrape_website` (read_only, scrapling /extract bridge, emit called+cost), `search_company` (read_only, scrapling /brreg-search), `identify_company` (read_only, scrapling /brreg-lookup), `add_key_fact` (suggest, chat-only, alias → `saveMemory` Phase A3). Authority seed updated: D1 tools downgraded to read_only tier. 4 new telemetry events registered: `onboarding.business_updated`, `onboarding.season_updated`, `onboarding.procedure_added`, `onboarding.scrape_completed`. Typecheck + 42 test files green. |
+| **task** | `task/` | 🟢 | **ADR-0298 + ADR-0301. Landed 2026-05-14.** Unified task capability (personal + session + schedule task aggregation). list, create, complete, cancel tools. gate_action per ADR-0099. Emits `task.list_mine`, `task created`, `task completed`, `task cancelled`. |
+| **pos_account_management** | `pos_account_management/` | 🟢 | **V1 shipped — PR #385 (eda525f4f).** ADR-0305 + ADR-0319 accepted. Capability dir + 3 tools (`connect_lightspeed`, `disconnect_pos_account`, `list_pos_accounts`). BFF `/api/botsson/pos/connect`. Migrations: `20260611120000_wfm_foundation.sql` + `20260611120050_wfm_vault_helper.sql`. Telemetry events: `pos_account.connected`, `pos_account.disconnected`, `pos_account.sync_triggered`. Authority seed in `20260611120100_wfm_capability_authority_seed.sql`. |
+| **scheduler** | `scheduler/` | 🟢 | **V1 shipped — PR #385 (eda525f4f).** ADR-0307 (greedy V1 algorithm) + ADR-0309 (bundle proposal pattern) + ADR-0320 (POS calibration V2 trigger) accepted. 3 tools (`propose_plan`, `accept_proposal`, `reject_proposal`) — all chat-only (ADR-0288), mutateWithGate per ADR-0287. Greedy solver at `packages/ai/src/scheduler/solver/greedy.ts`. Telemetry events: `scheduler.proposal.proposed`, `scheduler.proposal.accepted`, `scheduler.proposal.rejected`. Authority seed in `20260611120100_wfm_capability_authority_seed.sql`. Migration: `20260615200200_riksavtalen_scheduler_framework_rules.sql`. |
+| **shift_marketplace** | `shift_marketplace/` | 🟢 | **V1 shipped — PR #385 (eda525f4f).** ADR-0306 + ADR-0321 (swap↔marketplace convergence V2 pipeline) accepted. 5 tools (`list_open_offers`, `post_open`, `claim`, `approve_claim`, `cancel_offer`). Eligibility helper shared with scheduler (ADR-0307). Telemetry events: `shift_offer.posted`, `shift_offer.claimed`, `shift_offer.approved`, `shift_offer.expired`, `shift_offer.cancelled`. Authority seed in `20260611120100_wfm_capability_authority_seed.sql`. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
 
@@ -315,6 +325,11 @@ Detailed status for the historically-tracked subset:
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
 | **`profile.botsson_channel_id`** | 🟢 | **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`). UUID FK → `channel(id)` ON DELETE SET NULL. `comm_channel_type='ai'` enum value added. 1 Botsson channel + `channel_ai_policy(voice_participation='interactive')` per workspace. Trigger auto-bootstraps on new workspace INSERT. Jarvis demo unblocked. |
 | **`engine_world`** | 🟢 | Migrations 20260525000000 (Phase 0) + 20260526000000 (Phase 1). UPSERT via `engine_world_observe_platform` (SECURITY DEFINER, ADR-0290). TTL-based staleness. workspace_id nullable for platform-level surfaces. Heartbeat job `engine-world-refresh` populates surfaces every 5min. **G2 closed 2026-05-11** via migration `20260528010000` — REVOKE EXECUTE from authenticated + anon, regression-net SQL test at `supabase/tests/engine-world-observe-platform-permissions.sql`. ADR-0290 amended. Promotion-blocker cleared. |
+| **`pos_account`** | 🟢 | ADR-0305. POS vendor credential references + last sync state per workspace. `fn_pos_credentials_upsert` + `fn_pos_credentials_resolve` = first Vault Tier 2 per-workspace credential precedent. |
+| **`pos_sale_event`** | 🟢 | ADR-0305. Hourly aggregated POS revenue rows per workspace. `v_pos_sales_hour` view aggregates for D4 demand signal. |
+| **`schedule_shift_offer`** | 🟢 | ADR-0306. Open shift marketplace table — shifts posted, claimed, approved. RLS workspace-scoped. |
+| **`v_pos_sales_hour`** | 🟢 | ADR-0305. Read-only view of `pos_sale_event` by hour. Feeds D4 demand signal. No AI capability consumer yet (pos capability 🔴). |
+| **Known debt:** Migration `20260514000010_secure_submit_own_pii.sql` temporal regression — brief window where PII self-submit may be possible. Linear ticket pending (Council D1). | | 🟡 |
 
 ### Missing EngineActionType handlers (Phase B5)
 

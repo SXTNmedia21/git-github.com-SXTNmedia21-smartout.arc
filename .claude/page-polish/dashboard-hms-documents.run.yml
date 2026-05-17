@@ -1,0 +1,49 @@
+# Page Polish Run — /dashboard/hms/documents
+
+route: /dashboard/hms/documents
+status: done
+verified: true
+started_at: 2026-05-14T18:00:00+02:00
+verified_at: 2026-05-14T18:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/hms/documents
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/hms/documents/page.tsx
+  components:
+    - DocumentBrowser (fetches tree internally: policy → protocol → procedure)
+    - DocumentViewer (renders selection)
+  state: useState<DocumentSelection | null>
+  tools:
+    - apps/web/src/app/dashboard/hms/documents/_tools/use-hms-documents-tools.ts
+    - apps/web/src/app/dashboard/hms/documents/_tools/hms-documents-tools-bridge.tsx
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 2
+  scope: hms-documents
+  registered_tools:
+    - { key: getCurrentDocument, type: read, note: returns selected { type, id, name } or null }
+    - { key: clearDocumentSelection, type: write-view, note: clears viewer }
+
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Page owns only selection state. Tree-fetch + filter live in DocumentBrowser.
+  Tools are intentionally minimal — selection mirror + clear. User browses via
+  the tree UI; Botsson does not re-fetch the tree.
+  access: employee + manager + admin + owner. ADR-0238 owns_chat_surface=false.

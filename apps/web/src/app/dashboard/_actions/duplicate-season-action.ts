@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@smartout/supabase/admin";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 
 /**
@@ -185,6 +186,28 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
       }
     }
   }
+
+  // ── Telemetry — emit `season created` for the new draft copy ────────────
+  // `season created` is the canonical event for any new season row (registry.ts:1543).
+  // Duplicate is a special case of creation — status='draft', name carries '(kopi)' suffix.
+  await emit({
+    event: "season created",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: {
+        entity_type: "season",
+        entity_id: inserted.season_id,
+        entity_label: inserted.name,
+      },
+      data: {
+        name: inserted.name,
+        status: "draft",
+        color: source.color ?? null,
+        planning_cycle_id: source.planning_cycle_id ?? null,
+      },
+    },
+  });
 
   return {
     ok: true,

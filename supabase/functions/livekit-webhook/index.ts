@@ -7,10 +7,18 @@ Deno.serve(async (req: Request) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  const receiver = new WebhookReceiver(
-    Deno.env.get("LIVEKIT_API_KEY")!,
-    Deno.env.get("LIVEKIT_API_SECRET")!,
-  );
+  // F-WH-02: Fail-closed on missing env vars — no env names in response body.
+  const livekitApiKey = Deno.env.get("LIVEKIT_API_KEY");
+  const livekitApiSecret = Deno.env.get("LIVEKIT_API_SECRET");
+  if (!livekitApiKey || !livekitApiSecret) {
+    console.error("[livekit-webhook] Missing required env vars: LIVEKIT_API_KEY and/or LIVEKIT_API_SECRET");
+    return new Response(JSON.stringify({ error: "missing config" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const receiver = new WebhookReceiver(livekitApiKey, livekitApiSecret);
 
   const rawBody = await req.text();
   const authHeader = req.headers.get("Authorization");
@@ -37,6 +45,15 @@ Deno.serve(async (req: Request) => {
 
   if (!workspaceId || !channelId) {
     console.error("[livekit-webhook] Invalid room name format:", roomName);
+    return new Response("ok");
+  }
+
+  // F-WH-07: UUID format validation prevents corrupt workspace_id from leaking into
+  // channel_call_participant + engine_event rows. A malformed room like "foo:bar"
+  // has both parts non-empty but neither is a UUID.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(workspaceId) || !UUID_RE.test(channelId)) {
+    console.error("[livekit-webhook] Non-UUID room parts:", { workspaceId, channelId });
     return new Response("ok");
   }
 
@@ -157,19 +174,24 @@ Deno.serve(async (req: Request) => {
           spoke_seconds: p.speaking_seconds,
         }));
 
-        // Create call_log
-        await supabase.from("call_log").insert({
-          channel_id: channelId,
-          workspace_id: workspaceId,
-          call_session_id: session.id,
-          livekit_room_name: roomName,
-          started_at: session.started_at,
-          ended_at: endedAt,
-          duration_seconds: durationSeconds,
-          max_participants: session.max_participants,
-          total_participants: new Set(participantSummary.map((p) => p.profile_id)).size,
-          participant_summary: participantSummary,
-        });
+        // Create call_log — F-WH-04: upsert on call_session_id UNIQUE constraint to
+        // handle LiveKit room_finished retries without duplicating the immutable audit row.
+        // ON CONFLICT DO NOTHING: a duplicate webhook delivers identical data; first write wins.
+        await supabase.from("call_log").upsert(
+          {
+            channel_id: channelId,
+            workspace_id: workspaceId,
+            call_session_id: session.id,
+            livekit_room_name: roomName,
+            started_at: session.started_at,
+            ended_at: endedAt,
+            duration_seconds: durationSeconds,
+            max_participants: session.max_participants,
+            total_participants: new Set(participantSummary.map((p) => p.profile_id)).size,
+            participant_summary: participantSummary,
+          },
+          { onConflict: "call_session_id", ignoreDuplicates: true },
+        );
 
         // Telemetry: C1 Observability — call ended
         await emitCallEvent(supabase, event.id, "channel.call.ended", workspaceId, {

@@ -36,6 +36,9 @@ import { FilterChips, type FilterValue } from "@/components/calendar/FilterChips
 import { ItemCard } from "@/components/calendar/ItemCard";
 import { ProgressRing } from "@/components/calendar/ProgressRing";
 import { EmptyDay } from "@/components/calendar/EmptyDay";
+import { DetailSheet, type DetailSheetHandle } from "@/components/calendar/DetailSheet";
+import type { CalendarItemExtended } from "@/components/calendar/DetailSheet";
+import { useCompleteCalendarTask } from "@/hooks/mutations/use-complete-calendar-task";
 import { useCalendarItems } from "@/hooks/queries/use-calendar-items";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { getProfileContext } from "@/lib/profile-context";
@@ -183,6 +186,12 @@ export default function CalendarWeekScreen() {
   const theme = useTheme();
   const router = useRouter();
   const today = useRef(new Date()).current;
+
+  // DetailSheet ref — opened on item tap (Phase 4 wiring per spec §4.6).
+  const detailSheetRef = useRef<DetailSheetHandle>(null);
+
+  // Task completion mutation — POST /api/mobile/tasks/[id]/complete (ADR-0132 + ADR-0298).
+  const completeMutation = useCompleteCalendarTask();
 
   // Resolve workspace timezone (BLOCKING-3 / F-09).
   const { data: profile } = useMyProfile();
@@ -405,7 +414,9 @@ export default function CalendarWeekScreen() {
               <ShiftCard
                 shift={shifts[0]}
                 onTap={() => {
-                  // Item tap telemetry deferred — no DetailSheet in Phase 3c
+                  // CalendarItem → CalendarItemExtended: base shape satisfies extended type.
+                  // Shift items carry no onComplete (completion is task-only per spec §4.5).
+                  detailSheetRef.current?.open(shifts[0] as CalendarItemExtended);
                 }}
               />
             )}
@@ -417,7 +428,31 @@ export default function CalendarWeekScreen() {
                   key={item.id}
                   item={item}
                   onPress={() => {
-                    // DetailSheet tap — emits item_viewed; sheet in Phase 3e
+                    // Emit item_viewed telemetry (non-blocking — swallow errors per ADR-0134).
+                    void (async () => {
+                      try {
+                        const ctx = await getProfileContext();
+                        void emit({
+                          event: "calendar item_viewed",
+                          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+                          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+                          properties: {
+                            entity_type: "calendar_item",
+                            entity_id: item.id,
+                            data: {
+                              item_type: item.type,
+                              date: dateToISO(selectedDate, tz),
+                            },
+                          },
+                        });
+                      } catch {
+                        // swallow — telemetry is non-critical
+                      }
+                    })();
+
+                    // Open DetailSheet with the tapped item.
+                    // CalendarItem satisfies CalendarItemExtended (extended fields are optional).
+                    detailSheetRef.current?.open(item as CalendarItemExtended);
                   }}
                 />
               ))}
@@ -426,6 +461,18 @@ export default function CalendarWeekScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* DetailSheet — mounts outside ScrollView so it overlays full screen. */}
+      <DetailSheet
+        ref={detailSheetRef}
+        onComplete={async (completedItem) => {
+          // source: CalendarItem has no source field; default 'session' per spec constraint.
+          await completeMutation.mutateAsync({
+            id: completedItem.id,
+            source: "session",
+          });
+        }}
+      />
     </SafeAreaView>
   );
 }

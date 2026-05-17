@@ -64,13 +64,15 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Log full detail server-side, return opaque body to caller (F-EF-06).
+    console.error("[activate-workspace] unhandled error:", error);
+    return new Response(JSON.stringify({ error: "internal" }), {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
         "X-Smartout-Legacy-Path": "activate-workspace",
       },
-      status: 400,
+      status: 500,
     });
   }
 });

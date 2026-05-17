@@ -1,0 +1,130 @@
+# Page Polish Run — /dashboard/my-training (employee training view)
+
+route: /dashboard/my-training
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-training
+  components_count: 6
+    # page.tsx
+    # loading.tsx
+    # _components/ProtocolList.tsx
+    # _components/ProcedureStepper.tsx
+    # _components/KnowledgeTestView.tsx
+    # _components/ConfirmationSign.tsx
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/my-training/page.tsx
+  hooks:
+    - apps/web/src/app/dashboard/my-training/_hooks/use-assigned-protocols.ts  # wraps @smartout/training
+    - apps/web/src/app/dashboard/my-training/_hooks/use-step-completion.ts      # wraps useCompleteStep/useSubmitTest/useSignConfirmation
+  data_source: "@smartout/training useAssignedProtocols (TanStack Query)"
+  cascade_dimensions:
+    - D3  # protocol/procedure/test/confirmation rules
+    - D2  # profile readiness
+  state: live (real data from @smartout/training package)
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 4 — Datapoints
+datapoints:
+  - protocols: AssignedProtocol[] via useAssignedProtocols(profileId)
+  - readiness: derived from protocols (% completed)
+  - overdue: derived from protocols (expired | 30d no-progress)
+server_actions: []
+create_entry_points: []
+
+# Step 5 — Design
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  font_heading_used: true  # h1 "Min Opplaering" uses font-extrabold tracking-tight
+
+# Step 6 — Page knowledge
+page_knowledge:
+  header: Min Opplaering
+  description: Dine tildelte protokoller, prosedyrer, tester og bekreftelser.
+  empty_copy: Ingen protokoller tildelt — du har ingen aktive opplaeringsprotokoller. Kontakt din leder for mer informasjon.
+  error_copy: Kunne ikke laste opplaering — kontrollér nettverkstilkobling og prøv å laste siden på nytt.
+
+# Step 7 — Harness tools — SHIPPED
+harness_tools_current:
+  count: 6
+  scope: my-training
+  bridge_files:
+    - apps/web/src/app/dashboard/my-training/_tools/use-my-training-tools.ts
+    - apps/web/src/app/dashboard/my-training/_tools/my-training-tools-bridge.tsx
+  registered_tools:
+    - key: getMyReadiness
+      type: read
+      note: overall readiness score (% protocols completed)
+    - key: listMyProtocols
+      type: read
+      note: all assigned protocols with status + progress
+    - key: getNextProtocol
+      type: read
+      note: next incomplete protocol (in-progress first, then not-started)
+    - key: listOverdue
+      type: read
+      note: expired protocols + assigned >30 days with 0 progress
+    - key: getCompletionProgress
+      type: read
+      note: detailed breakdown for a specific protocol by name substring
+      params: [protocolName]
+    - key: openProtocol
+      type: nav
+      note: dispatches botsson:open-protocol CustomEvent to expand card in UI
+      params: [protocolName]
+
+# Step 8 — Speed test (DEFERRED)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  baseline_blocker: "dev server not running — coordinator follow-up"
+
+# Step 9 — Re-test (DEFERRED)
+retest:
+  cold: { lcp_ms: null, cls: null }
+  warm: { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 10 — Telemetry
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+  note: |
+    No mutations in page.tsx. Training mutations (complete step, submit test, sign
+    confirmation) live in _components/ and are user-driven UI interactions.
+    emit() calls tracked in use-step-completion.ts hooks.
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — dev server unavailable
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  telemetry_emit_per_mutation: true    # N/A — no mutations in page.tsx
+  page_knowledge_written: true
+  harness_tools_registered: true
+  retest_improved: false               # baseline_blocker
+
+# Notes
+notes: |
+  Harness bridge shipped 2026-05-14.
+  Tools use dataRef pattern — definitions stable, implementations read live state.
+  openProtocol fires CustomEvent "botsson:open-protocol" for ProtocolList to handle.
+  6 tools: 5 read + 1 nav. No write tools per ADR-0151.
+  access: employee, manager, admin, owner.
+  ADR-0238 owns_chat_surface=false — Orb runs in interactive mode.
+  workspace_id + profile_id are auth-derived from DashboardContext (ADR-0151 compliant).

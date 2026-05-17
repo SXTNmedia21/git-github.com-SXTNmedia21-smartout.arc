@@ -1,7 +1,7 @@
 ---
 title: "Botsson Harness v2 — Scope Split (v2-a / v2-b / v2-c)"
 id: ADR-0206
-status: Accepted
+status: accepted
 layer: decision
 module: botsson-arena
 created: 2026-04-24

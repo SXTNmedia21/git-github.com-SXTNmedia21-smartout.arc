@@ -1,0 +1,48 @@
+# Page Polish Run — /dashboard/contracts/awaiting-my-signature
+
+route: /dashboard/contracts/awaiting-my-signature
+status: done
+verified: true
+started_at: 2026-05-14T18:30:00+02:00
+verified_at: 2026-05-14T18:30:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/contracts/awaiting-my-signature
+  components_count: 3 # page.tsx (server) + use-tools + bridge (client island)
+
+architecture:
+  entry: apps/web/src/app/dashboard/contracts/awaiting-my-signature/page.tsx
+  rendering: Server Component
+  data_source: supabase.contract + employment_contract join, filtered to sender_email = auth user's email + signed_by_employer_at IS NULL
+  client_bridge:
+    - apps/web/src/app/dashboard/contracts/awaiting-my-signature/_tools/use-awaiting-signature-tools.ts
+    - apps/web/src/app/dashboard/contracts/awaiting-my-signature/_tools/awaiting-signature-tools-bridge.tsx
+  signing_target: /sign/<signing_url> (DocuSeal embed)
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 3
+  scope: contracts-awaiting-signature
+  registered_tools:
+    - { key: getAwaitingSignatureCount, type: read }
+    - { key: listAwaitingSignatureContracts, type: read, note: includes employeeSignedAt + canSignNow flags }
+    - { key: openContractForSigning, type: nav, note: routes to /sign/<signing_url> }
+
+telemetry:
+  emit_in_route: 0 # signing telemetry lives in /sign flow + DocuSeal webhook
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Server-component host with client-island bridge — pattern for read-only
+  server-rendered pages that need to register tools. Data shape serialized
+  to client via AwaitingSignatureRow.
+  access: manager + admin + owner. ADR-0238 owns_chat_surface=false.

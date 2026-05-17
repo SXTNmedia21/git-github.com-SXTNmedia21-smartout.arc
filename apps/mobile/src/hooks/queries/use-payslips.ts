@@ -141,11 +141,15 @@ export function usePayslips() {
 /**
  * Hook: returns the calculation detail (line items) for a specific payroll period.
  * Only fetches when the user opens a specific payslip — avoids loading all line data.
+ *
+ * `periodId` accepts null so callers don't have to mint an empty-string
+ * fallback (ADR-0134 / L-0083). The query is gated by `enabled: !!periodId`.
  */
-export function usePayslipDetail(periodId: string) {
+export function usePayslipDetail(periodId: string | null) {
   return useQuery<PayslipDetailResult>({
     queryKey: ["payslip-detail", periodId],
-    queryFn: () => fetchPayslipDetail(periodId),
+    // Safe cast: queryFn only runs when `enabled` is true (i.e. periodId is truthy).
+    queryFn: () => fetchPayslipDetail(periodId as string),
     staleTime: STALE_TIME_MS,
     retry: 1,
     enabled: !!periodId,

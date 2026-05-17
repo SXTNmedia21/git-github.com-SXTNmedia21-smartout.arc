@@ -1,0 +1,53 @@
+# Page Polish Run — /dashboard/hms/deviations
+
+route: /dashboard/hms/deviations
+status: done
+verified: true
+started_at: 2026-05-14T18:00:00+02:00
+verified_at: 2026-05-14T18:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/hms/deviations
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/hms/deviations/page.tsx
+  data_hook: apps/web/src/app/dashboard/hms/_hooks/use-deviations.ts
+  tools:
+    - apps/web/src/app/dashboard/hms/deviations/_tools/use-hms-deviations-tools.ts
+    - apps/web/src/app/dashboard/hms/deviations/_tools/hms-deviations-tools-bridge.tsx
+  admin_split:
+    admin: kanban|list of all deviations + DeviationDetailDrawer
+    employee: DeviationForm (single create surface)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+harness_tools_current:
+  count: 5
+  scope: hms-deviations
+  registered_tools:
+    - { key: getDeviationsOverview, type: read, note: counts by status + severity + day-blocking }
+    - { key: listOpenDeviations, type: read, note: open|acknowledged|escalated filter }
+    - { key: getDeviationDetail, type: read, note: by deviationId UUID param }
+    - { key: setDeviationsViewMode, type: write-view, note: kanban|list, admin-only }
+    - { key: openDeviationDetail, type: write-view, note: opens drawer, admin-only }
+
+telemetry:
+  emit_in_route: 0 # mutations live in DeviationForm + DeviationDetailDrawer, not page
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Admin/employee bifurcation handled in tools — non-admin reports mode=form,
+  list/detail tools error out admin-only on employee mode.
+  access: employee + manager + admin + owner. ADR-0238 owns_chat_surface=false.
+  ADR-0151: workspace_id/profile_id from useDeviations (auth-derived).

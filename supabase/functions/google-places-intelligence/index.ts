@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const FIELD_MASK = [
   "places.displayName",
@@ -34,6 +35,14 @@ interface PlacesResult {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
+  // Called EF-to-EF from gather-workspace-intelligence (already service-role signed).
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    console.warn("[google-places-intelligence] auth_failure: missing or invalid bearer");
+    return authResult.response;
   }
 
   try {
@@ -132,15 +141,12 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (error: unknown) {
-    console.error("[places] Error:", error);
+    // Log full detail server-side, return opaque body with HTTP 500 (F-EF-08).
+    // Previously returned HTTP 200 with internal exception detail — misleading to monitors.
+    console.error("[places] unhandled exception:", error);
     return new Response(
-      JSON.stringify({
-        success: true,
-        data: null,
-        reason: "exception",
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      JSON.stringify({ success: false, error: "internal" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
     );
   }
 });

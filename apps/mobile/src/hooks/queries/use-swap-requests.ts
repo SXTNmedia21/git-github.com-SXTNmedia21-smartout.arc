@@ -22,7 +22,12 @@ export type SwapContext = {
 
 export type SwapRequest = {
   id: string;
-  workspace_id: string;
+  /**
+   * Nullable to surface upstream identity gaps instead of hiding them with
+   * a forged empty string. ADR-0134 R5.2-3 / L-0083. Downstream consumers
+   * must handle `null` explicitly when reading this field.
+   */
+  workspace_id: string | null;
   engineStatus: string;
   context: SwapContext;
   created_at: string;
@@ -51,7 +56,9 @@ async function fetchSwapRequests(profileId: string): Promise<SwapRequest[]> {
     })
     .map((row) => ({
       id: row.id,
-      workspace_id: row.workspace_id ?? "",
+      // Preserve `null` rather than minting a forged empty string —
+      // ADR-0134 / L-0083. Downstream consumers handle null explicitly.
+      workspace_id: row.workspace_id ?? null,
       engineStatus: row.status,
       context: row.context as unknown as SwapContext,
       created_at: row.started_at,

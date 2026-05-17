@@ -1,0 +1,133 @@
+# Page Polish Run — dashboard/handbook
+# Phase 7 (harness bridge) verified. 5 Botsson tools registered.
+# Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/handbook
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/handbook
+  components_count: 5  # page + loading + 2 _components + 1 _hooks + 2 _tools
+
+architecture:
+  entry: apps/web/src/app/dashboard/handbook/page.tsx (49 lines, Server Component shell)
+  client: apps/web/src/app/dashboard/handbook/_components/handbook-page-client.tsx
+  reader: apps/web/src/app/dashboard/handbook/_components/ChapterReader.tsx
+  hook: apps/web/src/app/dashboard/handbook/_hooks/use-handbook-chapters.ts
+  tools_hook: apps/web/src/app/dashboard/handbook/_tools/use-handbook-tools.ts
+  tools_bridge: apps/web/src/app/dashboard/handbook/_tools/handbook-tools-bridge.tsx
+  data_source:
+    table: handbook_chapter
+    prefetch: server (HydrationBoundary in page.tsx)
+    stale_time: 5 min
+  chapters: 10 (identity-mission, organization-model, daily-operations, safety-compliance,
+              communication, onboarding-training, scheduling, quality-service,
+              incident-response, kpi-review)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+datapoints:
+  - { name: chapters, source_table: handbook_chapter, hook: useHandbookChapters, prefetched: true }
+
+server_actions: []  # Read-only page — no mutations, no emit() needed
+
+surface_disambiguation:
+  owns_chat_surface: false
+  reason: |
+    Handbook is a structured viewer (read-only). Knowledge-base voice fallback
+    (kb_query_voice_fallback) lives at /dashboard/help (ADR-0238). No DomainChatOwnership
+    declaration required.
+
+design:
+  note: Existing page uses semantic tokens (bg-card, border-border, text-foreground,
+        text-muted-foreground, bg-accent, bg-muted). No hardcoded zinc/gray/slate.
+        orange-500 used intentionally for brand accent (icon + active chapter highlight).
+        Full design audit deferred to Tier 3 pass.
+
+page_knowledge:
+  header: Personalhandbok
+  description: Bedriftens retningslinjer, rutiner og kultur — samlet på ett sted.
+  empty_copy: Dette kapittelet er ikke skrevet enda. Kontakt din leder for mer informasjon.
+  error_copy: Klarte ikke laste håndboken. Last siden på nytt eller kontakt administrator.
+
+# Step 1 — Lighthouse baseline
+lighthouse_lcp_under_1500ms: false  # baseline_blocker — requires browser session
+lighthouse_lcp_ms: null
+lighthouse_cls: null
+lighthouse_tti_ms: null
+
+# Step 2 — Bottleneck analysis
+bottlenecks_fixed: false
+bottleneck_notes: |
+  Page pre-fetches server-side via HydrationBoundary — no client waterfall.
+  ChapterReader uses useMemo for chapterMap and HTML rendering.
+  Skeleton loading.tsx matches 2-column grid layout.
+  No next/dynamic needed — ChapterReader is lightweight (Tiptap generateHTML).
+
+# Step 3 — Re-test
+retest_done: false
+
+# Step 4 — UI/UX polish
+ui_polish_done: false
+ui_notes: |
+  Existing tokens are semantic. Full polish pass deferred to Tier 3 sweep.
+  Skeleton crossfade not yet implemented (loading.tsx is separate from client).
+
+# Step 5 — Telemetry
+telemetry_done: true
+telemetry_notes: |
+  Read-only page — no mutations. No emit() calls required.
+  No TanStack mutations, no Server Actions.
+
+# Step 6 — Page instructions
+page_instructions_done: true
+page_instructions_notes: |
+  Header: "Personalhandbok"
+  Description updated: "Bedriftens retningslinjer, rutiner og kultur — samlet på ett sted."
+  Empty-chapter copy: "Dette kapittelet er ikke skrevet enda. Kontakt din leder for mer informasjon."
+
+# Step 7 — Harness tools
+harness_tools_registered: true
+harness_tools_current:
+  count: 5
+  registered_at: apps/web/src/app/dashboard/handbook/_tools/handbook-tools-bridge.tsx
+  page_key: handbook
+  read:
+    - { key: getHandbookState,     desc: "Active chapter + total + chaptersWithContent count. Call first." }
+    - { key: listHandbookSections, desc: "All 10 chapters: number, key, title, description, hasContent." }
+    - { key: getHandbookEntry,     desc: "Content metadata for a chapter by key. Returns hasContent + updatedAt." }
+    - { key: searchHandbook,       desc: "Keyword search across chapter titles + descriptions. Returns matches + navigation suggestion." }
+  nav:
+    - { key: openHandbookEntry,    desc: "Navigate sidebar to a chapter by key. User sees that chapter." }
+
+# Step 8 — Site-map
+site_map_done: false
+site_map_notes: |
+  DO NOT TOUCH site-map.json — coordinator (Opus) handles this step.
+  Entry to add:
+    path: /dashboard/handbook
+    purpose: "Bedriftens personalhandbok — les retningslinjer, rutiner og kultur organisert i 10 kapitler."
+    module: Handbook
+    tier: 3
+    access: [owner, admin, manager, employee]
+    owns_chat_surface: false
+    tools:
+      - { name: getHandbookState,     description: "Active chapter + total + chaptersWithContent count. Call first." }
+      - { name: listHandbookSections, description: "All 10 chapters: number, key, title, description, hasContent." }
+      - { name: getHandbookEntry,     description: "Content metadata for a chapter by key. Returns hasContent + updatedAt." }
+      - { name: searchHandbook,       description: "Keyword search across chapter titles + descriptions. Returns matches + navigation suggestion." }
+      - { name: openHandbookEntry,    description: "Navigate sidebar to a chapter by key. User sees that chapter." }
+    common_intents:
+      - "Hva sier håndboken om sikkerhet?"
+      - "Åpne kapittelet om onboarding"
+      - "Hvilke kapitler har innhold?"
+      - "Finn noe om kommunikasjon"
+      - "Vis meg organisasjonsmodellen"

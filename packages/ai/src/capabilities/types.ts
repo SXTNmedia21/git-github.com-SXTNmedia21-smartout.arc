@@ -12,6 +12,13 @@ import type {
 export type CapabilityName =
   | "knowledge"
   | "kb_query" // ADR-0221 — bound capability for intent='knowledge'
+  | "channel_admin" // ADR-0336 — channel admin tooling (mute/leave/invite/rename/archive/role)
+  | "channel_admin.mute_channel" // ADR-0336 — autonomous/employee: mute channel for self
+  | "channel_admin.leave_channel" // ADR-0336 — autonomous/employee: leave channel
+  | "channel_admin.invite_to_channel" // ADR-0336 — confirm/manager: invite workspace member
+  | "channel_admin.rename_channel" // ADR-0336 — confirm/admin: rename channel
+  | "channel_admin.archive_channel" // ADR-0336 — confirm/admin: archive channel
+  | "channel_admin.change_member_role" // ADR-0336 — confirm/admin: change member role
   | "schedule"
   | "training"
   | "operations"
@@ -81,7 +88,46 @@ export type CapabilityName =
    *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
    *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
    *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
-  | "onboarding"; // ADR-0275
+  | "onboarding" // ADR-0275
+  /** ADR-0305 — POS integration admin surface. V1 Lightspeed K-Series.
+   *  Three tools: connect_lightspeed (admin+, chat-only), disconnect (admin+, chat-only),
+   *  list_accounts (admin+, both channels). mutateWithGate on write tools.
+   *  Authority seeded in wfm_capability_authority_seed migration. */
+  | "pos_account_management" // ADR-0305
+  /** ADR-0306 — open-shift marketplace sidecar offer table. 5 tools:
+   *  list_open_offers (read_only, chat), post_open (suggest, manager+, chat-only),
+   *  claim (suggest, employee+, chat-only V1), approve_claim (suggest, manager+, chat-only V1),
+   *  cancel_offer (suggest, poster/manager, both channels).
+   *  Authority seeded in 20260611120100_wfm_capability_authority_seed.sql. */
+  | "shift_marketplace" // ADR-0306
+  /** ADR-0307 + ADR-0309 — Greedy constraint-solver scheduler (C3 sortie). 3 tools:
+   *  propose_plan (manager+, chat-only, web Compose), accept_proposal + reject_proposal
+   *  (manager+, chat-only, mobile Approve). Single-row bundle pattern per ADR-0309. */
+  | "scheduler" // ADR-0307 (C3 sortie)
+  /** ADR-0334 — Timeline Templates: Dagslinjen save+apply+archive. 4 tools:
+   *  save_template + apply_template + archive_template (confirm, manager+, chat-only),
+   *  list_templates (read_only, chat-only). emitPrefix='timeline_template'.
+   *  Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql. */
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of organizational handbook chapters.
+   *  (confirm, manager) per T0 scope verification. */
+  | "handbook_chapter" // backlog closure — ADR-0343
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of policy records (HR/HACCP/safety/etc).
+   *  (confirm, manager) per T0 scope verification. */
+  | "policy" // backlog closure — ADR-0343
+  /** ADR-0343 — governance content authority backlog closure.
+   *  Server-Action update of protocol records (training/compliance).
+   *  (confirm, manager) per T0 scope verification. */
+  | "protocol" // backlog closure — ADR-0343
+  | "timeline_template" // ADR-0334 (timeline-templates sortie)
+  /** ADR-0356 — Cascade-namespace delegation tools for cross-namespace writes (ADR-0173 frozen-4).
+   *  Two tools: bind_workspace_union (→ workspace_union_binding, ADR-0355),
+   *  add_supplement_rule (→ public.supplement_rule). Called by payroll Phase 7f tools;
+   *  NEVER invoked directly by users. chat-only, direct_admin. Both gates fire:
+   *  caller gate + cascade gate independently (ADR-0356 §"Gate convention").
+   *  Authority seeded in 20260618200000_cascade_capability_authority_seed.sql. */
+  | "cascade"; // ADR-0356
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

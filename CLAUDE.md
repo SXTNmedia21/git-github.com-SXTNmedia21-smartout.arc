@@ -156,6 +156,28 @@ smartout_v3/
 
 ---
 
+## Task Ontology (ADR-0298)
+
+Five sources, one read surface, one capability:
+
+| Source       | Table               | Cascade Role        | Actor                             |
+| ------------ | ------------------- | ------------------- | --------------------------------- |
+| `session`    | `session_task`      | D6 Production       | cron + manager + agent            |
+| `day_ad_hoc` | `schedule_day_task` | D6 Production       | manager                           |
+| `personal`   | `personal_task`     | C2 Agent-Utility    | user via agent                    |
+| `emma`       | `emma_task`         | C2 Agent-Utility    | Botsson auto                      |
+| `runtime`    | `engine_state_step` | C2 Workflow Runtime | engine-dispatch (NEVER user-task) |
+
+- **Read:** `fn_list_my_tasks` RPC unions 4 sources (engine_state_step excluded per R2).
+- **Write:** `task` capability — 6 tools (`list_mine`, `create_personal`, `create_session`, `create_day_ad_hoc`, `complete`, `cancel_personal`).
+- **Channel:** chat + voice for `list_mine` + `complete`. Chat-only V1 on `create_*` + `cancel_personal` (R6, PII risk).
+- **Voice surface:** `services/voice-agent/src/tools-task.ts` mirrors capability (6 typed thin tools).
+- **BFF route (mobile):** `/api/mobile/tasks/[id]/complete` (POST) + `/api/mobile/tasks/personal` (POST).
+- **Server Action (web):** `addTaskAction` + `completeSessionTaskAction` (delegate to task tools).
+- Do NOT use `operations.complete_task` — superseded by `task.complete` (Sortie 5b 2026-05-13).
+
+---
+
 ## Cascade Core Model
 
 **Cascade model:** See `smartout-cascade-developer` skill (auto-triggered on cascade/scheduling work). Spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`. Canonical model: **I1 + 6D + 4C + K1a/K1b**. "Confident != Authorized" — C1 determines belief, C4 determines permission.

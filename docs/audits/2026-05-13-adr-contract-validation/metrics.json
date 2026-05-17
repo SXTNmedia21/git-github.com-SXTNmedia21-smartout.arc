@@ -1,0 +1,68 @@
+{
+  "date": "2026-05-13",
+  "mode": "full",
+  "run_id": "2026-05-13-adr-contract-validation",
+  "baseline": "2026-05-10-adr-contract-validation",
+  "totals": {
+    "critical": 3,
+    "high": 40,
+    "medium": 26,
+    "low": 20,
+    "info": 0,
+    "deduped_total": 89
+  },
+  "delta": {
+    "new_critical": 3,
+    "new_high": 22,
+    "regressed": 4,
+    "closed": 7,
+    "unchanged_open": 18
+  },
+  "by_theme": {
+    "rls_hardening": { "critical": 1, "high": 3, "worst": "department_session.sql:65-73" },
+    "onboarding_rot": { "critical": 1, "high": 2, "worst": "apps/web/src/app/onboarding/hooks/useOnboardingState.ts" },
+    "voice_pii_boundary": { "critical": 1, "high": 2, "worst": "packages/ai/src/capabilities/legal/index.ts:57" },
+    "adr_0204_d6_governance": { "critical": 0, "high": 15, "worst": "EventDetailPanel.tsx:299,319" },
+    "auth_perimeter_ef": { "critical": 0, "high": 3, "medium": 2, "worst": "supabase/functions/gather-workspace-intelligence/" },
+    "adr_0151_workspace_derivation": { "critical": 0, "high": 3, "worst": "apps/mobile/src/app/(me)/contract/complete-data.tsx:86" },
+    "adr_drift_hygiene": { "critical": 0, "high": 2, "medium": 5, "worst": "ADR-0287 enforcement not shipped" },
+    "telemetry_emit": { "critical": 0, "high": 1, "medium": 3, "worst": "journey-authoring/tools.ts (no emit)" },
+    "mobile_l0083": { "critical": 0, "high": 3, "medium": 0, "worst": "ShiftClockView.tsx:240-243" },
+    "webhook_idempotency": { "critical": 0, "high": 1, "medium": 2, "worst": "call_log UNIQUE missing" },
+    "missions_e2e_gap": { "critical": 0, "high": 1, "medium": 2, "worst": "0/7 missions have E2E" },
+    "i18n_adoption": { "critical": 0, "high": 0, "medium": 3, "worst": "15% i18n adoption, 38 hardcoded toasts" },
+    "performance_design": { "critical": 0, "high": 2, "medium": 3, "worst": "perf-budgets.json no CI ref" }
+  },
+  "coverage": {
+    "slices_run": [
+      "capability-tools", "stage-engine-bff", "edge-functions",
+      "schedule-cascade", "mobile-surface", "contracts-payroll-lovsen",
+      "db-rls-telemetry", "journeys", "adr-coverage-gaps",
+      "onboarding-wizard", "performance-design", "i18n-frontmatter",
+      "webhook-integration", "missions-e2e"
+    ],
+    "slices_skipped": [],
+    "files_uncovered": []
+  },
+  "specialist_effectiveness": {
+    "capability-tools": { "findings": 5, "false_positives_filtered": 2 },
+    "stage-engine-bff": { "findings": 2, "false_positives_filtered": 1 },
+    "edge-functions": { "findings": 5, "false_positives_filtered": 1 },
+    "schedule-cascade": { "findings": 16, "false_positives_filtered": 2 },
+    "mobile-surface": { "findings": 9, "false_positives_filtered": 0 },
+    "contracts-payroll-lovsen": { "findings": 10, "false_positives_filtered": 3 },
+    "db-rls-telemetry": { "findings": 13, "false_positives_filtered": 0 },
+    "journeys": { "findings": 4, "false_positives_filtered": 0 },
+    "adr-coverage-gaps": { "findings": 7, "false_positives_filtered": 0 },
+    "onboarding-wizard": { "findings": 5, "false_positives_filtered": 0 },
+    "performance-design": { "findings": 7, "false_positives_filtered": 0 },
+    "i18n-frontmatter": { "findings": 3, "false_positives_filtered": 1 },
+    "webhook-integration": { "findings": 6, "false_positives_filtered": 0 },
+    "missions-e2e": { "findings": 7, "false_positives_filtered": 0 }
+  },
+  "sla_status": {
+    "critical_breaches_7d": 0,
+    "high_breaches_30d": 0,
+    "note": "all 3 CRITICALs are NEW (first appearance 2026-05-13). SLA clock starts today."
+  }
+}

@@ -26,6 +26,7 @@ import { useOperationsData } from "./_hooks/use-operations-data";
 import type { StressLabel } from "./_hooks/use-operations-data";
 import { DeviationDialog } from "./_components/DeviationDialog";
 import { DepartmentBreakdown } from "./_components/DepartmentBreakdown";
+import { OperationsToolsBridge } from "./_tools/operations-tools-bridge";
 import { formatDistanceToNow } from "date-fns";
 import { nb, enUS } from "date-fns/locale";
 
@@ -115,6 +116,7 @@ export default function OperationsPage() {
 
   return (
     <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
+      <OperationsToolsBridge data={data} showDeptBreakdown={showDeptBreakdown} deptMetrics={[]} />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="font-heading text-foreground mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight">

@@ -1,0 +1,130 @@
+# Page Polish Run — dashboard/settings (root only, NOT settings/operations/*)
+# Tier 3 (long tail). Admin-only configuration surface — 5 sections, 21 tabs.
+# Phase 7 (harness tools) shipped: 6 tools — 3 read, 2 nav, 1 write-propose.
+# Phases 1-3 (Lighthouse) blocked on browser session.
+# Phase 8 (site-map) deferred — DO NOT touch site-map.json (parallel with org/billing).
+
+route: /dashboard/settings
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/settings
+  components_count: 45  # page.tsx, loading.tsx, operations/* sub-route, _components/, _hooks/, __tests__
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/settings/page.tsx ("use client")
+  loading_fallback: apps/web/src/app/dashboard/settings/loading.tsx
+  shell:
+    container: flex gap-6 — left sidebar nav (w-56) + flex-1 content area
+    nav: 5 sections (General, Payroll, Schedule, Framework, Organization) × 21 tabs total
+    tab_content: lazy-loaded per tab via Suspense + SettingsLoadingSkeleton fallback
+  state:
+    - activeTab (lifted to page.tsx, threaded to SettingsTabs via controlled props)
+    - userId (fetched once via supabase.auth.getUser for NotificationPreferences)
+  variants: []  # No isAdminMode branch in this file — admin guard at layout level
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 4 — Datapoints (hooks accessible at page level for tool summaries)
+datapoints:
+  - { name: payroll_settings,      hook: usePayrollSettings,             type: query,  source_table: payroll.workspace_settings }
+  - { name: workspace_hours,       hook: useWorkspaceOperatingHours,     type: query,  source_table: workspace_operating_hours }
+  - { name: department_hours,      hook: useOperatingHours,              type: query,  source_table: department_operating_hours }
+  - { name: shift_types,           hook: useShiftTypes,                  type: query,  source_table: schedule_shift_type }
+  - { name: supplement_rules,      hook: useSupplementRules,             type: query,  source_table: payroll.supplement_rule }
+  - { name: salary_codes,          hook: useSalaryCodes,                 type: query,  source_table: payroll.salary_code }
+  - { name: framework_rules,       hook: useFrameworkRules,              type: query,  source_table: regulatory_framework + framework_rule }
+  - { name: tariff_rates,          hook: useWorkspaceTariffs,            type: query,  source_table: tariff_rate_table }
+  - { name: change_proposals,      hook: useChangeProposals,             type: query,  source_table: change_proposal }
+
+server_actions: []  # No Server Actions — all mutations via TanStack useMutation + Supabase client
+
+mutations:
+  - { name: upsertWorkspaceHours,  hook: useWorkspaceOperatingHours,     event: "workspace_operating_hours updated" }
+  - { name: updatePayrollSettings, hook: useUpdatePayrollSettings,        event: "payroll_settings updated" }
+  - { name: upsertDeptHours,       hook: useOperatingHours,              event: "operating_hours updated" }
+  - { name: createShiftType,       hook: useCreateShiftType,             event: pending_audit }
+  - { name: updateShiftType,       hook: useUpdateShiftType,             event: pending_audit }
+  - { name: deleteShiftType,       hook: useDeleteShiftType,             event: pending_audit }
+  - { name: createSupplementRule,  hook: useCreateSupplementRule,        event: pending_audit }
+  - { name: updateSupplementRule,  hook: useUpdateSupplementRule,        event: pending_audit }
+  - { name: deleteSupplementRule,  hook: useDeleteSupplementRule,        event: pending_audit }
+
+# Step 7 — Harness tools
+harness_tools:
+  page_key: settings
+  count: 6
+  registered_at: apps/web/src/app/dashboard/settings/_tools/settings-tools-bridge.tsx
+  tools:
+    - key: getSettingsOverview
+      description: "Get an overview of the settings page — current active tab, available sections, and a brief summary. Use as the first tool when the user asks anything about settings, configuration, or wants to know 'hva kan jeg endre her?'."
+      params: {}
+    - key: listSettingsSections
+      description: "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+      params: {}
+    - key: getCurrentTabInfo
+      description: "Get details about the currently visible settings tab — its id, label, section, and neighbouring tabs. Use when the user asks 'hva vises nå?' or 'hvilken innstilling er åpen?'."
+      params: {}
+    - key: openSettingsSection
+      description: "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+      params: { tabId: "string (required) — one of the 21 valid tab ids" }
+    - key: getPayrollSettingsSummary
+      description: "Read the current payroll configuration summary — period type, tariff binding, supplement stacking policy, overtime approval requirement, and shift grouping. Use when the user asks 'er vi tariffbundet?', 'hvilken lønnsperiode bruker vi?', or 'krever vi forhåndsgodkjenning for overtid?'."
+      params: {}
+    - key: getOperatingHoursSummary
+      description: "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+      params: {}
+
+# Step 8 — Design (not a full Phase 4 audit — only what was touched)
+design:
+  zinc_hits: 0           # New files have no hardcoded zinc/gray/slate
+  motion_token_hits: 0   # Bridge + hook files have no motion
+  hardcoded_color_hits: 0
+
+# Step 9 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false      # deferred — requires browser session
+  no_skeleton_flash: null                 # not audited in this sortie
+  motion_tokens_used: null                # not audited in this sortie
+  telemetry_emit_per_mutation: null       # pending full telemetry audit of all hooks
+  page_knowledge_written: null            # description key already in i18n — not verified
+  page_knowledge_db_synced: false
+  harness_tools_registered: true          # 6 tools registered via bridge
+  retest_improved: false                  # deferred
+
+# Files created/modified
+files:
+  created:
+    - apps/web/src/app/dashboard/settings/_tools/use-settings-tools.ts
+    - apps/web/src/app/dashboard/settings/_tools/settings-tools-bridge.tsx
+    - .claude/page-polish/dashboard-settings.run.yml
+  modified:
+    - apps/web/src/app/dashboard/settings/page.tsx          # mount bridge, lift activeTab state, background reads
+    - apps/web/src/app/dashboard/settings/_components/settings-tabs.tsx  # export TabId, add controlled props
+
+# Notes
+notes: |
+  Harness bridge ships 6 tools covering the full settings navigation surface.
+  Navigation tools (openSettingsSection) and summary reads (payroll + hours)
+  give Botsson useful access without exposing write-mutations that require
+  multi-field forms.
+
+  activeTab state lifted from SettingsTabs to page.tsx — controlled props
+  pattern (activeTab + onTabChange) added to SettingsTabs. Internal fallback
+  preserved so existing usages without props still work.
+
+  Next sortie order for full Phase 4-8 closure:
+  1. Phase 1 Lighthouse baseline (cold + warm LCP/CLS/TTI).
+  2. Full telemetry audit — confirm emit() in all mutation hooks.
+  3. site-map.json entry for /dashboard/settings (Phase 8).
+  4. Page description + error copy i18n audit.

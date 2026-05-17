@@ -1,4 +1,10 @@
 {
+  "send": {
+    "errors": {
+      "invalid_pdf_gate": "PDF-forhåndsvisning må være et gyldig tidspunkt i fortiden",
+      "pdf_gate_not_persisted": "PDF-bekreftelsen kunne ikke lagres. Prøv igjen."
+    }
+  },
   "page": {
     "title": "Kontrakter",
     "description": "Se status, send for signering, og la Botsson hjelpe deg å lage nye.",

@@ -122,6 +122,7 @@ Most module docs migrated to architecture/ + decisions/. Three remain:
 | id                  | File                                                     | Status     |
 | ------------------- | -------------------------------------------------------- | ---------- |
 | ARCH_BOTSSON_MAP    | architecture/BOTSSON-SYSTEM-MAP.md                       | canonical  |
+| ARCH_BOTSSON_SOUL   | architecture/BOTSSON_SOUL_ARCHITECTURE.md                | draft      |
 | ARCH_HARNESS        | architecture/HARNESS-ARCHITECTURE.md                     | in_progress |
 | ARCH_STAGE_ENGINE   | architecture/STAGE-ENGINE.md                             | in_progress |
 | ARCH_INVARIANTS     | architecture/INVARIANTS.md                               | canonical  |

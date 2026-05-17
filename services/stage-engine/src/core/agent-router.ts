@@ -6,7 +6,7 @@
 // Connected to: src/core/authority.ts (workspace authority config)
 // ============================================
 
-import { generateText, stepCountIs, type ToolSet } from "ai";
+import { generateText, stepCountIs, tool, jsonSchema, type ToolSet } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
@@ -41,6 +41,10 @@ import type { MissionProtocolMessage } from "@smartout/types";
 import { getSecrets } from "../secrets.js";
 import { baseLogger } from "../lib/logger.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
+import type { ToolBundle } from "@smartout/ai/harness/types";
+import type { ClientToolCall } from "@smartout/ai/harness/types";
+import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 /**
  * SMA-301 diagnostic — extracts upstream provider error context from
@@ -277,6 +281,28 @@ type AgentRouterInput = {
    *  Rendered as `## Arbeidsstokk` system-prompt block so Botsson knows employees,
    *  today/tomorrow shifts, active absences, today's sessions without tool-calls. */
   workforceContext?: WorkforceContext;
+  /**
+   * ADR-0327 Phase 3.5 — HarnessAdapter bundle from resolveChatTools.
+   *
+   * When present, bundle.definitions are converted to Vercel AI SDK tools and
+   * merged into `vercelTools` before the LLM call. Client-tool-wins on name
+   * collision (bundle tools override capability tools of the same name).
+   *
+   * When absent: behavior unchanged — only selectTools capability tools used.
+   */
+  bundle?: ToolBundle;
+  /**
+   * Names of tools that originated from the client side (browser-shipped,
+   * execute in the browser rather than on the server). Subset of
+   * bundle.definitions.map(d => d.temporaryTool.modelToolName).
+   *
+   * When the LLM picks one of these tools, stage-engine does NOT execute
+   * the stub. Instead it captures the call as a ClientToolCall and returns
+   * it in the response for the browser to execute (roundtrip protocol).
+   *
+   * Absent when bundle is absent.
+   */
+  clientToolNames?: Set<string>;
 };
 
 /**
@@ -305,6 +331,8 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     workspaceContext,
     routeContext,
     workforceContext,
+    bundle,
+    clientToolNames,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -328,6 +356,50 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     });
   } catch {
     // Recorder must never throw into the primary path.
+  }
+
+  // ADR-0327 Phase 3 + ADR-0184 — authority audit for HarnessAdapter bundles.
+  // When bundle is present and authority filtering blocked tools, emit a telemetry
+  // event so the authority decision lands in activity_trail + PostHog. Without
+  // this, blocked tools are a black hole: the LLM simply never sees them and
+  // there is no audit record of WHY.
+  // Fire-and-forget: telemetry failure must not break the primary chat path.
+  if (bundle?.authority?.blockedTools && bundle.authority.blockedTools.length > 0) {
+    void emit({
+      event: "botsson.authority_filtered",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        entity: { entity_type: "agent_session", entity_id: sessionId },
+        data: {
+          session_id: sessionId,
+          channel: (channel ?? "chat") as "chat" | "voice",
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
+
+    // Also record to session recorder (ADR-0184 replay support).
+    try {
+      getRecorder()?.recordTurn({
+        sessionId,
+        workspaceId,
+        profileId,
+        turnKind: "agent_response",
+        phase: "authority_filtered",
+        content: {
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      });
+    } catch {
+      // Recorder must never throw into the primary path.
+    }
   }
 
   // Step 2: Classify intent
@@ -551,6 +623,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     finalSystemPrompt += `\n\n${renderWorkforceSlice(workforceContext)}`;
   }
 
+  // Inject HarnessAdapter system prompt slices (ADR-0327 Phase 3).
+  // When bundle is present (HARNESS_ADAPTER_CHAT=true path), append
+  // per-page-scope system prompts to give the LLM page-context
+  // alongside the tool definitions. Position: last — page-specific
+  // context receives highest LLM attention weight.
+  if (bundle?.systemPromptSlices && bundle.systemPromptSlices.length > 0) {
+    finalSystemPrompt = finalSystemPrompt + "\n\n" + bundle.systemPromptSlices.join("\n\n");
+  }
+
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
   let augmentedMessage = message;
@@ -599,6 +680,84 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
+  // ADR-0327 Phase 3.5 — merge bundle tools from HarnessAdapter into vercelTools.
+  //
+  // Bundle tools come from the client (browser-shipped page-scope tools) and from
+  // the capability layer via the harness. They carry JSON-schema parameters
+  // (not Zod), so we build them with jsonSchema() + tool() directly.
+  //
+  // Merge policy: client-tool-wins on name collision. If a bundle tool shares a
+  // name with a capability tool in vercelTools, the bundle version replaces it.
+  // This is defense-in-depth: the resolver already applied client-tool-wins, but
+  // if the same name ends up in both sets, the bundle takes precedence here too.
+  //
+  // Client tools (names in clientToolNames set) get a stub execute that returns
+  // the placeholder string. Stage-engine detects these tool calls AFTER generateText
+  // and includes them in client_tool_calls rather than executing the stub.
+  const mergedTools: ToolSet = { ...vercelTools };
+
+  if (bundle !== undefined) {
+    for (const def of bundle.definitions) {
+      const toolName = def.temporaryTool.modelToolName;
+
+      // Build a JSON Schema object from the tool's dynamicParameters.
+      // Each parameter maps to a property; required list is derived from
+      // those that have required=true (or required not explicitly false).
+      // Build a JSON Schema object for this tool's parameters.
+      // ClientToolParameter.schema.type is a plain string while JSONSchema7TypeName
+      // is a string literal union. We cast through unknown to satisfy the strict
+      // @ai-sdk/provider JSONSchema7 type at the jsonSchema() call site below.
+      const properties: Record<string, Record<string, unknown>> = {};
+      const required: string[] = [];
+
+      for (const param of def.temporaryTool.dynamicParameters) {
+        properties[param.name] = { ...param.schema, description: param.description };
+        if (param.required !== false) {
+          required.push(param.name);
+        }
+      }
+
+      const paramSchemaRaw: Record<string, unknown> = { type: "object", properties };
+      if (required.length > 0) {
+        paramSchemaRaw["required"] = required;
+      }
+
+      const isClientTool = clientToolNames?.has(toolName) ?? false;
+
+      // Live smoke 2026-05-15 found: bundle.implementations holds STUBS from
+      // capabilities-source.ts (Phase 1+2 design — "Tool X requires agent
+      // context — wire via Phase 3 consumer adapter"). Phase 3 was supposed
+      // to replace these but never did. Real capability impls live in
+      // vercelTools (line 681) with proper toolContext (workspaceId,
+      // profileId, supabase clients, etc.).
+      //
+      // For capability tools: KEEP the existing vercelTools entry. Only
+      // overwrite mergedTools[toolName] for CLIENT tools (browser-shipped).
+      // Capability tools that don't exist in vercelTools (because they
+      // weren't selected by intent classifier) get skipped — LLM won't
+      // see them anyway since intent-based filtering already happened.
+      if (!isClientTool) {
+        // Capability tool — vercelTools already provided a real impl with
+        // toolContext. Don't overwrite. If vercelTools didn't have it,
+        // don't manufacture a stub.
+        continue;
+      }
+
+      mergedTools[toolName] = tool({
+        description: def.temporaryTool.description,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inputSchema: jsonSchema<Record<string, unknown>>(paramSchemaRaw as any),
+        // Client tools execute in the browser, not here. The stub is never
+        // invoked in the normal path — stage-engine intercepts the call before
+        // executing (see client_tool_calls detection below). The stub exists
+        // only as a fallback if detection logic is bypassed.
+        execute: async (_params: Record<string, unknown>): Promise<string> => {
+          return "client-side tool — not directly invokable from stage-engine";
+        },
+      });
+    }
+  }
+
   // ADR-0184 — record llm_request BEFORE and llm_response AFTER generateText
   // with latency_ms in meta for replay / debug. Model string is recorded at
   // request-time so an LLM rotation mid-turn is visible in the trace.
@@ -613,7 +772,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
       content: {
         systemPrompt: finalSystemPrompt,
         messages,
-        toolCount: selectedTools.length,
+        toolCount: Object.keys(mergedTools).length,
       },
       meta: { model: llmModel },
     });
@@ -633,10 +792,10 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
       sessionId,
       workspaceId,
       capability: intent.capability,
-      toolCount: Object.keys(vercelTools).length,
-      toolNames: Object.keys(vercelTools),
+      toolCount: Object.keys(mergedTools).length,
+      toolNames: Object.keys(mergedTools),
       // Full shape only at debug level to keep prod logs lean.
-      vercelToolsKeys: Object.entries(vercelTools).map(([name, t]) => ({
+      vercelToolsKeys: Object.entries(mergedTools).map(([name, t]) => ({
         name,
         hasInputSchema: typeof (t as { inputSchema?: unknown }).inputSchema !== "undefined",
         type: (t as { type?: unknown }).type,
@@ -655,7 +814,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
         model: getOpenRouter()(llmModel),
         system: finalSystemPrompt,
         messages,
-        tools: vercelTools as ToolSet,
+        tools: mergedTools,
         stopWhen: stepCountIs(5),
       });
     } catch (err) {
@@ -674,8 +833,8 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
           sessionId,
           workspaceId,
           capability: intent.capability,
-          toolCount: Object.keys(vercelTools).length,
-          toolNames: Object.keys(vercelTools),
+          toolCount: Object.keys(mergedTools).length,
+          toolNames: Object.keys(mergedTools),
           provider: dumpProviderError(err),
         },
         "sma-301:generateText.error",
@@ -711,8 +870,43 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     // Recorder must never throw into the primary path.
   }
 
+  // ADR-0327 Phase 3.5 — client-tool roundtrip detection.
+  //
+  // After generateText, inspect toolCalls from all steps to find any calls that
+  // targeted a client-shipped tool (name in clientToolNames). When found:
+  //   - Build ClientToolCall entries for the browser to execute.
+  //   - Return them in client_tool_calls (BFF forwards to browser).
+  //   - The LLM run has already paused (stepCountIs stopped it after 5 steps or
+  //     the LLM produced a final text response — either way we surface what was called).
+  //
+  // MVP (single-round): if client tool calls are present, they are included in
+  // the response alongside any text the LLM produced. The browser executes them,
+  // then sends a NEW request with client_tool_results so stage-engine can
+  // seed them into conversation history and complete the LLM turn.
+  //
+  // We scan result.toolCalls (last-step calls) and result.steps (all step calls)
+  // to capture calls that may have happened in intermediate steps.
+  const detectedClientToolCalls: ClientToolCall[] = [];
+
+  if (clientToolNames !== undefined && clientToolNames.size > 0) {
+    // result.steps contains per-step data including toolCalls per step.
+    // result.toolCalls is the last step only. Scanning steps covers all.
+    for (const step of result.steps) {
+      for (const call of step.toolCalls) {
+        const name = call.toolName;
+        if (clientToolNames.has(name)) {
+          detectedClientToolCalls.push({
+            tool_call_id: call.toolCallId,
+            name,
+            arguments: (call.input ?? {}) as Record<string, unknown>,
+          });
+        }
+      }
+    }
+  }
+
   // Step 7: Return response
-  return {
+  const chatResponse: AgentChatResponse = {
     session_id: sessionId,
     response: result.text,
     intent: {
@@ -720,4 +914,10 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
       confidence: intent.confidence,
     },
   };
+
+  if (detectedClientToolCalls.length > 0) {
+    chatResponse.client_tool_calls = detectedClientToolCalls;
+  }
+
+  return chatResponse;
 }

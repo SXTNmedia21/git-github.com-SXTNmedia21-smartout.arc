@@ -1,0 +1,57 @@
+# Page Polish Run — /dashboard/billing/settings
+
+route: /dashboard/billing/settings
+status: done
+verified: true
+started_at: 2026-05-14T18:50:00+02:00
+verified_at: 2026-05-14T18:50:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/billing/settings
+  components_count: 3 # page.tsx (server) + use-tools + bridge (client island)
+
+architecture:
+  entry: apps/web/src/app/dashboard/billing/settings/page.tsx
+  rendering: Server Component
+  data_sources:
+    - workspaces (admin-resolved via company_member)
+    - companyRow (ehf_enabled + peppol_participant_id)
+    - listDispatchRules platform + workspace scopes (Fase 2 B3)
+  client_bridge:
+    - apps/web/src/app/dashboard/billing/settings/_tools/use-billing-settings-tools.ts
+    - apps/web/src/app/dashboard/billing/settings/_tools/billing-settings-tools-bridge.tsx
+  child_components:
+    - WorkspaceDispatchRulesPanel (CRUD on workspace rules)
+    - DunningOptOutSection (per-workspace suppress toggle)
+    - EhfSettingsSection (ADR-0139 EHF/Peppol enablement)
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 4
+  scope: billing-settings
+  registered_tools:
+    - { key: getBillingSettingsOverview, type: read, note: workspaces + EHF + opt-out + rule counts }
+    - { key: listDispatchRulesSnapshot, type: read, note: counts only — detail in panel }
+    - { key: listDunningOptOutWorkspaces, type: read }
+    - { key: getEhfStatus, type: read, adr: ADR-0139 }
+
+telemetry:
+  emit_in_route: 0 # child component server actions own emit
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Top-level page now eagerly resolves dispatch rules + EHF for the bridge.
+  DunningOptOutLoader Suspense child still does its own narrower query
+  (no breaking change); duplication is acceptable since the bridge snapshot
+  is computed-once-per-render.
+  access: admin + owner. ADR-0238 owns_chat_surface=false.

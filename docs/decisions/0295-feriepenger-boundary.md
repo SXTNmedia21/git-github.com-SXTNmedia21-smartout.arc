@@ -1,9 +1,10 @@
 ---
 id: ADR-0295
 title: "Feriepenger boundary — Smartout exposes basis, accountant computes accrual"
-status: proposed
+status: accepted
+accepted: 2026-05-13
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-15
 module: payroll
 tags: [payroll, feriepenger, lonnsgrunnlag, boundary, phase-3, phase-4]
 ---

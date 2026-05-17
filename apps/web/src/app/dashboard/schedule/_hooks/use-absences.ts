@@ -23,12 +23,13 @@ import { fromDbAbsence, toDbAbsenceInsert } from "./schedule-mappers";
 // Query: Fetch absences for a week
 // ══════════════════════════════════════════════════════════════
 
-export function useAbsences(weekStart: string, weekEnd: string) {
+export function useAbsences(weekStart: string, weekEnd: string, options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.absences(workspace.workspace_id, weekStart),
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile absence data
+    enabled: options?.enabled !== false,
     queryFn: async () => {
       const supabase = createClient();
 

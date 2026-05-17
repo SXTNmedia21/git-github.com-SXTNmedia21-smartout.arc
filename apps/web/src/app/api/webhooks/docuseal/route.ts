@@ -89,12 +89,16 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Find contract by DocuSeal submission ID
+  // Find contract by DocuSeal submission ID. F-WH-05: maybeSingle() pairs with
+  // the partial UNIQUE index on docuseal_submission_id (migration
+  // 20260616100500) so a retry against a non-existent submission_id returns
+  // 404 instead of throwing PGRST116, and duplicate rows are impossible
+  // post-migration.
   const { data: contract, error: findError } = await admin
     .from("contract")
     .select("contract_id, status, workspace_id, contract_type")
     .eq("docuseal_submission_id", String(data.submission_id))
-    .single();
+    .maybeSingle();
 
   if (findError || !contract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
@@ -173,7 +177,8 @@ export async function POST(request: NextRequest) {
           role: employerSigned ? "Leverandør" : "Kunde",
           partial: true,
         } as unknown as Json,
-        ip_address: request.headers.get("x-forwarded-for") ?? null,
+        ip_address:
+          request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? null,
       });
       return NextResponse.json({
         received: true,
@@ -214,7 +219,9 @@ export async function POST(request: NextRequest) {
     .eq("contract_id", contract.contract_id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // F-WH-01: Log full DB error server-side only — never expose raw PG error to caller.
+    console.error("[docuseal-webhook] contract update failed:", updateError);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
 
   // Log to contract_event (new immutable audit trail)
@@ -228,7 +235,7 @@ export async function POST(request: NextRequest) {
       submission_id: data.submission_id,
       new_status: newStatus,
     } as unknown as Json,
-    ip_address: request.headers.get("x-forwarded-for") ?? null,
+    ip_address: request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? null,
   });
 
   // Audit log (system action — sentinel UUID for system entries)

@@ -20,15 +20,18 @@ type TwilioCredentials = {
 };
 
 async function getTwilioCredentials(adminClient?: SupabaseClient): Promise<TwilioCredentials> {
-  // Try Vault first (production), fall back to env vars (local dev)
+  // SMS uses a dedicated sender (twilio_sms_from / TWILIO_SMS_FROM) because
+  // twilio_from_number may be a voice/SIP-only number that Twilio rejects for
+  // SMS dispatch. Voice path keeps using from_number; SMS prefers sms_from.
   if (adminClient) {
     try {
-      const [accountSid, authToken, fromNumber] = await Promise.all([
+      const [accountSid, authToken, smsFrom, fromNumber] = await Promise.all([
         getServiceKey(adminClient, "twilio_account_sid"),
         getServiceKey(adminClient, "twilio_auth_token"),
+        getServiceKey(adminClient, "twilio_sms_from").catch(() => ""),
         getServiceKey(adminClient, "twilio_from_number"),
       ]);
-      return { accountSid, authToken, fromNumber };
+      return { accountSid, authToken, fromNumber: smsFrom || fromNumber };
     } catch {
       // Vault unavailable — fall through to env vars
     }
@@ -36,11 +39,11 @@ async function getTwilioCredentials(adminClient?: SupabaseClient): Promise<Twili
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_FROM_NUMBER;
+  const fromNumber = process.env.TWILIO_SMS_FROM || process.env.TWILIO_FROM_NUMBER;
 
   if (!accountSid || !authToken || !fromNumber) {
     throw new Error(
-      "Twilio credentials not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER or store in Vault.",
+      "Twilio credentials not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SMS_FROM (or TWILIO_FROM_NUMBER) or store in Vault.",
     );
   }
 

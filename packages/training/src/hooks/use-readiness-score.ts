@@ -8,7 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type UseReadinessScoreOptions = {
   profileId: string | null;
-  workspaceId: string;
+  // Widened to allow null/undefined — see `use-assigned-protocols` for rationale.
+  workspaceId: string | null | undefined;
   supabase: SupabaseClient;
 };
 

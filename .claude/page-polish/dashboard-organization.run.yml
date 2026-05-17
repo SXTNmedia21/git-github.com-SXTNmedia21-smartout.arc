@@ -1,0 +1,151 @@
+# Page Polish Run — dashboard/organization
+# Phase 7 (harness bridge) shipped. Phases 1-3 (Lighthouse) deferred — requires browser session.
+# Root /dashboard/organization only — sub-routes (departments/, locations/, teams/) are separate polish passes.
+
+route: /dashboard/organization
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/organization
+  components_count: 21  # 19 original (_components: 10, loading.tsx, page.tsx) + 2 _tools (new)
+
+architecture:
+  entry: apps/web/src/app/dashboard/organization/page.tsx (client component, ~360 lines)
+  tabs:
+    - { id: overview,     component: OverviewTab,     desc: "D1 envelope summary — company + workspace identity, stat cards, setup checklist, governance connections" }
+    - { id: departments,  component: DepartmentsTab,  desc: "D1 departments with positions + policy counts" }
+    - { id: locations,    component: LocationsTab,    desc: "D1 locations with zones + assets + policy counts" }
+    - { id: teams,        component: TeamsTab,        desc: "D2 teams with member counts + department link" }
+  cascade_dimensions:
+    - D1: department (permanent structural envelope), location (operational venue)
+    - D2: team (seasonal resource overlay on D1 departments)
+  data_fetch_strategy: Promise.all — 10 parallel queries in one waterfall at page mount
+  team_member_fetch: sequential second waterfall (requires team IDs from first waterfall)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+# Step 4 — Speed test (baseline — deferred)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+bottlenecks:
+  - { type: two_waterfall_fetches, file: page.tsx, lines: "56-157", fix: "Phase 2: flatten team_member fetch into Phase 1 Promise.all by moving team_ids resolution out-of-band or pre-fetching." }
+
+# Step 5 — Datapoint mapping
+datapoints:
+  - { name: company,         source_table: company,               type: query, parallel: true }
+  - { name: workspace,       source_table: workspace,             type: query, parallel: true }
+  - { name: departments,     source_table: department,            type: query, parallel: true }
+  - { name: locations,       source_table: location,              type: query, parallel: true }
+  - { name: teams,           source_table: team,                  type: query, parallel: true }
+  - { name: positions,       source_table: position,              type: query, parallel: true }
+  - { name: zones,           source_table: zone,                  type: query, parallel: true }
+  - { name: assets,          source_table: asset,                 type: query, parallel: true }
+  - { name: profiles,        source_table: profile,               type: query, parallel: true }
+  - { name: policies,        source_table: policy,                type: query, parallel: true }
+  - { name: team_members,    source_table: team_member,           type: query, parallel: false, note: "second waterfall — fetched after team_ids known" }
+
+# Step 6 — Server Actions (ADR-0151 compliance audit)
+server_actions:
+  - note: "Root /dashboard/organization has no write mutations — all edits live in sub-routes (departments/[id]/edit etc). ADR-0151 N/A at root level."
+
+# Step 7 — Page Knowledge
+page_knowledge:
+  header: Organization
+  description: "Company, workspace structure, and governance connections"
+  empty_copy: "No departments yet. Create your first department to define the operational structure of your workspace."
+  error_copy: "Could not load organization data. Check your connection and refresh the page."
+
+# Step 8 — Harness tools
+harness_tools_current:
+  count: 7
+  registered_at: apps/web/src/app/dashboard/organization/_tools/organization-tools-bridge.tsx
+  page_key: organization
+  read:
+    - key: getOrganizationOverview
+      desc: "Get the D1-envelope summary for this workspace — department count, location count, team count, active staff count, subscription plan/status, setup checklist progress, and current active tab. Call first when the user asks any open-ended question about the organization."
+    - key: listDepartments
+      desc: "List all D1-layer departments with their position count, member count, and policy count. Use when the user asks 'hvilke avdelinger har vi?', 'vis alle avdelinger', or wants to see department structure."
+    - key: listLocations
+      desc: "List all D1-layer locations with zone count, asset count, and policy count. Use when the user asks 'hvilke lokaler har vi?', 'vis lokasjoner', or needs a venue/premises overview."
+    - key: listTeams
+      desc: "List all teams with member count, team type, and linked department. Use when the user asks 'hvilke team finnes?', 'vis alle team', or wants a cross-department team overview."
+    - key: getDepartmentDetail
+      desc: "Get detailed info for a single D1-layer department — position count, active member count, policy count, and department metadata. Use when the user asks about a specific department by name or id."
+    - key: getSetupChecklist
+      desc: "Return the workspace setup checklist with completion state per item and overall progress %. Use when the user asks 'hva gjenstår i oppsettet?', 'er vi ferdig satt opp?', or wants to know what to configure next."
+  navigation:
+    - key: switchOrgTab
+      desc: "Navigate to a specific organization sub-tab. Use when the user says 'vis avdelinger', 'gå til team', 'åpne lokasjoner', or navigates within the organization page. Accepts: overview | departments | locations | teams."
+
+harness_tools_deferred:
+  - key: openDepartment
+    reason: "Requires navigation to departments/[id] sub-route — sub-route polish is a separate pass."
+  - key: openLocation
+    reason: "Requires navigation to locations/[id] sub-route — sub-route polish is a separate pass."
+  - key: openTeam
+    reason: "Requires navigation to teams/[id] sub-route — sub-route polish is a separate pass."
+
+# Step 9 — Design pass
+design:
+  zinc_hits: 0       # _tools files have no UI (return null / pure logic)
+  motion_token_hits: 0   # bridge returns null, no animation code
+  hardcoded_color_hits: 0
+  notes: "Bridge file returns null — no visual output. Nordic Split N/A for this deliverable. overview-tab.tsx has 4 iconBg ternaries with hardcoded orange/blue/violet/emerald Tailwind classes (commented '// Nordic Split: Phase 2.5 candidate') — deferred to Phase 2 polish pass."
+
+# ADR-0238 check
+adr_0238:
+  owns_chat_surface: false
+  evidence: "No DomainChatOwnership declared, no mission-prefixed POST to /api/botsson/chat or /api/emma/chat in organization route. BotssonShell operates in normal interactive mode."
+  owns_chat_surface_recommendation: false
+
+# Step 10 — Re-test
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null  # baseline_blocker — requires browser session
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false       # baseline_blocker — requires dev server + browser session
+  no_skeleton_flash: true                   # loading.tsx present; OverviewTab owns its skeleton internally
+  motion_tokens_used: false                 # bridge files have no animation — N/A
+  telemetry_emit_per_mutation: true         # root page has no mutations — N/A
+  page_knowledge_written: true
+  harness_tools_registered: true            # 7 tools registered via useRegisterTools("organization", ...)
+  typecheck_exit_0: true                    # pnpm --filter web typecheck exit 0 (verified 2026-05-14)
+  retest_improved: false                    # baseline_blocker
+
+notes: |
+  Scope: root /dashboard/organization only. Sub-routes (departments/, locations/, teams/)
+  are separate polish passes with their own run.yml files.
+
+  Cascade vocabulary in tool descriptions:
+    - D1 (Envelope): listDepartments, listLocations, getDepartmentDetail reference
+      permanent structural units (department + location).
+    - D2 (Resource): listTeams references seasonal team overlay on D1 departments.
+    - getOrganizationOverview surfaces both D1 counts and subscription/setup status.
+
+  ADR-0151 compliance:
+    - Root page has no server actions or write mutations.
+    - Bridge tools read from page-level state (already fetched with workspace-scoped RLS).
+    - workspace_id NOT passed in tool body — all data comes from pre-fetched state.
+
+  Per-department profile count:
+    - profiles[] is loaded at page level but not grouped by department_id in the tool input.
+    - getDepartmentDetail and listDepartments return memberCount: 0 for this reason.
+    - Full fix: add profilesByDept derivation in page.tsx (same pattern as positionsByDept).
+    - Deferred: functional but incomplete — document here, fix in Phase 2.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker

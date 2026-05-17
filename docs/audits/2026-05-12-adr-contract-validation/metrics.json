@@ -1,0 +1,44 @@
+{
+  "date": "2026-05-12",
+  "mode": "full",
+  "totals": {
+    "critical": 4,
+    "high": 20,
+    "medium": 27,
+    "low": 25
+  },
+  "delta": {
+    "new_critical": 4,
+    "regressed": 0,
+    "closed": 2,
+    "unchanged_open": 15
+  },
+  "by_theme": {
+    "auth_gate": 8,
+    "pii_safety": 2,
+    "workspace_isolation": 2,
+    "adr_drift": 4,
+    "mobile": 7,
+    "telemetry": 5
+  },
+  "coverage": {
+    "slices_run": [
+      "01-capability-tools",
+      "02-stage-engine-bff",
+      "03-edge-functions",
+      "04-schedule-cascade",
+      "05-mobile-surface",
+      "06-contracts-payroll-lovsen",
+      "07-db-rls-telemetry",
+      "08-journeys",
+      "09-adr-coverage-gaps",
+      "10-onboarding-wizard",
+      "11-performance-design",
+      "12-i18n-frontmatter",
+      "13-webhook-integration",
+      "14-missions-e2e"
+    ],
+    "uncovered_adrs": 170,
+    "orphan_proposed": 33
+  }
+}

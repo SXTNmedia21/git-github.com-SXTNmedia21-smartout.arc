@@ -44,3 +44,26 @@ export function _publishActivity(event: Record<string, unknown>): void {
     console.warn("[adapter-internal] _publishActivity failed:", err);
   }
 }
+
+/**
+ * Publish an arbitrary payload to a named topic on the current LiveKit room
+ * data channel (reliable delivery).
+ *
+ * Unlike _publishActivity this does NOT inject a `ts` field — the caller
+ * controls the payload shape entirely. Used by client-tool-rpc.ts for
+ * "botsson-tool-call" messages whose shape is protocol-locked.
+ *
+ * No-op if no room is active.
+ */
+export function _publishOnTopic(payload: Record<string, unknown>, topic: string): void {
+  if (!_activeLkRoom) return;
+  try {
+    const encoded = textEncoder.encode(JSON.stringify(payload));
+    void _activeLkRoom.localParticipant?.publishData(encoded, {
+      topic,
+      reliable: true,
+    });
+  } catch (err) {
+    console.warn(`[adapter-internal] _publishOnTopic(${topic}) failed:`, err);
+  }
+}
