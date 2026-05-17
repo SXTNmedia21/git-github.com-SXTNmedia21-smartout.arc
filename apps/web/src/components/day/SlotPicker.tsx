@@ -26,7 +26,7 @@ import { useRef } from "react";
 import { Anchor, AlertTriangle, CheckCircle2, LogIn, StickyNote, Type, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@smartout/ui";
 
@@ -47,8 +47,12 @@ export type SlotPickerProps = {
   role: WorkspaceRole | null;
   /** Called when user picks an action (caller opens the corresponding dialog). */
   onAction: (action: SlotPickerAction, time: string) => void;
-  /** Trigger element — the invisible hit-zone button from DayTimelineStrip. */
-  children: React.ReactNode;
+  /**
+   * Anchor element — invisible 1×1 span positioned at the click coordinate
+   * by the caller. Popover content positions relative to this anchor so the
+   * menu opens at the click point rather than at the strip wrapper.
+   */
+  anchor?: React.ReactNode;
 };
 
 // ── Lane item definitions ──────────────────────────────────────────────────────
@@ -238,7 +242,7 @@ export function SlotPicker({
   isLocationScope = false,
   role,
   onAction,
-  children,
+  anchor,
 }: SlotPickerProps) {
   const canWrite = role !== null && role !== "employee";
   const locationDisabledReason = "Lokasjons-malt godtar kun vakter";
@@ -250,11 +254,13 @@ export function SlotPicker({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      {anchor ? <PopoverAnchor asChild>{anchor}</PopoverAnchor> : null}
       <PopoverContent
         className="w-[300px] p-0"
-        align="start"
+        align="center"
+        side="bottom"
         sideOffset={6}
+        collisionPadding={12}
         onInteractOutside={() => onOpenChange(false)}
         data-testid="slot-picker-popover"
       >

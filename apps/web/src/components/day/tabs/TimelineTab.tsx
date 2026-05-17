@@ -65,6 +65,9 @@ export function TimelineTab({
 
   const selection = useTimelineSelection();
   const [slotPicker, setSlotPicker] = useState<SlotPickerState>(CLOSED_SLOT_PICKER);
+  // Anchor rect for SlotPicker — set on hit-zone click so popover opens
+  // exactly under the cursor instead of attached to the full-width strip.
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   // In-memory draft chips — free-form items added by user, not yet saved as template
   const [draftChips, setDraftChips] = useState<DraftChip[]>([]);
   const [freeFormDialogOpen, setFreeFormDialogOpen] = useState(false);
@@ -161,9 +164,15 @@ export function TimelineTab({
     }
   }
 
-  function handleSlotClick(time: string) {
+  function handleSlotClick(time: string, rect: DOMRect) {
     if (!canEdit) return;
+    setAnchorRect(rect);
     setSlotPicker({ open: true, time });
+  }
+
+  function handleSlotPickerOpenChange(open: boolean) {
+    setSlotPicker((prev) => ({ ...prev, open }));
+    if (!open) setAnchorRect(null);
   }
 
   const handleSlotPickerAction = useCallback((action: SlotPickerAction, time: string) => {
@@ -248,35 +257,50 @@ export function TimelineTab({
             </div>
           )}
 
-          {/* The popover trigger is rendered inline inside DayTimelineStrip hit-zones.
-              We use a controlled popover here: DayTimelineStrip fires onSlotClick,
-              which opens SlotPicker. The popover trigger is a transparent div wrapper. */}
+          {/* Controlled popover anchored at the click coordinate.
+              DayTimelineStrip's hit-zone onClick provides the clicked button's
+              bounding rect; we render an invisible 1×1 span at that rect and
+              hand it to SlotPicker as the popover anchor. Menu opens under the
+              cursor instead of attached to the full-width strip wrapper. */}
+          <div className="relative w-full">
+            <DayTimelineStrip
+              events={data}
+              startHHMM={session.plannedOpen}
+              endHHMM={session.plannedClose}
+              dateISO={dateISO}
+              onSelect={handleSelectFromStrip}
+              editable={canEdit}
+              onSlotClick={handleSlotClick}
+              highlightedId={selection.selectedId}
+              pulseSource={selection.pulseSource}
+              departmentId={departmentId}
+              sessionId={session.sessionId}
+              phaseBoundaries={phaseBoundaries}
+            />
+          </div>
           <SlotPicker
             open={slotPicker.open}
-            onOpenChange={(o) => setSlotPicker((prev) => ({ ...prev, open: o }))}
+            onOpenChange={handleSlotPickerOpenChange}
             time={slotPicker.time || "--:--"}
             isLocationScope={isLocationScope}
             role={pickerRole}
             onAction={handleSlotPickerAction}
-          >
-            {/* Transparent div so popover attaches to the strip area */}
-            <div className="relative w-full">
-              <DayTimelineStrip
-                events={data}
-                startHHMM={session.plannedOpen}
-                endHHMM={session.plannedClose}
-                dateISO={dateISO}
-                onSelect={handleSelectFromStrip}
-                editable={canEdit}
-                onSlotClick={handleSlotClick}
-                highlightedId={selection.selectedId}
-                pulseSource={selection.pulseSource}
-                departmentId={departmentId}
-                sessionId={session.sessionId}
-                phaseBoundaries={phaseBoundaries}
-              />
-            </div>
-          </SlotPicker>
+            anchor={
+              anchorRect ? (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "fixed",
+                    left: anchorRect.left + anchorRect.width / 2,
+                    top: anchorRect.top,
+                    width: 1,
+                    height: anchorRect.height,
+                    pointerEvents: "none",
+                  }}
+                />
+              ) : null
+            }
+          />
         </div>
 
         {/* Empty state when scope filter is active but yields no events */}

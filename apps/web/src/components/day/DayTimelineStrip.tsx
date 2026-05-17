@@ -35,9 +35,10 @@ export type DayTimelineStripProps = {
   editable?: boolean;
   /**
    * Called with the resolved HH:MM string when a time-axis slot is clicked.
-   * Only fires when editable=true.
+   * Second arg is the clicked button's bounding rect, so the caller can
+   * anchor a popover at the click point. Only fires when editable=true.
    */
-  onSlotClick?: (timeHHMM: string) => void;
+  onSlotClick?: (timeHHMM: string, rect: DOMRect) => void;
   /** The currently selected event id — drives selection ring on the matching marker. */
   highlightedId?: string | null;
   /** Which surface triggered the current selection — "list" → pulse marker. */
@@ -524,7 +525,9 @@ export function DayTimelineStrip({
                   key={`slot-${slot.label}`}
                   type="button"
                   aria-label={`Legg til kl ${slot.label}`}
-                  onClick={() => onSlotClick?.(slot.label)}
+                  onClick={(e) =>
+                    onSlotClick?.(slot.label, e.currentTarget.getBoundingClientRect())
+                  }
                   className={cn(
                     "group absolute top-0 bottom-0 z-0",
                     "cursor-pointer",
