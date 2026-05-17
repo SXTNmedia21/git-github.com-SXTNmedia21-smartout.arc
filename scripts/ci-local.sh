@@ -76,8 +76,10 @@ run_gate "lint"                       pnpm turbo lint
 run_gate "typecheck"                  pnpm turbo typecheck
 
 # Format check — changed files only vs origin/development (mirrors ci.yml).
+# NOTE: never use --depth=1 here — it writes .git/shallow and breaks
+# ancestry traversal for the entire local repo.
 format_check_changed() {
-  git fetch origin development --depth=1 >/dev/null 2>&1 || true
+  git fetch origin development >/dev/null 2>&1 || true
   local base_ref="origin/development"
   local files
   files=$(git diff --name-only --diff-filter=ACMR "${base_ref}"...HEAD -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
