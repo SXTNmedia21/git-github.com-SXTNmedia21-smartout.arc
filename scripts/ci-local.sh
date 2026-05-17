@@ -227,20 +227,32 @@ coverage_check() {
     '^packages/ai/src/capabilities/.+|vitest,authority-seed-parity,invariants-emit,gate-action-coverage|REQUIRE|capability paths — PR body must reference smartout-agent-dev Trust Gate Self-Check'
     '^packages/telemetry/.+|vitest,invariants-emit|REQUIRE|registry contract'
     '^packages/.+/src/.+|vitest,typecheck|REQUIRE|'
-    '^apps/web/.+\.(ts|tsx)$|lint,typecheck,build|REQUIRE|no vitest in apps/web (per Supervisor trace)'
-    '^apps/mobile/.+\.(ts|tsx)$|mobile-lint|REQUIRE|'
-    '^apps/admin/.+\.(ts|tsx)$|build|REQUIRE|'
-    '^apps/landing/.+\.(ts|tsx)$|build|REQUIRE|'
+    '^apps/web/.+\.tsx?$|lint,typecheck,build|REQUIRE|no vitest in apps/web (per Supervisor trace)'
+    '^apps/mobile/.+\.tsx?$|mobile-lint|REQUIRE|'
+    '^apps/admin/.+\.tsx?$|build|REQUIRE|'
+    '^apps/landing/.+\.tsx?$|build|REQUIRE|'
+    '^apps/web/\.botsson/site-map\.json$|build|REQUIRE|site-map drives apps/web routing'
     '^apps/e2e/.+|—|WARN|Playwright runs via Vercel preview (external)'
-    '^services/(voice-agent|contract-service|stage-engine|shift-mcp|scrapling)/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/voice-agent/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/contract-service/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/stage-engine/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/shift-mcp/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/scrapling/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
     '^services/.+|typecheck,vitest|REQUIRE|'
     '^docs/decisions/.+\.md$|—|WARN|ADR change — adr-contract-audit runs weekly externally'
     '^docs/journeys/.+\.md$|—|WARN|journey change — verify code parity manually'
     '^package\.json$|—|PAIR|must pair with pnpm-lock.yaml'
     '^pnpm-lock\.yaml$|—|PAIR|must pair with package.json'
-    '^(tsconfig.*|turbo)\.json$|typecheck,build|REQUIRE|'
+    '^apps/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^packages/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^services/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^tsconfig.*\.json$|typecheck,build|REQUIRE|'
+    '^turbo\.json$|typecheck,build|REQUIRE|'
     '^infra/.+|—|WARN|no local gate'
-    '^scripts/.+\.(sh|ts|mjs|cjs)$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.sh$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.ts$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.mjs$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.cjs$|—|WARN|gate-implementation change — re-verify dependent gates'
     '\.md$|—|SKIP|doc-only'
   )
 
@@ -291,7 +303,7 @@ coverage_check() {
   # Pair check: package.json ↔ pnpm-lock.yaml, database.types.ts ↔ migrations
   local has_pkg has_lock has_dbtypes has_mig
   has_pkg=0; has_lock=0; has_dbtypes=0; has_mig=0
-  echo "$changed" | grep -qE '^package\.json$' && has_pkg=1
+  echo "$changed" | grep -qE '(^|/)package\.json$' && has_pkg=1
   echo "$changed" | grep -qE '^pnpm-lock\.yaml$' && has_lock=1
   echo "$changed" | grep -qE '^packages/supabase/src/database\.types\.ts$' && has_dbtypes=1
   echo "$changed" | grep -qE '^supabase/migrations/.+\.sql$' && has_mig=1

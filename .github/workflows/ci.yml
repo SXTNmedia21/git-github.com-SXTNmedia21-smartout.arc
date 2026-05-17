@@ -432,7 +432,11 @@ jobs:
             | awk '/^Found drop statements/{exit} {print}')
 
           # Compare current diff to committed baseline.
-          DELTA=$(diff -u "$BASELINE" <(echo "$CURRENT") || true)
+          # -B: ignore differences that are blank-line-only (handles awk
+          #     extraction whitespace variance between local-capture and
+          #     GitHub-runner-capture).
+          # -w: ignore all whitespace (further guards against migra format jitter).
+          DELTA=$(diff -uBw "$BASELINE" <(echo "$CURRENT") || true)
 
           if [ -n "$DELTA" ]; then
             echo "::error::Migration coherence failed — diff vs baseline non-empty"
