@@ -11,12 +11,13 @@
  * - color-regime: orange (active chapter), zinc (inactive)
  */
 
-import { useContext, useMemo } from "react";
+import { useContext, useEffect, useRef, useMemo } from "react";
 import { Loader2, FileText } from "lucide-react";
 import { generateHTML } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
 import type { JSONContent } from "@tiptap/core";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { CHAPTERS, type ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
 import { useHandbookChapters, type HandbookChapter } from "../_hooks/use-handbook-chapters";
@@ -45,8 +46,29 @@ type ChapterReaderProps = {
 };
 
 export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterReaderProps) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
   const { data: chapters, isLoading } = useHandbookChapters();
+
+  // Emit `handbook chapter_opened` on each chapter selection, keyed by chapter_key.
+  // Re-fires when activeChapterKey changes so every navigation is captured.
+  // L-0177: nonEmpty() throws on empty string — never silent fallback.
+  const emittedChapterRef = useRef<string | null>(null);
+  useEffect(() => {
+    const workspaceId = workspaceData?.workspace_id ?? null;
+    if (!workspaceId || !profileId) return;
+    if (emittedChapterRef.current === activeChapterKey) return;
+    emittedChapterRef.current = activeChapterKey;
+    void emit({
+      event: "handbook chapter_opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        data: {
+          chapter_key: activeChapterKey,
+        },
+      },
+    });
+  }, [activeChapterKey, workspaceData, profileId]);
 
   // Map chapter data by key
   const chapterMap = useMemo(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, User, FileText, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { DeviationRow } from "@smartout/hms";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useUpdateDeviation } from "../_hooks/use-update-deviation";
 
 type Props = {
@@ -41,6 +43,34 @@ const DOMAIN_LABELS: Record<string, string> = {
 export function DeviationDetailDrawer({ deviation, open, onClose }: Props) {
   const updateDeviation = useUpdateDeviation();
   const [resolutionNotes, setResolutionNotes] = useState("");
+  const { workspaceData, profileId } = useContext(DashboardContext);
+
+  // Emit `deviation viewed` once per open, keyed on deviation id.
+  // L-0177: nonEmpty() throws on empty string — never silent fallback.
+  const viewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !deviation) return;
+    const workspaceId = workspaceData?.workspace_id ?? null;
+    if (!workspaceId || !profileId) return;
+    if (viewedRef.current === deviation.deviationId) return;
+    viewedRef.current = deviation.deviationId;
+    void emit({
+      event: "deviation viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "deviation",
+          entity_id: deviation.deviationId,
+          entity_label: deviation.title,
+        },
+        data: {
+          status: deviation.status,
+          severity: deviation.severity,
+        },
+      },
+    });
+  }, [open, deviation, workspaceData, profileId]);
 
   if (!deviation) return null;
 
