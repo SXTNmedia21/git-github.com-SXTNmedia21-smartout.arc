@@ -7,6 +7,9 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { useProcedureSteps } from "../_hooks/use-procedure-steps";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
+import remarkGfm from "remark-gfm";
 
 type Tab = "overview" | "steps" | "quiz" | "confirmation";
 
@@ -149,7 +152,9 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
                   <div className="border-info/20 bg-info/5 mt-2 ml-8 rounded-md border p-3">
                     <p className="text-info mb-1 text-[10px] font-medium">Opplaeringsinnhold:</p>
                     <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
-                      <div dangerouslySetInnerHTML={{ __html: step.trainingContent }} />
+                      <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
+                        {step.trainingContent}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}

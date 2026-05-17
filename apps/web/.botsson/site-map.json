@@ -853,6 +853,24 @@
       ]
     },
     {
+      "path": "/dashboard/hms/training",
+      "purpose": "Training mode for protocols + competence matrix. Trainee sees assigned protocols (ProtocolList) or admin sees readiness matrix (CompetenceMatrix) — role-conditional.",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-17",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Vis mine protokoller",
+        "Hva er opplæringsstatus for teamet?",
+        "Vis kompetansematrise",
+        "Hvilke protokoller er tildelt meg?",
+        "Er noen utløpt på opplæring?"
+      ]
+    },
+    {
       "path": "/dashboard/contracts",
       "purpose": "Employment contracts list — D2 resource availability. Status filter, signatures pending, AML §14-6 compliance.",
       "module": "Contracts",

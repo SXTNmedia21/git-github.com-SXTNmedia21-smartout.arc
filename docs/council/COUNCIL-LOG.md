@@ -2064,3 +2064,57 @@ Steward also discovered OKLCH-literal pattern is systemic across 6+ files in `ap
 - `apps/web/src/components/day/DayEventList.tsx:44` (canonical `useReducedMotion()` pattern mirrored)
 - `packages/design-tokens/src/tokens.css:66-67, 201-202` (`--warn-soft` tokens for future migration)
 - `apps/web/src/app/globals.css:358-362` (existing `prefers-reduced-motion` block — covers `animate-glow-pulse` only)
+
+## 2026-05-17 PM — HMS Cluster Polish Read (Post-Implementation R1)
+
+**Type:** post-implementation
+**Branch reviewed:** `campaign/ui-shell` @ `430563d27` (sub-sortie `feat/ui-shell-hms-cluster-polish-read` already merged)
+**Verdict:** APPROVE WITH CHANGES (3 BLOCKERS + 2 required-this-cluster)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, feature-dev:code-reviewer
+**Prior verdict held?** N/A — first council on this sub-sortie. Predecessor: Tidslinjen R1 2026-05-17 AM verdict APPROVE held.
+
+### Key decision
+
+Forward-fix sub-sortie `feat/ui-shell-hms-cluster-polish-fixup` closes 5 gates:
+
+- **G1 BLOCKER:** Wire `emit()` for 4 HMS view events (`hms.umbrella.viewed`, `hms.drift.viewed`, `hms.documents.opened`, `hms.training.viewed`). Registry shipped, call-sites missing — phantom contract (L-0176 sibling). Pattern: `useRef + useEffect + nonEmpty()` mirroring `apps/web/src/app/dashboard/contracts/page.tsx:71-88`.
+- **G2 CRITICAL (WCAG 4.1.2):** `HmsSubNav.tsx` Path A — remove `role="tablist"` + `role="tab"`; keep `<nav>` + `<Link>` + `aria-current="page"`. Add focus-visible ring tokens (closes D2 in same hop). Previous G4 HIGH fix (commit `21e066252`) was incomplete — added `role="tab"` without `aria-selected`/`aria-controls`/`tabpanel`.
+- **G3 MEDIUM (latent XSS + correctness):** Replace `dangerouslySetInnerHTML` in `LearnFlow.tsx:211` + `ProcedureDetailTabs.tsx:154` with `react-markdown` + `rehype-sanitize` + `remark-gfm`. Migration column comment says "Markdown supported" — current renderer interprets as HTML (intent mismatch + XSS vector). No authoring UI exists yet, so risk is LATENT not active; fix lands before first author UI ships. Severity downgraded HIGH→MEDIUM after write-path investigation showed zero existing data.
+- **G4 LOW:** Add `/dashboard/hms/training` to `apps/web/.botsson/site-map.json` (5 hms routes registered, training missing). `tools: []` per HANDOFF Decision #3 L-0287 phantom-contract avoidance.
+- **G5 META:** Amend `~/.claude/skills/run-council/SKILL.md:121-133` Phase 0 carve-out paragraph. Documented intentional tool-bridge skips on thin-shell delegating pages ACCEPTABLE; site-map + page header + telemetry view-emit NEVER skippable.
+
+**Chair Self-Reversal (L-0147 6th precedent):** Phase 3 Steward marked HmsSubNav a11y "PARTIAL — focus-visible missing." Phase 5 REVERSED to CRITICAL after Code-Reviewer F-1 surfaced mixed-ARIA pattern (WCAG 4.1.2 fail — `role="tab"` without `aria-selected`/`aria-controls`/`tabpanel`). Falsifying evidence: `HmsSubNav.tsx:34,45,46`. Pattern signature: chair operates on focus-visible-axis Phase 3; reviewer code-traces same surface and finds worse defect. 2nd same-day occurrence of design+a11y Phase 3 coverage gap (1st: Tidslinjen R1 AM).
+
+### Semantic conflict resolution
+
+- **Pair A:** Steward "a11y PARTIAL" vs Code-Reviewer "CRITICAL HmsSubNav" — same surface, different defect, different severity. Two distinct findings. Steward review INCOMPLETE on a11y axis (focus-visible-only vs full ARIA pattern audit).
+- **Pair B:** Supervisor "REJECT (Phase 0 BLOCKED on training)" vs Agent-Coord "Acceptable per HANDOFF Decision #3" — partial overlap. Both evidence-based. Rule-correct vs intent-correct. Resolved by G5 carve-out + ADR-0357.
+- **Pair C:** Steward Phase 2.5 "site-map ZERO hms entries" vs reality (5 entries) — Steward grep used wrong scope-key pattern (`"scope": "hms.*"` instead of `"path": "/dashboard/hms.*"`). 2nd occurrence of grep-wrong-pattern fact-check failure. Promoted to learning.
+
+### Knowledge captured
+
+- **ADR-0357 (proposed)** — Page-Polish 8-Phase Rule: Documented Intentional Skips. File: `docs/decisions/0357-page-polish-documented-intentional-skips.md`. Codifies G5 at ADR-grade.
+- **L-NEW-1** — `learning_telemetry_contract_without_emit_wiring.md` (Claude memory). Sibling L-0176 + L-0177. Trust-gate: grep `emit(` call-sites when reviewing `packages/telemetry/src/registry.ts` PRs.
+- **L-NEW-2** — `learning_phase_2_5_grep_wrong_scope_key.md` (Claude memory). 2nd occurrence — ADR-grade rule: VERIFIED-missing requires positive absence-evidence + appropriate grep pattern.
+- **L-NEW-3** — `learning_phase3_coverage_gap_design_axis.md` (Claude memory, existing — updated with 2nd occurrence). 2nd same-day occurrence: design+a11y axis mandatory. Already codified in run-council SKILL.md:105-119 after Tidslinjen R1; this confirms the rule.
+
+### Trust Gate
+
+N/A — sub-sortie introduces 0 new mutation tools / 0 Server Actions / 0 TanStack mutations / 0 capability tools / 0 new emit routing destinations. Read-side telemetry event registrations only.
+
+### Phase 9 self-improvement
+
+- **Fact-check methodology hard rule** (promote to SKILL.md Common Mistakes after 3rd occurrence): VERIFIED-missing requires positive schema-aware absence-evidence, not negative literal-string grep absence. 1st: chat-whatsapp 2026-05-16; 2nd: HMS R1 2026-05-17. Watch for 3rd → promote.
+- **Design+a11y axis 2nd same-day occurrence** confirms the rule added in run-council SKILL.md:105-119 earlier this session is correctly scoped. No further amendment needed.
+- **Page-polish Phase 0 strictness vs cascade intent** resolved via G5 carve-out + ADR-0357. First exercise of the rule; future councils will test it.
+
+### Files referenced (Phase 5 synthesis evidence)
+
+- `apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx:34,45,46` (G2 ARIA)
+- `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx:210-211` (G3 XSS)
+- `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx:148-154` (G3 XSS — pre-existing)
+- `apps/web/.botsson/site-map.json:494-825` (G4 — 5 hms entries present, training missing)
+- `packages/telemetry/src/registry.ts:2598-2638, 13723-13738` (G1 — 4 events registered, 0 emits)
+- `supabase/migrations/20260422300800_hms_procedure_step_training.sql:9` (column comment "Markdown supported")
+- `docs/HANDOFF-ui-shell-hms-cluster-polish-read.md` line 70 (Decision #3 L-0287)
+
