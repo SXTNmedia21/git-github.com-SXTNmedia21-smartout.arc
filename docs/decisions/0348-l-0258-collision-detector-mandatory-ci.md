@@ -1,13 +1,13 @@
 ---
 title: "L-0258 collision detector mandatory in CI"
-id: ADR_0347
+id: ADR_0348
 status: proposed
 layer: decision
 created: 2026-05-17
 updated: 2026-05-17
 ---
 
-# ADR-0347: L-0258 collision detector mandatory in CI
+# ADR-0348: L-0258 collision detector mandatory in CI
 
 ## Context and Problem Statement
 
