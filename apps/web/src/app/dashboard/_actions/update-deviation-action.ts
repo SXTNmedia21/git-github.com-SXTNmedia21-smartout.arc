@@ -49,12 +49,18 @@ const AcknowledgeDeviationInput = z.object({
   channel: z.enum(["chat", "voice", "system"]).optional().default("chat"),
 });
 
+const EscalateDeviationInput = z.object({
+  deviation_id: z.string().uuid(),
+  channel: z.enum(["chat", "voice", "system"]).optional().default("chat"),
+});
+
 // z.input (not z.infer) so callers can omit `channel` — schema defaults to "chat".
 export type ResolveDeviationInput = z.input<typeof ResolveDeviationInput>;
 export type AcknowledgeDeviationInput = z.input<typeof AcknowledgeDeviationInput>;
+export type EscalateDeviationInput = z.input<typeof EscalateDeviationInput>;
 
 export type DeviationActionResult =
-  | { ok: true; deviationId: string; status: "resolved" | "acknowledged" }
+  | { ok: true; deviationId: string; status: "resolved" | "acknowledged" | "escalated" }
   | { ok: false; error: string };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -248,4 +254,82 @@ export async function acknowledgeDeviationAction(
   });
 
   return { ok: true, deviationId: parsed.data.deviation_id, status: "acknowledged" };
+}
+
+// ── escalateDeviationAction ───────────────────────────────────────────────────
+
+/**
+ * Escalates a deviation. Sets status='escalated', stamps updated_at from
+ * server-resolved actor.
+ *
+ * Idempotent: if status is already 'escalated' or 'resolved', returns
+ * ok=true without re-emitting.
+ */
+export async function escalateDeviationAction(
+  input: EscalateDeviationInput,
+): Promise<DeviationActionResult> {
+  const parsed = EscalateDeviationInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Ugyldig input." };
+  }
+
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const admin = createAdminClient();
+
+  const loaded = await loadDeviation(admin, parsed.data.deviation_id, profile.workspaceId);
+  if (!loaded.ok) return loaded;
+
+  // Idempotency — already escalated or resolved, short-circuit.
+  if (loaded.row.status === "escalated" || loaded.row.status === "resolved") {
+    return {
+      ok: true,
+      deviationId: loaded.row.deviation_id,
+      status: loaded.row.status as "escalated" | "resolved",
+    };
+  }
+
+  /* @authority-gate: capability='hms.escalate_deviation' level='confirm' min_role='manager'
+     seed='20260617110000_policy_create_manual_capability_seed.sql' */
+  const gate = await gateAction({
+    workspaceId: profile.workspaceId,
+    capability: "hms.escalate_deviation",
+    channel: parsed.data.channel,
+    actorProfileId: profile.profileId,
+    actionType: "escalate",
+    entityId: parsed.data.deviation_id,
+  });
+  if (!gate.allow) {
+    return { ok: false, error: gate.reason ?? "Ikke autorisert." };
+  }
+
+  const { error: updateError } = await admin
+    .from("deviation")
+    .update({
+      status: "escalated",
+    })
+    .eq("deviation_id", parsed.data.deviation_id);
+
+  if (updateError) {
+    return { ok: false, error: `Kunne ikke eskalere avviket: ${updateError.message}` };
+  }
+
+  await emit({
+    event: "deviation updated",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: {
+        entity_type: "deviation",
+        entity_id: parsed.data.deviation_id,
+        entity_label: loaded.row.title,
+      },
+      data: {
+        status: "escalated",
+      },
+    },
+  });
+
+  return { ok: true, deviationId: parsed.data.deviation_id, status: "escalated" };
 }
