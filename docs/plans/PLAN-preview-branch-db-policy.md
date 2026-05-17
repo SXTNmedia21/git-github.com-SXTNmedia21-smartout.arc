@@ -9,6 +9,10 @@ sortie: feat/preview-branch-db-policy
 worktree: ~/dev/smartout.ai-wt-3
 learnings_in_scope: [L-0299, L-0300, L-first-prod-release-2026-05-13]
 adrs_in_scope: [ADR-0071, ADR-0265]
+decision: B
+decision_at: 2026-05-17
+decision_by: Pontus
+decision_rationale: "Preview Branch DB absent ≥4 days, zero ops impact = revealed preference. Drop preview Supabase parity, smoke = Vercel-only, amend ADR-0071."
 ---
 
 # Plan: preview Branch DB policy
