@@ -28,7 +28,7 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { Separator } from "@/components/ui/separator";
 
 export function TariffClient() {
-  const { isAdminMode } = useContext(DashboardContext);
+  const { isAdminMode, profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
 
@@ -36,21 +36,25 @@ export function TariffClient() {
 
   const emittedRef = useRef(false);
 
+  // L-0177 fail-fast: profileId MUST be non-empty for telemetry (ADR-0134 + ADR-0186).
+  // If DashboardContext hasn't resolved profileId yet (null), defer the emit
+  // until it is available. If it remains null after data loads, render an error
+  // state — do NOT emit with workspaceId as a fallback actor_id.
+  const resolvedProfileId = profileId && profileId.trim() !== "" ? profileId : null;
+
   // Telemetry view-emit (ADR-0357 §d)
   // Phase 7g: payroll.tariff_view_loaded is now in the telemetry registry.
   // PostHog + Logger only (no activity_trail — view event per registry entry).
-  // actor_id: client components use workspaceId as placeholder since no direct
-  // profile context is available. Activity_trail writes are mutation-only and
-  // server-initiated — no audit risk here.
+  // actor_id: real profile_id from DashboardContext (Phase 7h — ADR-0186).
   // Fires after data loads so is_bound reflects the real binding state.
   useEffect(() => {
-    if (emittedRef.current || !workspaceId || isLoading) return;
+    if (emittedRef.current || !workspaceId || !resolvedProfileId || isLoading) return;
     emittedRef.current = true;
     const resolvedIsBound = data?.ok ? data.data.is_bound : false;
     void emit({
       event: "payroll.tariff_view_loaded",
       workspace_id: nonEmpty(workspaceId, "workspaceId"),
-      actor_id: nonEmpty(workspaceId, "workspaceId"), // placeholder — BFF resolves real profileId for mutations
+      actor_id: nonEmpty(resolvedProfileId, "profileId"),
       properties: {
         data: {
           route: "/dashboard/payroll/tariff",
@@ -59,7 +63,20 @@ export function TariffClient() {
         },
       },
     });
-  }, [workspaceId, isLoading, data]);
+  }, [workspaceId, resolvedProfileId, isLoading, data]);
+
+  // L-0177 render guard: if profile context is unresolvable after data has
+  // loaded, render an explicit error state. Silent fallback to workspaceId
+  // as actor_id is the documented bug class (L-0177 + ADR-0134). The emit
+  // is deferred until resolvedProfileId is non-null (see useEffect above),
+  // so this guard prevents the component from rendering in a misleading state.
+  if (!isLoading && !resolvedProfileId) {
+    return (
+      <div className="text-destructive p-4 text-sm" role="alert">
+        Profilkontekst ikke tilgjengelig. Last siden på nytt eller logg inn på nytt.
+      </div>
+    );
+  }
 
   const isBound = data?.ok ? data.data.is_bound : false;
 

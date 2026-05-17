@@ -101,6 +101,7 @@ type SetupExecOk = {
   ok: true;
   workspace_union_binding_id: string;
   effective_from: string;
+  cascade_emit_id: string | null;
 };
 type SetupExecFail = {
   ok: false;
@@ -117,6 +118,7 @@ type ChangeExecOk = {
   effective_from: string;
   amendment_classifier: string;
   old_law_version: string;
+  cascade_emit_id: string | null;
 };
 type ChangeExecFail = {
   ok: false;
@@ -129,6 +131,7 @@ type ChangeExecResult = ChangeExecOk | ChangeExecFail;
 type SupplementExecOk = {
   ok: true;
   supplement_rule_id: string;
+  cascade_emit_id: string | null;
 };
 type SupplementExecFail = {
   ok: false;
@@ -298,6 +301,7 @@ export const setupWorkspaceTariffTool = defineTool({
             ok: boolean;
             workspace_union_binding_id?: string;
             effective_from?: string;
+            cascade_emit_id?: string;
             code?: string;
             message?: string;
           };
@@ -315,6 +319,11 @@ export const setupWorkspaceTariffTool = defineTool({
             ok: true,
             workspace_union_binding_id: cascadeParsed.workspace_union_binding_id!,
             effective_from: cascadeParsed.effective_from!,
+            // Phase 7h: read TRUE cascade emit id from cascade tool result instead of
+            // pre-generating an unrelated UUID. The cascade tool now pre-generates its
+            // own cascadeEmitId and returns it — this is the real correlation_id that
+            // maps to the cascade activity_trail row.
+            cascade_emit_id: cascadeParsed.cascade_emit_id ?? null,
           };
         },
       });
@@ -330,13 +339,12 @@ export const setupWorkspaceTariffTool = defineTool({
       // emit() returns void — IDs are pre-assigned via randomUUID().
       //   payroll_emit_id: used as correlation_id on the payroll emit → maps 1:1
       //     to the activity_trail row searchable by correlation_id.
-      //   cascade_emit_id: generated upfront; cascade tool emits independently
-      //     without an injected correlation_id, so this ID identifies the
-      //     cascade transaction in the audit block (queryable via workspace +
-      //     entity_type='workspace_union_binding' + timestamp range). Phase 7h
-      //     could wire cascade correlation_id injection for full trace.
+      //   cascade_emit_id: read from cascade tool result (Phase 7h) — this is the
+      //     TRUE emit id that the cascade layer used as its own correlation_id.
+      //     Full audit chain: query activity_trail WHERE correlation_id = payroll_emit_id
+      //     (payroll row) AND WHERE correlation_id = cascade_emit_id (cascade row).
       const payrollEmitId = randomUUID();
-      const cascadeEmitId = randomUUID();
+      const cascadeEmitId = result.cascade_emit_id;
       await emit({
         event: "payroll.workspace_tariff_setup",
         workspace_id: ctx.workspaceId,
@@ -597,6 +605,7 @@ export const changeWorkspaceTariffTool = defineTool({
             ok: boolean;
             workspace_union_binding_id?: string;
             effective_from?: string;
+            cascade_emit_id?: string;
             code?: string;
             message?: string;
           };
@@ -619,6 +628,8 @@ export const changeWorkspaceTariffTool = defineTool({
             effective_from: cascadeParsed.effective_from!,
             amendment_classifier: classification.classifier,
             old_law_version: oldLawVersion,
+            // Phase 7h: read TRUE cascade emit id from cascade result.
+            cascade_emit_id: cascadeParsed.cascade_emit_id ?? null,
           };
         },
       });
@@ -633,7 +644,8 @@ export const changeWorkspaceTariffTool = defineTool({
 
       // ── 6. Emit payroll-layer telemetry (uuid-before-emit pattern) ──────────
       const payrollEmitId = randomUUID();
-      const cascadeEmitId = randomUUID();
+      // cascade_emit_id: read from cascade result (Phase 7h — true round-trip).
+      const cascadeEmitId = okResult.cascade_emit_id;
       await emit({
         event: "payroll.workspace_tariff_changed",
         workspace_id: ctx.workspaceId,
@@ -852,6 +864,7 @@ export const addSupplementOverrideTool = defineTool({
           const cascadeParsed = JSON.parse(cascadeResult) as {
             ok: boolean;
             supplement_rule_id?: string;
+            cascade_emit_id?: string;
             code?: string;
             message?: string;
             aml_ref?: string;
@@ -874,6 +887,8 @@ export const addSupplementOverrideTool = defineTool({
           return {
             ok: true,
             supplement_rule_id: cascadeParsed.supplement_rule_id!,
+            // Phase 7h: read TRUE cascade emit id from cascade result.
+            cascade_emit_id: cascadeParsed.cascade_emit_id ?? null,
           };
         },
       });
@@ -889,7 +904,8 @@ export const addSupplementOverrideTool = defineTool({
 
       // ── 6. Emit payroll-layer telemetry (uuid-before-emit pattern) ──────────
       const payrollEmitId = randomUUID();
-      const cascadeEmitId = randomUUID();
+      // cascade_emit_id: read from cascade result (Phase 7h — true round-trip).
+      const cascadeEmitId = okResult.cascade_emit_id;
       await emit({
         event: "payroll.supplement_override_added",
         workspace_id: ctx.workspaceId,
