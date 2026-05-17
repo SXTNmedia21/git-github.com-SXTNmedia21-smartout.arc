@@ -17,28 +17,28 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
   it("first group is Oversikt with standalone: true", () => {
     const first = SIDEBAR_GROUPS_ADMIN[0]!;
     expect(first).toBeDefined();
-    expect(first.label).toBe("Oversikt");
+    expect(first.labelKey).toBe("dashboard.sidebar.group_oversikt");
     expect(first.standalone).toBe(true);
   });
 
   it("has exactly 9 groups in declared order", () => {
     expect(SIDEBAR_GROUPS_ADMIN).toHaveLength(9);
-    const labels = SIDEBAR_GROUPS_ADMIN.map((g) => g.label);
-    expect(labels).toEqual([
-      "Oversikt",
-      "Drift",
-      "Planlegging",
-      "Administrasjon",
-      "HMS & Compliance",
-      "Kommunikasjon",
-      "Integrasjoner",
-      "AI & Botsson",
-      "Veiledning",
+    const labelKeys = SIDEBAR_GROUPS_ADMIN.map((g) => g.labelKey);
+    expect(labelKeys).toEqual([
+      "dashboard.sidebar.group_oversikt",
+      "dashboard.sidebar.group_drift",
+      "dashboard.sidebar.group_planlegging",
+      "dashboard.sidebar.group_administrasjon",
+      "dashboard.sidebar.group_hms_compliance",
+      "dashboard.sidebar.group_kommunikasjon",
+      "dashboard.sidebar.group_integrasjoner",
+      "dashboard.sidebar.group_ai_botsson",
+      "dashboard.sidebar.group_veiledning",
     ]);
   });
 
   it("Drift's Rutiner has status not-yet-built, disabled true, href /dashboard/tasks", () => {
-    const drift = SIDEBAR_GROUPS_ADMIN.find((g) => g.label === "Drift");
+    const drift = SIDEBAR_GROUPS_ADMIN.find((g) => g.labelKey === "dashboard.sidebar.group_drift");
     expect(drift).toBeDefined();
     const rutiner = drift!.items.find((i) => i.href === "/dashboard/tasks");
     expect(rutiner).toBeDefined();
@@ -47,18 +47,20 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
   });
 
   it("HMS group has 8 items including Handbok", () => {
-    const hms = SIDEBAR_GROUPS_ADMIN.find((g) => g.label === "HMS & Compliance");
+    const hms = SIDEBAR_GROUPS_ADMIN.find(
+      (g) => g.labelKey === "dashboard.sidebar.group_hms_compliance",
+    );
     expect(hms).toBeDefined();
     expect(hms!.items).toHaveLength(8);
     const handbook = hms!.items.find((i) => i.href === "/dashboard/handbook");
     expect(handbook).toBeDefined();
-    expect(handbook!.label).toBe("Handbok");
+    expect(handbook!.labelKey).toBe("dashboard.sidebar.item_handbok");
   });
 
-  it("every item has label, href starting with /, and valid status", () => {
+  it("every item has labelKey, href starting with /, and valid status", () => {
     for (const group of SIDEBAR_GROUPS_ADMIN) {
       for (const item of group.items) {
-        expect(item.label).toBeTruthy();
+        expect(item.labelKey).toBeTruthy();
         expect(item.href).toMatch(/^\//);
         expect(VALID_STATUSES).toContain(item.status);
       }
@@ -66,7 +68,9 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
   });
 
   it("AI group Mr. Botsson has featureFlag AI_CHAT and ai: true", () => {
-    const aiGroup = SIDEBAR_GROUPS_ADMIN.find((g) => g.label === "AI & Botsson");
+    const aiGroup = SIDEBAR_GROUPS_ADMIN.find(
+      (g) => g.labelKey === "dashboard.sidebar.group_ai_botsson",
+    );
     expect(aiGroup).toBeDefined();
     const botsson = aiGroup!.items.find((i) => i.href === "/dashboard/ai");
     expect(botsson).toBeDefined();
@@ -75,7 +79,7 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
   });
 
   it("Ansatte item has compositeActive containing /dashboard/contracts", () => {
-    const drift = SIDEBAR_GROUPS_ADMIN.find((g) => g.label === "Drift");
+    const drift = SIDEBAR_GROUPS_ADMIN.find((g) => g.labelKey === "dashboard.sidebar.group_drift");
     expect(drift).toBeDefined();
     const ansatte = drift!.items.find((i) => i.href === "/dashboard/people");
     expect(ansatte).toBeDefined();
@@ -89,17 +93,19 @@ describe("SIDEBAR_GROUPS_EMPLOYEE", () => {
   });
 
   it("Min Tid group contains Stempelur with href /dashboard/shift-clock", () => {
-    const minTid = SIDEBAR_GROUPS_EMPLOYEE.find((g) => g.label === "Min Tid");
+    const minTid = SIDEBAR_GROUPS_EMPLOYEE.find(
+      (g) => g.labelKey === "dashboard.sidebar.group_min_tid",
+    );
     expect(minTid).toBeDefined();
     const stempelur = minTid!.items.find((i) => i.href === "/dashboard/shift-clock");
     expect(stempelur).toBeDefined();
-    expect(stempelur!.label).toBe("Stempelur");
+    expect(stempelur!.labelKey).toBe("dashboard.sidebar.item_stempelur");
   });
 
-  it("every item has label, href starting with /, and valid status", () => {
+  it("every item has labelKey, href starting with /, and valid status", () => {
     for (const group of SIDEBAR_GROUPS_EMPLOYEE) {
       for (const item of group.items) {
-        expect(item.label).toBeTruthy();
+        expect(item.labelKey).toBeTruthy();
         expect(item.href).toMatch(/^\//);
         expect(VALID_STATUSES).toContain(item.status);
       }
@@ -111,7 +117,7 @@ describe("SIDEBAR_GROUPS_DEMO", () => {
   it("starts with Showcase group containing Templates and Analytics", () => {
     const showcase = SIDEBAR_GROUPS_DEMO[0]!;
     expect(showcase).toBeDefined();
-    expect(showcase.label).toBe("Showcase");
+    expect(showcase.labelKey).toBe("dashboard.sidebar.group_showcase");
     const hrefs = showcase.items.map((i) => i.href);
     expect(hrefs).toContain("/dashboard/schedule"); // Templates
     expect(hrefs).toContain("/dashboard/reports"); // Analytics

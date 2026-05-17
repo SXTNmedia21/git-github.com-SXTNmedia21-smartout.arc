@@ -1352,7 +1352,7 @@ function DashboardShellInner({
                             : SIDEBAR_GROUPS_EMPLOYEE;
                           return groups.map((group) => (
                             <SidebarGroup
-                              key={group.label}
+                              key={group.labelKey}
                               group={group}
                               pathname={pathname}
                               isDark={isDark}
