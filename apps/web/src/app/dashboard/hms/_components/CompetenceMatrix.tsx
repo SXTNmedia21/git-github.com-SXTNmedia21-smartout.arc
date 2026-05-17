@@ -304,7 +304,7 @@ function ProgressCell({ cell, t }: { cell: CellData; t: (key: string) => string 
           <div className="flex flex-col items-center gap-0.5">
             <div className="bg-muted h-1.5 w-12 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-blue-500 transition-all"
+                className="bg-primary h-full rounded-full transition-[width]"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -463,10 +463,10 @@ export function CompetenceMatrix() {
                     <span
                       className={`text-sm font-bold ${
                         row.readinessPercent >= 90
-                          ? "text-green-600"
+                          ? "text-success"
                           : row.readinessPercent >= 60
-                            ? "text-yellow-600"
-                            : "text-red-600"
+                            ? "text-warning"
+                            : "text-destructive"
                       }`}
                     >
                       {row.readinessPercent}%
