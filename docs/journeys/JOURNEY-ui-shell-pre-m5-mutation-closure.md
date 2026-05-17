@@ -1,6 +1,6 @@
 ---
 title: "Journey — HMS surface mutations close ADR-0099/0114/0204 gaps"
-status: draft
+status: verified
 feature: pre-m5-mutation-closure
 updated: 2026-05-17
 created: 2026-05-17
