@@ -23,7 +23,9 @@ cd "$ROOT"
 # Mapping version — bump when path→gate table or coverage rules change.
 # Hook validates this against marker contents to invalidate stale markers
 # when coverage logic itself changes.
-COVERAGE_MAPPING_VERSION=1
+# v2 (2026-05-17): added L-worktree-missing-pnpm-symlinks encoding +
+#                  preflight node_modules abort (was: ELIFECYCLE 15× on fresh wt).
+COVERAGE_MAPPING_VERSION=2
 
 # Mirror CI workflow-level env (ci.yml line 16)
 export SKIP_ENV_VALIDATION=true
@@ -91,6 +93,18 @@ skip_gate() {
   RESULTS+=("↷ ${name} (${reason})")
   SKIP=$((SKIP+1))
 }
+
+# Preflight: deps installed (L-worktree-missing-pnpm-symlinks family — 2026-05-17).
+# Fresh worktrees from new-feature.sh do NOT auto-install. Without node_modules,
+# every downstream gate ELIFECYCLEs ("tsx: command not found", "pnpm/turbo not
+# in PATH") and reports FAIL:15 with no useful root-cause hint. Abort early.
+if [ ! -d "$ROOT/node_modules" ]; then
+  echo -e "${RED}node_modules missing at $ROOT/node_modules${NC}"
+  echo -e "${YELLOW}Run: pnpm install${NC}"
+  echo -e "${YELLOW}Why: fresh worktrees from new-feature.sh do not auto-install deps.${NC}"
+  echo -e "${YELLOW}     Without node_modules, all 15+ downstream gates ELIFECYCLE on missing tsx/turbo/etc.${NC}"
+  exit 1
+fi
 
 # Preflight: Supabase Local
 if ! npx supabase status >/dev/null 2>&1; then
@@ -478,12 +492,18 @@ learning_cross_check() {
   echo "$stripped" | grep -qE 'turbo run build.*--concurrency=1' \
     || violations+=("L-build-app-parallel-OOM: build must use --concurrency=1")
 
+  # L-worktree-missing-pnpm-symlinks → preflight aborts on missing node_modules
+  # 2026-05-17: fresh wt-3 ci:local burned PASS:7/FAIL:15 (all ELIFECYCLE) before
+  # operator diagnosed missing node_modules. Preflight check catches this in <1s.
+  echo "$stripped" | grep -qE 'node_modules missing|! \[ -d "\$ROOT/node_modules"' \
+    || violations+=("L-worktree-missing-pnpm-symlinks: preflight node_modules check missing (worktrees fail all gates without it)")
+
   if [ ${#violations[@]} -gt 0 ]; then
     echo -e "${RED}  Captured learnings no longer encoded:${NC}"
     printf '    %s\n' "${violations[@]}"
     return 1
   fi
-  echo "  All 6 captured learnings still encoded ✓"
+  echo "  All 7 captured learnings still encoded ✓"
   return 0
 }
 run_gate "learning-cross-check"         learning_cross_check
