@@ -22,7 +22,9 @@ import {
   type DepartmentSessionRow,
 } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
+import { useProfileRole } from "@/app/dashboard/komm/_hooks/use-profile-role";
 import { resolveDeptKey } from "./dept-key";
+import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { PhaseBadge } from "@smartout/ui";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { TimelineTab } from "./tabs/TimelineTab";
@@ -81,7 +83,7 @@ function getElapsedText(phase: UiPhase, session: DepartmentSessionRow | null): s
   if (phase === "active" && session.openedAt) {
     return `Åpnet ${new Date(session.openedAt).toTimeString().slice(0, 5)}`;
   }
-  if (phase === "upcoming") return "Starter snart";
+  // "upcoming": PhaseBadge owns this state — no duplicate text needed
   if (phase === "pending_signoff") return "Venter på signering";
   if (phase === "closed" || phase === "locked") return "Stengt";
   if (phase === "missed") return "Grace overskredet";
@@ -95,6 +97,11 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
   const profileId = ctx.profileId;
   const workspaceId = wsCtx?.workspace.workspace_id ?? null;
   const reduceMotion = useReducedMotion();
+
+  // Role plumbing: use raw query.data (not .role which defaults to "employee")
+  // so role stays null during loading → SlotPicker gate shows briefly then unblocks.
+  const { data: profileRoleData } = useProfileRole(profileId ?? "");
+  const role: WorkspaceRole | null = (profileRoleData as WorkspaceRole | undefined) ?? null;
 
   const [dateISO, setDateISO] = useState<string>(today());
   const dateLabels = formatDateLabels(dateISO);
@@ -253,12 +260,16 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                     ·
                   </span>
                   <PhaseBadge phase={phase} />
-                  <span aria-hidden className="opacity-50">
-                    ·
-                  </span>
-                  <span className="font-mono tabular-nums">
-                    {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
-                  </span>
+                  {(session.plannedOpen ?? session.plannedClose) ? (
+                    <>
+                      <span aria-hidden className="opacity-50">
+                        ·
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
+                      </span>
+                    </>
+                  ) : null}
                   {getElapsedText(phase, session) ? (
                     <>
                       <span aria-hidden className="opacity-50">
@@ -286,7 +297,13 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             </div>
 
             {/* Body — spring transition between tabs */}
-            <div id={`tab-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-hidden">
+            <div
+              id={`tab-panel-${tab}`}
+              role="tabpanel"
+              aria-labelledby={`tab-btn-${tab}`}
+              tabIndex={0}
+              className="min-h-0 flex-1 overflow-hidden"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
@@ -313,6 +330,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                       phase={phase}
                       departmentId={currentDept.departmentId}
                       dateISO={dateISO}
+                      role={role}
                     />
                   )}
                   {tab === "roster" && (

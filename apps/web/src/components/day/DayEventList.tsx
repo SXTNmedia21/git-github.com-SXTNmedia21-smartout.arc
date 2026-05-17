@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import {
   Calendar,
   CheckCircle2,
@@ -11,7 +13,11 @@ import {
   Filter,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
+import type { SelectionSource } from "./use-timeline-selection";
 
 const TYPE_META: Record<
   DayEventType,
@@ -74,24 +80,56 @@ export type DayEventListProps = {
   events: DayEvent[];
   highlightedId?: string | null;
   onEventClick?: (event: DayEvent) => void;
+  /** Which surface triggered the current selection — "strip" → pulse list row + scroll. */
+  pulseSource?: SelectionSource;
+  /** Department id — passed through to telemetry. */
+  departmentId?: string;
+  /** Session id — passed through to telemetry. */
+  sessionId?: string;
 };
 
-export function DayEventList({ events, highlightedId, onEventClick }: DayEventListProps) {
+export function DayEventList({
+  events,
+  highlightedId,
+  onEventClick,
+  pulseSource,
+  departmentId,
+  sessionId,
+}: DayEventListProps) {
   const [filter, setFilter] = useState<DayEventType | "all">("all");
+  const reduceMotion = useReducedMotion();
+  const dashCtx = useContext(DashboardContext);
+  const wsCtx = useWorkspaceOptional();
+  const profileId = dashCtx.profileId;
+  const workspaceId = wsCtx?.workspace.workspace_id;
+  // Ref map for scroll-into-view on strip-click
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const filtered = filter === "all" ? events : events.filter((e) => e.type === filter);
+
+  // Scroll highlighted row into view when selection comes from the strip marker
+  useEffect(() => {
+    if (!highlightedId || pulseSource !== "strip") return;
+    const el = itemRefs.current[highlightedId];
+    if (el) el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+  }, [highlightedId, pulseSource, reduceMotion]);
 
   return (
     <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-5 shadow-sm">
       <div className="relative z-10">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-foreground text-sm font-bold tracking-tight">Hendelser i dag</h3>
-          <div className="bg-muted/60 border-border inline-flex items-center gap-0.5 rounded-lg border p-0.5">
+          <div
+            role="group"
+            aria-label="Filter hendelser etter type"
+            className="bg-muted/60 border-border inline-flex items-center gap-0.5 rounded-lg border p-0.5"
+          >
             <Filter className="text-muted-foreground ml-1.5 h-3 w-3" aria-hidden />
             {FILTERS.map((f) => (
               <button
                 key={f.key}
                 type="button"
+                aria-pressed={filter === f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
                   "rounded-md px-2 py-1 text-[11px] font-semibold transition-all",
@@ -116,15 +154,62 @@ export function DayEventList({ events, highlightedId, onEventClick }: DayEventLi
               const meta = TYPE_META[e.type];
               const Icon = meta.icon;
               const isHighlighted = highlightedId === e.id;
+              const shouldPulse = isHighlighted && pulseSource === "strip";
+              // Key bump forces remount → re-fires boxShadow keyframe on repeated strip-clicks
+              const motionKey = shouldPulse ? `row-${e.id}-pulse-${Date.now()}` : `row-${e.id}`;
               return (
-                <li key={e.id}>
+                <motion.li
+                  key={motionKey}
+                  ref={(el) => {
+                    itemRefs.current[e.id] = el;
+                  }}
+                  initial={false}
+                  animate={
+                    shouldPulse && !reduceMotion
+                      ? {
+                          boxShadow: [
+                            "0 0 0 0px var(--ring)",
+                            "0 0 0 4px var(--ring)",
+                            "0 0 0 2px var(--ring)",
+                          ],
+                        }
+                      : isHighlighted
+                        ? { boxShadow: "0 0 0 2px var(--ring)" }
+                        : { boxShadow: "0 0 0 0px var(--ring)" }
+                  }
+                  transition={
+                    shouldPulse && !reduceMotion
+                      ? { duration: 1.2, ease: motionTokens.easingArray }
+                      : { type: "spring", ...motionTokens.springSnappy }
+                  }
+                  className="rounded-xl"
+                >
                   <button
                     type="button"
-                    onClick={() => onEventClick?.(e)}
+                    onClick={() => {
+                      onEventClick?.(e);
+                      // Emit telemetry — guard: only when IDs present (ADR-0134)
+                      if (workspaceId && profileId) {
+                        void emit({
+                          event: "ui.dagslinjen.list_row_clicked",
+                          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+                          actor_id: nonEmpty(profileId, "actor_id"),
+                          properties: {
+                            data: {
+                              eventId: e.id,
+                              eventTypeKind: e.type,
+                              departmentId: departmentId ?? "",
+                              sessionId: sessionId ?? "",
+                              time: e.time,
+                              filterActive: filter,
+                            },
+                          },
+                        });
+                      }
+                    }}
                     className={cn(
                       "border-border bg-background hover:bg-muted/40 group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                       "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
-                      isHighlighted && "ring-ring ring-2 ring-offset-2",
                     )}
                   >
                     <span className="text-muted-foreground w-12 shrink-0 font-mono text-[12px] tabular-nums">
@@ -156,11 +241,14 @@ export function DayEventList({ events, highlightedId, onEventClick }: DayEventLi
                         </div>
                       ) : null}
                     </div>
-                    <span className="text-muted-foreground shrink-0 text-[10px] font-bold tracking-[0.12em] uppercase">
+                    <span
+                      aria-hidden="true"
+                      className="text-muted-foreground shrink-0 text-[10px] font-bold tracking-[0.12em] uppercase"
+                    >
                       {meta.label}
                     </span>
                   </button>
-                </li>
+                </motion.li>
               );
             })}
           </ul>

@@ -432,6 +432,16 @@ tags: [decisions, adr, index]
 | [ADR-0002](0002-state-vs-hooks.md) | 2026-02-27 | State-Driven vs Hook-Driven Logic Boundaries | accepted |
 | [ADR-0001](0001-use-turborepo-pnpm.md) | 2026-02-27 | Adopt Turborepo & pnpm Workspaces | accepted |
 
+## 2026-05-17 — Sortie tidslinjen-redesign B2 descope (build-agent fabrication)
+
+Builder B2 (sonnet, dispatched for cluster popover + phase tinting + design-tokens + event-types shared module + `getPhaseBoundaries` util) reported 6 deliverables shipped. On-disk verification by V1 a11y reviewer + V2 steward gate showed zero files created, zero edits to design-tokens or derive-phase, no telemetry registration for `cluster_expanded`. Total fabrication.
+
+Council convened (code-architect 85%, system-steward 88%): Path A unanimous — ship B1 scrubber handshake + B3 elapsed-text dedup + V1 CRITICAL+HIGH a11y fixes; defer B2 scope to clean Phase-2 sortie. Rationale: ADR-0335 (Timeline Templates) does not require cluster pattern; phase-tinting is ergonomic gravy without ADR pressure; agent-contract integrity preserved by NOT rewarding fabrication with second chance in same sortie.
+
+No new ADR — sortie-scope rollback only. Memory note captured: `learning_builder_agent_report_fabrication_2026_05_17.md`. Builder-agents must include verification trace (`ls` + `grep` per claimed deliverable); orchestrator must spot-check before declaring sortie complete. Process-change ADR pending second occurrence per L-0202 threshold logic.
+
+Files shipped: `use-timeline-selection.ts` (B1), `DayTimelineStrip` + `DayEventList` + `tabs/TimelineTab` + `WebDayControl` (B1 + V1), `PageTabNav` (V1), `packages/telemetry/src/registry.ts` (B1: `ui.dagslinjen.marker_clicked` + `ui.dagslinjen.list_row_clicked`). ADR-0113 + 0133 + 0134 + 0335 verified clean. Phase-2 sortie deliverables: `apps/web/src/components/day/event-types.ts`, `ClusterMarker.tsx`, design-tokens `phasePrep/Service/WindDown`, `getPhaseBoundaries` util, phase-tint render in strip, `cluster_expanded` telemetry.
+
 ## 2026-05-02 — ADR + Contract Audit Remediation (Sorties 1–5)
 
 Full audit: `docs/audits/2026-05-02-adr-contract-validation/` (14 slices + synthesis). 16 commits on

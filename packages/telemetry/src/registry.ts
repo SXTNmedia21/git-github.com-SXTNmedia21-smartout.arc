@@ -8629,6 +8629,9 @@ export type SmartoutEvent =
   // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ──────────────────────────
   | UiDagslinjenSlotQuickaddActionPicked
   | UiDagslinjenScopeFilterChanged
+  // ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ───────
+  | UiDagslinjenMarkerClicked
+  | UiDagslinjenListRowClicked
   // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
@@ -9937,6 +9940,53 @@ export interface UiDagslinjenScopeFilterChanged extends BaseEvent {
       from: string;
       /** Encoded new scope, e.g. "department:def-456" */
       to: string;
+    };
+  };
+}
+
+// ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ────────
+//
+// ui.dagslinjen.marker_clicked
+//   Emitted when a user clicks an event marker on the timeline strip.
+//   posthog: product analytics (strip engagement funnel).
+//   logger: debugging.
+//   No activity_trail (UI interaction only — the underlying entity's own events handle audit).
+//   No engine_event (not a state-machine input).
+//
+// ui.dagslinjen.list_row_clicked
+//   Emitted when a user clicks an event row in the event list.
+//   posthog: product analytics (list engagement vs strip engagement).
+//   logger: debugging.
+//   No activity_trail / engine_event (UI interaction only).
+
+export interface UiDagslinjenMarkerClicked extends BaseEvent {
+  event: "ui.dagslinjen.marker_clicked";
+  properties: {
+    data: {
+      eventId: string;
+      /** The type of the timeline event (booking, task, deviation, etc.) */
+      eventTypeKind: string;
+      departmentId: string;
+      sessionId: string;
+      /** Local HH:MM time of the event */
+      time: string;
+    };
+  };
+}
+
+export interface UiDagslinjenListRowClicked extends BaseEvent {
+  event: "ui.dagslinjen.list_row_clicked";
+  properties: {
+    data: {
+      eventId: string;
+      /** The type of the timeline event (booking, task, deviation, etc.) */
+      eventTypeKind: string;
+      departmentId: string;
+      sessionId: string;
+      /** Local HH:MM time of the event */
+      time: string;
+      /** Active filter value: "all" or a specific DayEventType */
+      filterActive: string;
     };
   };
 }
@@ -13469,6 +13519,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   // Scope filter change — view-only filter; no write, no engine_event.
   "ui.dagslinjen.scope_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ───────
+  // UI interaction only — posthog + logger. No activity_trail (not a write event).
+  // Underlying entities emit their own events when state mutates.
+  "ui.dagslinjen.marker_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  "ui.dagslinjen.list_row_clicked": {
     destinations: ["posthog", "logger"],
     category: "navigation",
   },

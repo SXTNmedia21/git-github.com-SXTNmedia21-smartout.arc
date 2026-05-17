@@ -46,6 +46,7 @@ export function PageTabNav<K extends string>({
         return (
           <button
             key={t.key}
+            id={`tab-btn-${t.key}`}
             type="button"
             role="tab"
             aria-selected={isActive}

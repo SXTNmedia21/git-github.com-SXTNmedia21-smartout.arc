@@ -1,8 +1,15 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { Calendar, CheckCircle2, AlertTriangle, StickyNote, LogIn, LogOut } from "lucide-react";
 import { cn } from "@smartout/ui";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { useContext } from "react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
+import type { SelectionSource } from "./use-timeline-selection";
 
 export type DayTimelineStripProps = {
   events: DayEvent[];
@@ -25,6 +32,14 @@ export type DayTimelineStripProps = {
    * Only fires when editable=true.
    */
   onSlotClick?: (timeHHMM: string) => void;
+  /** The currently selected event id — drives selection ring on the matching marker. */
+  highlightedId?: string | null;
+  /** Which surface triggered the current selection — "list" → pulse marker. */
+  pulseSource?: SelectionSource;
+  /** Department id — passed through to telemetry. */
+  departmentId?: string;
+  /** Session id — passed through to telemetry. */
+  sessionId?: string;
 };
 
 type ShapeKind = "dot" | "flag" | "diamond" | "arrow-down" | "arrow-up" | "ring";
@@ -210,7 +225,16 @@ export function DayTimelineStrip({
   onSelect,
   editable = false,
   onSlotClick,
+  highlightedId,
+  pulseSource,
+  departmentId,
+  sessionId,
 }: DayTimelineStripProps) {
+  const reduceMotion = useReducedMotion();
+  const dashCtx = useContext(DashboardContext);
+  const wsCtx = useWorkspaceOptional();
+  const profileId = dashCtx.profileId;
+  const workspaceId = wsCtx?.workspace.workspace_id;
   const startMin = timeToMinutes(startHHMM) ?? 6 * 60;
   let endMin = timeToMinutes(endHHMM) ?? 26 * 60;
   if (endMin <= startMin) endMin += 24 * 60;
@@ -316,7 +340,7 @@ export function DayTimelineStrip({
             <div
               className="absolute top-2 bottom-2 w-px bg-orange-500/60"
               style={{ left: `${nowPct}%` }}
-              aria-label="Nå"
+              aria-label={`Klokken er nå ${String(Math.floor(nowMin! / 60)).padStart(2, "0")}:${String(nowMin! % 60).padStart(2, "0")}`}
             >
               <span className="absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50" />
             </div>
@@ -402,16 +426,50 @@ export function DayTimelineStrip({
             const meta = TYPE_META[event.type];
             const Icon = meta.icon;
             const offsetY = lane === 0 ? "0" : lane === 1 ? "-22px" : "22px";
+            const isHighlighted = highlightedId === event.id;
+            const shouldPulse = isHighlighted && pulseSource === "list" && !reduceMotion;
+            // Key bump when shouldPulse: forces remount → re-fires keyframe animation
+            // even when user clicks the same row twice in succession.
+            const motionKey = shouldPulse
+              ? `marker-${event.id}-pulse-${Date.now()}`
+              : `marker-${event.id}`;
             return (
-              <button
-                key={event.id}
+              <motion.button
+                key={motionKey}
                 type="button"
-                onClick={() => onSelect?.(event)}
+                onClick={() => {
+                  onSelect?.(event);
+                  // Emit telemetry — guard: only when IDs present (ADR-0134)
+                  if (workspaceId && profileId) {
+                    void emit({
+                      event: "ui.dagslinjen.marker_clicked",
+                      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+                      actor_id: nonEmpty(profileId, "actor_id"),
+                      properties: {
+                        data: {
+                          eventId: event.id,
+                          eventTypeKind: event.type,
+                          departmentId: departmentId ?? "",
+                          sessionId: sessionId ?? "",
+                          time: event.time,
+                        },
+                      },
+                    });
+                  }
+                }}
                 title={`${event.time} · ${event.title}${event.actor ? ` · ${event.actor}` : ""}`}
-                aria-label={`${event.time} ${event.title}`}
+                aria-label={`${event.time} — ${TYPE_META[event.type].label}: ${event.title}`}
+                initial={false}
+                animate={shouldPulse ? { scale: [1, 1.3, 1] } : { scale: 1 }}
+                transition={
+                  shouldPulse
+                    ? { duration: 1.2, ease: motionTokens.easingArray }
+                    : { type: "spring", ...motionTokens.springSnappy }
+                }
                 className={cn(
-                  "absolute top-1/2 z-10 transition-transform",
+                  "absolute top-1/2 z-10",
                   "hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
+                  isHighlighted && "ring-ring rounded-full ring-2 ring-offset-1",
                 )}
                 style={{
                   left: `${pct}%`,
@@ -425,7 +483,7 @@ export function DayTimelineStrip({
                   iconColor={meta.iconColor}
                   Icon={Icon}
                 />
-              </button>
+              </motion.button>
             );
           })}
         </div>

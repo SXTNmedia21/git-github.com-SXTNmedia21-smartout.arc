@@ -25,6 +25,7 @@ import { DailyNoteSheet } from "@/components/dashboard/cockpit/sheets/DailyNoteS
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { useDayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
+import { useTimelineSelection } from "@/components/day/use-timeline-selection";
 import type { TimelineTemplateItemT } from "@smartout/types";
 
 // Local type for slot-picker anchor — time + whether it is open.
@@ -62,7 +63,7 @@ export function TimelineTab({
   const dashCtx = useContext(DashboardContext);
   const profileId = dashCtx.profileId;
 
-  const [selected, setSelected] = useState<DayEvent | null>(null);
+  const selection = useTimelineSelection();
   const [slotPicker, setSlotPicker] = useState<SlotPickerState>(CLOSED_SLOT_PICKER);
   // In-memory draft chips — free-form items added by user, not yet saved as template
   const [draftChips, setDraftChips] = useState<DraftChip[]>([]);
@@ -103,7 +104,7 @@ export function TimelineTab({
     qc.invalidateQueries({ queryKey: ["day-control", "timeline-events"] });
   }
 
-  function handleSelect(e: DayEvent) {
+  function handleSelectFromStrip(e: DayEvent) {
     if (drawer) {
       if (e.type === "checkin" || e.type === "checkout") {
         drawer.openDrawer("shift", e.refId);
@@ -118,7 +119,35 @@ export function TimelineTab({
         return;
       }
     }
-    setSelected((prev) => (prev?.id === e.id ? null : e));
+    // Toggle: clicking the same event again clears selection
+    if (selection.selectedId === e.id) {
+      selection.clear();
+    } else {
+      selection.selectFromStrip(e);
+    }
+  }
+
+  function handleSelectFromList(e: DayEvent) {
+    if (drawer) {
+      if (e.type === "checkin" || e.type === "checkout") {
+        drawer.openDrawer("shift", e.refId);
+        return;
+      }
+      if (e.type === "task") {
+        drawer.openDrawer("cascade_task", e.refId);
+        return;
+      }
+      if (e.type === "deviation") {
+        drawer.openDrawer("deviation", e.refId);
+        return;
+      }
+    }
+    // Toggle: clicking the same event again clears selection
+    if (selection.selectedId === e.id) {
+      selection.clear();
+    } else {
+      selection.selectFromList(e);
+    }
   }
 
   function handleSlotClick(time: string) {
@@ -226,9 +255,13 @@ export function TimelineTab({
                 startHHMM={session.plannedOpen}
                 endHHMM={session.plannedClose}
                 dateISO={dateISO}
-                onSelect={handleSelect}
+                onSelect={handleSelectFromStrip}
                 editable={canEdit}
                 onSlotClick={handleSlotClick}
+                highlightedId={selection.selectedId}
+                pulseSource={selection.pulseSource}
+                departmentId={departmentId}
+                sessionId={session.sessionId}
               />
             </div>
           </SlotPicker>
@@ -246,8 +279,8 @@ export function TimelineTab({
 
         {/* Inline editor for selected event */}
         <EventDetailPanel
-          event={selected}
-          onClose={() => setSelected(null)}
+          event={selection.selectedEvent}
+          onClose={selection.clear}
           onSaved={() => {
             refreshEvents();
           }}
@@ -255,8 +288,11 @@ export function TimelineTab({
 
         <DayEventList
           events={data}
-          highlightedId={selected?.id ?? null}
-          onEventClick={handleSelect}
+          highlightedId={selection.selectedId}
+          onEventClick={handleSelectFromList}
+          pulseSource={selection.pulseSource}
+          departmentId={departmentId}
+          sessionId={session.sessionId}
         />
       </div>
 
