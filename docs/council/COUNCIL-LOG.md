@@ -2234,3 +2234,14 @@ N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability c
 **Learnings to log:** L-0292 (pre-council schema-reality-check pattern), L-0293 (denormalized cache + canonical lifecycle), L-0294 (7th L-0147 precedent + SKILL.md promotion).
 **Phase 2.5 fact-check:** 12/12 claims VERIFIED + bonus finding (`tariff_binding_id` column doesn't exist) confirmed false. Briefing was structurally accurate.
 **Process improvement:** Pre-council schema-reality-check (read 5 most-cited tables/columns before Phase 2 dispatch) saved this council from at least 5 false-premised ADR claims surviving Phase 3.
+
+## 2026-05-17 — `pnpm ci:local` coverage-check + self-learning loop
+**Type:** feature (CI infrastructure + skill enforcement)
+**Verdict:** REJECT IN CURRENT FORM → v2 (chair self-reversal precedent #10)
+**Agents consulted:** system-steward (chair), supervisor (code-trace), system-agent-coordinator (hook contract)
+**Prior verdict held?** n/a — first council on ci:local infrastructure
+**Key decision:** Add `coverage-check` (diff-aware path→gate enforcement, 24 rows longest-prefix-wins) + `learning-cross-check` (greps script for 6 captured-learning encodings) + `baseline-check` + `self-learn-write` (JSONL run log + outlier detection). Plus PreToolUse Bash hook at `~/.claude/scripts/pre-gh-pr-create.sh` blocking `gh pr create` unless `.git/.ci-local-green-<HEAD_SHA>` marker exists. Three bypass envs documented.
+**ADR created:** ADR-0359 (Enforced CI Coverage Mandate and Self-Learning Loop)
+**Learning created:** L-0298 (ci:local mapping fidelity is only caught by code-trace)
+**Phase 2.5 fact-check:** skipped (small surface, files recent; risk accepted)
+**Process improvement:** Supervisor code-trace caught 9 missing path classes + 3 false mapping claims that Steward concept-review approved. L-0147 family 4th instance. Future: any topic proposing a mapping/coverage table must assign a code-tracer reviewer the explicit "open the source files, verify each row" task. Add this to run-council Phase 3 Hard Rules if pattern recurs once more.
