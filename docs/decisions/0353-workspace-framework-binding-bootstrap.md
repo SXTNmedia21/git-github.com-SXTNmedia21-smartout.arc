@@ -7,9 +7,10 @@ layer: decision
 created: 2026-05-17
 updated: 2026-05-17
 module: payroll
-tags: [workspace, framework, binding, lifecycle, bootstrap, union, tariff, i1, payroll, phase-7d]
-amends: [ADR-0252]
-related_adrs: [ADR-0252, ADR-0076, ADR-0173, ADR-0347, ADR-0350, ADR-0351, ADR-0352, ADR-0354]
+tags: [workspace, framework, binding, lifecycle, bootstrap, union, tariff, i1, payroll, phase-7d, l-0147-self-reversal, phase-7d-amendment]
+amends: [ADR-0252, ADR-0353]
+superseded_sections: [§A schema, §D audit FK chain]
+related_adrs: [ADR-0252, ADR-0076, ADR-0173, ADR-0347, ADR-0350, ADR-0351, ADR-0352, ADR-0354, ADR-0355, ADR-0356]
 ---
 
 # ADR-0353: workspace_framework_binding lifecycle — union choice at signup seeds tariff snapshot
@@ -123,6 +124,52 @@ Sub-decisions are resolved as follows.
 
 ### A. Schema additions (Phase 7d-followup migration — not this ADR)
 
+## 2026-05-17 Amendment — L-0147 Self-Reversal (Phase 7d-followup council)
+
+> Phase 7d council 2026-05-17 ratified §A as written below. Phase 7d-followup council
+> 2026-05-17 (same date, later session) code-traced ADR claims against schema reality
+> and found 3 falsifications. Per L-0147 chair self-reversal protocol (7th precedent —
+> see SKILL.md run-council §Phase 5 §1.5 + L-0294), §A schema is REVERSED.
+>
+> **Phase 3 claim:** "Two new tables required: `workspace_framework_binding` + `tariff_snapshot`."
+> **Status:** FALSE.
+> **Falsifying evidence:**
+> - `supabase/migrations/20260421200100_cascade_a2_framework_tables.sql:135-145` —
+>   `public.workspace_framework_binding` already exists with cascade D3 shape (framework_id
+>   FK, is_active boolean). 7 RPC consumers + 2 FK dependencies
+>   (`tariff_rate_table.seeded_from_framework_binding_id`,
+>   `workspace_bootstrap_run.framework_binding_id`). Auto-seed trigger
+>   `seed_default_framework_binding` writes hospitality.no.default.v1 on every workspace
+>   INSERT.
+> - `packages/utils/src/resolve-composition.ts:230-235` — reader uses
+>   `.eq("is_active", true)` join with `regulatory_framework`.
+> - Proposed §A schema (union_id text, effective_from/to, amendment_classifier) shares NO
+>   columns with existing cascade table.
+>
+> **Classification:** REVERSED.
+>
+> **Corrected position:**
+> - Existing `public.workspace_framework_binding` (cascade D3 dimension binding) — UNTOUCHED.
+> - New table for payroll lovsen tariff binding — named `public.workspace_union_binding`.
+>   Specified by **ADR-0355**.
+> - Cache trigger maintains `payroll.workspace_settings.is_tariff_bound` + `active_union_id`
+>   from active binding row. Specified by **ADR-0355** (Gap 4 keep-both with trigger-synced
+>   cache per Phase 5 chair self-reversal — see also §D amendment below).
+> - `payroll.tariff_snapshot` table (schema choice REVERSED Phase 5 from `public` → `payroll`
+>   per payroll-tracer namespace-ownership argument) — specified by **ADR-0355** + Sortie 2
+>   migration.
+> - Capability tools (`setup_workspace_tariff`, `change_workspace_tariff`,
+>   `add_supplement_override`) MUST NOT write directly to `public.workspace_union_binding` —
+>   they delegate via `cascade.bind_workspace_union` per **ADR-0356** (ADR-0173 frozen-4
+>   boundary enforcement).
+>
+> **FK syntax bug:** Original §A pseudo-SQL says `REFERENCES workspace(id)` — wrong. Real PK
+> is `workspace(workspace_id)` per `supabase/migrations/00001_identity_tables.sql:75`.
+> ADR-0355 + Sortie 2 migration use correct FK reference.
+>
+> **Original §A content is RETAINED below as historical record but is NO LONGER LOAD-BEARING.**
+> Sortie 2 migration follows ADR-0355 + ADR-0356, not the original §A.
+
 Two new tables and two new columns. No SQL is shipped with this ADR; the migration
 sortie authors and applies the following.
 
@@ -221,8 +268,39 @@ on the existing row is updated.
 
 ### D. Reference semantics (snapshot-and-forward per ADR-0076)
 
+## 2026-05-17 Amendment — Phase 7d-followup council falsification
+
+> **Phase 3 claim:** "Every calc is traceable to: `(time_entry, supplement_rule,
+> tariff_rate_table_id, tariff_binding_id, tariff_snapshot_id)`.
+> `shift_pay_calculation_event.tariff_binding_id` FK references the binding that was
+> active at calc-time."
+> **Status:** FALSE.
+> **Falsifying evidence:** `supabase/migrations/20260527100700_payroll_phase1_audit_event.sql:23-94`
+> — `shift_pay_calculation_event` table column list contains `rule_id`,
+> `contract_pay_rule_id`, `tariff_rate_table_id`, `superseded_by_event_id`, but NO
+> `tariff_binding_id` column. The column was presented as load-bearing for "the full
+> provenance chain required by ADR-0251" but does not exist.
+>
+> **Classification:** REVERSED.
+>
+> **Corrected position:**
+> - `shift_pay_calculation_event.tariff_binding_id` column DOES NOT EXIST today. Original
+>   provenance chain via `(time_entry, supplement_rule, tariff_rate_table_id, provenance
+>   JSONB)` satisfies ADR-0251 for current rows.
+> - **Sortie 2 migration** MUST add `ALTER TABLE public.shift_pay_calculation_event ADD
+>   COLUMN tariff_binding_id UUID REFERENCES
+>   public.workspace_union_binding(workspace_union_binding_id)`. Column NULLABLE for
+>   backward-compatibility with existing rows (per ADR-0251 append-only — historical rows
+>   immutable, cannot be backfilled).
+> - All NEW `shift_pay_calculation_event` INSERTs after Sortie 2 migration MUST populate
+>   `tariff_binding_id` from `workspace_settings.active_binding_id` (frozen at period start
+>   per ADR-0353 §D corrected — and noted in ADR-0355).
+> - Cascade D6 reproducibility: re-calc of historical period uses the frozen
+>   `tariff_binding_id` (when present) or falls back to `tariff_rate_table_id +
+>   provenance.tariff_snapshot` for pre-migration rows.
+
 - `shift_pay_calculation_event.tariff_binding_id` FK references the binding that was
-  active at calc-time.
+  active at calc-time. (to be added in Sortie 2 migration — see ADR-0355)
 - Calc engine reads `workspace_settings.active_binding_id` at period start → freezes for
   the period in `shift_cost_snapshot`. This frozen FK survives subsequent union switches.
 - Re-calc of a historical period uses the HISTORICAL binding via the period's frozen FK,
@@ -230,7 +308,7 @@ on the existing row is updated.
   preserved unconditionally.
 - Every calc is traceable to: `(time_entry, supplement_rule, tariff_rate_table_id,
   tariff_binding_id, tariff_snapshot_id)` — the full provenance chain required by
-  ADR-0251.
+  ADR-0251. (`tariff_binding_id` to be added in Sortie 2 migration — see ADR-0355)
 
 ---
 
