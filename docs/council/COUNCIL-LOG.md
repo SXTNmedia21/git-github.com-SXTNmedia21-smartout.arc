@@ -1988,3 +1988,14 @@ Week 3 (gated):
 **Learnings created:** L-0276, L-0277, L-0278
 
 **Phase 2.5 finding (L-0276):** Haiku fact-check reported 4 schema items VERIFIED MISSING; Supervisor sonnet caught all 4 as present under different names (`reply_to_id`, columns-on-channel, `channel_member_role` enum, `is_muted`+`muted_until`). Phase 2.5 prompt insufficient for concept-vs-name drift.
+
+---
+
+## 2026-05-17 — Phase 7 Architectural Reframe: Lovdata as Riksavtalen Canonical
+**Prior verdict held?** N/A (first council on this topic)
+**Reviewers:** system-steward (chair), system-agent-coordinator, supervisor, lovsen
+**Verdict:** APPROVE WITH CHANGES + 5-blocker trust gate. Steward Phase 3 self-reversal on Q2 (no new schema field per Coordinator code-trace).
+**Key decisions:** Lovdata MCP becomes Riksavtalen canonical (ADR-0347); two-hash model supersedes ADR-0341 §H single-hash (ADR-0348); paragraph-ref translation map at docs/reference/ (ADR-0349); NHO MCP repurposed as employer-interpretive auxiliary; 358 already-cert'd cells re-cert in Phase 7c (dual-lineage transition).
+**ADR created:** ADR-0347, ADR-0348, ADR-0349 (proposed). ADR-0342 amended.
+**Blockers tracked:** 5 (live curl proof, lovsen rate verify, ADR map review, lovdata-mcp envvar canonicalization, verify_citation_freshness mirror).
+**Full audit:** docs/audits/2026-05-17-phase-7-lovdata-reframe-council.md
