@@ -32,6 +32,7 @@ import type { WizardStepProps } from "@smartout/ui";
 import type { SetupTariffRequest, SetupTariffResponse } from "@smartout/types";
 import { setupTariffResponseSchema, PAYROLL_TARIFF_BFF_ROUTES } from "@smartout/types";
 import type { OnboardingConfirmState } from "../types-v2";
+import type { UnionId } from "@smartout/types";
 
 // OnboardingConfirmState imported for WizardStepProps generic — tariff field is TariffSectionState.
 import {
@@ -108,8 +109,8 @@ function UnionPicker({
   selected,
   onChange,
 }: {
-  selected: string | null;
-  onChange: (id: string) => void;
+  selected: UnionId | null;
+  onChange: (id: UnionId) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -278,7 +279,7 @@ export function TariffSection({
     });
   }
 
-  function handleUnionChange(id: string) {
+  function handleUnionChange(id: UnionId) {
     patchTariff({
       selectedUnionId: id,
       selectedLawVersion: null, // Reset version when union changes

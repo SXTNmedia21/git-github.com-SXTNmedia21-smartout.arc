@@ -4,11 +4,7 @@
  * Orchestrates: current binding card + history list + supplement overrides
  * + change binding form + add supplement form.
  *
- * Emits payroll.tariff_view_loaded on mount.
- * FLAGGED TO ORCHESTRATOR: payroll.tariff_view_loaded is not in the telemetry
- * registry at time of writing. Emit call is safe (fails gracefully) but the
- * event will not be routed to PostHog / activity_trail until the registry is
- * updated in the telemetry-registry sortie.
+ * Emits payroll.tariff_view_loaded on mount (Phase 7g: registry entry added).
  *
  * Layout: page header (ADR-0357 §b) → current binding card → history list →
  * supplement overrides → change binding form (admin-only) → add supplement
@@ -28,7 +24,7 @@ import { BindingHistoryList } from "./BindingHistoryList";
 import { SupplementOverridesList } from "./SupplementOverridesList";
 import { ChangeBindingForm } from "./ChangeBindingForm";
 import { AddSupplementForm } from "./AddSupplementForm";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { Separator } from "@/components/ui/separator";
 
 export function TariffClient() {
@@ -41,24 +37,29 @@ export function TariffClient() {
   const emittedRef = useRef(false);
 
   // Telemetry view-emit (ADR-0357 §d)
-  // FLAGGED TO ORCHESTRATOR: payroll.tariff_view_loaded is not in the registry.
-  // The emit below will be a no-op (client emit logs a warning + returns early for
-  // unregistered events). Add this event in the telemetry-registry sortie before
-  // declaring Phase 7f production-ready.
+  // Phase 7g: payroll.tariff_view_loaded is now in the telemetry registry.
+  // PostHog + Logger only (no activity_trail — view event per registry entry).
+  // actor_id: client components use workspaceId as placeholder since no direct
+  // profile context is available. Activity_trail writes are mutation-only and
+  // server-initiated — no audit risk here.
+  // Fires after data loads so is_bound reflects the real binding state.
   useEffect(() => {
-    if (emittedRef.current || !workspaceId) return;
+    if (emittedRef.current || !workspaceId || isLoading) return;
     emittedRef.current = true;
-    // actor_id: client components don't have direct profile access — the BFF
-    // resolves the real actor_id server-side for activity_trail writes.
-    // The cast here is intentional: we only reach posthog (anonymous analytics)
-    // client-side; no activity_trail write happens without registry entry.
-    void (emit as unknown as (e: Record<string, unknown>) => Promise<void>)({
-      workspace_id: workspaceId,
-      actor_id: workspaceId, // placeholder — no profile context on client
+    const resolvedIsBound = data?.ok ? data.data.is_bound : false;
+    void emit({
       event: "payroll.tariff_view_loaded",
-      properties: { data: { is_admin: isAdminMode } },
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(workspaceId, "workspaceId"), // placeholder — BFF resolves real profileId for mutations
+      properties: {
+        data: {
+          route: "/dashboard/payroll/tariff",
+          is_bound: resolvedIsBound,
+          viewed_at: new Date().toISOString(),
+        },
+      },
     });
-  }, [workspaceId, isAdminMode]);
+  }, [workspaceId, isLoading, data]);
 
   const isBound = data?.ok ? data.data.is_bound : false;
 

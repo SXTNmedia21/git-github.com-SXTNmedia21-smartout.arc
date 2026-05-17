@@ -7,25 +7,20 @@
  * If yes → user picks union + law_version → POST /api/payroll/tariff/setup.
  * If no  → mark is_tariff_bound: false, BFF call skipped.
  *
- * union_id values are UUIDs per SetupTariffRequest (payroll-tariff-bff-contract.ts).
- * The BFF translates these to internal taro-* identifiers before calling capability tools.
- * NOTE: These UUIDs must match the lookup table seeded by the BFF (T1 track).
- * Until T1 ships, the BFF route /api/payroll/tariff/setup is not live —
- * the component will receive a network error which it renders as a Norwegian message.
- *
- * Contract gap (non-blocking): setupTariffRequestSchema.union_id = z.string().uuid()
- * but tariff-tools.ts setupWorkspaceTariffSchema.union_id = z.enum(["taro-79","taro-226","non-bound"]).
- * The BFF (T1) owns the UUID→taro-ID translation. This file follows the BFF contract only.
+ * Phase 7g: union_id values are now UnionId enum strings
+ * ("taro-79" | "taro-226" | "non-bound") per the updated BFF contract
+ * (setupTariffRequestSchema.union_id = z.enum([...])).
+ * No UUID → taro-ID translation layer required.
  */
+import type { UnionId } from "@smartout/types";
 
 // ─── Static union options ─────────────────────────────────────────────────────
 // Two unions currently covered by Smartout's Riksavtalen engine (ADR-0355).
-// UUIDs are stable identifiers from the platform union lookup table (K1a).
-// Source: taro-79 = Fellesforbundet, taro-226 = Parat.
+// Phase 7g: id field is now UnionId ("taro-79" | "taro-226") — not a UUID.
 
 export interface TariffUnionOption {
-  /** UUID per SetupTariffRequest.union_id */
-  id: string;
+  /** UnionId enum value per SetupTariffRequest.union_id (Phase 7g: changed from UUID) */
+  id: UnionId;
   /** Display name in Norwegian */
   label: string;
   /** Short description shown under the label */
@@ -44,13 +39,14 @@ export interface TariffLawVersionOption {
 /**
  * Static union list for V1 onboarding.
  *
- * These UUIDs must match the platform K1a union lookup table seeded by migrations.
+ * Phase 7g: id values changed from UUIDs to enum strings matching the
+ * workspace_union_binding.union_id CHECK constraint (ADR-0355).
  * Fellesforbundet (taro-79) covers most Riksavtalen workspaces in NHO Reiseliv.
  * Parat (taro-226) covers hotel and conference sector under Parat overenskomst.
  */
 export const TARIFF_UNION_OPTIONS: TariffUnionOption[] = [
   {
-    id: "00000000-7900-0000-0000-000000000079",
+    id: "taro-79",
     label: "Fellesforbundet",
     description: "Riksavtalen — vanligste for restaurant, bar og catering",
     lawVersions: [
@@ -67,7 +63,7 @@ export const TARIFF_UNION_OPTIONS: TariffUnionOption[] = [
     ],
   },
   {
-    id: "00000000-2260-0000-0000-000000000226",
+    id: "taro-226",
     label: "Parat",
     description: "Parat overenskomst — hotell og konferansesektoren",
     lawVersions: [
@@ -91,7 +87,7 @@ export const TARIFF_UNION_OPTIONS: TariffUnionOption[] = [
 export interface TariffBindingResult {
   workspace_union_binding_id: string;
   effective_from: string;
-  union_id: string;
+  union_id: UnionId;
   law_version: string;
 }
 
@@ -99,8 +95,8 @@ export interface TariffBindingResult {
 export interface TariffSectionState {
   /** null = not decided yet, true = member (Ja), false = not member (Nei) */
   isMember: boolean | null;
-  /** Selected union UUID (from TARIFF_UNION_OPTIONS) */
-  selectedUnionId: string | null;
+  /** Selected UnionId enum value (from TARIFF_UNION_OPTIONS) */
+  selectedUnionId: UnionId | null;
   /** Selected law_version string e.g. "2025" */
   selectedLawVersion: string | null;
   /** Step status — idle before any attempt */

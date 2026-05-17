@@ -11,10 +11,7 @@
  * Data flows:
  * - useCurrentTariff() → GET /api/payroll/tariff/current via web BFF (ADR-0132)
  * - L-0177 fail-fast: getProfileContext() throws on missing workspace_id/profile_id
- * - Telemetry: payroll.tariff_view_loaded_mobile on mount
- *   ⚠ EVENT NOT IN REGISTRY — flagged to orchestrator (T4 scope; T1 BFF owner
- *     must add to packages/telemetry/src/registry.ts before emit is wired).
- *     View-emit is intentionally commented out until registry entry ships.
+ * - Telemetry: payroll.tariff_view_loaded_mobile on mount (Phase 7g: registry entry added).
  *
  * Skeleton loader covers initial load. Error and empty states are explicit.
  */
@@ -28,6 +25,7 @@ import { useCurrentTariff } from "@/hooks/queries/use-current-tariff";
 import { TariffSummaryCard } from "@/components/tariff/TariffSummaryCard";
 import { ParagrafReferenceList } from "@/components/tariff/ParagrafReferenceList";
 import { safeGetProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 import { AlertTriangle } from "lucide-react-native";
 
 /* ── Skeleton ── */
@@ -119,16 +117,23 @@ export default function TariffScreen() {
     safeGetProfileContext().then((result) => {
       if (!result.ok) {
         setAuthError(result.error);
+        return;
       }
-      // If ok: context verified. BFF derives identity from JWT — no need to
-      // pass profileId/workspaceId to the hook (ADR-0151 / ADR-0176 Invariant 3).
 
-      // ⚠ TELEMETRY BLOCKED — event "payroll.tariff_view_loaded_mobile" is NOT
-      // in packages/telemetry/src/registry.ts. T1 (BFF owner) must add the
-      // registry entry before this emit() call can be wired. Orchestrator notified.
-      // When registry is live, wire:
-      //   emit({ event: "payroll.tariff_view_loaded_mobile", workspaceId: context.workspaceId,
-      //          actorId: context.profileId });
+      // Phase 7g: registry entry added — emit is now wired.
+      // PostHog + Logger only (no activity_trail — view event per registry entry).
+      void emit({
+        event: "payroll.tariff_view_loaded_mobile",
+        workspace_id: result.context.workspaceId,
+        actor_id: result.context.profileId,
+        properties: {
+          data: {
+            route: "(me)/tariff",
+            is_bound: false, // conservative default; actual binding unknown at auth-check time
+            viewed_at: new Date().toISOString(),
+          },
+        },
+      });
     });
   }, []);
 

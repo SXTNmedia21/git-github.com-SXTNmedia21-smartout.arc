@@ -41,8 +41,11 @@ export type ParagrafEntry = {
   description: string;
   /** Rate value if the paragraf specifies a fixed rate. Absent for percentage/complex formulas. */
   rate_value?: number;
-  /** Rate type if applicable. */
-  rate_type?: "percentage" | "fixed_amount" | "hourly_rate";
+  /**
+   * Rate type if applicable. Phase 7g: changed from UX labels to DB taxonomy.
+   * fixed_per_hour = kr per time, fixed_per_shift = kr per vakt.
+   */
+  rate_type?: "percentage" | "fixed_per_hour" | "fixed_per_shift";
 };
 
 /** Maps paragraf string → per-version descriptions. */
@@ -51,14 +54,14 @@ type ParagrafMap = Record<
   {
     description: string;
     rate_value?: number;
-    rate_type?: "percentage" | "fixed_amount" | "hourly_rate";
+    rate_type?: "percentage" | "fixed_per_hour" | "fixed_per_shift";
     // Optional version-specific overrides. Falls back to top-level description.
     versions?: Record<
       string, // law_version e.g. "2024", "2025"
       {
         description: string;
         rate_value?: number;
-        rate_type?: "percentage" | "fixed_amount" | "hourly_rate";
+        rate_type?: "percentage" | "fixed_per_hour" | "fixed_per_shift";
       }
     >;
   }

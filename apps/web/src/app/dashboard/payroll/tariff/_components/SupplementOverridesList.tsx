@@ -40,13 +40,13 @@ type Props = {
 
 function RateIcon({ rateType }: { rateType: RateType }) {
   if (rateType === "percentage") return <Percent className="h-3 w-3" aria-hidden="true" />;
-  if (rateType === "fixed_amount") return <Coins className="h-3 w-3" aria-hidden="true" />;
+  if (rateType === "fixed_per_shift") return <Coins className="h-3 w-3" aria-hidden="true" />;
   return <Clock className="h-3 w-3" aria-hidden="true" />;
 }
 
 function formatRate(value: number, type: RateType): string {
   if (type === "percentage") return `${value}%`;
-  if (type === "fixed_amount") return `kr ${value.toFixed(2)}`;
+  if (type === "fixed_per_shift") return `kr ${value.toFixed(2)}/vakt`;
   return `kr ${value.toFixed(2)}/t`;
 }
 

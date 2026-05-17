@@ -31,8 +31,16 @@ import type {
   ChangeTariffResponse,
   SetupTariffResponse,
   PayrollTariffError,
+  UnionId,
 } from "@smartout/types";
-import { PAYROLL_TARIFF_BFF_ROUTES } from "@smartout/types";
+import { PAYROLL_TARIFF_BFF_ROUTES, unionIdSchema } from "@smartout/types";
+
+/** Human-readable labels for union binding options */
+const UNION_OPTIONS: Array<{ value: UnionId; label: string }> = [
+  { value: "taro-79", label: "Fellesforbundet (Riksavtalen)" },
+  { value: "taro-226", label: "Parat overenskomst" },
+  { value: "non-bound", label: "Ikke tariffbundet" },
+];
 
 type Props = {
   isBound: boolean;
@@ -50,7 +58,7 @@ export function ChangeBindingForm({ isBound, isAdmin }: Props) {
   const workspaceId = ctx?.workspace.workspace_id ?? "";
   const queryClient = useQueryClient();
 
-  const [unionId, setUnionId] = useState("");
+  const [unionId, setUnionId] = useState<UnionId>("taro-79");
   const [lawVersion, setLawVersion] = useState("");
   const [officialDate, setOfficialDate] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState("");
@@ -113,7 +121,7 @@ export function ChangeBindingForm({ isBound, isAdmin }: Props) {
 
       toast.success(isBound ? "Tariffbinding oppdatert" : "Tariffbinding opprettet");
       // Reset form
-      setUnionId("");
+      setUnionId("taro-79");
       setLawVersion("");
       setOfficialDate("");
       setEffectiveFrom("");
@@ -138,20 +146,20 @@ export function ChangeBindingForm({ isBound, isAdmin }: Props) {
 
       <fieldset disabled={isDisabled} className="flex flex-col gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="union-id">Fagforenings-ID (UUID)</Label>
-          <Input
+          <Label htmlFor="union-id">Tariffavtale</Label>
+          <select
             id="union-id"
-            type="text"
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             value={unionId}
-            onChange={(e) => setUnionId(e.target.value)}
+            onChange={(e) => setUnionId(unionIdSchema.parse(e.target.value))}
+            className="border-input bg-background text-foreground focus-visible:ring-ring rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             required
-            pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-            aria-describedby="union-id-hint"
-          />
-          <p id="union-id-hint" className="text-muted-foreground text-xs">
-            UUID for tariffavtalen fra K1a-registeret
-          </p>
+          >
+            {UNION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid gap-2">
