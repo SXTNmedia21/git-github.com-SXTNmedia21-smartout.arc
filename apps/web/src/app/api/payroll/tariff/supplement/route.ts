@@ -14,22 +14,11 @@
  *   - PostgreSQL tariff-floor trigger (SUPPLEMENT_BELOW_TARIFF_FLOOR with aml_ref)
  *   - Dual-layer audit emit (ADR-0356 audit-symmetry)
  *
- * CONTRACT GAPs (flagged — do NOT fix in this file per hard rule):
- *   1. supplement_type taxonomy mismatch:
- *      BFF contract uses semantic UX labels: "evening" | "night" | "weekend" | "holiday"
- *        | "overtime" | "split_shift" | "callout" | "shoe_allowance" | ...
- *      Tool/DB schema uses internal classification: "normal" | "week_based" | "day_based"
- *        | "manual" | "holiday" | "contract_rule"
- *      These are different classification systems. The BFF maps contract → tool using
- *      SUPPLEMENT_TYPE_MAP below. "holiday" maps 1:1; all others map to "normal"
- *      (time-based additive supplement) or "manual" (discretionary). This mapping
- *      will lose nuance until Phase 7g aligns the contract with the DB taxonomy.
- *   2. rate_type mismatch:
- *      BFF contract: "percentage" | "fixed_amount" | "hourly_rate"
- *      Tool schema:  "fixed_per_hour" | "percentage" | "fixed_per_shift"
- *      Mapped: "fixed_amount" → "fixed_per_hour", "hourly_rate" → "fixed_per_hour",
- *              "percentage" → "percentage". "fixed_per_shift" unavailable from contract.
- *   3. Audit emit IDs: see /setup route for full explanation.
+ * Phase 7g reconciliation: CONTRACT GAPS closed.
+ *   supplement_type: contract now uses DB taxonomy (normal/week_based/day_based/…).
+ *   rate_type: contract now uses DB values (fixed_per_hour/percentage/fixed_per_shift).
+ *   No translation layers — body values passed directly to tool.
+ *   audit block: real payroll_emit_id + cascade_emit_id from tool (uuid-before-emit).
  *
  * ADR compliance (body verified before docstring — L-0176):
  *   ADR-0078  — channel forced "chat" in synthetic ctx; tool enforces defence-in-depth.
@@ -39,7 +28,6 @@
  *   ADR-0356  — audit block carries actor_capability='payroll', delegated_via='cascade'.
  *   L-0177    — resolvePayrollAuth returns null on missing/empty IDs → 401.
  */
-import { randomUUID } from "crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -77,57 +65,6 @@ function toStatus(code: PayrollTariffErrorCode): number {
       return 422;
     default:
       return 500;
-  }
-}
-
-/**
- * Map BFF contract supplement_type → tool DB supplement_type.
- * CONTRACT GAP — see file-level docstring for full explanation.
- */
-function toToolSupplementType(
-  contractType: string,
-): "normal" | "week_based" | "day_based" | "manual" | "holiday" | "contract_rule" {
-  switch (contractType) {
-    case "holiday":
-      return "holiday";
-    case "evening":
-    case "night":
-    case "weekend":
-    case "overtime":
-    case "split_shift":
-    case "callout":
-      // Time-based or shift-based supplements → "normal" (per-shift additive rule).
-      return "normal";
-    case "shoe_allowance":
-    case "uniform_allowance":
-    case "transport_allowance":
-    case "meal_allowance":
-    case "language_allowance":
-    case "responsibility_allowance":
-    case "other":
-      // Discretionary / allowance types → "manual".
-      return "manual";
-    default:
-      return "manual";
-  }
-}
-
-/**
- * Map BFF contract rate_type → tool DB rate_type.
- * CONTRACT GAP — see file-level docstring for full explanation.
- */
-function toToolRateType(
-  contractRateType: string,
-): "fixed_per_hour" | "percentage" | "fixed_per_shift" {
-  switch (contractRateType) {
-    case "percentage":
-      return "percentage";
-    case "fixed_amount":
-    case "hourly_rate":
-      // Both map to fixed_per_hour (the tool's closest equivalent).
-      return "fixed_per_hour";
-    default:
-      return "fixed_per_hour";
   }
 }
 
@@ -174,32 +111,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build synthetic AgentToolContext (ADR-0078: channel forced to chat) ─
-  const correlationId = randomUUID();
   const admin = createAdminClient();
 
   const ctx: AgentToolContext = {
     workspaceId: auth.workspaceId as NonEmptyString,
     profileId: auth.profileId as NonEmptyString,
     userId: auth.userId,
-    sessionId: `tariff-supplement-${correlationId}`,
+    sessionId: `tariff-supplement-${auth.workspaceId}`,
     channel: "chat" as const,
     supabaseAdmin: admin as unknown as SupabaseClient,
   };
 
   // ─── Invoke capability tool ────────────────────────────────────────────────
-  // Map contract types to tool types (CONTRACT GAP — see file-level docstring).
-  const toolSupplementType = toToolSupplementType(body.supplement_type);
-  const toolRateType = toToolRateType(body.rate_type);
-
+  // Phase 7g: supplement_type and rate_type now use DB taxonomy in both
+  // contract and tool schema — body values passed directly, no translation.
   let toolResult: string;
   try {
     toolResult = await addSupplementOverrideTool.execute(
       {
         workspace_id: auth.workspaceId,
         name: body.name,
-        supplement_type: toolSupplementType,
+        supplement_type: body.supplement_type,
         rate_value: body.rate_value,
-        rate_type: toolRateType,
+        rate_type: body.rate_type,
         tariff_rate_table_id: body.tariff_rate_table_id ?? null,
         paragraf_ref: body.paragraf_ref ?? null,
         match_predicate: body.match_predicate as Record<string, unknown>,
@@ -246,7 +180,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build success response with audit block (ADR-0356) ──────────────────
-  // CONTRACT GAP: tool does not return emit IDs. Using correlation UUIDs.
+  // Phase 7g: real emit IDs from tool (uuid-before-emit pattern).
   const resp: AddSupplementResponse = {
     ok: true,
     data: {
@@ -256,8 +190,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       rate_type: body.rate_type,
     },
     audit: {
-      payroll_emit_id: correlationId,
-      cascade_emit_id: randomUUID(),
+      payroll_emit_id: result.payroll_emit_id as string,
+      cascade_emit_id: result.cascade_emit_id as string,
       actor_capability: "payroll",
       delegated_via: "cascade",
     },

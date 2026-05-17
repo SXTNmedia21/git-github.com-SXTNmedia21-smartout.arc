@@ -14,14 +14,9 @@
  *   - cascade.bind_workspace_union delegation (ADR-0356)
  *   - Dual-layer audit emit (ADR-0356 audit-symmetry)
  *
- * CONTRACT GAPs (flagged — do NOT fix in this file per hard rule):
- *   1. union_id type mismatch: BFF contract says z.string().uuid() but tool schema
- *      requires z.enum(["taro-79", "taro-226", "non-bound"]). Callers must send the
- *      enum string directly (e.g. "taro-79") until Phase 7g fixes the contract.
- *   2. Audit emit IDs: tool emits internally but does NOT return emit IDs in the
- *      result. This BFF generates correlation UUIDs at request time. They are valid
- *      UUIDs for client-side trace but do NOT map 1:1 to activity_trail rows.
- *      Phase 7g remediation: tariff-tools.ts should return emit IDs.
+ * Phase 7g reconciliation: CONTRACT GAPS closed.
+ *   union_id: contract now z.enum([...]) — no UUID→enum translation needed.
+ *   audit block: real payroll_emit_id + cascade_emit_id from tool (uuid-before-emit).
  *
  * ADR compliance (body verified before docstring — L-0176):
  *   ADR-0078  — channel forced "chat" in synthetic ctx; tool enforces defence-in-depth.
@@ -30,7 +25,6 @@
  *   ADR-0356  — audit block carries actor_capability='payroll', delegated_via='cascade'.
  *   L-0177    — resolvePayrollAuth returns null on missing/empty IDs → 401.
  */
-import { randomUUID } from "crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -116,29 +110,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build synthetic AgentToolContext (ADR-0078: channel forced to chat) ─
-  const correlationId = randomUUID();
   const admin = createAdminClient();
 
   const ctx: AgentToolContext = {
     workspaceId: auth.workspaceId as NonEmptyString,
     profileId: auth.profileId as NonEmptyString,
     userId: auth.userId,
-    sessionId: `tariff-setup-${correlationId}`,
+    sessionId: `tariff-setup-${auth.workspaceId}`,
     channel: "chat" as const,
     supabaseAdmin: admin as unknown as SupabaseClient,
   };
 
   // ─── Invoke capability tool ────────────────────────────────────────────────
-  // CONTRACT GAP — union_id mismatch: contract says UUID; tool requires enum.
-  // See file-level docstring. Callers must send "taro-79" / "taro-226" / "non-bound".
-  const toolUnionId = body.union_id as "taro-79" | "taro-226" | "non-bound";
-
+  // Phase 7g: union_id is now z.enum([...]) in both contract and tool schema.
+  // body.union_id is already typed as UnionId — no cast required.
   let toolResult: string;
   try {
     toolResult = await setupWorkspaceTariffTool.execute(
       {
         workspace_id: auth.workspaceId,
-        union_id: toolUnionId,
+        union_id: body.union_id,
         law_version: body.law_version,
         official_effective_date: body.official_effective_date,
         effective_from: body.effective_from,
@@ -183,7 +174,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Build success response with audit block (ADR-0356) ──────────────────
-  // CONTRACT GAP: tool does not return emit IDs. Using correlation UUIDs.
+  // Phase 7g: real emit IDs returned from tool (uuid-before-emit pattern).
   const resp: SetupTariffResponse = {
     ok: true,
     data: {
@@ -193,8 +184,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       law_version: body.law_version,
     },
     audit: {
-      payroll_emit_id: correlationId,
-      cascade_emit_id: randomUUID(),
+      payroll_emit_id: result.payroll_emit_id as string,
+      cascade_emit_id: result.cascade_emit_id as string,
       actor_capability: "payroll",
       delegated_via: "cascade",
     },
