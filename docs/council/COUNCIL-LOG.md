@@ -2020,3 +2020,47 @@ Week 3 (gated):
 **Learnings created:** L-0276, L-0277, L-0278
 
 **Phase 2.5 finding (L-0276):** Haiku fact-check reported 4 schema items VERIFIED MISSING; Supervisor sonnet caught all 4 as present under different names (`reply_to_id`, columns-on-channel, `channel_member_role` enum, `is_muted`+`muted_until`). Phase 2.5 prompt insufficient for concept-vs-name drift.
+
+---
+
+## 2026-05-17 — Tidslinjen Redesign (Post-Implementation R1)
+
+**Type:** post-implementation
+**Verdict:** **APPROVE — with mandatory P2 follow-up sub-sortie**
+**Agents consulted:** system-steward (chair, opus), supervisor (opus), system-agent-coordinator (opus, Layer 2 + 4 code-trace), feature-dev:code-reviewer (sonnet, substitute for frontend-designer which is Skill-only)
+**Prior verdict held?** Phase 3 APPROVE held — REFINED, not REVERSED. L-0147 2-reviewer threshold NOT met (1 reviewer with new evidence vs 3 holding APPROVE).
+**Subject:** 3 commits on `campaign/ui-shell` (`ed3854d33` + `5a236d7d8` + `be0b43a4e`) + side-effect seed cleanup `94888a3f1`. Pushed to origin.
+
+**Phase 2.5 fact-check:** READY-FOR-PHASE-3 with all 7 claims VERIFIED.
+
+**Coverage discovery:** Phase 3 steward + supervisor + coordinator axes (cascade integrity, ADR compliance, telemetry routing, scope, payload-trace) all returned APPROVE. Design + a11y reviewer found 3 concrete defects orthogonal to those axes. **Phase 3 4-reviewer triplet systematically misses token-level design-system violations and a11y semantics.** Sibling of L-0147 (single-axis review insufficient) — different axis (design vs code-trace), same root.
+
+**Chair provenance check (`git blame`):**
+| Design finding | Provenance | Verdict |
+|---|---|---|
+| `TimelineTab.tsx:242` 3× OKLCH literals | `d0deaa6a9a` 2026-05-16 | **Pre-existing** — inherited debt, deferred to ADR-0349 migration sortie |
+| `DayTimelineStrip.tsx:481` `animate-pulse` no rm-gate | `5a236d7d82` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
+| `ClusterMarker.tsx:213` `focus-visible:outline-none` no ring | `be0b43a4eb` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
+
+Steward also discovered OKLCH-literal pattern is systemic across 6+ files in `apps/web/src/components/day/` (SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog all predate the sortie).
+
+**Decisions:**
+- Ship `94888a3f1` as-is on `campaign/ui-shell` (already pushed).
+- Open sub-sortie `feat/ui-shell-ui-shell-tidslinjen-a11y-polish` for 2 sortie-introduced fixes (WCAG 2.3.3 + 2.4.11). Effort ~30 min. No new tests, no emit changes.
+- Defer `TimelineTab.tsx:242` OKLCH literal to broader Nordic Split token migration sortie driven by ADR-0349.
+
+**ADRs created:** ADR-0349 (proposed) Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`. ADR-0351 (proposed) `getPhaseBoundaries` presentation-layer ontology disambiguation. Slot allocation under same-day concurrent-session pressure: original draft 0348+0349 blocked by ADR-0348 (L-0258 collision detector) and ADR-0350 (BotssonHost mount pattern) both landing same day; this sortie yielded per L-0147 outsider-renumber to 0349 (free slot) + 0351 (next free after 0350).
+
+**Learnings created:** `learning_phase3_coverage_gap_design_axis` — Phase 3 multi-agent triplet (steward+supervisor+coord) systematically misses token + a11y semantics; mandate design+a11y reviewer when Phase 3 touches `apps/web/src/components/**` visual surfaces.
+
+**Learning extended:** `learning_builder_agent_report_fabrication_2026_05_17` — Path A closure validated (4/4 APPROVE on shipped commits). R1 postscript adds: Phase 3 reviewers did not audit focus-ring tokens or reduced-motion gates; post-implementation council MUST include design+a11y axis distinct from ADR/cascade axis.
+
+**Trust Gate:** SKIP. PR modifies no Server Actions, no TanStack mutations, no capability tools, no emit routing destinations. 3 new UI-only events added to existing posthog+logger routing per ADR-0134 canonical pattern. No trust surface change.
+
+**Files touched in verification:**
+- `apps/web/src/components/day/tabs/TimelineTab.tsx:242` (pre-existing debt)
+- `apps/web/src/components/day/DayTimelineStrip.tsx:481` (sortie-introduced; fixed in this sub-sortie)
+- `apps/web/src/components/day/ClusterMarker.tsx:211-214` (sortie-introduced; fixed in this sub-sortie)
+- `apps/web/src/components/day/DayEventList.tsx:44` (canonical `useReducedMotion()` pattern mirrored)
+- `packages/design-tokens/src/tokens.css:66-67, 201-202` (`--warn-soft` tokens for future migration)
+- `apps/web/src/app/globals.css:358-362` (existing `prefers-reduced-motion` block — covers `animate-glow-pulse` only)

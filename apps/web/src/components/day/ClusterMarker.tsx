@@ -211,6 +211,7 @@ export function ClusterMarker({
           className={cn(
             "absolute top-1/2 z-20 transition-transform",
             "hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
+            "focus-visible:ring-ring focus-visible:rounded-full focus-visible:ring-2 focus-visible:ring-offset-1",
           )}
           style={{
             left: `${pct}%`,
