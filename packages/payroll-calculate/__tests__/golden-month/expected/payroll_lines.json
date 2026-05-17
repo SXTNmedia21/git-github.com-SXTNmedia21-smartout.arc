@@ -20,8 +20,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-001 AND ruleLabel=base_hourly: 161100 (sh-001) + 204060 (sh-002) + 214800 (sh-003) + 257760 (sh-004) + 161100 (sh-005) + 161100 (sh-006) = 1159920 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 139500,
@@ -38,8 +38,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-001 AND ruleLabel=helgetillegg: 55800 (sh-003) + 41850 (sh-005) + 41850 (sh-006) = 139500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 12530,
@@ -56,8 +56,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-001 AND ruleLabel=kveldstillegg: 12530 (sh-002) = 12530 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -81,8 +81,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-002 AND ruleLabel=base_hourly: 159840 (sh-007) + 179820 (sh-008) + 179820 (sh-009) + 229770 (sh-010) + 149850 (sh-011) + 159840 (sh-012) = 1058940 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 150567,
@@ -99,8 +99,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-002 AND ruleLabel=helgetillegg: 64170 (sh-010) + 41850 (sh-011) + 44547 (sh-012) = 150567 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 37590,
@@ -117,8 +117,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-002 AND ruleLabel=kveldstillegg: 12530 (sh-007) + 12530 (sh-009) + 12530 (sh-012) = 37590 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -142,8 +142,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-003 AND ruleLabel=base_hourly: 164700 (sh-013) + 164700 (sh-014) + 164700 (sh-015) + 164700 (sh-016) + 164700 (sh-017) = 823500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 41757,
@@ -160,8 +160,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-003 AND ruleLabel=helgetillegg: 11067 (sh-013 Sat bucket) + 30690 (sh-013 Holiday/Sun bucket) = 41757 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 54780,
@@ -178,8 +178,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-003 AND ruleLabel=helligdagstillegg: 54780 (sh-013 Holiday bucket) = 54780 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -196,8 +196,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-003 AND ruleLabel=kveldstillegg: 8330 (sh-013 Sat bucket) = 8330 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 123900,
@@ -214,8 +214,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-003 AND ruleLabel=natt_nattvakt: 23100 (sh-013 Holiday bucket) + 25200 (sh-014) + 25200 (sh-015) + 25200 (sh-016) + 25200 (sh-017) = 123900 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -239,8 +239,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-004 AND ruleLabel=base_hourly: 117000 (sh-018) + 117000 (sh-019) + 117000 (sh-020) + 117000 (sh-021) = 468000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 100440,
@@ -257,8 +257,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-004 AND ruleLabel=helgetillegg: 33480 (sh-019) + 33480 (sh-020) + 33480 (sh-021) = 100440 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 59760,
@@ -275,8 +275,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-004 AND ruleLabel=helligdagstillegg: 59760 (sh-018 Skjærtorsdag 2026-04-02; re-signed 2026-05-17 truncated øre/min) = 59760 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -300,8 +300,8 @@
           "formula": "aggregated_periods/prof-005 base_monthly: 205.00 kr/t × 37.5h × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY]; per-shift snapshot cells are 0 øre (monthly salary not apportioned per shift)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 106020,
@@ -318,8 +318,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-005 AND ruleLabel=helgetillegg: 53010 (sh-022) + 53010 (sh-023) = 106020 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 21000,
@@ -336,8 +336,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-005 AND ruleLabel=kveldstillegg: 10500 (sh-022) + 10500 (sh-023) = 21000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -361,8 +361,8 @@
           "formula": "aggregated_periods/prof-006 base_monthly: 205.00 kr/t × 37.5h × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY — voksen_faglart rate may differ]; per-shift snapshot cells are 0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 114390,
@@ -379,8 +379,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-006 AND ruleLabel=helgetillegg: 64170 (sh-024) + 50220 (sh-025) = 114390 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 2100,
@@ -397,8 +397,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-006 AND ruleLabel=kveldstillegg: 2100 (sh-024, 30 min 21:00–21:30) = 2100 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -422,8 +422,8 @@
           "formula": "aggregated_periods/prof-007 base_monthly: 205.00 kr/t × 37.5h × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY]; per-shift snapshot cells are 0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 103230,
@@ -440,8 +440,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-007 AND ruleLabel=helgetillegg: 61380 (sh-026) + 41850 (sh-027) = 103230 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -465,8 +465,8 @@
           "formula": "aggregated_periods/prof-008 base_monthly: 205.00 kr/t × 37.5h × 30/7 = 32946.43 NOK = 3294643 øre [PENDING_E3_VERIFY]; per-shift snapshot cells are 0 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 83700,
@@ -483,8 +483,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-008 AND ruleLabel=helgetillegg: 41850 (sh-028) + 41850 (sh-029) = 83700 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -508,8 +508,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-009 AND ruleLabel=base_hourly: 146250 (sh-030) + 117000 (sh-031) = 263250 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 75237,
@@ -526,8 +526,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-009 AND ruleLabel=helgetillegg: 11067 (sh-030 Sat bucket) + 30690 (sh-030 Sun bucket) + 33480 (sh-031) = 75237 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 8330,
@@ -544,8 +544,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-009 AND ruleLabel=kveldstillegg: 8330 (sh-030 Sat bucket, 22:00–23:59) = 8330 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 13200,
@@ -562,8 +562,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-009 AND ruleLabel=natt_manuelt: 13200 (sh-030 Sun bucket 00:00–05:30, manual category) = 13200 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -587,8 +587,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-010 AND ruleLabel=base_hourly: 149850 (sh-032) + 149850 (sh-033) + 159840 (sh-034) = 459540 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 128061,
@@ -605,8 +605,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-010 AND ruleLabel=helgetillegg: 11067 (sh-032 Sat) + 30690 (sh-032 Sun) + 11067 (sh-033 Sat) + 30690 (sh-033 Sun) + 44547 (sh-034 Sun) = 128061 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 29190,
@@ -623,8 +623,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-010 AND ruleLabel=kveldstillegg: 8330 (sh-032 Sat) + 8330 (sh-033 Sat) + 12530 (sh-034 Sun 21:00–23:59) = 29190 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 61380,
@@ -641,8 +641,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-010 AND ruleLabel=natt_ordinaer: 30690 (sh-032 Sun 00:00–05:30, ordinary) + 30690 (sh-033 Sun 00:00–05:30, ordinary) = 61380 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -666,8 +666,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-011 AND ruleLabel=base_hourly: 156000 (sh-035) + 156000 (sh-036) + 156000 (sh-037) = 468000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 133920,
@@ -684,8 +684,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-011 AND ruleLabel=helgetillegg: 44640 (sh-035 Sun) + 44640 (sh-036 Sun) + 44640 (sh-037 Sun) = 133920 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -709,8 +709,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-012 AND ruleLabel=base_hourly: 115500 (sh-038) + 157500 (sh-039) + 157500 (sh-040) + 157500 (sh-041) + 157500 (sh-042) + 157500 (sh-043) = 903000 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 239940,
@@ -727,8 +727,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-012 AND ruleLabel=helgetillegg: 30690 (sh-038 Sat) + 41850 (sh-039 Sun) + 41850 (sh-040 Sat) + 41850 (sh-041 Sun) + 41850 (sh-042 Sat) + 41850 (sh-043 Sun) = 239940 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         },
         {
           "amount_ore": 10500,
@@ -745,8 +745,8 @@
           "formula": "Σ shift_snapshots cells where profile=prof-012 AND ruleLabel=kveldstillegg: 10500 (sh-040 Sat 21:00–23:30) = 10500 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     }

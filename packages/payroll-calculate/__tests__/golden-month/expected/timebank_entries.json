@@ -20,8 +20,8 @@
           "formula": "gross_amount_ore × 12% = round(1311950 × 0.12) = 157434 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -45,8 +45,8 @@
           "formula": "gross_amount_ore × 12% = round(1247097 × 0.12) = 149652 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -70,8 +70,8 @@
           "formula": "gross_amount_ore × 12% = round(1052267 × 0.12) = 126272 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -95,8 +95,8 @@
           "formula": "gross_amount_ore × 12% = round(628200 × 0.12) = 75384 øre (cascade from sh-018 re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -120,8 +120,8 @@
           "formula": "gross_amount_ore × 12% = round(3421663 × 0.12) = 410600 øre [PENDING_E3_VERIFY]",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -145,8 +145,8 @@
           "formula": "gross_amount_ore × 12.5% = round(3411133 × 0.125) = 426392 øre [PENDING_E3_VERIFY]",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -170,8 +170,8 @@
           "formula": "gross_amount_ore × 12% = round(3397873 × 0.12) = 407745 øre [PENDING_E3_VERIFY]",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -195,8 +195,8 @@
           "formula": "gross_amount_ore × 12% = round(3378343 × 0.12) = 405401 øre [PENDING_E3_VERIFY]",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -220,8 +220,8 @@
           "formula": "gross_amount_ore × 12% = round(360017 × 0.12) = 43202 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -245,8 +245,8 @@
           "formula": "gross_amount_ore × 12% = round(678171 × 0.12) = 81381 øre (cascade from helgetillegg re-sign 2026-05-17)",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-17T00:00:00.000Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -270,8 +270,8 @@
           "formula": "gross_amount_ore × 12% = round(601920 × 0.12) = 72230 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     },
@@ -295,8 +295,8 @@
           "formula": "gross_amount_ore × 12% = round(1153440 × 0.12) = 138413 øre",
           "computedBy": "pontus@smartout.no",
           "computedAt": "2026-05-16T19:07:22.875Z",
-          "verifiedBy": "PENDING_LOVSEN_CERTIFY",
-          "verifiedAt": "PENDING_LOVSEN_CERTIFY"
+          "verifiedBy": "lovsen-mcp@v1",
+          "verifiedAt": "2026-05-17T00:00:00.000Z"
         }
       ]
     }
