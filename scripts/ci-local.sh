@@ -25,7 +25,7 @@ cd "$ROOT"
 # when coverage logic itself changes.
 # v2 (2026-05-17): added L-worktree-missing-pnpm-symlinks encoding +
 #                  preflight node_modules abort (was: ELIFECYCLE 15× on fresh wt).
-COVERAGE_MAPPING_VERSION=2
+COVERAGE_MAPPING_VERSION=3
 
 # Mirror CI workflow-level env (ci.yml line 16)
 export SKIP_ENV_VALIDATION=true
@@ -376,7 +376,12 @@ run_gate "typecheck"                  pnpm turbo typecheck
 format_check_changed() {
   local base_ref="origin/development"
   local files
-  files=$(git diff --name-only --diff-filter=ACMR "${base_ref}"...HEAD -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
+  # core.quotepath=false → emit UTF-8 paths raw (no C-octal-quoted "...\302\247...")
+  # so xargs passes correct bytes to prettier.
+  # L-format-check-quotepath-fix (2026-05-17): without quotepath=false, git escapes
+  # non-ASCII (§, å) in --name-only output, xargs passes literal backslash-octal
+  # strings, prettier fails ENOENT, xargs exits 123.
+  files=$(git -c core.quotepath=false diff --name-only --diff-filter=ACMR "${base_ref}"...HEAD -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
   if [ -z "$files" ]; then
     echo "No formattable files changed vs ${base_ref} — skipping prettier."
     return 0
@@ -507,12 +512,20 @@ learning_cross_check() {
   echo "$stripped" | grep -qE 'node_modules missing|! \[ -d "\$ROOT/node_modules"' \
     || violations+=("L-worktree-missing-pnpm-symlinks: preflight node_modules check missing (worktrees fail all gates without it)")
 
+  # L-format-check-quotepath-fix → git diff --name-only must use core.quotepath=false
+  # 2026-05-17 PM: HOP B PR #398 Format Check failed exit 123 on 572-commit diff vs main.
+  # git default escapes non-ASCII paths as "..\302\247..", xargs passes literal escape
+  # to prettier, prettier ENOENT, xargs exit 123. ci:local skipped because preview=dev
+  # → empty diff. Same workflow logic fails on PR-event when base.sha != HEAD ancestry.
+  echo "$stripped" | grep -qE 'core\.quotepath=false' \
+    || violations+=("L-format-check-quotepath-fix: format_check_changed missing core.quotepath=false (non-ASCII paths break xargs)")
+
   if [ ${#violations[@]} -gt 0 ]; then
     echo -e "${RED}  Captured learnings no longer encoded:${NC}"
     printf '    %s\n' "${violations[@]}"
     return 1
   fi
-  echo "  All 7 captured learnings still encoded ✓"
+  echo "  All 8 captured learnings still encoded ✓"
   return 0
 }
 run_gate "learning-cross-check"         learning_cross_check
