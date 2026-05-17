@@ -65,9 +65,9 @@ When `git fetch --unshallow` revealed 5 ADR ID collisions between ui-shell `0347
 
 Written + registered in `docs/learnings/0000-learning-log.md`:
 
-- **L-0301** — 7th L-0147 precedent: component-level ARIA defect class repeats (ProcedureDetailTabs == HMS R1 HmsSubNav). Pattern: run-council SKILL.md visual-surface MANDATORY rule (lines 105-119) catches at Phase 5 review-time, NOT Phase 3 plan-time. Possible amendment: dispatch frontend-designer/code-reviewer at Phase 3, not just Phase 5.
-- **L-0302** — Chair self-reversal 4-pattern in single council. Steward Phase 3 systematically missed (a) telemetry-contract pipeline, (b) cross-campaign merge ancestry, (c) component-level ARIA, (d) ADR-to-enforcement-rule wiring. Three chair-protocol amendments queued for `~/.claude/skills/run-council/SKILL.md` Phase 3 hard rules.
-- **L-0303** — ADR-to-enforcement-code receipt rule: ADR-0361 (formerly 0349, OKLCH literal ban) accepted with ESLint-rule promise. Implementation never landed. Toothless ADR — same class as L-0176 docstring drift. Hard rule: ADR cannot be marked `accepted` until enforcement-code receipt verified.
+- **L-0304** — 7th L-0147 precedent: component-level ARIA defect class repeats (ProcedureDetailTabs == HMS R1 HmsSubNav). Pattern: run-council SKILL.md visual-surface MANDATORY rule (lines 105-119) catches at Phase 5 review-time, NOT Phase 3 plan-time. Possible amendment: dispatch frontend-designer/code-reviewer at Phase 3, not just Phase 5.
+- **L-0305** — Chair self-reversal 4-pattern in single council. Steward Phase 3 systematically missed (a) telemetry-contract pipeline, (b) cross-campaign merge ancestry, (c) component-level ARIA, (d) ADR-to-enforcement-rule wiring. Three chair-protocol amendments queued for `~/.claude/skills/run-council/SKILL.md` Phase 3 hard rules.
+- **L-0303** — ADR-to-enforcement-code receipt rule: ADR-0366 (formerly 0361, OKLCH literal ban) accepted with ESLint-rule promise. Implementation never landed. Toothless ADR — same class as L-0176 docstring drift. Hard rule: ADR cannot be marked `accepted` until enforcement-code receipt verified.
 
 Plus latent learning (not yet promoted, observed this sortie):
 
@@ -124,7 +124,7 @@ Concurrent on campaign during F1:
 
 Carried forward (deferred to post-HOP-A follow-up sorties):
 
-- **ADR-0361 ESLint rule implementation** in `packages/eslint-config/next.mjs` (OKLCH literal ban) — toothless ADR, no new violations this campaign but enforcement infrastructure missing. L-0303 mandates landing before ADR-0361 can flip to `accepted`.
+- **ADR-0366 ESLint rule implementation** in `packages/eslint-config/next.mjs` (OKLCH literal ban) — toothless ADR, no new violations this campaign but enforcement infrastructure missing. L-0303 mandates landing before ADR-0366 can flip to `accepted`.
 - **ADR-0358 enforcement script** — `scripts/check-telemetry-emit-coverage.ts` promised in ADR body, not yet shipped.
 - **7 surviving `transition-all`** on HMS components (DepartmentReadiness, TaskCard, OversiktEmployee, MaintenanceProcedureForm) — Nordic Split §10.4 violation.
 - **Palette literals** `green-500`, `red-500`, `rose-*` → semantic tokens (`text-success`, `text-destructive`).
@@ -149,7 +149,7 @@ Carried forward (deferred to post-HOP-A follow-up sorties):
 - Council artifacts: `docs/council/COUNCIL-LOG.md` § `2026-05-17 PM3 — campaign/ui-shell Shippability R1`
 - ADRs proposed/accepted/flipped this sortie: 0238 (accepted), 0358 (proposed)
 - ADRs renumbered post-sync: ui-shell 0347→0359, 0348→0360, 0349→0361, 0350→0362, 0351→0363
-- Learning logs: L-0301, L-0302, L-0303
+- Learning logs: L-0304, L-0305, L-0303
 - Plan: `docs/plans/PLAN-ui-shell-r1-fixup.md`
 - Journey: `docs/journeys/JOURNEY-ui-shell-r1-fixup.md` (status: verified)
 - Sibling councils same-day: Tidslinjen R1 AM, HMS R1 PM, HMS R2 PM2

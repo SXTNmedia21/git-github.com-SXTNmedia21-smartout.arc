@@ -242,7 +242,7 @@ describe("bindWorkspaceUnionTool", () => {
     vi.clearAllMocks();
   });
 
-  it("T1: happy path — atomic RPC succeeds, emit fires with actor_capability + delegated_via", async () => {
+  it("T1: happy path — atomic RPC succeeds, emit fires with actor_capability + delegated_via, result includes cascade_emit_id", async () => {
     const { emit } = await import("@smartout/telemetry");
     const ctx = makeCtx({
       supabaseAdmin: buildMockSupabase({ gateAllow: true }),
@@ -253,13 +253,22 @@ describe("bindWorkspaceUnionTool", () => {
     expect(result.ok).toBe(true);
     expect(result.workspace_union_binding_id).toBe(BINDING_ID);
     expect(result.effective_from).toBe("2026-01-01");
+    // Phase 7h: cascade tool must return cascade_emit_id (the correlation_id used
+    // in its own emit) so the payroll layer can read it for full audit chain.
+    expect(result.cascade_emit_id).toBeDefined();
+    expect(typeof result.cascade_emit_id).toBe("string");
+    expect(result.cascade_emit_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
 
     // Verify emit carries BOTH actor_capability (caller) AND delegated_via (owner).
     // Both are load-bearing per ADR-0356 §"Audit trail symmetry" — auditors use
     // actor_capability + delegated_via to trace full cross-namespace provenance.
+    // Also verify emit was called with the same correlation_id as cascade_emit_id.
     expect(emit).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "cascade.workspace_union_binding_created",
+        correlation_id: result.cascade_emit_id,
         properties: expect.objectContaining({
           data: expect.objectContaining({
             actor_capability: "payroll",
@@ -344,7 +353,7 @@ describe("addSupplementRuleTool", () => {
     vi.clearAllMocks();
   });
 
-  it("T7: happy path — INSERT succeeds, emit fires with actor_capability + delegated_via", async () => {
+  it("T7: happy path — INSERT succeeds, emit fires with actor_capability + delegated_via, result includes cascade_emit_id", async () => {
     const { emit } = await import("@smartout/telemetry");
     const ctx = makeCtx({
       supabaseAdmin: buildMockSupabase({
@@ -360,13 +369,22 @@ describe("addSupplementRuleTool", () => {
 
     expect(result.ok).toBe(true);
     expect(result.supplement_rule_id).toBe(RULE_ID);
+    // Phase 7h: cascade tool must return cascade_emit_id (the correlation_id used
+    // in its own emit) so the payroll layer can read it for full audit chain.
+    expect(result.cascade_emit_id).toBeDefined();
+    expect(typeof result.cascade_emit_id).toBe("string");
+    expect(result.cascade_emit_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
 
     // Verify emit carries BOTH actor_capability (caller) AND delegated_via (owner).
     // Both are load-bearing per ADR-0356 §"Audit trail symmetry" — auditors use
     // actor_capability + delegated_via to trace full cross-namespace provenance.
+    // Also verify emit was called with the same correlation_id as cascade_emit_id.
     expect(emit).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "cascade.supplement_rule_added",
+        correlation_id: result.cascade_emit_id,
         properties: expect.objectContaining({
           data: expect.objectContaining({
             actor_capability: "payroll",

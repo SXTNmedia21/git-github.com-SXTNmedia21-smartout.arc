@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-16T00:00:00.000Z",
+  "generated_at": "2026-05-18T00:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -2136,6 +2136,37 @@
         "Hvor mange seksjoner er synlige?",
         "Hva er tittelen på siden?",
         "Kan jeg forhåndsvise siden?"
+      ]
+    },
+    {
+      "path": "/dashboard/payroll/tariff",
+      "purpose": "Administrer arbeidsplassens tariffbinding (fagforenings-ID, avtaleversjon, ikrafttredelsesdato) og lokale tillegg over tariffgulvet. Viser gjeldende binding, paragraf-referanser og historikk over bindingsbytter.",
+      "module": "Payroll",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-17",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCurrentTariffBinding",
+          "description": "Get the current tariff binding for this workspace — union name, law version, effective date, and paragraf references. Call first when the user asks 'hvilken tariff er vi på?', 'hva er tariffversjon?', or 'vis tariffbinding'."
+        },
+        {
+          "name": "changeTariffBinding",
+          "description": "Change (or set up) the workspace tariff binding. Requires admin role. Use when the user says 'bytt tariff', 'oppdater overenskomst', 'ny tariffversjon', or 'endre tariffbinding'. Requires: union_id (UUID), law_version, official_effective_date."
+        },
+        {
+          "name": "addSupplementOverride",
+          "description": "Add a workspace-level supplement override on top of the tariff baseline. Use when the user says 'legg til tillegg', 'kveldstillegg', 'helgetillegg', or 'lokalt tillegg'. The supplement cannot be set below the tariff floor."
+        }
+      ],
+      "common_intents": [
+        "Hvilken tariff er vi bundet til?",
+        "Bytt til ny tariffversjon",
+        "Legg til kveldstillegg",
+        "Vis tarifffastlagte satser",
+        "Hva er gjeldende overenskomst?"
       ]
     }
   ]

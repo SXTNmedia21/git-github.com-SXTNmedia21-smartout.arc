@@ -25,7 +25,7 @@ cd "$ROOT"
 # when coverage logic itself changes.
 # v2 (2026-05-17): added L-worktree-missing-pnpm-symlinks encoding +
 #                  preflight node_modules abort (was: ELIFECYCLE 15× on fresh wt).
-COVERAGE_MAPPING_VERSION=2
+COVERAGE_MAPPING_VERSION=3
 
 # Mirror CI workflow-level env (ci.yml line 16)
 export SKIP_ENV_VALIDATION=true
@@ -227,20 +227,32 @@ coverage_check() {
     '^packages/ai/src/capabilities/.+|vitest,authority-seed-parity,invariants-emit,gate-action-coverage|REQUIRE|capability paths — PR body must reference smartout-agent-dev Trust Gate Self-Check'
     '^packages/telemetry/.+|vitest,invariants-emit|REQUIRE|registry contract'
     '^packages/.+/src/.+|vitest,typecheck|REQUIRE|'
-    '^apps/web/.+\.(ts|tsx)$|lint,typecheck,build|REQUIRE|no vitest in apps/web (per Supervisor trace)'
-    '^apps/mobile/.+\.(ts|tsx)$|mobile-lint|REQUIRE|'
-    '^apps/admin/.+\.(ts|tsx)$|build|REQUIRE|'
-    '^apps/landing/.+\.(ts|tsx)$|build|REQUIRE|'
+    '^apps/web/.+\.tsx?$|lint,typecheck,build|REQUIRE|no vitest in apps/web (per Supervisor trace)'
+    '^apps/mobile/.+\.tsx?$|mobile-lint|REQUIRE|'
+    '^apps/admin/.+\.tsx?$|build|REQUIRE|'
+    '^apps/landing/.+\.tsx?$|build|REQUIRE|'
+    '^apps/web/\.botsson/site-map\.json$|build|REQUIRE|site-map drives apps/web routing'
     '^apps/e2e/.+|—|WARN|Playwright runs via Vercel preview (external)'
-    '^services/(voice-agent|contract-service|stage-engine|shift-mcp|scrapling)/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/voice-agent/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/contract-service/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/stage-engine/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/shift-mcp/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
+    '^services/scrapling/.+|typecheck,vitest|REQUIRE|+WARN docker-build skipped locally'
     '^services/.+|typecheck,vitest|REQUIRE|'
     '^docs/decisions/.+\.md$|—|WARN|ADR change — adr-contract-audit runs weekly externally'
     '^docs/journeys/.+\.md$|—|WARN|journey change — verify code parity manually'
     '^package\.json$|—|PAIR|must pair with pnpm-lock.yaml'
     '^pnpm-lock\.yaml$|—|PAIR|must pair with package.json'
-    '^(tsconfig.*|turbo)\.json$|typecheck,build|REQUIRE|'
+    '^apps/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^packages/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^services/[^/]+/package\.json$|—|PAIR|subdir package.json — paired with pnpm-lock.yaml'
+    '^tsconfig.*\.json$|typecheck,build|REQUIRE|'
+    '^turbo\.json$|typecheck,build|REQUIRE|'
     '^infra/.+|—|WARN|no local gate'
-    '^scripts/.+\.(sh|ts|mjs|cjs)$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.sh$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.ts$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.mjs$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.cjs$|—|WARN|gate-implementation change — re-verify dependent gates'
     '\.md$|—|SKIP|doc-only'
   )
 
@@ -291,7 +303,7 @@ coverage_check() {
   # Pair check: package.json ↔ pnpm-lock.yaml, database.types.ts ↔ migrations
   local has_pkg has_lock has_dbtypes has_mig
   has_pkg=0; has_lock=0; has_dbtypes=0; has_mig=0
-  echo "$changed" | grep -qE '^package\.json$' && has_pkg=1
+  echo "$changed" | grep -qE '(^|/)package\.json$' && has_pkg=1
   echo "$changed" | grep -qE '^pnpm-lock\.yaml$' && has_lock=1
   echo "$changed" | grep -qE '^packages/supabase/src/database\.types\.ts$' && has_dbtypes=1
   echo "$changed" | grep -qE '^supabase/migrations/.+\.sql$' && has_mig=1
@@ -367,7 +379,12 @@ run_gate "typecheck"                  pnpm turbo typecheck
 format_check_changed() {
   local base_ref="origin/development"
   local files
-  files=$(git diff --name-only --diff-filter=ACMR "${base_ref}"...HEAD -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
+  # core.quotepath=false → emit UTF-8 paths raw (no C-octal-quoted "...\302\247...")
+  # so xargs passes correct bytes to prettier.
+  # L-format-check-quotepath-fix (2026-05-17): without quotepath=false, git escapes
+  # non-ASCII (§, å) in --name-only output, xargs passes literal backslash-octal
+  # strings, prettier fails ENOENT, xargs exits 123.
+  files=$(git -c core.quotepath=false diff --name-only --diff-filter=ACMR "${base_ref}"...HEAD -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
   if [ -z "$files" ]; then
     echo "No formattable files changed vs ${base_ref} — skipping prettier."
     return 0
@@ -498,12 +515,20 @@ learning_cross_check() {
   echo "$stripped" | grep -qE 'node_modules missing|! \[ -d "\$ROOT/node_modules"' \
     || violations+=("L-worktree-missing-pnpm-symlinks: preflight node_modules check missing (worktrees fail all gates without it)")
 
+  # L-format-check-quotepath-fix → git diff --name-only must use core.quotepath=false
+  # 2026-05-17 PM: HOP B PR #398 Format Check failed exit 123 on 572-commit diff vs main.
+  # git default escapes non-ASCII paths as "..\302\247..", xargs passes literal escape
+  # to prettier, prettier ENOENT, xargs exit 123. ci:local skipped because preview=dev
+  # → empty diff. Same workflow logic fails on PR-event when base.sha != HEAD ancestry.
+  echo "$stripped" | grep -qE 'core\.quotepath=false' \
+    || violations+=("L-format-check-quotepath-fix: format_check_changed missing core.quotepath=false (non-ASCII paths break xargs)")
+
   if [ ${#violations[@]} -gt 0 ]; then
     echo -e "${RED}  Captured learnings no longer encoded:${NC}"
     printf '    %s\n' "${violations[@]}"
     return 1
   fi
-  echo "  All 7 captured learnings still encoded ✓"
+  echo "  All 8 captured learnings still encoded ✓"
   return 0
 }
 run_gate "learning-cross-check"         learning_cross_check

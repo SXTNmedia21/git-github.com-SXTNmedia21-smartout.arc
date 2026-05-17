@@ -3,7 +3,13 @@ import { describe, it, expect, vi } from "vitest";
 // 30s per-test timeout — cold-start of full real registry import
 // (Phase 7f tariff tools pushed cold-start past 10s default; mirrors capabilities-source.test.ts)
 describe("registry emitPrefix uniqueness", () => {
-  it("throws when two capabilities share the same emitPrefix", { timeout: 30000 }, async () => {
+  // 30s timeout: this test calls vi.resetModules() + vi.doMock() then re-imports
+  // ../registry.js which transitively re-compiles every capability module. Cost
+  // grows with each new capability sibling (legal added amendment-classifier
+  // 2026-05-17 Phase 7e Track 5). Default 10s timeout is too tight under
+  // full-suite load — passes in 6-7s isolated but hits the limit when other
+  // suites compete for the transform pipeline.
+  it("throws when two capabilities share the same emitPrefix", { timeout: 30_000 }, async () => {
     vi.resetModules();
     vi.doMock("../memory/index.js", () => ({
       memoryCapability: {

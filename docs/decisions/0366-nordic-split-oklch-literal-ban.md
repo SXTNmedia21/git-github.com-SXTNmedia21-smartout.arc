@@ -1,5 +1,5 @@
 ---
-id: ADR_0361
+id: ADR-0366
 title: Nordic Split — OKLCH literals forbidden in app code
 status: proposed
 created: 2026-05-17
@@ -9,7 +9,9 @@ related: [ADR-0028, ADR-0335]
 tags: [design-system, nordic-split, a11y, lint, css-variables]
 ---
 
-# ADR-0361 — Nordic Split: OKLCH literals forbidden in app code
+# ADR-0366 — Nordic Split: OKLCH literals forbidden in app code
+
+> Renumbered 0349 → 0361 → 0366 per outsider-renumber convention. 0361 collided with `0361-ci-migration-coherence-check.md` (development, accepted 2026-05-17) during sync. ui-shell side weaker (proposed) → renumbered to next free slot 0366.
 
 ## Status
 

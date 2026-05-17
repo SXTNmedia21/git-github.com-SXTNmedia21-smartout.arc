@@ -8753,7 +8753,11 @@ export type SmartoutEvent =
   // Both layers emit per ADR-0356 §"Audit trail symmetry".
   | PayrollWorkspaceTariffSetup
   | PayrollWorkspaceTariffChanged
-  | PayrollSupplementOverrideAdded;
+  | PayrollSupplementOverrideAdded
+  // ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ───────────────────
+  // Read-path telemetry (PostHog + Logger only; no activity_trail — view events).
+  | PayrollTariffViewLoaded
+  | PayrollTariffViewLoadedMobile;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -10419,6 +10423,32 @@ export interface PayrollSupplementOverrideAdded extends BaseEvent {
        */
       delegated_via: string;
       actor_id: string;
+    };
+  };
+}
+
+// ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ─────────────────────
+// Read-path telemetry. No activity_trail (view event, no mutation).
+// PostHog + Logger only — analytics on how often the tariff page / screen is viewed.
+
+export interface PayrollTariffViewLoaded extends BaseEvent {
+  event: "payroll.tariff_view_loaded";
+  properties: {
+    data: {
+      route: string; // "/dashboard/payroll/tariff" or variant
+      is_bound: boolean; // whether the workspace has an active tariff binding at load time
+      viewed_at: string; // ISO 8601 timestamp
+    };
+  };
+}
+
+export interface PayrollTariffViewLoadedMobile extends BaseEvent {
+  event: "payroll.tariff_view_loaded_mobile";
+  properties: {
+    data: {
+      route: string; // "(me)/tariff" screen identifier
+      is_bound: boolean; // whether the workspace has an active tariff binding at load time
+      viewed_at: string; // ISO 8601 timestamp
     };
   };
 }
@@ -13994,6 +14024,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "payroll.supplement_override_added": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ─────────────────────
+  // Read-path telemetry — posthog + logger only.
+  // No activity_trail: view events are not mutations; no compliance audit required.
+  // No engine_event: page views do not drive workflow state-machine transitions.
+  "payroll.tariff_view_loaded": {
+    destinations: ["posthog", "logger"],
+    category: "payroll",
+  },
+  "payroll.tariff_view_loaded_mobile": {
+    destinations: ["posthog", "logger"],
     category: "payroll",
   },
 };

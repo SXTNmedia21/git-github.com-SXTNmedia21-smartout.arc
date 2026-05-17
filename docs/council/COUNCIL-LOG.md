@@ -2197,7 +2197,7 @@ N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability c
 **Key decision:** 3 hard blockers (B1 migrations × 2 + IF NOT EXISTS, B2 phantom telemetry × 2) + 4 required-before-promote (J3-J5) + governance gate on tri-campaign scope (world-best-wfm + mobile merged into ui-shell tip)
 **Chair self-reversals (L-0147):** 4 — phantom contract (telemetry-contract pipeline), tri-campaign scope drift (merge-ancestry), WCAG 4.1.2 ProcedureDetailTabs, ADR-0349 toothless. 7th per-component L-0147 precedent (component-level ARIA repeats HMS R1 HmsSubNav defect class).
 **ADR created:** ADR-0358 (telemetry-registry-requires-emit-wiring, L-NEW-1 2nd occurrence promoted)
-**Learnings created:** L-0301 (7th-L-0147-component-ARIA), L-0302 (chair-self-reversal-4-pattern), L-0303 (ADR-to-enforcement-code-receipt-rule)
+**Learnings created:** L-0304 (7th-L-0147-component-ARIA), L-0305 (chair-self-reversal-4-pattern), L-0303 (ADR-to-enforcement-code-receipt-rule)
 **Fixup sortie:** feat/ui-shell-r1-fixup (this sortie)
 
 ### Blockers identified
@@ -2223,8 +2223,8 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 ### Knowledge captured
 
 - ADR-0358 (proposed) — telemetry-registry-requires-emit-wiring. L-NEW-1 2nd occurrence → ADR-grade promotion threshold met.
-- L-0301 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
-- L-0302 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
+- L-0304 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
+- L-0305 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
 - L-0303 — ADR-to-enforcement-code receipt rule (toothless ADR class)
 - run-council SKILL.md amended: 3 new Phase 3 checks (telemetry-contract, merge-ancestry, ADR-to-enforcement)
 - ADR-0238 flipped to accepted (enforcement shipped via ADR-0337 + DomainChatOwnership implementation 2026-05-16)

@@ -161,7 +161,7 @@ export function useMyProfileCompleteTools(input: MyProfileCompleteToolInput): Cl
                 key: "address",
                 label: "Adresse",
                 purpose:
-                  "Gateadresse hvor du bor. Brukes i kontrakten og for ev. utsending av lønnsslipp/dokumenter.",
+                  "Gateadresse hvor du bor. Brukes i kontrakten og for ev. utsending av lønnsgrunnlag/dokumenter.",
               },
               {
                 key: "postalCode",

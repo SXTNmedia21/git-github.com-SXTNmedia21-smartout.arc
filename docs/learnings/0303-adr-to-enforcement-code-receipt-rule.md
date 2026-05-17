@@ -81,7 +81,7 @@ ls scripts/check-telemetry-emit-coverage.ts
 - L-0176 (docstring drift — same class, different locus)
 - ADR-0349 (Nordic Split OKLCH literal ban — the triggering case; enforcement not wired)
 - ADR-0358 (telemetry registry requires emit wiring — correct pattern: enforcement script described alongside the decision)
-- L-0302 (4 chair self-reversals same council — reversal 4 was this pattern)
+- L-0305 (4 chair self-reversals same council — reversal 4 was this pattern)
 
 ## Action
 

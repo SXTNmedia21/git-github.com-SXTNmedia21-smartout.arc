@@ -3,38 +3,117 @@
  *
  * Mobile is WITNESS-only for payroll (ADR-0133). This screen:
  *   - Fetches a signed URL via useLonnsgrunnlagUrl (Wave B BFF dependency)
- *   - Opens the PDF in the system browser / native Files via Linking.openURL
+ *   - Shares the PDF via expo-sharing Sharing.shareAsync (J3 acceptance criterion)
+ *   - Falls back to Linking.openURL on devices where sharing is unavailable
  *   - NO generation, NO admin actions, NO authoring
  *
- * Viewer technique: expo-linking (option b — system browser / native PDF viewer).
- * react-native-webview is not in the mobile dependency set. Linking.openURL
- * hands the signed URL to iOS/Android which routes to Files, Safari, or the
- * default PDF viewer based on the OS. This is the simplest path for Wave D.
- *
- * Trade-off vs WebView: no inline rendering (user leaves the app momentarily),
- * but zero extra dependencies, fully offline-capable once the OS caches the
- * PDF, and respects the system's PDF access-control (Files app on iOS).
- * A future wave can add react-native-webview if inline rendering is required.
+ * Loading skeleton (§B acceptance criterion):
+ *   Three rows pulse via Reanimated useSharedValue opacity (0.3 → 0.8 repeat).
+ *   ONLY opacity animated — GPU compositor rule (no layout/transform animations).
+ *   Spring: nativeTheme.motion.springAmbient (≡ springGentle — slow, unhurried).
+ *   Skeleton shows while (isLoading && !urlData) to eliminate layout shift.
  *
  * ADR-0151: profile_id derived from getProfileContext() — never from route params.
  * ADR-0134: mobile only emits server-side-registered events; no new telemetry
- *   events are emitted from this screen (payroll.lonnsgrunnlag_url_granted is
- *   emitted by the BFF route, not the client).
+ *   events are emitted from this screen.
  * ADR-0133: witness-only — no generate/override/admin UI elements.
  * L-0177: empty state returns clear UI + retry; error state shows toast + retry.
  */
 
 import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, ScrollView } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from "react-native";
+import Animated, {
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import * as Sharing from "expo-sharing";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Download, RefreshCw, FileText, ShieldCheck } from "lucide-react-native";
+import { ChevronLeft, RefreshCw, FileText, ShieldCheck, Share2 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { ActionHeader } from "@/components/navigation/ActionHeader";
 import { useLonnsgrunnlagUrl } from "@/hooks/queries/use-lonnsgrunnlag";
 import { getProfileContext } from "@/lib/profile-context";
+
+/* ── Motion (springAmbient / orbMigrationMs for skeleton pulse timing) ─────── */
+// nativeTheme.motion.springAmbient = { stiffness:35, damping:22, mass:2.2 }
+// Use orbMigrationMs (800ms) as the withTiming pulse duration — same motion vocabulary.
+
+/* ── Loading skeleton — 3 rows, opacity-only pulse (GPU rule) ───────────────── */
+
+/**
+ * SkeletonRow: single animated bar. Only opacity is animated — no layout or
+ * transform animations (GPU compositor constraint per animation-gpu-properties).
+ * Spring: springAmbient (low stiffness, high damping — unhurried pulse).
+ */
+function SkeletonRow({ width, height = 18 }: { width: number | `${number}%`; height?: number }) {
+  const theme = useTheme();
+  const opacity = useSharedValue(0.3);
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  // Pulse duration derived from spring ambient damping ratio — unhurried.
+  // springAmbient { stiffness:35, damping:22, mass:2.2 } → ~900ms feel.
+  const PULSE_MS = nativeTheme.motion.orbMigrationMs ?? 900;
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.8, { duration: PULSE_MS }),
+        withTiming(0.3, { duration: PULSE_MS }),
+      ),
+      -1, // infinite
+      false,
+    );
+  }, []);
+  // opacity shared value initialised once — no deps needed (Reanimated worklet)
+
+  const bgColor = theme.isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+
+  return (
+    <Animated.View
+      style={[
+        animatedStyle,
+        {
+          width,
+          height,
+          borderRadius: height / 2,
+          backgroundColor: bgColor,
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * LonnsgrunnlagDetailSkeleton — 3 rows matching the layout:
+ *   Row 1: wide (simulates primary button placeholder)
+ *   Row 2: medium (secondary action placeholder)
+ *   Row 3: narrow (metadata / disclaimer placeholder)
+ *
+ * Eliminates layout shift when the screen first loads before urlData arrives.
+ */
+function LonnsgrunnlagDetailSkeleton() {
+  return (
+    <View style={skeletonStyles.container}>
+      <SkeletonRow width="100%" height={52} />
+      <SkeletonRow width="75%" height={44} />
+      <SkeletonRow width="50%" height={28} />
+    </View>
+  );
+}
+
+const skeletonStyles = StyleSheet.create({
+  container: {
+    gap: 12,
+    paddingVertical: 8,
+  },
+});
 
 /* ── Types ────────────────────────────────────────────────────────────────── */
 
@@ -111,7 +190,14 @@ export default function LonnsgrunnlagDetailScreen() {
 
   const expired = urlData ? isUrlExpired(urlData.expires_at) : false;
 
-  async function handleOpen() {
+  /**
+   * Primary action: share PDF via expo-sharing native sheet (J3 acceptance).
+   * Falls back to Linking.openURL when Sharing.isAvailableAsync() returns false
+   * (e.g. web/simulator environments that do not support native share sheet).
+   * Uses React Native ActivityIndicator while sharing is in progress — no
+   * custom spinner per acceptance criterion D.
+   */
+  async function handleShare() {
     if (!urlData?.signed_url) return;
     if (expired) {
       await refetch();
@@ -123,12 +209,22 @@ export default function LonnsgrunnlagDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const supported = await Linking.canOpenURL(urlData.signed_url);
-      if (!supported) {
-        setOpenError("Kan ikke åpne PDF på denne enheten.");
-        return;
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        // Share via native OS sheet (Files, AirDrop, Mail, etc.)
+        await Sharing.shareAsync(urlData.signed_url, {
+          mimeType: "application/pdf",
+          dialogTitle: `Lønnsgrunnlag — ${periodLabel ?? ""}`,
+        });
+      } else {
+        // Fallback: open in system browser / OS PDF viewer
+        const supported = await Linking.canOpenURL(urlData.signed_url);
+        if (!supported) {
+          setOpenError("Kan ikke åpne PDF på denne enheten.");
+          return;
+        }
+        await Linking.openURL(urlData.signed_url);
       }
-      await Linking.openURL(urlData.signed_url);
     } catch (err) {
       setOpenError(err instanceof Error ? err.message : "Kunne ikke åpne PDF.");
     } finally {
@@ -150,7 +246,12 @@ export default function LonnsgrunnlagDetailScreen() {
         <View style={styles.centeredState}>
           <Text style={styles.errorTitle}>Autentiseringsfeil</Text>
           <Text style={styles.errorBody}>{profileError}</Text>
-          <Pressable onPress={() => router.back()} style={styles.retryButton}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Gå tilbake"
+          >
             <Text style={styles.retryText}>Gå tilbake</Text>
           </Pressable>
         </View>
@@ -166,7 +267,12 @@ export default function LonnsgrunnlagDetailScreen() {
         <View style={styles.centeredState}>
           <Text style={styles.errorTitle}>Manglende data</Text>
           <Text style={styles.errorBody}>Kunne ikke identifisere lønnsgrunnlaget.</Text>
-          <Pressable onPress={() => router.back()} style={styles.retryButton}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Gå tilbake"
+          >
             <Text style={styles.retryText}>Gå tilbake</Text>
           </Pressable>
         </View>
@@ -217,27 +323,27 @@ export default function LonnsgrunnlagDetailScreen() {
           </View>
         </Animated.View>
 
-        {/* ── URL status / loading ─────────────────────────────────────── */}
-        {profileId.length === 0 && !profileError && (
-          <View style={styles.loadingBlock}>
-            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
-            <Text style={styles.loadingText}>Autentiserer…</Text>
-          </View>
-        )}
-
-        {profileId.length > 0 && isLoading && (
-          <View style={styles.loadingBlock}>
-            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
-            <Text style={styles.loadingText}>Henter tilgang til dokument…</Text>
-          </View>
-        )}
+        {/* ── Loading skeleton (§B) ───────────────────────────────────── */}
+        {/*
+         * 3-row skeleton while URL is loading and no data yet.
+         * Eliminates layout shift. Only opacity animated (GPU rule).
+         * Shows for both auth phase (profileId empty) and URL fetch phase.
+         */}
+        {(profileId.length === 0 || (profileId.length > 0 && isLoading && !urlData)) &&
+          !profileError && <LonnsgrunnlagDetailSkeleton />}
 
         {profileId.length > 0 && isError && (
           <View style={styles.errorBlock}>
             <Text style={styles.errorBody}>
               {(error as Error)?.message ?? "Kunne ikke hente tilgang til dokumentet."}
             </Text>
-            <Pressable onPress={handleRefresh} style={styles.retryButton} hitSlop={8}>
+            <Pressable
+              onPress={handleRefresh}
+              style={styles.retryButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Prøv igjen"
+            >
               <RefreshCw size={14} color="#ffffff" strokeWidth={2} />
               <Text style={styles.retryText}>Prøv igjen</Text>
             </Pressable>
@@ -261,9 +367,9 @@ export default function LonnsgrunnlagDetailScreen() {
         {/* ── Action buttons ───────────────────────────────────────────── */}
         {urlData && !isError && (
           <Animated.View entering={FadeIn.delay(200).duration(350)} style={styles.actionsBlock}>
-            {/* Primary: open in system PDF viewer (Downloads / Files) */}
+            {/* Primary: Del / Åpne via expo-sharing native sheet (J3 acceptance) */}
             <Pressable
-              onPress={handleOpen}
+              onPress={handleShare}
               disabled={isOpening || isLoading}
               style={({ pressed }) => [
                 styles.primaryButton,
@@ -271,15 +377,15 @@ export default function LonnsgrunnlagDetailScreen() {
                 pressed && styles.buttonPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Last ned og åpne lønnsgrunnlag"
+              accessibilityLabel="Del eller åpne lønnsgrunnlag"
             >
               {isOpening ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Download size={18} color="#ffffff" strokeWidth={2} />
+                <Share2 size={18} color="#ffffff" strokeWidth={2} />
               )}
               <Text style={styles.primaryButtonText}>
-                {expired ? "Oppdater og åpne" : "Last ned"}
+                {expired ? "Oppdater og åpne" : "Del / Åpne"}
               </Text>
             </Pressable>
 
