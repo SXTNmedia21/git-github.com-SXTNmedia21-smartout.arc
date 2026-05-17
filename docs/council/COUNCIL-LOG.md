@@ -2197,7 +2197,7 @@ N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability c
 **Key decision:** 3 hard blockers (B1 migrations × 2 + IF NOT EXISTS, B2 phantom telemetry × 2) + 4 required-before-promote (J3-J5) + governance gate on tri-campaign scope (world-best-wfm + mobile merged into ui-shell tip)
 **Chair self-reversals (L-0147):** 4 — phantom contract (telemetry-contract pipeline), tri-campaign scope drift (merge-ancestry), WCAG 4.1.2 ProcedureDetailTabs, ADR-0349 toothless. 7th per-component L-0147 precedent (component-level ARIA repeats HMS R1 HmsSubNav defect class).
 **ADR created:** ADR-0358 (telemetry-registry-requires-emit-wiring, L-NEW-1 2nd occurrence promoted)
-**Learnings created:** L-0298 (7th-L-0147-component-ARIA), L-0299 (chair-self-reversal-4-pattern), L-0300 (ADR-to-enforcement-code-receipt-rule)
+**Learnings created:** L-0301 (7th-L-0147-component-ARIA), L-0302 (chair-self-reversal-4-pattern), L-0303 (ADR-to-enforcement-code-receipt-rule)
 **Fixup sortie:** feat/ui-shell-r1-fixup (this sortie)
 
 ### Blockers identified
@@ -2223,9 +2223,9 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 ### Knowledge captured
 
 - ADR-0358 (proposed) — telemetry-registry-requires-emit-wiring. L-NEW-1 2nd occurrence → ADR-grade promotion threshold met.
-- L-0298 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
-- L-0299 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
-- L-0300 — ADR-to-enforcement-code receipt rule (toothless ADR class)
+- L-0301 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
+- L-0302 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
+- L-0303 — ADR-to-enforcement-code receipt rule (toothless ADR class)
 - run-council SKILL.md amended: 3 new Phase 3 checks (telemetry-contract, merge-ancestry, ADR-to-enforcement)
 - ADR-0238 flipped to accepted (enforcement shipped via ADR-0337 + DomainChatOwnership implementation 2026-05-16)
 
@@ -2275,3 +2275,14 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Learnings to log:** L-0292 (pre-council schema-reality-check pattern), L-0293 (denormalized cache + canonical lifecycle), L-0294 (7th L-0147 precedent + SKILL.md promotion).
 **Phase 2.5 fact-check:** 12/12 claims VERIFIED + bonus finding (`tariff_binding_id` column doesn't exist) confirmed false. Briefing was structurally accurate.
 **Process improvement:** Pre-council schema-reality-check (read 5 most-cited tables/columns before Phase 2 dispatch) saved this council from at least 5 false-premised ADR claims surviving Phase 3.
+
+## 2026-05-17 — `pnpm ci:local` coverage-check + self-learning loop
+**Type:** feature (CI infrastructure + skill enforcement)
+**Verdict:** REJECT IN CURRENT FORM → v2 (chair self-reversal precedent #10)
+**Agents consulted:** system-steward (chair), supervisor (code-trace), system-agent-coordinator (hook contract)
+**Prior verdict held?** n/a — first council on ci:local infrastructure
+**Key decision:** Add `coverage-check` (diff-aware path→gate enforcement, 24 rows longest-prefix-wins) + `learning-cross-check` (greps script for 6 captured-learning encodings) + `baseline-check` + `self-learn-write` (JSONL run log + outlier detection). Plus PreToolUse Bash hook at `~/.claude/scripts/pre-gh-pr-create.sh` blocking `gh pr create` unless `.git/.ci-local-green-<HEAD_SHA>` marker exists. Three bypass envs documented.
+**ADR created:** ADR-0359 (Enforced CI Coverage Mandate and Self-Learning Loop)
+**Learning created:** L-0298 (ci:local mapping fidelity is only caught by code-trace)
+**Phase 2.5 fact-check:** skipped (small surface, files recent; risk accepted)
+**Process improvement:** Supervisor code-trace caught 9 missing path classes + 3 false mapping claims that Steward concept-review approved. L-0147 family 4th instance. Future: any topic proposing a mapping/coverage table must assign a code-tracer reviewer the explicit "open the source files, verify each row" task. Add this to run-council Phase 3 Hard Rules if pattern recurs once more.

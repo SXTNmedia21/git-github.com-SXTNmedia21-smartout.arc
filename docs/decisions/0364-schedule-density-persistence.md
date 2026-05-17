@@ -1,6 +1,6 @@
 ---
 title: "Schedule View Density — 4-Tier Preference with Dedicated Persistence Table"
-id: ADR_0359
+id: ADR_0364
 status: accepted
 layer: decision
 created: 2026-05-15
@@ -12,7 +12,7 @@ tags: [schedule, ui, density, persistence, voice]
 deciders: [pontus, claude]
 ---
 
-# ADR-0359: Schedule View Density — 4-Tier Preference with Dedicated Persistence Table
+# ADR-0364: Schedule View Density — 4-Tier Preference with Dedicated Persistence Table
 
 **Status:** Accepted
 **Date:** 2026-05-15

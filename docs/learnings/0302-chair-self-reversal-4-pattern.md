@@ -1,5 +1,5 @@
 ---
-id: L-0299
+id: L-0302
 title: "4 chair self-reversals in single council — Phase 3 Steward systematic blind spots"
 status: accepted
 date: 2026-05-17
@@ -7,7 +7,7 @@ related-adrs: [ADR-0358, ADR-0349, ADR-0350]
 tags: [l-0147, chair-self-reversal, run-council, phase-3, blind-spots, council-protocol]
 ---
 
-# L-0299 — 4 Chair Self-Reversals in Single Council
+# L-0302 — 4 Chair Self-Reversals in Single Council
 
 ## Context
 
@@ -56,7 +56,7 @@ These 4 reversal classes suggest 4 Phase 3 protocol amendments:
 
 2. **Merge-ancestry check** — for campaign tips, MUST run `git log --merges --oneline` to surface unexpected campaign aggregation. (Added to run-council SKILL.md Common Mistakes.)
 
-3. **ARIA audit** — when `apps/web/src/components/**` is in scope, MUST include a reviewer with explicit ARIA role/property/state mandate. (See L-0298.)
+3. **ARIA audit** — when `apps/web/src/components/**` is in scope, MUST include a reviewer with explicit ARIA role/property/state mandate. (See L-0301.)
 
 4. **ADR-to-enforcement receipt** — when ADR text claims enforcement infrastructure, MUST grep for that infrastructure before marking ADR "wired." (Now enforced via run-council SKILL.md amendment.)
 
@@ -64,8 +64,8 @@ These 4 reversal classes suggest 4 Phase 3 protocol amendments:
 
 - L-0147 (chair self-reversal pattern — parent)
 - L-0294 (7th L-0147 precedent — promote to SKILL.md hard rule, ui-shell sub-sortie)
-- L-0298 (7th component-ARIA L-0147 precedent — sibling from same council)
-- L-0300 (ADR-to-enforcement receipt rule — sibling from same council)
+- L-0301 (7th component-ARIA L-0147 precedent — sibling from same council)
+- L-0303 (ADR-to-enforcement receipt rule — sibling from same council)
 - ADR-0358 (telemetry registry requires emit wiring — derived from reversal 1)
 
 ## Action

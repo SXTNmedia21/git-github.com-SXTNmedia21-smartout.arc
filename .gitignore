@@ -91,3 +91,4 @@ ops/ci-incidents/log.jsonl
 
 # Local-only DB safety backups (per-row data)
 ops/backups/
+.ci-local/
