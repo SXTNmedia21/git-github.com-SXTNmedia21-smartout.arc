@@ -7,18 +7,22 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { useProcedureSteps } from "../_hooks/use-procedure-steps";
+import { useTranslation } from "@smartout/i18n";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
 type Tab = "overview" | "steps" | "quiz" | "confirmation";
 
-const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: "overview", label: "Oversikt", icon: LayoutDashboard },
-  { id: "steps", label: "Steg", icon: ListOrdered },
-  { id: "quiz", label: "Quiz", icon: ClipboardCheck },
-  { id: "confirmation", label: "Bekreftelse", icon: PenTool },
-];
+// Icons associated per tab — icons don't need translation
+const TAB_ICONS: Record<Tab, typeof LayoutDashboard> = {
+  overview: LayoutDashboard,
+  steps: ListOrdered,
+  quiz: ClipboardCheck,
+  confirmation: PenTool,
+};
+
+const TAB_IDS: Tab[] = ["overview", "steps", "quiz", "confirmation"];
 
 function useProcedureMeta(procedureId: string) {
   const { workspace } = useWorkspace();
@@ -44,6 +48,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const { data: meta, isLoading: metaLoading } = useProcedureMeta(procedureId);
   const { data: steps, isLoading: stepsLoading } = useProcedureSteps(procedureId);
+  const { t } = useTranslation("dashboard");
 
   if (metaLoading) {
     return (
@@ -56,7 +61,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
   if (!meta) {
     return (
       <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
-        <p className="text-muted-foreground text-sm">Prosedyre ikke funnet.</p>
+        <p className="text-muted-foreground text-sm">{t("hms.procedureDetailTabs.not_found")}</p>
       </div>
     );
   }
@@ -79,7 +84,9 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
             </Badge>
           )}
           <Badge variant={meta.is_active ? "default" : "secondary"}>
-            {meta.is_active ? "Aktiv" : "Inaktiv"}
+            {meta.is_active
+              ? t("hms.procedureDetailTabs.active")
+              : t("hms.procedureDetailTabs.inactive")}
           </Badge>
         </div>
         <h1 className="text-foreground text-2xl font-bold">{meta.name}</h1>
@@ -88,21 +95,22 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
         )}
         {protocol && (
           <p className="text-muted-foreground mt-1 text-xs">
-            Protokoll: {protocol.name}
-            {protocol.policy && ` | Policy: ${protocol.policy.name}`}
+            {t("hms.procedureDetailTabs.protocol_label")}: {protocol.name}
+            {protocol.policy &&
+              ` | ${t("hms.procedureDetailTabs.policy_label")}: ${protocol.policy.name}`}
           </p>
         )}
       </div>
 
       {/* Tab navigation */}
       <div className="border-border bg-muted/50 flex gap-1 rounded-xl border p-1">
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
+        {TAB_IDS.map((id) => {
+          const isActive = activeTab === id;
+          const Icon = TAB_ICONS[id];
           return (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              key={id}
+              onClick={() => setActiveTab(id)}
               className={`focus-visible:ring-ring flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
                 isActive
                   ? "bg-background text-foreground shadow"
@@ -110,7 +118,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
               }`}
             >
               <Icon className="h-4 w-4" />
-              {tab.label}
+              {t(`hms.procedureDetailTabs.${id}`)}
             </button>
           );
         })}
@@ -119,9 +127,9 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
       {/* Tab content */}
       {activeTab === "overview" && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <InfoCard label="Steg" value={steps?.length ?? 0} />
+          <InfoCard label={t("hms.procedureDetailTabs.steps_count")} value={steps?.length ?? 0} />
           <InfoCard
-            label="Sist oppdatert"
+            label={t("hms.procedureDetailTabs.last_updated")}
             value={new Date(meta.updated_at).toLocaleDateString("nb-NO")}
           />
         </div>
@@ -132,7 +140,9 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
           {stepsLoading ? (
             <Loader2 className="text-muted-foreground mx-auto h-5 w-5 animate-spin" />
           ) : !steps || steps.length === 0 ? (
-            <p className="text-muted-foreground text-center text-sm">Ingen steg definert.</p>
+            <p className="text-muted-foreground text-center text-sm">
+              {t("hms.procedureDetailTabs.no_steps")}
+            </p>
           ) : (
             steps.map((step, i) => (
               <div key={step.stepId} className="border-border rounded-lg border p-4">
@@ -143,14 +153,16 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
                   <h3 className="text-foreground font-semibold">{step.title}</h3>
                   {step.isRequired && (
                     <Badge variant="outline" className="text-[10px]">
-                      Pakrevd
+                      {t("hms.procedureDetailTabs.required")}
                     </Badge>
                   )}
                 </div>
                 <p className="text-muted-foreground ml-8 text-sm">{step.description}</p>
                 {step.trainingContent && (
                   <div className="border-info/20 bg-info/5 mt-2 ml-8 rounded-md border p-3">
-                    <p className="text-info mb-1 text-[10px] font-medium">Opplaeringsinnhold:</p>
+                    <p className="text-info mb-1 text-[10px] font-medium">
+                      {t("hms.procedureDetailTabs.training_content_label")}
+                    </p>
                     <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
                       <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
                         {step.trainingContent}
@@ -168,7 +180,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
         <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
           <ClipboardCheck className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
-            Kunnskapstester vises her. Kobles i neste iterasjon.
+            {t("hms.procedureDetailTabs.knowledge_tests_placeholder")}
           </p>
         </div>
       )}
@@ -177,7 +189,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
         <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
           <PenTool className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
-            Bekreftelser vises her. Kobles i neste iterasjon.
+            {t("hms.procedureDetailTabs.confirmations_placeholder")}
           </p>
         </div>
       )}
