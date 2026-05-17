@@ -5,7 +5,7 @@
  *
  * Tests:
  *   bindWorkspaceUnionTool:
- *     1. Happy path — INSERT succeeds, emit fires with delegated_via populated
+ *     1. Happy path — atomic RPC succeeds, emit fires with actor_capability + delegated_via
  *     2. L-0177 fail-fast — missing ctx.workspaceId → MISSING_PROFILE_CONTEXT
  *     3. L-0177 fail-fast — missing ctx.profileId → MISSING_PROFILE_CONTEXT
  *     4. Cross-workspace block — body workspace_id !== ctx.workspaceId → INVALID_WORKSPACE
@@ -13,10 +13,12 @@
  *     6. AMENDMENT_BLOCKED — classifier='ENDRINGSOPPSIGELSE' → AMENDMENT_BLOCKED
  *
  *   addSupplementRuleTool:
- *     7. Happy path — INSERT succeeds, emit fires with delegated_via populated
+ *     7. Happy path — INSERT succeeds, emit fires with actor_capability + delegated_via
  *     8. Below-floor error envelope — PG error matching tariff-floor pattern →
  *        SUPPLEMENT_BELOW_TARIFF_FLOOR with parsed floor + proposed
  *     9. L-0177 fail-fast — missing ctx.workspaceId → MISSING_PROFILE_CONTEXT
+ *    10. AUTHORITY_DENIED — gate denies → AUTHORITY_DENIED error envelope (ADR-0152)
+ *    11. INVALID_WORKSPACE — body workspace_id !== ctx.workspaceId → INVALID_WORKSPACE
  *
  * Strategy:
  *   mutateWithGate wraps gatedMutation which calls gate_action RPC.
@@ -126,6 +128,24 @@ function buildMockSupabase(opts: {
         error: null,
       });
     }
+    // atomic switch-flow RPC (FIX 2 — ADR-0356 §"Transaction shape")
+    if (fn === "bind_workspace_union_atomic") {
+      if (opts.insertError) {
+        return Promise.resolve({
+          data: null,
+          error: opts.insertError,
+        });
+      }
+      return Promise.resolve({
+        data: [
+          {
+            workspace_union_binding_id: BINDING_ID,
+            effective_from: "2026-01-01",
+          },
+        ],
+        error: null,
+      });
+    }
     return Promise.resolve({ data: null, error: { message: `unknown RPC: ${fn}` } });
   });
 
@@ -214,6 +234,7 @@ const BASE_BIND_INPUT = {
   effective_from: "2026-01-01",
   amendment_classifier: "BOOTSTRAP" as const,
   derivation_snapshot_id: null,
+  caller_capability: "payroll",
 };
 
 describe("bindWorkspaceUnionTool", () => {
@@ -221,19 +242,10 @@ describe("bindWorkspaceUnionTool", () => {
     vi.clearAllMocks();
   });
 
-  it("T1: happy path — INSERT succeeds, emit fires with delegated_via", async () => {
+  it("T1: happy path — atomic RPC succeeds, emit fires with actor_capability + delegated_via", async () => {
     const { emit } = await import("@smartout/telemetry");
     const ctx = makeCtx({
-      supabaseAdmin: buildMockSupabase({
-        gateAllow: true,
-        insertResult: {
-          data: {
-            workspace_union_binding_id: BINDING_ID,
-            effective_from: "2026-01-01",
-          },
-          error: null,
-        },
-      }),
+      supabaseAdmin: buildMockSupabase({ gateAllow: true }),
     });
 
     const result = JSON.parse(await bindWorkspaceUnionTool.execute(BASE_BIND_INPUT, ctx));
@@ -242,12 +254,15 @@ describe("bindWorkspaceUnionTool", () => {
     expect(result.workspace_union_binding_id).toBe(BINDING_ID);
     expect(result.effective_from).toBe("2026-01-01");
 
-    // Verify emit was called with delegated_via (load-bearing per ADR-0356 §"Audit trail symmetry")
+    // Verify emit carries BOTH actor_capability (caller) AND delegated_via (owner).
+    // Both are load-bearing per ADR-0356 §"Audit trail symmetry" — auditors use
+    // actor_capability + delegated_via to trace full cross-namespace provenance.
     expect(emit).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "cascade.workspace_union_binding_created",
         properties: expect.objectContaining({
           data: expect.objectContaining({
+            actor_capability: "payroll",
             delegated_via: "cascade",
             workspace_union_binding_id: BINDING_ID,
             union_id: "taro-79",
@@ -321,6 +336,7 @@ const BASE_SUPPLEMENT_INPUT = {
   match_predicate: {},
   valid_from: null,
   valid_until: null,
+  caller_capability: "payroll",
 };
 
 describe("addSupplementRuleTool", () => {
@@ -328,7 +344,7 @@ describe("addSupplementRuleTool", () => {
     vi.clearAllMocks();
   });
 
-  it("T7: happy path — INSERT succeeds, emit fires with delegated_via", async () => {
+  it("T7: happy path — INSERT succeeds, emit fires with actor_capability + delegated_via", async () => {
     const { emit } = await import("@smartout/telemetry");
     const ctx = makeCtx({
       supabaseAdmin: buildMockSupabase({
@@ -345,12 +361,15 @@ describe("addSupplementRuleTool", () => {
     expect(result.ok).toBe(true);
     expect(result.supplement_rule_id).toBe(RULE_ID);
 
-    // Verify emit fires with delegated_via (load-bearing per ADR-0356)
+    // Verify emit carries BOTH actor_capability (caller) AND delegated_via (owner).
+    // Both are load-bearing per ADR-0356 §"Audit trail symmetry" — auditors use
+    // actor_capability + delegated_via to trace full cross-namespace provenance.
     expect(emit).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "cascade.supplement_rule_added",
         properties: expect.objectContaining({
           data: expect.objectContaining({
+            actor_capability: "payroll",
             delegated_via: "cascade",
             supplement_rule_id: RULE_ID,
             supplement_type: "normal",
@@ -388,5 +407,34 @@ describe("addSupplementRuleTool", () => {
 
     expect(result.ok).toBe(false);
     expect(result.code).toBe("MISSING_PROFILE_CONTEXT");
+  });
+
+  it("T10: AUTHORITY_DENIED — gate denies → AUTHORITY_DENIED error envelope (ADR-0152)", async () => {
+    // Gate returns allow=false — mutateWithGate throws MutateWithGateDenied.
+    // Tool must surface structured AUTHORITY_DENIED envelope per ADR-0152.
+    const ctx = makeCtx({
+      supabaseAdmin: buildMockSupabase({ gateAllow: false }),
+    });
+
+    const result = JSON.parse(await addSupplementRuleTool.execute(BASE_SUPPLEMENT_INPUT, ctx));
+
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("AUTHORITY_DENIED");
+    // No DB write should have occurred — gate fires before exec.
+    expect(ctx.supabaseAdmin.from).not.toHaveBeenCalledWith("supplement_rule");
+  });
+
+  it("T11: INVALID_WORKSPACE — body workspace_id !== ctx.workspaceId → INVALID_WORKSPACE", async () => {
+    // Body supplies WORKSPACE_B but ctx authenticates as WORKSPACE_A.
+    // Cross-workspace mismatch is a forgery attempt — must be hard-rejected (ADR-0151).
+    const ctx = makeCtx();
+    const input = { ...BASE_SUPPLEMENT_INPUT, workspace_id: WORKSPACE_B };
+
+    const result = JSON.parse(await addSupplementRuleTool.execute(input, ctx));
+
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("INVALID_WORKSPACE");
+    // No gate or DB call — rejection happens before mutateWithGate.
+    expect(ctx.supabaseAdmin.rpc).not.toHaveBeenCalledWith("gate_action", expect.anything());
   });
 });

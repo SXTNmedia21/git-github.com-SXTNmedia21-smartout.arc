@@ -90,6 +90,13 @@ const bindWorkspaceUnionSchema = z.object({
     .describe(
       "Optional tariff_snapshot.id this binding derives from. NULL for non-bound or manual bootstrap.",
     ),
+  caller_capability: z
+    .string()
+    .describe(
+      "Capability ID of the calling tool (e.g. 'payroll'). " +
+        'Written to emit payload as actor_capability per ADR-0356 §"Audit trail symmetry". ' +
+        "Required — auditors use actor_capability + delegated_via to trace full cross-namespace provenance.",
+    ),
 });
 
 export const bindWorkspaceUnionTool = defineTool({
@@ -100,7 +107,11 @@ export const bindWorkspaceUnionTool = defineTool({
     "NEVER called directly by users. Enforces: L-0177 ctx fail-fast, cross-workspace block, " +
     "AMENDMENT_BLOCKED for MATERIAL/ENDRINGSOPPSIGELSE (requires employee signering per ADR-0252 §F). " +
     "BOOTSTRAP + UP + BOOTSTRAP-BACKFILL classifiers proceed. " +
+    "Switch flow (close old binding + insert new) runs as single atomic Postgres transaction " +
+    'via public.bind_workspace_union_atomic RPC (ADR-0356 §"Transaction shape"). ' +
     "Cache trigger (trg_sync_workspace_settings_union_cache) fires automatically on INSERT. " +
+    "Requires caller_capability input — written to emit payload as actor_capability alongside " +
+    'delegated_via for full audit chain per ADR-0356 §"Audit trail symmetry". ' +
     "Returns { workspace_union_binding_id, effective_from }.",
   capability: CAPABILITY,
   schema: bindWorkspaceUnionSchema,
@@ -162,6 +173,12 @@ export const bindWorkspaceUnionTool = defineTool({
     // Per ADR-0204 + ADR-0287: ALL persistence in a capability mutation must
     // run inside gatedMutation. The gate fires independently of the caller's
     // gate (ADR-0356 §"Gate convention"). Both gates must approve.
+    //
+    // Atomicity (ADR-0356 §"Transaction shape"): the switch flow (close old
+    // binding + insert new) runs as a single Postgres transaction via the
+    // public.bind_workspace_union_atomic SECURITY DEFINER RPC. This eliminates
+    // the orphan-state risk from the previous 2-step chained client call pattern:
+    // if the RPC throws, neither DML is committed.
     try {
       const { result } = await mutateWithGate(ctx.supabaseAdmin, {
         workspaceId: ctx.workspaceId as string,
@@ -170,75 +187,43 @@ export const bindWorkspaceUnionTool = defineTool({
         actionType: "bind_workspace_union",
         channel,
         exec: async (db) => {
-          // Step A: Close any currently active binding for this workspace.
-          // APPEND-ONLY invariant (ADR-0355 §B): the only allowed UPDATE on
-          // workspace_union_binding is setting effective_to. The BEFORE UPDATE
-          // trigger (trg_workspace_union_binding_immutability) enforces this
-          // at the DB level and survives service-role RLS bypass.
-          //
-          // Compute effective_to = effective_from - 1 day.
-          const effectiveTo = (() => {
-            const d = new Date(input.effective_from);
-            d.setDate(d.getDate() - 1);
-            return d.toISOString().split("T")[0];
-          })();
-
-          const { data: existingRow } = await db
-            .from("workspace_union_binding")
-            .select("workspace_union_binding_id")
-            .eq("workspace_id", input.workspace_id)
-            .is("effective_to", null)
-            .limit(1)
-            .maybeSingle();
-
-          if (existingRow?.workspace_union_binding_id) {
-            const { error: closeErr } = await db
-              .from("workspace_union_binding")
-              .update({ effective_to: effectiveTo })
-              .eq("workspace_union_binding_id", existingRow.workspace_union_binding_id)
-              .eq("workspace_id", input.workspace_id); // belt-and-suspenders scope check
-            if (closeErr) {
-              throw new Error(`close_previous_binding_failed: ${closeErr.message}`);
-            }
-          }
-
-          // Step B: INSERT new binding row.
+          // Single atomic RPC: closes existing active binding (if any) AND
+          // inserts the new binding row in the same Postgres transaction.
           // Cache trigger (trg_sync_workspace_settings_union_cache) fires
           // AFTER INSERT automatically — updates payroll.workspace_settings
           // (is_tariff_bound + active_union_id). No manual cache sync needed.
-          const { data: inserted, error: insertErr } = await db
-            .from("workspace_union_binding")
-            .insert({
-              workspace_id: input.workspace_id,
-              union_id: input.union_id,
-              law_version: input.law_version,
-              official_effective_date: input.effective_from,
-              effective_from: input.effective_from,
-              effective_to: null,
-              created_by: ctx.profileId as string,
-              amendment_classifier: input.amendment_classifier,
-              derivation_snapshot_id: input.derivation_snapshot_id,
-            })
-            .select("workspace_union_binding_id, effective_from")
-            .single();
+          const { data, error } = await db.rpc("bind_workspace_union_atomic", {
+            p_workspace_id: ctx.workspaceId as string,
+            p_union_id: input.union_id,
+            p_law_version: input.law_version,
+            p_official_effective_date: input.effective_from,
+            p_effective_from: input.effective_from,
+            p_created_by: ctx.profileId as string,
+            p_amendment_classifier: input.amendment_classifier,
+            p_derivation_snapshot_id: input.derivation_snapshot_id ?? null,
+          });
 
-          if (insertErr || !inserted) {
-            throw new Error(
-              `workspace_union_binding_insert_failed: ${insertErr?.message ?? "no data returned"}`,
-            );
+          if (error) {
+            throw new Error(`bind_workspace_union_atomic_failed: ${error.message}`);
+          }
+
+          const newBinding = Array.isArray(data) ? data[0] : data;
+          if (!newBinding) {
+            throw new Error("bind_workspace_union_atomic_failed: no data returned");
           }
 
           return {
-            workspace_union_binding_id: inserted.workspace_union_binding_id as string,
-            effective_from: inserted.effective_from as string,
+            workspace_union_binding_id: newBinding.workspace_union_binding_id as string,
+            effective_from: newBinding.effective_from as string,
           };
         },
       });
 
       // ── 5. Emit telemetry ────────────────────────────────────────────────
-      // ADR-0356 §"Audit trail symmetry": delegated_via field is load-bearing.
-      // Auditors query activity_trail WHERE delegated_via IS NOT NULL to find
-      // all cross-namespace writes and trace both initiator + delegate.
+      // ADR-0356 §"Audit trail symmetry": BOTH actor_capability (caller) AND
+      // delegated_via (owner) are load-bearing. Auditors query:
+      //   activity_trail WHERE delegated_via IS NOT NULL
+      // to find all cross-namespace writes and trace both initiator + delegate.
       await emit({
         event: "cascade.workspace_union_binding_created",
         workspace_id: ctx.workspaceId,
@@ -254,6 +239,7 @@ export const bindWorkspaceUnionTool = defineTool({
             union_id: input.union_id,
             law_version: input.law_version,
             amendment_classifier: input.amendment_classifier,
+            actor_capability: input.caller_capability,
             delegated_via: CAPABILITY,
             actor_id: ctx.profileId as string,
           },
@@ -342,6 +328,13 @@ const addSupplementRuleSchema = z.object({
     .nullable()
     .default(null)
     .describe("ISO date until which this rule is active. NULL = no expiry."),
+  caller_capability: z
+    .string()
+    .describe(
+      "Capability ID of the calling tool (e.g. 'payroll'). " +
+        'Written to emit payload as actor_capability per ADR-0356 §"Audit trail symmetry". ' +
+        "Required — auditors use actor_capability + delegated_via to trace full cross-namespace provenance.",
+    ),
 });
 
 export const addSupplementRuleTool = defineTool({
@@ -354,6 +347,8 @@ export const addSupplementRuleTool = defineTool({
     "Tariff-floor BEFORE INSERT trigger (Sortie 2) raises EXCEPTION if rate_value is below " +
     "the tariff minimum for a tariff-bound workspace — caught and re-thrown as structured " +
     "ADR-0152 envelope (code: SUPPLEMENT_BELOW_TARIFF_FLOOR, aml_ref: §14-15). " +
+    "Requires caller_capability input — written to emit payload as actor_capability alongside " +
+    'delegated_via for full audit chain per ADR-0356 §"Audit trail symmetry". ' +
     "Returns { supplement_rule_id }.",
   capability: CAPABILITY,
   schema: addSupplementRuleSchema,
@@ -468,7 +463,9 @@ export const addSupplementRuleTool = defineTool({
       });
 
       // ── 4. Emit telemetry ────────────────────────────────────────────────
-      // delegated_via field per ADR-0356 §"Audit trail symmetry".
+      // ADR-0356 §"Audit trail symmetry": BOTH actor_capability (caller) AND
+      // delegated_via (owner) are load-bearing. Auditors use both fields to
+      // trace the initiating capability + the delegate that wrote the row.
       await emit({
         event: "cascade.supplement_rule_added",
         workspace_id: ctx.workspaceId,
@@ -484,6 +481,7 @@ export const addSupplementRuleTool = defineTool({
             supplement_type: input.supplement_type,
             rate_value: input.rate_value,
             paragraf_ref: input.paragraf_ref,
+            actor_capability: input.caller_capability,
             delegated_via: CAPABILITY,
             actor_id: ctx.profileId as string,
           },

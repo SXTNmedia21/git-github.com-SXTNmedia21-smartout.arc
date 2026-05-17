@@ -9902,6 +9902,12 @@ export interface CascadeWorkspaceUnionBindingCreated extends BaseEvent {
       union_id: string;
       law_version: string;
       amendment_classifier: string;
+      /**
+       * Which capability initiated this cross-namespace write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       * Auditors pair actor_capability + delegated_via to trace full provenance.
+       */
+      actor_capability: string;
       /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
       delegated_via: string;
       actor_id: string;
@@ -9919,6 +9925,12 @@ export interface CascadeSupplementRuleAdded extends BaseEvent {
       supplement_type: string;
       rate_value: number;
       paragraf_ref: string | null;
+      /**
+       * Which capability initiated this cross-namespace write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       * Auditors pair actor_capability + delegated_via to trace full provenance.
+       */
+      actor_capability: string;
       /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
       delegated_via: string;
       actor_id: string;
