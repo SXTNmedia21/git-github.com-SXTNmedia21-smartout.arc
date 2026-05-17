@@ -7,8 +7,9 @@ layer: decision
 created: 2026-05-17
 updated: 2026-05-17
 module: payroll
-tags: [lovsen, payroll, supplement, policy, tariff, floor, workspace, aml-14-15, phase-7d]
+tags: [lovsen, payroll, supplement, policy, tariff, floor, workspace, aml-14-15, phase-7d, l-0147-self-reversal, phase-7d-amendment]
 amends: none
+superseded_sections: [Decision Outcome Option C — CHECK constraint pseudo-SQL]
 related_adrs: [ADR-0250, ADR-0252, ADR-0076, ADR-0347, ADR-0350, ADR-0352, ADR-0353, ADR-0354]
 ---
 
@@ -106,6 +107,83 @@ UP-direction flexibility. Illegal downward overrides are structurally impossible
 against.
 
 ---
+
+## 2026-05-17 Amendment — L-0147 Self-Reversal (Phase 7d-followup council)
+
+> Phase 7d council 2026-05-17 ratified Option C with CHECK constraint pseudo-SQL as
+> primary enforcement mechanism. Phase 7d-followup council 2026-05-17 (same date,
+> later session) code-traced the CHECK syntax against PostgreSQL spec and found it
+> structurally invalid. Per L-0147 chair self-reversal protocol (7th precedent), the
+> CHECK constraint mechanism is REVERSED to TRIGGER.
+>
+> **Phase 3 claim:** "DB CHECK constraint on `payroll.supplement_rule` (cross-table
+> subquery into `workspace_settings.is_tariff_bound` + `tariff_rate_table`) as
+> defense-in-depth."
+> **Status:** FALSE.
+> **Falsifying evidence:** PostgreSQL specification — CHECK constraints CANNOT contain
+> subqueries referencing other tables. This is a hard PostgreSQL limitation (documented,
+> not version-dependent). The pseudo-SQL in original Option C is unimplementable as
+> written. ADR's own §"Rules & Consequences" already names the fallback ("denormalized
+> `tariff_floor` column updated by trigger") but presents the CHECK as primary.
+>
+> **Classification:** REVERSED.
+>
+> **Corrected position — TRIGGER (not CHECK) is the primary enforcement mechanism:**
+>
+> - **Mechanism:** BEFORE INSERT/UPDATE TRIGGER on `public.supplement_rule` (NOT
+>   `payroll.supplement_rule` — see Target Table below).
+> - **Pattern:** L-0172 SECURITY DEFINER + locked `SET search_path = public, payroll,
+>   extensions` (per `seed_default_framework_binding` template at
+>   `supabase/migrations/20260525120000_workspace_framework_binding_auto_seed.sql:74-122`).
+> - **Function name:** `public.enforce_supplement_tariff_floor()`. Returns `TRIGGER`.
+>   Language `plpgsql`.
+> - **Logic (Sortie 2 implements; this ADR specifies SHAPE only):**
+>   - On INSERT or UPDATE OF `rate_value`, `supplement_type`, `workspace_id`:
+>   - If `NEW.workspace_id IS NULL` (platform template row): RETURN NEW (no floor —
+>     platform rules ARE the floor).
+>   - Lookup `is_tariff_bound, active_union_id FROM payroll.workspace_settings WHERE
+>     workspace_id = NEW.workspace_id`.
+>   - If `is_tariff_bound = false`: RETURN NEW (no floor for unbound workspaces per
+>     Aml. §14-15 scope).
+>   - If `is_tariff_bound = true AND active_union_id IS NULL`: RAISE EXCEPTION (invalid
+>     cache state — should not occur after ADR-0355 cache trigger lands).
+>   - Lookup tariff floor: `SELECT MIN(amount) FROM public.tariff_rate_table WHERE
+>     rate_type = NEW.supplement_type AND (workspace_id IS NULL OR workspace_id =
+>     NEW.workspace_id) AND effective_from <= CURRENT_DATE AND (effective_until IS NULL
+>     OR effective_until > CURRENT_DATE)` filtered by workspace's `active_union_id`.
+>   - If `NEW.rate_value < v_floor`: `RAISE EXCEPTION
+>     'supplement_rate_below_tariff_floor: rate=%, floor=%, aml_ref=§14-15',
+>     NEW.rate_value, v_floor`.
+>   - Else RETURN NEW.
+> - **Pre-migration audit DO-block** (per existing §"Rules & Consequences" line 261):
+>   Sortie 2 migration includes DO-block verifying zero existing `public.supplement_rule`
+>   rows violate floor BEFORE creating trigger.
+> - **Capability tool side (`add_supplement_override` per Phase 7f):** Still validates
+>   client-side first (returns structured `SUPPLEMENT_BELOW_TARIFF_FLOOR` error with
+>   Aml. §14-15 citation per original Option C). DB trigger is defense-in-depth, not
+>   first line.
+>
+> **Target table — `public.supplement_rule` (NOT `payroll.supplement_rule`):**
+>
+> Council Phase 3 semantic conflict (3 reviewers vs 1 supervisor): code-trace authority
+> wins per Control Gate. `packages/payroll-calculate/src/types.ts:99-121` defines
+> `SupplementRuleInput.workspace_id: string | null` (nullable) — matches
+> `public.supplement_rule` shape (workspace-NULLABLE, dynamic, links to
+> `tariff_rate_table_id` per
+> `20260527100600_payroll_phase1_dynamic_supplements.sql:28-67`). `payroll.supplement_rule`
+> is workspace-scoped admin-authored wide-schema table for 6 supplement types — NOT the
+> engine's input source. Floor enforcement must live where the rules being evaluated
+> live = `public.supplement_rule`.
+>
+> **Capability tool delegation per ADR-0356:** `add_supplement_override` (payroll
+> capability) MUST NOT write to `public.supplement_rule` directly (cross-namespace write
+> violates ADR-0173 frozen-4). Calls `cascade.add_supplement_rule` delegation tool per
+> ADR-0356. Delegation tool owns gate + emit + audit; the trigger fires on the delegation
+> tool's write.
+>
+> **Original Decision Outcome content is RETAINED below as historical record but the CHECK
+> pseudo-SQL is NO LONGER LOAD-BEARING.** Sortie 2 migration ships TRIGGER per this
+> amendment, not the original CHECK.
 
 ## Decision Outcome
 
