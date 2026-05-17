@@ -478,7 +478,12 @@ export function DayTimelineStrip({
               role="img"
               aria-label={`Klokken er nå ${minutesToHHMM(nowMin!)}`}
             >
-              <span className="absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 animate-pulse rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50" />
+              <span
+                className={cn(
+                  "absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50",
+                  !reduceMotion && "animate-pulse",
+                )}
+              />
               <span className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-sm bg-orange-500 px-1 py-px font-mono text-[9px] font-bold tracking-wider text-white tabular-nums shadow-sm">
                 NÅ {minutesToHHMM(nowMin!)}
               </span>
