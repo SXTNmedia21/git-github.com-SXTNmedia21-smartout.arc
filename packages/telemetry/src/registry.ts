@@ -5960,6 +5960,25 @@ export interface BillingAccountantMarkedPaid extends BaseEvent {
   };
 }
 
+// ─── Billing Fase 3B — EHF settings (workspace-admin) ──────────────────────
+// Firer når workspace-admin/owner slår EHF på/av eller oppdaterer
+// peppol_participant_id. Company-scoped (workspace_id null) fordi
+// EHF-konfigurasjonen følger org.nr., ikke enkelt workspace.
+// activity_trail gir audit-trail; posthog gir produkt-metric på
+// EHF-adopsjon på tvers av kunder.
+
+export interface CompanyEhfSettingsUpdated extends BaseEvent {
+  event: "company.ehf_settings_updated";
+  properties: {
+    entity_type: "company";
+    entity_id: string;
+    changes: {
+      ehf_enabled: { before: boolean | null; after: boolean };
+      peppol_participant_id: { before: string | null; after: string | null };
+    };
+  };
+}
+
 // ─── Billing Fase 2 — Invoice editing ───────────────
 
 export interface InvoiceLineItemAdded extends BaseEvent {
@@ -8358,6 +8377,7 @@ export type SmartoutEvent =
   // ─── Billing Fase 3B — CSV/PDF-eksport ───
   | BillingEhfExportGenerated
   | BillingAccountantMarkedPaid
+  | CompanyEhfSettingsUpdated
   // ─── Journey Engine (ADR-0175, S1.1) ─────────────
   | JourneyRunStarted
   | JourneyStepReached
@@ -12331,6 +12351,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "billing accountant_marked_paid": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // EHF-innstillinger er company-scoped (workspace_id null).
+  // posthog: adopsjonskurve for EHF-aktivering.
+  // logger: drift-synlighet.
+  // activity_trail utelatt: provider har early-return på workspace_id === null — company-scoped events faller gjennom; audit dekkes av posthog + logger.
+  "company.ehf_settings_updated": {
+    destinations: ["posthog", "logger"],
     category: "billing",
   },
 
