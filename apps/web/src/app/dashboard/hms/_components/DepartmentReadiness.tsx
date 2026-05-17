@@ -40,15 +40,15 @@ type DepartmentReadinessProps = {
 };
 
 function readinessColor(percent: number): string {
-  if (percent >= 80) return "text-green-600";
-  if (percent >= 50) return "text-yellow-600";
-  return "text-red-600";
+  if (percent >= 80) return "text-success";
+  if (percent >= 50) return "text-warning";
+  return "text-destructive";
 }
 
 function readinessBg(percent: number): string {
-  if (percent >= 80) return "bg-green-500";
-  if (percent >= 50) return "bg-yellow-500";
-  return "bg-red-500";
+  if (percent >= 80) return "bg-success";
+  if (percent >= 50) return "bg-warning";
+  return "bg-destructive";
 }
 
 function DepartmentRow({ dept }: { dept: DepartmentSummary }) {

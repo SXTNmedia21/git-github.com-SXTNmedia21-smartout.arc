@@ -251,7 +251,7 @@ function ProgressCell({ cell, t }: { cell: CellData; t: (key: string) => string 
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge className="bg-yellow-500/15 text-[10px] text-yellow-600 line-through hover:bg-yellow-500/15">
+          <Badge className="bg-warning/15 text-warning hover:bg-warning/15 text-[10px] line-through">
             Frafalt
           </Badge>
         </TooltipTrigger>
@@ -265,7 +265,7 @@ function ProgressCell({ cell, t }: { cell: CellData; t: (key: string) => string 
   if (status === "completed") {
     return (
       <CellWithSource assignedVia={assignedVia}>
-        <Badge className="bg-green-500/15 text-[10px] text-green-600 hover:bg-green-500/15">
+        <Badge className="bg-success/15 text-success hover:bg-success/15 text-[10px]">
           {t("hms.competence_matrix.status_ok")}
         </Badge>
       </CellWithSource>
@@ -275,7 +275,7 @@ function ProgressCell({ cell, t }: { cell: CellData; t: (key: string) => string 
   if (status === "expired") {
     return (
       <CellWithSource assignedVia={assignedVia}>
-        <Badge className="bg-red-500/15 text-[10px] text-red-600 hover:bg-red-500/15">
+        <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15 text-[10px]">
           {t("hms.competence_matrix.status_expired")}
         </Badge>
       </CellWithSource>
