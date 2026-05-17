@@ -1,6 +1,6 @@
 ---
 title: "Journey — HMS read-heavy routes ship production polish"
-status: draft
+status: verified
 feature: hms-cluster-polish-read
 updated: 2026-05-17
 created: 2026-05-17
