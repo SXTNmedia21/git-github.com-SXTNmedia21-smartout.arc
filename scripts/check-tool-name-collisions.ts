@@ -4,31 +4,51 @@
  *
  * Scans all Botsson tool-hook files under
  * `apps/web/src/app/dashboard/**\/_tools/use-*-tools.ts` and fails if
- * any `modelToolName` string is registered in more than one file.
+ * any NEW `modelToolName` string is registered in more than one file.
+ *
+ * RATCHET PATTERN
+ * ───────────────
+ * Pre-existing collisions are tracked in
+ * `scripts/known-tool-name-collisions.json` (the allowlist). The detector
+ * PASSES on allowlisted collisions (logged as WARN), FAILS only on NEW
+ * collisions. Allowlist shrinks via follow-up sorties that resolve the
+ * underlying ownership conflict.
+ *
+ * Why a ratchet:
+ *   M5 Sortie 2 (2026-05-17) closed 3 HMS-cluster collisions but the
+ *   full repo has 8 additional cross-domain collisions out of scope.
+ *   Without a ratchet, wiring the detector into pre-push blocks ALL
+ *   pushes on ALL branches until follow-up sorties land — L-0260
+ *   amplifier shape. Same pattern used for TypeScript baseline gates,
+ *   ESLint baseline gates, SonarCloud quality gates.
  *
  * Why this exists:
- *   L-0258 (2026-05-14) documented 9 confirmed tool-name collisions across
- *   useRegisterTools bridges; ADR-0325 Phase 1 used Object.assign last-wins
- *   routing which silently overwrites tool implementations on mount.
- *   ADR-0348 mandates a CI detector to block new collisions at PR time.
- *   M5 Sortie 2 (2026-05-17) closed the 3 HMS-cluster collisions and ships
- *   this detector to prevent recurrence.
+ *   L-0258 (2026-05-14) documented 9 confirmed tool-name collisions
+ *   across useRegisterTools bridges; ADR-0325 Phase 1 used Object.assign
+ *   last-wins routing which silently overwrites tool implementations on
+ *   mount. ADR-0348 mandates a CI detector to block NEW collisions at
+ *   PR time while permitting tracked pre-existing debt.
  *
  * What it checks:
  *   Every `modelToolName: "X"` literal across all matching files. Lines
- *   starting with `//` are ignored. Multi-line definitions are handled by
- *   scanning the raw file content with a global regex (not line-by-line).
+ *   starting with `//` are ignored. Multi-line definitions are handled
+ *   by scanning the raw file content with a global regex (not
+ *   line-by-line).
  *
  * Exit codes:
- *   0 — no collisions. Prints a green summary line.
- *   1 — one or more collisions found. Prints a collision report + exit 1.
- *   2 — script-internal error (missing directory, fs failure).
+ *   0 — no NEW collisions. Allowlisted collisions logged as WARN.
+ *       Decay warnings emitted if any allowlisted entry no longer
+ *       appears as a collision (suggest pruning).
+ *   1 — one or more NEW collisions found. Prints report + exit 1.
+ *   2 — script-internal error (missing directory, fs failure, malformed
+ *       allowlist JSON).
  *
  * Run:
  *   pnpm tsx scripts/check-tool-name-collisions.ts
  *   pnpm lint:tool-collisions
  *
  * ADR: docs/decisions/0348-l-0258-collision-detector-mandatory-ci.md
+ * Allowlist: scripts/known-tool-name-collisions.json
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -36,6 +56,47 @@ import { join, relative, resolve, sep } from "node:path";
 
 const ROOT = resolve(__dirname, "..");
 const TOOLS_BASE = join(ROOT, "apps", "web", "src", "app", "dashboard");
+const ALLOWLIST_PATH = join(ROOT, "scripts", "known-tool-name-collisions.json");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Allowlist
+// ─────────────────────────────────────────────────────────────────────────────
+
+type Allowlist = {
+  knownCollisions: string[];
+  note?: string;
+  lastUpdated?: string;
+  trackingRef?: string;
+};
+
+function loadAllowlist(): Allowlist {
+  let raw: string;
+  try {
+    raw = readFileSync(ALLOWLIST_PATH, "utf-8");
+  } catch (err) {
+    console.error(`[check-tool-collisions] Cannot read allowlist at ${ALLOWLIST_PATH}: ${err}`);
+    process.exit(2);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.error(`[check-tool-collisions] Malformed allowlist JSON at ${ALLOWLIST_PATH}: ${err}`);
+    process.exit(2);
+  }
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    !Array.isArray((parsed as Allowlist).knownCollisions) ||
+    !(parsed as Allowlist).knownCollisions.every((s) => typeof s === "string")
+  ) {
+    console.error(
+      `[check-tool-collisions] Allowlist JSON must contain { "knownCollisions": string[] }.`,
+    );
+    process.exit(2);
+  }
+  return parsed as Allowlist;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Glob — manual recursive glob (no external deps)
@@ -128,11 +189,13 @@ function extractToolNames(filePath: string): string[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function main(): void {
+  const allowlist = loadAllowlist();
+  const allowedSet = new Set(allowlist.knownCollisions);
+
   // 1. Collect all matching files
-  const allFiles = findFiles(TOOLS_BASE, isToolsFile).filter((f) => {
-    // Only files under a `_tools/` directory segment
-    return f.includes(`${sep}_tools${sep}`);
-  });
+  const allFiles = findFiles(TOOLS_BASE, isToolsFile).filter((f) =>
+    f.includes(`${sep}_tools${sep}`),
+  );
 
   if (allFiles.length === 0) {
     console.error(
@@ -153,30 +216,74 @@ function main(): void {
     }
   }
 
-  // 3. Filter to collisions (more than one file)
+  // 3. Filter to collisions (more than one file) + partition allowed vs new
   const collisions = [...nameToFiles.entries()].filter(([, files]) => files.length > 1);
 
-  // 4. Report
-  if (collisions.length === 0) {
-    console.log(
-      `✓ No tool-name collisions across ${allFiles.length} files (${nameToFiles.size} unique tool names).`,
-    );
-    process.exit(0);
-  }
+  const allowed: Array<[string, string[]]> = [];
+  const newCollisions: Array<[string, string[]]> = [];
 
-  console.error(
-    `\nError: ${collisions.length} tool-name collision(s) detected across ${allFiles.length} files.\n`,
-  );
-  for (const [name, files] of collisions) {
-    console.error(`  Tool '${name}' registered in ${files.length} files:`);
-    for (const f of files) {
-      console.error(`    - ${relative(ROOT, f)}`);
+  for (const entry of collisions) {
+    if (allowedSet.has(entry[0])) {
+      allowed.push(entry);
+    } else {
+      newCollisions.push(entry);
     }
   }
-  console.error(
-    `\nFix: assign single ownership per tool name. See ADR-0348 + L-0258 for resolution pattern.\n`,
+
+  // 4. Detect decay — allowlisted entries that no longer collide
+  const detectedNames = new Set(collisions.map(([name]) => name));
+  const decayed: string[] = [...allowedSet].filter((name) => !detectedNames.has(name));
+
+  // 5. Report
+  // 5a. Log allowlisted collisions as WARN (informational).
+  if (allowed.length > 0) {
+    console.warn(
+      `\n⚠  ${allowed.length} allowlisted collision(s) (not blocking — pending follow-up sortie):`,
+    );
+    for (const [name, files] of allowed) {
+      console.warn(`   - '${name}' in ${files.length} files:`);
+      for (const f of files) {
+        console.warn(`       ${relative(ROOT, f)}`);
+      }
+    }
+    console.warn(
+      `   See scripts/known-tool-name-collisions.json (ref: ${allowlist.trackingRef ?? "n/a"}).`,
+    );
+  }
+
+  // 5b. Decay warning — allowlist entry no longer detected as collision.
+  if (decayed.length > 0) {
+    console.warn(
+      `\n⚠  ${decayed.length} allowlisted entry/entries no longer detected as collisions — consider pruning scripts/known-tool-name-collisions.json:`,
+    );
+    for (const name of decayed) {
+      console.warn(`   - '${name}'`);
+    }
+  }
+
+  // 5c. NEW collisions — hard fail.
+  if (newCollisions.length > 0) {
+    console.error(
+      `\nDetected ${newCollisions.length} NEW tool-name collision(s) not in allowlist:\n`,
+    );
+    for (const [name, files] of newCollisions) {
+      console.error(`  Tool '${name}' registered in ${files.length} files:`);
+      for (const f of files) {
+        console.error(`    - ${relative(ROOT, f)}`);
+      }
+    }
+    console.error(
+      `\nTo resolve: either fix the collision (ADR-0348 pattern — assign single ownership) or, if intentionally pending, add to scripts/known-tool-name-collisions.json with sortie/PR reference.\n`,
+    );
+    process.exit(1);
+  }
+
+  // 5d. Green path.
+  console.log(
+    `\n✓ No NEW collisions. Allowlist still applies to ${allowed.length} known collision(s) — see scripts/known-tool-name-collisions.json`,
   );
-  process.exit(1);
+  console.log(`  Scanned ${allFiles.length} tool files, ${nameToFiles.size} unique tool names.`);
+  process.exit(0);
 }
 
 main();

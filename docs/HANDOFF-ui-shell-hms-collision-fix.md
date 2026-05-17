@@ -60,11 +60,57 @@ No other input types changed. `GovernanceToolInput.openDeviations` retained (use
 |---|---|
 | ADR-0348 | L-0258 collision detector mandatory in CI (proposed → accepted by this sortie shipping the implementation). |
 
+## Detector Ratchet Pattern (G3 spot-check follow-up)
+
+G3 review found that wiring the detector to `pre-push` without a ratchet would block ALL pushes on ALL branches due to 8 pre-existing cross-domain collisions (L-0260 amplifier shape: closing 3 collisions while a new CI gate blocks all forward motion).
+
+**Ratchet adopted** — same shape as TypeScript baseline gates, ESLint baseline gates, SonarCloud quality gates.
+
+### Allowlist file
+
+`scripts/known-tool-name-collisions.json`:
+
+```json
+{
+  "knownCollisions": [
+    "getInvoiceDetail",
+    "switchStatusFilter",
+    "getUnreadCount",
+    "getCurrentStep",
+    "openStep",
+    "listTeams",
+    "proposeActivateSeason",
+    "proposeArchiveSeason"
+  ],
+  "note": "L-0258 cross-domain collisions pending follow-up sortie. ADR-0348 ratchet: detector PASSES on these, FAILS on any NEW collision. Shrink this list when collisions are resolved.",
+  "lastUpdated": "2026-05-17",
+  "trackingRef": "M5 HMS hms-collision-fix sortie HANDOFF"
+}
+```
+
+### Detector behavior
+
+The detector partitions detected collisions into `allowed` (in JSON) vs `new` (not in JSON):
+
+- `new.length === 0` → exit 0. Allowlisted entries logged as `⚠ WARN` (informational, not blocking).
+- `new.length > 0` → exit 1. NEW collisions listed with hint: "fix the collision OR add to allowlist with sortie/PR reference".
+- **Decay warning:** if an allowlisted entry no longer appears as a collision (e.g. follow-up sortie resolved it), emit `⚠ WARN` suggesting the entry be pruned from the JSON.
+
+### Verification
+
+| Scenario | Command | Expected | Actual |
+|---|---|---|---|
+| Current state — 8 known, 0 new | `pnpm lint:tool-collisions` | exit 0, 8 allowlisted | exit 0, 8 allowlisted |
+| Inject synthetic 9th collision (`focusDeviation` → `openDeviationDetail`) | `pnpm lint:tool-collisions` | exit 1, 1 new collision | exit 1, 1 new collision named correctly |
+| Revert synthetic | `pnpm lint:tool-collisions` | exit 0 again | exit 0 again |
+
 ## Learnings
 
-**Detector found 8 out-of-scope cross-domain collisions.** Running `scripts/check-tool-name-collisions.ts` after the 3 HMS fixes reports 8 additional collisions across unrelated surfaces (billing, contracts, proposals, komm/notifications, onboarding-assistant/setup, organization/teams, season/year-wheel). These are NOT fixed in this sortie (out of scope per council decision). Flag for follow-up sortie.
+**L-0260 amplifier shape avoided via ratchet.** Closing the 3 HMS collisions while enabling a CI gate that fails on 8 pre-existing collisions would have blocked all developer pushes across all branches until follow-up sortie. The ratchet pattern (allowlist + partition) preserves forward motion while still blocking NEW regressions. Same shape used elsewhere for TypeScript baseline gates, ESLint baseline gates.
 
-Cross-domain collisions found (for follow-up sortie):
+**Detector found 8 out-of-scope cross-domain collisions.** Running `scripts/check-tool-name-collisions.ts` after the 3 HMS fixes reports 8 additional collisions across unrelated surfaces (billing, contracts, proposals, komm/notifications, onboarding-assistant/setup, organization/teams, season/year-wheel). These are tracked in the allowlist (`scripts/known-tool-name-collisions.json`) and flagged for follow-up sortie.
+
+Cross-domain collisions tracked in allowlist (for follow-up sortie):
 1. `getInvoiceDetail` — billing/[invoice_id] + billing
 2. `switchStatusFilter` — contracts + proposals
 3. `getUnreadCount` — komm + notifications
@@ -80,10 +126,10 @@ Cross-domain collisions found (for follow-up sortie):
 
 ## Known Issues / Debt
 
-- 8 cross-domain collisions remain (detected by new script, exit 1). These are pre-existing L-0258 instances not in the HMS cluster. A follow-up sortie is needed to resolve them before the CI detector can be a hard gate across the full app.
+- 8 cross-domain collisions remain in the allowlist. A follow-up sortie should resolve them and shrink `scripts/known-tool-name-collisions.json` to an empty array. This allowlist file IS the planning seed for that sortie.
 - Detector currently wired to pre-push hook only (not a `turbo run lint` task). Adding it to turbo lint would require a per-package `lint` script in `apps/web/package.json`. Deferred — pre-push is sufficient to block developers and CI runs pre-push as well.
 
 ## Next Steps (Sortie 3)
 
 - `hms-cluster-polish-read` — now unblocked. Can safely refine tool descriptions in `use-hms-deviations-tools.ts`, `use-hms-drift-tools.ts`, `use-hms-governance-tools.ts` without phantom-contract amplifier risk (L-0257).
-- Follow-up sortie for 8 cross-domain collisions detected above.
+- Follow-up sortie for 8 cross-domain collisions in the allowlist — assign single ownership per collision, then prune the JSON. Detector's decay-warning will surface entries that can be removed.
