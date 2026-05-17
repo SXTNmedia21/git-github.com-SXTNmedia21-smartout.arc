@@ -2118,3 +2118,71 @@ N/A — sub-sortie introduces 0 new mutation tools / 0 Server Actions / 0 TanSta
 - `supabase/migrations/20260422300800_hms_procedure_step_training.sql:9` (column comment "Markdown supported")
 - `docs/HANDOFF-ui-shell-hms-cluster-polish-read.md` line 70 (Decision #3 L-0287)
 
+
+## 2026-05-17 PM2 — HMS Cluster Polish R2 verification (Post-Implementation R2)
+
+**Type:** post-implementation, R2 round
+**Branch reviewed:** `campaign/ui-shell` @ `9747dba59` (after fixup `ac17ca61e` + SlotPicker refactor)
+**Verdict:** APPROVE WITH CHANGES (3 BLOCKERs + 1 maintenance after B2 retraction)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, feature-dev:code-reviewer
+**Prior verdict held?** R1 (2026-05-17 PM) verdict mostly HELD — G1+G2+G3+G5 + capability surface unchanged. G4 DRIFTED on data side (validator caught purpose >140 chars).
+
+### Key decision
+
+Forward-fix sub-sortie `feat/ui-shell-hms-cluster-polish-r2-fixup` closes 3 BLOCKERs + 1 maintenance + 1 retracted:
+
+- **B1 (mechanical):** Trim site-map.json `routes[17].purpose` 165 → 130 chars. Validator was exit=1 with `✗ purpose >140 chars (165) — tighten`; post-fix exit=0.
+- **B3 (CRITICAL, WCAG 2.4.11):** Add focus-visible ring tokens to `ProcedureDetailTabs.tsx:106` tab buttons + replace `transition-all` with `transition-colors` (Nordic Split §10.4). Single template covers 4 tab buttons via `.map()`.
+- **B4 (CRITICAL, WCAG 2.4.11):** Same fix pattern at `LearnFlow.tsx:79` stage-progress buttons. Covers 5 stage buttons.
+- **B5 (maintenance):** Update predecessor HANDOFF Known Issue #3 — animate-spin count `6` → `297 across 180+ files`. Sortie 4 scope reframed as dashboard-wide convention shift.
+- **B2 RETRACTED:** R2 chair Phase 5 claimed validator "self-bug — prints ✗ then exits 0." Orchestrator verified with full output + exit code: validator exits 1 correctly. Chair adopted Agent-coord's head-truncated-output misread. Sibling trap class to L-NEW-2 (Phase 2.5 wrong-scope-key). Captured as `learning_head_truncated_output_false_negative.md`.
+
+**Chair Self-Reversal — REFINED (L-0147 7th-class precedent):** Phase 3 Steward verdict G4 "HELD CLOSED" on structural check; Phase 5 REFINED to "DRIFTED in data; validator self-bug masks" after Agent-coord code-trace. But Phase 5 chair claim itself was based on truncated reviewer output — orchestrator re-verified and retracted the "self-bug" portion while keeping the data-DRIFT portion (purpose >140 chars is real). Net: G4 was DRIFTED (data), not validator-bug (process-integrity); chair self-corrected mid-Phase-6 (after user "1" decision).
+
+### R1 → R2 gate closure
+
+| Gate | R1 verdict | R2 verdict | R2 evidence |
+|---|---|---|---|
+| G1 emit() | HELD | HELD | 4 emit() call-sites verified by chair end-to-end trace through DashboardContext + L-0177 nonEmpty guard |
+| G2 HmsSubNav Path A | HELD | HELD | Canonical Path A clean; zero ARIA debris |
+| G3 react-markdown | HELD | HELD | Both render sites + data-source hook unchanged |
+| G4 site-map | DRIFTED | DRIFTED-MECHANICAL | Purpose 165 chars > 140 cap — closed by B1 trim |
+| G5 ADR-0357 + skill | HELD with minor drift | HELD WITH ADDENDUM | v2 page-header inheritance carve-out added to ADR-0357 |
+| Capability surface | UNTOUCHED | UNTOUCHED | Zero `packages/ai/`, zero `services/stage-engine/` |
+
+### Semantic conflict resolution
+
+- **Steward "G4 HELD" vs Agent-coord "G4 DRIFTED":** Both partial-true. Data IS out-of-spec (165 > 140), validator DOES exit 1 (Phase 5 chair claim "exits 0" was wrong). DRIFTED-data + validator-correct = real fix needed (B1) but not via validator change.
+- **Supervisor "Phase 6 training PARTIAL" vs Steward/Code-Reviewer "Phase 6 PASS":** Supervisor's strict carve-out reading correct on page-file ownership; ADR-0357 v1 didn't anticipate inheritance pattern. Resolution: v2 addendum codifies inheritance pattern; training route PARTIAL → ACCEPTABLE-under-v2.
+- **Code-Reviewer "F-2 = 20 occurrences" vs chair "F-2 = 297 occurrences":** Code-Reviewer grep scope was HMS-only; chair grep was dashboard-wide. Same finding, different scope. Truth: 297 is dashboard-wide (correct count for D1 deferral scope).
+- **Validator "self-bug" claim (Phase 5 chair) vs orchestrator re-verification:** Phase 5 wrong. Orchestrator captured full output + exit code, validator works. B2 retracted. Promoted to L-NEW-C.
+
+### NEW IMPORTANT findings (pre-existing, deferred Sortie 4)
+
+- **NEW-3 hardcoded Tailwind palette** in TaskCard, SessionSignoffDrawer, OversiktDashboard, OversiktEmployee — 18+ classes
+- **NC-1 ProcedureDetailTabs `<Tabs>` vs custom `<button>` consistency** — sibling to B3 fix
+- **NIT i18n hardcoded label** ProcedureDetailTabs.tsx:153 (`"Opplaeringsinnhold:"` — also typo, should be "Opplæringsinnhold")
+
+### Knowledge captured
+
+- **ADR-0357 v2 addendum (proposed)** — Page-Header Inheritance Carve-Out for thin-shell delegating pages. Appended to existing file `docs/decisions/0357-page-polish-documented-intentional-skips.md`. Promote to accepted after 2nd independent council exercise.
+- **L-NEW-C** — `learning_head_truncated_output_false_negative.md` (Claude memory). 3rd occurrence of output-shaping-misread family (sibling L-NEW-2 Phase 2.5 wrong-scope-key, L-diff-hunk-misled-review). **Threshold met for SKILL.md promotion.**
+
+### Trust Gate
+
+N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability changes, 0 telemetry routing changes. Read-side + UX-polish only.
+
+### Phase 9 self-improvement
+
+- **Promote L-NEW-C to run-council SKILL.md Common Mistakes table:** "Reviewer reports script/validator verdict from truncated output. Always capture full stdout/stderr + explicit exit code." 3rd occurrence threshold met (chat-whatsapp 2026-05-16, HMS R1 2026-05-17 PM, HMS R2 2026-05-17 PM2).
+- **Phase 5 chair re-verification step:** for any reviewer claim about validator/script output, chair MUST re-run before adopting into final verdict. Adds ~30 seconds, prevents B2-class false blockers.
+
+### Files referenced
+
+- `apps/web/.botsson/site-map.json:856` (B1)
+- `apps/web/scripts/validate-site-map.ts:236-244` (B2 retract — exit code paths verified correct)
+- `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx:106` (B3)
+- `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx:79` (B4)
+- `docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md` Known Issue #3 (B5)
+- `docs/decisions/0357-page-polish-documented-intentional-skips.md` (v2 addendum)
+
