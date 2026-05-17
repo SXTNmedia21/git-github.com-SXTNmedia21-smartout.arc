@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { LayoutDashboard, ListOrdered, ClipboardCheck, PenTool, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -45,7 +45,6 @@ function useProcedureMeta(procedureId: string) {
 }
 
 export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const { data: meta, isLoading: metaLoading } = useProcedureMeta(procedureId);
   const { data: steps, isLoading: stepsLoading } = useProcedureSteps(procedureId);
   const { t } = useTranslation("dashboard");
@@ -102,97 +101,94 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
         )}
       </div>
 
-      {/* Tab navigation */}
-      <div className="border-border bg-muted/50 flex gap-1 rounded-xl border p-1">
-        {TAB_IDS.map((id) => {
-          const isActive = activeTab === id;
-          const Icon = TAB_ICONS[id];
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`focus-visible:ring-ring flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
-                isActive
-                  ? "bg-background text-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {t(`hms.procedureDetailTabs.${id}`)}
-            </button>
-          );
-        })}
-      </div>
+      {/* WCAG 4.1.2: Radix TabsPrimitive provides role=tablist + tab + tabpanel
+          + aria-selected + aria-controls out of the box. No manual ARIA needed. */}
+      <Tabs defaultValue="overview">
+        <TabsList className="border-border bg-muted/50 flex h-auto w-full gap-1 rounded-xl border p-1">
+          {TAB_IDS.map((id) => {
+            const Icon = TAB_ICONS[id];
+            return (
+              <TabsTrigger
+                key={id}
+                value={id}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
+              >
+                <Icon className="h-4 w-4" />
+                {t(`hms.procedureDetailTabs.${id}`)}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-      {/* Tab content */}
-      {activeTab === "overview" && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <InfoCard label={t("hms.procedureDetailTabs.steps_count")} value={steps?.length ?? 0} />
-          <InfoCard
-            label={t("hms.procedureDetailTabs.last_updated")}
-            value={new Date(meta.updated_at).toLocaleDateString("nb-NO")}
-          />
-        </div>
-      )}
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <InfoCard label={t("hms.procedureDetailTabs.steps_count")} value={steps?.length ?? 0} />
+            <InfoCard
+              label={t("hms.procedureDetailTabs.last_updated")}
+              value={new Date(meta.updated_at).toLocaleDateString("nb-NO")}
+            />
+          </div>
+        </TabsContent>
 
-      {activeTab === "steps" && (
-        <div className="space-y-3">
-          {stepsLoading ? (
-            <Loader2 className="text-muted-foreground mx-auto h-5 w-5 animate-spin" />
-          ) : !steps || steps.length === 0 ? (
-            <p className="text-muted-foreground text-center text-sm">
-              {t("hms.procedureDetailTabs.no_steps")}
-            </p>
-          ) : (
-            steps.map((step, i) => (
-              <div key={step.stepId} className="border-border rounded-lg border p-4">
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold">
-                    {i + 1}
-                  </span>
-                  <h3 className="text-foreground font-semibold">{step.title}</h3>
-                  {step.isRequired && (
-                    <Badge variant="outline" className="text-[10px]">
-                      {t("hms.procedureDetailTabs.required")}
-                    </Badge>
+        <TabsContent value="steps" className="mt-6">
+          <div className="space-y-3">
+            {stepsLoading ? (
+              <Loader2 className="text-muted-foreground mx-auto h-5 w-5 animate-spin" />
+            ) : !steps || steps.length === 0 ? (
+              <p className="text-muted-foreground text-center text-sm">
+                {t("hms.procedureDetailTabs.no_steps")}
+              </p>
+            ) : (
+              steps.map((step, i) => (
+                <div key={step.stepId} className="border-border rounded-lg border p-4">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="bg-muted text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <h3 className="text-foreground font-semibold">{step.title}</h3>
+                    {step.isRequired && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {t("hms.procedureDetailTabs.required")}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground ml-8 text-sm">{step.description}</p>
+                  {step.trainingContent && (
+                    <div className="border-info/20 bg-info/5 mt-2 ml-8 rounded-md border p-3">
+                      <p className="text-info mb-1 text-[10px] font-medium">
+                        {t("hms.procedureDetailTabs.training_content_label")}
+                      </p>
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
+                        <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
+                          {step.trainingContent}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <p className="text-muted-foreground ml-8 text-sm">{step.description}</p>
-                {step.trainingContent && (
-                  <div className="border-info/20 bg-info/5 mt-2 ml-8 rounded-md border p-3">
-                    <p className="text-info mb-1 text-[10px] font-medium">
-                      {t("hms.procedureDetailTabs.training_content_label")}
-                    </p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
-                      <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
-                        {step.trainingContent}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
+        </TabsContent>
 
-      {activeTab === "quiz" && (
-        <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
-          <ClipboardCheck className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
-          <p className="text-muted-foreground text-sm">
-            {t("hms.procedureDetailTabs.knowledge_tests_placeholder")}
-          </p>
-        </div>
-      )}
+        <TabsContent value="quiz" className="mt-6">
+          <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
+            <ClipboardCheck className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
+              {t("hms.procedureDetailTabs.knowledge_tests_placeholder")}
+            </p>
+          </div>
+        </TabsContent>
 
-      {activeTab === "confirmation" && (
-        <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
-          <PenTool className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
-          <p className="text-muted-foreground text-sm">
-            {t("hms.procedureDetailTabs.confirmations_placeholder")}
-          </p>
-        </div>
-      )}
+        <TabsContent value="confirmation" className="mt-6">
+          <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
+            <PenTool className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+            <p className="text-muted-foreground text-sm">
+              {t("hms.procedureDetailTabs.confirmations_placeholder")}
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
