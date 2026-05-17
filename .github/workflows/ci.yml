@@ -383,3 +383,47 @@ jobs:
           fi
           echo "✅ migrations in sync"
 
+  # ── Migration coherence check (feat/ci-migration-coherence-check) ─
+  # On main push: run supabase db diff --linked after db-push to detect
+  # ghost migrations (recorded in schema_migrations but DDL never applied).
+  # Catches the class of failure from 2026-05-17 production incident:
+  # 20260310120000_invitation_metadata.sql recorded but column never created.
+  # See docs/plans/PLAN-ci-migration-coherence-check.md and ADR-0361.
+  migration-coherence:
+    name: Migration Coherence
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [db-push]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Compare local migrations vs prod schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+        run: |
+          set -e
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          DIFF=$(supabase db diff --linked --schema public,payroll,websites,timesheet 2>&1)
+          if [ -n "$DIFF" ]; then
+            echo "::error::Migration coherence failed — prod schema does not match local migrations"
+            echo "==================== DRIFT DIFF ===================="
+            echo "$DIFF"
+            echo "===================================================="
+            echo ""
+            echo "Likely causes:"
+            echo "  - Ghost migration (recorded but DDL not applied)"
+            echo "  - Manual prod DDL touch (SQL Editor, supabase migration repair, etc.)"
+            echo "  - Out-of-order migration push"
+            echo ""
+            echo "Recovery:"
+            echo "  unset OP_SERVICE_ACCOUNT_TOKEN && eval \$(op signin --account sxtn)"
+            echo "  op run --env-file=.env.template -- bash -c 'supabase link --project-ref \"\$SUPABASE_PROD_REF\" --password \"\$SUPABASE_DB_PASSWORD\"'"
+            echo "  supabase migration repair --status reverted <ts>"
+            echo "  supabase db push --linked --include-all --password \"\$SUPABASE_DB_PASSWORD\""
+            exit 1
+          fi
+          echo "✓ Prod schema matches local migrations"
