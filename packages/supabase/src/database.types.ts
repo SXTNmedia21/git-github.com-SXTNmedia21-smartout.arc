@@ -1,6 +1,3 @@
-WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
-WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -24195,4 +24192,3 @@ export const Constants = {
   },
 } as const
 
-<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />
