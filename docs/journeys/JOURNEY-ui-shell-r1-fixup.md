@@ -1,6 +1,6 @@
 ---
 title: "Journey — ui-shell-r1-fixup"
-status: draft
+status: verified
 feature: ui-shell-r1-fixup
 updated: 2026-05-17
 created: 2026-05-17
