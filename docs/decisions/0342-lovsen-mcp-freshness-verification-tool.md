@@ -34,6 +34,19 @@ Stale-detection model supersession: see ADR-0348 (two-hash supersedes single-has
 
 ---
 
+## 2026-05-17 AMENDMENT — Dynamic-MCP-Fetch Pivot (Round 2)
+
+**`verify_citation_freshness` role SPLITS into two consumers** per Phase 7d council (2026-05-17):
+
+- **(a) CI/batch staleness consumer:** `pnpm test:golden-month` (F6 gate, ADR-0341) calls `verify_citation_freshness` in batch against all fixture cells. Behavior contract unchanged — same MCP method, same routing table, same fixture-mode determinism.
+- **(b) Production drift detector:** Heartbeat cron (ADR-0354) calls `verify_citation_freshness` on a scheduled basis against the materialized tariff snapshot (ADR-0353), not against fixture cells. Drift detected → Telegram alert + Linear ticket `deploy-drift`. This is a new consumer class; it does NOT replace the CI consumer.
+
+**MCP method contract unchanged.** `verify_citation_freshness(hashes: string[]): Promise<FreshnessResult[]>` signature, behavior, and routing table are unmodified by this amendment. Only the consumer pattern is split.
+
+**Routing table UPDATED** per ADR-0347 amendment from earlier today (already applied in §"2026-05-17 AMENDMENT — Routing Updated per ADR-0347" above).
+
+---
+
 > ADR-0341 låste forventningen om at hver krone i `expected/` bærer sin egen `lovsenCitationHash`. Den forventningen er bare meningsfull hvis CI faktisk kan spørre Lovsen "er denne hashen fortsatt i kraft?" — uten den spørringen er stale-detection en bokstav på papiret, ikke en kontroll i pipelinen.
 
 **Tre ekstremt-viktige punkter for leseren i 2027:**

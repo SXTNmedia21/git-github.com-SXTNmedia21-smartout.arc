@@ -16,6 +16,17 @@ related_adrs: [ADR-0256, ADR-0341, ADR-0342, ADR-0347, ADR-0349]
 
 # ADR-0348: Two-hash model for regulatory citation envelopes
 
+## 2026-05-17 AMENDMENT — Dynamic-MCP-Fetch Pivot (Round 2)
+
+**Two-hash model REFINED** — the two hashes now serve two distinct consumer classes per Phase 7d council (2026-05-17):
+
+- **(a) Audit-provenance consumer:** `shift_pay_calculation_event.provenance` JSONB field (per Bokf. §13 / ADR-0251 audit pattern) stores `structureHash` + `rateHash` at calculation time. This is the legally defensible audit trail — a 2027 auditor can verify which rate was in force when the shift was calculated. Consumer: engine output, not fixture CI.
+- **(b) CI/batch staleness consumer:** `pnpm test:golden-month` F6 gate (ADR-0342) uses the two hashes to discriminate `RATE_STALE` (legally material, must act) from `SCHEMA_DRIFT` (structural notation, informational). Consumer: fixture CI only.
+
+**Original model unchanged.** `structureHash` + `rateHash` schema extension (18 fields per §"ExpectedCell-skjema-endring"), dual-lineage validator (Pattern L / Pattern N), and telemetry impact are unmodified.
+
+**ADR-0354 implements (b) at production layer.** The heartbeat cron (ADR-0354) calls `verify_citation_freshness` using the same two hashes against the materialized snapshot — drift class surfaced as `RATE_STALE` or `SCHEMA_DRIFT` in Telegram alert payload.
+
 > En enkelt hash over verbatim tekst er blind for hva som faktisk endret seg. Lovsen council 2026-05-17 identifiserte to separable drift-akser som enkelt-hash sammenblander — og sammenblandingen drukner lovlig-materielle varsler i strukturell støy.
 
 **Tre ekstremt-viktige punkter for leseren i 2027:**

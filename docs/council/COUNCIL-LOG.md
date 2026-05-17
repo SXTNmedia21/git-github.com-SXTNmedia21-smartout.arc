@@ -1999,3 +1999,16 @@ Week 3 (gated):
 **ADR created:** ADR-0347, ADR-0348, ADR-0349 (proposed). ADR-0342 amended.
 **Blockers tracked:** 5 (live curl proof, lovsen rate verify, ADR map review, lovdata-mcp envvar canonicalization, verify_citation_freshness mirror).
 **Full audit:** docs/audits/2026-05-17-phase-7-lovdata-reframe-council.md
+
+## 2026-05-17 — Dynamic-MCP-Fetch Architectural Pivot (Phase 7 reframe round 2)
+**Type:** architecture (pre-implementation, MAJOR pivot)
+**Prior verdict held?** PARTIAL — 2026-05-17 (earlier today) Phase 7 reframe ADRs 0347/0348/0349 SURVIVE; cert-pass model SUPERSEDED.
+**Reviewers:** system-steward (chair), system-agent-coordinator, supervisor, lovsen, botsson-harness-builder (5)
+**Verdict:** APPROVE WITH CHANGES + DEGRADED-MODE during foundations. Q1=(c) workspace-bootstrap dynamic with materialized snapshot; (b) per-calc fetch REJECTED.
+**Chair self-reversals:** 6th L-0147 precedent — (1) ADR-0250 misread (Skatteetaten DEFERRED not workspace-tariff); (2) source-priority — NHO cirkulær official_effective_date PRIMARY, Lovdata verbatim SECONDARY.
+**Key decisions:** Q1=(c) chosen. New capability tools `setup_workspace_tariff` + `change_workspace_tariff` + `add_supplement_override` (last gated on policy ADR). 5 new ADRs in Phase 7d. 4 amendments to ADR-0341/0342/0348/0349.
+**Cell count corrected:** 895 cert + 182 PENDING (briefing 358+716 stale by 2 days).
+**ADR created:** 0350 (bridge), 0351 (floor), 0352 (derive MCP), 0353 (binding lifecycle), 0354 (freshness ops) — all proposed.
+**Learnings created:** L-0289, L-0290, L-0291 (see audit doc).
+**Blockers tracked:** 3 hottest — bridge ADR delay (HIGH), override floor missing (MEDIUM), is_tariff_bound ownership leak (MEDIUM).
+**Full audit:** docs/audits/2026-05-17-dynamic-mcp-fetch-pivot-council.md
