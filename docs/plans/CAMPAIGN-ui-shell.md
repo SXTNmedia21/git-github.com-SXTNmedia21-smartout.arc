@@ -61,6 +61,7 @@ _none_
 | 9 | `i18n-cleanup` | `4d318536f` | M8 — 59 sidebar labels → i18n keys, 56 keys per locale, council-verified (Option B hard cutover) |
 | 10 | `pre-m5-mutation-closure` | `9ef0fbb60` | M5 Sortie 1 of 4 (council 2026-05-17 Option C+) — close ADR-0099/0114/0204 gaps: 2 hooks → Server Actions w/ gate_action, createPolicy gated, capability seed migration `20260617110000`. Blocker for Sortie 2-4. |
 | 11 | `hms-collision-fix` | `379036989` | M5 Sortie 2 of 4 — close 3 LIVE L-0258 collisions (listOpenDeviations 3-way → hms/deviations, getDriftStatus 2-way → hms/drift, getProtocolDetail 2-way → governance) + ship ADR-0348 CI detector with ratchet allowlist (8 cross-domain entries pending follow-up). Blocker for Sortie 3. |
+| 12 | `hms-cluster-polish-read` | `430563d27` | M5 Sortie 3 of 4 — polish 5 read-heavy routes (hms umbrella + training + drift + documents + governance). 5 error.tsx + 4 loading.tsx, Nordic Split sweep across 11 components, 4 telemetry events registered, HmsSubNav ARIA tablist + tab + aria-current, Opplæring typo fix. G4 found 2 HIGH (CompetenceMatrix tokens + HmsSubNav ARIA) → fixed `21e066252`. 4 LOWs deferred per HANDOFF. |
 
 ## Decisions
 
