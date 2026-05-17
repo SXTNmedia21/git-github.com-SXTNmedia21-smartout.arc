@@ -210,7 +210,7 @@ export const currentTariffResponseSchema = z.discriminatedUnion("ok", [
     ok: z.literal(true),
     data: z.object({
       workspace_union_binding_id: z.string().uuid().nullable(),
-      union_id: z.string().uuid().nullable(),
+      union_id: unionIdSchema.nullable(),
       union_name: z.string().nullable(),
       law_version: z.string().nullable(),
       effective_from: z.string().date().nullable(),
