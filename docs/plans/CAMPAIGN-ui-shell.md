@@ -59,6 +59,7 @@ _none_
 | 7 | `cost-polish` | `c6bea43aa` | M4 sortie 2/3 — `/dashboard/cost` overview, single sonnet agent |
 | 8 | `billing-polish` | `023d3f3a1` | M4 sortie 3/3 — 3 routes + 14 tools, ADR-0244 finance read-only compliant |
 | 9 | `i18n-cleanup` | `4d318536f` | M8 — 59 sidebar labels → i18n keys, 56 keys per locale, council-verified (Option B hard cutover) |
+| 10 | `pre-m5-mutation-closure` | `9ef0fbb60` | M5 Sortie 1 of 4 (council 2026-05-17 Option C+) — close ADR-0099/0114/0204 gaps: 2 hooks → Server Actions w/ gate_action, createPolicy gated, capability seed migration `20260617110000`. Blocker for Sortie 2-4. |
 
 ## Decisions
 
