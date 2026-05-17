@@ -146,10 +146,8 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
                 </div>
                 <p className="text-muted-foreground ml-8 text-sm">{step.description}</p>
                 {step.trainingContent && (
-                  <div className="mt-2 ml-8 rounded-md border border-blue-500/20 bg-blue-500/5 p-3">
-                    <p className="mb-1 text-[10px] font-medium text-blue-600">
-                      Opplaeringsinnhold:
-                    </p>
+                  <div className="border-info/20 bg-info/5 mt-2 ml-8 rounded-md border p-3">
+                    <p className="text-info mb-1 text-[10px] font-medium">Opplaeringsinnhold:</p>
                     <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
                       <div dangerouslySetInnerHTML={{ __html: step.trainingContent }} />
                     </div>

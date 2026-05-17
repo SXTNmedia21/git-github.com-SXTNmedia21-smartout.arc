@@ -6,10 +6,10 @@ import type { DeviationRow } from "@smartout/hms";
 
 function severityBadge(severity: string) {
   const styles: Record<string, string> = {
-    critical: "bg-red-500 text-white",
-    high: "bg-red-500/80 text-white",
-    medium: "bg-yellow-500 text-white",
-    low: "bg-blue-500 text-white",
+    critical: "bg-destructive text-destructive-foreground",
+    high: "bg-destructive/80 text-destructive-foreground",
+    medium: "bg-warning text-warning-foreground",
+    low: "bg-info text-info-foreground",
   };
   const labels: Record<string, string> = {
     critical: "Kritisk",

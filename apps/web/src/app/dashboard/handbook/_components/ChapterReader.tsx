@@ -87,18 +87,14 @@ export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterRead
               onClick={() => onChapterChange(chapter.key)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                 isActive
-                  ? isDark
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "bg-orange-50 text-orange-600"
+                  ? "bg-brand-orange/10 text-brand-orange"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-black ${
                   isActive
-                    ? isDark
-                      ? "bg-orange-500/20 text-orange-400"
-                      : "bg-orange-100 text-orange-600"
+                    ? "bg-brand-orange/20 text-brand-orange"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -140,13 +136,7 @@ export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterRead
             <div className="mb-6">
               <div className="mb-2 flex items-center gap-3">
                 {activeChapterDef.icon && (
-                  <div
-                    className={`rounded-lg border p-2 ${
-                      isDark
-                        ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
-                        : "border-orange-200 bg-orange-50 text-orange-600"
-                    }`}
-                  >
+                  <div className="border-brand-orange/20 bg-brand-orange/10 text-brand-orange rounded-lg border p-2">
                     <activeChapterDef.icon className="h-5 w-5" />
                   </div>
                 )}
