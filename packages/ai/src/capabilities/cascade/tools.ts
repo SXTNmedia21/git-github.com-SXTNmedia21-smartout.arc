@@ -45,6 +45,7 @@
  */
 
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
@@ -224,10 +225,16 @@ export const bindWorkspaceUnionTool = defineTool({
       // delegated_via (owner) are load-bearing. Auditors query:
       //   activity_trail WHERE delegated_via IS NOT NULL
       // to find all cross-namespace writes and trace both initiator + delegate.
+      //
+      // cascade_emit_id: pre-generated here (uuid-before-emit pattern) so the
+      // caller (payroll tool) can read the TRUE cascade emit id from this result
+      // instead of pre-generating an unrelated UUID. Phase 7h closes this gap.
+      const cascadeEmitId = randomUUID();
       await emit({
         event: "cascade.workspace_union_binding_created",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
+        correlation_id: cascadeEmitId,
         properties: {
           entity: {
             entity_type: "workspace",
@@ -251,6 +258,7 @@ export const bindWorkspaceUnionTool = defineTool({
         ok: true as const,
         workspace_union_binding_id: result.workspace_union_binding_id,
         effective_from: result.effective_from,
+        cascade_emit_id: cascadeEmitId,
       });
     } catch (err) {
       if (err instanceof MutateWithGateDenied) {
@@ -466,10 +474,16 @@ export const addSupplementRuleTool = defineTool({
       // ADR-0356 §"Audit trail symmetry": BOTH actor_capability (caller) AND
       // delegated_via (owner) are load-bearing. Auditors use both fields to
       // trace the initiating capability + the delegate that wrote the row.
+      //
+      // cascade_emit_id: pre-generated here (uuid-before-emit pattern) so the
+      // caller (payroll tool) can read the TRUE cascade emit id from this result
+      // instead of pre-generating an unrelated UUID. Phase 7h closes this gap.
+      const cascadeEmitId = randomUUID();
       await emit({
         event: "cascade.supplement_rule_added",
         workspace_id: ctx.workspaceId,
         actor_id: ctx.profileId,
+        correlation_id: cascadeEmitId,
         properties: {
           entity: {
             entity_type: "workspace",
@@ -492,6 +506,7 @@ export const addSupplementRuleTool = defineTool({
       return JSON.stringify({
         ok: true as const,
         supplement_rule_id: result.supplement_rule_id,
+        cascade_emit_id: cascadeEmitId,
       });
     } catch (err) {
       // ── Structured error envelope (ADR-0152) ──────────────────────────────
