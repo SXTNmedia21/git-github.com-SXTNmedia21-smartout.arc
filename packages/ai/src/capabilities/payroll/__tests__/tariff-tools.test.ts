@@ -79,6 +79,10 @@ const ADMIN_PROFILE = "00000000-0000-0000-0000-000000000010" as NonEmptyString;
 const BINDING_ID_OLD = "bind0000-0000-0000-0000-000000000001";
 const BINDING_ID_NEW = "bind0000-0000-0000-0000-000000000002";
 const SUPPLEMENT_RULE_ID = "supp0000-0000-0000-0000-000000000001";
+// Stable cascade emit id returned by the mock cascade tool — lets us assert
+// that payroll tools echo the TRUE cascade emit id back (Phase 7h).
+const CASCADE_EMIT_ID_BIND = "c45cade0-bind-0000-0000-000000000001";
+const CASCADE_EMIT_ID_SUPP = "c45cade0-supp-0000-0000-000000000001";
 
 // ─── Supabase mock helpers ───────────────────────────────────────────────────
 
@@ -118,11 +122,19 @@ function bindOkResult(bindingId = BINDING_ID_NEW, effectiveFrom = "2026-06-01"):
     ok: true,
     workspace_union_binding_id: bindingId,
     effective_from: effectiveFrom,
+    // Phase 7h: cascade tool now returns its own emit id so payroll layer can
+    // echo the TRUE cascade correlation_id instead of pre-generating a new UUID.
+    cascade_emit_id: CASCADE_EMIT_ID_BIND,
   });
 }
 
 function supplementOkResult(ruleId = SUPPLEMENT_RULE_ID): string {
-  return JSON.stringify({ ok: true, supplement_rule_id: ruleId });
+  return JSON.stringify({
+    ok: true,
+    supplement_rule_id: ruleId,
+    // Phase 7h: cascade tool now returns its own emit id.
+    cascade_emit_id: CASCADE_EMIT_ID_SUPP,
+  });
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -156,10 +168,15 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
       ok: boolean;
       workspace_union_binding_id: string;
       effective_from: string;
+      cascade_emit_id: string | null;
     };
     expect(result.ok).toBe(true);
     expect(result.workspace_union_binding_id).toBe(BINDING_ID_NEW);
     expect(result.effective_from).toBe("2026-06-01");
+    // Phase 7h: cascade_emit_id MUST match what the cascade mock returned (not a
+    // newly generated UUID). This verifies the true round-trip — payroll tool reads
+    // cascade's own emit id rather than pre-generating an unrelated UUID.
+    expect(result.cascade_emit_id).toBe(CASCADE_EMIT_ID_BIND);
 
     // Cascade tool called with caller_capability='payroll' and BOOTSTRAP classifier.
     expect(bindWorkspaceUnionTool.execute).toHaveBeenCalledOnce();
@@ -272,15 +289,20 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
       new_workspace_union_binding_id: string;
       effective_from: string;
       amendment_classifier: string;
+      cascade_emit_id: string | null;
     };
     expect(result.ok).toBe(true);
     expect(result.old_workspace_union_binding_id).toBe(BINDING_ID_OLD);
     expect(result.new_workspace_union_binding_id).toBe(BINDING_ID_NEW);
     expect(result.effective_from).toBe("2026-07-01");
-    // Same union, new version → TARIFF_REVISION.
-    expect(result.amendment_classifier).toBe("TARIFF_REVISION");
+    // Same union (taro-79), new law_version (2024-2026 → 2026-2028) hits Lovsen
+    // classifier Rule 7 (Riksavtalen §4 carve-out) → UP. Replaces previous
+    // TARIFF_REVISION semantic string when inline heuristic shipped.
+    expect(result.amendment_classifier).toBe("UP");
+    // Phase 7h: cascade_emit_id MUST match what cascade mock returned.
+    expect(result.cascade_emit_id).toBe(CASCADE_EMIT_ID_BIND);
 
-    // Cascade tool called with 'UP' classifier (wire value) + caller_capability='payroll'.
+    // Cascade tool called with 'UP' classifier + caller_capability='payroll'.
     const cascadeInput = vi.mocked(bindWorkspaceUnionTool.execute).mock.calls[0]![0];
     expect(cascadeInput.caller_capability).toBe("payroll");
     expect(cascadeInput.amendment_classifier).toBe("UP");
@@ -352,9 +374,15 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
       ctx,
     );
 
-    const result = JSON.parse(raw) as { ok: boolean; supplement_rule_id: string };
+    const result = JSON.parse(raw) as {
+      ok: boolean;
+      supplement_rule_id: string;
+      cascade_emit_id: string | null;
+    };
     expect(result.ok).toBe(true);
     expect(result.supplement_rule_id).toBe(SUPPLEMENT_RULE_ID);
+    // Phase 7h: cascade_emit_id MUST match what cascade mock returned.
+    expect(result.cascade_emit_id).toBe(CASCADE_EMIT_ID_SUPP);
 
     // Cascade tool called with caller_capability='payroll'.
     const cascadeInput = vi.mocked(addSupplementRuleTool.execute).mock.calls[0]![0];
@@ -443,9 +471,15 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
-  // ── T9: change_workspace_tariff — amendment_classifier derivation ─────────
+  // ── T9: change_workspace_tariff — Lovsen classifier wiring ────────────────
+  // Updated 2026-05-17 (Phase 7d Track 5): inline TARIFF_REVISION/UNION_CHANGE
+  // heuristic replaced with legal.classifyAmendmentLogic (Aml. §14-6 + Riksavtalen
+  // §4 rule matrix). Different-union path → classifier Rule 6 → MATERIAL.
+  // Cascade BLOCKS MATERIAL in production (AMENDMENT_BLOCKED §14-6(m)) but the
+  // mock returns ok unconditionally — so we assert the MATERIAL value flows
+  // through to both cascade input and payroll output.
 
-  it("T9: change_workspace_tariff — different union_id → UNION_CHANGE semantic classifier", async () => {
+  it("T9: change_workspace_tariff — different union_id → MATERIAL classifier (Aml. §14-6 bokstav m)", async () => {
     vi.mocked(bindWorkspaceUnionTool.execute).mockResolvedValue(
       bindOkResult(BINDING_ID_NEW, "2026-08-01"),
     );
@@ -464,7 +498,7 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
     const raw = await changeWorkspaceTariffTool.execute(
       {
         workspace_id: WORKSPACE_A,
-        new_union_id: "taro-226", // different union → UNION_CHANGE
+        new_union_id: "taro-226", // different union → classifier Rule 6 → MATERIAL
         new_law_version: "2024-2026",
         official_effective_date: "2026-08-01",
         derivation_snapshot_id: null,
@@ -474,7 +508,13 @@ describe("payroll tariff delegation tools (Phase 7f, ADR-0356)", () => {
 
     const result = JSON.parse(raw) as { ok: boolean; amendment_classifier: string };
     expect(result.ok).toBe(true);
-    expect(result.amendment_classifier).toBe("UNION_CHANGE");
+    expect(result.amendment_classifier).toBe("MATERIAL");
+
+    // Verify cascade was called with the classifier output (MATERIAL).
+    // In production cascade BLOCKS MATERIAL — mock here returns ok to
+    // verify wiring. Real-world flow: amendment-handler picks up MATERIAL.
+    const cascadeInput = vi.mocked(bindWorkspaceUnionTool.execute).mock.calls[0]![0];
+    expect(cascadeInput.amendment_classifier).toBe("MATERIAL");
   });
 
   // ── T10: add_supplement_override — L-0177 empty profileId ────────────────

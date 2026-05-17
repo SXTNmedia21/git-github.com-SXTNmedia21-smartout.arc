@@ -33,6 +33,19 @@ import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
 import { validateAml146, citeLaw, classifyAmendment, validateAml1415 } from "./tools.js";
 
+// Re-export pure-function classifier for capability consumers (e.g. payroll
+// change_workspace_tariff). Lovsen-owned rule matrix per Aml. §14-6 + §15-7
+// + Riksavtalen §4 carve-out. Single source of truth for amendment
+// classification — no parallel heuristics in other capability tools.
+export {
+  classifyAmendment as classifyAmendmentLogic,
+  type AmendmentClassification,
+  type AmendmentClassifier,
+  type AmendmentPrevState,
+  type AmendmentNextState,
+  type AmendmentWorkspaceCtx,
+} from "./amendment-classifier.js";
+
 // validate_aml_14_6 and cite_law are advisory reads — no mutation.
 const readOnlyTools = [validateAml146, citeLaw] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
