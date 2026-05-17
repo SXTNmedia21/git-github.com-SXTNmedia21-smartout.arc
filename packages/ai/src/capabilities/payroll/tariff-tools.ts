@@ -67,6 +67,11 @@ import {
   MutateWithGateError,
 } from "../_shared/mutate-with-gate.js";
 import { bindWorkspaceUnionTool, addSupplementRuleTool } from "../cascade/tools.js";
+import {
+  classifyAmendmentLogic,
+  type AmendmentPrevState,
+  type AmendmentNextState,
+} from "../legal/index.js";
 
 // ─── Shared constants ────────────────────────────────────────────────────────
 
@@ -420,25 +425,31 @@ const changeWorkspaceTariffSchema = z.object({
  * change_workspace_tariff — switch flow when new law_version lands or union changes.
  *
  * Body: L-0177 fail-fast → chat-channel guard → cross-workspace block →
- *   payroll gate (mutateWithGate) → check existing active binding (NO_EXISTING_BINDING) →
- *   derive amendment_classifier from old vs new (TARIFF_REVISION | UNION_CHANGE) →
- *   call cascade.bind_workspace_union(caller_capability='payroll', amendment_classifier='UP') →
- *   emit payroll.workspace_tariff_changed (actor_capability='payroll', delegated_via='cascade') →
- *   return { old_workspace_union_binding_id, new_workspace_union_binding_id, effective_from, amendment_classifier }.
+ *   payroll gate (mutateWithGate) → fetch prev binding (NO_EXISTING_BINDING) →
+ *   call legal.classifyAmendmentLogic(prev, next) to derive Aml. §14-6 classifier →
+ *   call cascade.bind_workspace_union(amendment_classifier=classifier.classifier) →
+ *   (cascade BLOCKS MATERIAL/ENDRINGSOPPSIGELSE per §14-6(m); UP proceeds) →
+ *   emit payroll.workspace_tariff_changed (with classification payload) →
+ *   return { old_*, new_*, effective_from, amendment_classifier, classification }.
  *
- * amendment_classifier derivation (simplified — full ENDRINGSOPPSIGELSE logic is a separate sortie):
- *   Same union + new version → TARIFF_REVISION (UP wire value in cascade schema)
- *   Different union          → UNION_CHANGE (UP wire value — semantic distinction in telemetry payload)
+ * Classification source: packages/ai/src/capabilities/legal/amendment-classifier.ts
+ * (Lovsen-owned rule matrix per Aml. §14-6 + §15-7 + Riksavtalen §4 carve-out).
+ * Replaces previous inline TARIFF_REVISION/UNION_CHANGE heuristic. Phase 7d Track 5.
  *
- * Satisfies ADR-0204, ADR-0356, ADR-0252 §F (simplified), L-0177.
+ * When classifier returns MATERIAL or ENDRINGSOPPSIGELSE the cascade layer
+ * blocks with AMENDMENT_BLOCKED + aml_ref §14-6(m). The blocked payload is
+ * returned to caller with the classifier's aml_refs + reason for surfacing
+ * in UI. Phase 7f amendment-handler owns the signering path for those flows.
+ *
+ * Satisfies ADR-0173 (legal owns rule matrix), ADR-0204, ADR-0252 §F, ADR-0356, L-0177.
  */
 export const changeWorkspaceTariffTool = defineTool({
   name: "change_workspace_tariff",
   description:
     "Payroll tool — switch tariff binding when new law_version lands or workspace changes union affiliation. " +
-    "Derives amendment_classifier from old vs new binding (TARIFF_REVISION or UNION_CHANGE). " +
-    "ENDRINGSOPPSIGELSE (MATERIAL with employee signering) is OUT OF SCOPE here — " +
-    "those block at the cascade layer per ADR-0252 §F. " +
+    "Calls legal.classifyAmendmentLogic (Lovsen rule matrix per Aml. §14-6 + Riksavtalen §4 carve-out) " +
+    "to derive amendment_classifier. UP proceeds to cascade write. MATERIAL/ENDRINGSOPPSIGELSE BLOCK at " +
+    "cascade with aml_ref §14-6(m) — Phase 7f amendment-handler owns the signering path. " +
     "Fails with NO_EXISTING_BINDING if no active binding exists — use setup_workspace_tariff instead. " +
     "Admin only. Chat channel only (ADR-0078 Høy-PII). " +
     "Delegates to cascade.bind_workspace_union per ADR-0356. Both layers emit audit-symmetry. " +
@@ -493,6 +504,9 @@ export const changeWorkspaceTariffTool = defineTool({
         channel,
         exec: async (_db): Promise<ChangeExecResult> => {
           // ── 4a. Fetch existing active binding ─────────────────────────────
+          // Per spec: prev binding MUST be read from workspace_union_binding
+          // BEFORE calling cascade. The active binding is the row with
+          // effective_to IS NULL (APPEND-ONLY semantics per ADR-0355).
           const { data: existingRows, error: existingErr } = await ctx.supabaseAdmin
             .from("workspace_union_binding")
             .select("workspace_union_binding_id, union_id, law_version")
@@ -517,25 +531,48 @@ export const changeWorkspaceTariffTool = defineTool({
           const existing = existingRows[0]!;
           const oldBindingId = existing.workspace_union_binding_id as string;
           const oldUnionId = existing.union_id as string;
+          const oldLawVersion = existing.law_version as string;
 
-          // ── 4b. Derive amendment_classifier ──────────────────────────────
-          // Simplified per plan §"Out of scope": ENDRINGSOPPSIGELSE logic deferred.
-          // cascade schema accepts: BOOTSTRAP | UP | MATERIAL | ENDRINGSOPPSIGELSE | BOOTSTRAP-BACKFILL.
-          // MATERIAL + ENDRINGSOPPSIGELSE are BLOCKED by the cascade tool (requires signering).
-          // We use UP (the wire value) for both TARIFF_REVISION and UNION_CHANGE — the semantic
-          // distinction is captured in the payroll emit payload for audit purposes.
-          const semanticClassifier =
-            oldUnionId === input.new_union_id ? "TARIFF_REVISION" : "UNION_CHANGE";
+          // ── 4b. Classify amendment via Lovsen-owned rule matrix ──────────
+          // Replaces previous inline TARIFF_REVISION/UNION_CHANGE heuristic.
+          // Single source of truth for Aml. §14-6 + Riksavtalen §4 classification
+          // lives in packages/ai/src/capabilities/legal/amendment-classifier.ts.
+          // ADR-0173 frozen-4: legal owns the rule matrix, payroll calls it.
+          // Output drives the cascade amendment_classifier enum:
+          //   UP                 → cascade accepts, writes new binding
+          //   MATERIAL           → cascade BLOCKS (AMENDMENT_BLOCKED §14-6(m)),
+          //                        admin must route via amendment-handler with signering
+          //   ENDRINGSOPPSIGELSE → cascade BLOCKS (AMENDMENT_BLOCKED §14-6(m)),
+          //                        requires ansatt-signering + §15-3 oppsigelsesfrist
+          const prevState: AmendmentPrevState = {
+            union_id: oldUnionId,
+            law_version: oldLawVersion,
+            is_tariff_bound: oldUnionId !== "non-bound",
+          };
+          const nextState: AmendmentNextState = {
+            union_id: input.new_union_id,
+            law_version: input.new_law_version,
+            is_tariff_bound: input.new_union_id !== "non-bound",
+          };
+          const classification = classifyAmendmentLogic(prevState, nextState, {
+            workspace_id: input.workspace_id,
+            // Same-union + new law_version triggers Riksavtalen §4 carve-out
+            // explicitly via the classifier's Rule 7; no extra flag needed.
+          });
 
           // ── 4c. Call cascade delegation tool ─────────────────────────────
           // caller_capability literal 'payroll' required per ADR-0356 §"Audit trail symmetry".
+          // amendment_classifier passed verbatim from Lovsen classification:
+          // MATERIAL / ENDRINGSOPPSIGELSE will hit cascade's AMENDMENT_BLOCKED guard
+          // (cascade tools.ts lines 158-170), surface §14-6(m), and Phase 7f
+          // amendment-handler owns the signering path. UP proceeds to write.
           const cascadeResult = await bindWorkspaceUnionTool.execute(
             {
               workspace_id: input.workspace_id,
               union_id: input.new_union_id,
               law_version: input.new_law_version,
               effective_from: input.effective_from ?? input.official_effective_date,
-              amendment_classifier: "UP" as const,
+              amendment_classifier: classification.classifier,
               derivation_snapshot_id: input.derivation_snapshot_id,
               caller_capability: CAPABILITY,
             },
@@ -555,6 +592,9 @@ export const changeWorkspaceTariffTool = defineTool({
               ok: false,
               code: cascadeParsed.code ?? "CASCADE_ERROR",
               message: cascadeParsed.message,
+              aml_refs: classification.aml_refs,
+              classification_reason: classification.reason,
+              requires_resigning: classification.requires_resigning,
             };
           }
 
@@ -563,7 +603,7 @@ export const changeWorkspaceTariffTool = defineTool({
             old_workspace_union_binding_id: oldBindingId,
             new_workspace_union_binding_id: cascadeParsed.workspace_union_binding_id!,
             effective_from: cascadeParsed.effective_from!,
-            amendment_classifier: semanticClassifier,
+            amendment_classifier: classification.classifier,
           };
         },
       });
