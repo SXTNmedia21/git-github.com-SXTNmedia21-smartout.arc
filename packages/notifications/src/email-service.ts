@@ -28,7 +28,7 @@ export async function createEmailJob(
   }
 
   // Validate sender
-  const fromEmail = opts.fromEmail ?? "noreply@smartout.io";
+  const fromEmail = opts.fromEmail ?? "noreply@smartout.ai";
   if (!validateSender(fromEmail)) {
     throw new Error(`Sender address not allowed: ${fromEmail}`);
   }
