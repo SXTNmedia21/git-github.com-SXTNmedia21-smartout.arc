@@ -320,3 +320,64 @@ Deno.test(
     void calls1;
   },
 );
+
+// ─── T4 — scheduled_at selectability ────────────────────────────────────────
+// Asserts that a task created via day-line.add_item with a `scheduled_at` value
+// is selectable by the push-handler query (handler/day-line-push.ts:198-202).
+// The handler filters: day_line_id IS NOT NULL, status='pending',
+// scheduled_at >= windowStart, scheduled_at < windowEnd.
+// A task whose scheduled_at falls outside the window must be skipped (0 sends).
+
+Deno.test(
+  "T4 scheduled_at selectability: task in window is found; task outside window is skipped",
+  async () => {
+    const windowCenter = new Date();
+    const inWindow = windowCenter.toISOString(); // exactly now — within ±60s window
+    const outOfWindow = new Date(windowCenter.getTime() - 120_000).toISOString(); // 2 min ago
+
+    const taskInWindow = { ...BASE_TASK, scheduled_at: inWindow };
+    const taskOutOfWindow = { ...BASE_TASK, id: "task-uuid-002", scheduled_at: outOfWindow };
+
+    // ── Case A: task in window → push-handler finds it (sent > 0 or skip counts > 0,
+    //   but the task is loaded — here we assert by checking result.total_tasks_found).
+    const clientA = buildMockClient({
+      session_task: { rows: [taskInWindow] },
+      shift_session_day_line: { rows: [DAY_LINE_JUNCTION] },
+      shift_session: { rows: [SHIFT_SESSION] },
+      profile: {
+        rows: [{ profile_id: "emp-uuid-001", expo_push_token: "ExponentPushToken[in-window]" }],
+      },
+      engine_event: { rows: [] },
+    });
+
+    const { emit: emitA } = makeEmitSpy();
+    const resultA = await dispatchDayLinePush({
+      sb: clientA as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
+      emit: emitA,
+    });
+
+    // The task is in-window so the handler must have attempted to process it.
+    // `scanned` reflects how many tasks the initial SELECT returned.
+    assertEquals(resultA.scanned, 1, "in-window task must be found (scanned=1) by push handler");
+
+    // ── Case B: task outside window → handler finds 0 tasks.
+    const clientB = buildMockClient({
+      session_task: { rows: [taskOutOfWindow] },
+      shift_session_day_line: { rows: [DAY_LINE_JUNCTION] },
+      shift_session: { rows: [SHIFT_SESSION] },
+      profile: {
+        rows: [{ profile_id: "emp-uuid-001", expo_push_token: "ExponentPushToken[out-window]" }],
+      },
+      engine_event: { rows: [] },
+    });
+
+    const { emit: emitB } = makeEmitSpy();
+    const resultB = await dispatchDayLinePush({
+      sb: clientB as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
+      emit: emitB,
+    });
+
+    assertEquals(resultB.scanned, 0, "out-of-window task must not be found (scanned=0)");
+    assertEquals(resultB.sent, 0, "no pushes for out-of-window task");
+  },
+);

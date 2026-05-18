@@ -22,6 +22,8 @@ const TaskItemSchema = z.object({
   day_line_id: z.string().uuid(),
   item_type: z.literal("task"),
   title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  scheduled_at: z.string().datetime().optional(),
   assigned_to: z.string().uuid().optional(),
 });
 
