@@ -53,7 +53,10 @@ export function useChannelMessages(channelId: string | null) {
         p_limit: PAGE_SIZE,
       });
       if (error) throw error;
-      return (data ?? []) as ChannelMessageWithSender[];
+      // RPC returns reactions as Json (Json[]) but ChannelMessageWithSender expects
+      // {emoji, profile_id}[]. Runtime shape is compatible; cast via unknown to satisfy
+      // TS strict. Pre-existing DB type mismatch — same pattern as web use-channel-messages.
+      return (data ?? []) as unknown as ChannelMessageWithSender[];
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.length < PAGE_SIZE) return undefined;
