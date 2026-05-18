@@ -717,7 +717,11 @@
     "item_stempelur": "Time Clock",
     "item_templates": "Templates",
     "item_analytics": "Analytics",
-    "item_system_intelligence": "System Intelligence"
+    "item_system_intelligence": "System Intelligence",
+    "item_chat_standalone": "Chat",
+    "item_kommunikasjon_root": "Communication",
+    "item_oppgaver": "Tasks",
+    "item_planlegging": "Planning"
   },
   "todo_group": {
     "departments": "Departments",

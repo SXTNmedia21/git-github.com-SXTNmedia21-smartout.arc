@@ -717,7 +717,11 @@
     "item_stempelur": "Stempelur",
     "item_templates": "Templates",
     "item_analytics": "Analytics",
-    "item_system_intelligence": "System Intelligence"
+    "item_system_intelligence": "System Intelligence",
+    "item_chat_standalone": "Chat",
+    "item_kommunikasjon_root": "Kommunikasjon",
+    "item_oppgaver": "Oppgaver",
+    "item_planlegging": "Planlegging"
   },
   "todo_group": {
     "departments": "Avdelinger",
