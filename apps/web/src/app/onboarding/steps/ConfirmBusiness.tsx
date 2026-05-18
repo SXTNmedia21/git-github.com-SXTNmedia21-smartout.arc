@@ -21,22 +21,70 @@ import { useBusinessTools } from "./tools/business-tools";
 
 interface FieldConfig {
   key: keyof BusinessData;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
   type?: "text" | "email" | "tel" | "url";
-  placeholder?: string;
+  placeholderKey: string;
 }
 
 const FIELDS: FieldConfig[] = [
-  { key: "name", label: "Bedriftsnavn", icon: Building2, placeholder: "Restaurant Solsiden" },
-  { key: "legalName", label: "Juridisk navn", icon: Building2, placeholder: "Solsiden AS" },
-  { key: "orgNumber", label: "Organisasjonsnummer", icon: Hash, placeholder: "123 456 789" },
-  { key: "email", label: "E-post", icon: Mail, type: "email", placeholder: "post@bedrift.no" },
-  { key: "phone", label: "Telefon", icon: Phone, type: "tel", placeholder: "+47 12 34 56 78" },
-  { key: "website", label: "Nettside", icon: Globe, type: "url", placeholder: "www.bedrift.no" },
-  { key: "address", label: "Adresse", icon: MapPin, placeholder: "Storgata 1" },
-  { key: "city", label: "By", icon: MapPin, placeholder: "Oslo" },
-  { key: "industry", label: "Bransje", icon: Building2, placeholder: "Restaurant" },
+  {
+    key: "name",
+    labelKey: "confirm.fields.name.label",
+    icon: Building2,
+    placeholderKey: "confirm.fields.name.placeholder",
+  },
+  {
+    key: "legalName",
+    labelKey: "confirm.fields.legalName.label",
+    icon: Building2,
+    placeholderKey: "confirm.fields.legalName.placeholder",
+  },
+  {
+    key: "orgNumber",
+    labelKey: "confirm.fields.orgNumber.label",
+    icon: Hash,
+    placeholderKey: "confirm.fields.orgNumber.placeholder",
+  },
+  {
+    key: "email",
+    labelKey: "confirm.fields.email.label",
+    icon: Mail,
+    type: "email",
+    placeholderKey: "confirm.fields.email.placeholder",
+  },
+  {
+    key: "phone",
+    labelKey: "confirm.fields.phone.label",
+    icon: Phone,
+    type: "tel",
+    placeholderKey: "confirm.fields.phone.placeholder",
+  },
+  {
+    key: "website",
+    labelKey: "confirm.fields.website.label",
+    icon: Globe,
+    type: "url",
+    placeholderKey: "confirm.fields.website.placeholder",
+  },
+  {
+    key: "address",
+    labelKey: "confirm.fields.address.label",
+    icon: MapPin,
+    placeholderKey: "confirm.fields.address.placeholder",
+  },
+  {
+    key: "city",
+    labelKey: "confirm.fields.city.label",
+    icon: MapPin,
+    placeholderKey: "confirm.fields.city.placeholder",
+  },
+  {
+    key: "industry",
+    labelKey: "confirm.fields.industry.label",
+    icon: Building2,
+    placeholderKey: "confirm.fields.industry.placeholder",
+  },
 ];
 
 export function ConfirmBusiness({
@@ -72,7 +120,7 @@ export function ConfirmBusiness({
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.business_description")}</p>
         <p className="text-muted-foreground/60 mt-1 text-xs">
-          {filledCount} av {FIELDS.length} felt utfylt
+          {t("confirm.fields.filledCount", { filled: filledCount, total: FIELDS.length })}
         </p>
       </div>
 
@@ -100,11 +148,11 @@ export function ConfirmBusiness({
 
           return (
             <div key={field.key} className="space-y-2">
-              <Label htmlFor={`confirm-${field.key}`}>{field.label}</Label>
+              <Label htmlFor={`confirm-${field.key}`}>{t(field.labelKey)}</Label>
               <Input
                 id={`confirm-${field.key}`}
                 type={field.type ?? "text"}
-                placeholder={field.placeholder}
+                placeholder={t(field.placeholderKey)}
                 value={displayValue}
                 onChange={(e) => handleFieldChange(field.key, e.target.value)}
               />
