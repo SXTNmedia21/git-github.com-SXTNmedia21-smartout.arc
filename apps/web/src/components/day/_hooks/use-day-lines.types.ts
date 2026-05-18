@@ -1,17 +1,19 @@
 /**
- * use-day-lines.types.ts
+ * use-day-lines.types.ts — Shared row and status types for day-line components.
  *
- * Shared row type for day_line queries. Used by useDayLines hook and
- * AggregatedDayLineList component. Reflects the day_line table with
- * joined location and department name fields.
+ * Why here: OpenCloseEditPopover, DayLineCreateSheet, and AttachRoutineDialog all
+ * consume DayLineRow. Colocating the type prevents import fan-out and avoids
+ * placing runtime-only client types in @smartout/types (server-safe package).
+ *
+ * References: ADR-0367.
  */
 
 export type DayLineRow = {
   day_line_id: string;
   workspace_id: string;
-  department_session_id: string | null;
-  department_id: string | null;
-  location_id: string | null;
+  department_session_id: string;
+  department_id: string;
+  location_id: string;
   business_date: string;
   planned_open: string;
   planned_close: string;
@@ -22,3 +24,5 @@ export type DayLineRow = {
   location: { name: string };
   department: { name: string };
 };
+
+export type DayLineStatus = "draft" | "active" | "closed" | "locked" | "cancelled";
