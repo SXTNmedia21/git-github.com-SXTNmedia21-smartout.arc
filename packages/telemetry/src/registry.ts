@@ -1153,6 +1153,8 @@ export interface TaskCreated extends BaseEvent {
       compliance?: boolean;
       reason?: string;
       manual?: boolean;
+      description?: string;
+      scheduled_at?: string;
     };
   };
 }
