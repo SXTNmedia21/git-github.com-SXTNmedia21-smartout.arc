@@ -7,6 +7,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  formatISO,
   getDay,
   isSameDay,
   isSameMonth,
@@ -17,6 +18,16 @@ import {
 import { nb } from "date-fns/locale";
 import { type CalendarEvent, EVENT_COLOR_HEX } from "../_lib/types";
 import type { DayHours } from "@/app/dashboard/website/_actions/bridge-actions";
+import { ShiftBadge } from "./overlays/ShiftBadge";
+import { HolidayBand } from "./overlays/HolidayBand";
+
+/**
+ * Returns the ISO yyyy-MM-dd key for a given Date.
+ * Uses local timezone via formatISO to match how CalendarPageShell stores selectedDayISO.
+ */
+function isoKey(d: Date): string {
+  return formatISO(d, { representation: "date" });
+}
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -68,6 +79,10 @@ type CalendarTabProps = {
   cursor: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate?: Record<string, number>;
+  holidaysByDate?: Record<string, { name: string }>;
+  showShifts?: boolean;
+  showHolidays?: boolean;
   onEventClick: (event: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
   onDayOpen: (date: Date) => void;
@@ -78,6 +93,10 @@ export function CalendarTab({
   cursor,
   events,
   companyHours,
+  shiftsByDate = {},
+  holidaysByDate = {},
+  showShifts = false,
+  showHolidays = false,
   onEventClick,
   onSlotClick,
   onDayOpen,
@@ -117,6 +136,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onSlotClick={onSlotClick}
               />
@@ -126,6 +149,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onSlotClick={onSlotClick}
                 onDayOpen={onDayOpen}
@@ -136,6 +163,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onDayOpen={onDayOpen}
               />
@@ -151,19 +182,43 @@ function DayView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onSlotClick,
 }: {
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
 }) {
   const dayEvents = events.filter((e) => isSameDay(parseISO(e.date), date));
   const window = openWindow(hoursForDate(date, companyHours));
+  const key = isoKey(date);
+  const hasOverlayStrip =
+    (showHolidays && !!holidaysByDate[key]) || (showShifts && (shiftsByDate[key] ?? 0) > 0);
   return (
     <div className="grid grid-cols-[4rem_1fr]">
+      {/* Overlay top-strip: shows holiday name + shift count for this day */}
+      {hasOverlayStrip ? (
+        <div className="border-border col-span-2 flex items-center gap-3 border-b px-3 py-1.5">
+          {showHolidays && holidaysByDate[key] ? (
+            <span className="text-[10px] font-semibold tracking-wide text-[var(--brand-orange)] uppercase">
+              {holidaysByDate[key].name}
+            </span>
+          ) : null}
+          {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+            <ShiftBadge count={shiftsByDate[key]!} size="md" />
+          ) : null}
+        </div>
+      ) : null}
       <div className="border-border border-r">
         {HOURS.map((h) => (
           <div
@@ -244,6 +299,10 @@ function WeekView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onSlotClick,
   onDayOpen,
@@ -251,6 +310,10 @@ function WeekView({
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
   onDayOpen: (date: Date) => void;
@@ -265,6 +328,7 @@ function WeekView({
         {days.map((d) => {
           const row = hoursForDate(d, companyHours);
           const today = isSameDay(d, new Date());
+          const key = isoKey(d);
           return (
             <button
               key={d.toISOString()}
@@ -285,6 +349,14 @@ function WeekView({
                   }`}
                 >
                   {row.closed ? "Stengt" : `${row.open}–${row.close}`}
+                </div>
+              ) : null}
+              {showHolidays && holidaysByDate[key] ? (
+                <HolidayBand name={holidaysByDate[key].name} variant="week-header" />
+              ) : null}
+              {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+                <div className="mt-0.5 flex justify-center">
+                  <ShiftBadge count={shiftsByDate[key]!} size="sm" />
                 </div>
               ) : null}
             </button>
@@ -332,12 +404,20 @@ function MonthView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onDayOpen,
 }: {
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onDayOpen: (date: Date) => void;
 }) {
@@ -375,6 +455,7 @@ function MonthView({
           const isToday = isSameDay(d, new Date());
           const dayEvents = events.filter((e) => isSameDay(parseISO(e.date), d));
           const closed = companyHours.length > 0 && !openWindow(hoursForDate(d, companyHours));
+          const key = isoKey(d);
           return (
             <div
               key={d.toISOString()}
@@ -387,7 +468,7 @@ function MonthView({
                   onDayOpen(d);
                 }
               }}
-              className={`border-border min-h-24 cursor-pointer border-b border-l p-1.5 transition-colors first:border-l-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
+              className={`border-border relative min-h-24 cursor-pointer border-b border-l p-1.5 transition-colors first:border-l-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
                 inMonth
                   ? closed
                     ? "bg-muted/20 hover:bg-muted/40"
@@ -395,6 +476,10 @@ function MonthView({
                   : "bg-muted/30"
               }`}
             >
+              {/* HolidayBand — absolute top strip, aria-hidden */}
+              {showHolidays && holidaysByDate[key] ? (
+                <HolidayBand name={holidaysByDate[key].name} variant="month-cell" />
+              ) : null}
               <div
                 className={`text-xs ${
                   isToday
@@ -430,6 +515,12 @@ function MonthView({
                   </div>
                 ) : null}
               </div>
+              {/* ShiftBadge — absolute bottom-right corner */}
+              {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+                <div className="absolute right-1 bottom-1">
+                  <ShiftBadge count={shiftsByDate[key]!} size="sm" />
+                </div>
+              ) : null}
             </div>
           );
         })}
