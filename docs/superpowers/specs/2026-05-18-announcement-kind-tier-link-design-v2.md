@@ -17,6 +17,22 @@ tags: [spec, announcements, kind, tier, entity-link, v2, locked]
 
 ---
 
+## §0 — Harness Phase Binding
+
+**Botsson Harness Phase:** Phase A.4 (existing `communication` capability extension).
+
+**BOTSSON-SYSTEM-MAP.md row update on ship:**
+- L4 `communication` capability: status 🟢 → 🟢 (no change; extended with new actionType `publish_announcement_atomic`)
+- L5 NEW row: `announcement_meta` sidecar table (status 🟢 on ship)
+- L5 NEW row: `publish_announcement_atomic` RPC (status 🟢 on ship)
+- L5 NEW row: `fn_publish_announcement_notifications` helper (status 🟢 on ship)
+
+**Dependencies:** No 🔴/🟡 component blocks this work. G13 dual-gate divergence is open but V2 picks `gate_action` (correct choice per G13 guidance for AI-initiated writes).
+
+**Phase boundary respect:** No cross-phase scope creep. Stays inside Phase A capability surface; does not touch Phase B (channel registry) or Phase C (mission scheduling).
+
+---
+
 ## §1 — Problem Statement
 
 The Announcements module treats every announcement as an undifferentiated `channel_message` with `message_type='announcement'`. Operators cannot classify kind (new menu, new hire, personaltreff, schedule change, policy update, general, external), cannot link the announcement to a related entity (the staff_event being announced, the shift being changed, the policy being updated), and cannot tier the announcement to drive different notification priorities.
@@ -273,6 +289,7 @@ BEGIN
     action_url,
     metadata,
     allowed_channels
+    -- status defaults to 'pending'; scheduled_for defaults to now()
   )
   SELECT
     p_workspace_id,
@@ -294,6 +311,7 @@ BEGIN
   WHERE cmem.channel_id = p_channel_id
     AND cmem.left_at IS NULL
     AND cmem.profile_id <> p_sender_id                        -- exclude sender from notifications
+    AND NOT cmem.is_muted                                      -- verified 2026-05-16: column exists on channel_member
     AND (
       p_visibility_scope = 'all_members'
       OR p_target_profile_ids @> ARRAY[cmem.profile_id]
@@ -316,7 +334,7 @@ Key implementation notes:
 - `title` + `body` both NOT NULL in `notification_outbox` — first-line split + `LEFT(content, 500)` satisfies both.
 - `EXCEPTION WHEN OTHERS THEN RAISE WARNING` — fan-out failure must NOT rollback the published channel_message. This is a critical load-bearing semantic: notification delivery is a best-effort side-effect; the message itself is the source of truth.
 - Sender excluded: `cmem.profile_id <> p_sender_id` prevents self-notification.
-- `is_muted` filter: if a `is_muted` column exists on `channel_member`, add `AND NOT cmem.is_muted` — verify against actual schema during implementation.
+- `is_muted` filter: **Verified 2026-05-16 (chat-whatsapp Phase 5):** `channel_member.is_muted` boolean + `muted_until` timestamptz both exist. Helper WHERE clause MUST include `AND NOT cmem.is_muted`.
 
 ### §5.2 Main RPC `publish_announcement_atomic`
 
@@ -350,6 +368,15 @@ DECLARE
   v_message_id      uuid;
   v_is_service_role boolean;
 BEGIN
+  -- L-0177 fail-fast: channel must belong to this workspace before any mutation.
+  -- Prevents cross-workspace channel injection via a forged p_channel_id.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.channel
+    WHERE id = p_channel_id AND workspace_id = p_workspace_id
+  ) THEN
+    RAISE EXCEPTION 'CHANNEL_WORKSPACE_MISMATCH: channel % not in workspace %', p_channel_id, p_workspace_id;
+  END IF;
+
   -- Detect service-role bypass (agent server-side actor resolution per ADR-0151).
   v_is_service_role := COALESCE(
     current_setting('request.jwt.claim.role', true) = 'service_role',
@@ -518,6 +545,20 @@ Per smartout-database-guide: dual-policy (JWT + API key) on every workspace-scop
 
 ## §7 — Migration Sequence (M0–M6)
 
+**L-0042 compliance:** All M0-M6 timestamps MUST be strictly greater than current HEAD. As of 2026-05-18 the HEAD is `20260620130100_day_line_back_populate_trigger.sql`. Pick prefixes ≥ `20260620140000_`. Implementer MUST re-verify HEAD at execution time (`ls supabase/migrations/ | tail -3`) — campaign may have advanced. Per L-0042 do NOT use runtime guards to mask ordering bugs; retimestamp instead.
+
+**Concrete timestamp prefixes:**
+
+| Migration | Timestamp prefix | Description |
+|---|---|---|
+| M0 | 20260620140000 | is_manager_in_workspace helper (if not exists) |
+| M1 | 20260620140100 | 3 enums (announcement_kind, announcement_tier, entity_link_type_enum) |
+| M2 | 20260620140200 | announcement_meta sidecar + RLS |
+| M3 | 20260620140300 | fn_publish_announcement_notifications helper |
+| M4 | 20260620140400 | publish_announcement_atomic RPC |
+| M5 | 20260620140500 | channel_message trigger announcement guard |
+| M6 | 20260620140600 | get_channel_messages RPC extended with announcement_meta JOIN |
+
 **Apply order is strict.** M0 helper must exist before M3 (RPC). M1 enums must exist before M2 (table). M2 sidecar must exist before M3 (RPC inserts into it). M4 backfill before M5 (trigger reads sidecar). M6 extends the read RPC (Track C dependency, see §13).
 
 | # | File suffix | Content | Dependency |
@@ -557,6 +598,8 @@ M6 is a Track C migration. Mobile parity testing (§13) is blocked until M6 land
 ---
 
 ## §8 — Capability Tool Update (ADR-0370 + ADR-0371)
+
+> **⚠️ L-0315 LOCK** — callGateAction is POSITIONAL `(supabaseAdmin, workspaceId, actorProfileId, args)`. There is NO `action` callback property. The function evaluates the gate and returns `{allow, reason, ...}`. The caller MUST check `gate.allow` and conditionally invoke the RPC. Any pseudocode using `action: async () => {...}` is wrong — verified against `packages/ai/src/capabilities/communication/gate.ts:52`.
 
 `packages/ai/src/capabilities/communication/publish-announcement.ts`
 
@@ -602,66 +645,79 @@ const PublishAnnouncementInput = z.object({
 **Handler body (key parts):**
 
 ```ts
-// Tier resolution: operator-provided tier OR default-for-kind
-const tierResolved: AnnouncementTier =
-  input.tier ?? DEFAULT_TIER_FOR_KIND[input.kind];
-const tierOverridden: boolean =
-  input.tier != null && input.tier !== DEFAULT_TIER_FOR_KIND[input.kind];
-
-// Pre-concat per ADR-0371: tool receives title+body, RPC receives content
-const content = `${input.title}\n${input.body}`;
-
-if (!input.confirm) {
-  return {
-    draft: {
-      title: input.title,
-      body:  input.body,
-      kind:  input.kind,
-      tier:  tierResolved,
-      tier_overridden: tierOverridden,
-    },
-    audience_preview: await resolveAudience(...),
-    link_preview: input.linked_entity_type
-      ? await resolveLink(input.linked_entity_type, input.linked_entity_id)
-      : null,
-    notification_preview: buildNotificationPreview(tierResolved),
-  };
-}
-
-// ADR-0370 (Option B): capability key = 'communication', actionType = 'publish_announcement_atomic'
-// callGateAction signature (verified at gate.ts:52): positional (supabaseAdmin, workspaceId, actorProfileId, args)
-return await callGateAction(
-  supabaseAdmin,
-  workspaceId,
-  actorProfileId,
-  {
-    capability:  'communication',
-    actionType:  'publish_announcement_atomic',
-    channel:     'chat',      // ADR-0078 — voice rejected upstream at router
-    action: async () => {
-      const { data, error } = await supabaseAdmin.rpc(
-        'publish_announcement_atomic',
-        {
-          p_workspace_id:        workspaceId,
-          p_actor_profile_id:    actorProfileId,
-          p_channel_id:          resolvedChannelId,
-          p_content:             content,
-          p_visibility_scope:    input.visibility_scope,
-          p_target_profile_ids:  input.target_profile_ids ?? null,
-          p_system_data:         {},
-          p_kind:                input.kind,
-          p_tier:                tierResolved,
-          p_tags:                input.tags,
-          p_linked_entity_type:  input.linked_entity_type ?? null,
-          p_linked_entity_id:    input.linked_entity_id ?? null,
-          p_tier_overridden:     tierOverridden,
-        }
-      );
-      if (error) throw new Error(`publish_announcement_atomic failed: ${error.message}`);
-      return { message_id: data };
-    },
+execute: async (params, ctx: AgentToolContext) => {
+  // ADR-0078 Layer 3: voice reject as FIRST statement, BEFORE gate call.
+  // gate_action's channel_allowed only activates with p_engine_process_id;
+  // direct agent calls do NOT pass it.
+  if (ctx.channel === "voice") {
+    return "Announcement publishing is not available over voice. Switch to chat.";
   }
-);
+
+  const supabase = ctx.supabaseAdmin;
+
+  // ADR-0287: gate_action mandatory before any mutation.
+  // Positional signature per packages/ai/src/capabilities/communication/gate.ts:52
+  const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+    capability: "communication",
+    actionType: "publish_announcement_atomic",
+    channel: ctx.channel ?? "chat",
+    entityId: undefined,
+  });
+
+  if (!gate.allow) {
+    const reason = gate.reason ?? "unknown";
+    return `Cannot publish announcement: authority gate denied — ${reason}.`;
+  }
+
+  // ... (channel membership + AI policy + audience resolution unchanged from current code)
+
+  // Tier resolution: operator-provided tier OR default-for-kind
+  const tierResolved: AnnouncementTier =
+    params.tier ?? DEFAULT_TIER_FOR_KIND[params.kind];
+  const tierOverridden: boolean =
+    params.tier != null && params.tier !== DEFAULT_TIER_FOR_KIND[params.kind];
+
+  // Two-call draft/confirm pattern (preserved per ADR-0099 §C4)
+  if (!params.confirm) {
+    return {
+      draft: {
+        title: params.title,
+        body:  params.body,
+        kind:  params.kind,
+        tier:  tierResolved,
+        tier_overridden: tierOverridden,
+      },
+      audience_preview: await resolveAudience(...),
+      link_preview: params.linked_entity_type
+        ? await resolveLink(params.linked_entity_type, params.linked_entity_id)
+        : null,
+      notification_preview: buildNotificationPreview(tierResolved),
+    };
+  }
+
+  // Phase: published — RPC publish_announcement_atomic (atomic per ADR-0369)
+  const content = `${params.title}\n${params.body}`;
+  const clientMessageId = crypto.randomUUID();
+
+  const { data: messageId, error } = await supabase.rpc("publish_announcement_atomic", {
+    p_workspace_id:        ctx.workspaceId,
+    p_actor_profile_id:    ctx.profileId,
+    p_channel_id:          params.channel_id,
+    p_content:             content,
+    p_visibility_scope:    isTargeted ? "targeted_members" : "all_members",
+    p_target_profile_ids:  isTargeted ? resolved.profileIds : [],
+    p_system_data:         { audience_kind: audience.kind, audience_label: resolved.label },
+    p_kind:                params.kind ?? "workspace_news",
+    p_tier:                params.tier ?? "work",
+    p_tags:                params.tags ?? [],
+    p_linked_entity_type:  params.linked_entity_type ?? null,
+    p_linked_entity_id:    params.linked_entity_id ?? null,
+    p_client_message_id:   clientMessageId,
+  });
+
+  if (error) return `Error publishing announcement: ${error.message}`;
+  // ... (telemetry emit + PII-safe return unchanged) ...
+};
 ```
 
 Intent classifier: NO change needed — `'communication'` already in `packages/ai/src/router/intent-classifier.ts:46` capability enum (verified). DOCUMENTED_TOOLLESS at `packages/ai/src/scripts/check-intent-coverage.ts:51-57` validates capability keys only, not actionType strings — NO addition needed.
@@ -680,6 +736,30 @@ All four announcement write-paths must route through `publish_announcement_atomi
 | `packages/ai/src/capabilities/communication/publish-announcement.ts` | callGateAction wrapping direct INSERT | callGateAction wrapping RPC (§8 above) | full new params |
 
 Note: The `send-broadcast-action.ts` path keeps its existing `broadcast.send` gate as defense-in-depth (ADR-0370). The RPC re-checks via `communication` capability + `is_manager_in_workspace`. Both gates fire for manager+ actors — intended redundancy, explicitly documented.
+
+### §9.a Gate Placement Per Path
+
+| Path | Primary Gate | Defense-in-Depth |
+|---|---|---|
+| Agent tool (publish-announcement.ts) | `callGateAction` at L4 (capability) | RPC `assert_capability` at L5 |
+| Web hook `use-send-announcement.ts` | RPC `assert_capability` at L5 (elevated to primary for non-agent paths) | Client-side `useUserRole()` UI gate (advisory only) |
+| Web hook `use-send-broadcast.ts` | RPC `assert_capability` at L5 (same as above) | Same |
+| Day-Control server action `send-broadcast-action.ts` | `broadcast.send` gate at L3 (server action) | RPC `assert_capability` at L5 |
+
+**Justification:** TanStack mutation hooks at L1 cannot meaningfully invoke `gate_action` (no service-role JWT, no SQL-side authority context). Per ADR-0287 + ADR-0099, the SECURITY DEFINER RPC's `assert_capability` is the elevated primary gate for client-initiated paths. Agent path uses L4 callGateAction because the agent has `supabaseAdmin` (service role) and needs the rich `GateActionResult` (allow/reason/downgradeTo) for human-readable rejection messages.
+
+### §9.b Emit Call-Sites Per Path
+
+All 4 paths (agent + 3 web) emit `channel.message.sent` (extended) AFTER successful RPC return. Conditional emit of `announcement.{kind_changed,tier_overridden,link_followed,tag_added}` per user action.
+
+**Shared post-RPC helper:** `packages/ai/src/capabilities/communication/emit-announcement-events.ts` (NEW — Track F) exports `emitAnnouncementPublished({workspace_id, actor_id, message_id, params})`. Called from all 4 paths' onSuccess to deduplicate emit shape.
+
+| Path | Helper invocation |
+|---|---|
+| Agent tool | `await emitAnnouncementPublished(...)` after RPC success |
+| use-send-announcement | `onSuccess: () => emitAnnouncementPublished(...)` |
+| use-send-broadcast | Same |
+| send-broadcast-action | Server-side `await emitAnnouncementPublished(...)` after RPC |
 
 ---
 
@@ -879,6 +959,8 @@ Emit call-site: in `publish-announcement.ts` handler, after successful RPC call,
 
 Emit call-site: `EntityLinkCTA` onClick handler (`useRef` + `useEffect` pattern per L-0177 fail-fast on missing workspace_id/actor_id).
 
+**Mobile emit path (ADR-0134):** Mobile components (`apps/mobile/src/components/news/EntityLinkCTA.tsx`) MUST resolve workspace_id + actor_id via `getProfileContext()` from `apps/mobile/src/lib/profile-context.ts` BEFORE calling `emit()`. Empty-string fallbacks are FORBIDDEN (silently corrupts activity_trail + engine_event routing per ADR-0134). The helper throws on missing IDs — fail-fast.
+
 ### §12.3 New event: `announcement.kind_changed`
 
 ```ts
@@ -947,6 +1029,7 @@ Emit call-site: `onTierChange()` when `tierOverridden === true`.
 | A4 | CHECK constraint `meta_link_pair_consistent` | `INSERT linked_entity_type='staff_event', linked_entity_id=NULL` → constraint violation |
 | A5 | RPC rejects non-manager | Call as employee → `PERMISSION_DENIED` exception |
 | A6 | RPC rejects sender-id spoof | Call with `p_actor_profile_id != auth.uid()` (non-service-role) → `IDENTITY_MISMATCH` |
+| A6b | Service-role bypass | Call `publish_announcement_atomic` with `service_role` JWT + `p_actor_profile_id != auth.uid()` → succeeds. Verifies the IDENTITY_MISMATCH guard's `v_is_service_role` bypass for server-side actor resolution per ADR-0151. Prevents accidental regression of agent path which relies on server-side profile resolution. |
 | A7 | Trigger guard eliminates double fan-out | Insert announcement via RPC → 1 row in `notification_outbox` per eligible recipient |
 | A8 | Social tier → community mode | `notification_outbox.mode = 'community'`, `priority = 0` |
 | A9 | External tier → work mode + email channel | `notification_outbox.mode = 'work'`, `priority = 2`, `allowed_channels @> '{email}'` |
@@ -985,7 +1068,8 @@ Mobile tests cannot run until `get_channel_messages` RPC is extended (M6). After
 - V2 tag-junction — upgrade path preserved, not built
 - V3 per-workspace kind-config — deferred until concrete request
 - `elevated` notification_mode enum value — notifications-module follow-up sortie
-- is_muted filter on channel_member — verify column existence during M5 implementation; add filter if column exists
+- is_muted filter on channel_member — confirmed present (verified 2026-05-16); `AND NOT cmem.is_muted` is already included in §5.1 helper WHERE clause
+- §10.4 inline-create staff_event UX — deferred until `staff_event` capability exists (`grep -rn "createStaffEvent" packages/ai/src/capabilities/` returns 0 hits as of 2026-05-18)
 
 ---
 
@@ -1007,6 +1091,8 @@ All code-trace findings used in this spec are from the dispatch brief. Phase 2.5
 | ✅ `ChannelMessageBubble.tsx:310` mobile mount point | `grep -n "get_channel_messages\|ChannelMessageBubble" apps/mobile/src/components/komm/ChannelMessageBubble.tsx` | Mount at ~line 310 |
 | ⚠️ `announcement_kind` / `announcement_tier` / `announcement_link_type` absent from types | `grep -n "announcement_kind\|announcement_tier\|announcement_link_type" packages/supabase/src/database.types.ts` | 0 results (new enums not yet in DB) |
 | ⚠️ `announcement_meta` absent from types | `grep -n "announcement_meta" packages/supabase/src/database.types.ts` | 0 results (new table not yet in DB) |
+
+| ⚠️ DRIFT `createStaffEvent\|staff_event` capability | `grep -n "createStaffEvent\|staff_event" packages/ai/src/capabilities/` | 0 results — `staff_event` capability does NOT yet exist. §10.4 inline-create staff_event UX is deferred until capability exists (see §14 Out-of-Scope). |
 
 ⚠️ markers indicate expected-missing (new schema not yet applied). All ✅ markers are pre-verified findings from code-trace in the dispatch brief. Any ✅ that returns 0 results or wrong shape = drift, halt implementation, update spec.
 
