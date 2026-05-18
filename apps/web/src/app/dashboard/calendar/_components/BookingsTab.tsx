@@ -1,7 +1,5 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
-import { nb } from "date-fns/locale";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Booking } from "../_lib/types";
@@ -53,7 +51,7 @@ export function BookingsTab({ bookings, onAdd, onOpen }: BookingsTabProps) {
                 <div>
                   <div className="text-foreground text-sm font-semibold">{booking.guest}</div>
                   <div className="text-muted-foreground text-xs">
-                    {format(parseISO(booking.date), "d. MMM yyyy", { locale: nb })} · {booking.time}
+                    {booking.date} · {booking.time}
                   </div>
                 </div>
               </div>
