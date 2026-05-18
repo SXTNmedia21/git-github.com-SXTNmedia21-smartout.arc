@@ -33,7 +33,8 @@ import {
   subWeeks,
 } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -315,18 +316,13 @@ export function CalendarPageShell() {
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="border-border bg-muted/80 mb-5 inline-flex h-auto w-fit gap-1 rounded-xl border p-1">
-              {TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors data-[state=active]:shadow-sm"
-                >
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <PageTabNav
+              tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
+              active={activeTab}
+              onChange={setActiveTab}
+              className="mb-5"
+              ariaLabel="Kalender-seksjoner"
+            />
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
               <AnimatePresence mode="wait" initial={false}>
