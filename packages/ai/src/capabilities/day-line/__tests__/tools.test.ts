@@ -115,7 +115,6 @@ const GATE_DENY = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type MaybeSingleResult = { data: unknown; error: unknown };
-type ListResult = { data: unknown[] | null; error: unknown };
 
 function makeSupabase(opts: {
   /** table → maybeSingle result */
