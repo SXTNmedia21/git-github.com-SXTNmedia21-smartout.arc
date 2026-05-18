@@ -23,27 +23,28 @@ DECLARE
   v_mode       notification_mode;
   v_channels   notification_channel[];
 BEGIN
-  -- Tier → (mode, priority, channels) mapping per V2 spec §4.1.
+  -- Tier → (mode, priority, channels) mapping per V2 spec fixup §5.1 + L-0313.
+  -- in_app added to all tiers (L-0313: in_app enum added specifically for announcement use).
   -- Uses ONLY existing notification_mode values: community/work (no 'social' or 'elevated' added).
   -- external tier reuses 'work' mode + priority=2 + email channel (ADR-0369 §4.1).
   CASE p_tier
     WHEN 'social'   THEN
       v_priority := 0;
       v_mode     := 'community';
-      v_channels := ARRAY['push']::notification_channel[];
+      v_channels := ARRAY['push', 'in_app']::notification_channel[];
     WHEN 'work'     THEN
       v_priority := 1;
       v_mode     := 'work';
-      v_channels := ARRAY['push']::notification_channel[];
+      v_channels := ARRAY['push', 'in_app']::notification_channel[];
     WHEN 'external' THEN
       v_priority := 2;
       v_mode     := 'work';
-      v_channels := ARRAY['push', 'email']::notification_channel[];
+      v_channels := ARRAY['push', 'in_app', 'email']::notification_channel[];
     ELSE
       -- Safe default: work mode if new tier value added in future without updating this function.
       v_priority := 1;
       v_mode     := 'work';
-      v_channels := ARRAY['push']::notification_channel[];
+      v_channels := ARRAY['push', 'in_app']::notification_channel[];
   END CASE;
 
   INSERT INTO public.notification_outbox (
