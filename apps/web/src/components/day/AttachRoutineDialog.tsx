@@ -125,24 +125,21 @@ export function AttachRoutineDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         data-testid="attach-routine-dialog"
-        className="border border-border bg-background sm:max-w-sm"
+        className="border-border bg-background border sm:max-w-sm"
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <Sparkles className="text-muted-foreground h-4 w-4" />
             Legg til rutine
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-muted-foreground text-sm">
             Velg en mal for å legge til oppgaver på denne dagslinjen.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label
-              htmlFor="template-picker"
-              className="text-sm font-medium text-foreground"
-            >
+            <Label htmlFor="template-picker" className="text-foreground text-sm font-medium">
               Mal
             </Label>
             <Select
@@ -160,8 +157,8 @@ export function AttachRoutineDialog({
                     templatesLoading
                       ? "Laster maler…"
                       : templates.length === 0
-                      ? "Ingen maler for dette området"
-                      : "Velg mal"
+                        ? "Ingen maler for dette området"
+                        : "Velg mal"
                   }
                 />
               </SelectTrigger>
@@ -173,13 +170,13 @@ export function AttachRoutineDialog({
                     className="text-foreground focus:bg-muted"
                   >
                     <span>{tpl.name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="text-muted-foreground ml-2 text-xs">
                       ({getItemCount(tpl)} oppgaver)
                     </span>
                   </SelectItem>
                 ))}
                 {!templatesLoading && templates.length === 0 && (
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  <div className="text-muted-foreground px-2 py-3 text-center text-xs">
                     Ingen maler for dette området
                   </div>
                 )}
@@ -190,7 +187,7 @@ export function AttachRoutineDialog({
           {selectedTemplate && (
             <div
               data-testid="template-preview"
-              className="rounded-lg border border-border bg-muted px-3.5 py-3 text-sm text-foreground"
+              className="border-border bg-muted text-foreground rounded-lg border px-3.5 py-3 text-sm"
             >
               <span className="font-medium">{taskCount}</span>{" "}
               {taskCount === 1 ? "oppgave" : "oppgaver"} vil bli lagt til
@@ -211,7 +208,7 @@ export function AttachRoutineDialog({
             onClick={() => mutation.mutate()}
             disabled={!canSubmit}
             data-testid="attach-routine-submit"
-            className="bg-background border border-border text-foreground hover:bg-muted"
+            className="bg-background border-border text-foreground hover:bg-muted border"
           >
             {mutation.isPending ? "Legger til…" : "Legg til rutine"}
           </Button>

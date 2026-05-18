@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -137,7 +137,7 @@ const brandTextVariant = {
   },
 };
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const routerRef = useRef(router);
   const searchParams = useSearchParams();
@@ -940,5 +940,13 @@ export default function LoginPage() {
         </motion.div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-[oklch(0.99_0.004_60)]" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

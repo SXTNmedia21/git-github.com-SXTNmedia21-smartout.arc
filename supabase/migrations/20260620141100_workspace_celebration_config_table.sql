@@ -14,7 +14,7 @@
 
 -- ── 1. workspace_celebration_config table ────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS public.workspace_celebration_config (
+CREATE TABLE public.workspace_celebration_config (
   workspace_id              uuid        PRIMARY KEY
                                         REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   auto_celebrate_birthdays  boolean     NOT NULL DEFAULT true,

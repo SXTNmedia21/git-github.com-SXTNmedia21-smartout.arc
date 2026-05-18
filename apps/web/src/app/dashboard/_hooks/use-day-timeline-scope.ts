@@ -75,10 +75,7 @@ function hasAnySelection(sel: ScopeSelection): boolean {
   return sel.departmentIds.length > 0 || sel.locationIds.length > 0 || sel.shiftIds.length > 0;
 }
 
-function applySelectionToParams(
-  params: URLSearchParams,
-  sel: ScopeSelection,
-): void {
+function applySelectionToParams(params: URLSearchParams, sel: ScopeSelection): void {
   if (sel.departmentIds.length > 0) {
     params.set(PARAM_DEPT, sel.departmentIds.join(","));
   } else {

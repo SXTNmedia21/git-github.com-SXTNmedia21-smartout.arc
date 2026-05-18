@@ -22,13 +22,7 @@ import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,10 +48,7 @@ type LocationOption = { location_id: string; name: string };
  * Joins department_location → location to produce a name-labelled list.
  * Enabled only when workspaceId + departmentId are available.
  */
-function useDepartmentLocations(
-  workspaceId: string | null | undefined,
-  departmentId: string,
-) {
+function useDepartmentLocations(workspaceId: string | null | undefined, departmentId: string) {
   return useQuery({
     queryKey: ["department-locations", workspaceId ?? "", departmentId],
     enabled: !!workspaceId && !!departmentId,
@@ -151,26 +142,31 @@ export function DayLineCreateSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
       <SheetContent
         side="right"
         data-testid="day-line-create-sheet"
-        className="flex flex-col gap-0 bg-background border-l border-border w-[380px] sm:w-[420px]"
+        className="bg-background border-border flex w-[380px] flex-col gap-0 border-l sm:w-[420px]"
       >
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <SheetTitle className="flex items-center gap-2 text-foreground">
-            <PlusCircle className="h-4 w-4 text-muted-foreground" />
+        <SheetHeader className="border-border border-b px-6 pt-6 pb-4">
+          <SheetTitle className="text-foreground flex items-center gap-2">
+            <PlusCircle className="text-muted-foreground h-4 w-4" />
             Ny dagslinje
           </SheetTitle>
         </SheetHeader>
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-5 flex-1 overflow-y-auto px-6 py-5"
+          className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5"
         >
           {/* Location picker */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="location-picker" className="text-sm text-foreground">
+            <Label htmlFor="location-picker" className="text-foreground text-sm">
               Område
             </Label>
             <Select
@@ -188,8 +184,8 @@ export function DayLineCreateSheet({
                     loadingLocations
                       ? "Laster…"
                       : locations.length === 0
-                      ? "Ingen områder tilgjengelig"
-                      : "Velg område"
+                        ? "Ingen områder tilgjengelig"
+                        : "Velg område"
                   }
                 />
               </SelectTrigger>
@@ -205,7 +201,7 @@ export function DayLineCreateSheet({
 
           {/* Notes */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="day-line-notes" className="text-sm text-foreground">
+            <Label htmlFor="day-line-notes" className="text-foreground text-sm">
               Notater
             </Label>
             <Textarea
@@ -218,13 +214,11 @@ export function DayLineCreateSheet({
               placeholder="Valgfrie notater for denne dagslinjen…"
               className="bg-background border-border text-foreground resize-none"
             />
-            <span className="text-xs text-muted-foreground text-right">
-              {notes.length} / 2000
-            </span>
+            <span className="text-muted-foreground text-right text-xs">{notes.length} / 2000</span>
           </div>
         </form>
 
-        <SheetFooter className="px-6 py-4 border-t border-border flex gap-2 justify-end">
+        <SheetFooter className="border-border flex justify-end gap-2 border-t px-6 py-4">
           <Button
             type="button"
             variant="ghost"
@@ -239,7 +233,7 @@ export function DayLineCreateSheet({
             data-testid="create-day-line-submit"
             disabled={mutation.isPending || !locationId}
             onClick={handleSubmit}
-            className="bg-background border border-border text-foreground hover:bg-muted"
+            className="bg-background border-border text-foreground hover:bg-muted border"
           >
             {mutation.isPending ? "Oppretter…" : "Opprett"}
           </Button>
