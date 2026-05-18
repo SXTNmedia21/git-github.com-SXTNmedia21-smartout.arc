@@ -80,11 +80,34 @@ async function fetchDayLines(
 
   if (error) throw new Error(error.message);
 
+  // PostgREST embedded-resource select returns GenericStringError in inferred
+  // type when joins are present — cast via unknown to the shape we know is real.
+  type RawRow = {
+    day_line_id: string;
+    workspace_id: string;
+    department_session_id: string | null;
+    department_id: string;
+    location_id: string;
+    business_date: string;
+    planned_open: string;
+    planned_close: string;
+    source_template_id: string | null;
+    notes: string | null;
+    cancelled_at: string | null;
+    is_backfilled: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+    location: { name: string } | null;
+    department: { name: string } | null;
+  };
+  const rows = (data ?? []) as unknown as RawRow[];
+
   // Flatten joined relation objects into flat DayLineRow fields.
-  return (data ?? [])
+  return rows
     .map((row) => {
-      const loc = row.location as { name: string } | null;
-      const dept = row.department as { name: string } | null;
+      const loc = row.location;
+      const dept = row.department;
       return {
         day_line_id: row.day_line_id,
         workspace_id: row.workspace_id,
