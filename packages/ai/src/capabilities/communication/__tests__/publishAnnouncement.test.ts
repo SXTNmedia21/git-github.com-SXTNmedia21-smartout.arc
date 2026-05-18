@@ -361,6 +361,48 @@ describe("publishAnnouncement — capability tool", () => {
     expect(result).not.toContain("00000000-0000-0000-0000-000000000010");
   });
 
+  it("TC-6 (kind=celebration blocked): Zod parse fails before execute — no gate, no INSERT", async () => {
+    // celebration is service-role-only (ADR-0372 §Agent Impact). Agents must not use it.
+    // The Zod schema must reject it so the RPC never gets the chance to return
+    // CELEBRATION_SERVICE_ROLE_ONLY. Zod rejection happens before execute() is called.
+    const result = publishAnnouncement.schema.safeParse({
+      channel_id: CHANNEL_ID,
+      title: "Test",
+      body: "Test body",
+      audience_kind: "all",
+      kind: "celebration",
+      confirm: false,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Confirm the error is on the 'kind' field
+      const kindError = result.error.issues.find((i) => i.path.includes("kind"));
+      expect(kindError).toBeDefined();
+    }
+    // No gate, no INSERT — Zod rejection means execute() is never reached.
+    expect(callGateAction).not.toHaveBeenCalled();
+  });
+
+  it("TC-7 (kind=system_message blocked): Zod parse fails before execute — no gate, no INSERT", async () => {
+    // system_message is service-role-only (reserved for platform ops). Same protection as TC-6.
+    const result = publishAnnouncement.schema.safeParse({
+      channel_id: CHANNEL_ID,
+      title: "System notice",
+      body: "Mandatory ops notice",
+      audience_kind: "all",
+      kind: "system_message",
+      confirm: false,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const kindError = result.error.issues.find((i) => i.path.includes("kind"));
+      expect(kindError).toBeDefined();
+    }
+    expect(callGateAction).not.toHaveBeenCalled();
+  });
+
   it("TC-5 (audience=0): resolves to 0 recipients → descriptive error, no INSERT", async () => {
     vi.mocked(resolveAudience).mockResolvedValueOnce({
       profileIds: [],

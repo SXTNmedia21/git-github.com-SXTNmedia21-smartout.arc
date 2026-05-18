@@ -78,8 +78,8 @@ export function useSendBroadcast() {
         p_kind: "general",
         p_tier: "work",
         p_tags: [],
-        p_linked_entity_type: null,
-        p_linked_entity_id: null,
+        p_linked_entity_type: undefined,
+        p_linked_entity_id: undefined,
         p_client_message_id: crypto.randomUUID(),
       });
 

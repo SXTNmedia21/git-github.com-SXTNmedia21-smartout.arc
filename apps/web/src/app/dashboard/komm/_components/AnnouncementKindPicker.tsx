@@ -80,6 +80,12 @@ export const ALLOWED_LINK_TYPES: Record<AnnouncementKind, AnnouncementLinkedEnti
   system_message: null, // CHECK: ELSE false — no link
 };
 
+// NOTE: celebration and system_message are intentionally excluded from GROUPS.
+// Both kinds are service-role only: celebration is cron-auto-published (ADR-0372),
+// system_message is reserved for platform ops. JWT callers (managers) receive
+// CELEBRATION_SERVICE_ROLE_ONLY / PERMISSION_DENIED from the RPC — removing them
+// from the picker prevents the UX trap. Both remain in AnnouncementKind type union
+// so mobile can render them as read-only badges on incoming auto-published messages.
 const GROUPS = [
   {
     labelKey: "nyheter.kind.group_general" as const,
@@ -87,11 +93,11 @@ const GROUPS = [
   },
   {
     labelKey: "nyheter.kind.group_people" as const,
-    kinds: ["new_hire", "celebration"] as AnnouncementKind[],
+    kinds: ["new_hire"] as AnnouncementKind[],
   },
   {
     labelKey: "nyheter.kind.group_operations" as const,
-    kinds: ["staff_event", "schedule_change", "system_message"] as AnnouncementKind[],
+    kinds: ["staff_event", "schedule_change"] as AnnouncementKind[],
   },
   {
     labelKey: "nyheter.kind.group_documents" as const,
@@ -139,7 +145,7 @@ export function AnnouncementKindPicker({
 
   return (
     <Select value={value} onValueChange={handleChange}>
-      <SelectTrigger className="w-full">
+      <SelectTrigger className="w-full" data-testid="announcement-kind-picker">
         <SelectValue placeholder={t("nyheter.kind.placeholder")} />
       </SelectTrigger>
       <SelectContent>

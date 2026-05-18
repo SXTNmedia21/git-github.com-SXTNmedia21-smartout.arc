@@ -39,11 +39,12 @@ export const publishAnnouncement = defineTool({
     "audience preview for human confirmation; second call with confirm=true publishes " +
     "the announcement via RPC (publish_announcement_atomic). Voice channel is rejected. " +
     "Audience resolution is server-side; raw profile IDs are never returned to the agent. " +
-    "V2: accepts kind (9 DB-canonical values: general|new_menu|new_hire|staff_event|" +
-    "schedule_change|policy_update|external|celebration|system_message), " +
+    "V2: accepts kind (7 agent-valid values: general|new_menu|new_hire|staff_event|" +
+    "schedule_change|policy_update|external), " +
     "tier (social|work|external), optional tags, and optional entity-link pair (type+id). " +
-    "Choose kind by intent: celebration for birthdays/anniversaries, system_message for mandatory ops, " +
-    "general as default (was workspace_news — use general). " +
+    "NOTE: celebration and system_message are service-role-only — the RPC rejects JWT callers " +
+    "for those kinds (ADR-0372 §Agent Impact). Agents must NOT use them. " +
+    "Choose kind by intent: general as default (was workspace_news — use general). " +
     "Choose tier by urgency: external for urgent (emails sent), " +
     "work for standard, social for low-key community.",
   capability: "communication",
@@ -83,18 +84,15 @@ export const publishAnnouncement = defineTool({
           "schedule_change",
           "policy_update",
           "external",
-          "celebration",
-          "system_message",
         ])
         .optional()
         .describe(
-          "Announcement classification — DB-canonical 9-value enum (announcement_kind). " +
+          "Announcement classification — 7 agent-valid values from DB enum announcement_kind. " +
             "general: default news/updates (maps former workspace_news). " +
             "new_menu: menu updates. new_hire: new employee announcement. " +
             "staff_event: personaltreff/gathering. schedule_change: shift/schedule updates. " +
             "policy_update: policy or rule changes. external: URL/external resource link (maps former external_link). " +
-            "celebration: birthday/anniversary/milestone (ADR-0372). " +
-            "system_message: mandatory operational communication. " +
+            "EXCLUDED (service-role only, RPC rejects JWT): celebration (ADR-0372 cron-auto), system_message. " +
             "Defaults to 'general' when omitted.",
         ),
       tier: z

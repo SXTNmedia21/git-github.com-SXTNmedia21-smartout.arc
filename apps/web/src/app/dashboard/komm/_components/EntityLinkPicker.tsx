@@ -77,7 +77,17 @@ const TYPE_GROUPS = [
 
 type SearchResult = { id: string; label: string };
 
-/** Typed switch for entity searches — avoids dynamic table name TS errors. */
+/**
+ * Typed switch for entity searches.
+ *
+ * PKs and selectable columns verified against database.types.ts:
+ *   staff_event    → event_id, title
+ *   schedule_shift → schedule_shift_id, shift_date, role
+ *   policy         → policy_id, name
+ *   protocol       → protocol_id, name, version
+ *   profile        → profile_id, display_name
+ *   menu_document  → table absent from DB types (V1 stub — returns empty)
+ */
 async function queryEntities(
   supabase: ReturnType<typeof createClient>,
   type: Exclude<AnnouncementLinkedEntityType, "external_url">,
@@ -89,66 +99,63 @@ async function queryEntities(
     case "staff_event": {
       const { data, error } = await supabase
         .from("staff_event")
-        .select("id, name")
+        .select("event_id, title")
         .eq("workspace_id", workspaceId)
-        .ilike("name", ilike)
+        .ilike("title", ilike)
         .limit(20);
       if (error) throw error;
-      return (data ?? []).map((r) => ({ id: r.id, label: r.name ?? r.id }));
+      return (data ?? []).map((r) => ({ id: r.event_id, label: r.title ?? r.event_id }));
     }
     case "schedule_shift": {
       const { data, error } = await supabase
         .from("schedule_shift")
-        .select("id, start_time, position")
+        .select("schedule_shift_id, shift_date, role")
         .eq("workspace_id", workspaceId)
         .limit(20);
       if (error) throw error;
       return (data ?? []).map((r) => ({
-        id: r.id,
-        label: r.position
-          ? `${r.position} — ${new Date(r.start_time).toLocaleDateString("nb-NO")}`
-          : r.id,
+        id: r.schedule_shift_id,
+        label: r.role ? `${r.shift_date} · ${r.role}` : (r.shift_date ?? r.schedule_shift_id),
       }));
     }
     case "policy": {
       const { data, error } = await supabase
         .from("policy")
-        .select("id, name")
+        .select("policy_id, name")
         .eq("workspace_id", workspaceId)
         .ilike("name", ilike)
         .limit(20);
       if (error) throw error;
-      return (data ?? []).map((r) => ({ id: r.id, label: r.name ?? r.id }));
+      return (data ?? []).map((r) => ({ id: r.policy_id, label: r.name ?? r.policy_id }));
     }
     case "protocol": {
       const { data, error } = await supabase
         .from("protocol")
-        .select("id, name")
+        .select("protocol_id, name, version")
         .eq("workspace_id", workspaceId)
         .ilike("name", ilike)
         .limit(20);
       if (error) throw error;
-      return (data ?? []).map((r) => ({ id: r.id, label: r.name ?? r.id }));
+      return (data ?? []).map((r) => ({
+        id: r.protocol_id,
+        label: r.version ? `${r.name ?? r.protocol_id} v${r.version}` : (r.name ?? r.protocol_id),
+      }));
     }
     case "profile": {
       const { data, error } = await supabase
         .from("profile")
-        .select("id, display_name")
+        .select("profile_id, display_name")
         .eq("workspace_id", workspaceId)
         .ilike("display_name", ilike)
         .limit(20);
       if (error) throw error;
-      return (data ?? []).map((r) => ({ id: r.id, label: r.display_name ?? r.id }));
+      return (data ?? []).map((r) => ({ id: r.profile_id, label: r.display_name ?? r.profile_id }));
     }
     case "menu_document": {
-      const { data, error } = await supabase
-        .from("menu_document")
-        .select("id, name")
-        .eq("workspace_id", workspaceId)
-        .ilike("name", ilike)
-        .limit(20);
-      if (error) throw error;
-      return (data ?? []).map((r) => ({ id: r.id, label: r.name ?? r.id }));
+      // menu_document table does not exist in database.types.ts (V1 — not yet modelled).
+      // Return empty set so the picker shows "no results" rather than a runtime TS error.
+      // TODO: wire to actual table once menu_document is added to the schema.
+      return Promise.resolve([]);
     }
   }
 }
@@ -259,7 +266,7 @@ function EntityLinkPickerInner({
       : (value?.id ?? "");
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-testid="entity-link-picker">
       <Label className="text-sm font-medium">{t("nyheter.link.label")}</Label>
 
       <div className="flex items-center gap-2">
