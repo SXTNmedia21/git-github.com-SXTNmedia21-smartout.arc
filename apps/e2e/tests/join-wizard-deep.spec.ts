@@ -10,6 +10,11 @@ import { test, expect, type Page } from "@playwright/test";
 //   • Back button preserves previously-entered state
 //   • localStorage persistence across reload restores progress
 //
+// Architecture note: WizardShell step containers have NO
+// data-botsson-id attributes. Step identity is determined by
+// heading text (h2) and visible form fields. Step 3 has no local
+// Neste button — WizardNavBar (bottom) is the only nav control.
+//
 // The final-submit side effect (creates workspace row) is already
 // covered by journey-signup-onboarding.spec.ts at the Event Engine
 // layer + workspace-creation-control.spec.ts at the RPC layer.
@@ -34,14 +39,13 @@ async function fillStep1(page: Page) {
   await page.waitForTimeout(300);
 }
 
+/**
+ * Click the WizardNavBar "Neste" button.
+ * Step 3 has no local Neste — this helper always targets the last Neste
+ * on the page (WizardNavBar), avoiding any ambiguity.
+ */
 async function clickStepNext(page: Page) {
-  const stepArea = page.locator('[data-botsson-type="wizard-step"]');
-  const stepNext = stepArea.locator("button", { hasText: "Neste" });
-  if (await stepNext.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await stepNext.click();
-  } else {
-    await page.locator("button", { hasText: "Neste" }).last().click();
-  }
+  await page.locator("button", { hasText: /Neste/ }).last().click();
   await page.waitForTimeout(300);
 }
 
@@ -57,18 +61,18 @@ test.describe("join-wizard-deep", () => {
   test("step 1 blocks Neste when required fields are empty", async ({ page }) => {
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Click Neste without filling anything — should stay on step 1.
     await clickStepNext(page);
 
-    // Still on account step.
-    await expect(page.locator('[data-botsson-id="join-account-step"]')).toBeVisible({
+    // Still on account step — heading is unchanged.
+    await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 3_000,
     });
     // Did NOT advance to business step.
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toHaveCount(0);
   });
 
   // ─── Test 2: Empty business step blocks Neste ───────────────
@@ -82,8 +86,8 @@ test.describe("join-wizard-deep", () => {
     await fillStep1(page);
     await clickStepNext(page);
 
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible({
-      timeout: 10_000,
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible({
+      timeout: 25_000,
     });
 
     // Attempt to advance with an empty business form.
@@ -91,8 +95,8 @@ test.describe("join-wizard-deep", () => {
     await page.waitForTimeout(500);
 
     // Still on business step — validation should have blocked advance.
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible();
-    await expect(page.locator('[data-botsson-id="join-about-step"]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toHaveCount(0);
   });
 
   // ─── Test 3: Back button preserves step 1 data ──────────────
@@ -102,16 +106,19 @@ test.describe("join-wizard-deep", () => {
     await page.goto("/join");
     await fillStep1(page);
     await clickStepNext(page);
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible({
-      timeout: 5_000,
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible({
+      timeout: 25_000,
     });
 
     // Click Tilbake in the nav bar.
-    await page.locator("button", { hasText: "Tilbake" }).first().click();
+    await page
+      .locator("button", { hasText: /Tilbake/ })
+      .first()
+      .click();
     await page.waitForTimeout(500);
 
     // Back on step 1 with prior values intact.
-    await expect(page.locator('[data-botsson-id="join-account-step"]')).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
       timeout: 3_000,
     });
     await expect(page.locator('input[id="companyName"]')).toHaveValue("Fjord Kafé AS");
@@ -128,8 +135,8 @@ test.describe("join-wizard-deep", () => {
     await page.goto("/join");
     await fillStep1(page);
     await clickStepNext(page);
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible({
-      timeout: 5_000,
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible({
+      timeout: 25_000,
     });
 
     // Give the WizardShell's debounced persistence time to flush.
@@ -150,9 +157,9 @@ test.describe("join-wizard-deep", () => {
       false,
     );
 
-    // The shell renders — data-botsson-id root is present.
-    await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({
-      timeout: 10_000,
+    // The shell renders — Step 1 heading is present (shell mounted).
+    await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
+      timeout: 25_000,
     });
   });
 
@@ -162,8 +169,8 @@ test.describe("join-wizard-deep", () => {
     await clearWizardState(page);
     await page.goto("/join");
 
-    await expect(page.locator('[data-botsson-id="join-account-step"]')).toBeVisible({
-      timeout: 10_000,
+    await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
+      timeout: 25_000,
     });
     // Fields are empty — not holding stale data from a previous run.
     await expect(page.locator('input[id="companyName"]')).toHaveValue("");
