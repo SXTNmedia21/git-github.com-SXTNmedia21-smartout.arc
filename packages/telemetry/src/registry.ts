@@ -4183,6 +4183,11 @@ export interface ChannelMessageSent extends BaseEvent {
     target_profile_count?: number;
     notification_priority?: number;
     notification_mode?: string;
+    // V2 extensions — kind/tier/link/tags (Track D)
+    announcement_kind?: string;
+    announcement_tier?: string;
+    has_entity_link?: boolean;
+    tag_count?: number;
   };
   entity: EntityRef;
 }
