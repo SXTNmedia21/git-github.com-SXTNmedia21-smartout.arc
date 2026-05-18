@@ -22,6 +22,8 @@
     "komm-nyheter/**/*.ts",
     "dagslinjen-quickadd/**/*.ts",
     "schedule/**/*.ts",
+    "specs/**/*.ts",
+    "db/helpers/**/*.ts",
     "playwright.config.ts",
     "global-setup.ts"
   ],

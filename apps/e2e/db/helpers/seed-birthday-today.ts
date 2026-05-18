@@ -59,7 +59,6 @@ export async function seedBirthdayToday(): Promise<SeedResult> {
     [BIRTHDAY_OPTOUT_USER_ID, "birthday-optout@test.smartout.ai"],
   ] as [string, string][]) {
     const { error } = await db.auth.admin.createUser({
-      // @ts-expect-error — Supabase local admin API supports id override
       id: userId,
       email,
       password: "test-pw-only",
@@ -76,23 +75,25 @@ export async function seedBirthdayToday(): Promise<SeedResult> {
   await db.from("user_identity").upsert(
     [
       {
-        id: BIRTHDAY_SUBJECT_USER_ID,
+        user_id: BIRTHDAY_SUBJECT_USER_ID,
         date_of_birth: todayIso,
         email: "birthday-subject@test.smartout.ai",
         preferred_language: "no",
         timezone: "Europe/Oslo",
-        full_name: "Birthday Subject",
+        first_name: "Birthday",
+        last_name: "Subject",
       },
       {
-        id: BIRTHDAY_OPTOUT_USER_ID,
+        user_id: BIRTHDAY_OPTOUT_USER_ID,
         date_of_birth: todayIso,
         email: "birthday-optout@test.smartout.ai",
         preferred_language: "no",
         timezone: "Europe/Oslo",
-        full_name: "Birthday Optout",
+        first_name: "Birthday",
+        last_name: "Optout",
       },
     ],
-    { onConflict: "id" },
+    { onConflict: "user_id" },
   );
 
   // ── 3. Upsert profile rows ─────────────────────────────────────────────────
@@ -103,6 +104,8 @@ export async function seedBirthdayToday(): Promise<SeedResult> {
         workspace_id: TEST_WORKSPACE_ID,
         user_id: BIRTHDAY_SUBJECT_USER_ID,
         display_name: "Birthday Subject",
+        // profile_code: deterministic short code derived from profile_id prefix
+        profile_code: "BDAY-SUBJ",
         role: "employee",
         status: "active",
         // notification_pref is NULL → default opt-in (celebrate_birthday absent = true)
@@ -113,6 +116,8 @@ export async function seedBirthdayToday(): Promise<SeedResult> {
         workspace_id: TEST_WORKSPACE_ID,
         user_id: BIRTHDAY_OPTOUT_USER_ID,
         display_name: "Birthday Optout",
+        // profile_code: deterministic short code derived from profile_id prefix
+        profile_code: "BDAY-OPTOUT",
         role: "employee",
         status: "active",
         // Explicit opt-out via ADR-0372 Q4 fallback JSONB key

@@ -64,7 +64,12 @@ export function AnnouncementTierPicker({
   }
 
   return (
-    <div className="flex gap-2" role="group" aria-label={t("nyheter.tier.label")}>
+    <div
+      className="flex gap-2"
+      role="group"
+      aria-label={t("nyheter.tier.label")}
+      data-testid="announcement-tier-picker"
+    >
       {TIERS.map((tier) => {
         const isActive = value === tier;
         return (
@@ -72,6 +77,7 @@ export function AnnouncementTierPicker({
             key={tier}
             type="button"
             onClick={() => handleSelect(tier)}
+            data-testid={`announcement-tier-${tier}`}
             className={cn(
               "flex flex-1 flex-col items-center gap-0.5 rounded-md border px-3 py-2 text-sm transition-colors",
               isActive
