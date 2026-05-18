@@ -36,6 +36,11 @@
               "scheme": "https",
               "host": "app.smartout.ai",
               "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "app.smartout.ai",
+              "pathPrefix": "/m/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

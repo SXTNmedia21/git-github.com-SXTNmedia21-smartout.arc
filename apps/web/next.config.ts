@@ -184,6 +184,30 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    // Universal-Link / App-Link discovery files.
+    // Apple requires `apple-app-site-association` (NO extension) served as
+    // `application/json` — Vercel defaults to `application/octet-stream` for
+    // unknown extensions, which Apple rejects. `assetlinks.json` already gets
+    // the right MIME via its extension but we set it explicitly for parity.
+    // Per docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §4.4-4.5.
+    return [
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+    ];
+  },
   typescript: {
     // SMA-353 / ADR-0019: re-enabled. Production build must fail on type
     // errors — the prior `ignoreBuildErrors: true` (2026-05-04 first-rollout

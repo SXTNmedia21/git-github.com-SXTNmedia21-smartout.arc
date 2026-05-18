@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ai.smartout.mobile",
+      "sha256_cert_fingerprints": [
+        "PLACEHOLDER_RELEASE_SHA256_FROM_PLAY_CONSOLE_APP_INTEGRITY",
+        "PLACEHOLDER_DEBUG_SHA256_FOR_TESTER_BUILDS"
+      ]
+    }
+  }
+]

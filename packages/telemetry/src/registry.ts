@@ -349,6 +349,32 @@ export interface AuthPasswordResetCompleted extends BaseEvent {
   };
 }
 
+// Mobile auth Universal-Link bridge — fires from the `/m/*` web bridge routes
+// when a non-installer (desktop browser, or mobile without app installed) lands
+// on a Universal-Link target. Lets us measure cross-device drop-off
+// (email-on-desktop → bridge → fallback vs Universal-Link → app native).
+//
+// When app IS installed, the OS intercepts the URL before any web render runs —
+// no `bridge_relayed` fires. So the absence of this event for a given session
+// indicates successful app-intent capture.
+export interface AuthBridgeRelayed extends BaseEvent {
+  event: "auth bridge_relayed";
+  properties: {
+    data: {
+      surface:
+        | "oauth_callback"
+        | "invite_callback"
+        | "update_password"
+        | "confirm_email"
+        | "invite_token";
+      // True if the bridge fired the scheme-URL relay before the fallback
+      // HTML renders (best-effort — we cannot detect whether the OS intent
+      // actually opened the app, only whether we attempted the relay).
+      relay_attempted: boolean;
+    };
+  };
+}
+
 // ─── Navigation / UI Rules ──────────────────────
 export interface PageViewed extends BaseEvent {
   event: "page viewed";
@@ -8190,6 +8216,7 @@ export type SmartoutEvent =
   | LoginCodeSent
   | AuthPasswordResetRequested
   | AuthPasswordResetCompleted
+  | AuthBridgeRelayed
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -11928,6 +11955,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
   "auth password_reset_completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
+  // emit sites: apps/web/src/app/m/{auth/callback,invite/callback,invite/[token],update-password,confirm-email}/page.tsx
+  // Pre-auth visitor event — no actor_id yet. Skip activity_trail (ADR-0134 NOT NULL invariant).
+  "auth bridge_relayed": {
+    destinations: ["posthog", "logger"],
     category: "auth",
   },
   // ─── Security ─────────────────────────────────

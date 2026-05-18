@@ -511,5 +511,14 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Excluded from middleware:
+  //   - _next/{static,image} — Next internals
+  //   - favicon + common image extensions
+  //   - .well-known/* — Universal-Link / App-Link discovery files MUST be
+  //     served verbatim with exact MIME (apple-app-site-association rejected
+  //     by Apple if middleware mutates response). Per
+  //     docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §4.4-4.5.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
