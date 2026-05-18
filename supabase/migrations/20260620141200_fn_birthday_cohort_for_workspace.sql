@@ -41,7 +41,7 @@ BEGIN
     p.display_name
   FROM public.profile p
   JOIN public.user_identity ui
-    ON ui.id = p.user_id
+    ON ui.user_id = p.user_id
   WHERE
     -- Workspace scope (Law 1).
     p.workspace_id = p_workspace_id
