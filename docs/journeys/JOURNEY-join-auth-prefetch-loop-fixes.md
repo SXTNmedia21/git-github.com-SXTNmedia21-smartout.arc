@@ -76,3 +76,17 @@ Three repaired flows on the public `/join` wizard. Each journey lists the live (
 
 **Pre-fix failure:**
 - Server saw cookie A1+R1; called `getUser()` → triggered server refresh of R1 → but R1 was already consumed by the client → `400 refresh_token_already_used` → fallback to stale `_accessToken=A1` → `admin.auth.getUser(A1)` returned null (expired) → throw `Not authenticated` → **500 to user**.
+
+---
+
+## Known residual: multi-tab concurrent rotation
+
+Per Track A architecture review (2026-05-18): when two browser tabs run
+the Supabase client side-by-side and both attempt refresh within the same
+~millisecond window (one tab refreshes; the second tab grabs R1 from
+cookies before R1 is invalidated), the second tab can hit
+`refresh_token_already_used`. The mitigation pattern in ADR-0357 covers
+the single-tab Server Action handoff which was the production failure
+mode. Multi-tab edge case is left as a documented residual; if it surfaces
+in support tickets, follow up with explicit `_acquireLock` or `lockManager`
+options on `createBrowserClient`.

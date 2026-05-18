@@ -101,16 +101,20 @@ async function onComplete(state: JoinState): Promise<void> {
     intelligence: state.intelligence,
   };
 
-  // Force a client-side session sync so cookies handed to the Server Action
-  // are the freshest version (Supabase rotates refresh tokens — a stale
-  // refresh token in cookies causes `refresh_token_already_used` on the
-  // server during getUser()). Touching getSession() triggers refresh if
-  // needed and persists the new tokens to cookies before the RSC POST.
+  // Force a client-side session sync so the cookies the Server Action sees
+  // are the freshest version. getSession() triggers a refresh when the
+  // access token has expired; getUser() then forces a verified roundtrip
+  // against the auth server so any pending rotation is committed to
+  // cookies BEFORE the RSC POST serializes its Cookie header. Without
+  // this two-step the server would itself try to refresh and race the
+  // client → `refresh_token_already_used` (prod 500 on 2026-05-18).
   try {
     const supabase = createClient();
     await supabase.auth.getSession();
+    await supabase.auth.getUser();
   } catch {
-    // best-effort — server still has cookie-then-retry fallback
+    // best-effort — server still throws "Not authenticated" if cookies
+    // are unrecoverable, surfaced to the user as a retry prompt.
   }
 
   const result = await completeSignup(setupData);

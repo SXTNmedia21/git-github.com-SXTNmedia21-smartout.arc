@@ -99,30 +99,25 @@ async function findExistingWorkspace(
 export async function completeSignup(data: SignupSetupData) {
   const admin = createAdminClient();
 
-  // Auth resolution strategy:
-  //   1. Read session from cookie without forcing refresh — avoids the
-  //      `refresh_token_already_used` race when the client just rotated
-  //      tokens concurrently (cookie is point-in-time within this request).
-  //   2. Fallback to getUser() which triggers refresh server-side if the
-  //      access token is expired but cookie still has a valid refresh token.
-  //   3. Surface a stable error so the client can route to a recovery
-  //      message instead of a silent 500.
-  let user: { id: string; email?: string } | null = null;
-
+  // Auth: trust the verified-user path. The client (wizard-definition.ts
+  // onComplete) calls getSession() + getUser() before posting to this
+  // action so any pending refresh-token rotation is flushed to cookies
+  // before the request lands here. We do NOT call getSession() server-side
+  // because @supabase/auth-js GoTrueClient.__loadSession (auth-js
+  // src/GoTrueClient.ts:1138-1160) still triggers _callRefreshToken on
+  // expiry regardless of `autoRefreshToken: false` — which was the very
+  // race that produced "refresh_token_already_used" 500s on prod
+  // (2026-05-18). Single getUser() roundtrip is the supported pattern
+  // per Supabase docs for Next.js Server Actions.
   const supabase = await createClient();
-
-  const { data: sessionData } = await supabase.auth.getSession();
-  user = sessionData?.session?.user ?? null;
-
+  const { data: authData, error: authErr } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (!user) {
-    const { data: cookieAuth, error: cookieErr } = await supabase.auth.getUser();
-    user = cookieAuth?.user ?? null;
-    if (!user && cookieErr) {
-      console.error("[completeSignup] cookie auth failed:", cookieErr.code, cookieErr.message);
+    if (authErr) {
+      console.error("[completeSignup] auth failed:", authErr.code, authErr.message);
     }
+    throw new Error("Not authenticated");
   }
-
-  if (!user) throw new Error("Not authenticated");
 
   // ── Check for existing onboarding workspace to reuse ──────────
   // If the user already has a workspace in onboarding state, reuse it.

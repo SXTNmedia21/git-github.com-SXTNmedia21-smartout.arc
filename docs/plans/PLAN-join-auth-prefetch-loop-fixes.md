@@ -58,6 +58,7 @@ Pin volatile callbacks in refs (`lookupBrregRef`, `prefetchContentRef`, `prefetc
 - [x] Bug 1 — merge LLM classifications into intel in `prefetchContent`
 - [x] Bug 2 — stable ref-callbacks + lookup-key dedupe in Step1 effect
 - [x] Bug 3 — drop `_accessToken`; `getSession`-first auth resolution; client-side session warmup before Server Action POST
+- [x] G1 reconcile patches — drop server getSession(), add client getUser(), normalize dedupe key, gate Step3 fallback on long-form content, remove dead accessToken var, write ADR-0357
 - [ ] Local smoke: `pnpm run dev` → /join Strøm Mat & Bar → verify Step 5 chips + no BRREG storm in Network → submit Step 6 succeeds
 - [ ] Write user journeys (`docs/journeys/JOURNEY-join-auth-prefetch-loop-fixes.md`)
 - [ ] Write handoff (`docs/HANDOFF-join-auth-prefetch-loop-fixes.md`) at closure
@@ -70,10 +71,11 @@ Pin volatile callbacks in refs (`lookupBrregRef`, `prefetchContentRef`, `prefetc
 - [ ] /api/scrape/brreg called at most once per stable (companyName, city, industry) tuple
 - [ ] Step 5 chips/select prepopulate when prefetch finished before Step 3
 - [ ] POST /join completes without 500 across (a) brand-new signUp, (b) existing-account signIn fallback, (c) >5 min Step1→Step6 idle window
-- [ ] No `refresh_token_already_used` in Vercel runtime logs across smoke
+- [ ] Smoke run with fresh signup, 6-minute idle on Step 3, then Step 6 submit completes 200 (redirect to /onboarding); no console error mentioning `refresh_token_already_used` is surfaced to the user.
 
 ## Out of scope
 
 - L-0302 / schema drift items
 - Onboarding (`/onboarding`) auth flow
 - Mobile parity (web-only fix)
+- `Expired-session UX rescue (Journey 2 from JOURNEY-join-auth-prefetch-loop-fixes.md) — POST returns 500 with intelligible "Not authenticated" but no auto-redirect to /login. Follow-up sortie.`

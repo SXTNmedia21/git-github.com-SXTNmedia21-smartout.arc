@@ -145,7 +145,7 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
 
   useEffect(() => {
     if (!companyName || companyName.length < 2 || !city || city.length < 2) return;
-    const key = `${companyName.trim().toLowerCase()}|${city.trim().toLowerCase()}|${industry ?? ""}`;
+    const key = `${companyName.trim().toLowerCase()}|${city.trim().toLowerCase()}|${(industry ?? "").toLowerCase()}`;
     if (key === lastLookupKeyRef.current) return;
     if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     brregDebounceRef.current = setTimeout(() => {
