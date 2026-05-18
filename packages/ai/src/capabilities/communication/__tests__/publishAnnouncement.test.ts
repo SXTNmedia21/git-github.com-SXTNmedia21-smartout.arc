@@ -82,6 +82,14 @@ type InsertCapture = { table: string; row: Record<string, unknown> };
  */
 function makeSupabase(insertCaptures: InsertCapture[] = []): SupabaseClient {
   return {
+    // V2: publish_announcement now calls RPC instead of direct INSERT
+    rpc(fnName: string, args: Record<string, unknown>) {
+      if (fnName === "publish_announcement_atomic") {
+        insertCaptures.push({ table: "rpc:publish_announcement_atomic", row: args });
+        return Promise.resolve({ data: MESSAGE_ID, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    },
     from(table: string) {
       if (table === "channel_member") {
         return {
@@ -305,24 +313,23 @@ describe("publishAnnouncement — capability tool", () => {
     expect(callGateAction).toHaveBeenCalledOnce();
     const [, , , gateArgs] = vi.mocked(callGateAction).mock.calls[0]!;
     expect(gateArgs.capability).toBe("communication");
-    expect(gateArgs.actionType).toBe("publish_announcement");
+    expect(gateArgs.actionType).toBe("publish_announcement_atomic");
     expect(gateArgs.channel).toBe("chat");
 
-    // INSERT fired on channel_message
+    // V2: RPC publish_announcement_atomic fired (not direct INSERT per ADR-0369)
     expect(insertCaptures).toHaveLength(1);
-    const insertedRow = insertCaptures[0]!.row;
-    expect(insertCaptures[0]!.table).toBe("channel_message");
-    expect(insertedRow).toMatchObject({
-      channel_id: CHANNEL_ID,
-      workspace_id: WORKSPACE_ID,
-      sender_id: PROFILE_ID,
-      message_type: "announcement",
-      visibility_scope: "all_members",
+    const rpcArgs = insertCaptures[0]!.row;
+    expect(insertCaptures[0]!.table).toBe("rpc:publish_announcement_atomic");
+    expect(rpcArgs).toMatchObject({
+      p_channel_id: CHANNEL_ID,
+      p_workspace_id: WORKSPACE_ID,
+      p_actor_profile_id: PROFILE_ID,
+      p_visibility_scope: "all_members",
     });
-    // content = "title\nbody"
-    expect(insertedRow.content).toBe("Viktig melding\nHusk å lukke baren ordentlig i kveld.");
-    // all_members → null target_profile_ids
-    expect(insertedRow.target_profile_ids).toBeNull();
+    // p_content = "title\nbody"
+    expect(rpcArgs.p_content).toBe("Viktig melding\nHusk å lukke baren ordentlig i kveld.");
+    // all_members → empty target_profile_ids array (per V2 RPC contract)
+    expect(rpcArgs.p_target_profile_ids).toEqual([]);
 
     // Emit fired once
     expect(emit).toHaveBeenCalledOnce();
