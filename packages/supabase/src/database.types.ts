@@ -3303,6 +3303,68 @@ export type Database = {
         }
         Relationships: []
       }
+      celebration_publication: {
+        Row: {
+          celebration_date: string
+          celebration_kind: string
+          created_at: string
+          id: string
+          message_id: string | null
+          profile_id: string
+          published_at: string
+          workspace_id: string
+        }
+        Insert: {
+          celebration_date: string
+          celebration_kind: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          profile_id: string
+          published_at?: string
+          workspace_id: string
+        }
+        Update: {
+          celebration_date?: string
+          celebration_kind?: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          profile_id?: string
+          published_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_publication_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       change_proposal: {
         Row: {
           affected_employee_count: number | null
@@ -20850,6 +20912,52 @@ export type Database = {
           },
         ]
       }
+      workspace_celebration_config: {
+        Row: {
+          auto_celebrate_birthdays: boolean
+          created_at: string
+          target_channel_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_celebrate_birthdays?: boolean
+          created_at?: string
+          target_channel_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_celebrate_birthdays?: boolean
+          created_at?: string
+          target_channel_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_celebration_config_target_channel_id_fkey"
+            columns: ["target_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_celebration_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_celebration_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       workspace_doc_chunk: {
         Row: {
           chunk_id: string
@@ -22127,6 +22235,13 @@ export type Database = {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
       }
+      fn_birthday_cohort_for_workspace: {
+        Args: { p_today: string; p_workspace_id: string }
+        Returns: {
+          display_name: string
+          profile_id: string
+        }[]
+      }
       fn_list_my_tasks: {
         Args: { p_window_end?: string; p_window_start?: string }
         Returns: {
@@ -22404,25 +22519,47 @@ export type Database = {
         }
         Returns: string
       }
-      publish_announcement_atomic: {
-        Args: {
-          p_actor_profile_id: string
-          p_channel_id: string
-          p_client_message_id?: string
-          p_content: string
-          p_kind?: Database["public"]["Enums"]["announcement_kind"]
-          p_linked_entity_id?: string
-          p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
-          p_system_data?: Json
-          p_tags?: string[]
-          p_target_profile_ids?: string[]
-          p_tier?: Database["public"]["Enums"]["announcement_tier"]
-          p_tier_overridden?: boolean
-          p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
-          p_workspace_id: string
-        }
-        Returns: string
-      }
+      publish_announcement_atomic:
+        | {
+            Args: {
+              p_actor_profile_id: string
+              p_channel_id: string
+              p_client_message_id?: string
+              p_content: string
+              p_kind?: Database["public"]["Enums"]["announcement_kind"]
+              p_linked_entity_id?: string
+              p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
+              p_system_data?: Json
+              p_tags?: string[]
+              p_target_profile_ids?: string[]
+              p_tier?: Database["public"]["Enums"]["announcement_tier"]
+              p_tier_overridden?: boolean
+              p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+              p_workspace_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_actor_profile_id: string
+              p_celebration_date?: string
+              p_celebration_kind?: string
+              p_channel_id: string
+              p_client_message_id?: string
+              p_content: string
+              p_kind?: Database["public"]["Enums"]["announcement_kind"]
+              p_linked_entity_id?: string
+              p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
+              p_system_data?: Json
+              p_tags?: string[]
+              p_target_profile_ids?: string[]
+              p_tier?: Database["public"]["Enums"]["announcement_tier"]
+              p_tier_overridden?: boolean
+              p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+              p_workspace_id: string
+            }
+            Returns: string
+          }
       record_schedule_shift_lock_audit:
         | {
             Args: {

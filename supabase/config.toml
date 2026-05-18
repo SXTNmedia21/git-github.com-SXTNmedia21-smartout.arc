@@ -619,3 +619,10 @@ verify_jwt = false
 # Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET bearer token.
 [functions.note-fanout-scheduler]
 verify_jwt = false
+
+# ADR-0372 — Hourly pg_cron birthday auto-publish pipe.
+# Filters workspaces in 06:00-07:00 local window, calls fn_birthday_cohort_for_workspace,
+# publishes celebration announcement via publish_announcement_atomic. GDPR-safe: DOB never
+# leaves the DB function boundary. Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET.
+[functions.publish-birthday-celebrations]
+verify_jwt = false
