@@ -5,7 +5,7 @@ export interface BaseEvent {
   // Nullable when an event is genuinely platform-scoped (billing_activity_log).
   // When present, must be NonEmptyString — no "" fallback permitted (ADR-0193).
   workspace_id: NonEmptyString | null;
-  actor_id: NonEmptyString; // profile_id representing who performed the action
+  actor_id: NonEmptyString | null; // profile_id; null for pre-auth events where no identity exists yet
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
 }
@@ -8566,7 +8566,11 @@ export type SmartoutEvent =
   // ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ───────────────────
   // Read-path telemetry (PostHog + Logger only; no activity_trail — view events).
   | PayrollTariffViewLoaded
-  | PayrollTariffViewLoadedMobile;
+  | PayrollTariffViewLoadedMobile
+  // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────
+  // Pre-auth events fired when an expired Supabase session is detected at /join.
+  | JoinSessionExpiredRescued
+  | JoinSessionExpiredAtSubmit;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -10073,6 +10077,43 @@ export interface PayrollTariffViewLoadedMobile extends BaseEvent {
       route: string; // "(me)/tariff" screen identifier
       is_bound: boolean; // whether the workspace has an active tariff binding at load time
       viewed_at: string; // ISO 8601 timestamp
+    };
+  };
+}
+
+// ─── Join Session Recovery Events (ADR-0358, feat/join-expired-session-rescue, 2026-05-18) ──
+//
+// Pre-auth /join surface events. workspace_id is null (no workspace exists yet at
+// this point in the signup flow). actor_id is "anonymous" (user identity not yet
+// resolved — Supabase session is absent by definition when these fire).
+//
+// Routing rationale:
+//   join.session_expired_rescued: posthog + logger only. Load-time detection event;
+//     no workspace or actor for activity_trail; analytics-only (conversion funnel).
+//   join.session_expired_at_submit: posthog + logger only. Submit-time detection;
+//     same pre-auth rationale. No engine_event: no workflow state machine to advance.
+
+export interface JoinSessionExpiredRescued extends BaseEvent {
+  event: "join.session_expired_rescued";
+  properties: {
+    data: {
+      /** Whether a valid (in-TTL) wizard envelope was found in localStorage. */
+      has_envelope: boolean;
+      /**
+       * How old the envelope was when the redirect fired (hours, one decimal).
+       * Null when the age could not be computed (parse failure).
+       */
+      envelope_age_hours: number | null;
+    };
+  };
+}
+
+export interface JoinSessionExpiredAtSubmit extends BaseEvent {
+  event: "join.session_expired_at_submit";
+  properties: {
+    data: {
+      /** The wizard step index that triggered onComplete (6 = Step 6 Summary). */
+      wizard_step: number;
     };
   };
 }
@@ -13532,5 +13573,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.tariff_view_loaded_mobile": {
     destinations: ["posthog", "logger"],
     category: "payroll",
+  },
+
+  // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────
+  // Pre-auth events — posthog + logger only.
+  // No activity_trail: no workspace or actor identity resolved (pre-auth surface).
+  // No engine_event: load-time / submit-time detection; no workflow to advance.
+  "join.session_expired_rescued": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "join.session_expired_at_submit": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
   },
 };

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { cn } from "@/lib/utils";
+import { validateReturnTo } from "@/lib/safe-redirect";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
 
@@ -139,6 +140,16 @@ const brandTextVariant = {
 export default function LoginPage() {
   const router = useRouter();
   const routerRef = useRef(router);
+  const searchParams = useSearchParams();
+
+  // Safe-validated return_to: only allow known prefixes — open-redirect guard.
+  const returnTo =
+    validateReturnTo(searchParams.get("return_to"), {
+      allowedPrefixes: ["/join", "/onboarding", "/dashboard"],
+    }) ?? "/dashboard";
+
+  // Banner shown when user was redirected here because their session expired mid-wizard.
+  const expiredReason = searchParams.get("reason") === "expired";
 
   useEffect(() => {
     routerRef.current = router;
@@ -195,11 +206,11 @@ export default function LoginPage() {
   useEffect(() => {
     if (mode !== "logging-in") return;
     const t = setTimeout(() => {
-      routerRef.current.push("/dashboard");
+      routerRef.current.push(returnTo);
       routerRef.current.refresh();
     }, 1100);
     return () => clearTimeout(t);
-  }, [mode]);
+  }, [mode, returnTo]);
 
   async function handleGoogleLogin() {
     setError(null);
@@ -497,6 +508,19 @@ export default function LoginPage() {
                     </p>
                   </div>
                 </motion.div>
+
+                {/* Expired-session banner — shown when redirected from /join with reason=expired */}
+                {expiredReason && (
+                  <motion.div
+                    variants={itemVariant}
+                    className={!hasInteracted ? "animate-auth-in" : undefined}
+                    style={!hasInteracted ? { animationDelay: "20ms" } : undefined}
+                  >
+                    <div className="border-border bg-muted text-foreground mb-6 rounded-lg border p-3 text-sm">
+                      Sesjonen er utløpt — logg inn for å fortsette der du slapp.
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Auth method tabs — toggle between password and OTP */}
                 <motion.div
