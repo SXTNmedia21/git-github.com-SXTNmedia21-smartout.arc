@@ -500,9 +500,12 @@ function MonthView({
                       ev.stopPropagation();
                       onEventClick(e);
                     }}
-                    className="truncate rounded px-1.5 py-0.5 text-left text-[10px] font-semibold"
+                    className="block w-full truncate rounded-sm px-1.5 py-px text-left text-[10px] leading-5 font-semibold transition-opacity hover:opacity-80"
                     style={{
-                      backgroundColor: "color-mix(in oklch, var(--card) 60%, transparent)",
+                      // Solid color-keyed background gives reliable contrast
+                      // on both light and dark themes. 18% opacity is
+                      // enough to show the hue without competing with text.
+                      backgroundColor: `color-mix(in oklch, ${EVENT_COLOR_HEX[e.color]} 18%, var(--card))`,
                       color: EVENT_COLOR_HEX[e.color],
                       borderLeft: `2px solid ${EVENT_COLOR_HEX[e.color]}`,
                     }}
@@ -511,9 +514,9 @@ function MonthView({
                   </button>
                 ))}
                 {dayEvents.length > 2 ? (
-                  <div className="text-muted-foreground text-[10px]">
+                  <span className="text-muted-foreground inline-block rounded-sm px-1.5 py-px text-[9px] leading-5 font-medium">
                     +{dayEvents.length - 2} til
-                  </div>
+                  </span>
                 ) : null}
               </div>
               {/* ShiftBadge — absolute bottom-right corner */}
