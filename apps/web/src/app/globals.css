@@ -378,7 +378,7 @@
   border-radius: 2px;
 }
 .scroll-overlay:hover::-webkit-scrollbar-thumb {
-  background-color: oklch(0.5 0 0 / 0.2);
+  background-color: var(--scrollbar-overlay-thumb);
 }
 
 /* ─── Skeleton loading ─────────────────────────────── */
@@ -410,12 +410,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(0.88 0.012 50 / 0.38) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, var(--skeleton-shimmer) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: sk-shimmer 1.8s ease-in-out infinite;
 }
@@ -426,24 +421,10 @@
 }
 
 /* ─── Document Mode ─────────────────────────────── */
+/* OKLCH values for --doc-* live in tokens.css @layer base :root / .dark (ADR-0366) */
 [data-document-mode] {
-  --doc-bg: oklch(0.98 0.003 55);
-  --doc-fg: oklch(0.2 0.01 50);
-  --doc-heading: oklch(0.25 0.02 45);
   --doc-accent: var(--brand-orange);
-  --doc-sidebar-bg: oklch(0.96 0.004 55);
-  --doc-panel-bg: oklch(0.97 0.003 55);
-  --doc-border: oklch(0.9 0.006 55);
   --doc-font-size: 16px;
-}
-
-.dark [data-document-mode] {
-  --doc-bg: oklch(0.12 0.005 55);
-  --doc-fg: oklch(0.88 0.01 50);
-  --doc-heading: oklch(0.92 0.005 50);
-  --doc-sidebar-bg: oklch(0.08 0.003 55);
-  --doc-panel-bg: oklch(0.1 0.003 55);
-  --doc-border: oklch(0.22 0.006 55);
 }
 
 .document-mode-editor {
@@ -499,7 +480,7 @@
 }
 
 .document-mode-editor blockquote {
-  border-left: 3px solid var(--doc-accent, oklch(0.7 0.15 55));
+  border-left: 3px solid var(--doc-accent, var(--doc-accent-fallback));
   padding-left: 1em;
   margin-left: 0;
   margin-bottom: 0.75em;
@@ -508,7 +489,7 @@
 }
 
 .document-mode-editor mark {
-  background-color: oklch(0.88 0.12 85 / 0.4);
+  background-color: var(--doc-mark-bg);
   border-radius: 2px;
   padding: 0.1em 0.2em;
 }

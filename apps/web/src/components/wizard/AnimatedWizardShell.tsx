@@ -239,7 +239,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
                     backgroundColor:
                       i <= props.currentStepIndex
                         ? "var(--brand-orange-light)"
-                        : "oklch(1 0 0 / 0.15)",
+                        : "rgb(255 255 255 / 0.15)",
                   }}
                   transition={
                     prefersReducedMotion

@@ -62,13 +62,13 @@ export function MalGridHeader({ columns, onColumnClick }: MalGridHeaderProps) {
             </span>
 
             <div className="mt-[3px] flex justify-center gap-1.5">
-              <span className="rounded-md bg-[oklch(0.62_0.2_260/0.08)] px-1.5 py-[1px] text-[9px] font-bold text-blue-500">
+              <span className="rounded-md bg-blue-500/8 px-1.5 py-[1px] text-[9px] font-bold text-blue-500">
                 {col.slotCount} pl.
               </span>
               <span className="bg-card text-muted-foreground rounded-md px-1.5 py-[1px] text-[9px] font-bold">
                 {col.workHours}t
               </span>
-              <span className="rounded-md bg-[oklch(0.65_0.22_40/0.08)] px-1.5 py-[1px] text-[9px] font-bold text-orange-500">
+              <span className="bg-brand-orange/8 rounded-md px-1.5 py-[1px] text-[9px] font-bold text-orange-500">
                 kr {Math.round(col.workHours * DISPLAY_HOURLY_RATE)}
               </span>
             </div>

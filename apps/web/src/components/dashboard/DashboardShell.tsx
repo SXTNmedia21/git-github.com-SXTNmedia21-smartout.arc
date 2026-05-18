@@ -1149,20 +1149,18 @@ function DashboardShellInner({
                 className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
                   isDark
                     ? "border-border bg-background"
-                    : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-sm"
+                    : "border-[var(--border)] bg-[var(--surface-base)] shadow-sm"
                 } print:hidden`}
               >
                 <div className="flex items-center gap-6">
                   <WorkspaceSwitcher isDark={isDark} />
 
                   <div className="flex items-center gap-2 text-sm">
-                    <span
-                      className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}
-                    >
+                    <span className={isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}>
                       Aktiv sesong:
                     </span>
                     <span
-                      className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
+                      className={`font-semibold ${isDark ? "text-foreground" : "text-[var(--text-strong)]"}`}
                     >
                       Vinter 2026
                     </span>
@@ -1187,7 +1185,7 @@ function DashboardShellInner({
                         ? "bg-orange-500/20 text-orange-400"
                         : isDark
                           ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+                          : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
                     }`}
                     title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
                   >
@@ -1200,7 +1198,7 @@ function DashboardShellInner({
                     className={`rounded-md p-1.5 transition-colors ${
                       isDark
                         ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+                        : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
                     }`}
                   >
                     {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -1317,14 +1315,14 @@ function DashboardShellInner({
                   } ${
                     isDark
                       ? "border-border bg-card"
-                      : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
+                      : "border-[var(--border)] bg-[var(--surface-base)] shadow-[1px_0_12px_-4px_color-mix(in_oklch,var(--foreground)_8%,transparent)]"
                   } print:hidden`}
                 >
                   <TooltipProvider delayDuration={0}>
                     {/* Sidebar collapse toggle — top */}
                     <div
                       className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
-                        isDark ? "border-border" : "border-[oklch(0.92_0.004_55)]"
+                        isDark ? "border-border" : "border-[var(--border)]"
                       }`}
                     >
                       <button
@@ -1332,7 +1330,7 @@ function DashboardShellInner({
                         className={`rounded-lg p-1.5 transition-colors ${
                           isDark
                             ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
+                            : "text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-mid)]"
                         }`}
                       >
                         {isSidebarCollapsed ? (
@@ -1375,7 +1373,7 @@ function DashboardShellInner({
                       className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
                         isDark
                           ? "border-border bg-muted"
-                          : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
+                          : "border-[var(--border)] bg-[var(--surface-raised)]"
                       } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
                     >
                       <NavItem
@@ -1429,7 +1427,7 @@ function DashboardShellInner({
                 {/* MAIN CONTENT AREA */}
                 <main
                   className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-                    isDark ? "bg-background" : "bg-[oklch(0.965_0.003_55)]"
+                    isDark ? "bg-background" : "bg-[var(--surface-subtle)]"
                   } print:block print:h-auto print:overflow-visible print:bg-white`}
                 >
                   {/* ACTION BAR */}
@@ -1437,19 +1435,19 @@ function DashboardShellInner({
                     className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
                       isDark
                         ? "border-border bg-background/90"
-                        : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
+                        : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
                     } print:hidden`}
                   >
                     <div
                       className={`flex items-center gap-2.5 text-sm ${
-                        isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
+                        isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                       }`}
                     >
                       <span
                         className={`cursor-pointer transition-colors ${
                           isDark
                             ? "hover:text-accent-foreground"
-                            : "hover:text-[oklch(0.25_0.015_45)]"
+                            : "hover:text-[var(--text-strong)]"
                         }`}
                       >
                         {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
@@ -1459,7 +1457,7 @@ function DashboardShellInner({
                         className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
                           isDark
                             ? "border-border bg-card text-foreground"
-                            : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
+                            : "border-[var(--surface-border-strong)] bg-[var(--surface-raised)] text-[var(--text-strong)]"
                         }`}
                       >
                         {isDocumentMode

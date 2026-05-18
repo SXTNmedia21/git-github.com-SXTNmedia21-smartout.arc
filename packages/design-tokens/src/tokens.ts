@@ -10,6 +10,8 @@ export const brand = {
   orange: "oklch(0.65 0.22 40)",
   orangeLight: "oklch(0.75 0.18 40)",
   orangeDark: "oklch(0.55 0.22 40)",
+  /** Warm hue-shifted orange for headline accent text ("klar fra dag en") */
+  orangeWarm: "oklch(0.78 0.16 45)",
   purple: "oklch(0.55 0.25 300)", // Secondary accent for feature sections
   purpleLight: "oklch(0.65 0.20 300)",
   purpleDark: "oklch(0.45 0.25 300)",
@@ -190,6 +192,40 @@ export const panel = {
   deep: "oklch(0.06 0.015 50)",
   glowWarm: "oklch(0.45 0.18 40)",
   glowDeep: "oklch(0.35 0.14 35)",
+} as const;
+
+// ─── Neutral Surface Layers (light-mode) ──────────────
+// Fine-grained surface steps for components that need exact depth control
+// without hardcoding OKLCH literals in className strings (ADR-0366).
+export const surface = {
+  /** ~bg-background — cream white base (light mode) */
+  base: "oklch(0.99 0.004 60)",
+  /** One step below base — panels, popover backdrops */
+  subtle: "oklch(0.975 0.003 55)",
+  /** Card hover, inactive tabs, sidebar regions */
+  raised: "oklch(0.955 0.005 55)",
+  /** Active/selected tab, pressed state */
+  overlay: "oklch(0.928 0.005 55)",
+  /** Strong border / input outline (light mode supplement to --border) */
+  borderStrong: "oklch(0.905 0.007 54)",
+} as const;
+
+// ─── Neutral Text Layers (light-mode) ─────────────────
+// Named steps for text that sits between --foreground and --muted-foreground.
+export const textScale = {
+  /** High-emphasis dark text on light surface */
+  strong: "oklch(0.25 0.015 48)",
+  /** Mid-emphasis label / secondary heading */
+  mid: "oklch(0.40 0.01 52)",
+  /** Low-emphasis helper / placeholder */
+  dim: "oklch(0.50 0.015 52)",
+} as const;
+
+// ─── Brand Glow — warm amber accent for box-shadow contexts ──
+// Used inside shadow-[...oklch(...)] values; token maps to same hue as brand-orange.
+export const brandGlow = {
+  /** Full-strength brand warm glow (used in CTA button shadows) */
+  warm: "oklch(0.78 0.18 55)",
 } as const;
 
 // ─── Motion (spring physics) ─────────────────────────

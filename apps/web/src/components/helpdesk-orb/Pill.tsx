@@ -5,8 +5,8 @@
  * Shape: padding 2px 8px, border-radius 9999, Geist Mono 11px, whiteSpace nowrap
  * Tones (shared.jsx:243-247):
  *   - muted   → bg var(--muted),               fg var(--foreground)
- *   - brand   → bg oklch(0.65 0.22 40 / 0.10), fg var(--brand-orange-dark)
- *   - success → bg oklch(0.68 0.15 145 / 0.10), fg oklch(0.45 0.15 145)
+ *   - brand   → bg color-mix(in oklch, var(--brand-orange) 10%, transparent), fg var(--brand-orange-dark)
+ *   - success → bg color-mix(in oklch, var(--success) 10%, transparent), fg var(--status-active)
  */
 import type { HTMLAttributes, ReactNode } from "react";
 import type { PillTone } from "./types";
@@ -14,12 +14,12 @@ import type { PillTone } from "./types";
 const TONES: Record<PillTone, { bg: string; fg: string }> = {
   muted: { bg: "var(--muted)", fg: "var(--foreground)" },
   brand: {
-    bg: "oklch(0.65 0.22 40 / 0.10)",
+    bg: "color-mix(in oklch, var(--brand-orange) 10%, transparent)",
     fg: "var(--brand-orange-dark)",
   },
   success: {
-    bg: "oklch(0.68 0.15 145 / 0.10)",
-    fg: "oklch(0.45 0.15 145)",
+    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
+    fg: "var(--status-active)",
   },
 };
 

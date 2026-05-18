@@ -100,7 +100,7 @@ export function BotssonSticky({
             /* Start Botsson — ADR-0282 R1.1 */
             <button
               onClick={() => setVoiceActive(true)}
-              className="bg-brand-orange flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-150 hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-90"
+              className="bg-brand-orange flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[var(--shadow-cta-sm)] shadow-lg transition-[transform,box-shadow] duration-150 hover:scale-110 hover:shadow-[var(--shadow-cta-md)] active:scale-90"
               aria-label="Start Botsson"
             >
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
@@ -123,7 +123,7 @@ export function BotssonSticky({
                   "flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition-all duration-150 hover:scale-110 active:scale-90",
                   agent.isMuted
                     ? "bg-card border-border/40 text-muted-foreground hover:text-foreground hover:border-border border"
-                    : "bg-brand-orange text-white shadow-[oklch(0.65_0.22_40/0.25)] hover:shadow-[oklch(0.65_0.22_40/0.4)]",
+                    : "bg-brand-orange text-white shadow-[var(--shadow-cta-sm)] hover:shadow-[var(--shadow-cta-md)]",
                 ].join(" ")}
                 aria-label={agent.isMuted ? "Unmute" : "Mute"}
               >

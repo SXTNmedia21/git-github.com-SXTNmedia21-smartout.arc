@@ -88,7 +88,7 @@ function NotificationOrb() {
         className="absolute inset-1 rounded-full"
         style={{
           background:
-            "radial-gradient(circle at 30% 30%, oklch(0.18 0.012 50) 0%, oklch(0.12 0.010 50) 55%, oklch(0.06 0.008 50) 100%)",
+            "radial-gradient(circle at 30% 30%, var(--panel) 0%, color-mix(in oklch, var(--panel-deep) 80%, transparent) 55%, var(--panel-deep) 100%)",
           animation: "botsson-notify-throb 2s ease-in-out infinite",
         }}
       />

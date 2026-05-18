@@ -22,7 +22,7 @@ export function TodoEmptyState() {
           className="absolute inset-0 -m-12 rounded-full"
           style={{
             background:
-              "radial-gradient(ellipse at center, oklch(0.75 0.15 145 / 0.12), transparent 70%)",
+              "radial-gradient(ellipse at center, color-mix(in oklch, var(--success) 12%, transparent), transparent 70%)",
           }}
         />
         <div className="bg-success/20 relative flex h-20 w-20 items-center justify-center rounded-full">

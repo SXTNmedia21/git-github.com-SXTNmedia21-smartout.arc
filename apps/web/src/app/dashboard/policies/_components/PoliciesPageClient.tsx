@@ -112,7 +112,7 @@ export function PoliciesPageClient({ initialData }: { initialData: PoliciesPageI
         <button
           type="button"
           onClick={() => setIsDialogOpen(true)}
-          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] hover:shadow-[0_12px_32px_-8px_oklch(0.78_0.18_55_/_0.65)] active:scale-[0.98]"
+          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] hover:shadow-[var(--shadow-cta-lg-hover)] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           Ny policy
@@ -209,7 +209,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <button
         type="button"
         onClick={onNew}
-        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] active:scale-[0.98]"
       >
         <Plus className="h-4 w-4" />
         Ny policy

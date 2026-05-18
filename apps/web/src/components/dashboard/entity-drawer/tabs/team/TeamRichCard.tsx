@@ -44,7 +44,7 @@ export function TeamRichCard({ entityId }: { entityId: string }) {
         <div className="flex items-center gap-3">
           <div
             className="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg"
-            style={{ backgroundColor: team.color ?? "oklch(0.60 0.12 280)" }}
+            style={{ backgroundColor: team.color ?? "var(--dept-bar)" }}
           >
             {team.name.charAt(0).toUpperCase()}
           </div>

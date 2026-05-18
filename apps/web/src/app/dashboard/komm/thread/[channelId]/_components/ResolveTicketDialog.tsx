@@ -126,7 +126,7 @@ export function ResolveTicketDialog({
                   className="gap-1.5 text-white"
                   style={{
                     background: "var(--brand-orange)",
-                    boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+                    boxShadow: "var(--shadow-cta-sm)",
                   }}
                 >
                   {!pending ? <Check size={14} strokeWidth={2.25} aria-hidden="true" /> : null}

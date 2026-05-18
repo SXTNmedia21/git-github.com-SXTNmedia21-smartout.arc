@@ -142,7 +142,7 @@ export function WelcomeWizard({ userEmail }: WelcomeWizardProps) {
           <div
             style={{
               background:
-                "radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.85 0.06 55 / 0.18) 0%, transparent 70%)",
+                "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklch, var(--brand-glow-warm) 18%, transparent) 0%, transparent 70%)",
             }}
             className="absolute inset-0"
           />

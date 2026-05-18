@@ -534,7 +534,7 @@ export function BotssonShell() {
         isOrb
           ? isNotification
             ? "from-card via-card bg-gradient-to-br to-black shadow-[0_0_20px_4px_rgba(255,140,50,0.25),0_0_40px_8px_rgba(255,140,50,0.1)] hover:scale-110 active:scale-95"
-            : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-95"
+            : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-[var(--shadow-cta-sm)] shadow-lg hover:scale-110 hover:shadow-[var(--shadow-cta-md)] active:scale-95"
           : isSticky
             ? [
                 "border-border/20 border backdrop-blur-xl",
@@ -658,7 +658,7 @@ export function BotssonShell() {
                 "transition-all duration-200",
                 "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
                 voiceActive
-                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_oklch(0.65_0.22_40/0.35)]"
+                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_var(--brand-orange)/35%]"
                   : "bg-background/70 text-muted-foreground hover:text-foreground border-border/40 border opacity-0 backdrop-blur-sm group-hover:opacity-100 hover:opacity-100",
               ].join(" ")}
               style={{ width: 28, height: 28 }}

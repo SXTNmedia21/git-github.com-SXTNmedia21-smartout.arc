@@ -427,7 +427,7 @@ export function MalGrid({ departmentName, weekStart, departmentOptions }: MalGri
                     );
                   }}
                   disabled={publishMutation.isPending}
-                  className="rounded-[10px] border border-orange-500 bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all hover:shadow-[0_4px_16px_oklch(0.65_0.22_40/0.3)] disabled:opacity-50"
+                  className="rounded-[10px] border border-orange-500 bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-cta-sm)] transition-[box-shadow] hover:shadow-[var(--shadow-cta-md)] disabled:opacity-50"
                 >
                   Publiser uke {weekLabel.replace("Uke ", "")}
                 </button>

@@ -49,7 +49,7 @@ export function DoneStep() {
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={SPRING}
-        className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.75_0.12_50)] to-[oklch(0.60_0.15_40)]"
+        className="from-brand-orange-light to-brand-orange-dark flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br"
       >
         <CircleCheck className="h-9 w-9 text-white" strokeWidth={1.5} />
       </motion.div>
