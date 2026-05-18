@@ -25,10 +25,11 @@ import { useTheme, withOpacity, createStyles } from "@/theme";
 import { ScopeChips } from "@/components/calendar/ScopeChips";
 import { CompactShiftRow } from "@/components/calendar/CompactShiftRow";
 import { useTeamShifts } from "@/hooks/queries/use-team-shifts";
+import { useTeamStaff } from "@/hooks/queries/use-team-staff";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { getProfileContext } from "@/lib/profile-context";
 import type { Scope, ScopeKind } from "@/components/calendar/ScopeChips";
-import type { Department } from "@/components/calendar/types";
+import type { Department, Staff } from "@/components/calendar/types";
 
 /** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
 const FALLBACK_TZ = "Europe/Oslo";
@@ -106,16 +107,11 @@ function totalHours(shifts: { planned: number }[]): number {
   return shifts.reduce((s, x) => s + x.planned, 0);
 }
 
-/* ── Staff builder for ScopeChips Ansatt-dropdown ─────────────────────────── */
+/* ── Staff type alias for ScopeChips Ansatt-dropdown ─────────────────────── */
 
-type StaffShape = {
-  id: string;
-  name: string;
-  role: string;
-  dept: Department;
-  initials: string;
-  color: string;
-};
+// Re-export the canonical Staff shape from calendar/types so local usages
+// continue to compile without renaming call sites throughout this file.
+type StaffShape = Staff;
 
 /* ── Department density pills inside DayCrewCluster header ────────────────── */
 
@@ -390,30 +386,11 @@ export default function ShiftListScreen() {
     myProfileId,
   });
 
-  // Build unique staff list from shift data for the Ansatt dropdown
-  const staff = useMemo((): StaffShape[] => {
-    const seen = new Set<string>();
-    const result: StaffShape[] = [];
-    for (const s of shifts) {
-      if (!s.owner || seen.has(s.owner)) continue;
-      seen.add(s.owner);
-      result.push({
-        id: s.owner,
-        name: s.ownerName,
-        role: s.role,
-        dept: s.dept,
-        initials: s.ownerInitials,
-        color: s.ownerColor,
-      });
-    }
-    return result;
-  }, [shifts]);
+  // Fetch the full active workspace staff list independent of the current scope.
+  // useTeamStaff() queries profile directly so Ansatt-dropdown always shows
+  // every team member — not just those visible in the filtered shift list (ADR-0367).
+  const { data: staff = [] } = useTeamStaff();
 
-  // Also collect staff from ALL-scope query for Ansatt dropdown completeness.
-  // We pass the current `shifts` which already covers 'all' when scope='all'.
-  // For 'me' scope the list is limited to 1 entry; Ansatt dropdown still works
-  // because switching to 'person' will trigger a new 'all'-scoped fetch.
-  // This is acceptable per ADR-0266 (backlog: pre-fetch all-staff).
   const staffById = useCallback(
     (id: string): StaffShape | undefined => staff.find((s) => s.id === id),
     [staff],
