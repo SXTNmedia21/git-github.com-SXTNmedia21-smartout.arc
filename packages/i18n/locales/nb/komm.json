@@ -197,7 +197,69 @@
     "pinned_strip_header": "Festet",
     "pinned_label": "Festet",
     "card_menu_label": "Mer",
-    "delete": "Slett"
+    "delete": "Slett",
+    "kind": {
+      "label": "Type",
+      "placeholder": "Velg type",
+      "group_general": "Generelt",
+      "group_people": "Mennesker",
+      "group_operations": "Drift",
+      "group_documents": "Dokumenter",
+      "group_external": "Eksternt",
+      "general": "Generell",
+      "new_menu": "Ny meny",
+      "new_hire": "Ny ansatt",
+      "staff_event": "Personaltreff",
+      "schedule_change": "Vaktendring",
+      "policy_update": "Policy-endring",
+      "external": "Ekstern",
+      "celebration": "Feiring",
+      "system_message": "Systemmelding",
+      "helper": {
+        "general": "Informasjon til alle",
+        "new_menu": "Ny meny lansert",
+        "new_hire": "Hils på ny kollega",
+        "staff_event": "Arrangement for ansatte",
+        "schedule_change": "Endring i vaktplan",
+        "policy_update": "Oppdatert policy",
+        "external": "Ekstern lenke eller info",
+        "celebration": "Feiring og merkedager",
+        "system_message": "Systemvarsel"
+      }
+    },
+    "tier": {
+      "label": "Prioritet",
+      "social": "Sosial",
+      "work": "Arbeid",
+      "external": "Ekstern",
+      "social_helper": "Lav prioritet · push + in-app",
+      "work_helper": "Standard · push + in-app",
+      "external_helper": "Høy prioritet · push + in-app + e-post"
+    },
+    "link": {
+      "label": "Koble til (valgfritt)",
+      "choose_type": "Velg type",
+      "no_link": "Ingen kobling",
+      "search_placeholder": "Søk...",
+      "external_url_placeholder": "https://...",
+      "choose_entity": "Velg...",
+      "loading": "Laster...",
+      "no_results": "Ingen resultater",
+      "clear": "Fjern kobling",
+      "group_events": "Hendelser",
+      "group_documents": "Dokumenter",
+      "group_people": "Mennesker",
+      "group_external": "Eksternt",
+      "type": {
+        "staff_event": "Personaltreff",
+        "schedule_shift": "Skift",
+        "policy": "Policy",
+        "protocol": "Protokoll",
+        "profile": "Profil",
+        "menu_document": "Menydokument",
+        "external_url": "Ekstern URL"
+      }
+    }
   },
   "time": {
     "just_now": "Akkurat nå",
@@ -289,5 +351,11 @@
       "web_only": "Åpne på web for å se dette"
     },
     "opened": "Lenke åpnet"
+  },
+  "celebration": {
+    "birthday": {
+      "title": "Gratulerer med dagen, {{name}}!",
+      "body": "I dag har {{name}} bursdag. Ta deg tid til å hilse."
+    }
   }
 }

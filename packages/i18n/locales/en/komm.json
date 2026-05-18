@@ -197,7 +197,69 @@
     "pinned_strip_header": "Pinned",
     "pinned_label": "Pinned",
     "card_menu_label": "More",
-    "delete": "Delete"
+    "delete": "Delete",
+    "kind": {
+      "label": "Type",
+      "placeholder": "Select type",
+      "group_general": "General",
+      "group_people": "People",
+      "group_operations": "Operations",
+      "group_documents": "Documents",
+      "group_external": "External",
+      "general": "General",
+      "new_menu": "New menu",
+      "new_hire": "New hire",
+      "staff_event": "Staff event",
+      "schedule_change": "Schedule change",
+      "policy_update": "Policy update",
+      "external": "External",
+      "celebration": "Celebration",
+      "system_message": "System message",
+      "helper": {
+        "general": "Information for everyone",
+        "new_menu": "New menu launched",
+        "new_hire": "Welcome a new colleague",
+        "staff_event": "Event for staff",
+        "schedule_change": "Change in schedule",
+        "policy_update": "Updated policy",
+        "external": "External link or info",
+        "celebration": "Celebrations and milestones",
+        "system_message": "System alert"
+      }
+    },
+    "tier": {
+      "label": "Priority",
+      "social": "Social",
+      "work": "Work",
+      "external": "External",
+      "social_helper": "Low priority · push + in-app",
+      "work_helper": "Standard · push + in-app",
+      "external_helper": "High priority · push + in-app + email"
+    },
+    "link": {
+      "label": "Link to (optional)",
+      "choose_type": "Choose type",
+      "no_link": "No link",
+      "search_placeholder": "Search...",
+      "external_url_placeholder": "https://...",
+      "choose_entity": "Choose...",
+      "loading": "Loading...",
+      "no_results": "No results",
+      "clear": "Remove link",
+      "group_events": "Events",
+      "group_documents": "Documents",
+      "group_people": "People",
+      "group_external": "External",
+      "type": {
+        "staff_event": "Staff event",
+        "schedule_shift": "Shift",
+        "policy": "Policy",
+        "protocol": "Protocol",
+        "profile": "Profile",
+        "menu_document": "Menu document",
+        "external_url": "External URL"
+      }
+    }
   },
   "time": {
     "just_now": "Just now",
@@ -289,5 +351,11 @@
       "web_only": "Open on web to view this"
     },
     "opened": "Link opened"
+  },
+  "celebration": {
+    "birthday": {
+      "title": "Happy birthday, {{name}}!",
+      "body": "Today is {{name}}'s birthday. Take a moment to wish them well."
+    }
   }
 }

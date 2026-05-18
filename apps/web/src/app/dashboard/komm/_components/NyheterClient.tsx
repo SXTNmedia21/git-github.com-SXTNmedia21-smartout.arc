@@ -22,6 +22,13 @@ import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
 import { useAudienceResolver, type AudienceInput } from "../_hooks/use-audience-resolver";
 import { AudiencePicker } from "./AudiencePicker";
+import {
+  AnnouncementKindPicker,
+  type AnnouncementKind,
+  type AnnouncementTier,
+} from "./AnnouncementKindPicker";
+import { AnnouncementTierPicker } from "./AnnouncementTierPicker";
+import { EntityLinkPicker, type EntityLinkValue } from "./EntityLinkPicker";
 import { PinnedStrip } from "./PinnedStrip";
 import { NewsCardMenu } from "./NewsCardMenu";
 import { KommToolsBridge } from "../_tools/komm-tools-bridge";
@@ -333,6 +340,9 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<AudienceInput>({ kind: "all" });
+  const [announcementKind, setAnnouncementKind] = useState<AnnouncementKind>("general");
+  const [announcementTier, setAnnouncementTier] = useState<AnnouncementTier>("work");
+  const [linkedEntity, setLinkedEntity] = useState<EntityLinkValue>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendAnnouncement = useSendAnnouncement();
 
@@ -372,12 +382,20 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
         visibilityScope: isTargeted ? "targeted_members" : "all_members",
         audienceKind: audience.kind,
         audienceLabel: audienceLabel(),
+        kind: announcementKind,
+        tier: announcementTier,
+        linkedEntityType: linkedEntity?.type,
+        linkedEntityId: linkedEntity?.id,
+        tags: [],
       },
       {
         onSuccess: () => {
           setTitle("");
           setBody("");
           setAudience({ kind: "all" });
+          setAnnouncementKind("general");
+          setAnnouncementTier("work");
+          setLinkedEntity(null);
           onOpenChange(false);
         },
       },
@@ -419,6 +437,35 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
             </label>
             <AudiencePicker value={audience} onChange={setAudience} />
           </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">{t("nyheter.kind.label")}</label>
+            <AnnouncementKindPicker
+              value={announcementKind}
+              onChange={(nextKind, autoTier) => {
+                setAnnouncementKind(nextKind);
+                setAnnouncementTier(autoTier);
+                setLinkedEntity(null);
+              }}
+              profileId={profileId}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">{t("nyheter.tier.label")}</label>
+            <AnnouncementTierPicker
+              value={announcementTier}
+              onChange={setAnnouncementTier}
+              kind={announcementKind}
+              profileId={profileId}
+            />
+          </div>
+
+          <EntityLinkPicker
+            value={linkedEntity}
+            onChange={setLinkedEntity}
+            kind={announcementKind}
+          />
 
           <div className="flex flex-wrap items-center gap-2.5">
             <RecipientCountPill count={recipientCount} />
