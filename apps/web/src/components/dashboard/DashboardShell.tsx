@@ -351,6 +351,7 @@ import {
   FileCheck,
 } from "lucide-react";
 
+import { useTranslation } from "@smartout/i18n";
 import { ContractPendingBanner } from "./ContractPendingBanner";
 import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
@@ -408,6 +409,7 @@ function DashboardShellInner({
   children: React.ReactNode;
   profileId?: string | null;
 }) {
+  const { t } = useTranslation("dashboard");
   // Theme-ready flag is only needed here (not part of the facade shape).
   const { themeReady } = useThemeContext();
 
@@ -1094,7 +1096,7 @@ function DashboardShellInner({
         {
           type: "warning",
           value: inboundRequestCount,
-          label: `${inboundRequestCount} Forespørsler`,
+          label: t("shell.badge.requests", { count: inboundRequestCount }),
         },
       ];
     }
@@ -1157,12 +1159,12 @@ function DashboardShellInner({
 
                   <div className="flex items-center gap-2 text-sm">
                     <span className={isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}>
-                      Aktiv sesong:
+                      {t("shell.header.active_season")}
                     </span>
                     <span
                       className={`font-semibold ${isDark ? "text-foreground" : "text-[var(--text-strong)]"}`}
                     >
-                      Vinter 2026
+                      {t("shell.header.season_placeholder")}
                     </span>
                     <div
                       className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
@@ -1172,7 +1174,9 @@ function DashboardShellInner({
                       }`}
                     >
                       <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold tracking-wider uppercase">Aktiv</span>
+                      <span className="text-[10px] font-bold tracking-wider uppercase">
+                        {t("shell.header.season_active_badge")}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1187,7 +1191,11 @@ function DashboardShellInner({
                           ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                           : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
                     }`}
-                    title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
+                    title={
+                      isDocumentMode
+                        ? t("shell.header.doc_mode_off")
+                        : t("shell.header.doc_mode_on")
+                    }
                   >
                     <BookOpen className="h-4 w-4" />
                   </button>
@@ -1379,7 +1387,7 @@ function DashboardShellInner({
                       <NavItem
                         href="/dashboard/settings"
                         icon={Settings}
-                        label="Innstillinger"
+                        label={t("shell.nav.settings")}
                         isDark={isDark}
                         active={isActive("/dashboard/settings")}
                         isCollapsed={isSidebarCollapsed}
@@ -1387,7 +1395,7 @@ function DashboardShellInner({
                       <NavItem
                         href="/dashboard/help"
                         icon={HelpCircle}
-                        label="Hjelp"
+                        label={t("shell.nav.help")}
                         isDark={isDark}
                         active={isActive("/dashboard/help")}
                         isCollapsed={isSidebarCollapsed}
@@ -1406,7 +1414,9 @@ function DashboardShellInner({
                         }`}
                       >
                         {!isSidebarCollapsed && (
-                          <span>{isAdminMode ? "Adminmodus" : "Ansattmodus"}</span>
+                          <span>
+                            {isAdminMode ? t("shell.nav.admin_mode") : t("shell.nav.employee_mode")}
+                          </span>
                         )}
                         <div
                           className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
@@ -1450,7 +1460,11 @@ function DashboardShellInner({
                             : "hover:text-[var(--text-strong)]"
                         }`}
                       >
-                        {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
+                        {isDocumentMode
+                          ? t("shell.breadcrumb.handbook")
+                          : isAdminMode
+                            ? t("shell.breadcrumb.drift")
+                            : t("shell.breadcrumb.workspace")}
                       </span>
                       <ChevronRight className="h-3.5 w-3.5" />
                       <span
@@ -1461,29 +1475,29 @@ function DashboardShellInner({
                         }`}
                       >
                         {isDocumentMode
-                          ? "Dokumentmodus"
+                          ? t("shell.breadcrumb.doc_mode")
                           : ((
                               {
-                                schedule: "Vaktplan",
-                                people: "Ansatte",
-                                reports: "Rapporter",
-                                operations: "Drift",
-                                hms: "HMS",
-                                governance: "HMS",
-                                "year-wheel": "Årshjul",
-                                calendar: "Kalender",
-                                organization: "Organisasjon",
-                                settings: "Innstillinger",
-                                help: "Hjelp",
-                                komm: "Kanaler",
-                                ai: "Mr. Botsson",
-                                "onboarding-assistant": "Onboarding-assistent",
-                                "my-schedule": "Min vaktplan",
-                                "my-training": "Min opplæring",
-                                "my-cv": "Min profil",
-                                "my-salary": "Min lønn",
+                                schedule: t("shell.segment.schedule"),
+                                people: t("shell.segment.people"),
+                                reports: t("shell.segment.reports"),
+                                operations: t("shell.segment.operations"),
+                                hms: t("shell.segment.hms"),
+                                governance: t("shell.segment.hms"),
+                                "year-wheel": t("shell.segment.year_wheel"),
+                                calendar: t("shell.segment.calendar"),
+                                organization: t("shell.segment.organization"),
+                                settings: t("shell.segment.settings"),
+                                help: t("shell.segment.help"),
+                                komm: t("shell.segment.komm"),
+                                ai: t("shell.segment.ai"),
+                                "onboarding-assistant": t("shell.segment.onboarding_assistant"),
+                                "my-schedule": t("shell.segment.my_schedule"),
+                                "my-training": t("shell.segment.my_training"),
+                                "my-cv": t("shell.segment.my_cv"),
+                                "my-salary": t("shell.segment.my_salary"),
                               } as Record<string, string>
-                            )[pathname.split("/").pop() ?? ""] ?? "Oversikt")}
+                            )[pathname.split("/").pop() ?? ""] ?? t("shell.segment.overview"))}
                       </span>
                     </div>
 
@@ -1500,28 +1514,28 @@ function DashboardShellInner({
                               data-autoplay="schedule-layout-daily"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
-                              Ukeplan
+                              {t("shell.schedule.layout_daily")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
-                              Måned
+                              {t("shell.schedule.layout_monthly")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
-                              Vaktliste
+                              {t("shell.schedule.layout_list")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
                               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
-                              Bemanning
+                              {t("shell.schedule.layout_grid")}
                             </button>
                           </div>
 
@@ -1575,31 +1589,33 @@ function DashboardShellInner({
                                       );
                                       const w = getISOWeek(now);
                                       const y = getISOWeekYear(now);
-                                      return `Uke ${w}, ${y}`;
+                                      return t("shell.schedule.week", { week: w, year: y });
                                     }
                                     if (scheduleLayout === "weekly") {
                                       return scheduleDateOffset === 0
-                                        ? "Aktiv syklus"
-                                        : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
+                                        ? t("shell.schedule.active_cycle")
+                                        : t("shell.schedule.cycle", {
+                                            offset: `${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`,
+                                          });
                                     }
                                     // monthly only
                                     const now = new Date();
                                     now.setMonth(now.getMonth() + scheduleDateOffset);
-                                    const months = [
-                                      "Januar",
-                                      "Februar",
-                                      "Mars",
-                                      "April",
-                                      "Mai",
-                                      "Juni",
-                                      "Juli",
-                                      "August",
-                                      "September",
-                                      "Oktober",
-                                      "November",
-                                      "Desember",
+                                    const monthKeys = [
+                                      "shell.schedule.month_jan",
+                                      "shell.schedule.month_feb",
+                                      "shell.schedule.month_mar",
+                                      "shell.schedule.month_apr",
+                                      "shell.schedule.month_may",
+                                      "shell.schedule.month_jun",
+                                      "shell.schedule.month_jul",
+                                      "shell.schedule.month_aug",
+                                      "shell.schedule.month_sep",
+                                      "shell.schedule.month_oct",
+                                      "shell.schedule.month_nov",
+                                      "shell.schedule.month_dec",
                                     ];
-                                    return `${months[now.getMonth()]} ${now.getFullYear()}`;
+                                    return `${t(monthKeys[now.getMonth()] ?? "shell.schedule.month.jan")} ${now.getFullYear()}`;
                                   })()}
                                 </button>
                               </PopoverTrigger>
@@ -1661,7 +1677,7 @@ function DashboardShellInner({
                                 data-autoplay="schedule-date-today"
                                 className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
                               >
-                                I dag
+                                {t("shell.schedule.today")}
                               </button>
                             )}
                             <button
@@ -1682,7 +1698,7 @@ function DashboardShellInner({
                                 : "bg-muted cursor-not-allowed opacity-50"
                             }`}
                           >
-                            Publiser ({scheduleDraftCountDisplay})
+                            {t("shell.schedule.publish", { count: scheduleDraftCountDisplay })}
                           </button>
                         </>
                       )}
@@ -1698,12 +1714,12 @@ function DashboardShellInner({
                         >
                           {(
                             [
-                              { id: "oversikt", label: "Oversikt" },
+                              { id: "oversikt", label: t("shell.dashboard_tabs.overview") },
                               ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
                                 ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
                                 : ([] as const)),
-                              { id: "strategic", label: "Innsikt" },
-                              { id: "activity", label: "Aktivitet" },
+                              { id: "strategic", label: t("shell.dashboard_tabs.insight") },
+                              { id: "activity", label: t("shell.dashboard_tabs.activity") },
                             ] as const
                           ).map((tab) => {
                             const isActive = adminView === tab.id;
@@ -1744,7 +1760,9 @@ function DashboardShellInner({
                             className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                             aria-label="Open global search palette"
                           >
-                            <span className="text-muted-foreground">Søk i drift...</span>
+                            <span className="text-muted-foreground">
+                              {t("shell.search.placeholder")}
+                            </span>
                             <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
                               {typeof navigator !== "undefined" &&
                               navigator.platform.includes("Mac")
@@ -1869,6 +1887,7 @@ function TodoTabButton({
   isDark: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation("dashboard");
   const { data: taskCount } = useCascadeTaskCount();
   const pendingCount = (taskCount?.critical ?? 0) + (taskCount?.should ?? 0);
 
@@ -1881,7 +1900,8 @@ function TodoTabButton({
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
     >
-      <ListChecks className="h-3.5 w-3.5" />Å gjøre
+      <ListChecks className="h-3.5 w-3.5" />
+      {t("shell.dashboard_tabs.todo")}
       {pendingCount > 0 && (
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${

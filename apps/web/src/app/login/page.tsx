@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { validateReturnTo } from "@/lib/safe-redirect";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
+import { useTranslation } from "@smartout/i18n";
 
 /* ─────────────────────────────────────────────────────
    Nordic Split — Choreographed panel swap
@@ -138,6 +139,7 @@ const brandTextVariant = {
 };
 
 function LoginContent() {
+  const { t } = useTranslation("auth");
   const router = useRouter();
   const routerRef = useRef(router);
   const searchParams = useSearchParams();
@@ -228,7 +230,7 @@ function LoginContent() {
         setGoogleLoading(false);
       }
     } catch {
-      setError("Noe gikk galt med Google-innlogging.");
+      setError(t("login.error.google"));
       setGoogleLoading(false);
     }
   }
@@ -272,7 +274,7 @@ function LoginContent() {
           authError.message.includes("NetworkError") ||
           authError.message.includes("network")
         ) {
-          setError("Kunne ikke koble til databasen. Sjekk at Supabase kjører lokalt.");
+          setError(t("login.error.network"));
           setLoading(false);
           return;
         }
@@ -280,7 +282,7 @@ function LoginContent() {
           authError.message.includes("Invalid login credentials") ||
           authError.message.includes("invalid_credentials")
         ) {
-          setError("Feil e-post eller passord.");
+          setError(t("login.error.credentials"));
           setLoading(false);
           return;
         }
@@ -294,9 +296,9 @@ function LoginContent() {
       setTimeout(() => setPendingMode("logging-in"), 200);
     } catch (err) {
       if (err instanceof TypeError && err.message === "Failed to fetch") {
-        setError("Kunne ikke koble til serveren. Prøv igjen om litt.");
+        setError(t("login.error.server"));
       } else {
-        setError("Noe gikk galt. Prøv igjen.");
+        setError(t("login.error.generic"));
       }
       setLoading(false);
     }
@@ -376,12 +378,13 @@ function LoginContent() {
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    Teamet ditt,
+                    {t("login.brand.tagline")}
                     <br />
-                    <span className="text-brand-orange-light">klar</span> fra dag en.
+                    <span className="text-brand-orange-light">{t("login.brand.ready")}</span>{" "}
+                    {t("login.brand.tagline_suffix")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/50">
-                    Alt du trenger for opplæring, drift og utvikling — samlet i ett system.
+                    {t("login.brand.subtitle")}
                   </p>
                 </motion.div>
               )}
@@ -394,14 +397,14 @@ function LoginContent() {
                   exit="exit"
                 >
                   <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
-                    Bygg noe
+                    {t("login.brand.signup_heading")}
                     <br />
-                    <span className="text-brand-orange-light">teamet ditt</span>
+                    <span className="text-brand-orange-light">{t("login.brand.signup_team")}</span>
                     <br />
-                    fortjener.
+                    {t("login.brand.signup_suffix")}
                   </h2>
                   <p className="mt-4 text-[0.9rem] leading-relaxed text-white/50">
-                    Opplæring, drift og utvikling — klart på under fem minutter.
+                    {t("login.brand.signup_subtitle")}
                   </p>
                 </motion.div>
               )}
@@ -413,9 +416,11 @@ function LoginContent() {
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    La oss sette
+                    {t("login.brand.lets_go")}
                     <br />
-                    <span className="text-brand-orange-light">i gang.</span>
+                    <span className="text-brand-orange-light">
+                      {t("login.brand.lets_go_suffix")}
+                    </span>
                   </h2>
                 </motion.div>
               )}
@@ -427,10 +432,10 @@ function LoginContent() {
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    Der er du jo.
+                    {t("login.brand.welcome_back")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
-                    Dashboardet ditt er klart.
+                    {t("login.brand.dashboard_ready")}
                   </p>
                 </motion.div>
               )}
@@ -501,10 +506,10 @@ function LoginContent() {
                 >
                   <div className="mb-8">
                     <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[var(--foreground)]">
-                      Velkommen tilbake
+                      {t("login.heading")}
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[var(--text-dim)]">
-                      Logg inn for å fortsette til Smartout.
+                      {t("login.subtitle")}
                     </p>
                   </div>
                 </motion.div>
@@ -517,7 +522,7 @@ function LoginContent() {
                     style={!hasInteracted ? { animationDelay: "20ms" } : undefined}
                   >
                     <div className="border-border bg-muted text-foreground mb-6 rounded-lg border p-3 text-sm">
-                      Sesjonen er utløpt — logg inn for å fortsette der du slapp.
+                      {t("login.session_expired")}
                     </div>
                   </motion.div>
                 )}
@@ -543,7 +548,7 @@ function LoginContent() {
                           : "text-[var(--text-dim)] hover:text-[var(--text-mid)]",
                       )}
                     >
-                      E-post og passord
+                      {t("login.method.password")}
                     </button>
                     <button
                       type="button"
@@ -558,7 +563,7 @@ function LoginContent() {
                           : "text-[var(--text-dim)] hover:text-[var(--text-mid)]",
                       )}
                     >
-                      Engangskode
+                      {t("login.method.otp")}
                     </button>
                   </div>
                 </motion.div>
@@ -592,7 +597,7 @@ function LoginContent() {
                         className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[0.875rem] font-medium text-[var(--text-strong)] shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
                       >
                         <GoogleIcon />
-                        {googleLoading ? "Logger inn..." : "Fortsett med Google"}
+                        {googleLoading ? t("login.google.loading") : t("login.google.button")}
                       </button>
                     </motion.div>
 
@@ -608,7 +613,7 @@ function LoginContent() {
                         </div>
                         <div className="relative flex justify-center">
                           <span className="bg-[var(--surface-base)] px-3 text-xs text-[var(--text-dim)]">
-                            eller
+                            {t("login.divider")}
                           </span>
                         </div>
                       </div>
@@ -630,8 +635,8 @@ function LoginContent() {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="din@epost.no"
-                          label="E-post"
+                          placeholder={t("login.email.placeholder")}
+                          label={t("login.email.label")}
                           icon={<Mail className="h-4 w-4" />}
                         />
                         <div>
@@ -640,13 +645,13 @@ function LoginContent() {
                               htmlFor="password"
                               className="text-foreground text-[0.8125rem] font-medium"
                             >
-                              Passord
+                              {t("login.password.label")}
                             </label>
                             <Link
                               href="/reset-password"
                               className="text-muted-foreground hover:text-brand-orange text-[0.8125rem] transition-colors"
                             >
-                              Glemt passord?
+                              {t("login.forgot_password")}
                             </Link>
                           </div>
                           <AuthIconInput
@@ -670,7 +675,7 @@ function LoginContent() {
                             disabled={loading}
                             className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                           >
-                            {loading ? "Logger inn..." : "Logg inn"}
+                            {loading ? t("login.submit.loading") : t("login.submit.idle")}
                           </button>
                         </div>
                       </form>
@@ -688,7 +693,7 @@ function LoginContent() {
                     {otpSent ? (
                       <div className="space-y-4">
                         <p className="text-center text-[0.8125rem] text-[var(--text-dim)]">
-                          Hvis denne e-posten finnes, har vi sendt en kode
+                          {t("otp.ifExists")}
                         </p>
                         <OtpVerificationForm
                           email={email}
@@ -699,7 +704,7 @@ function LoginContent() {
                     ) : (
                       <div className="space-y-4">
                         <p className="text-muted-foreground text-[0.8125rem]">
-                          Vi sender en engangskode til e-posten din
+                          {t("login.otp.description")}
                         </p>
                         <AuthIconInput
                           id="otp-email"
@@ -708,8 +713,8 @@ function LoginContent() {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="din@epost.no"
-                          label="E-post"
+                          placeholder={t("login.email.placeholder")}
+                          label={t("login.email.label")}
                           icon={<Mail className="h-4 w-4" />}
                         />
                         <button
@@ -718,7 +723,7 @@ function LoginContent() {
                           disabled={loading || !email.includes("@")}
                           className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                         >
-                          {loading ? "Sender..." : "Send kode"}
+                          {loading ? t("login.otp.loading") : t("login.method.sendCode")}
                         </button>
                       </div>
                     )}
@@ -732,13 +737,13 @@ function LoginContent() {
                   style={!hasInteracted ? { animationDelay: "280ms" } : undefined}
                 >
                   <p className="mt-8 text-center text-[0.8125rem] text-[var(--text-dim)]">
-                    Har du ikke konto?{" "}
+                    {t("login.no_account")}{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("signup")}
                       className="text-brand-orange hover:text-brand-orange-dark cursor-pointer font-medium transition-colors"
                     >
-                      Opprett konto
+                      {t("login.create_account")}
                     </button>
                   </p>
                 </motion.div>
@@ -757,12 +762,12 @@ function LoginContent() {
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
                     <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[var(--foreground)]">
-                      Kom i gang
+                      {t("login.signup.heading")}
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[var(--text-dim)]">
-                      Sett opp bedriften din på under fem minutter.
+                      {t("login.signup.subtitle")}
                       <br />
-                      Ingen kredittkort. Ingen forpliktelser.
+                      {t("login.signup.no_credit_card")}
                     </p>
                   </div>
                 </motion.div>
@@ -773,7 +778,7 @@ function LoginContent() {
                     onClick={() => switchMode("navigating")}
                     className="bg-brand-orange mb-4 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3.5 text-[0.9rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98]"
                   >
-                    Start registrering
+                    {t("login.signup.start")}
                     <ArrowRightIcon />
                   </button>
                 </motion.div>
@@ -785,7 +790,7 @@ function LoginContent() {
                     </div>
                     <div className="relative flex justify-center">
                       <span className="bg-[var(--surface-base)] px-3 text-xs text-[var(--text-dim)]">
-                        eller
+                        {t("login.divider")}
                       </span>
                     </div>
                   </div>
@@ -798,19 +803,19 @@ function LoginContent() {
                     className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-[0.875rem] font-medium text-[var(--text-strong)] shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.98]"
                   >
                     <GoogleIcon />
-                    Registrer med Google
+                    {t("login.signup.google")}
                   </button>
                 </motion.div>
 
                 <motion.div variants={itemVariant}>
                   <p className="mt-10 text-center text-[0.8125rem] text-[var(--text-dim)]">
-                    Har du allerede konto?{" "}
+                    {t("login.signup.has_account")}{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("login")}
                       className="text-brand-orange hover:text-brand-orange-dark cursor-pointer font-medium transition-colors"
                     >
-                      Logg inn
+                      {t("login.signup.login_link")}
                     </button>
                   </p>
                 </motion.div>
@@ -890,7 +895,7 @@ function LoginContent() {
                   {navStep < 3 && (
                     <motion.div exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
                       <h2 className="mb-3 text-[1.4rem] font-semibold tracking-tight text-[var(--text-strong)]">
-                        Gjør deg klar...
+                        {t("login.navigating.heading")}
                       </h2>
 
                       {/* Pulsing subtitle */}
@@ -904,9 +909,9 @@ function LoginContent() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
                           >
-                            {navStep === 0 && "Et øyeblikk..."}
-                            {navStep === 1 && "Fremtiden er her."}
-                            {navStep === 2 && "Er du klar?"}
+                            {navStep === 0 && t("login.navigating.step0")}
+                            {navStep === 1 && t("login.navigating.step1")}
+                            {navStep === 2 && t("login.navigating.step2")}
                           </motion.p>
                         </AnimatePresence>
                       </div>
@@ -933,7 +938,9 @@ function LoginContent() {
                     transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                   />
                 </div>
-                <p className="text-[0.8125rem] text-[var(--text-dim)]">Logger inn...</p>
+                <p className="text-[0.8125rem] text-[var(--text-dim)]">
+                  {t("login.logging_in.spinner")}
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
