@@ -53,6 +53,16 @@ export type SlotPickerProps = {
    * menu opens at the click point rather than at the strip wrapper.
    */
   anchor?: React.ReactNode;
+  /**
+   * day_line_id that owns this slot picker context.
+   * Added in ADR-0367 C-T1 — forwarded to action handlers so multi-strip
+   * TimelineTab knows which line an action targets.
+   */
+  dayLineId?: string;
+  /** Planned open time for the owning day_line (HH:MM:SS). Context for action handlers. */
+  plannedOpen?: string;
+  /** Planned close time for the owning day_line (HH:MM:SS). Context for action handlers. */
+  plannedClose?: string;
 };
 
 // ── Lane item definitions ──────────────────────────────────────────────────────
@@ -243,6 +253,9 @@ export function SlotPicker({
   role,
   onAction,
   anchor,
+  dayLineId: _dayLineId,
+  plannedOpen: _plannedOpen,
+  plannedClose: _plannedClose,
 }: SlotPickerProps) {
   const canWrite = role !== null && role !== "employee";
   const locationDisabledReason = "Lokasjons-malt godtar kun vakter";

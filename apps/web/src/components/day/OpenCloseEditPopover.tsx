@@ -19,11 +19,7 @@ import { useState, useTransition } from "react";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +98,7 @@ export function OpenCloseEditPopover({ line, onClose }: OpenCloseEditPopoverProp
           variant="ghost"
           size="sm"
           data-testid="open-close-edit-trigger"
-          className="gap-1.5 text-sm text-foreground/70 hover:text-foreground"
+          className="text-foreground/70 hover:text-foreground gap-1.5 text-sm"
         >
           <Clock className="h-3.5 w-3.5" />
           Rediger åpningstider
@@ -112,15 +108,15 @@ export function OpenCloseEditPopover({ line, onClose }: OpenCloseEditPopoverProp
       <PopoverContent
         data-testid="open-close-edit-popover"
         align="start"
-        className="w-72 bg-background border-border p-4"
+        className="bg-background border-border w-72 p-4"
         onInteractOutside={handleClose}
       >
-        <p className="mb-3 text-sm font-medium text-foreground">Rediger åpningstider</p>
+        <p className="text-foreground mb-3 text-sm font-medium">Rediger åpningstider</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {/* Planned open */}
           <div className="flex flex-col gap-1">
-            <Label htmlFor="planned-open-input" className="text-xs text-muted-foreground">
+            <Label htmlFor="planned-open-input" className="text-muted-foreground text-xs">
               Åpner
             </Label>
             <Input
@@ -135,7 +131,7 @@ export function OpenCloseEditPopover({ line, onClose }: OpenCloseEditPopoverProp
 
           {/* Planned close */}
           <div className="flex flex-col gap-1">
-            <Label htmlFor="planned-close-input" className="text-xs text-muted-foreground">
+            <Label htmlFor="planned-close-input" className="text-muted-foreground text-xs">
               Stenger
             </Label>
             <Input
@@ -149,7 +145,7 @@ export function OpenCloseEditPopover({ line, onClose }: OpenCloseEditPopoverProp
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 justify-end pt-1">
+          <div className="flex justify-end gap-2 pt-1">
             <Button
               type="button"
               variant="ghost"
@@ -165,7 +161,7 @@ export function OpenCloseEditPopover({ line, onClose }: OpenCloseEditPopoverProp
               data-testid="save-hours-button"
               size="sm"
               disabled={mutation.isPending || (!plannedOpen && !plannedClose)}
-              className="bg-background border border-border text-foreground hover:bg-muted"
+              className="bg-background border-border text-foreground hover:bg-muted border"
             >
               {mutation.isPending ? "Lagrer…" : "Lagre"}
             </Button>
