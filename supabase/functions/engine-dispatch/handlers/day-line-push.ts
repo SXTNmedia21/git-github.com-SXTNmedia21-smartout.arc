@@ -144,7 +144,13 @@ async function tryInsertIdempotencyEvent(
   workspaceId: string,
   idempotencyKey: string,
 ): Promise<IdempotencyOutcome> {
-  const { error } = await sb.from("engine_event").insert({
+  // Cast through unknown to bypass strict generic row-typing on the unparameterised
+  // createClient return type. Same pattern used in period-locked-notifier.ts:109.
+  const { error } = await (sb as unknown as {
+    from: (t: string) => {
+      insert: (row: Record<string, unknown>) => Promise<{ error: { message: string; code?: string } | null }>;
+    };
+  }).from("engine_event").insert({
     event_type: "day_line_item.notified",
     workspace_id: workspaceId,
     idempotency_key: idempotencyKey,
