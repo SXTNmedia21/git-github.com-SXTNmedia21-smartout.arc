@@ -184,6 +184,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    // Mobile PWA runs on a different origin (Metro on :8083 in dev, m.smartout.ai in prod),
+    // so /api/mobile/* must serve CORS headers or browser fetch fails preflight.
+    const isDev = process.env.NODE_ENV !== "production";
+    const allowOrigin = isDev ? "*" : "https://m.smartout.ai";
+    return [
+      {
+        source: "/api/mobile/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: allowOrigin },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, PUT, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
+          { key: "Access-Control-Max-Age", value: "86400" },
+        ],
+      },
+    ];
+  },
   typescript: {
     // SMA-353 / ADR-0019: re-enabled. Production build must fail on type
     // errors — the prior `ignoreBuildErrors: true` (2026-05-04 first-rollout
