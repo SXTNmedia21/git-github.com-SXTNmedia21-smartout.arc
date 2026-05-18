@@ -35,7 +35,7 @@ type ShiftOption = {
 
 // ─── Data hooks (fetch only when popover is open) ─────────
 
-function useDepartments(workspaceId: string, enabled: boolean) {
+export function useDepartments(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "departments", workspaceId],
     enabled,
@@ -57,7 +57,7 @@ function useDepartments(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useTeams(workspaceId: string, enabled: boolean) {
+export function useTeams(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "teams", workspaceId],
     enabled,
@@ -80,7 +80,7 @@ function useTeams(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useLocations(workspaceId: string, enabled: boolean) {
+export function useLocations(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "locations", workspaceId],
     enabled,
@@ -101,7 +101,7 @@ function useLocations(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useShiftsToday(workspaceId: string, dateISO: string, enabled: boolean) {
+export function useShiftsToday(workspaceId: string, dateISO: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "shifts-today", workspaceId, dateISO],
     enabled,

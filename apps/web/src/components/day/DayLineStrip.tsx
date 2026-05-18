@@ -18,10 +18,13 @@
  */
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { deriveDayLineStatus } from "@/lib/cascade/derive-day-line-status";
 import { DayLineStripHeader } from "./DayLineStripHeader";
 import { OpenCloseEditPopover } from "./OpenCloseEditPopover";
 import { SlotPicker, type SlotPickerAction } from "./SlotPicker";
+import { AttachRoutineDialog } from "./AttachRoutineDialog";
 import type { DayLineRow } from "./_hooks/use-day-lines.types";
 import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 
@@ -50,6 +53,7 @@ export function DayLineStrip({
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [slotPickerTime, setSlotPickerTime] = useState("--:--");
   const [slotAnchorRect, setSlotAnchorRect] = useState<DOMRect | null>(null);
+  const [attachRoutineOpen, setAttachRoutineOpen] = useState(false);
 
   const status = deriveDayLineStatus({
     line: { cancelled_at: line.cancelled_at, business_date: line.business_date },
@@ -86,10 +90,29 @@ export function DayLineStrip({
 
       {/* Hours-edit popover — self-contained; its own PopoverTrigger is the entry point. */}
       {editAllowed && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 flex items-center gap-2">
           <OpenCloseEditPopover line={line} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setAttachRoutineOpen(true)}
+            data-testid={`attach-routine-trigger-${line.day_line_id}`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Legg til rutine
+          </Button>
         </div>
       )}
+
+      {/* AttachRoutineDialog — per-strip routine attachment */}
+      <AttachRoutineDialog
+        open={attachRoutineOpen}
+        onOpenChange={setAttachRoutineOpen}
+        dayLineId={line.day_line_id}
+        locationId={line.location_id}
+      />
 
       {/* SlotPicker — anchored at the clicked coordinate within the strip */}
       <SlotPicker
