@@ -27,6 +27,10 @@ import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { useDayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
 import { useTimelineSelection } from "@/components/day/use-timeline-selection";
 import type { TimelineTemplateItemT } from "@smartout/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NoSessionCTA } from "@/components/day/NoSessionCTA";
+import { DayLineStrip } from "@/components/day/DayLineStrip";
+import { useDayLines } from "@/components/day/_hooks/use-day-lines";
 
 // Local type for slot-picker anchor — time + whether it is open.
 type SlotPickerState = {
@@ -41,6 +45,17 @@ type DraftChip = {
   label: string;
   time: string;
 };
+
+// ── Session status adapter ────────────────────────────────────────────────────
+// DepartmentSessionRow.status uses a richer enum than deriveDayLineStatus expects.
+// Map to the simple three-way union the helper understands.
+type SimpleSessionStatus = "draft" | "open" | "closed";
+
+function toSimpleSessionStatus(status: DepartmentSessionRow["status"]): SimpleSessionStatus {
+  if (status === "upcoming") return "draft";
+  if (status === "active" || status === "pending_signoff") return "open";
+  return "closed"; // closed | missed
+}
 
 export function TimelineTab({
   session,
@@ -113,6 +128,18 @@ export function TimelineTab({
     teamId,
     shiftId,
   });
+
+  // ─── Multi-strip day_line query ───────────────────────────────────────────────
+  const dayLines = useDayLines({
+    workspaceId,
+    date: dateISO,
+    departmentIds: [departmentId],
+  });
+
+  const simpleSessionStatus = toSimpleSessionStatus(session.status);
+  // Reconciliation lock: not yet wired — future sortie will query
+  // daily_reconciliation.locked_at. Default false until then.
+  const reconciliationLocked = false;
 
   function refreshEvents() {
     qc.invalidateQueries({ queryKey: ["day-control", "timeline-events"] });
@@ -202,6 +229,16 @@ export function TimelineTab({
     }
   }, []);
 
+  // ─── DayLineStrip slot-action dispatcher ─────────────────────────────────────
+  // Receives (action, time, dayLineId) from a DayLineStrip child.
+  // dayLineId is available for future dialog context (CT3+ will use it).
+  const handleDayLineSlotAction = useCallback(
+    (action: SlotPickerAction, time: string, _dayLineId: string) => {
+      handleSlotPickerAction(action, time);
+    },
+    [handleSlotPickerAction],
+  );
+
   function handleAddDraftChip(label: string, time: string) {
     setDraftChips((prev) => [...prev, { label, time }]);
   }
@@ -221,6 +258,7 @@ export function TimelineTab({
   const data = events.data ?? [];
   // Coerce role to WorkspaceRole | null for picker prop
   const pickerRole = (role ?? null) as WorkspaceRole | null;
+  const dayLineRows = dayLines.data ?? [];
 
   return (
     <div className="scrollbar-thin flex h-full min-h-0 flex-1 flex-col overflow-y-auto pr-1">
@@ -302,6 +340,50 @@ export function TimelineTab({
             }
           />
         </div>
+
+        {/* ─── Multi-strip DayLine section ─────────────────────────────────── */}
+        {dayLines.isLoading && (
+          <div
+            className="flex flex-col gap-2"
+            data-testid="timeline-tab-loading"
+            aria-label="Laster dagslinjer…"
+          >
+            <Skeleton className="h-12 w-full rounded-[--radius]" />
+            <Skeleton className="h-12 w-full rounded-[--radius]" />
+          </div>
+        )}
+
+        {!dayLines.isLoading && dayLineRows.length === 0 && workspaceId && (
+          // NoSessionCTA reused as empty state — no day_lines exist for this date/dept.
+          // departmentName is not available directly on session; use departmentId as fallback
+          // until CT3 wires a richer context. The CTA itself shows date context.
+          <div data-testid="timeline-tab-no-lines">
+            <NoSessionCTA
+              departmentId={departmentId}
+              departmentName={session.departmentName}
+              dateISO={dateISO}
+              onOpened={() => {
+                qc.invalidateQueries({ queryKey: ["day-line"] });
+              }}
+            />
+          </div>
+        )}
+
+        {!dayLines.isLoading && dayLineRows.length > 0 && (
+          <div className="flex flex-col gap-3" data-testid="timeline-tab-strips">
+            {dayLineRows.map((line) => (
+              <DayLineStrip
+                key={line.day_line_id}
+                line={line}
+                sessionStatus={simpleSessionStatus}
+                reconciliationLocked={reconciliationLocked}
+                canEdit={canEdit}
+                role={pickerRole}
+                onSlotAction={handleDayLineSlotAction}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty state when scope filter is active but yields no events */}
         {data.length === 0 && scope.type !== "all" && (
