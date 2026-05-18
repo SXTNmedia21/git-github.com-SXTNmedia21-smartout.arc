@@ -51,6 +51,7 @@ import { CalendarToolsBridge } from "../_tools/calendar-tools-bridge";
 import { useCalendarBookings, useCalendarEvents, useCalendarSettings } from "../_lib/store";
 import type { Booking, CalendarEvent } from "../_lib/types";
 import { useCompanyHours } from "@/app/dashboard/website/_hooks/use-company-hours";
+import { useCalendarOverlays } from "../_hooks/use-calendar-overlays";
 
 const tabLoading = () => <SkeletonCard className="min-h-96" />;
 
@@ -81,6 +82,18 @@ export function CalendarPageShell() {
   const { bookings, upsertBooking, deleteBooking } = useCalendarBookings();
   const { settings, setSettings } = useCalendarSettings();
   const { hours: companyHours } = useCompanyHours();
+
+  // Overlay window — YYYY-MM-DD bounds of the visible week so useCalendarOverlays
+  // can scope both the shift query and the holiday-entry filter to the current cursor.
+  const overlayWindow = useMemo(
+    () => ({
+      weekStart: formatISO(startOfWeek(cursor, WEEK_OPTS), { representation: "date" }),
+      weekEnd: formatISO(endOfWeek(cursor, WEEK_OPTS), { representation: "date" }),
+    }),
+    [cursor],
+  );
+
+  const overlays = useCalendarOverlays(overlayWindow);
 
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const [eventDraft, setEventDraft] = useState<Partial<CalendarEvent> | null>(null);
@@ -329,6 +342,10 @@ export function CalendarPageShell() {
                         cursor={cursor}
                         events={visibleEvents}
                         companyHours={settings.show.openingHours ? companyHours : []}
+                        shiftsByDate={overlays.shiftsByDate}
+                        holidaysByDate={overlays.holidaysByDate}
+                        showShifts={settings.show.shifts}
+                        showHolidays={settings.show.holidays}
                         onEventClick={openExistingEvent}
                         onSlotClick={(d, h) => openNewEvent(d, h)}
                         onDayOpen={handleDayOpen}
