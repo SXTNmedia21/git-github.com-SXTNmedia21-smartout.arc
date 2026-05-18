@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
@@ -91,12 +91,12 @@ export function CalendarPageShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedDayISO, setSelectedDayISO] = useState<string | null>(null);
 
-  const handleDayOpen = (date: Date) => {
+  const handleDayOpen = useCallback((date: Date) => {
     // Local-tz YYYY-MM-DD — toISOString() converts to UTC and shifts dates
     // by one day during Norwegian summer time / nighttime hours.
     setSelectedDayISO(formatISO(date, { representation: "date" }));
-  };
-  const handleDayClose = () => setSelectedDayISO(null);
+  }, []);
+  const handleDayClose = useCallback(() => setSelectedDayISO(null), []);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -128,17 +128,17 @@ export function CalendarPageShell() {
 
   const isCalendar = activeTab === "calendar";
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setCursor((d) =>
       view === "month" ? subMonths(d, 1) : view === "week" ? subWeeks(d, 1) : addDays(d, -1),
     );
-  };
-  const handleNext = () => {
+  }, [view]);
+  const handleNext = useCallback(() => {
     setCursor((d) =>
       view === "month" ? addMonths(d, 1) : view === "week" ? addWeeks(d, 1) : addDays(d, 1),
     );
-  };
-  const handleToday = () => setCursor(new Date());
+  }, [view]);
+  const handleToday = useCallback(() => setCursor(new Date()), []);
 
   const headerLabel = useMemo(() => {
     if (view === "day") return format(cursor, "EEEE d. MMMM yyyy", { locale: nb });
@@ -150,50 +150,60 @@ export function CalendarPageShell() {
     return format(cursor, "MMMM yyyy", { locale: nb });
   }, [view, cursor]);
 
-  const openNewEvent = (date?: Date, hour?: number) => {
+  const openNewEvent = useCallback((date?: Date, hour?: number) => {
     setEventDraft({
       date: formatISO(date ?? new Date(), { representation: "date" }),
       startHour: hour ?? 9,
       endHour: (hour ?? 9) + 1,
     });
     setEventSheetOpen(true);
-  };
+  }, []);
 
-  const openExistingEvent = (event: CalendarEvent) => {
+  const openExistingEvent = useCallback((event: CalendarEvent) => {
     setEventDraft(event);
     setEventSheetOpen(true);
-  };
+  }, []);
 
-  const openNewBooking = () => {
+  const openNewBooking = useCallback(() => {
     setBookingDraft(null);
     setBookingSheetOpen(true);
-  };
+  }, []);
 
-  const openExistingBooking = (booking: Booking) => {
+  const openExistingBooking = useCallback((booking: Booking) => {
     setBookingDraft(booking);
     setBookingSheetOpen(true);
-  };
+  }, []);
 
-  const tabFade = reduce
-    ? { initial: false as const, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, y: 6 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -6 },
-        transition: {
-          duration: motionTokens.exitMs / 1000,
-          ease: motionTokens.easingExpoArray,
-        },
-      };
+  // Memoised on `reduce` — recreating these objects every render passes new references
+  // to framer-motion, which re-evaluates variants on each cursor change unnecessarily.
+  const tabFade = useMemo(
+    () =>
+      reduce
+        ? { initial: false as const, animate: { opacity: 1 } }
+        : {
+            initial: { opacity: 0, y: 6 },
+            animate: { opacity: 1, y: 0 },
+            exit: { opacity: 0, y: -6 },
+            transition: {
+              duration: motionTokens.exitMs / 1000,
+              ease: motionTokens.easingExpoArray,
+            },
+          },
+    [reduce],
+  );
 
-  const controlsFade = reduce
-    ? { initial: false as const, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, x: 8 },
-        animate: { opacity: 1, x: 0 },
-        exit: { opacity: 0, x: 8 },
-        transition: { type: "spring" as const, ...motionTokens.springSnappy },
-      };
+  const controlsFade = useMemo(
+    () =>
+      reduce
+        ? { initial: false as const, animate: { opacity: 1 } }
+        : {
+            initial: { opacity: 0, x: 8 },
+            animate: { opacity: 1, x: 0 },
+            exit: { opacity: 0, x: 8 },
+            transition: { type: "spring" as const, ...motionTokens.springSnappy },
+          },
+    [reduce],
+  );
 
   return (
     <ScheduleUIProvider>
