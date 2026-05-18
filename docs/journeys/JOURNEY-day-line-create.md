@@ -45,7 +45,7 @@ tags: [journey, day-line, area-anchored, manager, create, adr-0367, d6]
      planned_open / planned_close = form values or D1 defaults
      created_by = server-resolved profile_id
      ```
-   → Capability: emits `day_line.created` event via `emit()` from `@smartout/telemetry`. Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0358).
+   → Capability: emits `day_line.created` event via `emit()` from `@smartout/telemetry`. Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0377).
 5. `createDayLineAction` returns success.
    → System: TanStack Query mutation calls `invalidateQueries` on the day-timeline query key.
    → TimelineTab re-fetches and renders the new `DayLineStrip` for the selected area.
@@ -72,4 +72,4 @@ tags: [journey, day-line, area-anchored, manager, create, adr-0367, d6]
 - Key selectors: `data-testid="day-line-create-trigger"`, `data-testid="day-line-area-select"`, `data-testid="day-line-strip-[location_id]"` (planned — testIDs assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B capability code merge + Phase C UI merge.
 
-**ADR refs:** ADR-0367 (Rule 1, Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0358.
+**ADR refs:** ADR-0367 (Rule 1, Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0377.

@@ -5,9 +5,9 @@
 --   JOINs profile → user_identity on user_id, matches month+day to p_today, and returns
 --   ONLY profile_id + display_name. DOB never crosses the function boundary.
 --
--- Opt-out (Q4, ADR-0372): Fallback path while ADR-0368 profile_visibility matrix has not
+-- Opt-out (Q4, ADR-0372): Fallback path while ADR-0373 profile_visibility matrix has not
 --   shipped. The function reads notification_pref JSONB key 'celebrate_birthday' (default
---   true if missing or not false). When ADR-0368 ships, this migration should be replaced
+--   true if missing or not false). When ADR-0373 ships, this migration should be replaced
 --   with a version that LEFT JOINs profile_visibility instead.
 --
 -- GRANT EXECUTE: service_role ONLY. No authenticated / anon access.
@@ -52,10 +52,10 @@ BEGIN
     AND ui.date_of_birth IS NOT NULL
     AND EXTRACT(MONTH FROM ui.date_of_birth) = EXTRACT(MONTH FROM p_today)
     AND EXTRACT(DAY   FROM ui.date_of_birth) = EXTRACT(DAY   FROM p_today)
-    -- Per-employee opt-out (Q4 fallback — ADR-0368 migration-out note below).
+    -- Per-employee opt-out (Q4 fallback — ADR-0373 migration-out note below).
     -- JSONB key celebrate_birthday: if absent (default) = opt-in (true).
     -- Explicit false = opted out. Any other value or absent key = included.
-    -- ADR-0368 migration-out: when profile_visibility matrix ships, REPLACE this
+    -- ADR-0373 migration-out: when profile_visibility matrix ships, REPLACE this
     -- filter with: NOT EXISTS (SELECT 1 FROM profile_visibility pv WHERE
     --   pv.profile_id = p.profile_id AND pv.field = 'date_of_birth' AND
     --   pv.audience = 'hidden' AND pv.source = 'opt_out')
@@ -78,5 +78,5 @@ COMMENT ON FUNCTION public.fn_birthday_cohort_for_workspace(uuid, date) IS
   'GDPR-safe birthday cohort resolver (ADR-0372 Q1). Returns profile_id + display_name '
   'for profiles whose birthday month+day matches p_today. DOB never leaves this function. '
   'service_role ONLY. Per-employee opt-out via notification_pref JSONB key celebrate_birthday '
-  '(Q4 fallback — to be replaced by profile_visibility matrix when ADR-0368 ships). '
+  '(Q4 fallback — to be replaced by profile_visibility matrix when ADR-0373 ships). '
   'SECURITY DEFINER to read user_identity across the profile join.';

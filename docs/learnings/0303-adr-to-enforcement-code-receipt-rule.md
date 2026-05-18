@@ -3,7 +3,7 @@ id: L-0303
 title: "ADR-to-enforcement-code receipt rule — toothless ADR same class as docstring drift"
 status: accepted
 date: 2026-05-17
-related-adrs: [ADR-0349, ADR-0358]
+related-adrs: [ADR-0349, ADR-0377]
 tags: [adr, enforcement, toothless, anti-pattern, eslint, ci, run-council]
 ---
 
@@ -65,7 +65,7 @@ This is the exact same drift mechanism as L-0176 (docstring written pre-implemen
 grep -r 'no-oklch-literal' packages/eslint-config/
 # Must return ≥1 hit. 0 hits = toothless ADR.
 
-# For an ADR claiming "check-telemetry-emit-coverage.ts CI gate" (ADR-0358):
+# For an ADR claiming "check-telemetry-emit-coverage.ts CI gate" (ADR-0377):
 ls scripts/check-telemetry-emit-coverage.ts
 # Must exist. Missing = toothless.
 ```
@@ -80,7 +80,7 @@ ls scripts/check-telemetry-emit-coverage.ts
 
 - L-0176 (docstring drift — same class, different locus)
 - ADR-0349 (Nordic Split OKLCH literal ban — the triggering case; enforcement not wired)
-- ADR-0358 (telemetry registry requires emit wiring — correct pattern: enforcement script described alongside the decision)
+- ADR-0377 (telemetry registry requires emit wiring — correct pattern: enforcement script described alongside the decision)
 - L-0305 (4 chair self-reversals same council — reversal 4 was this pattern)
 
 ## Action

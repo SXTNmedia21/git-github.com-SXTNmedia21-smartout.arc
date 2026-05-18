@@ -11,7 +11,7 @@ tags: [journey, day-line, area-anchored, manager, edit, opening, closing, adr-03
 
 > Captures the edit-hours flow from the `OpenCloseEditPopover` component through `updateDayLineHoursAction` to the `day-line.update_hours` capability and telemetry emission.
 >
-> Relevant ADRs: ADR-0367 (Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0358.
+> Relevant ADRs: ADR-0367 (Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0377.
 
 ---
 
@@ -68,4 +68,4 @@ Steps 1–2 as above but manager adjusts both fields.
 - Key selectors: `data-testid="open-close-edit-popover"`, `data-testid="planned-open-input"`, `data-testid="planned-close-input"` (planned — assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B + Phase C merge.
 
-**ADR refs:** ADR-0367 (Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0358.
+**ADR refs:** ADR-0367 (Rule 7, Rule 10), ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0377.

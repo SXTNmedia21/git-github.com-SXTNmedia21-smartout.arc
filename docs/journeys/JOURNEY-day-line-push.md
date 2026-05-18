@@ -79,7 +79,7 @@ tags: [journey, day-line, push, notifications, engine-dispatch, shift-session, i
           payload: { shift_session_id, employee_id, location_id, scheduled_at, expo_push_success }
         }
         ```
-      → Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0358).
+      → Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0377).
       → Note: `engine_event` INSERT above (step a) is the idempotency record; this `emit()` call goes to `activity_trail` for audit. They are separate writes.
 
 4. Cron tick completes. Next tick in ~60 seconds.
@@ -114,4 +114,4 @@ tags: [journey, day-line, push, notifications, engine-dispatch, shift-session, i
 - Testing approach: mock Expo Push API endpoint + fast-forward cron tick; assert `engine_event` idempotency_key exists after one tick and no duplicate on second tick.
 - Status: NOT YET WRITTEN — gated on Phase E (push pipeline) merge.
 
-**ADR refs:** ADR-0367 (Rule 4, Rule 10), ADR-0334, ADR-0358.
+**ADR refs:** ADR-0367 (Rule 4, Rule 10), ADR-0334, ADR-0377.

@@ -111,7 +111,7 @@ This spec covers all four perspectives. Each is a checklist of work the relevant
 
 | # | Item |
 |---|---|
-| S1 | Telemetry registry: add 9 events to BOTH `SmartoutEvent` union AND `EVENT_ROUTING` map (ADR-0358 recurrence trap): `day_line.created`, `day_line.opening_changed`, `day_line.closing_changed`, `day_line_item.added`, `day_line_item.notified`, `shift_session.bound`, `shift_session.clocked_in`, `shift_session.clocked_out`, `routine.attached` |
+| S1 | Telemetry registry: add 9 events to BOTH `SmartoutEvent` union AND `EVENT_ROUTING` map (ADR-0377 recurrence trap): `day_line.created`, `day_line.opening_changed`, `day_line.closing_changed`, `day_line_item.added`, `day_line_item.notified`, `shift_session.bound`, `shift_session.clocked_in`, `shift_session.clocked_out`, `routine.attached` |
 | S2 | `activity_trail` + `engine_event` routing on all 9 events |
 | S3 | New journey docs in `docs/journeys/`: J-day-line-create, J-day-line-edit-hours, J-day-line-attach-routine, J-day-line-employee-view-mobile, J-day-line-push-notification-flow |
 | S4 | E2E (Playwright): one spec per web journey (J-create, J-edit-hours, J-attach-routine) |
@@ -632,12 +632,12 @@ Six sub-sortier, each independently mergeable on `campaign/ui-shell` or a new ca
 - 3 Server Actions
 - Trigger function + trigger on `schedule_shift` (see §5.4 — handles all nullable cases)
 - Counterpart trigger on `day_line` INSERT to back-populate `shift_session_day_line` for already-active `shift_session` rows at that `(department_session_id, location_id)`
-- 9 telemetry events registered in both `SmartoutEvent` + `EVENT_ROUTING` (ADR-0358)
+- 9 telemetry events registered in both `SmartoutEvent` + `EVENT_ROUTING` (ADR-0377)
 - Unit tests: deny path + allow path per capability
 
 **Falsifiable acceptance:**
 - [ ] `pnpm --filter @smartout/ai test capabilities/day-line` green.
-- [ ] `scripts/check-telemetry-emit-coverage.ts` green (ADR-0358).
+- [ ] `scripts/check-telemetry-emit-coverage.ts` green (ADR-0377).
 - [ ] No direct `supabase.from("day_line").insert()` outside capability tool bodies.
 - [ ] Server Actions return ADR-0151 shape — `workspace_id` + `profile_id` derived from `getServerContext`, never body.
 
@@ -782,7 +782,7 @@ Mobile does NOT gain:
 
 ### ADRs
 - **[ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md)** — authoritative
-- ADR-0078, ADR-0099, ADR-0114, ADR-0133, ADR-0151, ADR-0156, ADR-0173, ADR-0204, ADR-0240, ADR-0287, ADR-0297, ADR-0298, ADR-0334, ADR-0335, ADR-0358, ADR-0366
+- ADR-0078, ADR-0099, ADR-0114, ADR-0133, ADR-0151, ADR-0156, ADR-0173, ADR-0204, ADR-0240, ADR-0287, ADR-0297, ADR-0298, ADR-0334, ADR-0335, ADR-0377, ADR-0366
 
 ### Modules
 - `docs/modules/core-structure/` — D1 axes (HVOR + HVEM)

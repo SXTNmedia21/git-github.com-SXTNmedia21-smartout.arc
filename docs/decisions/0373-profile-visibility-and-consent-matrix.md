@@ -1,13 +1,13 @@
 ---
 title: "Profile Visibility and Consent Matrix (Cross-Workspace PII Governance)"
-id: ADR_0368
+id: ADR_0373
 status: proposed
 layer: decision
 created: 2026-05-18
 updated: 2026-05-18
 ---
 
-# ADR-0368: Profile Visibility and Consent Matrix (Cross-Workspace PII Governance)
+# ADR-0373: Profile Visibility and Consent Matrix (Cross-Workspace PII Governance)
 
 ## Context and Problem Statement
 

@@ -51,7 +51,7 @@ tags: [journey, day-line, routine, template, attach, manager, adr-0367, adr-0240
 
 7. After all items created, `routine.attach_to_line` emits ONE `routine.attached` event via `emit()`:
    → Payload: `{ day_line_id, template_id, item_count, actor_capability: 'day-line.instantiate_template', delegated_via: 'day-line' }`.
-   → Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0358).
+   → Routes to PostHog + Logger + `activity_trail` + `engine_event` (ADR-0377).
 
 8. `instantiateTemplateAction` returns success.
    → TanStack Query invalidation. TimelineTab re-fetches and renders the N new task chips on the area strip at their scheduled positions.
@@ -84,4 +84,4 @@ tags: [journey, day-line, routine, template, attach, manager, adr-0367, adr-0240
 - Key selectors: `data-testid="attach-routine-trigger"`, `data-testid="attach-routine-dialog"`, `data-testid="template-list-item-[template_id]"`, `data-testid="day-line-task-chip-[task_id]"` (planned — assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B (capabilities) + Phase C (UI) merge.
 
-**ADR refs:** ADR-0367 (Rule 7, Rule 10), ADR-0240, ADR-0298, ADR-0335, ADR-0356, ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0358.
+**ADR refs:** ADR-0367 (Rule 7, Rule 10), ADR-0240, ADR-0298, ADR-0335, ADR-0356, ADR-0099, ADR-0114, ADR-0151, ADR-0204, ADR-0287, ADR-0377.

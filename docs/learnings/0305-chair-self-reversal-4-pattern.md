@@ -3,7 +3,7 @@ id: L-0305
 title: "4 chair self-reversals in single council — Phase 3 Steward systematic blind spots"
 status: accepted
 date: 2026-05-17
-related-adrs: [ADR-0358, ADR-0349, ADR-0350]
+related-adrs: [ADR-0377, ADR-0349, ADR-0350]
 tags: [l-0147, chair-self-reversal, run-council, phase-3, blind-spots, council-protocol]
 ---
 
@@ -52,7 +52,7 @@ The artifact-level checks that caught all 4 reversals require:
 
 These 4 reversal classes suggest 4 Phase 3 protocol amendments:
 
-1. **Telemetry-contract check** — when `packages/telemetry/src/registry.ts` is in diff, MUST grep for emit() call-sites per new entry. (Now enforced via ADR-0358 + run-council SKILL.md amendment.)
+1. **Telemetry-contract check** — when `packages/telemetry/src/registry.ts` is in diff, MUST grep for emit() call-sites per new entry. (Now enforced via ADR-0377 + run-council SKILL.md amendment.)
 
 2. **Merge-ancestry check** — for campaign tips, MUST run `git log --merges --oneline` to surface unexpected campaign aggregation. (Added to run-council SKILL.md Common Mistakes.)
 
@@ -66,7 +66,7 @@ These 4 reversal classes suggest 4 Phase 3 protocol amendments:
 - L-0294 (7th L-0147 precedent — promote to SKILL.md hard rule, ui-shell sub-sortie)
 - L-0304 (7th component-ARIA L-0147 precedent — sibling from same council)
 - L-0303 (ADR-to-enforcement receipt rule — sibling from same council)
-- ADR-0358 (telemetry registry requires emit wiring — derived from reversal 1)
+- ADR-0377 (telemetry registry requires emit wiring — derived from reversal 1)
 
 ## Action
 

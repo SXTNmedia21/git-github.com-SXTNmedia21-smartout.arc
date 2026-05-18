@@ -2,6 +2,11 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type User, type UserResponse } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
+import { assertRootDomain } from "./_assert-root-domain";
+
+// Assert at module load so any cold-start in production fails fast if the env
+// var is missing — prevents silent cookie-domain drift (ADR-0363).
+assertRootDomain();
 
 function getServerCookieDomain(): string | undefined {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;

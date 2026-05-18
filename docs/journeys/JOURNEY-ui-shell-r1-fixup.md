@@ -74,7 +74,7 @@ tags: [journey, council-followup, r1-fixup, migration, telemetry, wcag, i18n]
 4. Error boundary shows "Noe gikk galt — vi jobber med å fikse det" in Norwegian + "Last siden på nytt" retry button + sentry-correlation-id.
 5. User clicks retry → Error boundary re-renders → page loads.
 
-**Plus:** `_tools/` directory present with skeleton `help-tools-bridge.tsx` registering minimal harness tools (per ADR-0357 NEVER-skippable axes; even empty bridge counts as registration).
+**Plus:** `_tools/` directory present with skeleton `help-tools-bridge.tsx` registering minimal harness tools (per ADR-0376 NEVER-skippable axes; even empty bridge counts as registration).
 
 **Postcondition:** /help Tier 1 baseline restored. Page-Polish audit STRICT-FAIL closed.
 
@@ -85,7 +85,7 @@ tags: [journey, council-followup, r1-fixup, migration, telemetry, wcag, i18n]
 
 **Precondition:** Trainer/admin viewing a protocol detail page that mounts `ProcedureDetailTabs` (Oversikt / Steg / Quiz / Bekreftelse).
 
-1. User presses Tab → System focuses first tab → User sees visible focus ring (Nordic Split ring tokens — ADR-0357 v2 carve-out).
+1. User presses Tab → System focuses first tab → User sees visible focus ring (Nordic Split ring tokens — ADR-0376 v2 carve-out).
 2. Screen reader announces "tab 1 of 4 selected — Oversikt" (System exposes `role="tab"` + `aria-selected="true"` + `aria-controls="panel-oversikt"`).
 3. User presses Arrow Right → System moves focus to "Steg" tab → reader announces "tab 2 of 4 — Steg".
 4. User presses Enter → System updates `aria-selected` on new tab + flips panel visibility → reader announces "Steg panel".

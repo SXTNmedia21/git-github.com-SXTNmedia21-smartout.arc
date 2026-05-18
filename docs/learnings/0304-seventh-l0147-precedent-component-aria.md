@@ -3,7 +3,7 @@ id: L-0304
 title: "7th L-0147 component-level ARIA precedent — ProcedureDetailTabs defect reintroduced after HMS fixup"
 status: accepted
 date: 2026-05-17
-related-adrs: [ADR-0357]
+related-adrs: [ADR-0376]
 tags: [l-0147, chair-self-reversal, aria, wcag, component, council, run-council]
 ---
 

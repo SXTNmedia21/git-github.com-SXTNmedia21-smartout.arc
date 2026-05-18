@@ -48,7 +48,7 @@ export async function sendToPostHogServer(event: SmartoutEvent): Promise<void> {
   if (!client) return;
 
   client.capture({
-    distinctId: event.actor_id,
+    distinctId: event.actor_id ?? "anonymous",
     event: event.event,
     properties: {
       ...event.properties,

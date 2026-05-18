@@ -40,7 +40,7 @@ without scattering opt-out flags across N tables.
   neither manager nor anonymous — the RPC's bypass already handles this via
   `v_is_service_role` (line 42 of the RPC), but the actor identity must still be a real
   profile (the workspace's "system" or "Botsson" profile).
-- **ADR-0368 alignment.** The proposed visibility matrix already names `date_of_birth`
+- **ADR-0373 alignment.** The proposed visibility matrix already names `date_of_birth`
   as a `pii_field` with `opt_in` source. Per-employee opt-out IS the consent matrix —
   no new opt-out column.
 - **Idempotency under retry.** pg_cron + Edge Functions can fire twice. Double-posting
@@ -78,10 +78,10 @@ autonomous channel = service-role + cron-secret + RPC `v_is_service_role` branch
 
 ### Q4 — Per-employee opt-out
 
-**CHOSEN:** Honour ADR-0368 `profile_visibility` matrix (`field='date_of_birth' AND
+**CHOSEN:** Honour ADR-0373 `profile_visibility` matrix (`field='date_of_birth' AND
 audience='hidden' AND source='opt_out'`). Cohort RPC LEFT JOINs the matrix and excludes
-opt-outs. Fallback if ADR-0368 slips: temporary JSONB key `celebrate_birthday` on
-`profile.notification_pref`, removal-migration scheduled with ADR-0368 ship.
+opt-outs. Fallback if ADR-0373 slips: temporary JSONB key `celebrate_birthday` on
+`profile.notification_pref`, removal-migration scheduled with ADR-0373 ship.
 
 ### Q5 — Per-workspace opt-out
 
@@ -193,7 +193,7 @@ observe announcement in `/dashboard/komm/nyheter`.
 3. **System actor identity.** Path (a) dedicated Botsson profile per workspace
    (already exists per `20260519100000_profile_botsson_channel_bootstrap.sql` —
    RECOMMENDED), or (b) nullable actor when service-role. Recommend (a).
-4. **ADR-0368 dependency.** Fallback acceptable if 0368 slips? (JSONB key on
+4. **ADR-0373 dependency.** Fallback acceptable if 0368 slips? (JSONB key on
    `profile.notification_pref`, removal-migration scheduled with 0368 ship.)
 
 ## Rules and Consequences
@@ -201,10 +201,10 @@ observe announcement in `/dashboard/komm/nyheter`.
 - **Good, because** cohort resolver enforces GDPR boundary at RPC surface.
 - **Good, because** reuse of `publish_announcement_atomic` preserves fan-out, audit,
   notification-tier, and idempotency in one well-tested code path.
-- **Good, because** opt-out consolidated into ADR-0368 matrix — consent singular.
+- **Good, because** opt-out consolidated into ADR-0373 matrix — consent singular.
 - **Good, because** autonomous path = service-role + cron-secret — no new authority
   level, no privilege regression for human callers.
-- **Bad, because** temporary fallback (Q4) if ADR-0368 slips creates 14-day window
+- **Bad, because** temporary fallback (Q4) if ADR-0373 slips creates 14-day window
   where opt-out lives in `notification_pref` JSONB — tracked + removal-scheduled.
 - **Bad, because** hourly cron adds 24-tick load even for empty days — acceptable:
   cheap `workspace_celebration_config` query per tick.
@@ -223,7 +223,7 @@ observe announcement in `/dashboard/komm/nyheter`.
 - ADR-0132 (mobile AI routing — mobile is read-only consumer)
 - ADR-0173 (capability boundary — `communication` retained, no proliferation)
 - ADR-0287 (gate mandatory on mutations — service-role branch IS the gate here)
-- ADR-0368 (profile_visibility matrix — Q4 opt-out source of truth)
+- ADR-0373 (profile_visibility matrix — Q4 opt-out source of truth)
 - ADR-0369 (announcement atomicity RPC-body fan-out — reused unchanged)
 - ADR-0370 (capability boundary for announcement surface — celebration extends, not forks)
 - ADR-0371 (announcement schema contract — title+body preserved; celebration uses both)

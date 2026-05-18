@@ -189,6 +189,12 @@ const nextConfig: NextConfig = {
     // so /api/mobile/* must serve CORS headers or browser fetch fails preflight.
     const isDev = process.env.NODE_ENV !== "production";
     const allowOrigin = isDev ? "*" : "https://m.smartout.ai";
+    // Universal-Link / App-Link discovery files.
+    // Apple requires `apple-app-site-association` (NO extension) served as
+    // `application/json` — Vercel defaults to `application/octet-stream` for
+    // unknown extensions, which Apple rejects. `assetlinks.json` already gets
+    // the right MIME via its extension but we set it explicitly for parity.
+    // Per docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §4.4-4.5.
     return [
       {
         source: "/api/mobile/:path*",
@@ -197,6 +203,20 @@ const nextConfig: NextConfig = {
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, PUT, DELETE, OPTIONS" },
           { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
           { key: "Access-Control-Max-Age", value: "86400" },
+        ],
+      },
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
         ],
       },
     ];

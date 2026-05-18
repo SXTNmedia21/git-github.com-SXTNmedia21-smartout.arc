@@ -47,7 +47,7 @@ Close R2 council blockers on `hms-cluster-polish-read` + `hms-cluster-polish-fix
 
 ## Knowledge artifacts (Phase 7+8)
 
-- ADR-0357 v2 addendum (proposed) — page-header inheritance carve-out
+- ADR-0376 v2 addendum (proposed) — page-header inheritance carve-out
 - L-NEW-A reframed → "validator-bug claim must include exit-code verification, not just stdout grep"
 - L-NEW-C — head-truncated stdout false-negative (sibling L-NEW-2)
 - COUNCIL-LOG R2 entry + REFINED Self-Reversal classification + B2 retraction

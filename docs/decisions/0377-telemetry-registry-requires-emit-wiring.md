@@ -1,5 +1,5 @@
 ---
-id: ADR-0358
+id: ADR-0377
 title: "Telemetry registry entries require emit() call-sites — toothless event ban"
 status: proposed
 layer: decision
@@ -12,7 +12,7 @@ related: [ADR-0134, L-0176, L-0177]
 tags: [telemetry, observability, contract, anti-pattern]
 ---
 
-# ADR-0358: Telemetry registry entries require emit() call-sites — toothless event ban
+# ADR-0377: Telemetry registry entries require emit() call-sites — toothless event ban
 
 ## Context and Problem Statement
 
@@ -93,7 +93,7 @@ if (missing.length > 0) {
 Add to `.husky/pre-commit`:
 
 ```bash
-# Check telemetry registry entries have matching emit() call-sites (ADR-0358)
+# Check telemetry registry entries have matching emit() call-sites (ADR-0377)
 if git diff --cached --name-only | grep -q "packages/telemetry/src/registry.ts"; then
   pnpm ts-node scripts/check-telemetry-emit-coverage.ts --staged-only
 fi

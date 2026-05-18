@@ -1,6 +1,6 @@
 ---
-id: ADR_0357
-title: "ADR-0357 — Page-Polish 8-Phase Rule: Documented Intentional Skips"
+id: ADR_0376
+title: "ADR-0376 — Page-Polish 8-Phase Rule: Documented Intentional Skips"
 status: proposed
 updated: 2026-05-17
 created: 2026-05-17
@@ -8,7 +8,7 @@ module: governance
 tags: [adr, council-infrastructure, page-polish, l-0287]
 ---
 
-# ADR-0357 — Page-Polish 8-Phase Rule: Documented Intentional Skips
+# ADR-0376 — Page-Polish 8-Phase Rule: Documented Intentional Skips
 
 > Status: PROPOSED — pending Pontus approval. Codifies the carve-out paragraph added 2026-05-17 in `~/.claude/skills/run-council/SKILL.md:121-133` after Council R1 on `hms-cluster-polish-read` revealed that strict mechanical Phase 0 application can force phantom tool registration — the exact failure mode L-0287 protects against.
 
@@ -105,7 +105,7 @@ R2 council Phase 3 Supervisor downgraded `/dashboard/hms/training` Phase 6 verdi
 - (a) parent layout sub-nav (`HmsSubNav.tsx:17` "Opplæring" label) — Botsson-readable section context
 - (b) child component primary `<h2>` (CompetenceMatrix + ProtocolList own their own headings)
 
-V1 ADR-0357 NEVER-skippable (b) reads as page-file ownership of header + description. Strict mechanical application would force adding redundant page-level `<h1>` even when sub-nav + child header already satisfy Botsson's "what is this page?" answer.
+V1 ADR-0376 NEVER-skippable (b) reads as page-file ownership of header + description. Strict mechanical application would force adding redundant page-level `<h1>` even when sub-nav + child header already satisfy Botsson's "what is this page?" answer.
 
 This pattern is widespread across the HMS cluster (5+ pages) and likely common across other dashboard surfaces with admin/employee role-conditional delegation.
 

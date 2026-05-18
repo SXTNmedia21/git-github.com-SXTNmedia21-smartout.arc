@@ -49,9 +49,9 @@ Two independent visual indicators. When both fire (highlighted + focused), they 
 
 T3 `help-tools-bridge.tsx` initially passed bare `[]` to `useRegisterTools("help", [])`. TypeScript inferred `never[]`, failing the `ClientToolKit | null` contract. T7 fix: passed canonical empty toolkit `{ definitions: [], implementations: {} }`. Preserves L-0287 thin-shell semantics (no phantom tool registration) while satisfying type contract.
 
-### D5 — ADR-0358 status: proposed (NOT accepted)
+### D5 — ADR-0377 status: proposed (NOT accepted)
 
-Per L-0303 (ADR-to-enforcement-code receipt rule, written this sortie), ADR-0358 (telemetry-registry-requires-emit-wiring) is intentionally `proposed` despite L-NEW-1 hitting 2nd occurrence threshold. Reason: ADR text promises a `scripts/check-telemetry-emit-coverage.ts` enforcement script that is NOT yet shipped. Flipping to `accepted` without the script would be the very anti-pattern L-0303 prohibits. Acceptance gated on enforcement-script PR (follow-up sortie).
+Per L-0303 (ADR-to-enforcement-code receipt rule, written this sortie), ADR-0377 (telemetry-registry-requires-emit-wiring) is intentionally `proposed` despite L-NEW-1 hitting 2nd occurrence threshold. Reason: ADR text promises a `scripts/check-telemetry-emit-coverage.ts` enforcement script that is NOT yet shipped. Flipping to `accepted` without the script would be the very anti-pattern L-0303 prohibits. Acceptance gated on enforcement-script PR (follow-up sortie).
 
 ### D6 — ADR-0238 status flip: proposed → accepted
 
@@ -96,7 +96,7 @@ Plus latent learning (not yet promoted, observed this sortie):
 | `2d35cc6d5` | feat(help): J3 — Tier 1 polish baseline (error.tsx + _tools) |
 | `c912d1a20` | feat(telemetry): B2 — wire phantom emit for deviation-viewed + handbook-chapter-opened |
 | `ff2c9a6ea` | fix(hms): J5 — migrate ProcedureDetailTabs hardcoded Norwegian to i18n keys |
-| `9cd0984db` | docs(adr): ADR-0358 telemetry-registry-requires-emit-wiring + flip ADR-0238 accepted |
+| `9cd0984db` | docs(adr): ADR-0377 telemetry-registry-requires-emit-wiring + flip ADR-0238 accepted |
 | `ebb44c646` | docs(council): COUNCIL-LOG R1 entry + DASHBOARD refresh |
 | `0835fb6ff` | fix(hms): J4 — WCAG 4.1.2 ProcedureDetailTabs + WCAG 2.4.11 DayTimelineStrip × 2 |
 | `1f6917c75` | fix(help): T7 — useRegisterTools type annotation |
@@ -125,7 +125,7 @@ Concurrent on campaign during F1:
 Carried forward (deferred to post-HOP-A follow-up sorties):
 
 - **ADR-0366 ESLint rule implementation** in `packages/eslint-config/next.mjs` (OKLCH literal ban) — toothless ADR, no new violations this campaign but enforcement infrastructure missing. L-0303 mandates landing before ADR-0366 can flip to `accepted`.
-- **ADR-0358 enforcement script** — `scripts/check-telemetry-emit-coverage.ts` promised in ADR body, not yet shipped.
+- **ADR-0377 enforcement script** — `scripts/check-telemetry-emit-coverage.ts` promised in ADR body, not yet shipped.
 - **7 surviving `transition-all`** on HMS components (DepartmentReadiness, TaskCard, OversiktEmployee, MaintenanceProcedureForm) — Nordic Split §10.4 violation.
 - **Palette literals** `green-500`, `red-500`, `rose-*` → semantic tokens (`text-success`, `text-destructive`).
 - **`LearnFlow.tsx:68-91`** stage buttons need `aria-current` or full tablist pattern (Code-reviewer IMPORTANT).

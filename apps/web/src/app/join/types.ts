@@ -60,3 +60,12 @@ export const defaultJoinState: JoinState = {
 
 /** localStorage key — matches the existing wizard key for migration continuity */
 export const JOIN_STORAGE_KEY = "smartout_signup_wizard";
+
+/** Maximum age of a persisted wizard envelope before it is considered stale and purged. */
+export const JOIN_STORAGE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Envelope schema version. Increment when the StorageEnvelope shape changes to
+ * force a clean purge of incompatible legacy entries.
+ */
+export const JOIN_STORAGE_SCHEMA_VERSION = 1;

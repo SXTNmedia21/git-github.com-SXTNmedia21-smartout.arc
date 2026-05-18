@@ -107,7 +107,17 @@ export function Step3About({ state, updateState, t }: WizardStepProps<JoinState>
   useEffect(() => {
     if (hasTriggered.current || hasExistingContent) return;
     if (prefetchStatus === "fetching") return;
-    if (prefetchStatus === "done" && prefetchedContent) return;
+    // Only consider prefetch "complete enough" if it produced any of the
+    // three long-form copy fields. The Provider also surfaces prefetchedContent
+    // when /generate returned LLM classifications without long-form text;
+    // in that case we still want to trigger the local enrichAndGenerate
+    // fallback so the user gets typewriter copy.
+    const hasLongFormCopy =
+      !!prefetchedContent &&
+      (!!prefetchedContent.about_us ||
+        !!prefetchedContent.our_history ||
+        !!prefetchedContent.our_concept);
+    if (prefetchStatus === "done" && hasLongFormCopy) return;
     if (status === "idle") {
       hasTriggered.current = true;
       enrichAndGenerate();

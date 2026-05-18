@@ -918,7 +918,7 @@ No mobile composer (ADR-0133 read-only boundary preserved).
 
 ## §12 — Telemetry (4 events, all emit-wired)
 
-Per ADR-0358: telemetry events MUST have emit() call-sites. No orphan registry entries.
+Per ADR-0377: telemetry events MUST have emit() call-sites. No orphan registry entries.
 
 ### §12.1 Extend `channel.message.sent` in `packages/telemetry/src/registry.ts`
 
@@ -1106,7 +1106,7 @@ All code-trace findings used in this spec are from the dispatch brief. Phase 2.5
 | B2 — Capability key `broadcast.send` phantom in agent path | V1 §8 pseudocode used `capability: 'broadcast.send'` which has a different seed (`level=confirm, min_role=manager` vs `communication`'s `level=suggest, min_role=employee`). `broadcast.send` is NOT in `CapabilityName` type union — agent path would fail at runtime. | Use `capability: 'communication'`, `actionType: 'publish_announcement_atomic'`. Day-Control server action keeps its own `broadcast.send` gate as defense-in-depth. | ADR-0370 (B) |
 | B3 — `callGateAction` signature mismatch | V1 §8 pseudocode used callback-wrapping pattern. Actual signature (verified at `gate.ts:52`) is positional: `callGateAction(supabaseAdmin, workspaceId, actorProfileId, args)`. | §8 updated with correct positional signature. | ADR-0370 (B) / L-0315 |
 | B4 — Schema breaking: `{title, body}` → `{content}` collapse | V1 proposed collapsing existing tool params. `channel_message.content` is a single DB column (verified), but tool API, composer UI, and agent prompts all use separate `title` + `body`. Collapse = breaking change at tool-API level with no ADR + no consumer survey. | Preserve `{title, body}` in tool params + composers. Server concat unchanged. Sidecar adds new fields additively. | ADR-0371 (A) |
-| B5 — Telemetry registry not extended | V1 listed new events in spec but did not show emit call-sites. Violates ADR-0358 (L-0176 class: docstring-drift). | §12 specifies all 4 events with explicit emit call-site locations. `channel.message.sent` extended; 3 new events registered + wired. | L-0312 class / ADR-0358 |
+| B5 — Telemetry registry not extended | V1 listed new events in spec but did not show emit call-sites. Violates ADR-0377 (L-0176 class: docstring-drift). | §12 specifies all 4 events with explicit emit call-site locations. `channel.message.sent` extended; 3 new events registered + wired. | L-0312 class / ADR-0377 |
 | B6 — `in_app` channel value dropped + `elevated` mode invented | V1 notification mapping used `mode='elevated'` (does not exist in enum) and dropped `in_app` from `allowed_channels`. | §4.1 mapping table uses only verified enum values. `external` tier maps to `mode='work'` + `priority=2`. `in_app` excluded from outbox channels (surface-side rendering concern). | L-0313 / §4.1 |
 
 ---
@@ -1186,5 +1186,5 @@ All code-trace findings used in this spec are from the dispatch brief. Phase 2.5
 - ADR-0204 (gatedMutation)
 - ADR-0240 (cross-namespace write prohibition)
 - ADR-0287 (gate_action mandatory)
-- ADR-0358 (telemetry registry requires emit wiring)
+- ADR-0377 (telemetry registry requires emit wiring)
 - ADR-0361 (CSS variable declaration before component work)

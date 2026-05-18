@@ -66,7 +66,7 @@ Affected:
 
 ### J3 — `/help` Tier 1 surface polish baseline
 
-`apps/web/src/app/dashboard/help/` lacks both `error.tsx` AND `_tools/` directory. Tier 1 surface in `apps/web/.botsson/site-map.json` cannot ship without `error.tsx` (ADR-0357 NEVER-skippable).
+`apps/web/src/app/dashboard/help/` lacks both `error.tsx` AND `_tools/` directory. Tier 1 surface in `apps/web/.botsson/site-map.json` cannot ship without `error.tsx` (ADR-0376 NEVER-skippable).
 
 **Fix:** Add minimal `error.tsx` mirroring `apps/web/src/app/dashboard/billing/error.tsx` + `_tools/` skeleton folder with placeholder bridge.
 
@@ -145,7 +145,7 @@ Before close-feature:
 ## References
 
 - Council artifacts (Phase 4-5): in-session transcript 2026-05-17
-- ADR-0357 (page-polish documented intentional skips) + v2 addendum (page-header inheritance)
+- ADR-0376 (page-polish documented intentional skips) + v2 addendum (page-header inheritance)
 - L-0042 (migration retimestamp pattern, precedent commits `c7228d056`, `eb4d72fbc`)
 - L-NEW-1 (telemetry-contract-without-emit-wiring) — promoted to ADR-grade after 2nd occurrence
 - L-NEW-C (head-truncated stdout misread) — promoted to run-council SKILL.md after 3rd occurrence

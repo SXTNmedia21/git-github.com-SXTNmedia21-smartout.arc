@@ -22,7 +22,7 @@ Forward-fix sub-sortie on `campaign/ui-shell`. Two commits: `28521f8b0` (plan/jo
 | 1 | B1 fix: 130-char rewrite preserving role-conditional info | Validator threshold 140; old purpose 165 chars. Trimmed without losing admin/employee branching semantics. |
 | 2 | B3 + B4 replace `transition-all` with `transition-colors` (Nordic Split §10.4) | Pre-commit Nordic Split audit flagged `transition-all` in touched lines. Buttons only transition colors (active state), not size/transform — `transition-colors` is the correct token. Closes drift in same hop. |
 | 3 | B2 RETRACTED post-Phase-5: validator works correctly | Orchestrator captured full output + exit code (`echo "exit=$?"`). Validator exits 1 with ✗ printed. Phase 5 chair adopted Agent-coord's head-truncated-output misread. Sibling trap class to L-NEW-2. Captured as L-NEW-C. |
-| 4 | ADR-0357 v2 addendum (page-header inheritance) appended to existing file (not new ADR slot) | Addendum is amendment to existing rule, not new rule. Single-file edit preserves cross-reference integrity. |
+| 4 | ADR-0376 v2 addendum (page-header inheritance) appended to existing file (not new ADR slot) | Addendum is amendment to existing rule, not new rule. Single-file edit preserves cross-reference integrity. |
 | 5 | Use HMS scope for commit messages (`docs(hms)` / `fix(hms)`) | commitlint scope-case rejected `hms-r2-fixup` (mixed alpha-digit segments). `hms` is canonical module scope, matches predecessor sortie commits. |
 
 ## Learnings
@@ -33,7 +33,7 @@ Forward-fix sub-sortie on `campaign/ui-shell`. Two commits: `28521f8b0` (plan/jo
 
 ## ADRs
 
-- **ADR-0357 v2 addendum (proposed)** — Page-Header Inheritance Carve-Out. Appended to `docs/decisions/0357-page-polish-documented-intentional-skips.md`. Allows NEVER-skippable (b) "page header + description" to be satisfied via inheritance pattern when: (1) page-file is thin-shell, (2) parent layout provides section-level labeling, (3) child component branches own primary headings. Precedent: HMS training page.
+- **ADR-0376 v2 addendum (proposed)** — Page-Header Inheritance Carve-Out. Appended to `docs/decisions/0376-page-polish-documented-intentional-skips.md`. Allows NEVER-skippable (b) "page header + description" to be satisfied via inheritance pattern when: (1) page-file is thin-shell, (2) parent layout provides section-level labeling, (3) child component branches own primary headings. Precedent: HMS training page.
 
 ## Known issues / debt
 
@@ -44,7 +44,7 @@ Forward-fix sub-sortie on `campaign/ui-shell`. Two commits: `28521f8b0` (plan/jo
 
 ## Next steps
 
-- **Phase 7+8 council artifacts** ship in next commit on this branch (this HANDOFF + ADR-0357 v2 addendum + L-NEW-C + COUNCIL-LOG R2 entry).
+- **Phase 7+8 council artifacts** ship in next commit on this branch (this HANDOFF + ADR-0376 v2 addendum + L-NEW-C + COUNCIL-LOG R2 entry).
 - **close-feature.sh** runs gates + merge to campaign/ui-shell.
 - **L-NEW-C promotion** to run-council SKILL.md Common Mistakes table after merge.
 - **Sortie 4** picks up: animate-spin dashboard-wide sweep, palette migration, ProcedureDetailTabs Tabs refactor, i18n label.
@@ -68,13 +68,13 @@ docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md                    | +1 -1 (B5
 docs/plans/PLAN-hms-cluster-polish-r2-fixup.md                       | (new)
 docs/journeys/JOURNEY-ui-shell-hms-cluster-polish-r2-fixup.md        | (new)
 docs/HANDOFF-ui-shell-hms-cluster-polish-r2-fixup.md                 | (this file)
-docs/decisions/0357-page-polish-documented-intentional-skips.md      | v2 addendum appended
+docs/decisions/0376-page-polish-documented-intentional-skips.md      | v2 addendum appended
 docs/council/COUNCIL-LOG.md                                          | R2 entry appended
 ```
 
 ## Council artifact references
 
 - R2 Phase 5 synthesis + L-0147 REFINED Self-Reversal + B2 retraction: `docs/council/COUNCIL-LOG.md` `## 2026-05-17 PM2 — HMS Cluster Polish R2 verification` entry.
-- ADR-0357 v2 addendum: `docs/decisions/0357-page-polish-documented-intentional-skips.md` (V2 Addendum section).
+- ADR-0376 v2 addendum: `docs/decisions/0376-page-polish-documented-intentional-skips.md` (V2 Addendum section).
 - L-NEW-C: `~/.claude/projects/-home-sxtnl-dev-smartout-ai/memory/learning_head_truncated_output_false_negative.md`.
 - Run-council Phase 0 carve-out (still active): `~/.claude/skills/run-council/SKILL.md:121-135`.

@@ -154,7 +154,7 @@ Each surface owns its write-path; no cross-namespace direct DML (ADR-0173 / ADR-
 
 ### Rule 10 — Push and telemetry events
 
-New registry entries (BOTH `SmartoutEvent` union AND `EVENT_ROUTING` map per ADR-0358 / L-0193 recurrence trap). **All event names use dot-namespacing** (modern convention — all post-2026-04 capabilities use it: task.*, cascade.*, channel.*, botsson.*):
+New registry entries (BOTH `SmartoutEvent` union AND `EVENT_ROUTING` map per ADR-0377 / L-0193 recurrence trap). **All event names use dot-namespacing** (modern convention — all post-2026-04 capabilities use it: task.*, cascade.*, channel.*, botsson.*):
 
 - `day_line.created`
 - `day_line.opening_changed`

@@ -26,7 +26,7 @@ Forward-fix sortie remediating the post-implementation R1 council findings on th
 | 3 | G3 sanitization: `react-markdown` + `rehype-sanitize` (not DOMPurify) | Migration column comment says "Markdown supported" — current HTML render was both insecure AND wrong intent. react-markdown was already a dep; only added rehype-sanitize + remark-gfm. Matches L-XSS protocol (sanitize at render, not write). |
 | 4 | G3 scope: BOTH LearnFlow.tsx (sortie-new) AND ProcedureDetailTabs.tsx (pre-existing) | Same vector, same component family. Fixing only sortie-new would leave the older site exposed. |
 | 5 | G4 site-map training entry with `tools: []` | L-0287 phantom-contract avoidance per predecessor HANDOFF Decision #3 — thin-shell delegating page has no page-level state to register tools against. Site-map entry still REQUIRED (Botsson route registry universal). |
-| 6 | G5 run-council Phase 0 carve-out paragraph (not full ADR) | Skill amendment captures the lesson directly in run-council. ADR-0357 codifies the principle separately for ADR-grade visibility. |
+| 6 | G5 run-council Phase 0 carve-out paragraph (not full ADR) | Skill amendment captures the lesson directly in run-council. ADR-0376 codifies the principle separately for ADR-grade visibility. |
 | 7 | TODO comments for `workspace_readiness_percent` / `protocol_count` / `active_session_count` data | Real values require hoisting hook (`useGovernanceFiltered`, `useDriftInsights`) from child component to page level — ADR-0115 admin pattern. Out of scope for fixup; flagged for Sortie 4. Telemetry emits with 0 + TODO until then. |
 
 ## Learnings
@@ -39,7 +39,7 @@ Forward-fix sortie remediating the post-implementation R1 council findings on th
 
 ## ADRs
 
-- **ADR-0357 (proposed)** — Page-Polish 8-Phase Rule: Documented Intentional Skips. Codifies G5 carve-out at ADR-grade. Allows tool-bridge skip on thin-shell delegating pages with HANDOFF cascade rationale; NEVER allows site-map / page header / telemetry view-emit skip.
+- **ADR-0376 (proposed)** — Page-Polish 8-Phase Rule: Documented Intentional Skips. Codifies G5 carve-out at ADR-grade. Allows tool-bridge skip on thin-shell delegating pages with HANDOFF cascade rationale; NEVER allows site-map / page header / telemetry view-emit skip.
 
 ## Known issues / debt
 
@@ -50,7 +50,7 @@ Forward-fix sortie remediating the post-implementation R1 council findings on th
 
 ## Next steps
 
-- **Phase 7+8 council artifacts** ship in next commit on this branch (COUNCIL-LOG entry + ADR-0357 + 3 learning index updates in MEMORY.md).
+- **Phase 7+8 council artifacts** ship in next commit on this branch (COUNCIL-LOG entry + ADR-0376 + 3 learning index updates in MEMORY.md).
 - **close-feature.sh** runs gates + merge to campaign/ui-shell.
 - **Sortie 4** picks up: (a) palette debt cleanup in HMS components, (b) animate-spin rm-gate sweep, (c) hoist data-derivation hooks to page level for real telemetry payload values.
 
@@ -80,7 +80,7 @@ docs/plans/PLAN-hms-cluster-polish-fixup.md                          | +95 (new)
 docs/journeys/JOURNEY-ui-shell-hms-cluster-polish-fixup.md           | +50 (new)
 docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md                    | +this file
 docs/council/COUNCIL-LOG.md                                          | +R1 entry
-docs/decisions/0357-page-polish-documented-intentional-skips.md      | +new ADR
+docs/decisions/0376-page-polish-documented-intentional-skips.md      | +new ADR
 docs/decisions/0000-decision-log.md                                  | +1 row
 ```
 

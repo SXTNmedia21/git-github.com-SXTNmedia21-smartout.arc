@@ -28,7 +28,7 @@ E2E activation (`d2b78db29`) wired four previously-skipped Track E + Track G spe
 | # | SHA | Track | Highlights |
 |---|---|---|---|
 | 1 | `e20d317df` | A0-prime enum align | 9-value kind enum, 7-value link_type enum, null/undefined contract, types regen |
-| 2 | `d12c67524` | ADR-0368 + ADR-0372 + migration 140700 | `celebration` + `system_message` added to DB enum, ADR docs, e2e helpers |
+| 2 | `d12c67524` | ADR-0373 + ADR-0372 + migration 140700 | `celebration` + `system_message` added to DB enum, ADR docs, e2e helpers |
 | 3 | `f33411646` | Mobile use-channel-messages Json cast | reactions cast via unknown |
 | 4 | `9cfb82235` | B3 bursdag-pipe (core) | pg_cron schedule, EF `birthday-publisher`, `fn_birthday_cohort`, `workspace_celebration_config`, `celebration_publication` |
 | 5 | `bb1f092da` | B3 bursdag-pipe (tests + i18n) | 6 migrations, unit + integration tests, i18n keys, seed helper |
@@ -45,7 +45,7 @@ E2E activation (`d2b78db29`) wired four previously-skipped Track E + Track G spe
 
 ## Decisions Made
 
-**ADR-0368** — Profile Visibility + Consent Matrix (proposed). Introduced as dependency for bursdag opt-out fallback. Current implementation uses `notification_pref.celebrate_birthday` JSONB key as a 14-day interim. ADR-0368 full matrix ships in a follow-up sortie.
+**ADR-0373** — Profile Visibility + Consent Matrix (proposed). Introduced as dependency for bursdag opt-out fallback. Current implementation uses `notification_pref.celebrate_birthday` JSONB key as a 14-day interim. ADR-0373 full matrix ships in a follow-up sortie.
 
 **ADR-0372** — Bursdag Auto-Publish Pipe (9 sub-decisions). Covers:
 1. pg_cron as scheduler (not n8n, not client-side trigger)
@@ -92,7 +92,7 @@ npx supabase gen types typescript --local 2>/dev/null \
 
 ## Known Issues / Debt
 
-**ADR-0368 fallback (14-day window)** — Bursdag opt-out currently reads `notification_pref.celebrate_birthday` JSONB key as an interim. Migrate to the full profile_visibility consent matrix when ADR-0368 ships. Remove the JSONB fallback in that sortie.
+**ADR-0373 fallback (14-day window)** — Bursdag opt-out currently reads `notification_pref.celebrate_birthday` JSONB key as an interim. Migrate to the full profile_visibility consent matrix when ADR-0373 ships. Remove the JSONB fallback in that sortie.
 
 **Mobile staff_event route** — `EntityLinkCTA`'s `staff_event` handler is disabled with a toast pending the mobile staff-event detail screen. Same stub pattern for `schedule_shift`, `profile`, `policy`, `protocol`, and `menu_document` link types. Track G followup sortie.
 
@@ -112,7 +112,7 @@ npx supabase gen types typescript --local 2>/dev/null \
 2. After merge to development: run Playwright E2E in browser env (all 4 Track E + G specs + bursdag autopost spec)
 3. Bursdag-pipe production validation: set `admin@smartout.no` DOB to today in Supabase Cloud, trigger EF with `WATCHDOG_CRON_SECRET`, verify announcement renders in Nyheter feed with `celebration` kind badge
 4. Mobile route sortie: ship `staff_event` detail + `schedule_shift` detail + `profile` contacts screens (Track G followup)
-5. ADR-0368 implementation sortie: ship full consent matrix, then remove the `celebrate_birthday` JSONB fallback path in `birthday-publisher`
+5. ADR-0373 implementation sortie: ship full consent matrix, then remove the `celebrate_birthday` JSONB fallback path in `birthday-publisher`
 6. `menu_document` table sortie (or enum cleanup): resolve the empty-picker state for `menu_document` link type
 7. Nyheter page-polish pass: run `smartout-page-polish` skill on `/dashboard/komm/nyheter`
 

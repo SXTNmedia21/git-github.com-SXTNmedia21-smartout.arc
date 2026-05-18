@@ -47,7 +47,7 @@ Three coupled gaps need a single coordinated design because they share the same 
 - Existing Wave A composer (`NyheterClient.tsx`) must continue working unchanged for users mid-publish.
 - Mobile is read-only per ADR-0133 — no mobile composer.
 - Agent tool `publish_announcement` must learn the new fields without breaking voice-rejected pattern (ADR-0078).
-- Telemetry registry already requires emit-call-sites per ADR-0358 — new fields land in `channel.message.sent` properties, no new event for the publish path.
+- Telemetry registry already requires emit-call-sites per ADR-0377 — new fields land in `channel.message.sent` properties, no new event for the publish path.
 
 ## 3. Locked Architectural Choices
 
@@ -800,4 +800,4 @@ None at spec-time. All design decisions locked per §3.
 - Gaps inventory: [`docs/modules/announcments/GAPS-AND-DEBT.md`](../../modules/announcments/GAPS-AND-DEBT.md)
 - Wave A plan: [`docs/modules/announcments/nyheter/project/docs/plans/PLAN-nyheter-engagement-wave-a.md`](../../modules/announcments/nyheter/project/docs/plans/PLAN-nyheter-engagement-wave-a.md)
 - Designer prototype: [`docs/modules/announcments/nyheter/project/`](../../modules/announcments/nyheter/project/)
-- Related: ADR-0078 (voice-channel restrictions), ADR-0156 (Day-Control canonical surface), ADR-0157 (direct mutations vs server actions), ADR-0189 (`broadcast.send` capability), ADR-0204 (gatedMutation), ADR-0287 (gate_action mandatory), ADR-0358 (telemetry registry requires emit wiring)
+- Related: ADR-0078 (voice-channel restrictions), ADR-0156 (Day-Control canonical surface), ADR-0157 (direct mutations vs server actions), ADR-0189 (`broadcast.send` capability), ADR-0204 (gatedMutation), ADR-0287 (gate_action mandatory), ADR-0377 (telemetry registry requires emit wiring)

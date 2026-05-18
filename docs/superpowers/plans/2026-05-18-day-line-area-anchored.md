@@ -2137,7 +2137,7 @@ Locate `export const EVENT_ROUTING` (line 10458). Append:
   "shift_session.item_leak_detected": { destinations: ["posthog", "logger", "activity_trail"],                  idempotent: false },
 ```
 
-- [ ] **Step 3: Build + verify ADR-0358 (emit-coverage script)**
+- [ ] **Step 3: Build + verify ADR-0377 (emit-coverage script)**
 
 ```bash
 pnpm --filter @smartout/telemetry build 2>&1 | tail -5
@@ -2150,7 +2150,7 @@ Expected: build green; coverage script reports new events with note "emit() call
 
 ```bash
 git add packages/telemetry/src/registry.ts
-git commit -m "feat(telemetry): BT4-1 register 9 day_line/shift_session events (ADR-0358, ADR-0367)"
+git commit -m "feat(telemetry): BT4-1 register 9 day_line/shift_session events (ADR-0377, ADR-0367)"
 ```
 
 #### Task BT4-2: Add 5 capabilities to intent-classifier (ADR-0112 gate)
@@ -2205,7 +2205,7 @@ git commit -m "feat(router): BT4-2 5 day-line capabilities in intent-classifier 
 git push origin feat/day-line-telemetry
 gh pr create --base campaign/ui-shell --head feat/day-line-telemetry \
   --title "feat(day-line): BT4 telemetry + intent-classifier" \
-  --body "Phase B Team 4 — 9 telemetry events + 5 intent enum entries. ADR-0358 + ADR-0112 (L-0292 5th)."
+  --body "Phase B Team 4 — 9 telemetry events + 5 intent enum entries. ADR-0377 + ADR-0112 (L-0292 5th)."
 ```
 
 **Phase B Gate (must all pass before dispatching Phase C/D/E):**
