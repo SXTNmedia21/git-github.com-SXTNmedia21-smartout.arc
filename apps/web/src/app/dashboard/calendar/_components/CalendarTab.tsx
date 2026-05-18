@@ -340,7 +340,13 @@ function WeekView({
               }`}
             >
               <div className="capitalize">{format(d, "EEE", { locale: nb })}</div>
-              <div className="text-foreground mt-0.5 text-base font-semibold">
+              <div
+                className={`mt-0.5 text-base font-semibold ${
+                  today
+                    ? "bg-primary text-primary-foreground mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    : "text-foreground"
+                }`}
+              >
                 {format(d, "d", { locale: nb })}
               </div>
               {row ? (
@@ -477,12 +483,13 @@ function MonthView({
                   : "bg-muted/30"
               }`}
             >
-              {/* HolidayBand — absolute top strip, aria-hidden */}
+              {/* HolidayBand — absolute top strip (~14px tall), aria-hidden */}
               {showHolidays && holidaysByDate[key] ? (
                 <HolidayBand name={holidaysByDate[key].name} variant="month-cell" />
               ) : null}
+              {/* Push day number below the holiday band when present */}
               <div
-                className={`text-xs ${
+                className={`text-xs ${showHolidays && holidaysByDate[key] ? "mt-4" : ""} ${
                   isToday
                     ? "bg-primary text-primary-foreground inline-flex h-6 w-6 items-center justify-center rounded-full font-bold"
                     : inMonth
