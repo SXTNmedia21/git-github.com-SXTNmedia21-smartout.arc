@@ -1033,5 +1033,21 @@
     "toast_approved": "Godkjent",
     "toast_reminder_sent": "Påminnelse sendt",
     "toast_task_completed": "Oppgave fullført"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Fraværssøknader",
+      "reject": "Avslå",
+      "confirm_reject": "Er du sikker på at du vil avslå denne fraværssøknaden?",
+      "cancel": "Avbryt",
+      "days_count": "{count} dager",
+      "type_sick": "Sykdom",
+      "type_vacation": "Ferie",
+      "type_parental": "Foreldrepermisjon",
+      "type_unpaid": "Permisjon uten lønn",
+      "type_military": "Militærtjeneste",
+      "type_training": "Opplæring",
+      "type_welfare": "Velferd"
+    }
   }
 }

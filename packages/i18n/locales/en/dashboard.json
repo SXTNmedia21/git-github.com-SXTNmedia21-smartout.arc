@@ -1032,5 +1032,21 @@
     "toast_approved": "Approved",
     "toast_reminder_sent": "Reminder sent",
     "toast_task_completed": "Task completed"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Absence requests",
+      "reject": "Reject",
+      "confirm_reject": "Are you sure you want to reject this absence request?",
+      "cancel": "Cancel",
+      "days_count": "{count} days",
+      "type_sick": "Sick leave",
+      "type_vacation": "Vacation",
+      "type_parental": "Parental leave",
+      "type_unpaid": "Unpaid leave",
+      "type_military": "Military service",
+      "type_training": "Training",
+      "type_welfare": "Welfare"
+    }
   }
 }
