@@ -85,7 +85,7 @@ async function fetchDayLines(
   type RawRow = {
     day_line_id: string;
     workspace_id: string;
-    department_session_id: string | null;
+    department_session_id: string;
     department_id: string;
     location_id: string;
     business_date: string;
