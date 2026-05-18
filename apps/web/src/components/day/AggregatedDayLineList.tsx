@@ -34,7 +34,7 @@ export function AggregatedDayLineList({ workspaceId, date }: Props) {
 
   if (!data || data.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground" data-testid="aggregated-day-line-empty">
+      <p className="text-muted-foreground text-sm" data-testid="aggregated-day-line-empty">
         Ingen dagslinjer.
       </p>
     );
@@ -46,18 +46,16 @@ export function AggregatedDayLineList({ workspaceId, date }: Props) {
         <AccordionItem key={line.day_line_id} value={line.day_line_id}>
           <AccordionTrigger data-testid={`agg-trigger-${line.day_line_id}`}>
             <span className="flex w-full items-center justify-between pr-2">
-              <span className="font-medium text-foreground">
-                {line.location.name}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {line.department.name} &middot;{" "}
-                {line.planned_open.slice(0, 5)}–{line.planned_close.slice(0, 5)}
+              <span className="text-foreground font-medium">{line.location_name}</span>
+              <span className="text-muted-foreground text-xs">
+                {line.department_name} &middot; {line.planned_open.slice(0, 5)}–
+                {line.planned_close.slice(0, 5)}
               </span>
             </span>
           </AccordionTrigger>
           <AccordionContent>
             {/* Phase D: inject next-3 session task preview here */}
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Forhåndsvisning av neste 3 oppgaver kommer her (Phase D).
             </p>
           </AccordionContent>

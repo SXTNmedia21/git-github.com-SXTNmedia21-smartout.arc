@@ -4,9 +4,9 @@
  * DayLineStrip
  *
  * Composes one complete day_line card:
- *   DayLineStripHeader  — identity, status pill, edit-hours button
- *   OpenCloseEditPopover — hours-edit popover (STUB in CT1, full impl in CT2)
- *   SlotPicker          — 3-lane slot-add popover anchored at click point
+ *   DayLineStripHeader   — identity, status pill, edit-hours button
+ *   OpenCloseEditPopover — self-contained hours-edit popover (manages own open state)
+ *   SlotPicker           — 3-lane slot-add popover anchored at click point
  *
  * Status is derived via deriveDayLineStatus — never read from a stored field.
  * The strip delegates all slot-add action dispatch to the parent via onSlotAction
@@ -47,7 +47,6 @@ export function DayLineStrip({
   role,
   onSlotAction,
 }: DayLineStripProps) {
-  const [editingHours, setEditingHours] = useState(false);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [slotPickerTime, setSlotPickerTime] = useState("--:--");
   const [slotAnchorRect, setSlotAnchorRect] = useState<DOMRect | null>(null);
@@ -57,13 +56,6 @@ export function DayLineStrip({
     sessionStatus,
     reconciliationLocked,
   });
-
-  function handleSlotClick(time: string, rect: DOMRect) {
-    if (!canEdit) return;
-    setSlotPickerTime(time);
-    setSlotAnchorRect(rect);
-    setSlotPickerOpen(true);
-  }
 
   function handleSlotPickerOpenChange(open: boolean) {
     setSlotPickerOpen(open);
@@ -76,6 +68,8 @@ export function DayLineStrip({
     setSlotAnchorRect(null);
   }
 
+  const editAllowed = canEdit && status !== "locked" && status !== "cancelled";
+
   return (
     <div
       className="border-border bg-background rounded-[--radius] border"
@@ -84,12 +78,18 @@ export function DayLineStrip({
       <DayLineStripHeader
         line={line}
         status={status}
-        onEditHours={() => setEditingHours(true)}
+        onEditHours={() => {
+          /* no-op — OpenCloseEditPopover manages its own open state below */
+        }}
         readOnly={!canEdit}
       />
 
-      {/* Hours-edit popover — STUB in CT1; CT2 ships full impl */}
-      {editingHours && <OpenCloseEditPopover line={line} onClose={() => setEditingHours(false)} />}
+      {/* Hours-edit popover — self-contained; its own PopoverTrigger is the entry point. */}
+      {editAllowed && (
+        <div className="px-3 pb-2">
+          <OpenCloseEditPopover line={line} />
+        </div>
+      )}
 
       {/* SlotPicker — anchored at the clicked coordinate within the strip */}
       <SlotPicker
@@ -118,7 +118,7 @@ export function DayLineStrip({
         }
       />
 
-      {/* Future: CT3 will render session_task chips and DayTimelineStrip here */}
+      {/* Future: CT3 task chips + DayTimelineStrip will mount here */}
     </div>
   );
 }
