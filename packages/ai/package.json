@@ -150,6 +150,10 @@
       "types": "./dist/capabilities/task/tools.d.ts",
       "default": "./dist/capabilities/task/tools.js"
     },
+    "./capabilities/day-line/tools": {
+      "types": "./dist/capabilities/day-line/tools.d.ts",
+      "default": "./dist/capabilities/day-line/tools.js"
+    },
     "./capabilities/timeline-template": {
       "types": "./dist/capabilities/timeline-template/index.d.ts",
       "default": "./dist/capabilities/timeline-template/index.js"
