@@ -336,11 +336,23 @@ export async function subscribeShiftSessionTopic(
   try {
     const ctx = await getProfileContext(); // ADR-0134: throws on missing identity
 
-    // NOTE: active_push_topic column on profile is not yet migrated (pending
-    // supabase/migrations draft). Phase D4 emits the lifecycle event so the
-    // server-side push pipeline can route based on the shift_session.push_topic
-    // column (already set at session creation). Topic subscription via FCM/APNs
-    // topic APIs is reserved for when the push pipeline migration lands.
+    // Persist the active push topic on the profile row so the server-side
+    // day-line push pipeline can route events to this device without a
+    // round-trip engine_event lookup (ADR-0367 §M4).
+    // L-0177 fail-fast: error is logged and the column write is retried on
+    // next clock-in, but it must NOT silently swallow a network/auth failure
+    // that indicates a deeper problem. Push subscribe itself is not blocked.
+    try {
+      const { error: topicErr } = await supabase
+        .from("profile")
+        .update({ active_push_topic: pushTopic })
+        .eq("profile_id", ctx.profileId);
+      if (topicErr) {
+        console.warn("[push] Failed to set active_push_topic:", topicErr.message);
+      }
+    } catch (topicEx) {
+      console.warn("[push] Unexpected error setting active_push_topic:", topicEx);
+    }
 
     // Emit clock-in lifecycle event (ADR-0367 §M4 + ADR-0134)
     void emit({
@@ -378,8 +390,20 @@ export async function unsubscribeShiftSessionTopic(shiftSessionId: string): Prom
   try {
     const ctx = await getProfileContext(); // ADR-0134: throws on missing identity
 
-    // NOTE: clearing active_push_topic on profile is deferred to when the
-    // push pipeline migration lands (see subscribeShiftSessionTopic NOTE).
+    // Clear the push topic on the profile row — device should no longer
+    // receive day-line push events for this session (ADR-0367 §M4).
+    // L-0177 fail-fast: warn on error but do not block the clock-out flow.
+    try {
+      const { error: topicErr } = await supabase
+        .from("profile")
+        .update({ active_push_topic: null })
+        .eq("profile_id", ctx.profileId);
+      if (topicErr) {
+        console.warn("[push] Failed to clear active_push_topic:", topicErr.message);
+      }
+    } catch (topicEx) {
+      console.warn("[push] Unexpected error clearing active_push_topic:", topicEx);
+    }
 
     // Emit clock-out lifecycle event (ADR-0367 §M4 + ADR-0134)
     void emit({

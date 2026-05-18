@@ -15314,6 +15314,7 @@ export type Database = {
       }
       profile: {
         Row: {
+          active_push_topic: string | null
           address_line_1: string | null
           address_line_2: string | null
           authority_level: Database["public"]["Enums"]["authority_level"] | null
@@ -15362,6 +15363,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          active_push_topic?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           authority_level?:
@@ -15412,6 +15414,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          active_push_topic?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           authority_level?:
@@ -22519,47 +22522,27 @@ export type Database = {
         }
         Returns: string
       }
-      publish_announcement_atomic:
-        | {
-            Args: {
-              p_actor_profile_id: string
-              p_channel_id: string
-              p_client_message_id?: string
-              p_content: string
-              p_kind?: Database["public"]["Enums"]["announcement_kind"]
-              p_linked_entity_id?: string
-              p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
-              p_system_data?: Json
-              p_tags?: string[]
-              p_target_profile_ids?: string[]
-              p_tier?: Database["public"]["Enums"]["announcement_tier"]
-              p_tier_overridden?: boolean
-              p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
-              p_workspace_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_actor_profile_id: string
-              p_celebration_date?: string
-              p_celebration_kind?: string
-              p_channel_id: string
-              p_client_message_id?: string
-              p_content: string
-              p_kind?: Database["public"]["Enums"]["announcement_kind"]
-              p_linked_entity_id?: string
-              p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
-              p_system_data?: Json
-              p_tags?: string[]
-              p_target_profile_ids?: string[]
-              p_tier?: Database["public"]["Enums"]["announcement_tier"]
-              p_tier_overridden?: boolean
-              p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
-              p_workspace_id: string
-            }
-            Returns: string
-          }
+      publish_announcement_atomic: {
+        Args: {
+          p_actor_profile_id: string
+          p_celebration_date?: string
+          p_celebration_kind?: string
+          p_channel_id: string
+          p_client_message_id?: string
+          p_content: string
+          p_kind?: Database["public"]["Enums"]["announcement_kind"]
+          p_linked_entity_id?: string
+          p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
+          p_system_data?: Json
+          p_tags?: string[]
+          p_target_profile_ids?: string[]
+          p_tier?: Database["public"]["Enums"]["announcement_tier"]
+          p_tier_overridden?: boolean
+          p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       record_schedule_shift_lock_audit:
         | {
             Args: {
@@ -24968,3 +24951,4 @@ export const Constants = {
     },
   },
 } as const
+
