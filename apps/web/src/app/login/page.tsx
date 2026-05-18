@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -137,7 +137,22 @@ const brandTextVariant = {
   },
 };
 
+// Next 16 strict mode requires `useSearchParams()` consumers to be wrapped
+// in a Suspense boundary at module level so the page can prerender without
+// the URL query (search params resolve at the Suspense boundary at request
+// time). Without this, `next build` fails on /login with:
+//   "useSearchParams() should be wrapped in a suspense boundary at page /login"
+// Per ADR-0358 expired-session rescue (commit 296181b1a) added
+// useSearchParams to read ?return_to + ?reason — this fix wraps the consumer.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
   const routerRef = useRef(router);
   const searchParams = useSearchParams();
