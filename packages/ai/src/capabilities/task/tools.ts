@@ -407,6 +407,16 @@ export const createSession = defineTool({
           "Delegasjonskjeden — f.eks. 'day-line' (ADR-0356 Pattern B). " +
             "Påkrevd når day_line_id er oppgitt.",
         ),
+      description: z
+        .string()
+        .max(2000)
+        .optional()
+        .describe("Valgfri beskrivelse av oppgaven (maks 2000 tegn)."),
+      scheduled_at: z
+        .string()
+        .datetime()
+        .optional()
+        .describe("Valgfri ISO-8601 tidspunkt for når oppgaven skal utføres."),
     })
     .strict(),
   execute: async (params, ctx: AgentToolContext) => {
@@ -509,7 +519,8 @@ export const createSession = defineTool({
         session_hook_id: params.hook_id ?? null,
         assigned_to: params.assignee_profile_id ?? null,
         title: params.title,
-        description: null,
+        description: params.description ?? null,
+        scheduled_at: params.scheduled_at ?? null,
         is_compliance_required: params.compliance ?? false,
         status: "pending",
         // ADR-0367 Pattern B: anchor task to day_line when resolved above.
@@ -544,6 +555,9 @@ export const createSession = defineTool({
           compliance: params.compliance ?? false,
           reason: params.reason,
           manual: true,
+          // New optional fields (audit symmetry — present when supplied).
+          ...(params.description !== undefined && { description: params.description }),
+          ...(params.scheduled_at !== undefined && { scheduled_at: params.scheduled_at }),
           // ADR-0367 Pattern B audit trail — undefined when not a day_line delegation.
           ...(resolvedDayLineId && {
             day_line_id: resolvedDayLineId,

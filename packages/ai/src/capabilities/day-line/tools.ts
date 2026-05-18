@@ -281,12 +281,12 @@ export const addItem = defineTool({
     if (params.item_type === "task") {
       // ADR-0240 + ADR-0356 Pattern B: delegate to task.create_session tool.
       // Direct insert into session_task from here would violate ADR-0173 (frozen-4 cap boundary).
-      // Note: createSession schema does not accept description or scheduled_at in V1.
-      // Those fields are day-line-specific context; the task title carries the intent.
       const delegateResult = await createSession.execute(
         {
           session_id: dayLine.department_session_id,
           title: params.title,
+          description: params.description,
+          scheduled_at: params.scheduled_at,
           assignee_profile_id: params.assigned_to,
           reason: "Delegert fra dag-linje",
           actor_capability: "task",
