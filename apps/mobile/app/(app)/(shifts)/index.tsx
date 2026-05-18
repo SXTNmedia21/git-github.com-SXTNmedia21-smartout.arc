@@ -17,6 +17,7 @@
 import React, { useMemo, useState, useCallback, useRef } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { toZonedTime } from "date-fns-tz";
 import { emit } from "@smartout/telemetry";
@@ -355,6 +356,7 @@ function DayCrewCluster({
 export default function ShiftListScreen() {
   const styles2 = useScreenStyles();
   const theme = useTheme();
+  const router = useRouter();
 
   const { data: profile } = useMyProfile();
   const myProfileId = profile?.profile_id ?? null;
@@ -423,10 +425,13 @@ export default function ShiftListScreen() {
     })();
   }, []);
 
-  const handleShiftTap = useCallback((_id: string) => {
-    // DetailSheet integration — Phase 3e
-    void Haptics.selectionAsync();
-  }, []);
+  const handleShiftTap = useCallback(
+    (id: string) => {
+      void Haptics.selectionAsync();
+      router.push({ pathname: "/(app)/(shifts)/[id]", params: { id } });
+    },
+    [router],
+  );
 
   // All 7 days of the current week
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
