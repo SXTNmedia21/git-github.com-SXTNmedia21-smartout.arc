@@ -24,12 +24,12 @@
  */
 
 import { z } from "zod";
-import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { callGateAction } from "./gate.js";
 import { isAiAllowedInChannel } from "./policy.js";
 import { resolveAudience, type AudienceInput } from "./audience-resolver.js";
+import { emitAnnouncementPublished } from "./emit-announcement-events.js";
 
 export const publishAnnouncement = defineTool({
   name: "publish_announcement",
@@ -229,33 +229,24 @@ export const publishAnnouncement = defineTool({
     }
     const data = { id: messageId as string };
 
-    // Telemetry via existing channel.message.sent event (extended by Wave A b95742cef)
-    await emit({
-      event: "channel.message.sent",
-      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
-      actor_id: nonEmpty(ctx.profileId, "actor_id"),
-      entity: {
-        entity_type: "channel_message",
-        entity_id: data.id,
-      },
-      properties: {
-        channel_id: params.channel_id,
-        origin_type: "agent",
-        message_type: "announcement",
-        visibility_scope: isTargeted ? "targeted_members" : "all_members",
-        target_profile_count: resolved.count,
-        audience_kind: audience.kind,
-        notification_priority: params.tier === "external" ? 2 : params.tier === "work" ? 1 : 0,
-        notification_mode: params.tier === "social" ? "community" : "work",
-        // V2 announcement properties (announcement_kind, announcement_tier, has_entity_link,
-        // tag_count) live on the NEW announcement.published event (Track F). Adding them
-        // to channel.message.sent here would require extending its registry entry — out
-        // of scope for Track D. They re-appear once Track F registers announcement.published.
-      },
+    // Telemetry: channel.message.sent (V2 extended) via shared helper (spec §9.b, Track F).
+    // emitAnnouncementPublished wires all announcement-specific properties including
+    // V2 kind/tier/link/tag fields registered in Track F per ADR-0358.
+    await emitAnnouncementPublished({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      message_id: data.id,
+      channel_id: params.channel_id,
+      origin_type: "agent",
+      audience_kind: audience.kind,
+      visibility_scope: isTargeted ? "targeted_members" : "all_members",
+      target_profile_count: resolved.count,
+      kind: params.kind ?? "workspace_news",
+      tier: params.tier ?? "work",
+      tag_count: (params.tags ?? []).length,
+      has_entity_link: !!(params.linked_entity_type && params.linked_entity_id),
+      link_type: params.linked_entity_type,
     });
-
-    // TODO Track F: emit "announcement.published" once registry extended
-    // (emitAnnouncementPublished helper ships in Track F per spec §9.b)
 
     // PII boundary (Council B5): NEVER return raw target_profile_ids
     return JSON.stringify({

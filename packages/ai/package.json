@@ -18,6 +18,10 @@
       "types": "./dist/capabilities/communication/publish-announcement.d.ts",
       "default": "./dist/capabilities/communication/publish-announcement.js"
     },
+    "./capabilities/communication/emit-announcement-events": {
+      "types": "./dist/capabilities/communication/emit-announcement-events.d.ts",
+      "default": "./dist/capabilities/communication/emit-announcement-events.js"
+    },
     "./industry": {
       "types": "./dist/industry/index.d.ts",
       "default": "./dist/industry/index.js"
