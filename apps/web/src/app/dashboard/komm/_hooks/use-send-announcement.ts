@@ -15,7 +15,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry";
+import { emitAnnouncementPublished } from "@smartout/ai/capabilities/communication/emit-announcement-events";
 import { channelKeys } from "./channel-keys";
 import { toast } from "sonner";
 
@@ -104,36 +105,28 @@ export function useSendAnnouncement() {
 
     onSuccess: (data, variables) => {
       toast.success(t("nyheter.publish_success"));
-      void emit({
-        event: "channel.message.sent",
+      // Emit channel.message.sent with V2 announcement properties via shared helper
+      // (spec §9.b, Track F). Replaces previous direct emit — helper includes all
+      // Wave A props plus V2 announcement_tag_count / announcement_has_link / etc.
+      void emitAnnouncementPublished({
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
         actor_id: nonEmpty(variables.profileId, "actor_id"),
-        properties: {
-          channel_id: variables.channelId,
-          origin_type: "human",
-          message_type: "announcement",
-          visibility_scope:
-            (variables.visibilityScope ?? "all_members") === "targeted_members" &&
-            (variables.targetProfileIds?.length ?? 0) > 0
-              ? "targeted_members"
-              : "all_members",
-          target_profile_count: variables.targetProfileIds?.length ?? 0,
-          audience_kind: variables.audienceKind,
-          notification_priority: 1,
-          // V2 extended properties
-          notification_mode: variables.tier ?? "work",
-          announcement_kind: variables.kind ?? "workspace_news",
-          announcement_tier: variables.tier ?? "work",
-          has_entity_link: !!(variables.linkedEntityType && variables.linkedEntityId),
-          tag_count: (variables.tags ?? []).length,
-        },
-        entity: {
-          entity_type: "channel_message",
-          entity_id: data.id,
-        },
+        message_id: data.id,
+        channel_id: variables.channelId,
+        origin_type: "human",
+        audience_kind: variables.audienceKind,
+        visibility_scope:
+          (variables.visibilityScope ?? "all_members") === "targeted_members" &&
+          (variables.targetProfileIds?.length ?? 0) > 0
+            ? "targeted_members"
+            : "all_members",
+        target_profile_count: variables.targetProfileIds?.length ?? 0,
+        kind: variables.kind ?? "workspace_news",
+        tier: variables.tier ?? "work",
+        tag_count: (variables.tags ?? []).length,
+        has_entity_link: !!(variables.linkedEntityType && variables.linkedEntityId),
+        link_type: variables.linkedEntityType,
       });
-      // TODO(Track F): add secondary emit for `announcement.published` once
-      // telemetry registry is extended with that event (Track F deliverable).
     },
 
     onSettled: (_data, _error, variables) => {
