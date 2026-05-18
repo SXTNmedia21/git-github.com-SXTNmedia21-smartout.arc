@@ -138,7 +138,8 @@ export function extractRegisteredCapabilities(registrySource: string): string[] 
   const keys: string[] = [];
   // Match `identifier:` and `"identifier":` at the start of each entry.
   // JS/TS object keys without quotes must match /^[A-Za-z_$][\w$]*$/.
-  const keyRegex = /(?:^|,)\s*(?:"([a-z_][a-z0-9_]*)"|([a-z_][a-z0-9_]*))\s*:/gi;
+  // Hyphen included in quoted-key class to handle capability names like "day-line".
+  const keyRegex = /(?:^|,)\s*(?:"([a-z_][a-z0-9_-]*)"|([a-z_][a-z0-9_]*))\s*:/gi;
   let m: RegExpExecArray | null;
   while ((m = keyRegex.exec(stripped)) !== null) {
     keys.push(m[1] ?? m[2]);
@@ -197,7 +198,7 @@ export function extractIntentEnumValues(classifierSource: string): string[] {
   const body = classifierSource.slice(openBracket + 1, closeBracket);
   const stripped = body.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const values: string[] = [];
-  const strRegex = /["']([a-z_][a-z0-9_]*)["']/gi;
+  const strRegex = /["']([a-z_][a-z0-9_-]*)["']/gi;
   let m: RegExpExecArray | null;
   while ((m = strRegex.exec(stripped)) !== null) {
     values.push(m[1]);
