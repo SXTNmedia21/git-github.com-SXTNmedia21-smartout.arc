@@ -1,6 +1,7 @@
 ---
 title: JOURNEY — ui-shell staff-prefetch
-status: in_progress
+feature: staff-prefetch
+status: verified
 updated: 2026-05-18
 created: 2026-05-18
 module: mobile-schedule
