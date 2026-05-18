@@ -18,32 +18,18 @@ import {
   Calendar,
   CalendarDays,
   CalendarRange,
-  CalendarCheck2,
   ListTodo,
-  Lightbulb,
-  Wand2,
-  Building2,
   Wallet,
   Banknote,
   BarChart3,
-  FileText,
   FileCheck,
-  DollarSign,
-  Receipt,
-  Globe,
   ShieldAlert,
-  AlertTriangle,
   GraduationCap,
   ClipboardCheck,
-  Gavel,
-  BookOpen,
-  Book,
   MessageCircle,
   Users2,
   PanelLeft,
-  Plug,
   Bot,
-  BotMessageSquare,
   UserCircle,
   Clock,
   Hash,
@@ -51,8 +37,6 @@ import {
   LayoutDashboard,
   TrendingUp,
   IdCard,
-  ArrowLeftRight,
-  Scale as ScaleIcon,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -108,6 +92,8 @@ export type SidebarGroupDef = {
 // Shared item arrays (referenced by multiple group sets)
 // ---------------------------------------------------------------------------
 
+// Preserved for future multi-item komm group resurrection. Not currently
+// referenced — 11-flat layout uses inline single-item kommunikasjon entry.
 const KOMM_ITEMS: SidebarItem[] = [
   {
     labelKey: "sidebar.item_kanaler",
@@ -284,7 +270,6 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
         href: "/dashboard/komm",
         icon: Hash,
         status: "live",
-        exactMatch: false,
       },
     ],
   },
@@ -461,6 +446,6 @@ export const SIDEBAR_GROUPS_DEMO: SidebarGroupDef[] = [
     standalone: false,
     items: DEMO_SHOWCASE_ITEMS,
   },
-  // 2–9: full admin surface so investors see the complete product
+  // 2–11: full admin surface so investors see the complete product
   ...SIDEBAR_GROUPS_ADMIN.slice(1),
 ];
