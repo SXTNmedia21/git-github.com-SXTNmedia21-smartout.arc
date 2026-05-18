@@ -20,6 +20,41 @@ const PUBLIC_ROUTES = new Set([
   "/api/auth/callback",
 ]);
 
+// Auth routes that MUST run on the portal subdomain (app.smartout.ai), never on
+// a workspace subdomain. Per ADR-0021 amendment 2026-04-20 (Auth & Invitation
+// Council Q1=b): the portal is the canonical auth surface; workspace subdomains
+// are arbeidsflate only. When a workspace subdomain receives a request for any
+// of these paths, middleware 307-redirects to the same path on the portal with
+// `?continue=<slug>` preserved so the callback can route the user back to the
+// originating workspace after a successful auth handshake.
+//
+// `/api/auth/callback` is intentionally EXCLUDED: PKCE code-verifier cookies are
+// scoped to whichever host initiated `signInWithOAuth`. Once OAuth-initiation is
+// portal-only (post-redirect), all legitimate callback traffic lands on the
+// portal already. A stray legacy callback hit on a workspace host should run in
+// place rather than redirect, because the verifier cookie is on the workspace
+// host and re-hopping would orphan it.
+const AUTH_ROUTES_REDIRECT_TO_PORTAL = new Set([
+  "/login",
+  "/signup",
+  "/join",
+  "/join-complete",
+  "/reset-password",
+  "/update-password",
+  "/invite",
+  "/confirm-email",
+  "/select-workspace",
+  "/welcome",
+]);
+
+function isAuthRouteForPortal(pathname: string): boolean {
+  if (AUTH_ROUTES_REDIRECT_TO_PORTAL.has(pathname)) return true;
+  for (const route of AUTH_ROUTES_REDIRECT_TO_PORTAL) {
+    if (pathname.startsWith(route + "/")) return true;
+  }
+  return false;
+}
+
 // Routes blocked for sandbox workspaces — features that require a verified/active workspace.
 // Integrations, API key management, team invitations, data export, and the onboarding agent
 // are gated until the workspace is promoted out of sandbox status.
@@ -307,6 +342,23 @@ export async function proxy(request: NextRequest): Promise<Response> {
   // ── 5. Workspace subdomain ({slug}.smartout.ai) ──
   if (subdomain.type === "workspace") {
     const slug = subdomain.slug;
+
+    // ── 5a. Portal-redirect for auth routes (ADR-0021 amendment 2026-04-20) ──
+    // All auth surfaces live on `app.smartout.ai`. Workspace-subdomain hits on
+    // /login, /signup, /invite/*, /reset-password, etc. are 307-redirected to
+    // the portal so OAuth + PKCE + magic-links all originate from a single,
+    // Supabase-Cloud-whitelisted host. The originating slug is preserved as
+    // `?continue=<slug>` so the callback can route the user back here after a
+    // successful exchange. Skipped on localhost (single-host dev — no portal).
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+    if (rootDomain && rootDomain !== "localhost" && isAuthRouteForPortal(pathname)) {
+      const portalUrl = new URL(pathname + request.nextUrl.search, `https://app.${rootDomain}`);
+      // Only set `continue` if not already present (preserve operator-supplied value).
+      if (!portalUrl.searchParams.has("continue")) {
+        portalUrl.searchParams.set("continue", slug);
+      }
+      return NextResponse.redirect(portalUrl);
+    }
 
     // Set workspace slug + pathname headers for downstream consumption
     response.headers.set("x-workspace-slug", slug);
