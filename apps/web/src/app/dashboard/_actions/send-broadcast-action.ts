@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { emitAnnouncementPublished } from "@smartout/ai/capabilities/communication/emit-announcement-events";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 import { hasMinimumRole, detectPii } from "./_shared-utils";
@@ -160,6 +161,21 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
   // posthog only — activity-trail provider expects entity ref which is
   // absent by design for this event (broadcast is a channel_message whose
   // activity belongs in channel_event audit, not activity_trail rows).
+
+  // V2 channel.message.sent with announcement properties via shared helper (spec §9.b).
+  // Day-control server action defaults: kind='workspace_news', tier='work' per §9 table.
+  await emitAnnouncementPublished({
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    message_id: msg.id,
+    channel_id: channelId,
+    origin_type: "system",
+    kind: "workspace_news",
+    tier: "work",
+    target_profile_count: parsed.data.recipientIds?.length ?? 0,
+    visibility_scope:
+      (parsed.data.recipientIds?.length ?? 0) > 0 ? "targeted_members" : "all_members",
+  });
 
   revalidatePath("/dashboard");
   return { ok: true, channelId, messageId: msg.id };

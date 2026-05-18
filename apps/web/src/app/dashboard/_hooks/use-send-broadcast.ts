@@ -19,6 +19,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { emitAnnouncementPublished } from "@smartout/ai/capabilities/communication/emit-announcement-events";
 
 type BroadcastInput = {
   content: string;
@@ -97,6 +98,19 @@ export function useSendBroadcast() {
             channel_id: result.channelId,
           },
         },
+      });
+      // V2 channel.message.sent with announcement properties via shared helper (spec §9.b).
+      // Broadcast path defaults to kind='workspace_news', tier='work' per §9 table.
+      void emitAnnouncementPublished({
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(input.profileId, "actor_id"),
+        message_id: result.messageId,
+        channel_id: result.channelId,
+        origin_type: "human",
+        kind: "workspace_news",
+        tier: "work",
+        target_profile_count: result.recipientCount,
+        visibility_scope: result.recipientCount > 0 ? "targeted_members" : "all_members",
       });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
