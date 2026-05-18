@@ -1,7 +1,7 @@
 ---
 title: JOURNEY — m6 planning polish
 feature: m6-planning-polish
-status: in_progress
+status: verified
 updated: 2026-05-18
 created: 2026-05-18
 module: dashboard-planning
