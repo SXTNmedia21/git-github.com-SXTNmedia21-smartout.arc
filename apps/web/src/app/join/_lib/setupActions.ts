@@ -96,21 +96,30 @@ async function findExistingWorkspace(
  *
  * @returns The workspace shell identity used for the `/onboarding` handoff
  */
-export async function completeSignup(data: SignupSetupData, accessToken?: string) {
+export async function completeSignup(data: SignupSetupData) {
   const admin = createAdminClient();
 
-  // Try cookie-based auth first, fall back to token passed from client.
-  // Why: after signUp(), cookies may not be available to the server action
-  // in the same request cycle — the browser hasn't sent them yet.
+  // Auth resolution strategy:
+  //   1. Read session from cookie without forcing refresh — avoids the
+  //      `refresh_token_already_used` race when the client just rotated
+  //      tokens concurrently (cookie is point-in-time within this request).
+  //   2. Fallback to getUser() which triggers refresh server-side if the
+  //      access token is expired but cookie still has a valid refresh token.
+  //   3. Surface a stable error so the client can route to a recovery
+  //      message instead of a silent 500.
   let user: { id: string; email?: string } | null = null;
 
   const supabase = await createClient();
-  const { data: cookieAuth } = await supabase.auth.getUser();
-  user = cookieAuth?.user ?? null;
 
-  if (!user && accessToken) {
-    const { data: tokenAuth } = await admin.auth.getUser(accessToken);
-    user = tokenAuth?.user ?? null;
+  const { data: sessionData } = await supabase.auth.getSession();
+  user = sessionData?.session?.user ?? null;
+
+  if (!user) {
+    const { data: cookieAuth, error: cookieErr } = await supabase.auth.getUser();
+    user = cookieAuth?.user ?? null;
+    if (!user && cookieErr) {
+      console.error("[completeSignup] cookie auth failed:", cookieErr.code, cookieErr.message);
+    }
   }
 
   if (!user) throw new Error("Not authenticated");

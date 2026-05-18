@@ -22,6 +22,7 @@ import { Step6Summary } from "./_components/Step6Summary";
 import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from "./_lib/validation";
 import { completeSignup } from "./_lib/setupActions";
 import { buildPostSignupRedirectPath } from "./_lib/onboarding-shell";
+import { createClient } from "@smartout/supabase/client";
 
 /**
  * Restore persisted state from localStorage.
@@ -100,8 +101,19 @@ async function onComplete(state: JoinState): Promise<void> {
     intelligence: state.intelligence,
   };
 
-  const accessToken = (state as Record<string, unknown>)._accessToken as string | undefined;
-  const result = await completeSignup(setupData, accessToken);
+  // Force a client-side session sync so cookies handed to the Server Action
+  // are the freshest version (Supabase rotates refresh tokens — a stale
+  // refresh token in cookies causes `refresh_token_already_used` on the
+  // server during getUser()). Touching getSession() triggers refresh if
+  // needed and persists the new tokens to cookies before the RSC POST.
+  try {
+    const supabase = createClient();
+    await supabase.auth.getSession();
+  } catch {
+    // best-effort — server still has cookie-then-retry fallback
+  }
+
+  const result = await completeSignup(setupData);
 
   // Clear localStorage after successful signup
   try {

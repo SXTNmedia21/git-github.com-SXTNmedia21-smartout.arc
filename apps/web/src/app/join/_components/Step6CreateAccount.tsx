@@ -117,12 +117,10 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
         }
       }
 
-      // Pass token via state — server action can't read cookies in the
-      // same request cycle after signup/signin.
-      if (accessToken) {
-        updateState({ _accessToken: accessToken } as Partial<JoinState>);
-      }
-
+      // Cookies are written by Supabase client. wizard-definition.onComplete
+      // triggers a getSession() refresh before the Server Action POST so the
+      // server reads up-to-date cookies (no stale-token fallback needed).
+      void accessToken;
       await next();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Noe gikk galt. Prøv igjen.");

@@ -83,11 +83,10 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
       });
 
       if (!signUpError) {
-        // New user: session available immediately
-        const accessToken = signUpData.session?.access_token;
-        if (accessToken) {
-          updateState({ _accessToken: accessToken } as Partial<JoinState>);
-        }
+        // New user: Supabase client already wrote cookies for us.
+        // The Server Action will read them at submit-time, after a
+        // client-side getSession() refresh in wizard-definition.onComplete.
+        void signUpData;
         return;
       }
 
@@ -111,10 +110,9 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
           return;
         }
 
-        const accessToken = signInData.session?.access_token;
-        if (accessToken) {
-          updateState({ _accessToken: accessToken } as Partial<JoinState>);
-        }
+        // Sign-in path: cookies are written by Supabase client.
+        // Server reads them at submit-time after getSession() refresh.
+        void signInData;
         return;
       }
 
@@ -129,21 +127,38 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     }
   }
 
-  // BRREG lookup + intelligence pre-fetch — both fire when name+city stabilize
+  // BRREG lookup + intelligence pre-fetch — both fire when name+city stabilize.
+  // Callbacks are kept in refs because `prefetchContent`'s identity churns
+  // every time JoinScrapingProvider's internal state moves (brregData,
+  // scrapedData, prefetchStatus). Including it in deps caused the effect
+  // to re-run on each lookup completion → debounced /brreg fetch loop.
   const brregDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastLookupKeyRef = useRef<string>("");
+  const lookupBrregRef = useRef(lookupBrreg);
+  const prefetchContentRef = useRef(prefetchContent);
+  const prefetchStatusRef = useRef(prefetchStatus);
+  useEffect(() => {
+    lookupBrregRef.current = lookupBrreg;
+    prefetchContentRef.current = prefetchContent;
+    prefetchStatusRef.current = prefetchStatus;
+  });
+
   useEffect(() => {
     if (!companyName || companyName.length < 2 || !city || city.length < 2) return;
+    const key = `${companyName.trim().toLowerCase()}|${city.trim().toLowerCase()}|${industry ?? ""}`;
+    if (key === lastLookupKeyRef.current) return;
     if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     brregDebounceRef.current = setTimeout(() => {
-      lookupBrreg(companyName, city, industry || undefined);
-      if (prefetchStatus === "idle") {
-        prefetchContent({ companyName, city });
+      lastLookupKeyRef.current = key;
+      lookupBrregRef.current(companyName, city, industry || undefined);
+      if (prefetchStatusRef.current === "idle") {
+        prefetchContentRef.current({ companyName, city });
       }
     }, 800);
     return () => {
       if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     };
-  }, [companyName, city, industry, lookupBrreg, prefetchContent, prefetchStatus]);
+  }, [companyName, city, industry]);
 
   const devFill = () => {
     setFirstName("Pontus");
