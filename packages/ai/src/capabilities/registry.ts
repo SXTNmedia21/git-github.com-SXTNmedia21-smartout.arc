@@ -36,6 +36,7 @@ import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 import { schedulerCapability } from "./scheduler/index.js";
 import { timelineTemplateCapability } from "./timeline-template/index.js";
 import { cascadeCapability } from "./cascade/index.js";
+import { dayLineCapability } from "./day-line/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -152,6 +153,13 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Both the caller gate AND the cascade gate fire independently per ADR-0356 §"Gate convention".
   // emitPrefix='cascade'. Authority seeded at autonomous by 20260618200000.
   cascade: cascadeCapability,
+  // Day-line capability — ADR-0367. D6 Production dag-linje lifecycle.
+  // 4 tools: create (manager+, chat-only), add_item (delegating: task+routine, manager+),
+  // instantiate_template (routine alias, manager+), update_hours (manager+, chat-only).
+  // Cross-namespace writes via ADR-0240 delegation to task.create_session +
+  // timeline_template.apply_template. emitPrefix='day-line'.
+  // Authority seeded by 20260620120800 + 20260620120900 migrations.
+  "day-line": dayLineCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
