@@ -165,7 +165,38 @@ A tab is justified when **the data is the same domain but the workflow is meanin
 
 Maximum one level of `<PageTabNav>` per page. Sub-sub-tabs are forbidden. If a tab needs further branching, that's a view-mode (Layer 3) or a filter (Layer 4), never another tab strip.
 
-### 3.3 Tab visual
+### 3.3 Sub-page navigation pattern
+
+Drill-in routes (entity-detail pages like `/dashboard/people/[id]`, `/dashboard/payroll/[periodId]`, `/dashboard/contracts/[id]`, `/dashboard/season/[seasonId]`, `/dashboard/organization/departments/[id]`) follow the same tab pattern as their hub. The pattern repeats at every URL depth that has multiple perspectives on the same entity.
+
+Rules:
+
+1. **Same primitive.** Drill-in pages render `<PageTabNav>` at the top of the page body, directly below the entity-header. No different component.
+2. **Tab keys mirror the hub where applicable.** When the hub tab is "Roller" (people-list as role-matrix), the person-detail tab is also "Roller" (this person's role assignment). The user learns the vocabulary once.
+3. **One level only.** A drill-in page's own tab strip is the first level *on that page*. It is not a nested tab under the hub's tab strip. Sub-sub-tabs remain forbidden (§3.2).
+4. **Hub tabs disappear on drill-in.** When a user clicks a person from `/people` (which has Liste · Roller · Kontrakter · Trening tabs), they land on `/people/[id]` which shows ONLY the person-detail tabs. Breadcrumb in the top-bar restores context ("Ansatte › Ida Holm").
+5. **Tab definitions colocated.** Drill-in tabs typed in `apps/web/src/app/dashboard/<hub>/_lib/<entity>-tabs.ts`, mirroring the existing `people-tabs.ts` pattern.
+
+Canonical drill-in tab sets (specified per entity, expanded over time):
+
+| Drill-in route | Tabs |
+|---|---|
+| `/dashboard/people/[id]` | Profil · Roller · Kontrakt · Trening · Fravær · Aktivitet |
+| `/dashboard/people/[id]/complete-data` | (single-step wizard — no tabs) |
+| `/dashboard/payroll/[periodId]` | Oversikt · Lønnslinjer · Avvik · Audit · Eksport |
+| `/dashboard/contracts/[id]` | Detaljer · Historikk · Signering · Aktivitet |
+| `/dashboard/organization/departments/[id]` | Oversikt · Åpningstider · Sesjoner · Team |
+| `/dashboard/organization/locations/[id]` | Oversikt · Avdelinger · Åpningstider |
+| `/dashboard/organization/teams/[id]` | Oversikt · Medlemmer · Vakter · Mål |
+| `/dashboard/season/[seasonId]` | Plan · Demand · Mål · Konkurranser |
+| `/dashboard/hms/procedure/[id]` | Innhold · Versjoner · Tildelinger · Aktivitet |
+| `/dashboard/proposals/[proposalId]` | Forslag · Begrunnelse · Diff · Aktivitet |
+
+This list is illustrative — `01-route-inventory.md` (follow-up doc) will track the complete per-entity tab spec.
+
+The pattern is **fractal**: every domain page has the same shape (header → PageTabNav → tab body), whether you're at hub level (`/people`) or drill-in level (`/people/[id]`). User learns one layout, applies it at every depth.
+
+### 3.4 Tab visual
 
 Inherits canonical from `dashboard-page-pattern.md §1.3`:
 - `mb-5` between header and tab strip.
@@ -491,7 +522,7 @@ This spec is **not a rewrite**. It is a reshaping of what already exists, govern
 
 Concrete rules every SM-sortie must satisfy:
 
-1. **Reuse before rebuild.** Existing components (`<PageTabNav>`, `<NavItem>`, `<SidebarGroup>`, `<KpiAccentTile>`, all hooks under `_hooks/`) keep their public API. Codemods change call-sites; component bodies stay unless §3.3 requires a tightening.
+1. **Reuse before rebuild.** Existing components (`<PageTabNav>`, `<NavItem>`, `<SidebarGroup>`, `<KpiAccentTile>`, all hooks under `_hooks/`) keep their public API. Codemods change call-sites; component bodies stay unless §3.4 requires a tightening.
 2. **Reuse before re-route.** When a route moves (e.g. `/contracts` → `/people/contracts` in SM-2), the move is `git mv` + a Next.js `redirect()` from the old path. The page component body, hooks, server actions, telemetry registry entries stay identical. Old deep-links keep working.
 3. **No schema changes.** Every table referenced in this spec already exists. New event-types (`employee_meeting`, etc.) are enum-value additions, not new tables.
 4. **Component reuse explicit.** Tidslinjer (§4) is one new component reused 8 times. The view-mode toggle is one new primitive reused on every timeline-bearing tab. The Ansatte Trening tab queries the same `protocol_assignment` rows as HMS → Trening — only the projection differs. No data duplication, no parallel hooks.
