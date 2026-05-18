@@ -2491,6 +2491,70 @@ export type Database = {
           },
         ]
       }
+      announcement_meta: {
+        Row: {
+          created_at: string
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id: string | null
+          linked_entity_type:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id: string
+          tags: string[]
+          tier: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id?: string | null
+          linked_entity_type?:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id: string
+          tags?: string[]
+          tier?: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id?: string | null
+          linked_entity_type?:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id?: string
+          tags?: string[]
+          tier?: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_meta_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcement_meta_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "announcement_meta_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       asset: {
         Row: {
           asset_id: string
@@ -22099,6 +22163,19 @@ export type Database = {
         Args: { p_token: string; p_vendor: string; p_workspace_id: string }
         Returns: string
       }
+      fn_publish_announcement_notifications: {
+        Args: {
+          p_channel_id: string
+          p_content: string
+          p_message_id: string
+          p_sender_id: string
+          p_target_profile_ids: string[]
+          p_tier: Database["public"]["Enums"]["announcement_tier"]
+          p_visibility_scope: Database["public"]["Enums"]["channel_message_visibility"]
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       gate_action: {
         Args: {
           p_action_type: string
@@ -22118,6 +22195,11 @@ export type Database = {
       get_channel_messages: {
         Args: { p_channel_id: string; p_cursor?: string; p_limit?: number }
         Returns: {
+          announcement_kind: Database["public"]["Enums"]["announcement_kind"]
+          announcement_link_id: string
+          announcement_link_type: Database["public"]["Enums"]["announcement_link_type"]
+          announcement_tags: string[]
+          announcement_tier: Database["public"]["Enums"]["announcement_tier"]
           attachments: Json
           channel_id: string
           client_message_id: string
@@ -22259,6 +22341,10 @@ export type Database = {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: Json
       }
+      is_manager_in_workspace: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       is_participant_in_conversation: {
         Args: { conv_id: string }
         Returns: boolean
@@ -22315,6 +22401,25 @@ export type Database = {
           p_company_name: string
           p_intelligence_data?: Json
           p_user_id: string
+        }
+        Returns: string
+      }
+      publish_announcement_atomic: {
+        Args: {
+          p_actor_profile_id: string
+          p_channel_id: string
+          p_client_message_id?: string
+          p_content: string
+          p_kind?: Database["public"]["Enums"]["announcement_kind"]
+          p_linked_entity_id?: string
+          p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
+          p_system_data?: Json
+          p_tags?: string[]
+          p_target_profile_ids?: string[]
+          p_tier?: Database["public"]["Enums"]["announcement_tier"]
+          p_tier_overridden?: boolean
+          p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+          p_workspace_id: string
         }
         Returns: string
       }
@@ -22433,6 +22538,23 @@ export type Database = {
         | "rejected"
         | "expired"
       anchor_type: "fixed" | "open" | "close"
+      announcement_kind:
+        | "general"
+        | "new_menu"
+        | "new_hire"
+        | "staff_event"
+        | "schedule_change"
+        | "policy_update"
+        | "external"
+      announcement_link_type:
+        | "staff_event"
+        | "schedule_shift"
+        | "policy"
+        | "protocol"
+        | "profile"
+        | "menu_document"
+        | "external_url"
+      announcement_tier: "social" | "work" | "external"
       api_key_type: "workspace" | "service"
       api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
@@ -24063,6 +24185,25 @@ export const Constants = {
         "expired",
       ],
       anchor_type: ["fixed", "open", "close"],
+      announcement_kind: [
+        "general",
+        "new_menu",
+        "new_hire",
+        "staff_event",
+        "schedule_change",
+        "policy_update",
+        "external",
+      ],
+      announcement_link_type: [
+        "staff_event",
+        "schedule_shift",
+        "policy",
+        "protocol",
+        "profile",
+        "menu_document",
+        "external_url",
+      ],
+      announcement_tier: ["social", "work", "external"],
       api_key_type: ["workspace", "service"],
       api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
