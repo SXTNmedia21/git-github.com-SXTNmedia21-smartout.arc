@@ -30,61 +30,62 @@ type EntityConfig = {
   labelKey: string;
 };
 
+// ADR-0366: accent values use CSS var references resolved from tokens.css
 export const entityRegistry: Record<EntityType, EntityConfig> = {
   department: {
     tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
     href: "/dashboard/organization/departments/{id}",
     icon: Building2,
-    accent: "oklch(0.65 0.18 55)",
+    accent: "var(--komm-announcement)", // warm amber hue 55
     labelKey: "entity_drawer.type_department",
   },
   profile: {
     tabs: [{ value: "summary", labelKey: "entity_drawer.tab_summary" }],
     href: "/dashboard/people/{id}",
     icon: User,
-    accent: "oklch(0.60 0.15 240)",
+    accent: "var(--info)", // blue hue 225/240
     labelKey: "entity_drawer.type_profile",
   },
   shift: {
     tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
     href: "/dashboard/schedule",
     icon: Clock,
-    accent: "oklch(0.65 0.18 145)",
+    accent: "var(--status-active)", // green hue 145
     labelKey: "entity_drawer.type_shift",
   },
   department_session: {
     tabs: [{ value: "summary", labelKey: "entity_drawer.tab_summary" }],
     href: undefined,
     icon: CalendarCheck,
-    accent: "oklch(0.60 0.20 35)",
+    accent: "var(--destructive)", // warm red hue 25-35
     labelKey: "entity_drawer.type_session",
   },
   team: {
     tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
     href: "/dashboard/organization/teams/{id}",
     icon: Users,
-    accent: "oklch(0.60 0.12 280)",
+    accent: "var(--dept-bar)", // purple hue 280-300
     labelKey: "entity_drawer.type_team",
   },
   shift_template: {
     tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
     href: undefined,
     icon: LayoutTemplate,
-    accent: "oklch(0.55 0.10 200)",
+    accent: "var(--dept-storage)", // cyan hue 200
     labelKey: "entity_drawer.type_template",
   },
   cascade_task: {
     tabs: [{ value: "context", labelKey: "entity_drawer.tab_context" }],
     href: undefined,
     icon: AlertTriangle,
-    accent: "oklch(0.65 0.22 40)",
+    accent: "var(--brand-orange)", // orange hue 40
     labelKey: "entity_drawer.type_task",
   },
   deviation: {
     tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
     href: undefined,
     icon: AlertTriangle,
-    accent: "oklch(0.60 0.22 20)",
+    accent: "var(--priority-urgent)", // red-orange hue 20-27
     labelKey: "entity_drawer.type_task",
   },
 };

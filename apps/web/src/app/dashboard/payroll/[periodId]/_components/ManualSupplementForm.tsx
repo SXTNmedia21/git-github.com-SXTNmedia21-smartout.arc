@@ -226,9 +226,7 @@ export function ManualSupplementForm({
             <Select value={profileId} onValueChange={setProfileId}>
               <SelectTrigger
                 className={`h-11 w-full rounded-[10px] border-[1.5px] ${
-                  profileId
-                    ? "border-[oklch(0.65_0.22_40)] bg-[oklch(0.65_0.22_40_/_0.04)]"
-                    : "border-border bg-card"
+                  profileId ? "border-brand-orange bg-brand-orange/4" : "border-border bg-card"
                 }`}
               >
                 <SelectValue placeholder="Velg ansatt…">
@@ -262,15 +260,13 @@ export function ManualSupplementForm({
                     onClick={() => handleTypeChange(t)}
                     className={`flex flex-col items-center gap-1.5 rounded-[10px] border-[1.5px] px-2.5 py-3 text-[13px] font-medium transition-all ${
                       isSelected
-                        ? "border-[oklch(0.65_0.22_40)] bg-[oklch(0.65_0.22_40_/_0.06)] font-semibold text-[oklch(0.40_0.18_40)]"
+                        ? "border-brand-orange bg-brand-orange/6 text-brand-orange font-semibold"
                         : "border-border bg-card text-foreground hover:bg-muted"
                     }`}
                   >
                     <Icon
                       size={18}
-                      className={
-                        isSelected ? "text-[oklch(0.65_0.22_40)]" : "text-muted-foreground"
-                      }
+                      className={isSelected ? "text-brand-orange" : "text-muted-foreground"}
                     />
                     {label}
                   </button>
@@ -367,7 +363,7 @@ export function ManualSupplementForm({
 
           {/* Botsson tip (mimics mockup hint box) */}
           <div className="bg-muted flex items-start gap-2.5 rounded-[10px] px-3.5 py-3 text-[12.5px]">
-            <Sparkles size={14} className="mt-0.5 shrink-0 text-[oklch(0.65_0.22_40)]" />
+            <Sparkles size={14} className="text-brand-orange mt-0.5 shrink-0" />
             <p className="text-muted-foreground leading-relaxed">
               <strong className="text-foreground">Tips:</strong> Sjekk at datoen faller innenfor den
               åpne perioden. Tillegget knyttes automatisk til en vakt på den valgte datoen.
@@ -410,7 +406,7 @@ function FieldLabel({
     <div className="mb-2 flex items-baseline gap-2">
       <Label className="text-foreground text-[12.5px] font-medium">
         {label}
-        {required && <span className="ml-0.5 text-[oklch(0.65_0.22_40)]">*</span>}
+        {required && <span className="text-brand-orange ml-0.5">*</span>}
       </Label>
       {hint && <span className="text-muted-foreground text-[11.5px]">{hint}</span>}
     </div>

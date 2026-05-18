@@ -131,9 +131,9 @@ export function CockpitPrepStrip() {
           const fillPct = cov?.fillPercent ?? 0;
           const fillColor =
             fillPct >= 100
-              ? "text-[oklch(0.75_0.15_155)]" // success green
+              ? "text-[var(--success)]" // success green
               : fillPct >= 80
-                ? "text-[oklch(0.75_0.15_75)]" // warning amber
+                ? "text-[var(--warning)]" // warning amber
                 : fillPct > 0
                   ? "text-destructive"
                   : "text-muted-foreground/30";
@@ -143,7 +143,7 @@ export function CockpitPrepStrip() {
               key={day.date}
               className={`group relative overflow-hidden rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                 day.isToday
-                  ? "border-brand-orange/25 bg-brand-orange/5 shadow-[0_0_20px_-6px_oklch(0.75_0.15_40/0.15)]"
+                  ? "border-brand-orange/25 bg-brand-orange/5 shadow-[0_0_20px_-6px_var(--brand-orange)/15%]"
                   : day.isWeekend
                     ? "border-border/30 bg-muted/40 backdrop-blur-sm"
                     : "border-border/20 bg-card/50 backdrop-blur-sm"

@@ -51,7 +51,7 @@ export function LighthouseAvatar({
   const initials = getInitials(name);
 
   const haloGradient = `radial-gradient(circle at 45% 40%, oklch(0.80 ${chroma} 50 / 0.55) 0%, oklch(0.70 ${chroma * 0.6} 50 / 0.25) 45%, transparent 70%)`;
-  const avatarFallback = "linear-gradient(135deg, oklch(0.72 0.08 50), oklch(0.55 0.12 35))";
+  const avatarFallback = "var(--avatar-fallback-gradient)";
 
   return (
     <div

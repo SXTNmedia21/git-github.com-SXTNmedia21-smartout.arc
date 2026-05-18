@@ -51,7 +51,7 @@ export function DepartmentRichCard({ entityId }: { entityId: string }) {
         <div className="flex items-center gap-3">
           <div
             className="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg"
-            style={{ backgroundColor: dept.color ?? "oklch(0.65 0.18 55)" }}
+            style={{ backgroundColor: dept.color ?? "var(--komm-announcement)" }}
           >
             {dept.name.charAt(0).toUpperCase()}
           </div>

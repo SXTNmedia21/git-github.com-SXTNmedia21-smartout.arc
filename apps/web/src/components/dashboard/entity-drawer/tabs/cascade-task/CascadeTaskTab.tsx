@@ -40,7 +40,7 @@ const urgencyConfig: Record<
     Icon: AlertCircle,
     iconClass: "text-destructive",
     badgeVariant: "destructive",
-    glowClass: "shadow-[0_0_12px_oklch(0.65_0.25_25/0.15)]",
+    glowClass: "shadow-[0_0_12px_var(--destructive)/15%]",
     borderClass: "border-l-destructive",
   },
   should: {

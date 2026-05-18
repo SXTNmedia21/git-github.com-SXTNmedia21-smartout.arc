@@ -112,7 +112,7 @@ export function PolicyCreateDialog({ isOpen, onClose, onCreated }: PolicyCreateD
           }}
           style={{
             background:
-              "radial-gradient(circle at 50% 30%, oklch(0.18 0.04 55 / 0.55), oklch(0.08 0.02 50 / 0.78))",
+              "radial-gradient(circle at 50% 30%, color-mix(in oklch, var(--panel) 55%, transparent), color-mix(in oklch, var(--panel-deep) 78%, transparent))",
             backdropFilter: "blur(8px)",
           }}
         >
@@ -131,7 +131,7 @@ export function PolicyCreateDialog({ isOpen, onClose, onCreated }: PolicyCreateD
               className="pointer-events-none absolute inset-0 rounded-3xl"
               style={{
                 background:
-                  "linear-gradient(135deg, oklch(1 0 0 / 0.10) 0%, oklch(1 0 0 / 0.02) 35%, transparent 60%)",
+                  "linear-gradient(135deg, white / 10% 0%, white / 2% 35%, transparent 60%)",
               }}
             />
             {/* Ambient glow */}
@@ -139,7 +139,8 @@ export function PolicyCreateDialog({ isOpen, onClose, onCreated }: PolicyCreateD
               aria-hidden
               className="pointer-events-none absolute -top-32 -right-24 h-64 w-64 rounded-full opacity-40 blur-3xl"
               style={{
-                background: "radial-gradient(circle, oklch(0.78 0.18 55 / 0.45), transparent 70%)",
+                background:
+                  "radial-gradient(circle, color-mix(in oklch, var(--brand-glow-warm) 45%, transparent), transparent 70%)",
               }}
             />
 
@@ -227,7 +228,7 @@ export function PolicyCreateDialog({ isOpen, onClose, onCreated }: PolicyCreateD
                       type="button"
                       onClick={handleSubmit}
                       disabled={!canSubmit}
-                      className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] hover:shadow-[0_12px_32px_-8px_oklch(0.78_0.18_55_/_0.65)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                      className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] hover:shadow-[var(--shadow-cta-lg-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                     >
                       {isSubmitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

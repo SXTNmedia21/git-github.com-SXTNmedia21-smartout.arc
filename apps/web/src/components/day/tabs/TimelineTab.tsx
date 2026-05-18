@@ -290,7 +290,7 @@ export function TimelineTab({
             <div
               role="alert"
               aria-live="polite"
-              className="mb-2 flex items-start gap-2 rounded border border-[oklch(0.82_0.08_65)] bg-[oklch(0.96_0.03_65)] px-3 py-2 text-[11px] leading-snug text-[oklch(0.35_0.10_55)]"
+              className="mb-2 flex items-start gap-2 rounded border border-[var(--komm-announcement)] bg-[var(--color-phase-service)] px-3 py-2 text-[11px] leading-snug text-[var(--text-mid)]"
             >
               <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
               <span>

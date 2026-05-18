@@ -158,7 +158,7 @@ export function LocationRichCard({ entityId }: { entityId: string }) {
                 >
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-                    style={{ backgroundColor: dept.color ?? "oklch(0.65 0.18 55)" }}
+                    style={{ backgroundColor: dept.color ?? "var(--komm-announcement)" }}
                   >
                     {dept.name.charAt(0).toUpperCase()}
                   </div>

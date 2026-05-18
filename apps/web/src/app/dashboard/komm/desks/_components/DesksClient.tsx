@@ -257,7 +257,8 @@ function EmptyState({ canManage, onCreate }: { canManage: boolean; onCreate: () 
         aria-hidden="true"
         className="pointer-events-none h-60 w-60 rounded-full opacity-40 blur-[0.5px]"
         style={{
-          background: "radial-gradient(circle at 50% 50%, oklch(0.72 0.06 50) 0%, transparent 70%)",
+          background:
+            "radial-gradient(circle at 50% 50%, var(--surface-raised) 0%, transparent 70%)",
         }}
       />
       <div className="-mt-40 space-y-3">

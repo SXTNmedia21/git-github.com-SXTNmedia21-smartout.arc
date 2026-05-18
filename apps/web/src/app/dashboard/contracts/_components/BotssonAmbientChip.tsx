@@ -78,7 +78,7 @@ export function BotssonAmbientChip({ workspaceId, actorProfileId, scope }: Props
       className="group bg-muted/80 text-foreground ring-border hover:bg-muted focus-visible:ring-ring fixed right-6 bottom-6 z-40 flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium ring-1 backdrop-blur-xl transition-colors duration-250 focus-visible:ring-2 focus-visible:outline-none"
       // Warm hue 40 glow — hand-tuned OKLCH value to match the brand palette
       // without pulling a token (this is a one-off ambient surface).
-      style={{ boxShadow: "0 0 24px oklch(0.78 0.18 40 / 0.22)" }}
+      style={{ boxShadow: "0 0 24px color-mix(in oklch, var(--brand-glow-warm) 22%, transparent)" }}
       aria-label={t("hub.ask_botsson")}
     >
       {/* Icon layer — pulses every 4s unless reduced-motion is requested */}

@@ -220,7 +220,7 @@ export function ExportTab({
               <label
                 className={`flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] p-4 transition-colors ${
                   variant === "aggregate"
-                    ? "border-[oklch(0.65_0.22_40)] bg-[oklch(0.65_0.22_40_/_0.04)]"
+                    ? "border-brand-orange bg-brand-orange/4"
                     : "border-border bg-background hover:bg-muted"
                 }`}
               >
@@ -236,7 +236,7 @@ export function ExportTab({
               <label
                 className={`flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] p-4 transition-colors ${
                   variant === "audit"
-                    ? "border-[oklch(0.65_0.22_40)] bg-[oklch(0.65_0.22_40_/_0.04)]"
+                    ? "border-brand-orange bg-brand-orange/4"
                     : "border-border bg-background hover:bg-muted"
                 }`}
               >
