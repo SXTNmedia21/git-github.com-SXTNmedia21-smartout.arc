@@ -468,13 +468,13 @@ Recommended sortie sequence (each independent, each reversible):
 
 | Sortie | Scope | Effort | Touch |
 |---|---|---|---|
-| **SM-1** | Sidebar config rewrite — 11-flat structure, drop groups, drop isDark branching | M (4h) | `sidebar-config.ts`, `SidebarGroup.tsx`, `DashboardShell.tsx` |
+| **SM-1** ✅ | Sidebar config rewrite — 11-flat structure (visual files preserved per "kun navigation" scope-tightening 2026-05-19) | M (executed ~30min) | `sidebar-config.ts`, `nb/dashboard.json`, `en/dashboard.json` |
 | **SM-2** | Ansatte hub — add Roller / Trening / move Contracts under `/people/contracts` | M (6h) | `/people/*` |
 | **SM-3** | Planlegging hub — gather Kalender, Årshjul, Eventer, Bookings | M (5h) | `/planning` (new), absorbs `/year-wheel`, `/season` |
 | **SM-4** | Vaktplan tab structure + Vaktbørs + Ferieplan | M (4h) | `/schedule` |
 | **SM-5** | Chat + Kommunikasjon split | M (4h) | `/chat` (new), `/komm` restructure |
 | **SM-6** | Tidslinjer view-mode component | L (8h) | new component, wired into 8 callsites |
-| **SM-7** | PageTabNav variant=route + codemod 12 ad-hoc TabsList | M (5h) | global |
+| **SM-7** ✅ | PageTabNav variant=route + codemod 7 hand-rolled TabsList (5 exceptions kept) | M (executed ~45min) | `PageTabNav.tsx`, 7 page-component files |
 | **SM-8** | Mr. Botsson as orb (not menu item) | S (2h) | `DashboardShell.tsx` |
 | **SM-9** | Settings absorbs Organisasjon (Struktur tab) + Integrasjoner tab | M (3h) | `/settings` |
 | **SM-10** | Drop dead routes: `/onboarding-assistant`, `/ai/config` (move to settings), maybe `/website` (see §13) | S (2h) | various |
