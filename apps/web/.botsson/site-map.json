@@ -554,7 +554,7 @@
       "module": "Year Wheel",
       "tier": 2,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -1595,7 +1595,7 @@
       "module": "Proposals",
       "tier": 3,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -1634,7 +1634,7 @@
       "module": "Setup",
       "tier": 3,
       "access": ["owner", "admin"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
