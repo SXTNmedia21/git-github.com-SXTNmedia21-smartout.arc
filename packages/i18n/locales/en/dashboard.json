@@ -1048,5 +1048,98 @@
       "type_training": "Training",
       "type_welfare": "Welfare"
     }
+  },
+  "shell": {
+    "header": {
+      "active_season": "Active season:",
+      "season_placeholder": "Winter 2026",
+      "season_active_badge": "Active",
+      "doc_mode_off": "Back to operations",
+      "doc_mode_on": "Document mode"
+    },
+    "nav": {
+      "settings": "Settings",
+      "help": "Help",
+      "admin_mode": "Admin mode",
+      "employee_mode": "Employee mode"
+    },
+    "breadcrumb": {
+      "drift": "Operations",
+      "workspace": "Workspace",
+      "handbook": "Handbook",
+      "doc_mode": "Document mode"
+    },
+    "segment": {
+      "schedule": "Schedule",
+      "people": "Staff",
+      "reports": "Reports",
+      "operations": "Operations",
+      "hms": "HMS",
+      "year_wheel": "Year wheel",
+      "calendar": "Calendar",
+      "organization": "Organization",
+      "settings": "Settings",
+      "help": "Help",
+      "komm": "Channels",
+      "ai": "Mr. Botsson",
+      "onboarding_assistant": "Onboarding assistant",
+      "my_schedule": "My schedule",
+      "my_training": "My training",
+      "my_cv": "My profile",
+      "my_salary": "My salary",
+      "overview": "Overview"
+    },
+    "schedule": {
+      "layout_daily": "Week plan",
+      "layout_monthly": "Month",
+      "layout_list": "Shift list",
+      "layout_grid": "Staffing",
+      "week": "Week {week}, {year}",
+      "active_cycle": "Active cycle",
+      "cycle": "Cycle {offset}",
+      "today": "Today",
+      "month_jan": "January",
+      "month_feb": "February",
+      "month_mar": "March",
+      "month_apr": "April",
+      "month_may": "May",
+      "month_jun": "June",
+      "month_jul": "July",
+      "month_aug": "August",
+      "month_sep": "September",
+      "month_oct": "October",
+      "month_nov": "November",
+      "month_dec": "December",
+      "publish": "Publish ({count})"
+    },
+    "dashboard_tabs": {
+      "overview": "Overview",
+      "insight": "Insights",
+      "activity": "Activity",
+      "todo": "To do"
+    },
+    "search": {
+      "placeholder": "Search operations..."
+    },
+    "badge": {
+      "requests": "{count} Requests"
+    }
+  },
+  "day": {
+    "control": {
+      "tab_overview": "Overview",
+      "tab_timeline": "Day line",
+      "tab_roster": "Staffing",
+      "tab_tasks": "Tasks",
+      "tab_deviations": "Deviations",
+      "tab_broadcast": "Message",
+      "aria_tabs": "Day information sections",
+      "elapsed_opened": "Opened {time}",
+      "elapsed_pending_signoff": "Awaiting sign-off",
+      "elapsed_closed": "Closed",
+      "elapsed_missed": "Grace period exceeded",
+      "no_dept_heading": "No department linked",
+      "no_dept_body": "You have no department registered on your profile, and the workspace has no departments set up. Contact admin to be assigned a department."
+    }
   }
 }

@@ -1049,5 +1049,98 @@
       "type_training": "Opplæring",
       "type_welfare": "Velferd"
     }
+  },
+  "shell": {
+    "header": {
+      "active_season": "Aktiv sesong:",
+      "season_placeholder": "Vinter 2026",
+      "season_active_badge": "Aktiv",
+      "doc_mode_off": "Tilbake til drift",
+      "doc_mode_on": "Dokumentmodus"
+    },
+    "nav": {
+      "settings": "Innstillinger",
+      "help": "Hjelp",
+      "admin_mode": "Adminmodus",
+      "employee_mode": "Ansattmodus"
+    },
+    "breadcrumb": {
+      "drift": "Drift",
+      "workspace": "Arbeidsrom",
+      "handbook": "Handbok",
+      "doc_mode": "Dokumentmodus"
+    },
+    "segment": {
+      "schedule": "Vaktplan",
+      "people": "Ansatte",
+      "reports": "Rapporter",
+      "operations": "Drift",
+      "hms": "HMS",
+      "year_wheel": "Årshjul",
+      "calendar": "Kalender",
+      "organization": "Organisasjon",
+      "settings": "Innstillinger",
+      "help": "Hjelp",
+      "komm": "Kanaler",
+      "ai": "Mr. Botsson",
+      "onboarding_assistant": "Onboarding-assistent",
+      "my_schedule": "Min vaktplan",
+      "my_training": "Min opplæring",
+      "my_cv": "Min profil",
+      "my_salary": "Min lønn",
+      "overview": "Oversikt"
+    },
+    "schedule": {
+      "layout_daily": "Ukeplan",
+      "layout_monthly": "Måned",
+      "layout_list": "Vaktliste",
+      "layout_grid": "Bemanning",
+      "week": "Uke {week}, {year}",
+      "active_cycle": "Aktiv syklus",
+      "cycle": "Syklus {offset}",
+      "today": "I dag",
+      "month_jan": "Januar",
+      "month_feb": "Februar",
+      "month_mar": "Mars",
+      "month_apr": "April",
+      "month_may": "Mai",
+      "month_jun": "Juni",
+      "month_jul": "Juli",
+      "month_aug": "August",
+      "month_sep": "September",
+      "month_oct": "Oktober",
+      "month_nov": "November",
+      "month_dec": "Desember",
+      "publish": "Publiser ({count})"
+    },
+    "dashboard_tabs": {
+      "overview": "Oversikt",
+      "insight": "Innsikt",
+      "activity": "Aktivitet",
+      "todo": "Å gjøre"
+    },
+    "search": {
+      "placeholder": "Søk i drift..."
+    },
+    "badge": {
+      "requests": "{count} Forespørsler"
+    }
+  },
+  "day": {
+    "control": {
+      "tab_overview": "Oversikt",
+      "tab_timeline": "Dagslinjen",
+      "tab_roster": "Bemanning",
+      "tab_tasks": "Oppgaver",
+      "tab_deviations": "Avvik",
+      "tab_broadcast": "Melding",
+      "aria_tabs": "Dag-informasjon seksjoner",
+      "elapsed_opened": "Åpnet {time}",
+      "elapsed_pending_signoff": "Venter på signering",
+      "elapsed_closed": "Stengt",
+      "elapsed_missed": "Grace overskredet",
+      "no_dept_heading": "Ingen avdeling knyttet",
+      "no_dept_body": "Du har ingen avdeling registrert på profilen din, og arbeidsrommet har ingen avdelinger satt opp. Kontakt admin for å få tildelt en avdeling."
+    }
   }
 }
