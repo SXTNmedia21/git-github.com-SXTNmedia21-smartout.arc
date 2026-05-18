@@ -203,7 +203,11 @@ export type EntityType =
   | "cost_overview"
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────────
   | "workspace_union_binding"
-  | "supplement_rule";
+  | "supplement_rule"
+  // ─── Day-Line Runtime (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────────────
+  | "day_line"
+  | "shift_session"
+  | "day_line_item";
 
 export type ActionVerb =
   | "created"
@@ -8757,7 +8761,19 @@ export type SmartoutEvent =
   // ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ───────────────────
   // Read-path telemetry (PostHog + Logger only; no activity_trail — view events).
   | PayrollTariffViewLoaded
-  | PayrollTariffViewLoadedMobile;
+  | PayrollTariffViewLoadedMobile
+  // ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────
+  | DayLineCreated
+  | DayLineOpeningChanged
+  | DayLineClosingChanged
+  | DayLineItemAdded
+  | DayLineItemNotified
+  | ShiftSessionBound
+  | ShiftSessionClockedIn
+  | ShiftSessionClockedOut
+  | RoutineAttached
+  | OrgDeptAreasUpdated
+  | ShiftSessionItemLeakDetected;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -10449,6 +10465,171 @@ export interface PayrollTariffViewLoadedMobile extends BaseEvent {
       route: string; // "(me)/tariff" screen identifier
       is_bound: boolean; // whether the workspace has an active tariff binding at load time
       viewed_at: string; // ISO 8601 timestamp
+    };
+  };
+}
+
+// ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ───────────
+//
+// 11 events covering: day_line lifecycle, shift_session clock-in/out, item
+// distribution, routine attachment, org department-area updates, and the
+// leak-detection sentinel.
+//
+// Routing rationale (category: "scheduling"):
+//   day_line.created / day_line_item.added / shift_session.clocked_in|out /
+//   routine.attached: 4 destinations — D6 production mutations with engine_event
+//     reactions (guardian triggers, workflow state-machine inputs).
+//   day_line.opening_changed / day_line.closing_changed / shift_session.bound:
+//     3 destinations — operational adjustments; no downstream state-machine reaction.
+//   day_line_item.notified: 4 destinations — notification confirmed; engine_event
+//     needed for session acknowledgement workflow.
+//   org.dept_areas_updated: 3 destinations — org-structure change (posthog + logger
+//     + activity_trail). No engine_event: area edits do not drive state-machine.
+//   shift_session.item_leak_detected: 3 destinations (alert + audit, no engine_event).
+
+export interface DayLineCreated extends BaseEvent {
+  event: "day_line.created";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      department_session_id: string;
+      location_id: string;
+      department_id: string;
+      workspace_id: string;
+      planned_open: string;
+      planned_close: string;
+    };
+  };
+}
+
+export interface DayLineOpeningChanged extends BaseEvent {
+  event: "day_line.opening_changed";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      old: string;
+      new: string;
+    };
+  };
+}
+
+export interface DayLineClosingChanged extends BaseEvent {
+  event: "day_line.closing_changed";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      old: string;
+      new: string;
+    };
+  };
+}
+
+export interface DayLineItemAdded extends BaseEvent {
+  event: "day_line_item.added";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      item_type: "task" | "routine";
+      delegated_to_id: string;
+      /**
+       * Which capability initiated this write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability?: string;
+      /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
+      delegated_via?: string;
+    };
+  };
+}
+
+export interface DayLineItemNotified extends BaseEvent {
+  event: "day_line_item.notified";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: {
+      item_id: string;
+      shift_session_id: string;
+      employee_id: string;
+      day_line_id: string;
+    };
+  };
+}
+
+export interface ShiftSessionBound extends BaseEvent {
+  event: "shift_session.bound";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      day_line_ids: string[];
+    };
+  };
+}
+
+export interface ShiftSessionClockedIn extends BaseEvent {
+  event: "shift_session.clocked_in";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      clocked_in_at: string;
+    };
+  };
+}
+
+export interface ShiftSessionClockedOut extends BaseEvent {
+  event: "shift_session.clocked_out";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      clocked_out_at: string;
+    };
+  };
+}
+
+export interface RoutineAttached extends BaseEvent {
+  event: "routine.attached";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      template_id?: string;
+      items_applied: number;
+      /**
+       * Which capability initiated this write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability?: string;
+      /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
+      delegated_via?: string;
+    };
+  };
+}
+
+export interface OrgDeptAreasUpdated extends BaseEvent {
+  event: "org.dept_areas_updated";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: {
+      department_id: string;
+      location_id: string;
+      action: "add" | "remove";
+    };
+  };
+}
+
+export interface ShiftSessionItemLeakDetected extends BaseEvent {
+  event: "shift_session.item_leak_detected";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: {
+      offending_day_line_id: string;
+      shift_session_id: string;
     };
   };
 }
@@ -14038,5 +14219,67 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.tariff_view_loaded_mobile": {
     destinations: ["posthog", "logger"],
     category: "payroll",
+  },
+
+  // ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ───────────
+  // day_line.created: 4 destinations — D6 production mutation; engine_event triggers
+  //   guardian + workflow state-machine reactions.
+  // day_line.opening_changed / closing_changed: 3 destinations — operational adjustment;
+  //   no state-machine reaction (day_line hours change does not drive workflow transitions).
+  // day_line_item.added: 4 destinations — item distribution is a D6 mutation;
+  //   engine_event required for session acknowledgement workflow.
+  // day_line_item.notified: 4 destinations — notification confirmation drives
+  //   acknowledgement workflow state-machine.
+  // shift_session.bound: 3 destinations — binding confirmed; no downstream engine_event.
+  // shift_session.clocked_in / clocked_out: 4 destinations — payroll-relevant lifecycle
+  //   events that drive engine_event reactions (settlement, timebank).
+  // routine.attached: 4 destinations — routine attachment is a D6 mutation with
+  //   workflow reactions (task materialization).
+  // org.dept_areas_updated: 3 destinations — org-structure change (audit + analytics);
+  //   no engine_event (area edits do not drive state-machine transitions).
+  // shift_session.item_leak_detected: 3 destinations — sentinel/alert; no engine_event.
+  "day_line.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "day_line.opening_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_line.closing_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_line_item.added": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "day_line_item.notified": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_session.bound": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_session.clocked_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_session.clocked_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.attached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "org.dept_areas_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "shift_session.item_leak_detected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
   },
 };

@@ -43,6 +43,14 @@ import { dirname, join } from "node:path";
  *                  sortie (packages/ai/src/capabilities/outreach/). Until then,
  *                  `outreach` intent routes to general fallback. Remove from
  *                  this list when the registry entry lands.
+ *   - day-line  → TRANSITIONAL (ADR-0367, BT0-FOUNDATION 2026-05-18) — enum
+ *                  value pre-registered ahead of BT1+BT2 capability sorties.
+ *                  Capability registers at packages/ai/src/capabilities/day-line/.
+ *                  Remove from this list when registry entry lands.
+ *   - routine   → TRANSITIONAL (ADR-0367, BT0-FOUNDATION 2026-05-18) — as
+ *                  day-line above. Registers at capabilities/routine/.
+ *   - org       → TRANSITIONAL (ADR-0367, BT0-FOUNDATION 2026-05-18) — as
+ *                  day-line above. Registers at capabilities/org/.
  *
  * Historic note: `memory` was in this list until Phase A3 (2026-04-22) when
  * it became a real capability; `training` was never here (registered from
@@ -54,6 +62,10 @@ export const DOCUMENTED_TOOLLESS: ReadonlySet<string> = new Set([
   "general",
   "inquiry",
   "outreach",
+  // ADR-0367 BT0-FOUNDATION 2026-05-18: pre-registered ahead of BT1+BT2 capability sorties.
+  "day-line",
+  "routine",
+  "org",
 ]);
 
 export type IntentCoverageReport = {

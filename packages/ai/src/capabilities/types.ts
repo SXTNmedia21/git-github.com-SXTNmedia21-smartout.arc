@@ -127,7 +127,21 @@ export type CapabilityName =
    *  NEVER invoked directly by users. chat-only, direct_admin. Both gates fire:
    *  caller gate + cascade gate independently (ADR-0356 §"Gate convention").
    *  Authority seeded in 20260618200000_cascade_capability_authority_seed.sql. */
-  | "cascade"; // ADR-0356
+  | "cascade" // ADR-0356
+  /** ADR-0367 — Day-Line Runtime Area-Anchored scheduling layer (BT0-FOUNDATION).
+   *  Tools: create_day_line, update_day_line_hours, add_day_line_item.
+   *  Manager+, confirm authority. Chat-only V1. D6 production layer.
+   *  DELEGATION-ONLY intent entry — classifier should never pick this directly;
+   *  user-routable siblings are day-line.create, day-line.add_item, day-line.update_hours. */
+  | "day-line" // ADR-0367
+  /** ADR-0367 — Routine-attachment capability. attach_to_line tool.
+   *  Materialises a routine template into a day_line's task set.
+   *  Manager+, confirm authority. Chat-only V1. */
+  | "routine" // ADR-0367
+  /** ADR-0367 — Org-structure area-management capability. update_dept_areas tool.
+   *  Links/unlinks department_location records.
+   *  Admin+, confirm authority. Chat-only V1. */
+  | "org"; // ADR-0367
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
