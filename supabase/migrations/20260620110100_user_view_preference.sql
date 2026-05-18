@@ -1,4 +1,4 @@
--- 20260620100000_user_view_preference.sql
+-- 20260620110100_user_view_preference.sql
 -- (Retimestamped from 20260515120050 — B1 R1-fixup, timestamp below dev tip 20260619100000)
 --
 -- Adds public.user_view_preference — per-user, per-workspace, per-surface UI

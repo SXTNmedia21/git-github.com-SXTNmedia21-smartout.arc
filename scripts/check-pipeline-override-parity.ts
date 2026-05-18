@@ -51,7 +51,7 @@
  * Adding a new pipeline-defining capability:
  *   1. Add the base capability name to PIPELINE_DEFINING_CAPABILITIES below.
  *   2. Write a migration seeding `<cap>.override` in capability_default_registry
- *      + engine_authority_config (follow 20260620100200_seed_pipeline_override_authority.sql).
+ *      + engine_authority_config (follow 20260620110300_seed_pipeline_override_authority.sql).
  *   3. Run this script locally (--strict) to verify.
  *
  * ADR: docs/decisions/0340-shift-lifecycle-pipeline-implementation.md §T0.5
@@ -165,7 +165,7 @@ function renderViolations(results: CapabilityResult[]): string {
     "  2. public.engine_authority_config INSERT ... SELECT FROM workspace (Part B — backfill)",
   );
   lines.push("");
-  lines.push("Template: supabase/migrations/20260620100200_seed_pipeline_override_authority.sql");
+  lines.push("Template: supabase/migrations/20260620110300_seed_pipeline_override_authority.sql");
   lines.push("ADR:      docs/decisions/0340-shift-lifecycle-pipeline-implementation.md §T0.5");
   lines.push("Learning: docs/learnings/0281-default-allow-cve-recurrence-pipeline-override.md");
   lines.push("");

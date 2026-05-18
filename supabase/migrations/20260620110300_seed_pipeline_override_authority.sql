@@ -1,7 +1,7 @@
 -- ============================================================
--- 20260620100200_seed_pipeline_override_authority.sql
+-- 20260620110300_seed_pipeline_override_authority.sql
 -- T0.5: Pipeline override authority seed for shift_swap + shift_marketplace
--- (Retimestamped 20260617100000 → 20260617110200 → 20260620100200 to clear collision
+-- (Retimestamped 20260617100000 → 20260617110200 → 20260620110300 to clear collision
 -- with 20260617100000_payroll_period_locked_notifier_process.sql and dev tip
 -- 20260619100000_payroll_tariff_tools_authority_seed.sql on origin/development.
 -- B1 R1-fixup, council ref campaign-ui-shell-shippability-r1)
@@ -79,10 +79,10 @@
 -- -------------
 -- This migration (T0.5) must apply AFTER the T0 migration that creates
 -- engine_authority_pipeline and engine_process blueprints. Timestamp
--- 20260620100200 is strictly greater than the T0 migration at
--- 20260620100100_shift_lifecycle_pipeline_v2.sql. Both retimestamped
+-- 20260620110300 is strictly greater than the T0 migration at
+-- 20260620110200_shift_lifecycle_pipeline_v2.sql. Both retimestamped
 -- from original 20260616120000 / 20260617100000 slots (B1 R1-fixup,
--- final timestamps 20260620100100 + 20260620100200 past dev tip 20260619100000).
+-- final timestamps 20260620110200 + 20260620110300 past dev tip 20260619100000).
 --
 -- REFERENCES
 -- ----------

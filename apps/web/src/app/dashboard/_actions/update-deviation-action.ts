@@ -291,7 +291,7 @@ export async function escalateDeviationAction(
   }
 
   /* @authority-gate: capability='hms.escalate_deviation' level='confirm' min_role='manager'
-     seed='20260620100300_policy_create_manual_capability_seed.sql' */
+     seed='20260620110400_policy_create_manual_capability_seed.sql' */
   const gate = await gateAction({
     workspaceId: profile.workspaceId,
     capability: "hms.escalate_deviation",

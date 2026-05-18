@@ -1,7 +1,7 @@
 -- ============================================================
--- 20260620100100_shift_lifecycle_pipeline_v2.sql
+-- 20260620110200_shift_lifecycle_pipeline_v2.sql
 -- Shift Lifecycle Pipeline V2 — ADR-0340 T0 implementation
--- (Timestamp bumped 110000 → 120000 → 20260617110100 → 20260620100100 to clear
+-- (Timestamp bumped 110000 → 120000 → 20260617110100 → 20260620110200 to clear
 -- collision with 20260616120000_seed_channel_admin_authority.sql,
 -- 20260617100000_payroll_period_locked_notifier_process.sql, and
 -- dev tip 20260619100000_payroll_tariff_tools_authority_seed.sql.

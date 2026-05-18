@@ -866,7 +866,7 @@ export const cancelOffer = defineTool({
  * stuck marketplace_lifecycle pipeline instance.
  *
  * Authority: shift_marketplace.override (min_role=admin, level=autonomous).
- * Seeded by T0.5 migration (20260620100200_seed_pipeline_override_authority.sql).
+ * Seeded by T0.5 migration (20260620110300_seed_pipeline_override_authority.sql).
  *
  * Laws honoured:
  *   ADR-0078 / ADR-0288 — chat-only (irreversible admin act, no voice)
