@@ -191,7 +191,7 @@ Five sources, one read surface, one capability:
 ## Modules & ADRs
 
 > 23 module docs (modules 1-15, 17-20, 4.5, plus MODULE*0_ROADMAP, MODULE_AGENT_SDK, MODULE_BOTSSON). Load `docs/modules/MODULE*\*.md`BEFORE implementing.
-**163 ADRs** in`docs/decisions/`as of 2026-04-20 (latest ADR-0164; gap at 0159 — reserved slot after mid-session renumber in 2026-04-19 kanaler-som-helpdesk council). 12 still`proposed`. Read before making changes in the same area.
+**371 ADRs** in`docs/decisions/`as of 2026-05-18 (latest ADR-0371; gap at 0159 — reserved slot after mid-session renumber in 2026-04-19 kanaler-som-helpdesk council; gap at 0368 — reserved). Notable recent: ADR-0366 (Nordic Split OKLCH literal ban), ADR-0367 (Day Line Area-Anchored Runtime + Core-Structure Clarification — tri-layer D6 model: `department_session`→`day_line`→`shift_session`), ADR-0369/0370/0371 (announcement atomicity + capability boundary + schema contract). Read before making changes in the same area.
 Full lists: `docs/INDEX.md`| Council-verified deltas + forward plan:`docs/STATE-SUMMARY.md`
 
 **ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.
