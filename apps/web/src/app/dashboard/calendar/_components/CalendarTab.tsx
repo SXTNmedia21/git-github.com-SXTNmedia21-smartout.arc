@@ -119,12 +119,13 @@ export function CalendarTab({
   };
 
   // Re-key on view + period start so prev/next + view swap both animate.
+  // Use local-tz isoKey() — consistent with how CalendarPageShell stores selectedDayISO.
   const periodKey =
     view === "day"
-      ? cursor.toISOString().slice(0, 10)
+      ? isoKey(cursor)
       : view === "week"
-        ? startOfWeek(cursor, WEEK_OPTS).toISOString().slice(0, 10)
-        : startOfMonth(cursor).toISOString().slice(0, 7);
+        ? isoKey(startOfWeek(cursor, WEEK_OPTS))
+        : format(startOfMonth(cursor), "yyyy-MM");
 
   return (
     <div className="border-border bg-card relative flex flex-col overflow-hidden rounded-xl border">

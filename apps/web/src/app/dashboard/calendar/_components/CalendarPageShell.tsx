@@ -105,7 +105,7 @@ export function CalendarPageShell() {
   useEffect(() => {
     if (newAction === "event") {
       setEventDraft({
-        date: new Date().toISOString().slice(0, 10),
+        date: formatISO(new Date(), { representation: "date" }),
         startHour: 9,
         endHour: 10,
       });
