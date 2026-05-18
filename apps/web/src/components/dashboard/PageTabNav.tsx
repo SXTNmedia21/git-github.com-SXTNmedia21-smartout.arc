@@ -46,7 +46,12 @@ export function PageTabNav<K extends string>({
   const pathname = usePathname();
 
   if (variant === "route" && !basePath) {
-    throw new Error("PageTabNav: variant='route' requires basePath prop");
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        "PageTabNav: variant='route' requires basePath prop. Falling back to no-op render.",
+      );
+    }
+    return null;
   }
 
   return (
