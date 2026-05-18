@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, gaps, debt, audit, area-anchored]
+tags: [module, daytimeline, gaps, debt, audit, area-anchored, adr-0367]
 ---
 
 # Day Timeline — Gaps & Debt
@@ -141,9 +141,9 @@ For each claim below:
 
 ### 3.10 CASCADE — Day-line dimension classification — RESOLVED 2026-05-18
 
-**Status:** **RESOLVED** by ADR-0367 (proposed, 2026-05-18). Decision: Option C — new `day_line` table as area-anchored child of `department_session`, plus `shift_session` as per-employee runtime layer. Department aggregate untouched; child tables (`session_hook`, `session_task`, `schedule_day_booking`, `deviation`) gain nullable `day_line_id` FK.
+**Status:** **RESOLVED** by [ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md) (accepted, 2026-05-18). Decision: Option C — new `day_line` table as area-anchored child of `department_session`, plus `shift_session` as per-employee runtime layer. Department aggregate untouched; child tables (`session_task`, `schedule_day_booking`, `deviation`) gain nullable `day_line_id` FK. `session_hook` is a template and does NOT receive `day_line_id` (ADR-0367 Rule 2 — code-trace confirmed). Council Phase 5 verdict: APPROVE WITH CHANGES, unanimous (steward + supervisor + system-agent-coordinator + botsson-harness-builder + frontend code-reviewer). 9 must-fix items folded into v1.1 — see ADR §Council Phase 5 Verdict.
 
-**Remaining work:** Council verdict on ADR-0367 + Phase A migration. Tracked in [BLUEPRINT.md](./BLUEPRINT.md).
+**Phases A + B shipped.** Phases C (UI), D (mobile), E (push), F (docs) in progress.
 
 ### 3.11 BACKFILL — Existing department_session rows have no location
 
@@ -200,6 +200,22 @@ For each claim below:
 | D7 | `schedule_day_info` is dept-anchored, not location-anchored — multi-location dept has one handover note for all sites | `20260302152749_add_dashboard_evolution_tables.sql:157` |
 | D8 | Voice tool surface mirror is hand-maintained — no codegen from capability registry. Drift risk. | `services/voice-agent/src/tools-task.ts` |
 | D9 | `oversikt-tools-bridge` tools (page-tool registry) hardcoded — no day_line awareness | `apps/web/src/components/day/_tools/` |
+
+### 4.10 DEFERRED V2 — Booking / note / reminder item types on `day_line.add_item`
+
+`day_line.add_item` dispatches to owning capabilities per `item_type` (see DATA-MODEL §5.10 dispatch table). In V1, `booking` item type returns `NOT_SUPPORTED`. Booking creation for a specific area remains via the existing `schedule_day_booking` path (free-text `.location` field). Full `day_line`-native booking requires: (a) a `booking.create_for_day_line` capability or (b) extension of `schedule.create_booking` to accept `day_line_id`. Deferred until operator demand.
+
+Note-type items (`session_note`) require `operations.create_note` to accept an optional `day_line_id` parameter. Deferred to Phase G.
+
+Reminder-type items (time-anchored, push-only, no `session_task` row) require a separate `day_line_reminder` table or a new `item_type='reminder'` row with `notify=true DEFAULT` on the push pipeline. Schema slot reserved; behaviour deferred.
+
+### 4.11 DEFERRED — `hms.report_deviation` Pattern B extension
+
+`day_line.add_item` with `item_type='deviation'` delegates to `hms.report_deviation` via Pattern B (ADR-0356). However, the `hms` capability namespace does not yet exist as a capability folder at `packages/ai/src/capabilities/hms/`. Deviation creation today goes through `hms.update_deviation_manual` + `hms.escalate_deviation` under the operations namespace. A future sortie creates `packages/ai/src/capabilities/hms/` and migrates deviation tools there. Until then, `day_line.add_item` with `item_type='deviation'` falls back to `operations.report_deviation` as the owning capability.
+
+### 4.12 DEFERRED — Intent-coverage regex hyphen-blind workaround via `DOCUMENTED_TOOLLESS`
+
+`check-intent-coverage.ts` uses a regex that may not match capability keys containing hyphens (e.g. `day-line.create`). The workaround per L-0287 + ADR-0112 recurrence: add `day-line.*` tools to `DOCUMENTED_TOOLLESS` in `check-intent-coverage.ts` with comment "DELEGATION-ONLY, classifier should never pick — user-routable siblings are task.create_session and routine.attach_to_line". Track as a proper fix to make the regex hyphen-aware in a tooling sortie.
 
 ---
 
