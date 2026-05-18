@@ -23,10 +23,16 @@ import { useDayLines } from "./_hooks/use-day-lines";
 type Props = {
   workspaceId: string;
   date: string;
+  /** When provided, renders only day lines matching this location_id. */
+  locationId?: string | null;
 };
 
-export function AggregatedDayLineList({ workspaceId, date }: Props) {
-  const { data, isLoading } = useDayLines({ workspaceId, date });
+export function AggregatedDayLineList({ workspaceId, date, locationId }: Props) {
+  const { data: allData, isLoading } = useDayLines({ workspaceId, date });
+  const data =
+    locationId != null
+      ? (allData ?? []).filter((line) => line.location_id === locationId)
+      : (allData ?? []);
 
   if (isLoading) {
     return <Skeleton className="h-48" data-testid="aggregated-day-line-skeleton" />;

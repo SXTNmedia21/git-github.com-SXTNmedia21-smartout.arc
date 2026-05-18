@@ -11,7 +11,6 @@
  * ADR ref:  ADR-0334, ADR-0367
  */
 
-import { useState } from "react";
 import {
   ScopeFilterPopover,
   type ScopeSelection,
@@ -20,7 +19,10 @@ import {
   useShiftsToday,
 } from "@/components/day/ScopeFilterPopover";
 import { SavedTimelinesDropdown } from "@/components/day/SavedTimelinesDropdown";
-import type { DayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
+import {
+  useDayTimelineScope,
+  type DayTimelineScope,
+} from "@/app/dashboard/_hooks/use-day-timeline-scope";
 import type { TimelineTemplateItemT, ScopeTypeT } from "@smartout/types";
 
 export type TimelineTopBarProps = {
@@ -45,12 +47,6 @@ function resolveScope(scope: DayTimelineScope): {
   return { scopeType: scope.type as ScopeTypeT, scopeId: scope.id };
 }
 
-const EMPTY_SELECTION: ScopeSelection = {
-  departmentIds: [],
-  locationIds: [],
-  shiftIds: [],
-};
-
 export function TimelineTopBar({
   workspaceId,
   dateISO,
@@ -64,10 +60,9 @@ export function TimelineTopBar({
 }: TimelineTopBarProps) {
   const { scopeType, scopeId } = resolveScope(scope);
 
-  // Multi-select filter state — persisted locally (not in URL for multi-dim).
-  // Separate from the legacy single-scope URL param: both may coexist during
-  // the migration to full multi-select (ADR-0367 W7-W9).
-  const [selection, setSelection] = useState<ScopeSelection>(EMPTY_SELECTION);
+  // Multi-select filter state — persisted to URL via useDayTimelineScope.
+  // Selection round-trips through ?scope_dept=...&scope_loc=...&scope_shift=...
+  const { selection, setSelection } = useDayTimelineScope();
 
   // Fetch option lists — always enabled so the popover renders without delay.
   const deptsQuery = useDepartments(workspaceId, true);

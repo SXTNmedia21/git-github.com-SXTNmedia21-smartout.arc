@@ -390,9 +390,14 @@ export function TimelineTab({
           </div>
         )}
 
-        {/* Location scope: show aggregated overview across all day_lines for this date */}
+        {/* Location scope: show aggregated overview across all day_lines for this date.
+            Pass locationId when scope is "location" so the list filters to that location. */}
         {!dayLines.isLoading && isLocationScope && workspaceId && (
-          <AggregatedDayLineList workspaceId={workspaceId} date={dateISO} />
+          <AggregatedDayLineList
+            workspaceId={workspaceId}
+            date={dateISO}
+            locationId={scope.type === "location" ? scope.id : null}
+          />
         )}
 
         {!dayLines.isLoading && !isLocationScope && dayLineRows.length > 0 && (
