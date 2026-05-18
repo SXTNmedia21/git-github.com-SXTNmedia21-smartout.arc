@@ -72,7 +72,7 @@ tags: [journey, day-line, mobile, employee, shift-session, read-only, adr-0367, 
 - Clock-in / clock-out (via `shift-lifecycle.clock_in/out` capability extension) IS allowed on mobile as an "Execute/Witness" verb — but that flow is documented in the shift-lifecycle journey, not here.
 
 **E2E coverage pointer:**
-- Spec file (planned): `apps/e2e/day-line/day-line-employee-mobile-view.spec.ts` (mobile E2E via Playwright + mobile web harness)
+- Spec file: `apps/e2e/tests/mobile/day-line-employee-view.spec.ts` (mobile E2E via Playwright + mobile web harness)
 - Key selectors: `testID="day-line-area-section-[location_id]"`, `testID="day-line-item-[task_id]"`, `testID="day-line-item-detail-sheet"` (planned — assigned in Phase D mobile work).
 - Status: NOT YET WRITTEN — gated on Phase D (mobile) merge.
 

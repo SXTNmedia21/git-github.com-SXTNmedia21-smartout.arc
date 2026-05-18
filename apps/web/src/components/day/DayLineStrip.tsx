@@ -98,7 +98,8 @@ export function DayLineStrip({
             size="sm"
             className="text-muted-foreground hover:text-foreground gap-1.5 text-xs"
             onClick={() => setAttachRoutineOpen(true)}
-            data-testid={`attach-routine-trigger-${line.day_line_id}`}
+            data-testid="attach-routine-trigger"
+            data-day-line-id={line.day_line_id}
           >
             <Sparkles className="h-3.5 w-3.5" />
             Legg til rutine

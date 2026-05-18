@@ -293,10 +293,13 @@ export async function dispatchDayLinePush(ctx: DayLinePushCtx): Promise<{
       }
 
       // 6. Resolve expo_push_token for the employee.
+      // Defence-in-depth: scope to task.workspace_id even though session is
+      // already workspace-scoped upstream (Law 1 — workspace filter on every query).
       const { data: profileRow, error: profileErr } = await sb
         .from("profile")
         .select("profile_id, expo_push_token")
         .eq("profile_id", session.employee_id)
+        .eq("workspace_id", task.workspace_id)
         .maybeSingle();
 
       if (profileErr) {

@@ -110,7 +110,7 @@ tags: [journey, day-line, push, notifications, engine-dispatch, shift-session, i
 - Device-side subscribe/unsubscribe API would allow employees to opt in/out of specific push topics at the device level. This requires a new ADR. V1 ships with engine-side gate only: `shift_session.status='clocked_in'` is the sole filter.
 
 **E2E coverage pointer:**
-- Spec file (planned): `apps/e2e/day-line/day-line-push.spec.ts`
+- Spec file (planned): `apps/e2e/tests/day-line/push.spec.ts`
 - Testing approach: mock Expo Push API endpoint + fast-forward cron tick; assert `engine_event` idempotency_key exists after one tick and no duplicate on second tick.
 - Status: NOT YET WRITTEN — gated on Phase E (push pipeline) merge.
 

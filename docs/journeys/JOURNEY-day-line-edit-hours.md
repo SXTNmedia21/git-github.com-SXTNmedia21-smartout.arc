@@ -64,7 +64,7 @@ Steps 1–2 as above but manager adjusts both fields.
 | Concurrent edit (optimistic conflict) | DB `updated_at` drift; later write wins (last-write-wins V1) | Strip silently reflects DB state on next fetch. V2 conflict resolution deferred. |
 
 **E2E coverage pointer:**
-- Spec file (planned): `apps/e2e/day-line/day-line-edit-hours.spec.ts`
+- Spec file: `apps/e2e/tests/day-line/edit-hours.spec.ts`
 - Key selectors: `data-testid="open-close-edit-popover"`, `data-testid="planned-open-input"`, `data-testid="planned-close-input"` (planned — assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B + Phase C merge.
 

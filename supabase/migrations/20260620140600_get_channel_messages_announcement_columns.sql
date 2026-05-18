@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION public.get_channel_messages(
   announcement_tags      text[],
   announcement_link_type public.announcement_link_type,
   announcement_link_id   uuid
-) LANGUAGE sql STABLE SECURITY DEFINER AS $$
+) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
   SELECT
     m.id AS message_id,
     m.channel_id,

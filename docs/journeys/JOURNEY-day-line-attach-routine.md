@@ -80,7 +80,7 @@ tags: [journey, day-line, routine, template, attach, manager, adr-0367, adr-0240
 - Pattern A (passing `day_line_id` from any caller without audit fields) is FORBIDDEN per ADR-0367 Rule 7.
 
 **E2E coverage pointer:**
-- Spec file (planned): `apps/e2e/day-line/day-line-attach-routine.spec.ts`
+- Spec file: `apps/e2e/tests/day-line/attach-routine.spec.ts`
 - Key selectors: `data-testid="attach-routine-trigger"`, `data-testid="attach-routine-dialog"`, `data-testid="template-list-item-[template_id]"`, `data-testid="day-line-task-chip-[task_id]"` (planned — assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B (capabilities) + Phase C (UI) merge.
 

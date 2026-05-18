@@ -68,7 +68,7 @@ tags: [journey, day-line, area-anchored, manager, create, adr-0367, d6]
 | Session already closed (`daily_reconciliation.status = 'closed'`) | Capability detects lock; mutation blocked | Toast: "Dagsøkten er avsluttet — ingen endringer mulig." |
 
 **E2E coverage pointer:**
-- Spec file (planned): `apps/e2e/day-line/day-line-create.spec.ts`
+- Spec file: `apps/e2e/tests/day-line/create.spec.ts`
 - Key selectors: `data-testid="day-line-create-trigger"`, `data-testid="day-line-area-select"`, `data-testid="day-line-strip-[location_id]"` (planned — testIDs assigned in Phase C UI work).
 - Status: NOT YET WRITTEN — gated on Phase B capability code merge + Phase C UI merge.
 

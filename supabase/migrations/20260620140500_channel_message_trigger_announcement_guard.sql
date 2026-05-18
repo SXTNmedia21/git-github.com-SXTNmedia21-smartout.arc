@@ -83,7 +83,7 @@ EXCEPTION WHEN OTHERS THEN
   -- Never block message INSERT if notification fails
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Trigger is already created in 20260422310100_channel_message_notification_trigger.sql.
 -- CREATE OR REPLACE FUNCTION above replaces the function body in-place.
