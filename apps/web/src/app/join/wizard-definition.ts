@@ -22,6 +22,7 @@ import { Step6Summary } from "./_components/Step6Summary";
 import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from "./_lib/validation";
 import { completeSignup } from "./_lib/setupActions";
 import { buildPostSignupRedirectPath } from "./_lib/onboarding-shell";
+import { createClient } from "@smartout/supabase/client";
 
 /**
  * Restore persisted state from localStorage.
@@ -100,8 +101,23 @@ async function onComplete(state: JoinState): Promise<void> {
     intelligence: state.intelligence,
   };
 
-  const accessToken = (state as Record<string, unknown>)._accessToken as string | undefined;
-  const result = await completeSignup(setupData, accessToken);
+  // Force a client-side session sync so the cookies the Server Action sees
+  // are the freshest version. getSession() triggers a refresh when the
+  // access token has expired; getUser() then forces a verified roundtrip
+  // against the auth server so any pending rotation is committed to
+  // cookies BEFORE the RSC POST serializes its Cookie header. Without
+  // this two-step the server would itself try to refresh and race the
+  // client → `refresh_token_already_used` (prod 500 on 2026-05-18).
+  try {
+    const supabase = createClient();
+    await supabase.auth.getSession();
+    await supabase.auth.getUser();
+  } catch {
+    // best-effort — server still throws "Not authenticated" if cookies
+    // are unrecoverable, surfaced to the user as a retry prompt.
+  }
+
+  const result = await completeSignup(setupData);
 
   // Clear localStorage after successful signup
   try {
