@@ -35,7 +35,7 @@ import enBilling from "../locales/en/billing.json";
 import enHelpdesk from "../locales/en/helpdesk.json";
 import enYearWheel from "../locales/en/year-wheel.json";
 
-type MessageValue = string | Record<string, string | Record<string, string>>;
+type MessageValue = string | { [key: string]: MessageValue };
 type Messages = Record<string, MessageValue>;
 
 const localeModules: Record<string, Record<string, Messages>> = {

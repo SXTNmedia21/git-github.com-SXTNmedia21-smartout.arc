@@ -17,7 +17,7 @@ export type DayLineStatus = "draft" | "active" | "closed" | "locked" | "cancelle
 export type DayLineRow = {
   day_line_id: string;
   workspace_id: string;
-  department_session_id: string;
+  department_session_id: string | null;
   department_id: string;
   location_id: string;
   business_date: string; // ISO date string "YYYY-MM-DD"
