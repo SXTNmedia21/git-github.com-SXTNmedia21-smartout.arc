@@ -297,7 +297,7 @@ export function CalendarPageShell() {
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
+                  className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors data-[state=active]:shadow-sm"
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{tab.label}</span>

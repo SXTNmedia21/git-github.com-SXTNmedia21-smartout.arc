@@ -122,7 +122,7 @@ export function EventSheet({ open, onOpenChange, initial, onSave, onDelete }: Ev
               type="button"
               onClick={() => setColor(opt.value)}
               aria-label={opt.label}
-              className={`h-7 w-7 rounded-full border-2 transition-all ${
+              className={`h-7 w-7 rounded-full border-2 transition-colors ${
                 color === opt.value
                   ? "border-foreground scale-110 shadow-sm"
                   : "border-transparent hover:scale-105"
