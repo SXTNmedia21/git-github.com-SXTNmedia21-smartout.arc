@@ -110,32 +110,32 @@ export type SidebarGroupDef = {
 
 const KOMM_ITEMS: SidebarItem[] = [
   {
-    labelKey: "dashboard.sidebar.item_kanaler",
+    labelKey: "sidebar.item_kanaler",
     href: "/dashboard/komm",
     icon: Hash,
     status: "live",
     exactMatch: true,
   },
   {
-    labelKey: "dashboard.sidebar.item_chat",
+    labelKey: "sidebar.item_chat",
     href: "/dashboard/komm/chat",
     icon: MessageCircle,
     status: "live",
   },
   {
-    labelKey: "dashboard.sidebar.item_nyheter",
+    labelKey: "sidebar.item_nyheter",
     href: "/dashboard/komm/nyheter",
     icon: Newspaper,
     status: "live",
   },
   {
-    labelKey: "dashboard.sidebar.item_desks",
+    labelKey: "sidebar.item_desks",
     href: "/dashboard/komm/desks",
     icon: PanelLeft,
     status: "linked-orphan",
   },
   {
-    labelKey: "dashboard.sidebar.item_oversikt",
+    labelKey: "sidebar.item_oversikt",
     href: "/dashboard/komm/oversikt",
     icon: Users2,
     status: "linked-orphan",
@@ -149,11 +149,11 @@ const KOMM_ITEMS: SidebarItem[] = [
 export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
   // 1. Oversikt
   {
-    labelKey: "dashboard.sidebar.group_oversikt",
+    labelKey: "sidebar.group_oversikt",
     standalone: true,
     items: [
       {
-        labelKey: "dashboard.sidebar.item_oversikt",
+        labelKey: "sidebar.item_oversikt",
         href: "/dashboard",
         icon: Home,
         status: "live",
@@ -164,42 +164,42 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 2. Drift
   {
-    labelKey: "dashboard.sidebar.group_drift",
+    labelKey: "sidebar.group_drift",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_ansatte",
+        labelKey: "sidebar.item_ansatte",
         href: "/dashboard/people",
         icon: Users,
         status: "live",
         compositeActive: ["/dashboard/contracts"],
       },
       {
-        labelKey: "dashboard.sidebar.item_vaktplan",
+        labelKey: "sidebar.item_vaktplan",
         href: "/dashboard/schedule",
         icon: Calendar,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_kalender",
+        labelKey: "sidebar.item_kalender",
         href: "/dashboard/calendar",
         icon: CalendarRange,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_vaktbors",
+        labelKey: "sidebar.item_vaktbors",
         href: "/dashboard/schedule/marketplace",
         icon: ArrowLeftRight,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_rutiner",
+        labelKey: "sidebar.item_rutiner",
         href: "/dashboard/tasks",
         icon: ListTodo,
         status: "not-yet-built",
         disabled: true,
       },
       {
-        labelKey: "dashboard.sidebar.item_forslag",
+        labelKey: "sidebar.item_forslag",
         href: "/dashboard/proposals",
         icon: Lightbulb,
         status: "linked-orphan",
@@ -209,16 +209,16 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 3. Planlegging
   {
-    labelKey: "dashboard.sidebar.group_planlegging",
+    labelKey: "sidebar.group_planlegging",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_arshjul",
+        labelKey: "sidebar.item_arshjul",
         href: "/dashboard/year-wheel",
         icon: CalendarCheck2,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_setup_veiviser",
+        labelKey: "sidebar.item_setup_veiviser",
         href: "/dashboard/setup",
         icon: Wand2,
         status: "linked-orphan",
@@ -228,52 +228,52 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 4. Administrasjon
   {
-    labelKey: "dashboard.sidebar.group_administrasjon",
+    labelKey: "sidebar.group_administrasjon",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_organisasjon",
+        labelKey: "sidebar.item_organisasjon",
         href: "/dashboard/organization",
         icon: Building2,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_lonn",
+        labelKey: "sidebar.item_lonn",
         href: "/dashboard/payroll",
         icon: Wallet,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_avstemming",
+        labelKey: "sidebar.item_avstemming",
         href: "/dashboard/reconciliation",
         icon: ScaleIcon,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_rapporter",
+        labelKey: "sidebar.item_rapporter",
         href: "/dashboard/reports",
         icon: BarChart3,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_kontrakter",
+        labelKey: "sidebar.item_kontrakter",
         href: "/dashboard/contracts",
         icon: FileText,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_kostnader",
+        labelKey: "sidebar.item_kostnader",
         href: "/dashboard/cost",
         icon: DollarSign,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_fakturering",
+        labelKey: "sidebar.item_fakturering",
         href: "/dashboard/billing",
         icon: Receipt,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_nettside",
+        labelKey: "sidebar.item_nettside",
         href: "/dashboard/website",
         icon: Globe,
         status: "linked-orphan",
@@ -283,52 +283,52 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 5. HMS & Compliance
   {
-    labelKey: "dashboard.sidebar.group_hms_compliance",
+    labelKey: "sidebar.group_hms_compliance",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_hms_oversikt",
+        labelKey: "sidebar.item_hms_oversikt",
         href: "/dashboard/hms",
         icon: ShieldAlert,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_avvik",
+        labelKey: "sidebar.item_avvik",
         href: "/dashboard/hms/deviations",
         icon: AlertTriangle,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_dokumenter",
+        labelKey: "sidebar.item_dokumenter",
         href: "/dashboard/hms/documents",
         icon: FileCheck,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_trening",
+        labelKey: "sidebar.item_trening",
         href: "/dashboard/hms/training",
         icon: GraduationCap,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_drift_sjekk",
+        labelKey: "sidebar.item_drift_sjekk",
         href: "/dashboard/hms/drift",
         icon: ClipboardCheck,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_styring",
+        labelKey: "sidebar.item_styring",
         href: "/dashboard/hms/governance",
         icon: Gavel,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_policies",
+        labelKey: "sidebar.item_policies",
         href: "/dashboard/policies",
         icon: BookOpen,
         status: "linked-orphan",
       },
       {
-        labelKey: "dashboard.sidebar.item_handbok",
+        labelKey: "sidebar.item_handbok",
         href: "/dashboard/handbook",
         icon: Book,
         status: "linked-orphan",
@@ -338,16 +338,16 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 6. Kommunikasjon
   {
-    labelKey: "dashboard.sidebar.group_kommunikasjon",
+    labelKey: "sidebar.group_kommunikasjon",
     items: KOMM_ITEMS,
   },
 
   // 7. Integrasjoner
   {
-    labelKey: "dashboard.sidebar.group_integrasjoner",
+    labelKey: "sidebar.group_integrasjoner",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_pos_lightspeed",
+        labelKey: "sidebar.item_pos_lightspeed",
         href: "/dashboard/admin/pos-accounts",
         icon: Plug,
         status: "linked-orphan",
@@ -357,10 +357,10 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 8. AI & Botsson
   {
-    labelKey: "dashboard.sidebar.group_ai_botsson",
+    labelKey: "sidebar.group_ai_botsson",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_mr_botsson",
+        labelKey: "sidebar.item_mr_botsson",
         href: "/dashboard/ai",
         icon: Bot,
         status: "live",
@@ -368,7 +368,7 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
         ai: true,
       },
       {
-        labelKey: "dashboard.sidebar.item_onboarding_assistent",
+        labelKey: "sidebar.item_onboarding_assistent",
         href: "/dashboard/onboarding-assistant",
         icon: BotMessageSquare,
         status: "linked-orphan",
@@ -378,10 +378,10 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 
   // 9. Veiledning
   {
-    labelKey: "dashboard.sidebar.group_veiledning",
+    labelKey: "sidebar.group_veiledning",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_manualer",
+        labelKey: "sidebar.item_manualer",
         href: "/dashboard/manuals",
         icon: Book,
         status: "not-yet-built",
@@ -398,11 +398,11 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
 export const SIDEBAR_GROUPS_EMPLOYEE: SidebarGroupDef[] = [
   // 1. Oversikt
   {
-    labelKey: "dashboard.sidebar.group_oversikt",
+    labelKey: "sidebar.group_oversikt",
     standalone: true,
     items: [
       {
-        labelKey: "dashboard.sidebar.item_oversikt",
+        labelKey: "sidebar.item_oversikt",
         href: "/dashboard",
         icon: Home,
         status: "live",
@@ -413,48 +413,48 @@ export const SIDEBAR_GROUPS_EMPLOYEE: SidebarGroupDef[] = [
 
   // 2. Min Tid
   {
-    labelKey: "dashboard.sidebar.group_min_tid",
+    labelKey: "sidebar.group_min_tid",
     items: [
       {
-        labelKey: "dashboard.sidebar.item_min_plan",
+        labelKey: "sidebar.item_min_plan",
         href: "/dashboard/my-schedule",
         icon: Calendar,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_min_lonn",
+        labelKey: "sidebar.item_min_lonn",
         href: "/dashboard/my-salary",
         icon: Banknote,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_min_kontrakt",
+        labelKey: "sidebar.item_min_kontrakt",
         href: "/dashboard/my-contract",
         icon: FileCheck,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_min_cv",
+        labelKey: "sidebar.item_min_cv",
         href: "/dashboard/my-cv",
         icon: IdCard,
         status: "live",
         featureFlag: "MY_CV",
       },
       {
-        labelKey: "dashboard.sidebar.item_min_trening",
+        labelKey: "sidebar.item_min_trening",
         href: "/dashboard/my-training",
         icon: GraduationCap,
         status: "live",
         indicators: [{ type: "warning", label: "1 forfalt" }],
       },
       {
-        labelKey: "dashboard.sidebar.item_min_profil",
+        labelKey: "sidebar.item_min_profil",
         href: "/dashboard/my-profile",
         icon: UserCircle,
         status: "live",
       },
       {
-        labelKey: "dashboard.sidebar.item_stempelur",
+        labelKey: "sidebar.item_stempelur",
         href: "/dashboard/shift-clock",
         icon: Clock,
         status: "linked-orphan",
@@ -464,7 +464,7 @@ export const SIDEBAR_GROUPS_EMPLOYEE: SidebarGroupDef[] = [
 
   // 3. Kommunikasjon (same items as admin)
   {
-    labelKey: "dashboard.sidebar.group_kommunikasjon",
+    labelKey: "sidebar.group_kommunikasjon",
     items: KOMM_ITEMS,
   },
 ];
@@ -475,26 +475,26 @@ export const SIDEBAR_GROUPS_EMPLOYEE: SidebarGroupDef[] = [
 
 const DEMO_SHOWCASE_ITEMS: SidebarItem[] = [
   {
-    labelKey: "dashboard.sidebar.item_oversikt",
+    labelKey: "sidebar.item_oversikt",
     href: "/dashboard",
     icon: LayoutDashboard,
     status: "live",
     exactMatch: true,
   },
   {
-    labelKey: "dashboard.sidebar.item_templates",
+    labelKey: "sidebar.item_templates",
     href: "/dashboard/schedule",
     icon: CalendarDays,
     status: "live",
   },
   {
-    labelKey: "dashboard.sidebar.item_analytics",
+    labelKey: "sidebar.item_analytics",
     href: "/dashboard/reports",
     icon: TrendingUp,
     status: "live",
   },
   {
-    labelKey: "dashboard.sidebar.item_system_intelligence",
+    labelKey: "sidebar.item_system_intelligence",
     href: "/onboarding",
     icon: Bot,
     status: "live",
@@ -505,7 +505,7 @@ const DEMO_SHOWCASE_ITEMS: SidebarItem[] = [
 export const SIDEBAR_GROUPS_DEMO: SidebarGroupDef[] = [
   // 1. Showcase — header chrome visible (standalone: false = default = shows label)
   {
-    labelKey: "dashboard.sidebar.group_showcase",
+    labelKey: "sidebar.group_showcase",
     standalone: false,
     items: DEMO_SHOWCASE_ITEMS,
   },

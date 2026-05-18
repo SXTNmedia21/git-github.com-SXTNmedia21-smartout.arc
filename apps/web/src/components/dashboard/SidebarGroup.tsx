@@ -47,8 +47,8 @@ export function SidebarGroup({
   if (visibleItems.length === 0) return null;
 
   const groupLabel = t(group.labelKey);
-  const disabledTooltip = t("dashboard.sidebar.disabled_tooltip");
-  const disabledBadge = t("dashboard.sidebar.disabled_badge");
+  const disabledTooltip = t("sidebar.disabled_tooltip");
+  const disabledBadge = t("sidebar.disabled_badge");
 
   return (
     <div
