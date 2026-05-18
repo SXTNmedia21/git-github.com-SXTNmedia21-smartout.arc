@@ -69,7 +69,8 @@ async function emitLeakDetected(item: DayLineItem, shiftSessionId: string): Prom
 export function useDayLineItems(
   dayLineIds: string[],
   allowedDayLineIds: string[],
-  shiftSessionId: string,
+  /** null while session is loading — query disabled when null or empty */
+  shiftSessionId: string | null,
 ) {
   const allowedSet = new Set(allowedDayLineIds);
 
@@ -109,15 +110,22 @@ export function useDayLineItems(
       const leaked: DayLineItem[] = [];
 
       for (const row of rows) {
+        // Rows with null day_line_id are treated as leaked — they cannot
+        // belong to any allowed day_line. No fallback to empty string
+        // (L-0083 / ADR-0134: ID fields must not be silently coerced).
+        if (row.day_line_id === null) {
+          continue;
+        }
+
         const item: DayLineItem = {
           id: row.id,
-          day_line_id: row.day_line_id ?? "",
+          day_line_id: row.day_line_id,
           title: row.title,
           scheduled_at: row.scheduled_at,
           status: row.status,
         };
 
-        if (!item.day_line_id || !allowedSet.has(item.day_line_id)) {
+        if (!allowedSet.has(item.day_line_id)) {
           leaked.push(item);
         } else {
           clean.push(item);
@@ -125,7 +133,9 @@ export function useDayLineItems(
       }
 
       // Report leaked items asynchronously — do NOT await; read path must return.
-      if (leaked.length > 0) {
+      // shiftSessionId is guaranteed non-null here because enabled guards it,
+      // but TypeScript doesn't narrow across queryFn boundaries — assert.
+      if (leaked.length > 0 && shiftSessionId) {
         for (const leakedItem of leaked) {
           void emitLeakDetected(leakedItem, shiftSessionId).catch(() => {
             // Swallow telemetry errors so read path is unaffected.
@@ -136,6 +146,6 @@ export function useDayLineItems(
       return clean;
     },
     staleTime: 30_000,
-    enabled: dayLineIds.length > 0 && Boolean(shiftSessionId),
+    enabled: dayLineIds.length > 0 && shiftSessionId !== null && shiftSessionId !== "",
   });
 }

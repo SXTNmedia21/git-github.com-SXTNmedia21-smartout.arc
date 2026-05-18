@@ -64,20 +64,21 @@ export function HomeShiftCard({ shift }: HomeShiftCardProps) {
   const { colors } = useTheme();
 
   const { data: profile } = useMyProfile();
-  const profileId = profile?.profile_id ?? "";
+  // Pass null when profile has not loaded — useShiftSession disables when
+  // either argument is null/falsy (L-0083 / ADR-0134: no ?? "" on IDs).
+  const profileId = profile?.profile_id ?? null;
 
-  // Shift date for session lookup (business_date = shift_date)
-  const dateISO = shift.shift_date ?? "";
+  // Shift date for session lookup (business_date = shift_date).
+  // shift_date is non-null on schedule_shift rows, but typed nullable in DB types.
+  const dateISO = shift.shift_date;
 
   const { data: session } = useShiftSession(profileId, dateISO);
 
   const dayLineIds = (session?.day_lines ?? []).map((dl) => dl.day_line_id);
+  // shiftSessionId null → useDayLineItems disabled (enabled guard on shiftSessionId)
+  const shiftSessionId = session?.shift_session_id ?? null;
 
-  const { data: items = [] } = useDayLineItems(
-    dayLineIds,
-    dayLineIds,
-    session?.shift_session_id ?? "",
-  );
+  const { data: items = [] } = useDayLineItems(dayLineIds, dayLineIds, shiftSessionId);
 
   // "neste 3": items with scheduled_at >= now(), sorted ascending, slice 3
   const now = new Date().toISOString();

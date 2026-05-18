@@ -43,13 +43,15 @@ type RawJunctionRow = {
  * Throws on network/auth failure — TanStack Query surfaces to the
  * nearest error boundary.
  *
- * @param profileId - The current employee's profile_id (from useMyProfile or getProfileContext).
- * @param date      - ISO date string YYYY-MM-DD matching business_date.
+ * @param profileId - The current employee's profile_id (null while loading — query disabled).
+ * @param date      - ISO date string YYYY-MM-DD matching business_date (null → disabled).
  */
-export function useShiftSession(profileId: string, date: string) {
+export function useShiftSession(profileId: string | null, date: string | null) {
   return useQuery({
     queryKey: ["shift-session", profileId, date],
     queryFn: async (): Promise<ShiftSessionRow | null> => {
+      // profileId and date are guaranteed non-null here because of the
+      // `enabled` guard below — but TypeScript needs the assertion.
       const { data, error } = await supabase
         .from("shift_session")
         .select(
@@ -70,8 +72,8 @@ export function useShiftSession(profileId: string, date: string) {
           )
           `,
         )
-        .eq("employee_id", profileId)
-        .eq("business_date", date)
+        .eq("employee_id", profileId!)
+        .eq("business_date", date!)
         .maybeSingle();
 
       if (error) throw error;
@@ -94,7 +96,7 @@ export function useShiftSession(profileId: string, date: string) {
       };
     },
     staleTime: 30_000,
-    // Only run when both arguments are non-empty strings.
+    // Only run when both arguments are non-null and non-empty strings.
     enabled: Boolean(profileId) && Boolean(date),
   });
 }

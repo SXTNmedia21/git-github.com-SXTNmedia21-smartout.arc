@@ -280,7 +280,8 @@ export default function CalendarDayScreen() {
   const { data: profile } = useMyProfile();
   const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
-  const profileId = profile?.profile_id ?? "";
+  // Pass null when profile hasn't loaded — useShiftSession disabled when null (L-0083)
+  const profileId = profile?.profile_id ?? null;
   const dateISO = dateToISO(displayDate);
 
   // isToday must compare dates in workspace tz, not device tz.
@@ -303,7 +304,8 @@ export default function CalendarDayScreen() {
   const { data: sessionItems = [], isLoading: itemsLoading } = useDayLineItems(
     dayLineIds,
     dayLineIds, // allowed == queried: filter acts as sentinel
-    session?.shift_session_id ?? "",
+    // null when session not yet loaded — hook disabled when null (L-0083)
+    session?.shift_session_id ?? null,
   );
 
   // ── Fallback: legacy CalendarItems (non-session days) ─────────────────────
