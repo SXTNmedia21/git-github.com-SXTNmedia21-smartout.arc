@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, data-model, schema, d6, area-anchored, tri-layer]
+tags: [module, daytimeline, data-model, schema, d6, area-anchored, tri-layer, adr-0367]
 ---
 
 # Day Timeline — Data Model
@@ -324,6 +324,72 @@ Both `SmartoutEvent` union AND `EVENT_ROUTING` map (ADR-0358):
 - `"routine.attached"`
 
 See [BLUEPRINT.md](./BLUEPRINT.md) for the phased delivery and `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md` for full spec.
+
+### 5.10 ADR-0367 Council Amendments (post-v1.1, accepted 2026-05-18)
+
+The following amendments were folded into ADR-0367 v1.1 after the Council Phase 5 verdict. This section captures the delta from the original draft spec to the accepted model.
+
+**1. No stored `day_line_status` column.**
+The `CREATE TABLE day_line` DDL in §5.1 above shows a `status day_line_status NOT NULL DEFAULT 'upcoming'` column. This is DRAFT notation. **The accepted model per ADR-0367 Rule 1 drops this column.** `day_line_status` is derived at read time from `(parent department_session.status, daily_reconciliation.locked, day_line.cancelled_at)` by the helper at `apps/web/src/lib/cascade/derive-day-line-status.ts`. Follows ADR-0156 precedent — stored status drifts under concurrent writes. The `day_line_status` TYPE may still be created as a Postgres enum for use in read-side computed columns or views, but it is NOT a stored column on `day_line`.
+
+**2. `department_location` RLS dual-auth pattern (ADR-0367 Rule 6 + council must-fix #5).**
+`department_location` requires both JWT and API key RLS policies per the workspace dual-auth convention:
+
+```sql
+-- JWT path (browser): member read, admin write
+CREATE POLICY "department_location_jwt_select" ON department_location
+  FOR SELECT TO authenticated
+  USING (department_id IN (
+    SELECT d.department_id FROM department d
+    WHERE d.workspace_id = ANY(get_workspace_ids_for_user(auth.uid()))
+  ));
+
+CREATE POLICY "department_location_jwt_insert" ON department_location
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    is_admin_in_workspace(auth.uid(),
+      (SELECT d.workspace_id FROM department d WHERE d.department_id = department_location.department_id))
+  );
+
+-- API key path: covered by service-role bypass for capability-layer writes
+```
+
+The capability `org.update_dept_areas` writes `department_location` via service-role within `gatedMutation`. Direct browser INSERT is admin-only.
+
+**3. Per-type dispatch table for `day_line.add_item` (council must-fix #6).**
+The `add_item` tool routes item creation to the owning capability per `item_type`:
+
+| `item_type` | Owning capability | Method |
+|---|---|---|
+| `session_task` | `task.create_session` | Pattern B delegation (ADR-0356) |
+| `deviation` | `hms.report_deviation` | Pattern B delegation |
+| `session_note` | `operations.create_note` | Pattern B delegation |
+| `free_form` | `day-line` (internal) | Direct `day_line_item` insert |
+| `booking` | DEFERRED V2 | `day_line.add_item` returns NOT_SUPPORTED for `booking` type in V1 |
+
+No direct `session_task.insert()` from `day-line/tools.ts` — all writes go through the owning capability. This is per ADR-0240 (cross-namespace DML prohibition).
+
+**4. `session_hook` UNIQUE constraint (ADR-0367 Rule 1b — Phase A migration gate).**
+```sql
+ALTER TABLE public.session_hook
+  ADD CONSTRAINT uq_session_hook_template
+  UNIQUE (workspace_id, department_id, hook_type);
+```
+Must be applied AFTER any de-duplication backfill. If duplicates exist, the migration `RAISE NOTICE`s per row before attempting constraint addition.
+
+**5. `is_admin_or_manager_in_workspace()` does not exist.**
+Verified pre-migration code-trace 2026-05-18. Only `is_admin_in_workspace(uid, wid)` exists with `(uid, wid)` argument order. Phase A migration adds a new helper:
+```sql
+CREATE OR REPLACE FUNCTION is_manager_or_above_in_workspace(user_id UUID, ws_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profile p
+    WHERE p.profile_id = user_id AND p.workspace_id = ws_id
+      AND p.role IN ('manager', 'admin', 'owner')
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+```
+Existing `is_admin_in_workspace()` calls keep their `(uid, wid)` order unchanged.
 
 ---
 

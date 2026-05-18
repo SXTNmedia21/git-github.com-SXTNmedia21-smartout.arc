@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, dagslinjen, d6, production, session, timeline, day-line, area-anchored]
+tags: [module, daytimeline, dagslinjen, d6, production, session, timeline, day-line, area-anchored, adr-0367]
 ---
 
 # Module — Day Timeline (Dagslinjen)
@@ -154,22 +154,99 @@ See [GAPS-AND-DEBT.md](./GAPS-AND-DEBT.md) for the delta between today and targe
 
 ---
 
-## 8. Cross-References
+## 8. Tri-Layer Model — ADR-0367
+
+> This section captures the model introduced by ADR-0367 (accepted 2026-05-18). It supersedes the prior single-strip department-anchored model. All new work on the Day Timeline must conform to this model.
+
+### 8.1 Layer structure
+
+```
+department_session  [AGGREGATE — exists, untouched]
+  │   One per (workspace, department, date). Owns payroll aggregate +
+  │   C1 reconciliation + signoff + lock. NEVER duplicated.
+  │
+  ├── day_line      [PROGRAM — NEW per ADR-0367]
+  │     One per (department_session, location/area). Carries own
+  │     planned_open + planned_close. The canonical "what happens at
+  │     this area today" object. Children: session_task, deviation,
+  │     schedule_day_booking each gain a nullable day_line_id FK.
+  │     NULL day_line_id on a child = department-level item (e.g.
+  │     open/close routine not pinned to any area).
+  │
+  └── shift_session [RUNTIME — NEW per ADR-0367]
+        One per schedule_shift (UNIQUE on schedule_shift_id). Created
+        by trigger on shift insert/update. Lifecycle (scheduled →
+        clocked_in → clocked_out) managed by shift-lifecycle capability.
+        push_topic field drives Expo push routing.
+        │
+        └── shift_session_day_line (M:N junction)
+              Populates at shift insert by joining on
+              (business_date, department_id, location_id).
+              Drives mobile read scope + push fan-out.
+```
+
+`session_hook` is a **template**, NOT a per-session instance. It does NOT receive `day_line_id` (ADR-0367 Rule 2). The session_tasks created when a hook fires DO inherit `day_line_id` at materialization time.
+
+### 8.2 What changed in ADR-0367
+
+| Area | Before ADR-0367 | After ADR-0367 |
+|---|---|---|
+| **Schema** | `department_session` is the only D6 anchor per day. No `day_line`, no `shift_session`. | Three new tables: `day_line`, `shift_session`, `shift_session_day_line`. One new junction: `department_location`. Nullable `day_line_id` FK added to `session_task`, `deviation`, `schedule_day_booking`. |
+| **Open/close band** | One `planned_open`/`planned_close` per department per day (on `department_session`). | Per-area band on each `day_line`. Manager edits via `day-line.update_hours` capability → emits `day_line.opening_changed` / `day_line.closing_changed`. |
+| **Location awareness** | Warning banner on `TimelineTab.tsx:238-249`: "hooks/oppgaver/notater er ikke lokasjons-merket." Filter returned only shift markers. | Items anchored via `day_line_id`. Defensive client-side filter on mobile drops foreign items + emits `shift_session.item_leak_detected` on anomaly. |
+| **Mobile employee view** | Single vertical timeline 08:00–24:00 with absolute-positioned items. No area grouping. | Multi-area section list grouped by `day_line` (area). Employee sees only their linked areas via `shift_session_day_line`. |
+| **Push notifications** | No time-anchored push for day items. | Engine-dispatch 1-min cron fans out push to clocked-in employees per `shift_session_day_line`. Idempotency via `engine_event.idempotency_key = '<task_id>:<shift_session_id>'`. |
+| **Capabilities** | No `day-line.*` capability namespace. | Three new tools: `day-line.create`, `day-line.add_item`, `day-line.instantiate_template`. Two adjacent: `routine.attach_to_line`, `org.update_dept_areas`. |
+| **Telemetry events** | No `day_line.*` or `shift_session.*` events in registry. | 9 new events: `day_line.created`, `day_line.opening_changed`, `day_line.closing_changed`, `day_line_item.added`, `day_line_item.notified`, `shift_session.bound`, `shift_session.clocked_in`, `shift_session.clocked_out`, `routine.attached`. |
+| **status on day_line** | N/A (no table) | Derived at read time from `(parent department_session.status, daily_reconciliation.locked, day_line.cancelled_at)`. No stored `day_line_status` column — follows ADR-0156 precedent, avoids dual-source-of-truth drift. Helper: `apps/web/src/lib/cascade/derive-day-line-status.ts`. |
+| **Core Structure** | `location` table semantically overloaded. No `department_location` junction. | `location` = area (semantic rename in docs only; table name unchanged). `department_location` M:N junction added. Department↔area membership is the source of truth for which depts staff which areas. |
+
+### 8.3 Delivery phases
+
+| Phase | Scope | Status |
+|---|---|---|
+| A | Schema + RLS + backfill + `department_location` | Shipped |
+| B | Capabilities + Server Actions + triggers + telemetry registry | Shipped |
+| C | UI rewire (TimelineTab multi-strip, dialogs) | In flight |
+| D | Mobile (shift_session read + push topic + multi-area sections) | In flight |
+| E | Push pipeline (engine-dispatch extension) | In flight |
+| F | Journey docs + E2E + module doc updates | This PR |
+
+See [BLUEPRINT.md](./BLUEPRINT.md) for falsifiable acceptance per phase.
+
+---
+
+## 9. Cross-References
 
 ### ADRs
 - **Accepted:** [ADR-0156](../../decisions/0156-day-control-panel-canonical-admin-surface.md), [ADR-0069](../../decisions/0069-session-execution-ownership.md), [ADR-0096](../../decisions/0096-schedule-shift-vs-department-session.md), [ADR-0187](../../decisions/0187-session-state-events-single-emit-source.md), [ADR-0273](../../decisions/0273-deviation-day-info-server-action-migration.md), [ADR-0297](../../decisions/0297-workforce-snapshot-session-bootstrap.md), [ADR-0298](../../decisions/0298-task-ontology-five-sources.md), [ADR-0334](../../decisions/0334-ephemeral-presence-supabase-broadcast.md), [ADR-0335](../../decisions/0335-timeline-templates-d6-authoring.md), [ADR-0358](../../decisions/0358-telemetry-registry-requires-emit-wiring.md), [ADR-0366](../../decisions/0366-nordic-split-oklch-literal-ban.md)
 - **Adjacent:** ADR-0078 (channel restrictions), ADR-0099 (gate_action), ADR-0114 (Server Actions), ADR-0132 (mobile AI routing), ADR-0133 (mobile boundary), ADR-0134 (mobile telemetry contract), ADR-0151 (server-resolved IDs), ADR-0204 (gatedMutation), ADR-0240 (cross-namespace delegation), ADR-0287 (gate_action mandatory on mutation capability tools)
-- **Proposed:** [ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md) — **authoritative for tri-layer model** (Day Line Area-Anchored Runtime + Core-Structure Clarification). Replaces earlier "location_id XOR team_id" slot reservation.
+- **Accepted:** [ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md) — **authoritative for tri-layer model** (Day Line Area-Anchored Runtime + Core-Structure Clarification). Replaces earlier "location_id XOR team_id" slot reservation. See §8 Tri-Layer Model for full change summary.
 
 ### Journeys
+
+**ADR-0367 Phase F journeys (accepted 2026-05-18):**
+
+- [JOURNEY-day-line-create](../../journeys/JOURNEY-day-line-create.md) — Manager creates day_line via DayLineCreateSheet → `day-line.create` capability → emit `day_line.created`
+- [JOURNEY-day-line-edit-hours](../../journeys/JOURNEY-day-line-edit-hours.md) — Manager edits planned_open/close → `day-line.update_hours` → emit `day_line.opening_changed` / `day_line.closing_changed`
+- [JOURNEY-day-line-attach-routine](../../journeys/JOURNEY-day-line-attach-routine.md) — Manager attaches timeline_template → cross-namespace Pattern B chain → emit `routine.attached`
+- [JOURNEY-day-line-employee-view-mobile](../../journeys/JOURNEY-day-line-employee-view-mobile.md) — Employee mobile day route, multi-area sections, defensive client-side filter, leak detection
+- [JOURNEY-day-line-push](../../journeys/JOURNEY-day-line-push.md) — Engine-dispatch 1-min tick, shift_session fan-out, idempotency via engine_event, emit `day_line_item.notified`
+
+**Shipped:**
+
 - [JOURNEY-timeline-slot-popover-anchors-at-click](../../journeys/JOURNEY-timeline-slot-popover-anchors-at-click.md) — shipped 2026-05-17
-- [JOURNEY-timeline-location-awareness-manager-create-day-line](../../journeys/JOURNEY-timeline-location-awareness-manager-create-day-line.md) — draft
-- [JOURNEY-timeline-location-awareness-manager-edit-opening-closing](../../journeys/JOURNEY-timeline-location-awareness-manager-edit-opening-closing.md) — draft
-- [JOURNEY-timeline-location-awareness-manager-add-single-task](../../journeys/JOURNEY-timeline-location-awareness-manager-add-single-task.md) — draft
-- [JOURNEY-timeline-location-awareness-manager-attach-routine](../../journeys/JOURNEY-timeline-location-awareness-manager-attach-routine.md) — draft
-- [JOURNEY-timeline-location-awareness-employee-views-own-location](../../journeys/JOURNEY-timeline-location-awareness-employee-views-own-location.md) — draft
-- [JOURNEY-timeline-location-awareness-admin-multi-location-overview](../../journeys/JOURNEY-timeline-location-awareness-admin-multi-location-overview.md) — draft
-- Adjacent: `JOURNEY-dagslinjen-quickadd-*` (slot-quickadd flows), `JOURNEY-timeline-templates.md`
+
+**Draft (legacy location-awareness naming — superseded by ADR-0367 F journeys above):**
+
+- [JOURNEY-timeline-location-awareness-manager-create-day-line](../../journeys/JOURNEY-timeline-location-awareness-manager-create-day-line.md)
+- [JOURNEY-timeline-location-awareness-manager-edit-opening-closing](../../journeys/JOURNEY-timeline-location-awareness-manager-edit-opening-closing.md)
+- [JOURNEY-timeline-location-awareness-manager-add-single-task](../../journeys/JOURNEY-timeline-location-awareness-manager-add-single-task.md)
+- [JOURNEY-timeline-location-awareness-manager-attach-routine](../../journeys/JOURNEY-timeline-location-awareness-manager-attach-routine.md)
+- [JOURNEY-timeline-location-awareness-employee-views-own-location](../../journeys/JOURNEY-timeline-location-awareness-employee-views-own-location.md)
+- [JOURNEY-timeline-location-awareness-admin-multi-location-overview](../../journeys/JOURNEY-timeline-location-awareness-admin-multi-location-overview.md)
+
+**Adjacent:** `JOURNEY-dagslinjen-quickadd-*` (slot-quickadd flows), `JOURNEY-timeline-templates.md`
 
 ### Code locations
 - Web TimelineTab: `apps/web/src/components/day/tabs/TimelineTab.tsx`
@@ -191,7 +268,7 @@ See [GAPS-AND-DEBT.md](./GAPS-AND-DEBT.md) for the delta between today and targe
 
 ---
 
-## 9. Authoring Rules
+## 10. Authoring Rules
 
 - All Day Timeline mutations gate via `gatedMutation` (ADR-0204).
 - All mutations emit telemetry through `emit()` from `@smartout/telemetry`; never duplicate the channel registry. Registry entries require matching emit() call-sites (ADR-0358).
