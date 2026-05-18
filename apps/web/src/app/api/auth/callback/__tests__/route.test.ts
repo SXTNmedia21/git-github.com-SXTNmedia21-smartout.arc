@@ -94,9 +94,7 @@ function setupFromMock(plan: {
     }
     if (table === "profile") {
       // Count how many times `profile` has been queried so far (including this one).
-      const profileCallNumber = mockFrom.mock.calls.filter(
-        ([t]: [string]) => t === "profile",
-      ).length;
+      const profileCallNumber = mockFrom.mock.calls.filter((args) => args[0] === "profile").length;
       if (profileCallNumber === 1) {
         // First call: existing-user check via `.limit(1)` — returns array
         return makeQueryBuilder({ data: plan.existingProfilesAny ?? [] });
@@ -176,7 +174,7 @@ describe("F12 callback continue= validation", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).not.toContain("ACME-UPPER.smartout.ai");
     // SLUG_PATTERN rejects pre-flight; the workspace lookup should never fire.
-    const workspaceCalls = mockFrom.mock.calls.filter(([t]: [string]) => t === "workspace");
+    const workspaceCalls = mockFrom.mock.calls.filter((args) => args[0] === "workspace");
     expect(workspaceCalls).toHaveLength(0);
   });
 
