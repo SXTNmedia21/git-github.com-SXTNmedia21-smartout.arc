@@ -12,7 +12,8 @@
 import { Building2, CheckCircle, Clock, FileText, Mail, UtensilsCrossed } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import type { JoinState } from "./types";
-import { defaultJoinState, JOIN_STORAGE_KEY } from "./types";
+import { defaultJoinState } from "./types";
+import { loadJoinState, saveJoinState, clearJoinState } from "./_lib/storage";
 import { Step1Account } from "./_components/Step1Account";
 import { Step2Business } from "./_components/Step2Business";
 import { Step3About } from "./_components/Step3About";
@@ -25,31 +26,54 @@ import { buildPostSignupRedirectPath } from "./_lib/onboarding-shell";
 import { createClient } from "@smartout/supabase/client";
 
 /**
- * Restore persisted state from localStorage.
+ * Restore persisted state from localStorage via the versioned storage envelope.
+ * Falls back to empty object when no valid, in-TTL envelope exists.
+ *
+ * When a valid envelope exists, computes the highest completed step by inspecting
+ * which step-keys are non-empty and injects _initialStepIndex so WizardShell lands
+ * on the correct step instead of always starting at Step 1 (ADR-0358).
  */
 async function loadState(): Promise<Partial<JoinState>> {
   if (typeof window === "undefined") return {};
+  const restored = loadJoinState();
+  if (!restored) return {};
 
-  try {
-    const stored = localStorage.getItem(JOIN_STORAGE_KEY);
-    if (!stored) return {};
+  // Step keys in wizard order (indices 0..5). "createAccount" is the data key
+  // for Step 6 (Summary / create account), which is step index 5.
+  const stepKeysInOrder: (keyof JoinState)[] = [
+    "account",
+    "business",
+    "about",
+    "hours",
+    "menu",
+    "createAccount",
+  ];
 
-    const parsed = JSON.parse(stored) as Record<string, unknown>;
+  // Shortcut: if all three "landmark" fields are present, user reached Step 6+.
+  const reachedSummary =
+    typeof restored.account?.email === "string" &&
+    restored.account.email.length > 0 &&
+    typeof (restored.business as Record<string, unknown>)?.orgNumber === "string" &&
+    ((restored.business as Record<string, unknown>).orgNumber as string).length > 0 &&
+    typeof (restored.menu as Record<string, unknown>)?.restaurantType === "string" &&
+    ((restored.menu as Record<string, unknown>).restaurantType as string).length > 0;
 
-    return {
-      account: (parsed.step1 ?? parsed.account ?? {}) as JoinState["account"],
-      business: (parsed.step2 ?? parsed.business ?? {}) as JoinState["business"],
-      about: (parsed.step3 ?? parsed.about ?? {}) as JoinState["about"],
-      hours: (parsed.step4 ?? parsed.hours ?? {}) as JoinState["hours"],
-      menu: (parsed.step5 ?? parsed.menu ?? {}) as JoinState["menu"],
-      createAccount: (parsed.step6 ?? parsed.createAccount ?? {}) as JoinState["createAccount"],
-      team: (parsed.team ?? {}) as JoinState["team"],
-      scrapeJobId: (parsed.scrapeJobId as string) ?? null,
-      intelligence: (parsed.intelligence as Record<string, unknown>) ?? null,
-    };
-  } catch {
-    return {};
+  let initialStepIndex: number;
+  if (reachedSummary) {
+    initialStepIndex = 5;
+  } else {
+    // Walk step keys; track the highest index whose substate is a non-empty object.
+    let highestCompleted = -1;
+    stepKeysInOrder.forEach((key, i) => {
+      const value = restored[key];
+      if (value && typeof value === "object" && Object.keys(value).length > 0) {
+        highestCompleted = i;
+      }
+    });
+    initialStepIndex = Math.min(Math.max(highestCompleted, 0), 5);
   }
+
+  return { ...restored, _initialStepIndex: initialStepIndex } as Partial<JoinState>;
 }
 
 /**
@@ -57,12 +81,8 @@ async function loadState(): Promise<Partial<JoinState>> {
  * Maps wizard state keys (account, business, ...) to server action keys (step1, step2, ...).
  */
 async function onComplete(state: JoinState): Promise<void> {
-  // Persist final state to localStorage as backup
-  try {
-    localStorage.setItem(JOIN_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // best-effort
-  }
+  // Persist final state to localStorage as backup (envelope with TTL + schema version)
+  saveJoinState(state);
 
   const setupData = {
     step1: {
@@ -119,12 +139,30 @@ async function onComplete(state: JoinState): Promise<void> {
 
   const result = await completeSignup(setupData);
 
-  // Clear localStorage after successful signup
-  try {
-    localStorage.removeItem(JOIN_STORAGE_KEY);
-  } catch {
-    // best-effort
+  if (!result.ok) {
+    if (result.reason === "session_expired") {
+      // Emit telemetry before redirect (ADR-0112: same-commit registration)
+      try {
+        const { emit } = await import("@smartout/telemetry");
+        await emit({
+          event: "join.session_expired_at_submit",
+          workspace_id: null,
+          actor_id: null,
+          properties: { data: { wizard_step: 6 } },
+        });
+      } catch {
+        // best-effort — never block the redirect
+      }
+      // Redirect to login with return_to so the user can re-auth and resume
+      window.location.replace("/login?return_to=/join&reason=expired");
+      return;
+    }
+    // system_error — surface to user; wizard shell will catch this throw
+    throw new Error(result.message ?? "Noe gikk galt. Prøv igjen.");
   }
+
+  // Clear localStorage after successful signup
+  clearJoinState();
 
   // Redirect to onboarding confirmation wizard
   const redirectPath = buildPostSignupRedirectPath(result.workspaceId);
