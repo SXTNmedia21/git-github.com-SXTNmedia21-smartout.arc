@@ -2,11 +2,15 @@
 
 /**
  * useSendBroadcast — Resolves or creates the workspace news channel, then
- * inserts an announcement message with a target recipient list.
+ * posts a targeted announcement via publish_announcement_atomic RPC (Track C M4).
  *
  * Why a "news" channel: broadcasts are one-directional operational announcements.
  * Re-using a persistent news channel keeps history in one place and avoids
  * creating a new channel per broadcast.
+ *
+ * V2 RPC migration: channel-resolution logic preserved (RPC takes a single
+ * channel_id so we resolve first, then hand off to the atomic RPC). The RPC
+ * handles channel_message insert + announcement_meta sidecar atomically.
  *
  * Invalidates all dashboard queries on success so the broadcast count widget refreshes.
  */
@@ -15,6 +19,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { emit, nonEmpty } from "@smartout/telemetry";
+
 type BroadcastInput = {
   content: string;
   recipientIds: string[];
@@ -30,7 +35,8 @@ export function useSendBroadcast() {
     mutationFn: async (input: BroadcastInput) => {
       const supabase = createClient();
 
-      // Resolve the workspace-level news channel, creating it on first use
+      // Resolve the workspace-level news channel, creating it on first use.
+      // Channel resolution stays client-side; only the message write goes through RPC.
       let channelId: string;
       const { data: existing } = await supabase
         .from("channel")
@@ -58,18 +64,26 @@ export function useSendBroadcast() {
         channelId = created.id;
       }
 
-      const { error } = await supabase.from("channel_message").insert({
-        channel_id: channelId,
-        workspace_id: wsId,
-        sender_id: input.profileId,
-        content: input.content,
-        message_type: "announcement",
-        delivery_mode: "notification_only",
-        target_profile_ids: input.recipientIds,
+      // V2: delegate to publish_announcement_atomic RPC (Track C M4).
+      // Atomically inserts channel_message + announcement_meta sidecar.
+      const { data, error } = await supabase.rpc("publish_announcement_atomic", {
+        p_workspace_id: wsId,
+        p_actor_profile_id: input.profileId,
+        p_channel_id: channelId,
+        p_content: input.content,
+        p_visibility_scope: input.recipientIds.length > 0 ? "targeted_members" : "all_members",
+        p_target_profile_ids: input.recipientIds,
+        p_system_data: { source: "dashboard_broadcast" },
+        p_kind: "workspace_news",
+        p_tier: "work",
+        p_tags: [],
+        p_linked_entity_type: null,
+        p_linked_entity_id: null,
+        p_client_message_id: crypto.randomUUID(),
       });
 
       if (error) throw error;
-      return { channelId, recipientCount: input.recipientIds.length };
+      return { channelId, messageId: data as string, recipientCount: input.recipientIds.length };
     },
     onSuccess: (result, input) => {
       void emit({
