@@ -39,10 +39,12 @@ export const publishAnnouncement = defineTool({
     "audience preview for human confirmation; second call with confirm=true publishes " +
     "the announcement via RPC (publish_announcement_atomic). Voice channel is rejected. " +
     "Audience resolution is server-side; raw profile IDs are never returned to the agent. " +
-    "V2: accepts kind (staff_event|system_message|celebration|workspace_news|external_link), " +
+    "V2: accepts kind (9 DB-canonical values: general|new_menu|new_hire|staff_event|" +
+    "schedule_change|policy_update|external|celebration|system_message), " +
     "tier (social|work|external), optional tags, and optional entity-link pair (type+id). " +
-    "Choose kind by intent: celebration for birthdays, system_message for mandatory ops, " +
-    "workspace_news as default. Choose tier by urgency: external for urgent (emails sent), " +
+    "Choose kind by intent: celebration for birthdays/anniversaries, system_message for mandatory ops, " +
+    "general as default (was workspace_news — use general). " +
+    "Choose tier by urgency: external for urgent (emails sent), " +
     "work for standard, social for low-key community.",
   capability: "communication",
   schema: z
@@ -73,13 +75,27 @@ export const publishAnnouncement = defineTool({
         .optional()
         .describe("Required when audience_kind='individuals'"),
       kind: z
-        .enum(["staff_event", "system_message", "celebration", "workspace_news", "external_link"])
+        .enum([
+          "general",
+          "new_menu",
+          "new_hire",
+          "staff_event",
+          "schedule_change",
+          "policy_update",
+          "external",
+          "celebration",
+          "system_message",
+        ])
         .optional()
         .describe(
-          "Announcement classification per V2 spec §4. Defaults server-side to 'workspace_news' when omitted. " +
-            "staff_event: personaltreff/gathering. system_message: ops mandatory. " +
-            "celebration: birthday/anniversary. workspace_news: general (default). " +
-            "external_link: pointing to URL or external resource.",
+          "Announcement classification — DB-canonical 9-value enum (announcement_kind). " +
+            "general: default news/updates (maps former workspace_news). " +
+            "new_menu: menu updates. new_hire: new employee announcement. " +
+            "staff_event: personaltreff/gathering. schedule_change: shift/schedule updates. " +
+            "policy_update: policy or rule changes. external: URL/external resource link (maps former external_link). " +
+            "celebration: birthday/anniversary/milestone (ADR-0372). " +
+            "system_message: mandatory operational communication. " +
+            "Defaults to 'general' when omitted.",
         ),
       tier: z
         .enum(["social", "work", "external"])
@@ -96,9 +112,24 @@ export const publishAnnouncement = defineTool({
         .optional()
         .describe("Free-form tags for grouping/filtering. Max 8 tags, 30 chars each."),
       linked_entity_type: z
-        .enum(["staff_event", "session_task", "engine_process", "channel", "url"])
+        .enum([
+          "staff_event",
+          "schedule_shift",
+          "policy",
+          "protocol",
+          "profile",
+          "menu_document",
+          "external_url",
+        ])
         .optional()
-        .describe("Polymorphic entity-link discriminator. Must pair with linked_entity_id."),
+        .describe(
+          "Polymorphic entity-link discriminator anchored to DB enum announcement_link_type " +
+            "(CHECK constraint in 20260620140200_announcement_meta_table.sql:23-30). " +
+            "Must pair with linked_entity_id. Valid values and their paired kind: " +
+            "staff_event→staff_event kind, schedule_shift→staff_event/general, " +
+            "policy→system_message, protocol→system_message, profile→celebration/staff_event, " +
+            "menu_document→general, external_url→external kind.",
+        ),
       linked_entity_id: z
         .string()
         .uuid()
@@ -216,7 +247,7 @@ export const publishAnnouncement = defineTool({
       p_visibility_scope: isTargeted ? "targeted_members" : "all_members",
       p_target_profile_ids: isTargeted ? resolved.profileIds : [],
       p_system_data: { audience_kind: audience.kind, audience_label: resolved.label },
-      p_kind: params.kind ?? "workspace_news",
+      p_kind: params.kind ?? "general",
       p_tier: params.tier ?? "work",
       p_tags: params.tags ?? [],
       p_linked_entity_type: params.linked_entity_type ?? null,
@@ -241,7 +272,7 @@ export const publishAnnouncement = defineTool({
       audience_kind: audience.kind,
       visibility_scope: isTargeted ? "targeted_members" : "all_members",
       target_profile_count: resolved.count,
-      kind: params.kind ?? "workspace_news",
+      kind: params.kind ?? "general",
       tier: params.tier ?? "work",
       tag_count: (params.tags ?? []).length,
       has_entity_link: !!(params.linked_entity_type && params.linked_entity_id),

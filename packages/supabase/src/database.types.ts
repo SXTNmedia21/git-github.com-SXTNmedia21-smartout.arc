@@ -22546,6 +22546,8 @@ export type Database = {
         | "schedule_change"
         | "policy_update"
         | "external"
+        | "celebration"
+        | "system_message"
       announcement_link_type:
         | "staff_event"
         | "schedule_shift"
@@ -24193,6 +24195,8 @@ export const Constants = {
         "schedule_change",
         "policy_update",
         "external",
+        "celebration",
+        "system_message",
       ],
       announcement_link_type: [
         "staff_event",
@@ -24827,4 +24831,3 @@ export const Constants = {
     },
   },
 } as const
-

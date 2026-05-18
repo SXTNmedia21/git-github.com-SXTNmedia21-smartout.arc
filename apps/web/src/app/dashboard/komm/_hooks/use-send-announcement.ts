@@ -20,21 +20,34 @@ import { emitAnnouncementPublished } from "@smartout/ai/capabilities/communicati
 import { channelKeys } from "./channel-keys";
 import { toast } from "sonner";
 
+// DB-canonical 9-value enum (announcement_kind). Subsets of Enums["announcement_kind"].
+// workspace_news → general (synonym), external_link → external (synonym).
+// celebration + system_message added in migration 20260620140700.
 type AnnouncementKind =
+  | "general"
+  | "new_menu"
+  | "new_hire"
   | "staff_event"
-  | "system_message"
+  | "schedule_change"
+  | "policy_update"
+  | "external"
   | "celebration"
-  | "workspace_news"
-  | "external_link";
+  | "system_message";
 
 type AnnouncementTier = "social" | "work" | "external";
 
+// DB-canonical — anchored to announcement_link_type CHECK constraint
+// (supabase/migrations/20260620140200_announcement_meta_table.sql:23-30).
+// Dropped: session_task, engine_process, channel (no DB target).
+// Renamed: url → external_url. DB-WINS per ADR-0173 + ADR-0271.
 type AnnouncementLinkedEntityType =
   | "staff_event"
-  | "session_task"
-  | "engine_process"
-  | "channel"
-  | "url";
+  | "schedule_shift"
+  | "policy"
+  | "protocol"
+  | "profile"
+  | "menu_document"
+  | "external_url";
 
 type AnnouncementInput = {
   channelId: string;
@@ -91,11 +104,11 @@ export function useSendAnnouncement() {
         p_visibility_scope: isTargeted ? "targeted_members" : "all_members",
         p_target_profile_ids: isTargeted ? (targetProfileIds ?? []) : [],
         p_system_data: { audience_kind: audienceKind, audience_label: audienceLabel },
-        p_kind: kind ?? "workspace_news",
+        p_kind: kind ?? "general",
         p_tier: tier ?? "work",
         p_tags: tags ?? [],
-        p_linked_entity_type: linkedEntityType ?? null,
-        p_linked_entity_id: linkedEntityId ?? null,
+        p_linked_entity_type: linkedEntityType ?? undefined,
+        p_linked_entity_id: linkedEntityId ?? undefined,
         p_client_message_id: clientMessageId,
       });
 
@@ -121,7 +134,7 @@ export function useSendAnnouncement() {
             ? "targeted_members"
             : "all_members",
         target_profile_count: variables.targetProfileIds?.length ?? 0,
-        kind: variables.kind ?? "workspace_news",
+        kind: variables.kind ?? "general",
         tier: variables.tier ?? "work",
         tag_count: (variables.tags ?? []).length,
         has_entity_link: !!(variables.linkedEntityType && variables.linkedEntityId),

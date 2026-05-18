@@ -131,11 +131,11 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
       department_id: parsed.data.departmentId ?? null,
       session_id: parsed.data.sessionId ?? null,
     },
-    p_kind: "workspace_news",
+    p_kind: "general",
     p_tier: "work",
     p_tags: [],
-    p_linked_entity_type: null,
-    p_linked_entity_id: null,
+    p_linked_entity_type: undefined,
+    p_linked_entity_id: undefined,
     p_client_message_id: crypto.randomUUID(),
   });
 
@@ -163,14 +163,14 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
   // activity belongs in channel_event audit, not activity_trail rows).
 
   // V2 channel.message.sent with announcement properties via shared helper (spec §9.b).
-  // Day-control server action defaults: kind='workspace_news', tier='work' per §9 table.
+  // Day-control server action defaults: kind='general' (formerly workspace_news), tier='work' per §9 table.
   await emitAnnouncementPublished({
     workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
     actor_id: nonEmpty(profile.profileId, "actor_id"),
     message_id: msg.id,
     channel_id: channelId,
     origin_type: "system",
-    kind: "workspace_news",
+    kind: "general",
     tier: "work",
     target_profile_count: parsed.data.recipientIds?.length ?? 0,
     visibility_scope:

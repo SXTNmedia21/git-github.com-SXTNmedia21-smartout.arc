@@ -75,11 +75,11 @@ export function useSendBroadcast() {
         p_visibility_scope: input.recipientIds.length > 0 ? "targeted_members" : "all_members",
         p_target_profile_ids: input.recipientIds,
         p_system_data: { source: "dashboard_broadcast" },
-        p_kind: "workspace_news",
+        p_kind: "general",
         p_tier: "work",
         p_tags: [],
-        p_linked_entity_type: null,
-        p_linked_entity_id: null,
+        p_linked_entity_type: undefined,
+        p_linked_entity_id: undefined,
         p_client_message_id: crypto.randomUUID(),
       });
 
@@ -100,14 +100,14 @@ export function useSendBroadcast() {
         },
       });
       // V2 channel.message.sent with announcement properties via shared helper (spec §9.b).
-      // Broadcast path defaults to kind='workspace_news', tier='work' per §9 table.
+      // Broadcast path defaults to kind='general' (formerly workspace_news), tier='work' per §9 table.
       void emitAnnouncementPublished({
         workspace_id: nonEmpty(wsId, "workspace_id"),
         actor_id: nonEmpty(input.profileId, "actor_id"),
         message_id: result.messageId,
         channel_id: result.channelId,
         origin_type: "human",
-        kind: "workspace_news",
+        kind: "general",
         tier: "work",
         target_profile_count: result.recipientCount,
         visibility_scope: result.recipientCount > 0 ? "targeted_members" : "all_members",
