@@ -248,7 +248,7 @@ Two-layer gating:
 
 `gate_action` is SECURITY DEFINER. It reads `engine_authority_config` rows scoped to `(workspace_id, capability_key)` and returns `allow|deny` + `reason`. Default-allow if no row exists is the **L-0066 CVE class** — every new capability MUST be seeded in a migration before the tool ships, or the gate is a no-op.
 
-The pre-m5-mutation-closure sortie (commit `9ef0fbb60`) closed this for `policy.create_manual` + `hms.escalate_deviation`. Future Day Timeline capabilities (`timeline.create_day_line`, `timeline.edit_opening_closing`, `routine.attach_to_line`) need the same seed migration.
+The pre-m5-mutation-closure sortie (commit `9ef0fbb60`) closed this for `policy.create_manual` + `hms.escalate_deviation`. Future Day Timeline capabilities (`day_line.create`, `day_line.edit_opening_closing`, `routine.attach_to_line`) need the same seed migration.
 
 ---
 
@@ -264,7 +264,7 @@ The pre-m5-mutation-closure sortie (commit `9ef0fbb60`) closed this for `policy.
 | `task.cancel_personal` | chat |
 | `hms.update_deviation_manual` | chat |
 | `hms.escalate_deviation` | chat |
-| `timeline.create_day_line` (planned) | chat |
+| `day_line.create` (planned) | chat |
 | `routine.attach_to_line` (planned) | chat |
 
 Voice surface mirrors only the `list_mine` + `complete` tools. Adding voice authoring requires ADR-0078 amendment + Lovsen PII review.

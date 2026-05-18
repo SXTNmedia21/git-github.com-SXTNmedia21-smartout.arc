@@ -2286,3 +2286,28 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Learning created:** L-0298 (ci:local mapping fidelity is only caught by code-trace)
 **Phase 2.5 fact-check:** skipped (small surface, files recent; risk accepted)
 **Process improvement:** Supervisor code-trace caught 9 missing path classes + 3 false mapping claims that Steward concept-review approved. L-0147 family 4th instance. Future: any topic proposing a mapping/coverage table must assign a code-tracer reviewer the explicit "open the source files, verify each row" task. Add this to run-council Phase 3 Hard Rules if pattern recurs once more.
+
+## 2026-05-18 — ADR-0367 Day Line Area-Anchored Runtime + Core-Structure Clarification
+**Type:** spec + architecture (pre-implementation)
+**Verdict:** APPROVE WITH CHANGES (unanimous, all 5 reviewers)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, feature-dev:code-reviewer (frontend-designer fallback per skill rule when file count > 6)
+**Prior verdict held?** n/a — first council on area-anchored Dagslinje model
+**Phase 2.5 fact-check:** 16/17 claims VERIFIED. 1 internal spec inconsistency (B5 row session_hook) fixed BEFORE Phase 3 dispatch. ADR-text-vs-code check passed.
+**Key decision:** Option C selected — tri-layer D6 model: `department_session` (aggregate, exists) → `day_line` (program per area, NEW) → `shift_session` (per-employee runtime, NEW). Pairs with Core-Structure module clarification (`location` semantic = "area" in V1, new `department_location` M:N junction). 5 new capabilities under namespaces `day-line` / `routine` / `org`. Push pipeline via existing `engine_event.idempotency_key` + `expo_push_token`. Mobile read-only per ADR-0133.
+**Chair self-reversal:** L-0147 protocol invoked. Classification: **REFINED** (not full REVERSED). Pattern B audit-symmetry promoted from "recommended" to "MANDATORY" after coord C-2 code-trace. Tool-naming convention corrected to BARE names after supervisor C1 verification. `day_line_status` enum dropped after steward C3 ADR-0156 precedent argument. `engine_event.idempotency_key` (existing column) substituted for invented `entity_id` after supervisor C7 + Phase 5 schema verification.
+**9 must-fix items consolidated from 39+ concerns** (folded into spec v1.2 + ADR-0367 v1.1 amendment same session):
+1. Drop `day_line_status` enum (derive from parent per ADR-0156)
+2. Bare tool names (`create`, `add_item`, `instantiate_template`)
+3. `session_hook` UNIQUE on `(workspace_id, department_id, hook_type)` Phase A migration
+4. `engine_event.idempotency_key` (existing TEXT + UNIQUE column) — no new column
+5. `department_location` RLS + API-key path
+6. Per-type dispatch table for `day-line.add_item` (V1 scope: task + routine only; booking/note/reminder deferred V2)
+7. ADR-0112 intent-enum + system-prompt prose same-commit Phase B gate (5th recurrence promoted)
+8. `session_task.scheduled_at` ALTER kept in scope (explicit in ADR-0367 Decision Outcome)
+9. Pattern B audit-symmetry MANDATORY on `task.create_session` extension
+**ADR created:** ADR-0367 (Day Line Area-Anchored Runtime + Core-Structure Clarification) — status promoted from `proposed` → `accepted` on v1.1 amendment.
+**ADRs amended:** ADR-0156 (multi-strip stack), ADR-0297 (workforce snapshot extension)
+**Learnings created:** L-0306 (ADR-0112 5th recurrence → pre-flight mandate), L-0307 (bare tool name convention), L-0308 (tri-layer D6 decomposition pattern), L-0309 (engine_event schema gap exposed by spec), L-0310 (Pattern B cascade audit-symmetry default), L-0311 (schema invariants in prose require enforcement — 3rd quarter occurrence)
+**Phase-A entry-gate:** Phase A migration sortie may dispatch after spec v1.1→v1.2 + ADR-0367 v1.1 amendment committed. Phase B BLOCKED on Phase A merge to development.
+**Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
+**Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.

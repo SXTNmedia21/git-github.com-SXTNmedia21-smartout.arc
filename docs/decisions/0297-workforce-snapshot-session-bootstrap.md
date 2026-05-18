@@ -99,9 +99,25 @@ Aligned with ADR-0078. The BFF strips any column not in the whitelist above; the
   - Conversational turns 3+4 returned audio in 0.87-1.31s with no tool calls (compared to 6-15s baseline).
   - Curl-replay of voice path with synthetic snapshot returned `"3 — Alice Andersen."` matching the seeded snapshot exactly.
 
+## Amendment — 2026-05-18 (ADR-0367)
+
+ADR-0367 (Day Line Area-Anchored Runtime, accepted 2026-05-18) extends the `WorkforceContext` slice with two new fields:
+
+- `day_lines: DayLineSummary[]` — area-anchored programs for the active business date, one entry per `day_line` row visible to the viewer (manager: all in workspace; employee: scoped via `shift_session_day_line`)
+- `my_shift_session: ShiftSessionSummary | null` — viewer's active `shift_session` row (mobile employee viewport)
+
+Token budget: cap `day_lines` at ≤6 entries × ≤5 next-up items per line summary (~1 KB max). Spillover via on-demand `read_surface` tool, not in baseline snapshot. PII-class same as `sessions_today` — task titles may contain owner names; gated by existing PII budget.
+
+Renderer (per L-0233 two-LLM-context mirror):
+- Chat path: `services/stage-engine/src/core/agent-router.ts:renderWorkforceSlice` — new `### Dagslinjer` block after `### Sessions Today`
+- Voice path: `services/voice-agent/src/agent.ts:renderWorkforceSlice` — identical block via `agent.updateChatCtx()` mirror
+
+Both paths MUST update in lockstep — silent drift if only one path is patched (L-0233 trap).
+
 ## References
 
 - Pontus directive 2026-05-13 (workforce-assistant identity + PII policy)
+- ADR-0367 (Day Line Area-Anchored Runtime, accepted 2026-05-18) — extends WorkforceContext
 - ADR-0078: voice channel PII guard (defence-in-depth at capability layer)
 - ADR-0151: server-derived profile_id; no forgeable client identity
 - ADR-0132: mobile/voice → BFF only, no direct capability calls

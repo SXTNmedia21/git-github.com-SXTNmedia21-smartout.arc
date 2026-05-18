@@ -1,10 +1,10 @@
 ---
 title: Day Timeline — Data Model
 status: in_progress
-updated: 2026-05-17
+updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, data-model, schema, d6]
+tags: [module, daytimeline, data-model, schema, d6, area-anchored, tri-layer]
 ---
 
 # Day Timeline — Data Model
@@ -169,61 +169,161 @@ All policies join through `get_workspace_ids_for_user(auth.uid())`. Service-role
 
 ---
 
-## 5. Schema Delta — Planned (Location-Anchored Day-Line)
+## 5. Schema Delta — Tri-Layer Model (ADR-0367)
 
-Target ADR (TBD) introduces `day_line`:
+ADR-0367 introduces **three new tables** (`day_line`, `shift_session`, `shift_session_day_line`), one new junction in core-structure (`department_location`), one new enum pair, and nullable FK additions on existing child tables. Existing `department_session` is untouched. Full schema lives in the spec: `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md` §4.
+
+### 5.1 New table: `day_line`
 
 ```sql
 CREATE TABLE public.day_line (
-  day_line_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id       UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
-  business_date      DATE NOT NULL,
-  location_id        UUID NOT NULL REFERENCES location(location_id) ON DELETE RESTRICT,
-  department_id      UUID REFERENCES department(department_id) ON DELETE RESTRICT,
-  team_id            UUID REFERENCES team(team_id) ON DELETE RESTRICT,
-  planned_open       TIME NOT NULL,
-  planned_close      TIME NOT NULL,
-  status             department_session_status NOT NULL DEFAULT 'upcoming',
-  -- Optional bridge to legacy session — drop after migration completes:
-  legacy_department_session_id UUID REFERENCES department_session(department_session_id),
-  created_by         UUID REFERENCES profile(profile_id),
-  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-  CONSTRAINT day_line_dept_xor_team
-    CHECK ((department_id IS NULL) <> (team_id IS NULL)),
-  CONSTRAINT day_line_unique
-    UNIQUE (workspace_id, business_date, location_id, department_id, team_id)
+  day_line_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id           UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
+  department_session_id  UUID NOT NULL REFERENCES department_session(department_session_id) ON DELETE CASCADE,
+  department_id          UUID NOT NULL REFERENCES department(department_id),
+  location_id            UUID NOT NULL REFERENCES location(location_id) ON DELETE RESTRICT,
+  business_date          DATE NOT NULL,
+  planned_open           TIME NOT NULL,
+  planned_close          TIME NOT NULL,
+  source_template_id     UUID REFERENCES timeline_template(id),
+  notes                  TEXT,
+  status                 day_line_status NOT NULL DEFAULT 'upcoming',
+  created_by             UUID REFERENCES profile(profile_id),
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_day_line UNIQUE (department_session_id, location_id)
 );
 ```
 
-And **mandatory** new columns:
+Key facts:
+- `department_id` denormalized for filter / RLS performance (resolved from parent session).
+- `location_id` is the area anchor (per Core Structure V1 — every `location` is an area).
+- `(department_session_id, location_id)` UNIQUE — at most one day_line per (dept-session × area).
+- Team is NOT an axis V1 (deferred to later ADR if needed).
+
+### 5.2 New table: `shift_session`
 
 ```sql
-ALTER TABLE session_hook ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
-ALTER TABLE session_task ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
-ALTER TABLE schedule_day_task ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
-ALTER TABLE schedule_day_booking ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
-ALTER TABLE deviation ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
+CREATE TABLE public.shift_session (
+  shift_session_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id           UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
+  department_session_id  UUID NOT NULL REFERENCES department_session(department_session_id),
+  -- schedule_shift PK column is `schedule_shift_id` (verified 2026-05-18
+  -- against supabase/migrations/20260301300000_schedule_shift_table.sql:45)
+  schedule_shift_id      UUID NOT NULL REFERENCES schedule_shift(schedule_shift_id) ON DELETE CASCADE,
+  -- schedule_shift assignee column is `employee_id` — mirror that name here
+  employee_id            UUID NOT NULL REFERENCES profile(profile_id),
+  business_date          DATE NOT NULL,
+  location_id            UUID NOT NULL REFERENCES location(location_id),
+  department_id          UUID NOT NULL REFERENCES department(department_id),
+  status                 shift_session_status NOT NULL DEFAULT 'scheduled',
+  clocked_in_at          TIMESTAMPTZ,
+  clocked_out_at         TIMESTAMPTZ,
+  push_topic             TEXT,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_shift_session UNIQUE (schedule_shift_id)
+);
 ```
 
-Backfill strategy:
-- For every existing `department_session` row: insert one `day_line` row with `location_id` = department's primary location, `department_id` = session's department, `team_id = NULL`, `planned_open` / `planned_close` carried over.
-- Update child rows (`session_hook`, `session_task`, `deviation`, etc.) to point to the new `day_line_id`.
-- Hold `department_session` writable as a legacy bridge for one release; flip RPC writes to `day_line`.
+Auto-created by trigger on `schedule_shift` insert/update; lifecycle managed by `shift-lifecycle` capability (existing) extended to flip status + manage push subscription. Trigger skips when `employee_id`, `location_id`, or `shift_date` is NULL (ad-hoc/unassigned shifts).
 
-Capability seeds (engine_authority_config):
-- `timeline.create_day_line` (manager+, chat)
-- `timeline.edit_opening_closing` (manager+, chat)
+### 5.3 New junction: `shift_session_day_line`
+
+```sql
+CREATE TABLE public.shift_session_day_line (
+  shift_session_id  UUID NOT NULL REFERENCES shift_session(shift_session_id) ON DELETE CASCADE,
+  day_line_id       UUID NOT NULL REFERENCES day_line(day_line_id) ON DELETE CASCADE,
+  PRIMARY KEY (shift_session_id, day_line_id)
+);
+```
+
+Trigger-populated by joining `(business_date, department_id, location_id)` on insert.
+
+### 5.4 New junction (Core Structure): `department_location`
+
+Lives in the core-structure module conceptually but ships with this migration set:
+
+```sql
+CREATE TABLE public.department_location (
+  department_id  UUID NOT NULL REFERENCES department(department_id) ON DELETE CASCADE,
+  location_id    UUID NOT NULL REFERENCES location(location_id) ON DELETE CASCADE,
+  created_by     UUID REFERENCES profile(profile_id),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (department_id, location_id)
+);
+```
+
+See `docs/modules/core-structure/DEPARTMENTS.md` for semantics.
+
+### 5.5 Enums
+
+```sql
+CREATE TYPE day_line_status AS ENUM ('upcoming', 'active', 'closed');
+CREATE TYPE shift_session_status AS ENUM ('scheduled', 'clocked_in', 'clocked_out', 'cancelled');
+```
+
+### 5.6 Child FK additions
+
+`session_hook` is **NOT** in this list. Code-trace 2026-05-18 confirmed `session_hook` is a template per `(workspace_id, department_id, hook_type)` — see `supabase/migrations/20260412100300_session_infrastructure.sql:15-27`. Binding to a single `day_line` would freeze the template against one day, breaking lifecycle-fire semantics. See ADR-0367 Rule 2 (amended).
+
+```sql
+-- session_task has department_session_id (NOT NULL FK) per existing schema.
+-- Adding day_line_id gives the per-session instance an optional area-anchor.
+-- Also add scheduled_at for push-pipeline time-based items (notes, reminders, scheduled tasks).
+ALTER TABLE session_task         ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
+ALTER TABLE session_task         ADD COLUMN scheduled_at TIMESTAMPTZ;
+
+-- schedule_day_booking.location is free-text TEXT (not FK).
+-- day_line_id added as FK path forward; legacy `.location` retained for one release.
+-- Backfill leaves day_line_id NULL — admin re-pins via UI; new INSERTs require non-NULL.
+ALTER TABLE schedule_day_booking ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
+
+ALTER TABLE deviation            ADD COLUMN day_line_id UUID REFERENCES day_line(day_line_id);
+```
+
+Nullable. `NULL` on `session_task.day_line_id` = department-level task (e.g. open/close routine child not pinned to area). `NOT NULL` = area-anchored.
+
+`schedule_day_task` does NOT receive `day_line_id` in V1 — it remains the dept-day-ad-hoc surface per ADR-0298. If V2 requires area-pinning, ALTER then.
+
+### 5.7 Backfill strategy
+
+Phase A migration:
+1. For every `department_session` row, pick the dept's first `department_location.location_id` alphabetically (or fall back to first `location` row in workspace if pairing absent).
+2. INSERT one `day_line` per session with `is_backfilled=true` flag (temp column dropped after 7 days).
+3. `session_task.day_line_id` UPDATE: leave NULL for existing rows; manager pins via UI when ready (existing dept-level tasks render in the dept-level header band, not on a strip).
+4. `schedule_day_booking.day_line_id`: leave NULL for all existing rows — `.location` is free-text TEXT (not FK), no auto-resolve possible. New bookings get `day_line_id` set at create time via capability layer.
+5. `deviation.day_line_id`: leave NULL on existing rows; pin on new deviations going forward.
+6. Admin-override window: 7-day flag period where admin can reseat the backfilled location via UI before flip.
+
+Reversible: `DELETE FROM day_line WHERE is_backfilled=true AND created_at < now() - interval '7 days'` rolls back if needed.
+
+`session_hook` is NOT migrated (template-per-dept, not per-session). Existing hooks continue to fire per the existing engine; the session_tasks they create gain `day_line_id` only when the engine decides to materialize them onto a specific day_line (V1: all areas the dept staffs, fan-out at fire time — design point for Phase B routine engine).
+
+### 5.8 Capability seeds (`engine_authority_config`)
+
+- `day_line.create` (manager+, chat) — capability folder `packages/ai/src/capabilities/day-line/`
+- `day_line.add_item` (manager+, chat)
+- `day_line.instantiate_template` (manager+, chat)
 - `routine.attach_to_line` (manager+, chat)
+- `org.update_dept_areas` (admin+, chat)
 
-Telemetry seeds (registry):
-- `"day_line created"`
-- `"day_line opening_changed"`
-- `"day_line closing_changed"`
-- `"routine attached"`
+**Note:** Capability namespace renamed from `timeline.*` → `day_line.*` to avoid collision with existing `packages/ai/src/capabilities/timeline-template/` folder. Telemetry events (§5.9) follow the same namespace.
 
-See [BLUEPRINT.md](./BLUEPRINT.md) for the phased migration plan.
+### 5.9 Telemetry seeds (registry)
+
+Both `SmartoutEvent` union AND `EVENT_ROUTING` map (ADR-0358):
+- `"day_line.created"`
+- `"day_line.opening_changed"`
+- `"day_line.closing_changed"`
+- `"day_line_item.added"`
+- `"day_line_item.notified"`
+- `"shift_session.bound"`
+- `"shift_session.clocked_in"`
+- `"shift_session.clocked_out"`
+- `"routine.attached"`
+
+See [BLUEPRINT.md](./BLUEPRINT.md) for the phased delivery and `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md` for full spec.
 
 ---
 
@@ -239,10 +339,12 @@ After `day_line` lands, all read paths add `day_line_id` to the projection and g
 
 ---
 
-## 7. Open Questions
+## 7. Open Questions (resolved by ADR-0367 unless noted)
 
-1. **Cascade dimension of `day_line`** — does it count as D6 production (same as `department_session`), or does adding `location_id` push it into a D1/D6 hybrid? Resolve at council.
-2. **Backfill primary location** — departments may have multiple locations historically. Pick first location alphabetically vs require admin to assign vs hold backfill until admin tags each dept. Default proposed: first-by-name, with admin override before flip-over.
-3. **Concurrent location + team line** — when a team spans multiple locations, do we permit a `team`-anchored line that ignores location? CHECK forces XOR with department; location is mandatory. → Yes, location is mandatory; team is "what subset of profiles", location is "where".
-4. **Legacy `department_session.uq_dept_session_date`** — drop after backfill, or keep for one release as guard? Drop, but soft-deprecate the table.
-5. **Timeline template `scope_type` widening** — currently `team|department|location|shift`. Do we add `day_line`? Probably no — templates are pre-day artifacts; day_line is per-day. Templates resolve to day_line at apply-time.
+1. ~~Cascade dimension of `day_line`~~ — **RESOLVED**: D6 Production, child of `department_session`. Not a new dimension.
+2. **Backfill primary location** — OPEN. Default per ADR-0367 §5.7: first `department_location` alphabetically with 7-day admin-override window. Will be set during Phase A migration.
+3. ~~Concurrent location + team line~~ — **RESOLVED**: team axis dropped V1. Location (area) + department both mandatory. Team may return in V2.
+4. ~~Legacy `department_session.uq_dept_session_date`~~ — **RESOLVED**: kept as-is. `day_line` is a child of session, no legacy bridge needed. Session aggregate preserved for payroll + C1.
+5. ~~Timeline template `scope_type` widening~~ — **RESOLVED**: `scope_type='location'` already exists in ADR-0335. Templates resolve to day_line at apply-time via `day_line.instantiate_template`. No schema change to `timeline_template`.
+6. **Cross-workspace shift** — OPEN. Employee with shifts at multiple workspaces same day? Each workspace owns its own `shift_session` row; no cross-tenant linkage V1. ADR-amendable later.
+7. **`notify=false` opt-out on day_line_item** — OPEN. Add column with DEFAULT TRUE; admin UI hides until V2 needs it. Schema-only V1.

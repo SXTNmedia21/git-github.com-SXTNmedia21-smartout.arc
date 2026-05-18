@@ -190,8 +190,8 @@ For Phase C delivery:
 
 | Capability | Test path | Required cases |
 |---|---|---|
-| `timeline.create_day_line` | `packages/ai/src/capabilities/timeline/__tests__/create-day-line.test.ts` | (1) allow + insert + emit; (2) XOR violation rejected; (3) gate_action denies → 403; (4) duplicate UNIQUE constraint rejected; (5) workspace_id derived from context, not body |
-| `timeline.edit_opening_closing` | `__tests__/edit-opening-closing.test.ts` | (1) update + emit; (2) reconciled-day rejected; (3) closing-equals-opening rejected; (4) concurrent edit detection (optimistic version) |
+| `day_line.create` | `packages/ai/src/capabilities/day-line/__tests__/create.test.ts` | (1) allow + insert + emit; (2) `department_location` membership enforced (manager outside pairing rejected); (3) gate_action denies → 403; (4) duplicate UNIQUE `(department_session_id, location_id)` rejected; (5) workspace_id derived from context, not body |
+| `day_line.edit_opening_closing` | `packages/ai/src/capabilities/day-line/__tests__/edit-opening-closing.test.ts` | (1) update + emit; (2) reconciled-day rejected; (3) closing-equals-opening rejected; (4) concurrent edit detection (optimistic version) |
 | `routine.attach_to_line` | `packages/ai/src/capabilities/routine/__tests__/attach-to-line.test.ts` | (1) hook + N children inserted in transaction; (2) partial failure rolls back; (3) template scope mismatch rejected; (4) anchor + offsets compute correctly |
 | `task.create_session` (extended) | existing test file | (1) day_line_id accepted; (2) legacy department_session_id still works during bridge period; (3) inherits location_id from day_line |
 

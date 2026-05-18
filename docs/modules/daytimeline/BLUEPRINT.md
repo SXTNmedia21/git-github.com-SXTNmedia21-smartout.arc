@@ -1,46 +1,54 @@
 ---
 title: Day Timeline — Blueprint
 status: in_progress
-updated: 2026-05-17
+updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, blueprint, phases, location-awareness]
+tags: [module, daytimeline, blueprint, phases, area-anchored, tri-layer]
 ---
 
 # Day Timeline — Blueprint
 
-> Target state + 6-phase implementation plan. Falsifiable acceptance per phase. Read with [GAPS-AND-DEBT.md](./GAPS-AND-DEBT.md).
+> Target state + 6-phase implementation plan. Falsifiable acceptance per phase. Read with [GAPS-AND-DEBT.md](./GAPS-AND-DEBT.md) and the canonical spec `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md`.
+>
+> **2026-05-18 update:** Revised per ADR-0367 (proposed). Phase plan switched from 4-option council to direct tri-layer delivery. Estimate reduced from 9d to 4-6d solo, 2-3d parallel.
 
 ## 1. Target State
 
-The Day Timeline becomes a **location-anchored, multi-line stack** on web with full read-parity on mobile. Each line is a `day_line` row carrying `(location, department XOR team, planned_open, planned_close)`. Every D6 child (`session_hook`, `session_task`, `deviation`, `schedule_day_task`, `schedule_day_booking`, `schedule_day_info`) carries `day_line_id` and inherits location + dept|team scope from the parent line.
+The Day Timeline becomes an **area-anchored, multi-strip stack** on web with full read-parity on mobile (ADR-0367 tri-layer model). Each strip is a `day_line` row carrying `(department_session_id, location_id, planned_open, planned_close)` where `location` is treated as area (per core-structure module). Every D6 child (`session_hook`, `session_task`, `schedule_day_booking`, `deviation`) gains a nullable `day_line_id` — `NULL` = department-level (open/close routines not pinned to area), `NOT NULL` = area-anchored.
+
+The runtime layer is `shift_session` (NEW per ADR-0367): one row per `schedule_shift`, auto-bound to matching `day_line` rows via `shift_session_day_line` junction at shift insert. Clock-in flips status + subscribes push topic; engine-dispatch fans push to active shift_sessions with idempotency via `engine_event`.
 
 Managers can:
-- Create new lines for own department(s).
-- Edit opening/closing per line.
+- Create new day_lines for areas their department staffs (per `department_location`).
+- Edit opening/closing per day_line.
 - Add single tasks or attach routines (hook + children) at any slot — slot picker anchored at the click coordinate (already shipped).
-- Apply saved timeline templates (already shipped per ADR-0335) to a chosen line.
+- Apply saved `timeline_template` rows (already shipped per ADR-0335) onto a chosen day_line.
 
-Admins + owners have unrestricted authoring across all locations.
+Admins + owners have unrestricted authoring across all areas.
 
-Employees see only the lines matching their assigned shifts for the day. Mobile read-only renders multi-location stacks with virtualization.
+Employees (mobile) see only the day_lines matching their `shift_session_day_line` junction rows for the day. Mobile is read+execute per ADR-0133 — no authoring affordances on day_line.
 
 The C4 governance surface gates every mutation via `gate_action`. Telemetry records every state change to `activity_trail` + `engine_event`. Voice surface remains read-only on day_line — authoring stays in chat per ADR-0078 PII restrictions.
 
 ---
 
-## 2. Phase Sequence
+## 2. Phase Sequence (Revised 2026-05-18 per ADR-0367)
 
-| Phase | Goal | Closes Gaps | Acceptance |
-|---|---|---|---|
-| A | Council + ADR | G3.10 | ADR accepted with model A/B/C verdict + 3-way conflict resolution |
-| B | Schema + backfill | G3.1, G3.11 | `day_line` table live in dev; all FK columns added; backfill dry-run produces 1 line per existing session |
-| C | Capability + Server Action layer | G3.4, G3.5, G3.9 | `timeline.create_day_line`, `timeline.edit_opening_closing`, `routine.attach_to_line` all live with gate_action + telemetry + tests |
-| D | UI rewire | G3.2, G3.3, G3.6, G3.12 | TimelineTab renders multi-line stack; SlotPicker gains Routine entry; AddRoutine dialog ships |
-| E | Mobile + RLS | G3.7, G3.8 | `day_line_employee_read` policy proven via E2E; mobile multi-line stack renders |
-| F | Voice + telemetry + E2E | G3.13, G3.14 | Workforce snapshot includes day_line; voice list_mine returns line context; E2E green for J7-J12 |
+| Phase | Goal | Closes Gaps | Acceptance | Wall-time |
+|---|---|---|---|---|
+| A | Schema + RLS + Backfill | G3.1, G3.7, G3.11 | `day_line`, `shift_session`, `shift_session_day_line`, `department_location` live in dev; child FKs added; backfill dry-run produces 1 day_line per existing dept session; RLS deny-test passes | 0.5–1d |
+| B | Capabilities + Server Actions + Triggers | G3.4, G3.5, G3.9 | `day_line.create`, `day_line.add_item`, `day_line.instantiate_template`, `routine.attach_to_line`, `org.update_dept_areas` live with gate_action + telemetry + tests; `schedule_shift` trigger auto-creates `shift_session` + populates `shift_session_day_line` | 0.75–1d |
+| C | UI rewire (web) | G3.2, G3.3, G3.6, G3.12 | TimelineTab renders multi-strip stack; SlotPicker gains Routine entry; AttachRoutineDialog ships; aggregated-overview when no scope selected; Nordic Split audit clean (ADR-0366) | 1–1.5d |
+| D | Mobile (shift_session + push) | G3.8, G3.15 | `useShiftSession` hook; mobile day view renders shift_session-scoped day_lines; clock-in subscribes push topic; defensive client-filter + leak telemetry | 0.5–0.75d |
+| E | Push pipeline (engine-dispatch) | NEW from ADR-0367 spec | engine-dispatch tick fans push to active shift_sessions with `engine_event` idempotency; synthetic test: insert item with scheduled_at=now+1min → exactly-once push | 0.5d |
+| F | Journeys + E2E + Docs | G3.13, G3.14 | 5 journey docs; 3 web Playwright specs + 1 mobile E2E; `docs/modules/daytimeline/*` updated; `/audit smoke` green | 0.5–0.75d |
 
-Each phase is one council-reviewable sortie. Phases B-F each produce a merge-able commit on a sub-sortie branch off `campaign/ui-shell` or a new campaign if scope warrants.
+**Total:** ~4–6 wall days solo, ~2–3 wall days with parallel sub-sortier.
+
+Each phase is one council-reviewable sortie. Sortier ship on sub-branches off `campaign/ui-shell` or a new campaign `campaign/daytimeline-area-anchored` if scope warrants.
+
+**Council gate:** ADR-0367 currently `proposed`. Before Phase A merge, run `run-council` skill with: `system-steward` (chair), `supervisor`, `system-agent-coordinator`, `botsson-harness-builder`, `frontend-designer`. Verdict locks the schema before migration.
 
 ---
 
@@ -83,7 +91,7 @@ Code-tracer mandate: assign payload trace to `system-agent-coordinator` — foll
 1. `<TS>_day_line_table.sql` — CREATE TABLE day_line (per DATA-MODEL §5).
 2. `<TS+1>_day_line_child_fks.sql` — ADD COLUMN day_line_id to session_hook, session_task, schedule_day_task, schedule_day_booking, schedule_day_info, deviation. All nullable initially.
 3. `<TS+2>_day_line_backfill.sql` — INSERT INTO day_line SELECT from department_session; UPDATE child rows with the new day_line_id. Wrap in BEGIN/COMMIT; idempotent via ON CONFLICT.
-4. `<TS+3>_day_line_capability_seed.sql` — INSERT INTO capability_default_registry + engine_authority_config for `timeline.create_day_line`, `timeline.edit_opening_closing`, `routine.attach_to_line`.
+4. `<TS+3>_day_line_capability_seed.sql` — INSERT INTO capability_default_registry + engine_authority_config for `day_line.create`, `day_line.edit_opening_closing`, `routine.attach_to_line`.
 
 Legacy bridge: `department_session` remains writable for one release. `day_line` rows reference the legacy session via `legacy_department_session_id` (nullable, indexed, drop after flip).
 
@@ -106,7 +114,7 @@ Legacy bridge: `department_session` remains writable for one release. `day_line`
 **Goal:** Wire L4 capabilities + L2 Server Actions + telemetry.
 
 **New capability folders:**
-- `packages/ai/src/capabilities/timeline/` — tools: `create_day_line`, `edit_opening_closing`, `delete_day_line` (admin+, future). Includes `gate.ts`, `index.ts`, `tools.ts`, `__tests__/`.
+- `packages/ai/src/capabilities/day-line/` — tools: `create`, `add_item`, `instantiate_template`, `edit_opening_closing` (planned), `delete` (admin+, future). Includes `gate.ts`, `index.ts`, `tools.ts`, `__tests__/`. **Folder name is `day-line/` (NOT `timeline/`) — `timeline-template/` already exists.**
 - `packages/ai/src/capabilities/routine/` — tools: `attach_to_line`, `detach`, `list_templates_for_scope`.
 
 **Existing capability updates:**
@@ -116,8 +124,8 @@ Legacy bridge: `department_session` remains writable for one release. `day_line`
 - All emit telemetry with `day_line_id` field added.
 
 **New Server Actions:**
-- `apps/web/src/app/dashboard/_actions/create-day-line-action.ts` → `timeline.create_day_line`
-- `apps/web/src/app/dashboard/_actions/update-day-line-hours-action.ts` → `timeline.edit_opening_closing`
+- `apps/web/src/app/dashboard/_actions/create-day-line-action.ts` → `day_line.create`
+- `apps/web/src/app/dashboard/_actions/update-day-line-hours-action.ts` → `day_line.edit_opening_closing`
 - `apps/web/src/app/dashboard/_actions/attach-routine-action.ts` → `routine.attach_to_line`
 
 **Telemetry additions (registry.ts):**
@@ -313,34 +321,49 @@ Re-council triggers:
 
 ---
 
-## 10. Estimated Wall Time
+## 10. Estimated Wall Time (Revised 2026-05-18)
 
 | Phase | Estimate | Cumulative |
 |---|---|---|
-| A | 0.5 day | 0.5 |
-| B | 1 day | 1.5 |
-| C | 1.5 days | 3 |
-| D | 2 days | 5 |
-| E | 1.5 days | 6.5 |
-| F | 1 day | 7.5 |
-| Buffer (testing, polish, drift) | 1.5 days | 9 |
+| A — Schema + RLS + Backfill | 0.5–1d | 0.5–1d |
+| B — Capabilities + Actions + Triggers | 0.75–1d | 1.25–2d |
+| C — UI Rewire Web | 1–1.5d | 2.25–3.5d |
+| D — Mobile (shift_session + push subscribe) | 0.5–0.75d | 2.75–4.25d |
+| E — Push pipeline (engine-dispatch) | 0.5d | 3.25–4.75d |
+| F — Journeys + E2E + Docs | 0.5–0.75d | 3.75–5.5d |
+| Buffer (testing, polish, drift) | 0.5d | 4.25–6d |
 
-**Total: ~9 working days for full delivery.** Phases can ship independently — partial value lands as early as Phase D (multi-line UI on top of new schema).
+**Total: ~4–6 working days solo for full delivery.** Parallel (3 sub-sortier per phase): **~2–3 wall days.**
+
+Revised down from earlier 9-day estimate because ADR-0367 explicitly reuses:
+- existing `location` (area), `zone`, `asset`, `timeline_template` (ADR-0335)
+- existing `expo_push_token` (migration `20260418100300`) + mobile push hook
+- existing `engine_event` idempotency infrastructure
+- existing `shift-lifecycle` clock-in capability (just extended, not created)
+- existing `department_session` lifecycle + RLS
+
+Phases can ship independently — partial value lands as early as Phase C (multi-strip UI on top of new schema, even before mobile + push pipeline are live).
 
 ---
 
-## 11. Open Questions Tracker
+## 11. Open Questions Tracker (Revised 2026-05-18)
 
-Mirror of DATA-MODEL §7:
+Mirror of DATA-MODEL §7. Most items resolved by ADR-0367.
 
-| # | Question | Phase blocker | Default proposal |
+| # | Question | Status | Resolution |
 |---|---|---|---|
-| Q1 | Cascade class of day_line | A | D6 (Production) |
-| Q2 | Backfill primary location | B | first-by-name + admin override before flip |
-| Q3 | Team line ignores location? | A | NO — location mandatory + team mandatory if no dept |
-| Q4 | Legacy dept_session UNIQUE constraint | B | drop after backfill + 1 release |
-| Q5 | Timeline template gains day_line scope? | F | NO — templates resolve at apply-time |
-| Q6 | Voice creates day_line? | F | NO — chat-only V1 per ADR-0078 |
-| Q7 | Mobile authoring? | D | NO — ADR-0133 invariant holds |
+| Q1 | Cascade class of day_line | RESOLVED | D6 Production, child of `department_session` (per ADR-0367) |
+| Q2 | Backfill primary location | OPEN (Phase A) | Default: first `department_location` alphabetically + 7-day admin-override window |
+| Q3 | Team axis on day_line? | RESOLVED | NO — V1 ships dept + area only. Team deferred. |
+| Q4 | Legacy dept_session UNIQUE constraint | RESOLVED | KEEP — session aggregate untouched per ADR-0367 |
+| Q5 | Timeline template gains day_line scope? | RESOLVED | NO — `scope_type='location'` already exists; templates resolve at apply-time |
+| Q6 | Voice creates day_line? | RESOLVED | NO — chat-only V1 per ADR-0078 |
+| Q7 | Mobile authoring? | RESOLVED | NO — ADR-0133 invariant holds |
+| Q8 | shift_session cross-workspace? | OPEN | V1 per-workspace only; cross-workspace deferred to amend ADR if needed |
+| Q9 | Property layer | DEFERRED | Until 2+ physical sites under one tenant |
+| Q10 | Zone surface | DEFERRED | V2 when shift-assignment becomes zone-grained |
+| Q11 | Asset surface | DEFERRED | Phase 2 when items target equipment |
+| Q12 | notify=false flag on day_line_item | OPEN (Phase A) | Add column with DEFAULT TRUE; admin UI hides V1 |
+| Q13 | Empty `department_location` for dept | OPEN (Phase A) | Fallback to "all locations in workspace"; admin warning |
 
-All Q-items must be answered explicitly in Phase A council brief.
+Open items are tracked in Phase A pre-flight checklist before migration ships.

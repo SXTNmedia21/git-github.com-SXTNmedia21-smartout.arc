@@ -1,15 +1,17 @@
 ---
 title: Day Timeline — Gaps & Debt
 status: in_progress
-updated: 2026-05-17
+updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, gaps, debt, audit]
+tags: [module, daytimeline, gaps, debt, audit, area-anchored]
 ---
 
 # Day Timeline — Gaps & Debt
 
 > Verified-working vs aspirational. Code citations for every gap. Read with [BLUEPRINT.md](./BLUEPRINT.md) which sequences the fixes.
+>
+> **2026-05-18 update:** ADR-0367 (proposed) resolves G3.10 by selecting the tri-layer model (Option C). Most other gaps reframed accordingly. New gaps tracked under §3.15+. See module README + DATA-MODEL §5 for the canonical model.
 
 ## 1. Verification Method
 
@@ -88,7 +90,7 @@ For each claim below:
 
 **Status:** Blocker for J10. **Severity MEDIUM.** (J9 works without it via single-task path.)
 
-### 3.5 CAPABILITY — `timeline.create_day_line` + `timeline.edit_opening_closing` do not exist
+### 3.5 CAPABILITY — `day_line.create` + `day_line.edit_opening_closing` do not exist
 
 **CODE:** No `timeline/` capability folder. Server Action `createDayLineAction` not present in `apps/web/src/app/dashboard/_actions/`.
 
@@ -137,15 +139,11 @@ For each claim below:
 
 **Status:** Required before tools ship. **Severity MEDIUM.**
 
-### 3.10 CASCADE — Day-line dimension classification unresolved
+### 3.10 CASCADE — Day-line dimension classification — RESOLVED 2026-05-18
 
-**CODE:** No ADR exists for `day_line` cascade placement. Cascade A1 (`20260421100350`) added `location_id` to `schedule_shift` but did NOT touch `session_*` tables.
+**Status:** **RESOLVED** by ADR-0367 (proposed, 2026-05-18). Decision: Option C — new `day_line` table as area-anchored child of `department_session`, plus `shift_session` as per-employee runtime layer. Department aggregate untouched; child tables (`session_hook`, `session_task`, `schedule_day_booking`, `deviation`) gain nullable `day_line_id` FK.
 
-**JOURNEY:** J7-J10 all need `day_line` placed canonically.
-
-**GAP:** Council-class decision. Three options in review (A: location_id on department_session; B: location_id on session children; C: new day_line table). Default proposal in this module = C.
-
-**Status:** Blocks the entire location-awareness phase. **Severity CRITICAL — council gate.**
+**Remaining work:** Council verdict on ADR-0367 + Phase A migration. Tracked in [BLUEPRINT.md](./BLUEPRINT.md).
 
 ### 3.11 BACKFILL — Existing department_session rows have no location
 
@@ -205,28 +203,31 @@ For each claim below:
 
 ---
 
-## 5. Severity Summary
+## 5. Severity Summary (post-ADR-0367)
 
 | Severity | Count | Gaps |
 |---|---|---|
-| CRITICAL | 1 | G3.10 (cascade classification) |
+| CRITICAL | 0 | (G3.10 resolved by ADR-0367, awaiting council verdict) |
 | HIGH | 5 | G3.1, G3.2, G3.3, G3.5, G3.7 |
 | MEDIUM | 5 | G3.4, G3.8, G3.9, G3.11, G3.13, G3.14 |
 | LOW | 2 | G3.6, G3.12 |
+| NEW (V1 only) | G3.15 | shift_session + push pipeline (covered in ADR-0367 spec) |
 
-The CRITICAL gap is a council gate — nothing else moves until it's resolved.
+ADR-0367 council verdict unblocks the entire Phase sequence. Implementation phases A-F detailed in [BLUEPRINT.md](./BLUEPRINT.md) + `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md`.
 
 ---
 
-## 6. Closing Order (preview)
+## 6. Closing Order (post-ADR-0367)
 
-The BLUEPRINT sequences these as 6 phases. Preview:
+The BLUEPRINT sequences these as 6 phases (revised 2026-05-18). Preview:
 
-1. **Phase A — Council + ADR.** Resolves G3.10.
-2. **Phase B — Schema migration + backfill.** Closes G3.1, G3.11.
-3. **Phase C — Capability + Server Action layer.** Closes G3.4, G3.5, G3.9.
-4. **Phase D — UI rewire (TimelineTab + dialogs).** Closes G3.2, G3.3, G3.6, G3.12.
-5. **Phase E — Mobile + RLS.** Closes G3.7, G3.8.
-6. **Phase F — Voice + telemetry + E2E.** Closes G3.13, G3.14.
+1. **Phase A — Schema + RLS + Backfill.** Closes G3.1, G3.7 (RLS), G3.11. Includes `department_location` + `day_line` + `shift_session` + child FKs.
+2. **Phase B — Capabilities + Server Actions + Triggers.** Closes G3.4, G3.5, G3.9 + new shift_session bind trigger.
+3. **Phase C — UI rewire (TimelineTab + dialogs).** Closes G3.2, G3.3, G3.6, G3.12.
+4. **Phase D — Mobile (shift_session read + push).** Closes G3.8 + G3.15.
+5. **Phase E — Push pipeline (engine-dispatch extension).** Net-new from ADR-0367 spec.
+6. **Phase F — Journeys + E2E + Docs.** Closes G3.13, G3.14.
 
-See [BLUEPRINT.md](./BLUEPRINT.md) for falsifiable acceptance per phase.
+ADR-0367 ([proposed](../../decisions/0367-day-line-area-anchored-runtime.md)) is the gating decision. Council verdict triggers Phase A.
+
+See [BLUEPRINT.md](./BLUEPRINT.md) for falsifiable acceptance per phase and `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md` for the full spec.
