@@ -4188,10 +4188,57 @@ export interface ChannelMessageSent extends BaseEvent {
     announcement_tier?: string;
     announcement_tag_count?: number;
     announcement_has_link?: boolean;
-    announcement_link_type?: string;  // AnnouncementLinkType
+    announcement_link_type?: string; // AnnouncementLinkType
     announcement_tier_overridden?: boolean;
     has_entity_link?: boolean;
     tag_count?: number;
+    // ADR-0372 extension — celebration branch
+    celebration_subtype?: string; // 'birthday' | 'work_anniversary'
+  };
+  entity: EntityRef;
+}
+
+// ─── Birthday celebration auto-publish (ADR-0372) ─────────────────────────────
+//
+// celebration.auto_published
+//   Emitted by publish-birthday-celebrations Edge Function after a birthday announcement
+//   is successfully published via publish_announcement_atomic.
+//   posthog:       product analytics (adoption + celebration funnel).
+//   activity_trail: audit — every auto-celebration is traceable to workspace + profile.
+//   logger:        stdout observability for Edge Function run.
+//   No engine_event: celebration publish is terminal, no downstream workflow reaction.
+//
+// Note: channel.message.sent is ALSO emitted per celebration (with celebration_subtype='birthday')
+// for continuity with the existing message analytics pipeline (ADR-0372 Q8 dual emit).
+
+export interface CelebrationAutoPublished extends BaseEvent {
+  event: "celebration.auto_published";
+  properties: {
+    workspace_id: string;
+    profile_id: string; // profile being celebrated
+    channel_id: string;
+    message_id: string;
+    celebration_subtype: string; // 'birthday' | 'work_anniversary'
+  };
+  entity: EntityRef;
+}
+
+export interface CelebrationSkippedWorkspaceDisabled extends BaseEvent {
+  event: "celebration.skipped_workspace_disabled";
+  properties: {
+    workspace_id: string;
+    profile_id: string;
+    celebration_subtype: string;
+  };
+  entity: EntityRef;
+}
+
+export interface CelebrationSkippedAlreadyPublished extends BaseEvent {
+  event: "celebration.skipped_already_published";
+  properties: {
+    workspace_id: string;
+    profile_id: string;
+    celebration_subtype: string;
   };
   entity: EntityRef;
 }
@@ -4295,8 +4342,8 @@ export interface AnnouncementLinkFollowed extends BaseEvent {
   event: "announcement.link_followed";
   properties: {
     message_id: string;
-    kind: string;       // AnnouncementKind
-    link_type: string;  // AnnouncementLinkType
+    kind: string; // AnnouncementKind
+    link_type: string; // AnnouncementLinkType
     link_id: string;
   };
   entity: EntityRef; // entity_type: 'channel_message', entity_id: message_id
@@ -8816,7 +8863,10 @@ export type SmartoutEvent =
   | ShiftSessionClockedOut
   | RoutineAttached
   | OrgDeptAreasUpdated
-  | ShiftSessionItemLeakDetected;
+  | ShiftSessionItemLeakDetected
+  | CelebrationAutoPublished
+  | CelebrationSkippedWorkspaceDisabled
+  | CelebrationSkippedAlreadyPublished;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -14338,5 +14388,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "shift_session.item_leak_detected": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
+  },
+
+  // ─── Birthday celebration auto-publish (ADR-0372, 2026-05-18) ──────────────
+  // celebration.auto_published: 3 destinations — posthog (adoption analytics),
+  //   activity_trail (audit trail for every auto-celebration), logger (stdout).
+  //   No engine_event: birthday publish is terminal, no state-machine reaction needed.
+  //   channel.message.sent is ALSO emitted per celebration (dual emit per Q8).
+  "celebration.auto_published": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+
+  // celebration.skipped_workspace_disabled / celebration.skipped_already_published:
+  //   activity_trail only — audit trail for idempotency skips and opt-out enforcement.
+  //   No posthog: skips are not product-funnel events. No engine_event: no action needed.
+  "celebration.skipped_workspace_disabled": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
+  },
+  "celebration.skipped_already_published": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
   },
 };
