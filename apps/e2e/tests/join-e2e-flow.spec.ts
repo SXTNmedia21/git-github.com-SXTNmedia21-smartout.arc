@@ -26,9 +26,8 @@ const DUMMY_DATA = {
 
 /** Helper: get the step heading inside the main content area (not brand panel) */
 async function waitForStepHeading(page: Page, pattern: RegExp, timeoutMs = 20_000) {
-  const heading = page
-    .locator("main h2, [data-botsson-type='wizard-step'] h2")
-    .filter({ hasText: pattern });
+  // Step containers have NO data-botsson-id attributes — use heading text directly.
+  const heading = page.locator("main h2").filter({ hasText: pattern });
   await expect(heading.first()).toBeVisible({ timeout: timeoutMs });
   return heading.first();
 }
