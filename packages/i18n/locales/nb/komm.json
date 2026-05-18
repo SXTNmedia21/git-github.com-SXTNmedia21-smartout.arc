@@ -269,5 +269,25 @@
     "empty_activity": "Ingen aktivitet registrert ennå",
     "coming_soon": "Kommer snart",
     "call_coming_soon": "Ringefunksjon kommer snart"
+  },
+  "tier": {
+    "social": "Sosialt",
+    "work": "Jobb",
+    "external": "Eksternt"
+  },
+  "link": {
+    "cta": {
+      "staff_event": "Åpne hendelse",
+      "schedule_shift": "Åpne skift",
+      "policy": "Se policy",
+      "protocol": "Se protokoll",
+      "profile": "Vis profil",
+      "menu_document": "Åpne dokument",
+      "external_url": "Åpne lenke"
+    },
+    "disabled": {
+      "web_only": "Åpne på web for å se dette"
+    },
+    "opened": "Lenke åpnet"
   }
 }

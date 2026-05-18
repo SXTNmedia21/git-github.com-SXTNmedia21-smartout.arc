@@ -269,5 +269,25 @@
     "empty_activity": "No activity recorded yet",
     "coming_soon": "Coming soon",
     "call_coming_soon": "Call feature coming soon"
+  },
+  "tier": {
+    "social": "Social",
+    "work": "Work",
+    "external": "External"
+  },
+  "link": {
+    "cta": {
+      "staff_event": "Open event",
+      "schedule_shift": "Open shift",
+      "policy": "View policy",
+      "protocol": "View protocol",
+      "profile": "View profile",
+      "menu_document": "Open document",
+      "external_url": "Open link"
+    },
+    "disabled": {
+      "web_only": "Open on web to view this"
+    },
+    "opened": "Link opened"
   }
 }

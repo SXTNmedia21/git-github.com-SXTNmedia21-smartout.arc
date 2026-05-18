@@ -54,6 +54,11 @@ export function useSendChannelMessage() {
         deleted_at: null,
         client_message_id: clientMessageId,
         created_at: new Date().toISOString(),
+        // Announcement V2 fields — always null on optimistic (text messages only).
+        announcement_kind: null,
+        announcement_tier: null,
+        announcement_link_type: null,
+        announcement_link_id: null,
         reactions: [],
         attachments: [],
         _isPending: true,
