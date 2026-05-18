@@ -11,5 +11,8 @@ export default defineConfig({
   test: {
     include: ["runners/__tests__/**/*.test.ts", "db/**/*.spec.ts"],
     exclude: ["node_modules/**", "dist/**"],
+    // DB integration tests require a running local Supabase instance and
+    // SUPABASE_SERVICE_ROLE_KEY env var (op run --env-file=.env.template).
+    testTimeout: 30_000,
   },
 });
