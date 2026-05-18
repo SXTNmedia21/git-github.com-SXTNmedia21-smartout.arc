@@ -51,15 +51,16 @@ function dayOfMonth(dateStr: string): number {
   return parseInt(dateStr.slice(8, 10), 10);
 }
 
-/** Map a DB department name to our Department union slug. */
-function toDeptSlug(name: string | null | undefined): Department {
-  const n = (name ?? "").toLowerCase();
-  if (n.includes("kjøkken") || n.includes("kjokken") || n.includes("kitchen")) return "kjokken";
-  if (n.includes("sal") || n.includes("floor") || n.includes("service")) return "sal";
-  if (n.includes("bar")) return "bar";
-  if (n.includes("event")) return "event";
-  return "kjokken"; // safe fallback
-}
+/** Valid Department slugs (mirrors the union in types.ts). */
+const KNOWN_DEPT_SLUGS = new Set<Department>([
+  "kjokken",
+  "sal",
+  "bar",
+  "event",
+  "kitchen",
+  "operations",
+  "service",
+]);
 
 export type ShiftWithProfile = {
   /** schedule_shift PK */
@@ -114,6 +115,7 @@ type ProfileRow = {
 type PositionRow = {
   department: {
     id: string;
+    slug: string;
     name: string;
     color: string | null;
   } | null;
@@ -199,6 +201,7 @@ async function fetchTeamShifts(
       position:position_id (
         department:department_id (
           id,
+          slug,
           name,
           color
         )
@@ -231,9 +234,23 @@ async function fetchTeamShifts(
           ? firstName.slice(0, 2).toUpperCase()
           : "??";
 
-    // Dept resolved via position → department (canonical per ADR-0266 §Implementation contract)
+    // Dept resolved via position → department (canonical per ADR-0266 §Implementation contract).
+    // Read department.slug directly from DB — no substring heuristic (dropped 2026-05-18).
     const dept = row.position?.department;
-    const deptSlug = toDeptSlug(dept?.name);
+    const rawSlug = dept?.slug;
+    let deptSlug: Department = "kjokken"; // conservative fallback for null position
+    if (rawSlug) {
+      if (KNOWN_DEPT_SLUGS.has(rawSlug as Department)) {
+        deptSlug = rawSlug as Department;
+      } else {
+        // Fail-loud per L-0177 pattern: slug exists in DB but is not in the union.
+        // Operator must add it to the Department union and design-token palette.
+        console.warn(
+          `[useTeamShifts] Unknown department.slug "${rawSlug}" — falling back to "kjokken". ` +
+            "Add to Department union in types.ts and color token in native.ts.",
+        );
+      }
+    }
     // Prefer DB-stored color; fall back to design-token constant
     const deptColor = dept?.color ?? deptColorFor(deptSlug);
     // No per-profile color column — always fall back to dept color.

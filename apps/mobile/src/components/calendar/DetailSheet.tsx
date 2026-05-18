@@ -96,13 +96,17 @@ function getDeptColor(dept: Department): string {
 function deptLabel(dept: Department): string {
   switch (dept) {
     case "kjokken":
+    case "kitchen":
       return "Kjøkken";
     case "sal":
+    case "service":
       return "Sal";
     case "bar":
       return "Bar";
     case "event":
       return "Event";
+    case "operations":
+      return "Drift";
   }
 }
 
