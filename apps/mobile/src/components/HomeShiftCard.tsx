@@ -102,9 +102,9 @@ export function HomeShiftCard({ shift }: HomeShiftCardProps) {
         </Text>
       </View>
 
-      {shift.position && (
+      {shift.role && (
         <Text style={[styles.position, { color: colors.foreground }]} numberOfLines={1}>
-          {shift.position}
+          {shift.role}
         </Text>
       )}
 

@@ -105,17 +105,6 @@ function parseTimeRange(time: string | undefined): { startH: number; endH: numbe
   return { startH, endH };
 }
 
-/** Get the accent color for a CalendarItem based on type and dept. */
-function colorForItem(item: CalendarItem, theme: ReturnType<typeof useTheme>): string {
-  if (item.status === "overdue") return theme.colors.destructive;
-  if (item.type === "shift") {
-    return DEPT_COLORS[item.dept as keyof typeof DEPT_COLORS] ?? theme.colors.brandOrange;
-  }
-  if (item.type === "booking") return theme.colors.brandOrange;
-  if (item.type === "task") return theme.colors.brandOrange;
-  return theme.colors.mutedForeground;
-}
-
 /**
  * Get current time as fractional hours (15.5 = 15:30) in workspace timezone.
  * Used for the NÅ-indicator — must use workspace tz, not device tz (BLOCKING-3 / F-09).
@@ -123,14 +112,6 @@ function colorForItem(item: CalendarItem, theme: ReturnType<typeof useTheme>): s
 function currentHourInTz(tz: string): number {
   const zoned = toZonedTime(new Date(), tz);
   return zoned.getHours() + zoned.getMinutes() / 60;
-}
-
-/** Parse HH:MM TIME string into fractional hours. Returns null on failure. */
-function parseTimeFractional(time: string | null | undefined): number | null {
-  if (!time) return null;
-  const m = time.match(/^(\d{1,2}):(\d{2})/);
-  if (!m) return null;
-  return Number(m[1]) + Number(m[2]) / 60;
 }
 
 // ── Positioned item block (legacy CalendarItem timeline) ─────────────────────
@@ -393,7 +374,6 @@ export default function CalendarDayScreen() {
   const notes = items.filter((i) => i.type === "note");
   const hasOverdueTasks = tasks.some((t) => t.status === "overdue");
 
-  const doneTasks = tasks.filter((t) => t.status === "done" || t.status === "completed").length;
   const totalGuests = bookings.reduce((sum, b) => sum + (b.guests ?? 0), 0);
 
   // Items with parseable times for the legacy timeline
@@ -418,7 +398,7 @@ export default function CalendarDayScreen() {
         .filter((item) => item.day_line_id === dl.day_line_id)
         .sort((a, b) => {
           // Sort by scheduled_at ascending; null scheduled_at goes to bottom.
-          if (!a.scheduled_at && !b.scheduled_at) return (a.position ?? 0) - (b.position ?? 0);
+          if (!a.scheduled_at && !b.scheduled_at) return 0;
           if (!a.scheduled_at) return 1;
           if (!b.scheduled_at) return -1;
           return a.scheduled_at.localeCompare(b.scheduled_at);

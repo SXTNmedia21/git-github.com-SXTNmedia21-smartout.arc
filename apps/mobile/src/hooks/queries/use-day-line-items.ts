@@ -18,13 +18,11 @@ import { getProfileContext } from "@/lib/profile-context";
 
 /** A single session_task item as returned by this hook. */
 export type DayLineItem = {
-  id: string; // session_task_id
+  id: string; // session_task.id (PK)
   day_line_id: string;
   title: string;
   scheduled_at: string | null;
   status: string;
-  task_type: string | null;
-  position: number | null;
 };
 
 /**
@@ -84,29 +82,27 @@ export function useDayLineItems(
         .from("session_task")
         .select(
           `
-          session_task_id,
+          id,
           day_line_id,
           title,
           scheduled_at,
-          status,
-          task_type,
-          position
+          status
           `,
         )
         .in("day_line_id", dayLineIds)
-        .order("scheduled_at", { ascending: true, nullsFirst: false })
-        .order("position", { ascending: true, nullsFirst: true });
+        .order("scheduled_at", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
 
-      const rows = (data ?? []) as Array<{
-        session_task_id: string;
+      // Database type for session_task.status uses the session_task_status enum.
+      // We cast via unknown to avoid cross-table type-variance on the enum string
+      // union — the DB guarantees the values match; cast is safe here.
+      const rows = (data ?? []) as unknown as Array<{
+        id: string;
         day_line_id: string | null;
         title: string;
         scheduled_at: string | null;
         status: string;
-        task_type: string | null;
-        position: number | null;
       }>;
 
       const clean: DayLineItem[] = [];
@@ -114,13 +110,11 @@ export function useDayLineItems(
 
       for (const row of rows) {
         const item: DayLineItem = {
-          id: row.session_task_id,
+          id: row.id,
           day_line_id: row.day_line_id ?? "",
           title: row.title,
           scheduled_at: row.scheduled_at,
           status: row.status,
-          task_type: row.task_type,
-          position: row.position,
         };
 
         if (!item.day_line_id || !allowedSet.has(item.day_line_id)) {
