@@ -2,7 +2,8 @@
 
 import { useContext, useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Info } from "lucide-react";
+import { Info, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { type UiPhase, getPhaseBoundaries } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import {
@@ -30,6 +31,8 @@ import type { TimelineTemplateItemT } from "@smartout/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NoSessionCTA } from "@/components/day/NoSessionCTA";
 import { DayLineStrip } from "@/components/day/DayLineStrip";
+import { DayLineCreateSheet } from "@/components/day/DayLineCreateSheet";
+import { AggregatedDayLineList } from "@/components/day/AggregatedDayLineList";
 import { useDayLines } from "@/components/day/_hooks/use-day-lines";
 
 // Local type for slot-picker anchor — time + whether it is open.
@@ -95,6 +98,7 @@ export function TimelineTab({
   const [shiftStartOpen, setShiftStartOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [avvikDialogOpen, setAvvikDialogOpen] = useState(false);
+  const [dayLineCreateOpen, setDayLineCreateOpen] = useState(false);
 
   // Manager and above can write; employees get read-only strip.
   const canEdit = role !== null && role !== undefined && role !== "employee";
@@ -342,6 +346,23 @@ export function TimelineTab({
         </div>
 
         {/* ─── Multi-strip DayLine section ─────────────────────────────────── */}
+
+        {/* "Ny dagslinje" trigger — visible when canEdit and session is not closed */}
+        {canEdit && session.status !== "closed" && workspaceId && (
+          <div className="flex justify-end" data-testid="day-line-create-trigger-row">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => setDayLineCreateOpen(true)}
+              data-testid="day-line-create-trigger"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Ny dagslinje
+            </Button>
+          </div>
+        )}
+
         {dayLines.isLoading && (
           <div
             className="flex flex-col gap-2"
@@ -369,7 +390,12 @@ export function TimelineTab({
           </div>
         )}
 
-        {!dayLines.isLoading && dayLineRows.length > 0 && (
+        {/* Location scope: show aggregated overview across all day_lines for this date */}
+        {!dayLines.isLoading && isLocationScope && workspaceId && (
+          <AggregatedDayLineList workspaceId={workspaceId} date={dateISO} />
+        )}
+
+        {!dayLines.isLoading && !isLocationScope && dayLineRows.length > 0 && (
           <div className="flex flex-col gap-3" data-testid="timeline-tab-strips">
             {dayLineRows.map((line) => (
               <DayLineStrip
@@ -464,6 +490,16 @@ export function TimelineTab({
         time={freeFormTime}
         onAdd={handleAddDraftChip}
       />
+
+      {/* ── DayLineCreateSheet — "Ny dagslinje" path ──────────────────── */}
+      {workspaceId && session.sessionId && (
+        <DayLineCreateSheet
+          open={dayLineCreateOpen}
+          onOpenChange={setDayLineCreateOpen}
+          departmentId={departmentId}
+          departmentSessionId={session.sessionId}
+        />
+      )}
     </div>
   );
 }

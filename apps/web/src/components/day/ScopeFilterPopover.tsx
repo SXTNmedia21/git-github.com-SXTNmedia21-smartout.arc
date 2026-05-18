@@ -35,7 +35,7 @@ type ShiftOption = {
 
 // ─── Data hooks (fetch only when popover is open) ─────────
 
-function useDepartments(workspaceId: string, enabled: boolean) {
+export function useDepartments(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "departments", workspaceId],
     enabled,
@@ -57,7 +57,7 @@ function useDepartments(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useTeams(workspaceId: string, enabled: boolean) {
+export function useTeams(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "teams", workspaceId],
     enabled,
@@ -80,7 +80,7 @@ function useTeams(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useLocations(workspaceId: string, enabled: boolean) {
+export function useLocations(workspaceId: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "locations", workspaceId],
     enabled,
@@ -101,7 +101,7 @@ function useLocations(workspaceId: string, enabled: boolean) {
   });
 }
 
-function useShiftsToday(workspaceId: string, dateISO: string, enabled: boolean) {
+export function useShiftsToday(workspaceId: string, dateISO: string, enabled: boolean) {
   return useQuery({
     queryKey: ["scope-filter", "shifts-today", workspaceId, dateISO],
     enabled,
@@ -438,9 +438,7 @@ export function ScopeFilterPopover({
   };
 
   const totalSelected =
-    selection.departmentIds.length +
-    selection.locationIds.length +
-    selection.shiftIds.length;
+    selection.departmentIds.length + selection.locationIds.length + selection.shiftIds.length;
 
   return (
     <Popover>
@@ -449,7 +447,7 @@ export function ScopeFilterPopover({
           <Filter className="mr-2 h-4 w-4" />
           Filter
           {totalSelected > 0 && (
-            <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+            <span className="bg-primary text-primary-foreground ml-1 rounded-full px-1.5 text-xs">
               {totalSelected}
             </span>
           )}
@@ -457,7 +455,7 @@ export function ScopeFilterPopover({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-80 border-border bg-background/95 backdrop-blur-xl"
+        className="border-border bg-background/95 w-80 backdrop-blur-xl"
         data-testid="scope-filter-popover"
       >
         <section className="space-y-3">
@@ -489,9 +487,7 @@ export function ScopeFilterPopover({
             size="sm"
             className="mt-3 w-full"
             data-testid="scope-filter-clear"
-            onClick={() =>
-              onChange({ departmentIds: [], locationIds: [], shiftIds: [] })
-            }
+            onClick={() => onChange({ departmentIds: [], locationIds: [], shiftIds: [] })}
           >
             Nullstill
           </Button>
@@ -518,9 +514,7 @@ function ScopeFilterDim({
 
   return (
     <div className="space-y-2" data-testid={testid}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {title}
-      </p>
+      <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{title}</p>
       <ul className="space-y-1">
         {options.map((o) => (
           <li key={o.id} className="flex items-center gap-2">
@@ -529,10 +523,7 @@ function ScopeFilterDim({
               checked={selected.includes(o.id)}
               onCheckedChange={() => onToggle(o.id)}
             />
-            <label
-              htmlFor={`${testid}-${o.id}`}
-              className="text-sm text-foreground"
-            >
+            <label htmlFor={`${testid}-${o.id}`} className="text-foreground text-sm">
               {o.name}
             </label>
           </li>
