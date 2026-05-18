@@ -249,8 +249,45 @@ export async function proxy(request: NextRequest): Promise<Response> {
     return NextResponse.next();
   }
 
-  // ── 3. Public routes — skip auth entirely to prevent token refresh storms ──
   const pathname = request.nextUrl.pathname;
+
+  // ── 2b. Workspace subdomain + auth route → portal-redirect (ADR-0362) ──
+  // Runs BEFORE the PUBLIC_ROUTES bypass at §3, because auth routes ARE in
+  // PUBLIC_ROUTES and would otherwise be allowed to render on the workspace
+  // host. PKCE verifier cookies are host-scoped — auth must originate from
+  // the portal so the verifier matches at callback time. The originating
+  // workspace slug is preserved as `?continue=<slug>` so the callback can
+  // route the user back after a successful exchange.
+  //
+  // Three host modes:
+  //  - Production:        rootDomain = "smartout.ai"   → portal = https://app.smartout.ai
+  //  - Subdomain dev:     rootDomain = "localhost" AND host endsWith ".localhost"
+  //                       → portal = http://app.localhost:<port>  (E2E + multi-host dev)
+  //  - Single-host dev:   subdomain.type would be "root" (handled at §2 already)
+  if (subdomain.type === "workspace" && isAuthRouteForPortal(pathname)) {
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+    const reqHost = request.headers.get("host") ?? "";
+    let portalUrl: URL | null = null;
+
+    if (rootDomain && rootDomain !== "localhost") {
+      portalUrl = new URL(pathname + request.nextUrl.search, `https://app.${rootDomain}`);
+    } else if (reqHost.endsWith(".localhost") || reqHost.match(/\.localhost:\d+$/)) {
+      const portWithColon = request.nextUrl.port ? `:${request.nextUrl.port}` : "";
+      portalUrl = new URL(
+        pathname + request.nextUrl.search,
+        `http://app.localhost${portWithColon}`,
+      );
+    }
+
+    if (portalUrl) {
+      if (!portalUrl.searchParams.has("continue")) {
+        portalUrl.searchParams.set("continue", subdomain.slug);
+      }
+      return NextResponse.redirect(portalUrl);
+    }
+  }
+
+  // ── 3. Public routes — skip auth entirely to prevent token refresh storms ──
   if (isPublicRoute(pathname)) {
     const response = NextResponse.next({ request });
     applyShowcaseMode(request, response);
@@ -343,22 +380,9 @@ export async function proxy(request: NextRequest): Promise<Response> {
   if (subdomain.type === "workspace") {
     const slug = subdomain.slug;
 
-    // ── 5a. Portal-redirect for auth routes (ADR-0021 amendment 2026-04-20) ──
-    // All auth surfaces live on `app.smartout.ai`. Workspace-subdomain hits on
-    // /login, /signup, /invite/*, /reset-password, etc. are 307-redirected to
-    // the portal so OAuth + PKCE + magic-links all originate from a single,
-    // Supabase-Cloud-whitelisted host. The originating slug is preserved as
-    // `?continue=<slug>` so the callback can route the user back here after a
-    // successful exchange. Skipped on localhost (single-host dev — no portal).
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
-    if (rootDomain && rootDomain !== "localhost" && isAuthRouteForPortal(pathname)) {
-      const portalUrl = new URL(pathname + request.nextUrl.search, `https://app.${rootDomain}`);
-      // Only set `continue` if not already present (preserve operator-supplied value).
-      if (!portalUrl.searchParams.has("continue")) {
-        portalUrl.searchParams.set("continue", slug);
-      }
-      return NextResponse.redirect(portalUrl);
-    }
+    // (Auth-route portal-redirect handled at §2b above — runs before the
+    //  PUBLIC_ROUTES bypass so /login, /invite/*, etc. on workspace hosts
+    //  get caught regardless of public-route membership.)
 
     // Set workspace slug + pathname headers for downstream consumption
     response.headers.set("x-workspace-slug", slug);
