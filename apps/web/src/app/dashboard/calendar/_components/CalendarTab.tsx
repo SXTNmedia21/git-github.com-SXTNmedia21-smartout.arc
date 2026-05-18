@@ -555,20 +555,21 @@ function EventBlock({
   return (
     <button
       onClick={() => onClick(event)}
-      className="absolute right-1 left-1 rounded-md border p-1.5 text-left text-[11px] font-semibold shadow-sm transition-shadow hover:shadow-md"
+      className="absolute right-1 left-1 overflow-hidden rounded-md border-l-2 p-1.5 text-left text-[11px] font-semibold transition-opacity hover:opacity-90"
       style={{
         top,
         height,
+        // Left border uses full event color; background is a subtle tint so
+        // the block reads clearly on both light and dark themes.
         borderColor: color,
-        backgroundColor: "color-mix(in oklch, var(--background) 70%, transparent)",
+        backgroundColor: `color-mix(in oklch, ${color} 12%, var(--card))`,
         color,
       }}
     >
-      <div className={compact ? "truncate" : ""}>{event.title}</div>
+      <div className={compact ? "truncate leading-4" : "leading-4"}>{event.title}</div>
       {!compact ? (
-        <div className="text-muted-foreground mt-0.5 text-[10px]">
-          {String(event.startHour).padStart(2, "0")}:00 – {String(event.endHour).padStart(2, "0")}
-          :00
+        <div className="mt-0.5 text-[10px] leading-3 opacity-70" style={{ color }}>
+          {String(event.startHour).padStart(2, "0")}:00–{String(event.endHour).padStart(2, "0")}:00
         </div>
       ) : null}
     </button>
