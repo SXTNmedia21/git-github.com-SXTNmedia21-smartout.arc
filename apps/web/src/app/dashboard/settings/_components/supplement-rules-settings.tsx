@@ -44,7 +44,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import {
   useSupplementRules,
   useCreateSupplementRule,
@@ -1091,15 +1092,15 @@ export function SupplementRulesSettings() {
       </div>
 
       {/* Tabs for each supplement type */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SupplementType)}>
-        <TabsList className="w-full justify-start">
-          {SUPPLEMENT_TYPES.map((type) => (
-            <TabsTrigger key={type} value={type}>
-              {SUPPLEMENT_TYPE_LABELS[type]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <PageTabNav
+        tabs={SUPPLEMENT_TYPES.map((t) => ({ key: t, label: SUPPLEMENT_TYPE_LABELS[t] }))}
+        active={activeTab}
+        onChange={(v) => setActiveTab(v as SupplementType)}
+        className="mb-4"
+        ariaLabel="Tillegg-typer"
+      />
 
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SupplementType)}>
         {SUPPLEMENT_TYPES.map((type) => (
           <TabsContent key={type} value={type}>
             <RulesTable type={type} onEdit={openEdit} onCreate={openCreate} />

@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { LayoutDashboard, ListOrdered, ClipboardCheck, PenTool, Loader2 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -45,6 +47,7 @@ function useProcedureMeta(procedureId: string) {
 }
 
 export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const { data: meta, isLoading: metaLoading } = useProcedureMeta(procedureId);
   const { data: steps, isLoading: stepsLoading } = useProcedureSteps(procedureId);
   const { t } = useTranslation("dashboard");
@@ -103,22 +106,18 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
 
       {/* WCAG 4.1.2: Radix TabsPrimitive provides role=tablist + tab + tabpanel
           + aria-selected + aria-controls out of the box. No manual ARIA needed. */}
-      <Tabs defaultValue="overview">
-        <TabsList className="border-border bg-muted/50 flex h-auto w-full gap-1 rounded-xl border p-1">
-          {TAB_IDS.map((id) => {
-            const Icon = TAB_ICONS[id];
-            return (
-              <TabsTrigger
-                key={id}
-                value={id}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
-              >
-                <Icon className="h-4 w-4" />
-                {t(`hms.procedureDetailTabs.${id}`)}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+        <PageTabNav
+          tabs={TAB_IDS.map((id) => ({
+            key: id,
+            label: t(`hms.procedureDetailTabs.${id}`),
+            icon: TAB_ICONS[id],
+          }))}
+          active={activeTab}
+          onChange={(v) => setActiveTab(v as Tab)}
+          className="mb-5"
+          ariaLabel="Prosedyre-seksjoner"
+        />
 
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-4 sm:grid-cols-2">

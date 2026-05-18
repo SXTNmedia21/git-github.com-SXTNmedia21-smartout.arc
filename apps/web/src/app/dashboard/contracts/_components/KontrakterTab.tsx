@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { FileEdit } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@smartout/ui";
 import { ContractsDataTable } from "./contracts-data-table";
 import { groupByBucket, type ContractStatus, type DashboardBucket } from "../filters";
 
@@ -121,33 +121,47 @@ export function KontrakterTab({
         </div>
       )}
 
-      {/* Bucket sub-filters — typography-led, spring tab indicator inherited from shadcn Tabs */}
-      <Tabs value={activeBucket} onValueChange={handleBucketChange} className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">{t("buckets.all")}</TabsTrigger>
-          {BUCKET_KEYS.map((bucket) => (
-            <TabsTrigger key={bucket} value={bucket}>
-              {t(`buckets.${bucket}`)}
-              {bucketCounts[bucket] > 0 && (
-                <span className="bg-muted text-muted-foreground ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-xs font-medium">
-                  {bucketCounts[bucket]}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {/* Each tab renders the data table — bucket-specific filtering is
-            handled by the data table's own status select for now */}
-        <TabsContent value="all">
-          <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
-        </TabsContent>
+      {/* Bucket sub-filters — chip-row (nested Tabs forbidden per spec §3.2) */}
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Kontrakt-bucket">
+        {/* "all" bucket */}
+        <button
+          key="all"
+          type="button"
+          onClick={() => handleBucketChange("all")}
+          data-active={activeBucket === "all" ? "true" : "false"}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+            activeBucket === "all"
+              ? "border-foreground/20 bg-foreground text-background"
+              : "border-border bg-muted/50 text-muted-foreground hover:bg-muted",
+          )}
+        >
+          {t("buckets.all")}
+        </button>
         {BUCKET_KEYS.map((bucket) => (
-          <TabsContent key={bucket} value={bucket}>
-            <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
-          </TabsContent>
+          <button
+            key={bucket}
+            type="button"
+            onClick={() => handleBucketChange(bucket)}
+            data-active={activeBucket === bucket ? "true" : "false"}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              activeBucket === bucket
+                ? "border-foreground/20 bg-foreground text-background"
+                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {t(`buckets.${bucket}`)}
+            {bucketCounts[bucket] > 0 && (
+              <span className="ml-1.5 opacity-70">{bucketCounts[bucket]}</span>
+            )}
+          </button>
         ))}
-      </Tabs>
+      </div>
+
+      {/* Each bucket renders the data table — bucket-specific filtering is
+          handled by the data table's own status select for now */}
+      <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
     </div>
   );
 }
