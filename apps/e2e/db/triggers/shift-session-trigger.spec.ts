@@ -10,9 +10,21 @@
 //
 // Requires local Supabase running (npx supabase start) and
 // SUPABASE_SERVICE_ROLE_KEY in env (op run --env-file=.env.template).
+//
+// When SUPABASE_SERVICE_ROLE_KEY is absent (e.g. plain `pnpm test` without
+// op run), the entire suite is SKIPPED rather than crashing — the vitest
+// runner does not inject Supabase env vars.
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "../helpers/clients";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@smartout/supabase";
+
+// ---------------------------------------------------------------------------
+// Skip guard — vitest run without Supabase env must not crash
+// ---------------------------------------------------------------------------
+
+const HAS_SUPABASE_ENV = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ---------------------------------------------------------------------------
 // Well-known seed IDs — set by supabase/seed.sql
@@ -26,7 +38,9 @@ const SEED_PROFILE_ID = "f0000000-0000-0000-0000-000000000002"; // Erik Pedersen
 // Test session date — isolated to avoid colliding with existing sessions.
 const TEST_DATE = "2099-07-01"; // far future; no session seeded by default
 
-const sb = createServiceClient();
+// Client is initialised lazily inside beforeAll — createServiceClient() calls
+// createClient() immediately and supabase-js throws when the key is empty.
+let sb: SupabaseClient<Database>;
 
 // Created objects tracked for cleanup.
 let testSessionId: string | null = null;
@@ -39,6 +53,12 @@ const insertedDayLineIds: string[] = [];
 // ---------------------------------------------------------------------------
 
 beforeAll(async () => {
+  if (!HAS_SUPABASE_ENV) return; // skip setup when env absent
+
+  // Initialise client lazily — avoids supabase-js "key is required" crash when
+  // the test runner does not inject SUPABASE_SERVICE_ROLE_KEY.
+  sb = createServiceClient();
+
   // Ensure department_location pairing exists (needed for junction population).
   await sb
     .from("department_location")
@@ -81,6 +101,7 @@ beforeAll(async () => {
 // ---------------------------------------------------------------------------
 
 afterAll(async () => {
+  if (!HAS_SUPABASE_ENV || !sb) return;
   if (insertedShiftIds.length > 0) {
     await sb.from("schedule_shift").delete().in("schedule_shift_id", insertedShiftIds);
   }
@@ -132,7 +153,9 @@ async function insertShift(overrides: {
 // Tests: ensure_shift_session trigger (BT3-1)
 // ---------------------------------------------------------------------------
 
-describe("ensure_shift_session trigger (BT3-1)", () => {
+// skipIf guard: when SUPABASE_SERVICE_ROLE_KEY is absent (plain `pnpm test`),
+// these DB integration tests are skipped — they require a live local Supabase.
+describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () => {
   it("skips when location_id is NULL — no shift_session created", async () => {
     const shiftId = await insertShift({ location_id: null });
 
@@ -245,7 +268,7 @@ describe("ensure_shift_session trigger (BT3-1)", () => {
 // Tests: back_populate_shift_session_day_line trigger (BT3-2)
 // ---------------------------------------------------------------------------
 
-describe("back_populate_shift_session_day_line trigger (BT3-2)", () => {
+describe.skipIf(!HAS_SUPABASE_ENV)("back_populate_shift_session_day_line trigger (BT3-2)", () => {
   it("populates junction when day_line is inserted AFTER shift_session already exists", async () => {
     // Step 1: Insert shift → ensure_shift_session fires → shift_session created.
     const shiftId = await insertShift({
