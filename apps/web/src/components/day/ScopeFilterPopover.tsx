@@ -1,16 +1,21 @@
 "use client";
 
 /**
- * ScopeFilterPopover — 3-tab selector (Avdeling / Team / Vakt) rendered
- * inside a Popover. Opens from ScopeFilterPill.
+ * ScopeFilterPopover — two exports:
  *
- * Fetches departments, teams, and today's shifts from Supabase.
- * Respects authority: managers only see their own dept when dept_id is provided.
- * Emits telemetry on every scope change.
+ * 1. ScopeFilterPopoverContent (legacy single-select, tabbed) — used by ScopeFilterPill.
+ *    Fetches departments, teams, and today's shifts from Supabase.
+ *    Respects authority: managers only see their own dept when dept_id is provided.
+ *
+ * 2. ScopeFilterPopover (multi-select, OR-within / AND-between dimensions) — ADR-0367 W7-W9.
+ *    Accepts pre-fetched option lists; caller manages state.
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Building, Clock, MapPin, Users, X } from "lucide-react";
+import { Building, Clock, Filter, MapPin, Users, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@smartout/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -393,6 +398,146 @@ export function ScopeFilterPopoverContent({
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Multi-select ScopeFilterPopover (ADR-0367 W7-W9) ────────────────────────
+//
+// New component: OR-within-dimension, AND-between-dimensions filter.
+// Accepts pre-fetched option lists so the popover renders without internal
+// data fetching — caller controls data loading strategy.
+
+export type ScopeSelection = {
+  departmentIds: string[];
+  locationIds: string[];
+  shiftIds: string[];
+};
+
+type MultiSelectOption = { id: string; name: string };
+
+type ScopeFilterPopoverProps = {
+  selection: ScopeSelection;
+  onChange: (next: ScopeSelection) => void;
+  departments: MultiSelectOption[];
+  locations: MultiSelectOption[];
+  shifts: MultiSelectOption[];
+};
+
+export function ScopeFilterPopover({
+  selection,
+  onChange,
+  departments,
+  locations,
+  shifts,
+}: ScopeFilterPopoverProps) {
+  const toggle = (key: keyof ScopeSelection, id: string) => {
+    const current = selection[key];
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    onChange({ ...selection, [key]: next });
+  };
+
+  const totalSelected =
+    selection.departmentIds.length +
+    selection.locationIds.length +
+    selection.shiftIds.length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" data-testid="scope-filter-trigger">
+          <Filter className="mr-2 h-4 w-4" />
+          Filter
+          {totalSelected > 0 && (
+            <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+              {totalSelected}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-80 border-border bg-background/95 backdrop-blur-xl"
+        data-testid="scope-filter-popover"
+      >
+        <section className="space-y-3">
+          <ScopeFilterDim
+            title="Avdeling"
+            options={departments}
+            selected={selection.departmentIds}
+            onToggle={(id) => toggle("departmentIds", id)}
+            testid="dim-department"
+          />
+          <ScopeFilterDim
+            title="Område"
+            options={locations}
+            selected={selection.locationIds}
+            onToggle={(id) => toggle("locationIds", id)}
+            testid="dim-location"
+          />
+          <ScopeFilterDim
+            title="Vakt"
+            options={shifts}
+            selected={selection.shiftIds}
+            onToggle={(id) => toggle("shiftIds", id)}
+            testid="dim-shift"
+          />
+        </section>
+        {totalSelected > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3 w-full"
+            data-testid="scope-filter-clear"
+            onClick={() =>
+              onChange({ departmentIds: [], locationIds: [], shiftIds: [] })
+            }
+          >
+            Nullstill
+          </Button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ScopeFilterDim({
+  title,
+  options,
+  selected,
+  onToggle,
+  testid,
+}: {
+  title: string;
+  options: MultiSelectOption[];
+  selected: string[];
+  onToggle: (id: string) => void;
+  testid: string;
+}) {
+  if (options.length === 0) return null;
+
+  return (
+    <div className="space-y-2" data-testid={testid}>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      <ul className="space-y-1">
+        {options.map((o) => (
+          <li key={o.id} className="flex items-center gap-2">
+            <Checkbox
+              id={`${testid}-${o.id}`}
+              checked={selected.includes(o.id)}
+              onCheckedChange={() => onToggle(o.id)}
+            />
+            <label
+              htmlFor={`${testid}-${o.id}`}
+              className="text-sm text-foreground"
+            >
+              {o.name}
+            </label>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
