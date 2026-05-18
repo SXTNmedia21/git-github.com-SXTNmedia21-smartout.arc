@@ -14,6 +14,19 @@ import type { Json } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
 import { buildOnboardingShellIntelligence, type SignupSetupData } from "./onboarding-shell";
 
+/**
+ * Discriminated result from completeSignup.
+ *
+ * ok=true: workspace provisioned; caller should redirect to /onboarding.
+ * ok=false, reason=session_expired: Supabase session resolved to null (cookies
+ *   expired between wizard load and submit). Caller should redirect to
+ *   /login?return_to=/join&reason=expired so the user can re-auth and resume.
+ * ok=false, reason=system_error: unexpected failure; message contains details.
+ */
+export type CompleteSignupResult =
+  | { ok: true; workspaceId: string; slug: string }
+  | { ok: false; reason: "session_expired" | "system_error"; message?: string };
+
 type DbIndustry = "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
 
 const INDUSTRY_MAP: Record<string, DbIndustry> = {
@@ -94,26 +107,47 @@ async function findExistingWorkspace(
  * Completes public signup by provisioning or reusing an onboarding shell.
  * Why: `/join` owns provisional intake, while `/onboarding` owns final workspace truth.
  *
- * @returns The workspace shell identity used for the `/onboarding` handoff
+ * Returns a discriminated result rather than throwing so callers can handle
+ * session_expired gracefully (redirect to /login) vs system_error (surface to user).
  */
-export async function completeSignup(data: SignupSetupData, accessToken?: string) {
+export async function completeSignup(data: SignupSetupData): Promise<CompleteSignupResult> {
   const admin = createAdminClient();
 
-  // Try cookie-based auth first, fall back to token passed from client.
-  // Why: after signUp(), cookies may not be available to the server action
-  // in the same request cycle — the browser hasn't sent them yet.
-  let user: { id: string; email?: string } | null = null;
-
+  // Auth: trust the verified-user path. The client (wizard-definition.ts
+  // onComplete) calls getSession() + getUser() before posting to this
+  // action so any pending refresh-token rotation is flushed to cookies
+  // before the request lands here. We do NOT call getSession() server-side
+  // because @supabase/auth-js GoTrueClient.__loadSession (auth-js
+  // src/GoTrueClient.ts:1138-1160) still triggers _callRefreshToken on
+  // expiry regardless of `autoRefreshToken: false` — which was the very
+  // race that produced "refresh_token_already_used" 500s on prod
+  // (2026-05-18). Single getUser() roundtrip is the supported pattern
+  // per Supabase docs for Next.js Server Actions.
   const supabase = await createClient();
-  const { data: cookieAuth } = await supabase.auth.getUser();
-  user = cookieAuth?.user ?? null;
-
-  if (!user && accessToken) {
-    const { data: tokenAuth } = await admin.auth.getUser(accessToken);
-    user = tokenAuth?.user ?? null;
+  const { data: authData, error: authErr } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
+  if (!user) {
+    if (authErr) {
+      console.error("[completeSignup] auth failed:", authErr.code, authErr.message);
+    }
+    // Classify the failure. Auth-class errors → user-recoverable (route to /login).
+    // System-class errors (network, 5xx, unknown) → unrecoverable (toast + retry).
+    const authErrorCodes = new Set([
+      "session_not_found",
+      "bad_jwt",
+      "refresh_token_not_found",
+      "refresh_token_already_used",
+      "user_not_found",
+    ]);
+    if (authErr?.code && authErrorCodes.has(authErr.code)) {
+      return { ok: false, reason: "session_expired" };
+    }
+    if (!authErr) {
+      // null user with no error = cookie present but session resolved to no user; treat as expired.
+      return { ok: false, reason: "session_expired" };
+    }
+    return { ok: false, reason: "system_error", message: "Auth lookup failed. Please try again." };
   }
-
-  if (!user) throw new Error("Not authenticated");
 
   // ── Check for existing onboarding workspace to reuse ──────────
   // If the user already has a workspace in onboarding state, reuse it.
@@ -150,9 +184,9 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     );
 
     if (provisionError || !workspaceId) {
-      throw new Error(
-        `Failed to provision onboarding workspace: ${provisionError?.message ?? "unknown"}`,
-      );
+      const msg = `Failed to provision onboarding workspace: ${provisionError?.message ?? "unknown"}`;
+      console.error("[completeSignup]", msg);
+      return { ok: false, reason: "system_error", message: msg };
     }
 
     const { data: provisionedWorkspace, error: workspaceError } = await admin
@@ -162,9 +196,9 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
       .single();
 
     if (workspaceError || !provisionedWorkspace) {
-      throw new Error(
-        `Failed to load onboarding workspace: ${workspaceError?.message ?? "unknown"}`,
-      );
+      const msg = `Failed to load onboarding workspace: ${workspaceError?.message ?? "unknown"}`;
+      console.error("[completeSignup]", msg);
+      return { ok: false, reason: "system_error", message: msg };
     }
 
     workspace = provisionedWorkspace as WorkspaceShellRow;
@@ -191,7 +225,9 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     .eq("workspace_id", workspace.workspace_id);
 
   if (workspaceUpdateError) {
-    throw new Error(`Failed to update onboarding workspace: ${workspaceUpdateError.message}`);
+    const msg = `Failed to update onboarding workspace: ${workspaceUpdateError.message}`;
+    console.error("[completeSignup]", msg);
+    return { ok: false, reason: "system_error", message: msg };
   }
 
   if (workspace.company_id) {
@@ -229,7 +265,9 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     .single();
 
   if (profileError || !profileData) {
-    throw new Error(`Failed to update onboarding profile: ${profileError?.message ?? "unknown"}`);
+    const msg = `Failed to update onboarding profile: ${profileError?.message ?? "unknown"}`;
+    console.error("[completeSignup]", msg);
+    return { ok: false, reason: "system_error", message: msg };
   }
 
   const actorId = profileData.profile_id;
@@ -377,5 +415,5 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     await admin.from("invitation").insert(invitations);
   }
 
-  return { workspaceId: workspace.workspace_id, slug: workspace.slug };
+  return { ok: true, workspaceId: workspace.workspace_id, slug: workspace.slug };
 }

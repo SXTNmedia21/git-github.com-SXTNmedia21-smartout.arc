@@ -298,7 +298,7 @@ async function sendEmailInvite(recipientEmail: string, inviteUrl: string, worksp
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: recipientEmail }] }],
-        from: { email: "noreply@smartout.io", name: "Smartout" },
+        from: { email: "noreply@smartout.ai", name: "Smartout" },
         subject: `You've been invited to join ${workspaceName} on Smartout`,
         content: [
           {

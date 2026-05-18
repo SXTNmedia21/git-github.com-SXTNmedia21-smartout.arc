@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["PLACEHOLDER_TEAM_ID.ai.smartout.mobile"],
+        "components": [
+          { "/": "/invite/*", "comment": "Invitation accept (portal canonical URL)" },
+          { "/": "/m/auth/callback", "comment": "OAuth post-exchange Universal Link" }
+        ]
+      }
+    ]
+  }
+}

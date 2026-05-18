@@ -5,7 +5,7 @@ export interface BaseEvent {
   // Nullable when an event is genuinely platform-scoped (billing_activity_log).
   // When present, must be NonEmptyString — no "" fallback permitted (ADR-0193).
   workspace_id: NonEmptyString | null;
-  actor_id: NonEmptyString; // profile_id representing who performed the action
+  actor_id: NonEmptyString | null; // profile_id; null for pre-auth events where no identity exists yet
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
 }
@@ -345,6 +345,32 @@ export interface AuthPasswordResetCompleted extends BaseEvent {
       user_id: string;
       // "migration" = force_password_reset flag cleared; "self_service" = normal reset flow.
       context: "migration" | "self_service";
+    };
+  };
+}
+
+// Mobile auth Universal-Link bridge — fires from the `/m/*` web bridge routes
+// when a non-installer (desktop browser, or mobile without app installed) lands
+// on a Universal-Link target. Lets us measure cross-device drop-off
+// (email-on-desktop → bridge → fallback vs Universal-Link → app native).
+//
+// When app IS installed, the OS intercepts the URL before any web render runs —
+// no `bridge_relayed` fires. So the absence of this event for a given session
+// indicates successful app-intent capture.
+export interface AuthBridgeRelayed extends BaseEvent {
+  event: "auth bridge_relayed";
+  properties: {
+    data: {
+      surface:
+        | "oauth_callback"
+        | "invite_callback"
+        | "update_password"
+        | "confirm_email"
+        | "invite_token";
+      // True if the bridge fired the scheme-URL relay before the fallback
+      // HTML renders (best-effort — we cannot detect whether the OS intent
+      // actually opened the app, only whether we attempted the relay).
+      relay_attempted: boolean;
     };
   };
 }
@@ -8190,6 +8216,7 @@ export type SmartoutEvent =
   | LoginCodeSent
   | AuthPasswordResetRequested
   | AuthPasswordResetCompleted
+  | AuthBridgeRelayed
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -8566,7 +8593,11 @@ export type SmartoutEvent =
   // ─── Payroll Tariff View Events (Phase 7g, 2026-05-17) ───────────────────
   // Read-path telemetry (PostHog + Logger only; no activity_trail — view events).
   | PayrollTariffViewLoaded
-  | PayrollTariffViewLoadedMobile;
+  | PayrollTariffViewLoadedMobile
+  // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────
+  // Pre-auth events fired when an expired Supabase session is detected at /join.
+  | JoinSessionExpiredRescued
+  | JoinSessionExpiredAtSubmit;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -10073,6 +10104,43 @@ export interface PayrollTariffViewLoadedMobile extends BaseEvent {
       route: string; // "(me)/tariff" screen identifier
       is_bound: boolean; // whether the workspace has an active tariff binding at load time
       viewed_at: string; // ISO 8601 timestamp
+    };
+  };
+}
+
+// ─── Join Session Recovery Events (ADR-0358, feat/join-expired-session-rescue, 2026-05-18) ──
+//
+// Pre-auth /join surface events. workspace_id is null (no workspace exists yet at
+// this point in the signup flow). actor_id is "anonymous" (user identity not yet
+// resolved — Supabase session is absent by definition when these fire).
+//
+// Routing rationale:
+//   join.session_expired_rescued: posthog + logger only. Load-time detection event;
+//     no workspace or actor for activity_trail; analytics-only (conversion funnel).
+//   join.session_expired_at_submit: posthog + logger only. Submit-time detection;
+//     same pre-auth rationale. No engine_event: no workflow state machine to advance.
+
+export interface JoinSessionExpiredRescued extends BaseEvent {
+  event: "join.session_expired_rescued";
+  properties: {
+    data: {
+      /** Whether a valid (in-TTL) wizard envelope was found in localStorage. */
+      has_envelope: boolean;
+      /**
+       * How old the envelope was when the redirect fired (hours, one decimal).
+       * Null when the age could not be computed (parse failure).
+       */
+      envelope_age_hours: number | null;
+    };
+  };
+}
+
+export interface JoinSessionExpiredAtSubmit extends BaseEvent {
+  event: "join.session_expired_at_submit";
+  properties: {
+    data: {
+      /** The wizard step index that triggered onComplete (6 = Step 6 Summary). */
+      wizard_step: number;
     };
   };
 }
@@ -11889,6 +11957,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "auth",
   },
+  // emit sites: apps/web/src/app/m/{auth/callback,invite/callback,invite/[token],update-password,confirm-email}/page.tsx
+  // Pre-auth visitor event — no actor_id yet. Skip activity_trail (ADR-0134 NOT NULL invariant).
+  "auth bridge_relayed": {
+    destinations: ["posthog", "logger"],
+    category: "auth",
+  },
   // ─── Security ─────────────────────────────────
   "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
   "security lockout_triggered": {
@@ -13532,5 +13606,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.tariff_view_loaded_mobile": {
     destinations: ["posthog", "logger"],
     category: "payroll",
+  },
+
+  // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────
+  // Pre-auth events — posthog + logger only.
+  // No activity_trail: no workspace or actor identity resolved (pre-auth surface).
+  // No engine_event: load-time / submit-time detection; no workflow to advance.
+  "join.session_expired_rescued": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+  "join.session_expired_at_submit": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
   },
 };

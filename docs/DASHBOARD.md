@@ -1,8 +1,8 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-17
-last-event: /status regenerate — campaign/payroll merged to development (88a0c2a94 merge-commit, 39 commits, ADR-0213 ancestry preserved); registry-uniqueness 30s budget fix + pnpm ci:local infrastructure (19 gates green).
+updated: 2026-05-18
+last-event: PR #402 merged to development (5546f53f6) — smartout.io → smartout.ai across notifications + 2 EFs + signing logo + seed migration. Vercel rebuilds dev preview.
 last-reconciled: 2026-05-17T16:15Z
 module: meta
 scope: global

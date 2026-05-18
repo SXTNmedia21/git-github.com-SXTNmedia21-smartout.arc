@@ -5,7 +5,7 @@ export interface LogEntry {
   level: "info" | "warn" | "error";
   action: string;
   category: string;
-  actor_id: string;
+  actor_id: string | null;
   workspace_id: string | null;
   correlation_id?: string;
   properties: Record<string, unknown>;

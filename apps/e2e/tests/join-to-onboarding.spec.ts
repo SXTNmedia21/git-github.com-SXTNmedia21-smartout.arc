@@ -9,9 +9,8 @@ const TEST_EMAIL = `e2e-onb-${UNIQUE_SUFFIX}@smartout.test`;
 const TEST_PASSWORD = "TestPass123!";
 
 async function waitForStepHeading(page: Page, pattern: RegExp, timeoutMs = 30_000) {
-  const heading = page
-    .locator("main h2, [data-botsson-type='wizard-step'] h2")
-    .filter({ hasText: pattern });
+  // Step containers have NO data-botsson-id attributes — use heading text directly.
+  const heading = page.locator("main h2").filter({ hasText: pattern });
   await expect(heading.first()).toBeVisible({ timeout: timeoutMs });
 }
 

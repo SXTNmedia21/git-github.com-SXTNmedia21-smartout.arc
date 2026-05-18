@@ -62,8 +62,7 @@ export function ProgressRing({ total, completed, hasError = false, size = 56 }: 
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           // Rotate so progress starts from 12 o'clock
-          rotation={-90}
-          origin={`${cx}, ${cy}`}
+          transform={`rotate(-90 ${cx} ${cy})`}
         />
       </Svg>
       <View style={[StyleSheet.absoluteFillObject, styles.labelContainer]}>
