@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-05-18
 created: 2026-05-18
 module: announcements
-tags: [module, announcements, user-flows, journeys, admin, employee, web, mobile]
+tags: [module, announcements, user-flows, journeys, admin, employee, web, mobile, v2, kind, tier, entity-link]
 ---
 
 # Announcements — User Flows
@@ -238,3 +238,129 @@ No journey docs exist for this module yet. Candidates to author when blueprint p
 | (planned) | Employee receives push, opens, reacts | employee | unwritten |
 | (planned) | Employee views pinned strip on web bulletin | employee | unwritten |
 | (planned) | Agent publishes via `publish_announcement` capability | system (Mr. Botsson) | unwritten |
+
+---
+
+## V2 — kind / tier / entity-link extension
+
+> V2 spec: `docs/superpowers/specs/2026-05-18-announcement-kind-tier-link-design-v2.md`
+> Journey doc: `docs/journeys/JOURNEY-announce-kind-tier-link.md`
+> ADRs: ADR-0369 (RPC body fan-out), ADR-0370 (capability boundary), ADR-0371 (schema contract)
+
+V2 ships three orthogonal fields on every announcement:
+
+| Field | Table | Values |
+|---|---|---|
+| `kind` | `announcement_meta` | `workspace_news` · `celebration` · `urgent` · `information` · `policy_update` |
+| `tier` | `announcement_meta` | `social` · `work` · `external` |
+| `entity_link_type` + `linked_entity_id` | `announcement_meta` | nullable pair: `staff_event` · `schedule_shift` · `policy` · `protocol` |
+
+All three fields are stored in the `announcement_meta` sidecar table (created in M2). They are
+populated atomically via `publish_announcement_atomic` RPC (M4). The Wave A `channel_message`
+table is unchanged (ADR-0371 Option A — schema contract preserved).
+
+---
+
+### V2.1 Composing a typed announcement
+
+> Composer pickers (AnnouncementKindPicker, AnnouncementTierPicker) are deferred to Track E.
+> This section documents the intended flow for when pickers ship.
+
+**Intended flow:**
+
+1. Operator opens any of the four composer doors (D1 header, D2 cockpit, D3 bulletin, D4 Day-Control).
+2. Operator writes title + body as before.
+3. Operator opens **AnnouncementKindPicker** → selects one of 5 kind values.
+4. System auto-suggests a tier based on selected kind (e.g. `celebration → social`,
+   `urgent → external`). Operator can override via **AnnouncementTierPicker**.
+5. Operator submits. `publish_announcement_atomic` RPC receives `kind` + `tier` in body.
+6. RPC writes `announcement_meta` row atomically alongside `channel_message`.
+7. Fan-out helper `fn_publish_announcement_notifications` resolves allowed channels from the
+   tier mapping configured for the workspace (e.g. `external → ['email','push','in_app']`).
+
+**Before pickers ship (V2 today):**
+
+All four composer paths call `publish_announcement_atomic` with `kind` and `tier` defaulting
+to `workspace_news` / `work` respectively. Day-Control server action (`send-broadcast-action.ts`)
+uses the same RPC with these defaults. Kind/tier pickers are planned Track E deliverables.
+
+---
+
+### V2.2 Linking to an entity
+
+**Intended flow (Track E + G):**
+
+1. Operator, while composing, optionally opens an **EntityLinkPicker**.
+2. Picker presents a search UI for the linked entity type (e.g. "Arrangement", "Vakt", "Policy").
+3. Operator selects one entity.
+4. Picker writes `entity_link_type` + `linked_entity_id` into the draft payload.
+5. `publish_announcement_atomic` RPC persists both columns in `announcement_meta`.
+6. On the read side, `get_channel_messages` (extended in M6) returns the sidecar columns.
+7. **EntityLinkCTA** component renders a deep-link button: e.g. "Vis arrangement →".
+
+**Current state:**
+
+M6 migration extended `get_channel_messages` to return `kind`, `tier`, `entity_link_type`,
+and `linked_entity_id` columns. EntityLinkPicker (Track E) and EntityLinkCTA mobile mount
+(Track G) are deferred. The data contract is live; UI components pending.
+
+---
+
+### V2.3 External tier urgent path — email + push channel routing
+
+The `tier` field drives channel fan-out. Tier→channel mappings are configured per workspace
+in the V2 notification pipeline:
+
+| Tier | Default allowed channels | Notes |
+|---|---|---|
+| `social` | `in_app` | Low-priority social broadcasts. |
+| `work` | `push` · `in_app` | Standard operating broadcasts. |
+| `external` | `email` · `push` · `in_app` | High-priority, crosses channels. |
+
+When `tier='external'` is set, `fn_publish_announcement_notifications` inserts
+`notification_outbox` rows for all three channels. The email row is consumed by the SendGrid
+webhook consumer. Push is consumed by Expo push notification service. In-app updates the
+realtime feed.
+
+**Operator experience:**
+
+- Manager selects `urgent` kind → system suggests `external` tier → manager confirms.
+- Sends → all recipients receive email + push + in-app.
+- Bulletin board card renders with **TierBadge** in the external-tier accent colour (high
+  contrast, urgency signalling).
+
+**Failure modes:**
+
+- Email channel not configured → SendGrid rows skipped; push + in_app still fire.
+- Workspace has `external` tier mapping overridden to exclude email → only push + in_app fire;
+  RPC does not error.
+
+---
+
+### V2.4 Mobile bulletin V2 enhancements — TierBadge tier-color visualization
+
+> Mobile is read-only for announcements per ADR-0133. No publish surface on mobile.
+
+The `TierBadge` component (`ad5867593`) shipped as part of V2. It renders a small badge on
+the announcement card indicating the tier context of the broadcast.
+
+**TierBadge behavior:**
+
+| Tier | Visual | Semantic |
+|---|---|---|
+| `social` | Warm neutral accent | "This is celebratory / community info." |
+| `work` | Professional neutral | "This is standard operating comms." |
+| `external` | High-contrast urgent accent | "This crosses channels — read now." |
+| `null` (pre-V2 row) | Hidden (null-safe render) | Graceful fallback for Wave A rows. |
+
+**EntityLinkCTA (deferred — Track G):**
+
+The EntityLinkCTA component will render a tappable CTA button beneath the announcement body
+when `entity_link_type` is non-null. It deep-links to the referenced entity within the mobile
+app. Track G mount is deferred pending RAM headroom in a follow-up session.
+
+**Mobile read surface (current state):**
+
+Announcements appear inside the `news` channel chat view. M6 RPC columns are returned; the
+mobile renderer conditionally shows `TierBadge` based on `tier` value. EntityLinkCTA renders
+nothing until Track G ships (component exists; mount deferred).
