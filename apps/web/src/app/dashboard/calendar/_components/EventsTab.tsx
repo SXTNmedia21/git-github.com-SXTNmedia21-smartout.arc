@@ -1,5 +1,7 @@
 "use client";
 
+import { format, parseISO } from "date-fns";
+import { nb } from "date-fns/locale";
 import { CalendarClock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type CalendarEvent, EVENT_COLOR_HEX } from "../_lib/types";
@@ -58,7 +60,8 @@ export function EventsTab({ events, onAdd, onOpen }: EventsTabProps) {
                   <div>
                     <div className="text-foreground text-sm font-semibold">{event.title}</div>
                     <div className="text-muted-foreground text-xs">
-                      {event.date} · {String(event.startHour).padStart(2, "0")}:00 –{" "}
+                      {format(parseISO(event.date), "d. MMM yyyy", { locale: nb })} ·{" "}
+                      {String(event.startHour).padStart(2, "0")}:00–
                       {String(event.endHour).padStart(2, "0")}:00
                     </div>
                   </div>

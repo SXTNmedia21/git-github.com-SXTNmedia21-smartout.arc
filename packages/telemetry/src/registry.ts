@@ -4183,9 +4183,13 @@ export interface ChannelMessageSent extends BaseEvent {
     target_profile_count?: number;
     notification_priority?: number;
     notification_mode?: string;
-    // V2 extensions — kind/tier/link/tags (Track D)
+    // V2 extensions — kind/tier/link/tags (Track D + Track F)
     announcement_kind?: string;
     announcement_tier?: string;
+    announcement_tag_count?: number;
+    announcement_has_link?: boolean;
+    announcement_link_type?: string;  // AnnouncementLinkType
+    announcement_tier_overridden?: boolean;
     has_entity_link?: boolean;
     tag_count?: number;
   };
@@ -4283,6 +4287,37 @@ export interface NewsPostReacted extends BaseEvent {
   event: "news.post.reacted";
   properties: { channel_id: string; emoji: string };
   entity: EntityRef;
+}
+
+// ─── Announcement V2 Events (Track F — §12 spec 2026-05-18) ──────────────────
+// Registered per ADR-0358: every event has a wired emit() call-site.
+export interface AnnouncementLinkFollowed extends BaseEvent {
+  event: "announcement.link_followed";
+  properties: {
+    message_id: string;
+    kind: string;       // AnnouncementKind
+    link_type: string;  // AnnouncementLinkType
+    link_id: string;
+  };
+  entity: EntityRef; // entity_type: 'channel_message', entity_id: message_id
+}
+
+export interface AnnouncementKindChanged extends BaseEvent {
+  event: "announcement.kind_changed";
+  properties: {
+    from_kind: string;
+    to_kind: string;
+    tier_auto_updated: boolean;
+  };
+}
+
+export interface AnnouncementTierOverridden extends BaseEvent {
+  event: "announcement.tier_overridden";
+  properties: {
+    kind: string;
+    default_tier: string;
+    chosen_tier: string;
+  };
 }
 
 // ─── Website Factory Events ────────────────────
@@ -8236,6 +8271,9 @@ export type SmartoutEvent =
   | KnowledgeShared
   | NewsPostCreated
   | NewsPostReacted
+  | AnnouncementLinkFollowed
+  | AnnouncementKindChanged
+  | AnnouncementTierOverridden
   | WebsiteCreated
   | WebsitePublished
   | WebsiteUnpublished
@@ -11984,6 +12022,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "news.post.reacted": {
     destinations: ["posthog"],
+    category: "channels",
+  },
+
+  // Announcement V2 events (Track F — spec §12, ADR-0358)
+  "announcement.link_followed": {
+    destinations: ["posthog", "activity_trail"], // skip logger: volume concern (§12.2)
+    category: "channels",
+  },
+  "announcement.kind_changed": {
+    destinations: ["posthog"], // composer analytics only (§12.3)
+    category: "channels",
+  },
+  "announcement.tier_overridden": {
+    destinations: ["posthog", "activity_trail"], // §12.4
     category: "channels",
   },
 
