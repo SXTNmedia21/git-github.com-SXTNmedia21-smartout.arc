@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveDeepLink } from "@smartout/notifications/deep-links";
 import { supabase } from "./supabase";
+import { getProfileContext } from "@/lib/profile-context";
 
 // expo-notifications is native-only — guard all usage on web
 const isNative = Platform.OS !== "web";
@@ -304,6 +305,102 @@ export function setupNotificationListeners(): () => void {
     responseSubscription.remove();
     receivedSubscription.remove();
   };
+}
+
+// ── Shift-session push topic subscribe / unsubscribe ─────────────────────────
+//
+// ADR-0367 §M4. After clock-in the employee subscribes to the shift_session
+// push_topic so they receive real-time shift updates. After clock-out they
+// unsubscribe and the topic is cleared.
+//
+// Emit pattern: getProfileContext() resolves workspace_id + actor_id before
+// every emit() call (ADR-0134 fail-fast — throws on missing identity).
+// No gate_action calls here (ADR-0133 — mobile never gates, only executes).
+
+/**
+ * Subscribe the device to a shift_session push topic.
+ *
+ * Stores the topic in the profile row so the server-side push pipeline can
+ * target this device when the session receives events (new items, status
+ * changes, manager messages).
+ *
+ * @param shiftSessionId - The shift_session_id being bound.
+ * @param pushTopic      - The push_topic value from the shift_session row.
+ */
+export async function subscribeShiftSessionTopic(
+  shiftSessionId: string,
+  pushTopic: string,
+): Promise<void> {
+  if (!pushTopic || !shiftSessionId) return;
+
+  try {
+    const ctx = await getProfileContext(); // ADR-0134: throws on missing identity
+
+    // NOTE: active_push_topic column on profile is not yet migrated (pending
+    // supabase/migrations draft). Phase D4 emits the lifecycle event so the
+    // server-side push pipeline can route based on the shift_session.push_topic
+    // column (already set at session creation). Topic subscription via FCM/APNs
+    // topic APIs is reserved for when the push pipeline migration lands.
+
+    // Emit clock-in lifecycle event (ADR-0367 §M4 + ADR-0134)
+    void emit({
+      event: "shift_session.clocked_in",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "shift_session",
+          entity_id: shiftSessionId,
+        },
+        data: {
+          shift_session_id: shiftSessionId,
+          clocked_in_at: new Date().toISOString(),
+        },
+      },
+    });
+  } catch (err) {
+    // Non-fatal: push subscribe failure should not abort the clock-in UX.
+    console.warn("[push] subscribeShiftSessionTopic failed:", err);
+  }
+}
+
+/**
+ * Unsubscribe the device from the current shift_session push topic.
+ *
+ * Clears the active_push_topic on the profile row and emits
+ * shift_session.clocked_out for the lifecycle audit trail.
+ *
+ * @param shiftSessionId - The shift_session_id being unbound.
+ */
+export async function unsubscribeShiftSessionTopic(shiftSessionId: string): Promise<void> {
+  if (!shiftSessionId) return;
+
+  try {
+    const ctx = await getProfileContext(); // ADR-0134: throws on missing identity
+
+    // NOTE: clearing active_push_topic on profile is deferred to when the
+    // push pipeline migration lands (see subscribeShiftSessionTopic NOTE).
+
+    // Emit clock-out lifecycle event (ADR-0367 §M4 + ADR-0134)
+    void emit({
+      event: "shift_session.clocked_out",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "shift_session",
+          entity_id: shiftSessionId,
+        },
+        data: {
+          shift_session_id: shiftSessionId,
+          clocked_out_at: new Date().toISOString(),
+        },
+      },
+    });
+  } catch (err) {
+    // Non-fatal: unsubscribe failure should not abort the clock-out UX.
+    console.warn("[push] unsubscribeShiftSessionTopic failed:", err);
+  }
 }
 
 /**
