@@ -227,8 +227,7 @@ Deno.test("T1 skip-no-token: profile.expo_push_token NULL → 0 pushes sent", as
   const { emit, calls } = makeEmitSpy();
 
   const result = await dispatchDayLinePush({
-    // deno-lint-ignore no-explicit-any
-    sb: client as any,
+    sb: client as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
     emit,
   });
 
@@ -255,8 +254,7 @@ Deno.test("T2 skip-not-clocked-in: shift_session.status='scheduled' → 0 pushes
   const { emit, calls } = makeEmitSpy();
 
   const result = await dispatchDayLinePush({
-    // deno-lint-ignore no-explicit-any
-    sb: client as any,
+    sb: client as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
     emit,
   });
 
@@ -289,8 +287,7 @@ Deno.test(
 
     // First invocation — should succeed and push once.
     const result1 = await dispatchDayLinePush({
-      // deno-lint-ignore no-explicit-any
-      sb: client as any,
+      sb: client as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
       emit: emit1,
     });
 
@@ -308,8 +305,7 @@ Deno.test(
     // Second invocation with the same client — engine_event INSERT returns 23505.
     const { emit: emit2, calls: calls2 } = makeEmitSpy();
     const result2 = await dispatchDayLinePush({
-      // deno-lint-ignore no-explicit-any
-      sb: client as any,
+      sb: client as unknown as Parameters<typeof dispatchDayLinePush>[0]["sb"],
       emit: emit2,
     });
 
