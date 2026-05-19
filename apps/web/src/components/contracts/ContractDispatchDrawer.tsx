@@ -50,7 +50,7 @@ import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 
 const ContractPreviewEditor = dynamic(
   () =>
-    import("@/app/dashboard/contracts/_components/contract-preview-editor").then((m) => ({
+    import("@/app/dashboard/people/contracts/_components/contract-preview-editor").then((m) => ({
       default: m.ContractPreviewEditor,
     })),
   { ssr: false, loading: () => <EditorSkeleton /> },

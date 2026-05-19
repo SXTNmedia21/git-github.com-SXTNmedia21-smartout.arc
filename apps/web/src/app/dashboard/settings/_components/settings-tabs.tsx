@@ -31,7 +31,9 @@ import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
 
 const MalerTab = lazy(() =>
-  import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+  import("@/app/dashboard/people/contracts/_components/MalerTab").then((m) => ({
+    default: m.MalerTab,
+  })),
 );
 
 const ContractTemplateBindingsSettings = lazy(() =>

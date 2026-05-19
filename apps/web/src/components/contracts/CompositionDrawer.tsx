@@ -53,19 +53,19 @@ import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import {
   useComposeContract,
   useSendContract,
-} from "@/app/dashboard/contracts/_hooks/use-employment-contracts";
-import { GhostValueCard } from "@/app/dashboard/contracts/_components/GhostValueCard";
-import { ComplianceBadge } from "@/app/dashboard/contracts/_components/ComplianceBadge";
-import { BlockerCounter } from "@/app/dashboard/contracts/_components/BlockerCounter";
-import { AcknowledgementRing } from "@/app/dashboard/contracts/_components/AcknowledgementRing";
-import { ReasoningDrawer } from "@/app/dashboard/contracts/_components/ReasoningDrawer";
+} from "@/app/dashboard/people/contracts/_hooks/use-employment-contracts";
+import { GhostValueCard } from "@/app/dashboard/people/contracts/_components/GhostValueCard";
+import { ComplianceBadge } from "@/app/dashboard/people/contracts/_components/ComplianceBadge";
+import { BlockerCounter } from "@/app/dashboard/people/contracts/_components/BlockerCounter";
+import { AcknowledgementRing } from "@/app/dashboard/people/contracts/_components/AcknowledgementRing";
+import { ReasoningDrawer } from "@/app/dashboard/people/contracts/_components/ReasoningDrawer";
 import { SelectEmployeeStep, type EmployeeProfile } from "./SelectEmployeeStep";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 
 const ContractPreviewEditor = dynamic(
   () =>
-    import("@/app/dashboard/contracts/_components/contract-preview-editor").then((m) => ({
+    import("@/app/dashboard/people/contracts/_components/contract-preview-editor").then((m) => ({
       default: withEntrance(m.ContractPreviewEditor),
     })),
   { ssr: false, loading: () => <EditorSkeleton /> },
