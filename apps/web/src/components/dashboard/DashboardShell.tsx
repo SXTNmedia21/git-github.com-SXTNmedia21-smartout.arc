@@ -1527,12 +1527,7 @@ function DashboardShellInner({
                           : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
                       } print:hidden`}
                     >
-                      <BreadcrumbActiveSlot
-                        isDark={isDark}
-                        isDocumentMode={isDocumentMode}
-                        pathname={pathname}
-                        t={t}
-                      />
+                      <BreadcrumbActiveSlot />
 
                       <div className="flex items-center gap-5">
                         {/* Schedule page specific controls */}
@@ -1841,51 +1836,18 @@ function DashboardShellInner({
  * Per Pontus 2026-05-19 annotations A + B: title and sub-view tabs live
  * here, not in the page body and not in the top header.
  */
-function BreadcrumbActiveSlot({
-  isDark,
-  isDocumentMode,
-  pathname,
-  t,
-}: {
-  isDark: boolean;
-  isDocumentMode: boolean;
-  pathname: string;
-  t: (key: string) => string;
-}) {
+function BreadcrumbActiveSlot() {
   const { header, tabsNode } = usePageHeader();
 
   if (tabsNode) {
     return <>{tabsNode}</>;
   }
-
-  const fallbackLabel = isDocumentMode
-    ? t("shell.breadcrumb.doc_mode")
-    : ((
-        {
-          schedule: t("shell.segment.schedule"),
-          people: t("shell.segment.people"),
-          reports: t("shell.segment.reports"),
-          operations: t("shell.segment.operations"),
-          hms: t("shell.segment.hms"),
-          governance: t("shell.segment.hms"),
-          "year-wheel": t("shell.segment.year_wheel"),
-          calendar: t("shell.segment.calendar"),
-          organization: t("shell.segment.organization"),
-          settings: t("shell.segment.settings"),
-          help: t("shell.segment.help"),
-          komm: t("shell.segment.komm"),
-          ai: t("shell.segment.ai"),
-          "onboarding-assistant": t("shell.segment.onboarding_assistant"),
-          "my-schedule": t("shell.segment.my_schedule"),
-          "my-training": t("shell.segment.my_training"),
-          "my-cv": t("shell.segment.my_cv"),
-          "my-salary": t("shell.segment.my_salary"),
-        } as Record<string, string>
-      )[pathname.split("/").pop() ?? ""] ?? t("shell.segment.overview"));
-
-  const label = header?.title ?? fallbackLabel;
-
-  return <span>{label}</span>;
+  if (header?.title) {
+    return <span>{header.title}</span>;
+  }
+  // Pages that publish neither tabs nor title render no breadcrumb element —
+  // matches Pontus 2026-05-19: no URL-derived "Oversikt"-style fallback pill.
+  return null;
 }
 
 /**
