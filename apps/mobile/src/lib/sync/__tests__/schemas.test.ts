@@ -101,6 +101,61 @@ describe("offline write action schemas", () => {
     });
   });
 
+  // P0-A — ADR-0298 R3 source dispatch. Missing `source` means the BFF can't
+  // route to the correct task-source handler (session/personal/day_ad_hoc/emma).
+  // Pre-fix: schema only required `id`, sync handler PATCH'd legacy session-only
+  // endpoint → silent no-op for non-session sources.
+  describe("complete_task", () => {
+    it("accepts a well-formed payload with source", () => {
+      const payload = {
+        id: "11111111-1111-4111-8111-111111111111",
+        source: "personal" as const,
+      };
+      expect(validatePayload("complete_task", payload)).toEqual(payload);
+    });
+
+    it("rejects missing source discriminator (ADR-0298 R3)", () => {
+      expect(() =>
+        validatePayload("complete_task", {
+          id: "11111111-1111-4111-8111-111111111111",
+        }),
+      ).toThrow();
+    });
+
+    it("rejects invalid source value", () => {
+      expect(() =>
+        validatePayload("complete_task", {
+          id: "11111111-1111-4111-8111-111111111111",
+          source: "bogus",
+        }),
+      ).toThrow();
+    });
+  });
+
+  // P0-C — channel_message requires channel_id. Pre-fix: schema accepted any
+  // shape via catchall, useShiftChat (legacy chat_message path) wrote to
+  // channel_message with conversation_id → silent message loss. Loud throw now.
+  describe("send_message", () => {
+    it("accepts a well-formed payload with channel_id + sender_id", () => {
+      const payload = {
+        sender_id: "33333333-3333-4333-8333-333333333333",
+        channel_id: "44444444-4444-4444-8444-444444444444",
+        content: "hei",
+      };
+      expect(validatePayload("send_message", payload)).toEqual(payload);
+    });
+
+    it("rejects missing channel_id (silent-loss guard)", () => {
+      expect(() =>
+        validatePayload("send_message", {
+          sender_id: "33333333-3333-4333-8333-333333333333",
+          conversation_id: "55555555-5555-4555-8555-555555555555",
+          content: "hei",
+        }),
+      ).toThrow();
+    });
+  });
+
   describe("supplement_claim", () => {
     it("requires workspace_id and added_by", () => {
       expect(() =>

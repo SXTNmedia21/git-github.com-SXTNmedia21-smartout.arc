@@ -191,7 +191,7 @@ export default function PayrollHomeScreen() {
             <Text style={styles.bentoValue}>—</Text>
           </Pressable>
 
-          {/* Lønnsslipper */}
+          {/* Lønnsgrunnlag */}
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
@@ -203,7 +203,7 @@ export default function PayrollHomeScreen() {
               <FileText size={22} color={theme.colors.brandOrange} strokeWidth={1.5} />
             </View>
             <Text style={styles.bentoOverline}>Archive</Text>
-            <Text style={styles.bentoTitle}>Lønnsslipper</Text>
+            <Text style={styles.bentoTitle}>Lønnsgrunnlag</Text>
             <Text style={styles.bentoValue}>PDF Arkiv</Text>
           </Pressable>
         </View>

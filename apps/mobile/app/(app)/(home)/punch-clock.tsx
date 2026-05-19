@@ -34,6 +34,7 @@ import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
 import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
+import { ShiftChatUnavailableBanner } from "@/components/shift-clock/ShiftChatUnavailableBanner";
 import { strings } from "@/constants/strings";
 
 /** Formats elapsed time as HH:MM:SS */
@@ -464,9 +465,12 @@ export default function PunchClockScreen() {
             )}
 
             {activeTab === "chat" && (
-              <View style={styles.feedList}>
-                <Text style={styles.feedEmpty}>Åpne kanaler for å chatte</Text>
-              </View>
+              // P0-C gate: useShiftChat.sendMessage throws Zod at enqueue
+              // (sendMessageSchema requires channel_id — legacy hook has none).
+              // Banner replaces the input row; message list is not rendered yet
+              // since there is no read path wired here. Full shift chat surface
+              // lands with mobile-shift-chat-bff-migration follow-up sortie.
+              <ShiftChatUnavailableBanner />
             )}
 
             {activeTab === "notes" && (
