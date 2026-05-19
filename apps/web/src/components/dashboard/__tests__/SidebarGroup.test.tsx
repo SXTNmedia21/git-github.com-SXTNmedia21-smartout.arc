@@ -175,12 +175,12 @@ describe("SidebarGroup", () => {
           href: "/dashboard/people",
           icon,
           status: "live",
-          compositeActive: ["/dashboard/contracts"],
+          compositeActive: ["/dashboard/people/contracts"],
         },
       ],
     });
     const html = renderToStaticMarkup(
-      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/contracts" />,
+      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/people/contracts" />,
     );
     expect(html).toContain('data-active="true"');
   });
@@ -194,12 +194,12 @@ describe("SidebarGroup", () => {
           href: "/dashboard/people",
           icon,
           status: "live",
-          compositeActive: ["/dashboard/contracts"],
+          compositeActive: ["/dashboard/people/contracts"],
         },
       ],
     });
     const html = renderToStaticMarkup(
-      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/contracts/123" />,
+      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/people/contracts/123" />,
     );
     expect(html).toContain('data-active="true"');
   });

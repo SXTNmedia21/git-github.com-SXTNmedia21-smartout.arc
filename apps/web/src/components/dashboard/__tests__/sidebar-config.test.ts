@@ -74,12 +74,12 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
     expect(botsson!.ai).toBe(true);
   });
 
-  it("Ansatte item has compositeActive containing /dashboard/contracts", () => {
+  it("Ansatte item has compositeActive containing /dashboard/people/contracts", () => {
     const drift = SIDEBAR_GROUPS_ADMIN.find((g) => g.labelKey === "sidebar.group_drift");
     expect(drift).toBeDefined();
     const ansatte = drift!.items.find((i) => i.href === "/dashboard/people");
     expect(ansatte).toBeDefined();
-    expect(ansatte!.compositeActive).toContain("/dashboard/contracts");
+    expect(ansatte!.compositeActive).toContain("/dashboard/people/contracts");
   });
 });
 
