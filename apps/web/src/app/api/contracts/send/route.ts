@@ -634,7 +634,7 @@ export async function POST(request: NextRequest) {
       recipient_id: actorProfileId,
       title: "Du må signere arbeidsavtalen",
       body: `Arbeidsavtalen for ${employeeDisplayName} (${positionTitle}) venter din signatur.`,
-      action_url: "/dashboard/contracts/awaiting-my-signature",
+      action_url: "/dashboard/people/contracts/awaiting-my-signature",
       icon_type: "info",
       metadata: {
         contract_id: contractId,
