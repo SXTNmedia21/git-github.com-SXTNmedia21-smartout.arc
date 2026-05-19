@@ -391,7 +391,18 @@ export function PunchAnimation({
       -1,
       false,
     );
-  }, [glowRotation, glowPulse]);
+
+    // Idle button breathing: subtle scale 1 → 1.04 → 1 (3s loop).
+    // Nordic Split: ambient lava-lamp drift — never competes with UI.
+    buttonScale.value = withRepeat(
+      withSequence(
+        withTiming(1.04, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [glowRotation, glowPulse, buttonScale]);
 
   /* ---- Animated styles ---- */
 
@@ -800,7 +811,7 @@ const useStyles = createStyles((theme) => ({
     width: 216,
     height: 216,
     borderRadius: 108,
-    opacity: 0.6,
+    opacity: 0.85,
   },
   glowRingTop: {
     position: "absolute" as const,

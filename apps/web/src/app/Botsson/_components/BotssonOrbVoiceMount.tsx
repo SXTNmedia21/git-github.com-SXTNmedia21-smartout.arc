@@ -94,7 +94,11 @@ export type ScheduleViewChangePayload =
   | { action: "set_period"; weeks: number }
   | { action: "set_filter"; filter: string }
   | { action: "switch_layout"; layout: string }
-  | { action: "focus_day"; dateId: string; openPlanner: boolean };
+  | { action: "focus_day"; dateId: string; openPlanner: boolean }
+  // 2026-05-15: 4-tier density control (plan §5 + E5).
+  // Bridge in schedule-voice-tools-bridge.tsx routes to the shared UI setter
+  // (same path as button click) — single source of truth (L-0233).
+  | { action: "set_density"; density: "cozy" | "default" | "compact" | "pulse" };
 
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */

@@ -251,7 +251,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
 
   const pathname = request.nextUrl.pathname;
 
-  // ── 2b. Workspace subdomain + auth route → portal-redirect (ADR-0362) ──
+  // ── 2b. Workspace subdomain + auth route → portal-redirect (ADR-0374) ──
   // Runs BEFORE the PUBLIC_ROUTES bypass at §3, because auth routes ARE in
   // PUBLIC_ROUTES and would otherwise be allowed to render on the workspace
   // host. PKCE verifier cookies are host-scoped — auth must originate from

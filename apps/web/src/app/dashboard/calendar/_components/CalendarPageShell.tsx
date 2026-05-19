@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
@@ -33,7 +33,8 @@ import {
   subWeeks,
 } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -51,6 +52,12 @@ import { CalendarToolsBridge } from "../_tools/calendar-tools-bridge";
 import { useCalendarBookings, useCalendarEvents, useCalendarSettings } from "../_lib/store";
 import type { Booking, CalendarEvent } from "../_lib/types";
 import { useCompanyHours } from "@/app/dashboard/website/_hooks/use-company-hours";
+import { useCalendarOverlays } from "../_hooks/use-calendar-overlays";
+import {
+  usePageTitle,
+  usePageTabs,
+  usePageActions,
+} from "@/components/dashboard/PageHeaderContext";
 
 const tabLoading = () => <SkeletonCard className="min-h-96" />;
 
@@ -72,7 +79,23 @@ const TABS = [
 const WEEK_OPTS = { weekStartsOn: 1 as const, locale: nb };
 
 export function CalendarPageShell() {
+  usePageTitle({
+    title: "Kalender",
+    subtitle: "Datoer, sesonger, eventer og bookinger på ett sted",
+  });
   const [activeTab, setActiveTab] = useState<string>("calendar");
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
+        active={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Kalender-seksjoner"
+      />
+    ),
+    [activeTab],
+  );
+  usePageTabs(tabsNode);
   const [view, setView] = useState<ViewMode>("week");
   const [cursor, setCursor] = useState<Date>(new Date());
   const reduce = useReducedMotion();
@@ -81,6 +104,18 @@ export function CalendarPageShell() {
   const { bookings, upsertBooking, deleteBooking } = useCalendarBookings();
   const { settings, setSettings } = useCalendarSettings();
   const { hours: companyHours } = useCompanyHours();
+
+  // Overlay window — YYYY-MM-DD bounds of the visible week so useCalendarOverlays
+  // can scope both the shift query and the holiday-entry filter to the current cursor.
+  const overlayWindow = useMemo(
+    () => ({
+      weekStart: formatISO(startOfWeek(cursor, WEEK_OPTS), { representation: "date" }),
+      weekEnd: formatISO(endOfWeek(cursor, WEEK_OPTS), { representation: "date" }),
+    }),
+    [cursor],
+  );
+
+  const overlays = useCalendarOverlays(overlayWindow);
 
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const [eventDraft, setEventDraft] = useState<Partial<CalendarEvent> | null>(null);
@@ -91,21 +126,31 @@ export function CalendarPageShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedDayISO, setSelectedDayISO] = useState<string | null>(null);
 
-  const handleDayOpen = (date: Date) => {
+  const handleDayOpen = useCallback((date: Date) => {
     // Local-tz YYYY-MM-DD — toISOString() converts to UTC and shifts dates
     // by one day during Norwegian summer time / nighttime hours.
     setSelectedDayISO(formatISO(date, { representation: "date" }));
-  };
-  const handleDayClose = () => setSelectedDayISO(null);
+  }, []);
+  const handleDayClose = useCallback(() => setSelectedDayISO(null), []);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const newAction = searchParams?.get("new");
 
   useEffect(() => {
+    // One-shot tab deep-link — consumed from ?tab=<value> then cleared.
+    // Used by /dashboard/planning/arshjul etc. shim redirects.
+    const tabParam = searchParams?.get("tab");
+    const VALID_TABS = ["calendar", "year-wheel", "events", "bookings"] as const;
+    if (tabParam && (VALID_TABS as readonly string[]).includes(tabParam)) {
+      setActiveTab(tabParam);
+      router.replace("/dashboard/planning", { scroll: false });
+    }
+
+    // Legacy action params — unchanged.
     if (newAction === "event") {
       setEventDraft({
-        date: new Date().toISOString().slice(0, 10),
+        date: formatISO(new Date(), { representation: "date" }),
         startHour: 9,
         endHour: 10,
       });
@@ -116,7 +161,7 @@ export function CalendarPageShell() {
       setBookingSheetOpen(true);
       router.replace("/dashboard/calendar", { scroll: false });
     }
-  }, [newAction, router]);
+  }, [newAction, router, searchParams]);
 
   const visibleEvents = useMemo(() => {
     return events.filter((e) => {
@@ -128,17 +173,17 @@ export function CalendarPageShell() {
 
   const isCalendar = activeTab === "calendar";
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setCursor((d) =>
       view === "month" ? subMonths(d, 1) : view === "week" ? subWeeks(d, 1) : addDays(d, -1),
     );
-  };
-  const handleNext = () => {
+  }, [view]);
+  const handleNext = useCallback(() => {
     setCursor((d) =>
       view === "month" ? addMonths(d, 1) : view === "week" ? addWeeks(d, 1) : addDays(d, 1),
     );
-  };
-  const handleToday = () => setCursor(new Date());
+  }, [view]);
+  const handleToday = useCallback(() => setCursor(new Date()), []);
 
   const headerLabel = useMemo(() => {
     if (view === "day") return format(cursor, "EEEE d. MMMM yyyy", { locale: nb });
@@ -150,50 +195,116 @@ export function CalendarPageShell() {
     return format(cursor, "MMMM yyyy", { locale: nb });
   }, [view, cursor]);
 
-  const openNewEvent = (date?: Date, hour?: number) => {
+  const openNewEvent = useCallback((date?: Date, hour?: number) => {
     setEventDraft({
       date: formatISO(date ?? new Date(), { representation: "date" }),
       startHour: hour ?? 9,
       endHour: (hour ?? 9) + 1,
     });
     setEventSheetOpen(true);
-  };
+  }, []);
 
-  const openExistingEvent = (event: CalendarEvent) => {
+  const openExistingEvent = useCallback((event: CalendarEvent) => {
     setEventDraft(event);
     setEventSheetOpen(true);
-  };
+  }, []);
 
-  const openNewBooking = () => {
+  const openNewBooking = useCallback(() => {
     setBookingDraft(null);
     setBookingSheetOpen(true);
-  };
+  }, []);
 
-  const openExistingBooking = (booking: Booking) => {
+  const openExistingBooking = useCallback((booking: Booking) => {
     setBookingDraft(booking);
     setBookingSheetOpen(true);
-  };
+  }, []);
 
-  const tabFade = reduce
-    ? { initial: false as const, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, y: 6 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -6 },
-        transition: {
-          duration: motionTokens.exitMs / 1000,
-          ease: motionTokens.easingExpoArray,
-        },
-      };
+  // Memoised on `reduce` — recreating these objects every render passes new references
+  // to framer-motion, which re-evaluates variants on each cursor change unnecessarily.
+  const tabFade = useMemo(
+    () =>
+      reduce
+        ? { initial: false as const, animate: { opacity: 1 } }
+        : {
+            initial: { opacity: 0, y: 6 },
+            animate: { opacity: 1, y: 0 },
+            exit: { opacity: 0, y: -6 },
+            transition: {
+              duration: motionTokens.exitMs / 1000,
+              ease: motionTokens.easingExpoArray,
+            },
+          },
+    [reduce],
+  );
 
-  const controlsFade = reduce
-    ? { initial: false as const, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, x: 8 },
-        animate: { opacity: 1, x: 0 },
-        exit: { opacity: 0, x: 8 },
-        transition: { type: "spring" as const, ...motionTokens.springSnappy },
-      };
+  const controlsFade = useMemo(
+    () =>
+      reduce
+        ? { initial: false as const, animate: { opacity: 1 } }
+        : {
+            initial: { opacity: 0, x: 8 },
+            animate: { opacity: 1, x: 0 },
+            exit: { opacity: 0, x: 8 },
+            transition: { type: "spring" as const, ...motionTokens.springSnappy },
+          },
+    [reduce],
+  );
+
+  // Page-scoped right-aligned action cluster — published to shell action bar
+  // via usePageActions per Pontus 2026-05-19 (moved up from page body wrapper
+  // that previously sat at top of CalendarPageShell return).
+  const actionsNode = useMemo(
+    () => (
+      <div className="flex items-center gap-2">
+        <AnimatePresence mode="wait" initial={false}>
+          {isCalendar ? (
+            <motion.div
+              key="calendar-controls"
+              {...controlsFade}
+              style={{ opacity: 1, transform: "none" }}
+              className="flex items-center gap-2"
+            >
+              <Button size="sm" variant="outline" className="rounded-lg" onClick={handleToday}>
+                I dag
+              </Button>
+              <div className="flex items-center">
+                <Button size="icon" variant="ghost" onClick={handlePrev} aria-label="Forrige">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={handleNext} aria-label="Neste">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                    <CalendarDays className="h-4 w-4" />
+                    <span className="text-foreground text-sm font-semibold capitalize">
+                      {headerLabel}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-0">
+                  <Calendar mode="single" selected={cursor} onSelect={(d) => d && setCursor(d)} />
+                </PopoverContent>
+              </Popover>
+              <ViewToggle view={view} setView={setView} />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Innstillinger"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
+    [isCalendar, controlsFade, handleToday, handlePrev, handleNext, headerLabel, cursor, view],
+  );
+  usePageActions(actionsNode);
 
   return (
     <ScheduleUIProvider>
@@ -219,95 +330,17 @@ export function CalendarPageShell() {
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Page Header */}
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
-                Kalender
-              </h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Datoer, sesonger, eventer og bookinger på ett sted
-              </p>
-            </div>
+          {/* Page Header — title via usePageTitle, action cluster via usePageActions */}
 
-            <div className="flex items-center gap-2">
-              <AnimatePresence mode="wait" initial={false}>
-                {isCalendar ? (
-                  <motion.div
-                    key="calendar-controls"
-                    {...controlsFade}
-                    className="flex items-center gap-2"
-                  >
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-lg"
-                      onClick={handleToday}
-                    >
-                      I dag
-                    </Button>
-                    <div className="flex items-center">
-                      <Button size="icon" variant="ghost" onClick={handlePrev} aria-label="Forrige">
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={handleNext} aria-label="Neste">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-2 rounded-lg">
-                          <CalendarDays className="h-4 w-4" />
-                          <span className="text-foreground text-sm font-semibold capitalize">
-                            {headerLabel}
-                          </span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="end" className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={cursor}
-                          onSelect={(d) => d && setCursor(d)}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <ViewToggle view={view} setView={setView} />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setSettingsOpen(true)}
-                aria-label="Innstillinger"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Tabs */}
+          {/* Tabs — strip moved to shell breadcrumb via usePageTabs; body keeps Tabs context */}
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="border-border bg-muted/80 mb-5 inline-flex h-auto w-fit gap-1 rounded-xl border p-1">
-              {TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
-                >
-                  <tab.icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
               <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={activeTab} {...tabFade}>
+                <motion.div key={activeTab} {...tabFade} style={{ opacity: 1, transform: "none" }}>
                   <TabsContent
                     value="calendar"
                     className="mt-0"
@@ -319,6 +352,10 @@ export function CalendarPageShell() {
                         cursor={cursor}
                         events={visibleEvents}
                         companyHours={settings.show.openingHours ? companyHours : []}
+                        shiftsByDate={overlays.shiftsByDate}
+                        holidaysByDate={overlays.holidaysByDate}
+                        showShifts={settings.show.shifts}
+                        showHolidays={settings.show.holidays}
                         onEventClick={openExistingEvent}
                         onSlotClick={(d, h) => openNewEvent(d, h)}
                         onDayOpen={handleDayOpen}

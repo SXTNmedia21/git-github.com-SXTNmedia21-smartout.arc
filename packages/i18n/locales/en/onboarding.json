@@ -180,13 +180,27 @@
     "locations_description": "Confirm your locations and zones.",
     "procedures_title": "Routines",
     "procedures_description": "Choose which routines to enable.",
+    "tariff_title": "Tariff",
+    "tariff_description": "Link the workplace to a tariff agreement (optional).",
     "summary_title": "Summary",
     "summary_description": "All set. Confirm to finalize your workspace setup.",
     "finalize": "Finalize Setup",
     "positions_add": "Add",
     "positions_custom": "Custom...",
     "positions_custom_placeholder": "Position title",
-    "positions_leader": "Leader"
+    "positions_leader": "Leader",
+    "fields": {
+      "filledCount": "{filled} of {total} fields filled",
+      "name": { "label": "Business Name", "placeholder": "Solsiden Restaurant" },
+      "legalName": { "label": "Legal Name", "placeholder": "Solsiden AS" },
+      "orgNumber": { "label": "Organization Number", "placeholder": "123 456 789" },
+      "email": { "label": "Email", "placeholder": "post@company.com" },
+      "phone": { "label": "Phone", "placeholder": "+47 12 34 56 78" },
+      "website": { "label": "Website", "placeholder": "www.company.com" },
+      "address": { "label": "Address", "placeholder": "Main Street 1" },
+      "city": { "label": "City", "placeholder": "Oslo" },
+      "industry": { "label": "Industry", "placeholder": "Restaurant" }
+    }
   },
   "drawers": {
     "editDepartment": "Edit Department",
@@ -204,5 +218,69 @@
     "done": "Done",
     "remove": "Remove",
     "crossDept": "Cross-Department Team"
+  },
+  "tariff": {
+    "title": "Tariff Agreement",
+    "subtitle": "Is your workplace covered by the NHO Reiseliv tariff (Riksavtalen)?",
+    "memberYes": "Yes, we are members",
+    "memberNo": "No, not relevant for us",
+    "whichAgreement": "Which collective agreement applies?",
+    "lawVersionLabel": "Tariff version",
+    "lawVersionPlaceholder": "Select tariff version...",
+    "successTitle": "Tariff linked",
+    "successDetail": "{union} · {version} rates · effective from {date}",
+    "softGuide": "Industry standard rates will be used as default — you can adjust supplement rules manually under Settings → Payroll after setup is complete.",
+    "errorUnexpected": "Unexpected response from server. Please try again.",
+    "errorNetwork": "Network error. Check your connection and try again.",
+    "submitting": "Linking tariff...",
+    "submitAndContinue": "Link tariff and continue",
+    "continue": "Continue"
+  },
+  "roles": {
+    "selectedCount": "{count} roles selected",
+    "required": "Required",
+    "addMore": "Add more roles",
+    "custom": "Custom...",
+    "customPlaceholder": "Role name",
+    "dagligLeder": {
+      "name": "General Manager",
+      "description": "Overall responsibility for daily operations"
+    },
+    "restaurantsjef": {
+      "name": "Restaurant Manager",
+      "description": "Manager for restaurant and dining room"
+    },
+    "kjokkensjef": {
+      "name": "Head Chef",
+      "description": "Manager for kitchen and food preparation"
+    },
+    "barsjef": {
+      "name": "Bar Manager",
+      "description": "Responsible for bar and beverages"
+    },
+    "skiftleder": {
+      "name": "Shift Leader",
+      "description": "Manager for individual shifts"
+    },
+    "verneombud": {
+      "name": "Safety Representative",
+      "description": "Legally required HSE role — required with 10+ employees"
+    },
+    "brannvernleder": {
+      "name": "Fire Safety Officer",
+      "description": "Responsible for fire safety and evacuation"
+    },
+    "tillitsvalgt": {
+      "name": "Union Representative",
+      "description": "Represents employees to management"
+    },
+    "vaktmester": {
+      "name": "Maintenance Manager",
+      "description": "Responsible for building and maintenance"
+    },
+    "fagansvarlig": {
+      "name": "Training Manager",
+      "description": "Responsible for professional development and training"
+    }
   }
 }

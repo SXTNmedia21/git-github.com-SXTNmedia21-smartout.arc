@@ -25,10 +25,13 @@ export default async function DashboardBillingPage() {
     <div className="space-y-6">
       <BillingToolsBridge invoices={invoices} />
       <header className="space-y-1">
-        <h1 className="font-heading text-3xl">Fakturaer</h1>
-        <p className="text-muted-foreground text-sm">
-          Oversikt over selskapets fakturaer. Kontakt Smartout for å endre abonnement eller justere
-          faktureringsdetaljer.
+        <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+          Fakturering
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Her finner du fakturaer for arbeidsplassen din, inkludert status, beløp og forfallsdato.
+          Klikk en faktura for å se detaljer eller åpne fakturainnstillinger for å konfigurere EHF
+          og varslingsregler.
         </p>
       </header>
 

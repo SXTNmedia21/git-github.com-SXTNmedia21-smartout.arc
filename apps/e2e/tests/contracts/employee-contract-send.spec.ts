@@ -112,7 +112,7 @@ test.describe("J2 — Admin sends contract", () => {
       }
     });
 
-    await test.step("act — navigate to /dashboard/contracts", async () => {
+    await test.step("act — navigate to /dashboard/people/contracts", async () => {
       await loginAsAdmin(page);
       await dismissDevOverlay(page);
 
@@ -122,7 +122,7 @@ test.describe("J2 — Admin sends contract", () => {
         { timeout: 20_000 },
       );
 
-      await page.goto("/dashboard/contracts");
+      await page.goto("/dashboard/people/contracts");
       await page.waitForLoadState("domcontentloaded");
 
       // Wait for the list API response — ensures the table rendered its rows.
@@ -307,7 +307,7 @@ test.describe("J2 — Admin sends contract", () => {
         (res) => res.url().includes("/api/employment-contracts/list") && res.status() === 200,
         { timeout: 20_000 },
       );
-      await page.goto("/dashboard/contracts");
+      await page.goto("/dashboard/people/contracts");
       await page.waitForLoadState("domcontentloaded");
       await listResponsePromise2.catch(() => {
         /* non-fatal */

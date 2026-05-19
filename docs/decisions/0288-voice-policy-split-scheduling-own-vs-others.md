@@ -1,14 +1,26 @@
 ---
 title: "Voice policy split — scheduling.own vs scheduling.others"
 id: ADR_0288
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-05-16
+accepted: 2026-05-16
 supersedes: []
 amends: [ADR_0078]
-related: [ADR_0024, ADR_0078, ADR_0133, ADR_0163, ADR_0286, ADR_0287]
+related: [ADR_0024, ADR_0078, ADR_0133, ADR_0163, ADR_0286, ADR_0287, ADR_0340]
 ---
+
+> **2026-05-16 acceptance note:** Promoted from `proposed` → `accepted` as Phase 0 P0.5 of
+> swap-marketplace-convergence-v2 sortie (council 2026-05-16). ADR-0340 §Q5=A binds
+> pipeline-level channel restriction (`engine_process.allowed_channels = ARRAY['chat']`)
+> for `shift_swap_lifecycle` + `marketplace_lifecycle` blueprints; this ADR is the
+> capability-level contract that pipeline enforcement derives from. Per-tool inline guards
+> at `shift-swap/tools.ts:157,228,299` + `shift_marketplace/tools.ts:158,301,456` retained
+> as Layer 3 defense-in-depth (3-layer channel-guard model per ADR-0078 + ADR-0163).
+> Both consumers already comply with this ADR's chat-only rule for mutation tools —
+> blast radius of acceptance is zero net code change for existing capabilities; future
+> pipeline-defining capabilities inherit chat-only-for-irreversible-C4-acts by default.
 
 # ADR-0288: Voice policy split — scheduling.own vs scheduling.others
 

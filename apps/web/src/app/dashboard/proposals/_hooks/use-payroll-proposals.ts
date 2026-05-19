@@ -134,6 +134,12 @@ export function usePayrollProposal(proposalId: string | undefined) {
 }
 
 // ─── Approve mutation ────────────────────────────────────────────────────────
+//
+// NOTE (ADR-0134 / BFF-delegation pattern):
+// emit() is intentionally NOT called here on the client. The approve-proposal and
+// reject-proposal BFF routes call emit() server-side with the resolved workspace_id
+// and actor_id. Do NOT add client-side emit calls here — that would produce duplicate
+// telemetry entries. The BFF is the single emit surface for these mutations.
 
 type ApproveArgs = { workspace_id: string; change_proposal_id: string };
 

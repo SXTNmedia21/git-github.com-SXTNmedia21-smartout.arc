@@ -87,7 +87,7 @@ export function useAssignProtocol() {
         queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
       });
       void queryClient.invalidateQueries({
-        queryKey: ["hms", "competence-matrix", workspace.workspace_id],
+        queryKey: dashboardKeys.workforceReadiness(workspace.workspace_id),
       });
     },
 
@@ -141,7 +141,7 @@ export function useBulkAssignProtocol() {
         queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
       });
       void queryClient.invalidateQueries({
-        queryKey: ["hms", "competence-matrix", workspace.workspace_id],
+        queryKey: dashboardKeys.workforceReadiness(workspace.workspace_id),
       });
     },
 
@@ -194,7 +194,7 @@ export function useWaiveAssignment() {
         queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
       });
       void queryClient.invalidateQueries({
-        queryKey: ["hms", "competence-matrix", workspace.workspace_id],
+        queryKey: dashboardKeys.workforceReadiness(workspace.workspace_id),
       });
     },
 
@@ -258,7 +258,7 @@ export function useRevokeAssignment() {
         queryKey: dashboardKeys.protocolAssignees(workspace.workspace_id, result.protocolId),
       });
       void queryClient.invalidateQueries({
-        queryKey: ["hms", "competence-matrix", workspace.workspace_id],
+        queryKey: dashboardKeys.workforceReadiness(workspace.workspace_id),
       });
     },
 

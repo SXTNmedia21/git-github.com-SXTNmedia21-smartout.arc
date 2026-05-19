@@ -100,18 +100,20 @@ type UseTeamShiftsParams = {
   myProfileId: string | null;
 };
 
-/** Supabase join shape for profile rows */
+/** Supabase join shape for profile rows.
+ *  profile has ONLY display_name (CLAUDE.md trap, no first_name/last_name/color
+ *  columns) — derive firstName/lastName client-side via split, color falls
+ *  back to department-derived color.
+ */
 type ProfileRow = {
   profile_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_color: string | null;
+  display_name: string | null;
 };
 
 /** Supabase join shape for position → department */
 type PositionRow = {
   department: {
-    id: string;
+    department_id: string;
     name: string;
     color: string | null;
   } | null;
@@ -145,15 +147,31 @@ async function fetchTeamShifts(
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
-    const { data: prof, error: profErr } = await supabase
+    // Try active profile first, fall back to ANY profile for this user.
+    // .maybeSingle() returns null instead of throwing PGRST116 on zero rows —
+    // critical for seed data where is_active may not be set.
+    const { data: activeProf, error: activeErr } = await supabase
       .from("profile")
       .select("profile_id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1)
-      .single();
-    if (profErr || !prof) throw profErr ?? new Error("Profile not found");
-    resolvedProfileId = prof.profile_id;
+      .maybeSingle();
+    if (activeErr) throw activeErr;
+    if (activeProf) {
+      resolvedProfileId = activeProf.profile_id;
+    } else {
+      // Fallback: any profile (covers seed users w/o is_active=true)
+      const { data: anyProf, error: anyErr } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      if (anyErr) throw anyErr;
+      if (!anyProf) throw new Error("Profile not found");
+      resolvedProfileId = anyProf.profile_id;
+    }
   }
 
   // Compute Sunday from Monday (weekStart + 6 days)
@@ -176,13 +194,11 @@ async function fetchTeamShifts(
       employee_id,
       profile:employee_id (
         profile_id,
-        first_name,
-        last_name,
-        avatar_color
+        display_name
       ),
       position:position_id (
         department:department_id (
-          id,
+          department_id,
           name,
           color
         )
@@ -202,8 +218,10 @@ async function fetchTeamShifts(
 
   const mapped: ShiftWithProfile[] = rows.map((row) => {
     const prof = row.profile;
-    const firstName = prof?.first_name ?? "";
-    const lastName = prof?.last_name ?? "";
+    // profile has only display_name (CLAUDE.md trap) — split for parts.
+    const parts = (prof?.display_name ?? "").trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] ?? "";
+    const lastName = parts.length > 1 ? parts[parts.length - 1]! : "";
     const ownerName =
       firstName && lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName || "Ukjent";
     const ownerInitials =
@@ -218,7 +236,8 @@ async function fetchTeamShifts(
     const deptSlug = toDeptSlug(dept?.name);
     // Prefer DB-stored color; fall back to design-token constant
     const deptColor = dept?.color ?? deptColorFor(deptSlug);
-    const ownerColor = prof?.avatar_color ?? deptColor;
+    // No per-profile color column — always fall back to dept color.
+    const ownerColor = deptColor;
 
     return {
       id: row.schedule_shift_id,

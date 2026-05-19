@@ -19,7 +19,7 @@ Closes deploy-class risk identified in F0 Track A review of ADR-0357: `client.ts
 
 | ID | Decision | Where |
 |---|---|---|
-| ADR-0363 | Module-load hard-fail for missing `NEXT_PUBLIC_ROOT_DOMAIN` in production, warn in dev/preview. Shared helper pattern prevents code duplication across client/server. | `docs/decisions/0363-prod-assert-root-domain-for-supabase-cookie-domain.md` |
+| ADR-0375 | Module-load hard-fail for missing `NEXT_PUBLIC_ROOT_DOMAIN` in production, warn in dev/preview. Shared helper pattern prevents code duplication across client/server. | `docs/decisions/0375-prod-assert-root-domain-for-supabase-cookie-domain.md` |
 
 ## Files changed
 
@@ -28,7 +28,7 @@ Closes deploy-class risk identified in F0 Track A review of ADR-0357: `client.ts
 | `packages/supabase/src/_assert-root-domain.ts` | NEW — shared idempotent assert helper |
 | `packages/supabase/src/client.ts` | Import + top-level `assertRootDomain()` call (lines 3–6) |
 | `packages/supabase/src/server.ts` | Import + top-level `assertRootDomain()` call (lines 5–8) |
-| `docs/decisions/0363-prod-assert-root-domain-for-supabase-cookie-domain.md` | NEW ADR |
+| `docs/decisions/0375-prod-assert-root-domain-for-supabase-cookie-domain.md` | NEW ADR |
 | `docs/decisions/0000-decision-log.md` | Row inserted after ADR-0358 |
 | `docs/plans/PLAN-supabase-root-domain-assert.md` | Plan (all tasks done) |
 | `docs/HANDOFF-supabase-root-domain-assert.md` | This file |
@@ -38,7 +38,7 @@ Closes deploy-class risk identified in F0 Track A review of ADR-0357: `client.ts
 
 | ID | Learning |
 |---|---|
-| new | **Module-load asserts catch env drift faster than preflight scripts.** Preflight runs once at deploy time; module-load asserts fire on every cold start, catching drift introduced mid-life (e.g. env-sync wiping a var). Idempotency flag prevents log spam. Pattern reusable for other critical env vars. (ADR-0363) |
+| new | **Module-load asserts catch env drift faster than preflight scripts.** Preflight runs once at deploy time; module-load asserts fire on every cold start, catching drift introduced mid-life (e.g. env-sync wiping a var). Idempotency flag prevents log spam. Pattern reusable for other critical env vars. (ADR-0375) |
 
 ## Known issues
 

@@ -1,424 +1,561 @@
 /**
- * BeforeShiftView — "God morgen" home screen when an upcoming shift is near.
+ * BeforeShiftView — phase "STARTER SNART" handoff layout.
  *
- * Mockup sections:
- * 1. Header — "God morgen, {name}" + date
- * 2. Din Vakt — featured card with time, location, leader note
- * 3. Dagens Info — 2-col grid (bookings + expected volume)
- * 4. Teamet i dag — horizontal avatar scroll of colleagues
- * 5. Åpne vakter — ghost cards for available extra shifts
+ * Mirrors docs/design/day-handoff/source/day/mobile-day.jsx →
+ * `MobileHomeBefore` (phase=upcoming). Anna-perspective:
+ *  1. Phase pill + Instrument-Serif greeting + shift-time caption
+ *  2. Week strip (man-søn, today highlighted + shift-dot)
+ *  3. DIN NESTE VAKT card (mono time, countdown, dept-strip inset, button)
+ *  4. HVEM ER PÅ I DAG colleague rows
+ *  5. MELDINGER TIL TEAMET day-messages
+ *
+ * Real-data wiring kept (useMyProfile, useShiftColleagues, useDayInfo,
+ * useMyShifts for week-strip).
  */
 
 import React, { useMemo } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import {
-  CalendarDays,
-  BookOpen,
-  BarChart3,
-  ChevronRight,
-  Utensils,
-  UserRound,
-  Zap,
-} from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
-import { supabase } from "@/lib/supabase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
 import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-/** @deprecated Use MyTaskRow from use-my-tasks for new code */
-type SessionTask = MyTaskRow;
+type DayMessage = Database["public"]["Tables"]["schedule_day_message"]["Row"];
 
 type BeforeShiftViewProps = {
   shift: ScheduleShift;
   colleagues?: Colleague[];
   dayInfo?: DayInfo | null;
-  tasks?: SessionTask[];
-  onConfirm?: (shiftId: string) => void;
-  confirming?: boolean;
-  onPunchIn?: () => void;
+  tasks?: MyTaskRow[];
+  /**
+   * Phase variant — drives pill label and countdown semantics.
+   * - "before"  → STARTER SNART (default, shift in future)
+   * - "late"    → IKKE STEMPLET INN (shift in progress, no punch)
+   */
+  variant?: "before" | "late";
 };
 
-const DAY_NAMES = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
-const MONTH_NAMES = [
-  "januar",
-  "februar",
-  "mars",
-  "april",
-  "mai",
-  "juni",
-  "juli",
-  "august",
-  "september",
-  "oktober",
-  "november",
-  "desember",
-];
+const DAY_SHORT = ["SØN", "MAN", "TIR", "ONS", "TOR", "FRE", "LØR"];
 
-function formatShiftTime(time: string): string {
+function clockHM(time: string): string {
   return time.slice(0, 5);
 }
 
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  const day = DAY_NAMES[d.getDay()] ?? "";
-  const date = d.getDate();
-  const month = MONTH_NAMES[d.getMonth()] ?? "";
-  return `${day.charAt(0).toUpperCase() + day.slice(1)} ${date}. ${month}`;
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
 }
 
-function hoursUntilShift(shift: ScheduleShift): string {
-  const cleanTime = shift.start_time.replace(/[Z+-].*$/, "");
-  const shiftStart = new Date(`${shift.shift_date}T${cleanTime}`);
-  const diffMs = shiftStart.getTime() - Date.now();
-  if (diffMs <= 0) return "Nå";
-  const hours = Math.floor(diffMs / 3600000);
-  const mins = Math.floor((diffMs % 3600000) / 60000);
-  if (hours > 0) return `Live om ${hours}t`;
-  return `Live om ${mins}m`;
+function countdownTo(shift: ScheduleShift): string {
+  const clean = shift.start_time.replace(/[Z+-].*$/, "");
+  const start = new Date(`${shift.shift_date}T${clean}`);
+  const diffMs = start.getTime() - Date.now();
+  if (diffMs <= 0) return "NÅ";
+  const totalMin = Math.floor(diffMs / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `STARTER OM ${h}T ${pad2(m)}M`;
+  return `STARTER OM ${m}M`;
 }
 
-/**
- * Fetches the handoff note from the LAST CLOSED department_session for this
- * shift's department, where `closed_at < shift.start_at`. This implements
- * split-shift semantics per Campaign Invariant #11: the handover belongs to
- * the most recent closed session BEFORE this shift starts, not the session
- * that shares the same calendar date (which breaks when A and B shifts span
- * midnight or when multiple sessions run on the same date).
- *
- * Note (ADR-0188): `handoff_notes` is the legacy TEXT column. Phase 2 will
- * migrate reads to `session_note(note_type='handoff')`; for now we keep
- * reading the column but fix the row-selection to be time-correct.
- */
-function useLeaderNote(shift: ScheduleShift) {
-  // schedule_shift does not store a timestamptz; reconstruct the shift start
-  // as an ISO string from `shift_date` + `start_time` (strip any stray offset
-  // suffix that may leak through Postgres `time` serialisation).
-  const shiftStartIso = useMemo(() => {
-    const cleanTime = shift.start_time.replace(/[Z+-].*$/, "");
-    return new Date(`${shift.shift_date}T${cleanTime}`).toISOString();
-  }, [shift.shift_date, shift.start_time]);
+function elapsedSinceStart(shift: ScheduleShift): string {
+  const clean = shift.start_time.replace(/[Z+-].*$/, "");
+  const start = new Date(`${shift.shift_date}T${clean}`);
+  const diffMs = Date.now() - start.getTime();
+  if (diffMs <= 0) return "NÅ";
+  const totalMin = Math.floor(diffMs / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}T ${pad2(m)}M SIDEN START`;
+  return `${m}M SIDEN START`;
+}
 
-  return useQuery({
-    queryKey: ["leader-note", shift.workspace_id, shift.department_id, shiftStartIso],
-    queryFn: async () => {
-      if (!shift.department_id) return null;
+type WeekDay = {
+  date: string;
+  dayShort: string;
+  dayNum: number;
+  isToday: boolean;
+  hasShift: boolean;
+};
 
-      const { data, error } = await supabase
-        .from("department_session")
-        .select("department_session_id, handoff_notes, closed_at")
-        .eq("workspace_id", shift.workspace_id)
-        .eq("department_id", shift.department_id)
-        .eq("status", "closed")
-        .lt("closed_at", shiftStartIso)
-        .order("closed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+function buildWeek(shifts: ScheduleShift[] | undefined): WeekDay[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isoToday = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
 
-      if (error) throw error;
-      return data?.handoff_notes ?? null;
-    },
-    enabled: !!shift.department_id,
-    staleTime: 5 * 60 * 1000,
+  // Monday-anchored week: shift back so Mon = day 0
+  const dow = (today.getDay() + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dow);
+
+  const shiftDates = new Set((shifts ?? []).map((s) => s.shift_date));
+
+  return Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const iso = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    return {
+      date: iso,
+      dayShort: DAY_SHORT[d.getDay()] ?? "",
+      dayNum: d.getDate(),
+      isToday: iso === isoToday,
+      hasShift: shiftDates.has(iso),
+    };
   });
 }
 
-export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShiftViewProps) {
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Nå";
+  if (mins < 60) return `${mins}m siden`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}t siden`;
+  const d = Math.floor(h / 24);
+  return `${d}d siden`;
+}
+
+export function BeforeShiftView({
+  shift,
+  colleagues = [],
+  dayInfo,
+  variant = "before",
+}: BeforeShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
-  const { data: leaderNote } = useLeaderNote(shift);
+  const { data: profile } = useMyProfile();
+  const { data: myShifts } = useMyShifts();
 
-  const dateLabel = useMemo(() => formatDateLabel(shift.shift_date), [shift.shift_date]);
-  const countdown = useMemo(() => hoursUntilShift(shift), [shift]);
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
+  const isLate = variant === "late";
+  const countdown = useMemo(
+    () => (isLate ? elapsedSinceStart(shift) : countdownTo(shift)),
+    [shift, isLate],
+  );
+  const week = useMemo(() => buildWeek(myShifts), [myShifts]);
+  const messages = (dayInfo?.messages ?? []).slice(0, 2);
+  const phaseLabel = isLate ? "IKKE STEMPLET INN" : "STARTER SNART";
+  const phaseColor = isLate ? theme.colors.warning : theme.colors.brandOrange;
 
   return (
-    <View style={styles.content}>
-      {/* Header */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Phase header */}
       <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.header}>
-        <Text style={styles.greeting}>God morgen</Text>
-        <View style={styles.dateRow}>
-          <CalendarDays
-            size={12}
-            color={withOpacity(theme.colors.mutedForeground, 0.5)}
-            strokeWidth={1.5}
-          />
-          <Text style={styles.dateText}>{dateLabel.toUpperCase()}</Text>
+        <View style={styles.phasePill}>
+          <View style={[styles.phaseDot, { backgroundColor: phaseColor }]} />
+          <Text style={[styles.phaseLabel, { color: phaseColor }]}>{phaseLabel}</Text>
         </View>
+        <Text style={styles.greeting}>God dag{firstName ? `, ${firstName}` : ""}</Text>
+        <Text style={styles.greetingCaption}>
+          Din vakt{" "}
+          <Text style={styles.greetingTime}>
+            {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
+          </Text>
+          {shift.zone ? ` · ${shift.zone}` : ""}
+        </Text>
       </Animated.View>
 
-      {/* Din Vakt — featured card */}
-      <Animated.View entering={FadeInDown.delay(150).duration(400).springify()}>
-        <View style={styles.shiftLabelRow}>
-          <Text style={styles.sectionTitle}>Din Vakt</Text>
-          <Text style={styles.countdown}>{countdown.toUpperCase()}</Text>
-        </View>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push(`/(app)/(shifts)/${shift.schedule_shift_id}`);
-          }}
-          style={({ pressed }) => [styles.shiftCard, pressed && styles.shiftCardPressed]}
+      {/* Week strip */}
+      <Animated.View entering={FadeIn.delay(120).duration(400)}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.weekStrip}
         >
-          {/* Background icon */}
-          <View style={styles.shiftCardBgIcon}>
-            <Utensils size={64} color="rgba(255,255,255,0.15)" strokeWidth={1} />
-          </View>
-
-          <View style={styles.shiftCardContent}>
-            <Text style={styles.shiftLocation}>
-              {shift.zone ?? "Arbeidsplass"}, {shift.role}
-            </Text>
-            <Text style={styles.shiftTime}>
-              {formatShiftTime(shift.start_time)} — {formatShiftTime(shift.end_time)}
-            </Text>
-
-            {/* Leader note — from department_session.handoff_notes */}
-            {leaderNote ? (
-              <View style={styles.leaderNote}>
-                <UserRound size={16} color="rgba(255,219,204,0.8)" strokeWidth={1.5} />
-                <View>
-                  <Text style={styles.leaderNoteLabel}>LEADER NOTE</Text>
-                  <Text style={styles.leaderNoteText}>{leaderNote}</Text>
-                </View>
+          {week.map((d) => {
+            const selected = d.isToday;
+            return (
+              <View
+                key={d.date}
+                style={[styles.weekDay, selected && { backgroundColor: theme.colors.foreground }]}
+              >
+                <Text
+                  style={[
+                    styles.weekDayShort,
+                    { color: selected ? theme.colors.background : theme.colors.mutedForeground },
+                  ]}
+                >
+                  {d.dayShort}
+                </Text>
+                <Text
+                  style={[
+                    styles.weekDayNum,
+                    { color: selected ? theme.colors.background : theme.colors.foreground },
+                  ]}
+                >
+                  {d.dayNum}
+                </Text>
+                <View
+                  style={[
+                    styles.weekDot,
+                    { backgroundColor: d.hasShift ? theme.colors.brandOrange : "transparent" },
+                  ]}
+                />
               </View>
-            ) : null}
-          </View>
-        </Pressable>
+            );
+          })}
+        </ScrollView>
       </Animated.View>
 
-      {/* Dagens Info — 2-col grid */}
+      {/* Din neste vakt */}
       <Animated.View
-        entering={FadeInDown.delay(300).duration(400).springify()}
-        style={styles.infoGrid}
+        entering={FadeInDown.delay(200).duration(400).springify()}
+        style={styles.featureCard}
       >
-        <View style={styles.infoCard}>
-          <BookOpen size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
-          <View style={styles.infoBottom}>
-            <Text style={styles.infoNumber}>{dayInfo?.bookings?.length ?? 0}</Text>
-            <Text style={styles.infoLabel}>Bookinger</Text>
+        {/* Subtle warm depth — top-left brighter, no shadow */}
+        <LinearGradient
+          colors={[
+            withOpacity(theme.colors.brandOrange, 0.06),
+            withOpacity(theme.colors.brandOrange, 0),
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.featureGradient}
+          pointerEvents="none"
+        />
+        <View style={styles.featureContent}>
+          <View style={styles.featureHeadRow}>
+            <Text style={styles.cardEyebrow}>
+              {isLate ? "VAKTEN HAR STARTET" : "DIN NESTE VAKT"}
+            </Text>
+            <Text style={[styles.countdownPill, { color: phaseColor }]}>{countdown}</Text>
           </View>
-        </View>
-        <View style={styles.infoCard}>
-          <BarChart3 size={20} color={theme.colors.mutedForeground} strokeWidth={1.5} />
-          <View style={styles.infoBottom}>
-            <Text style={styles.infoDesc}>Normalt trykk forventet</Text>
-            <Text style={styles.infoMeta}>BASERT PÅ HISTORIKK</Text>
+          <Text style={styles.bigTime}>
+            {clockHM(shift.start_time)} – {clockHM(shift.end_time)}
+          </Text>
+
+          <View style={styles.deptInset}>
+            <View style={[styles.deptStripe, { backgroundColor: phaseColor }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.deptTitle}>{shift.zone ?? "Arbeidsplass"}</Text>
+              {shift.role ? <Text style={styles.deptMeta}>Rolle: {shift.role}</Text> : null}
+            </View>
           </View>
+
+          {/* Primary CTA varies by phase — late = stempel inn, before = se detaljer */}
+          {isLate ? (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                router.push("/(app)/(home)/punch-clock");
+              }}
+              style={({ pressed }) => [
+                styles.cardButton,
+                { backgroundColor: phaseColor, borderColor: phaseColor },
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Stemple inn nå"
+            >
+              <Text style={[styles.cardButtonText, { color: "#ffffff" }]}>Stemple inn nå</Text>
+              <ChevronRight size={16} color="#ffffff" strokeWidth={1.8} />
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push(`/(app)/(shifts)/${shift.schedule_shift_id}`);
+              }}
+              style={({ pressed }) => [styles.cardButton, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Se vaktdetaljer"
+            >
+              <Text style={styles.cardButtonText}>Se vaktdetaljer</Text>
+              <ChevronRight
+                size={16}
+                color={withOpacity(theme.colors.mutedForeground, 0.5)}
+                strokeWidth={1.6}
+              />
+            </Pressable>
+          )}
         </View>
       </Animated.View>
 
-      {/* Teamet i dag */}
-      {colleagues.length > 0 && (
+      {/* Hvem er på i dag */}
+      {colleagues.length > 0 ? (
         <Animated.View
-          entering={FadeInDown.delay(450).duration(400).springify()}
-          style={styles.teamSection}
+          entering={FadeInDown.delay(300).duration(400).springify()}
+          style={styles.card}
         >
-          <Text style={styles.sectionTitle}>Teamet i dag</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.teamScroll}
-          >
-            {colleagues.map((c) => (
-              <View key={c.profileId} style={styles.teamMember}>
-                <View style={styles.teamAvatarRing}>
-                  <Avatar name={`${c.firstName} ${c.lastName}`} imageUrl={c.avatarUrl} size="lg" />
+          <Text style={styles.cardEyebrow}>HVEM ER PÅ I DAG</Text>
+          <View style={styles.teamList}>
+            {colleagues.slice(0, 5).map((c) => (
+              <View key={c.profileId} style={styles.teamRow}>
+                <View style={styles.teamAvatar}>
+                  <Avatar name={`${c.firstName} ${c.lastName}`} imageUrl={c.avatarUrl} size="md" />
                 </View>
-                <Text style={styles.teamName}>{c.firstName}</Text>
+                <View style={styles.teamInfo}>
+                  <Text style={styles.teamName}>
+                    {c.firstName} {c.lastName}
+                  </Text>
+                  <Text style={styles.teamMeta}>
+                    {c.role} · {clockHM(c.startTime)}–{clockHM(c.endTime)}
+                  </Text>
+                </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
         </Animated.View>
-      )}
+      ) : null}
 
-      {/* Åpne vakter */}
-      <Animated.View
-        entering={FadeInDown.delay(600).duration(400).springify()}
-        style={styles.openSection}
-      >
-        <Text style={styles.sectionTitle}>Åpne vakter</Text>
-        <View style={styles.openList}>
-          <Pressable style={({ pressed }) => [styles.openCard, pressed && { opacity: 0.7 }]}>
-            <View
-              style={[
-                styles.openIcon,
-                { backgroundColor: withOpacity(theme.colors.brandOrange, 0.1) },
-              ]}
-            >
-              <Zap size={18} color={theme.colors.brandOrange} strokeWidth={1.5} />
-            </View>
-            <View style={styles.openInfo}>
-              <Text style={styles.openTitle}>Extra Runner</Text>
-              <Text style={styles.openMeta}>START 17:00</Text>
-            </View>
-            <ChevronRight
-              size={18}
-              color={withOpacity(theme.colors.mutedForeground, 0.3)}
-              strokeWidth={1.5}
-            />
-          </Pressable>
-        </View>
-      </Animated.View>
-    </View>
+      {/* Meldinger til teamet */}
+      {messages.length > 0 ? (
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(400).springify()}
+          style={styles.card}
+        >
+          <Text style={styles.cardEyebrow}>MELDINGER TIL TEAMET</Text>
+          <View>
+            {messages.map((m: DayMessage, idx) => (
+              <View
+                key={m.schedule_day_message_id}
+                style={[
+                  styles.messageRow,
+                  idx === messages.length - 1 && { borderBottomWidth: 0, paddingBottom: 0 },
+                ]}
+              >
+                <Text style={styles.messageTitle}>{m.title}</Text>
+                <Text style={styles.messageBody}>{m.content}</Text>
+                <Text style={styles.messageMeta}>{relativeTime(m.created_at)}</Text>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+      ) : null}
+    </ScrollView>
   );
 }
 
 const useStyles = createStyles((theme) => ({
-  content: { gap: theme.spacing.page },
-
-  /* Header */
-  header: { gap: 4 },
-  greeting: { fontSize: 40, fontWeight: "300", letterSpacing: -1, color: theme.colors.foreground },
-  dateRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dateText: {
-    fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 2,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+  container: { flex: 1 },
+  content: {
+    paddingHorizontal: 0,
+    paddingTop: theme.spacing.tight,
+    paddingBottom: theme.spacing.lg,
+    gap: theme.spacing.element,
   },
 
-  /* Section title */
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "300",
+  header: {
+    paddingHorizontal: theme.spacing.xs,
+    paddingTop: theme.spacing.tight,
+    paddingBottom: theme.spacing.tight,
+    gap: 6,
+  },
+  phasePill: { flexDirection: "row", alignItems: "center", gap: 6 },
+  phaseDot: { width: 5, height: 5, borderRadius: 9999 },
+  phaseLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2,
+  },
+  greeting: {
+    fontFamily: "InstrumentSerif-Regular",
+    fontSize: 32,
     letterSpacing: -0.5,
     color: theme.colors.foreground,
-    paddingHorizontal: 4,
+    lineHeight: 36,
+  },
+  greetingCaption: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+  },
+  greetingTime: {
+    fontFamily: "GeistMono-Regular",
+    fontWeight: "600",
+    color: theme.colors.foreground,
   },
 
-  /* Shift card */
-  shiftLabelRow: {
+  // Week strip
+  weekStrip: {
+    gap: 6,
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+  },
+  weekDay: {
+    width: 48,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: "center",
+    gap: 2,
+  },
+  weekDayShort: {
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 1,
+  },
+  weekDayNum: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  weekDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 9999,
+    marginTop: 3,
+  },
+
+  // Card primitive
+  card: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    gap: 6,
+  },
+  cardEyebrow: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 2,
+    color: theme.colors.mutedForeground,
+    marginBottom: 4,
+  },
+
+  featureCard: {
+    position: "relative",
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    overflow: "hidden",
+  },
+  featureGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  featureContent: {
+    padding: 14,
+    gap: 6,
+  },
+  featureHeadRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: theme.spacing.element,
-    paddingHorizontal: 4,
   },
-  countdown: { fontSize: 11, fontWeight: "700", letterSpacing: 1, color: theme.colors.brandOrange },
-
-  shiftCard: {
-    backgroundColor: theme.colors.brandOrange,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.page + 4,
-    overflow: "hidden",
-    position: "relative",
-    ...theme.shadows.lg,
-  },
-  shiftCardPressed: { transform: [{ scale: 0.98 }], opacity: 0.95 },
-  shiftCardBgIcon: { position: "absolute", top: 16, right: 16, opacity: 0.2 },
-  shiftCardContent: { gap: theme.spacing.md },
-  shiftLocation: {
+  countdownPill: {
+    fontFamily: "GeistMono-Regular",
     fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.75)",
-  },
-  shiftTime: { fontSize: 36, fontWeight: "300", letterSpacing: -1, color: "#ffffff" },
-
-  leaderNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.card,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  leaderNoteLabel: {
-    fontSize: 9,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "rgba(255,255,255,0.6)",
   },
-  leaderNoteText: {
-    fontSize: 16,
-    fontWeight: "300",
-    fontStyle: "italic",
-    color: "#ffffff",
-    marginTop: 2,
-  },
-
-  /* Info grid */
-  infoGrid: { flexDirection: "row", gap: theme.spacing.md },
-  infoCard: {
-    flex: 1,
-    aspectRatio: 1,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.section,
-    justifyContent: "space-between",
-  },
-  infoBottom: { gap: 2 },
-  infoNumber: {
-    fontSize: 28,
+  bigTime: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 30,
     fontWeight: "700",
-    letterSpacing: -1,
+    letterSpacing: -0.8,
     color: theme.colors.foreground,
-  },
-  infoLabel: { fontSize: 13, fontWeight: "500", color: theme.colors.mutedForeground },
-  infoDesc: { fontSize: 13, fontWeight: "500", color: theme.colors.foreground, lineHeight: 18 },
-  infoMeta: {
-    fontSize: 9,
-    fontWeight: "500",
-    letterSpacing: 1,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
     marginTop: 4,
   },
 
-  /* Team */
-  teamSection: { gap: theme.spacing.md },
-  teamScroll: { gap: 16, paddingHorizontal: 4 },
-  teamMember: { alignItems: "center", gap: 6 },
-  teamAvatarRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.2),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  teamName: { fontSize: 11, fontWeight: "500", color: theme.colors.mutedForeground },
-
-  /* Open shifts */
-  openSection: { gap: theme.spacing.md },
-  openList: { gap: theme.spacing.element },
-  openCard: {
+  deptInset: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.md,
-    padding: theme.spacing.card,
-    backgroundColor: theme.isDark
-      ? withOpacity(theme.colors.card, 0.3)
-      : withOpacity(theme.colors.muted, 0.3),
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.1),
+    gap: 10,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: 10,
   },
-  openIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  deptStripe: {
+    width: 3,
+    height: 28,
+    borderRadius: 2,
+  },
+  deptTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  deptMeta: {
+    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    marginTop: 2,
+  },
+
+  cardButton: {
+    marginTop: 14,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.6),
+    backgroundColor: theme.colors.background,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
-  openInfo: { flex: 1, gap: 2 },
-  openTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.foreground },
-  openMeta: {
-    fontSize: 9,
+  cardButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  pressed: { opacity: 0.7 },
+
+  // Team list
+  teamList: { gap: 10, marginTop: 4 },
+  teamRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  teamAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.secondary,
+  },
+  teamInfo: { flex: 1, minWidth: 0 },
+  teamName: {
+    fontSize: 13,
     fontWeight: "500",
-    letterSpacing: 1,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    color: theme.colors.foreground,
+  },
+  teamMeta: {
+    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    marginTop: 1,
+  },
+
+  // Messages
+  messageRow: {
+    paddingBottom: 10,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: withOpacity(theme.colors.border, 0.4),
+  },
+  messageTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  messageBody: {
+    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  messageMeta: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 10,
+    color: withOpacity(theme.colors.mutedForeground, 0.7),
+    marginTop: 4,
   },
 }));

@@ -17,6 +17,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { BookOpen, ShieldCheck, Users, Plus } from "lucide-react";
 import { KpiAccentTile } from "@smartout/ui";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import { PolicyTypeBadge } from "./PolicyTypeBadge";
 import { PolicyCreateDialog } from "./PolicyCreateDialog";
@@ -112,20 +113,15 @@ export function PoliciesPageClient({ initialData }: { initialData: PoliciesPageI
         <button
           type="button"
           onClick={() => setIsDialogOpen(true)}
-          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] hover:shadow-[0_12px_32px_-8px_oklch(0.78_0.18_55_/_0.65)] active:scale-[0.98]"
+          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] hover:shadow-[var(--shadow-cta-lg-hover)] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           Ny policy
         </button>
       </div>
 
-      {/* Page tab nav — People-module pill row */}
-      <PageTabNav
-        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
-        active={pathname ?? "/dashboard/policies"}
-        onChange={(href) => router.push(href)}
-        ariaLabel="Ansatte-seksjoner"
-      />
+      {/* Page tab nav published to shell breadcrumb via usePageTabs */}
+      <PoliciesTabsPublisher pathname={pathname ?? "/dashboard/policies"} router={router} />
 
       {/* KPI strip */}
       <div
@@ -209,7 +205,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <button
         type="button"
         onClick={onNew}
-        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] active:scale-[0.98]"
       >
         <Plus className="h-4 w-4" />
         Ny policy
@@ -284,4 +280,26 @@ function PolicyRow({ policy }: { policy: PolicyRow }) {
       </td>
     </tr>
   );
+}
+
+function PoliciesTabsPublisher({
+  pathname,
+  router,
+}: {
+  pathname: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        active={pathname}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
+    ),
+    [pathname, router],
+  );
+  usePageTabs(tabsNode);
+  return null;
 }

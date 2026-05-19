@@ -61,7 +61,13 @@ export type BotssonMessage = {
   /** Always null for AI chat (no avatars in this context) */
   senderAvatarUrl: string | null;
 };
-type ShiftPhase = "no_shift" | "before_shift" | "during_shift" | "after_shift";
+type ShiftPhase =
+  | "no_shift"
+  | "before_shift"
+  | "awaiting_punch_in"
+  | "during_shift"
+  | "missed_shift"
+  | "after_shift";
 
 /** Context payload attached to every message sent to Botsson */
 export type BotssonContext = {

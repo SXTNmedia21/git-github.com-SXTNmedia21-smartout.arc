@@ -1,5 +1,5 @@
 /**
- * portal-redirect.ts — E2E helpers for ADR-0362 (workspace → portal auth redirect).
+ * portal-redirect.ts — E2E helpers for ADR-0374 (workspace → portal auth redirect).
  *
  * The portal-redirect lives in `apps/web/src/proxy.ts` §5a. Hitting any auth
  * route on a workspace subdomain (`<slug>.<root>/<auth-path>`) returns a 307

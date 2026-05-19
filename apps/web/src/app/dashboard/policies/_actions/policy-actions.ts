@@ -16,8 +16,9 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@smartout/supabase/server";
+import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { resolveCurrentProfile } from "@/app/dashboard/_actions/_shared";
+import { resolveCurrentProfile, gateAction } from "@/app/dashboard/_actions/_shared";
 
 // ─── Zod Schemas ──────────────────────────────────────
 
@@ -56,9 +57,15 @@ export type PolicyRow = {
 /**
  * Creates a new workspace-scoped policy.
  *
- * Authority: admin or owner only — checked against the session profile.
- * workspace_id and created_by are derived server-side per ADR-0151.
+ * Authority: gated via gate_action("policy.create_manual") per ADR-0099.
+ * workspace_id and created_by are derived server-side per ADR-0151 — never
+ * accepted from form body. Admin-client write after gate to bypass RLS
+ * (gate enforces role floor via engine_authority_config seed).
  * Emits "policy created" per ADR-0134 (nonEmpty for workspace_id + actor_id).
+ *
+ * Capability seed: supabase/migrations/<ts>_policy_create_manual_capability_seed.sql
+ * Sortie 1 of M5 HMS 4-sortie sequence. Council-verified 2026-05-17.
+ * ADR refs: 0099, 0114, 0134, 0151, 0204.
  */
 export async function createPolicy(input: CreatePolicyInput): Promise<CreatePolicyResult> {
   const parsed = createPolicySchema.safeParse(input);
@@ -71,16 +78,28 @@ export async function createPolicy(input: CreatePolicyInput): Promise<CreatePoli
     return { ok: false, error: "Not authenticated" };
   }
 
-  const { profileId, workspaceId, role } = profile;
+  const { profileId, workspaceId } = profile;
 
-  // Admin/owner gate — policies require elevated authority.
-  if (role !== "admin" && role !== "owner") {
-    return { ok: false, error: "Kun admin og owner kan opprette policies" };
+  /* @authority-gate: capability='policy.create_manual' level='confirm' min_role='admin'
+     seed='<ts>_policy_create_manual_capability_seed.sql' */
+  // ADR-0099: gate_action() RPC replaces role-string check. The seed migration
+  // sets min_role='admin', so owners + admins are allowed; managers and below
+  // receive downgrade_to='suggest' which this action treats as denied.
+  const gate = await gateAction({
+    workspaceId,
+    capability: "policy.create_manual",
+    channel: "chat",
+    actorProfileId: profileId,
+    actionType: "create",
+  });
+  if (!gate.allow) {
+    return { ok: false, error: gate.reason ?? "Kun admin og owner kan opprette policies" };
   }
 
-  const supabase = await createClient();
+  // Admin client bypasses RLS — gate above enforces role floor (ADR-0204).
+  const admin = createAdminClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("policy")
     .insert({
       name: parsed.data.name,

@@ -81,11 +81,26 @@ WebDayControl's handover widget reads handover content via `session_note` table 
 
 This enables split-shift semantics (Invariant #11 of daily-operation campaign: "last closed department_session where closed_at < current.start_at") with per-row authorship instead of a TEXT blob.
 
+## Amendment — 2026-05-18 (ADR-0367)
+
+ADR-0367 (Day Line Area-Anchored Runtime, accepted 2026-05-18) supersedes the "one canonical strip per dept-day" assumption embedded in this ADR. The Day Control Panel now renders a **stack of strips** — one `<DayLineStrip>` per `day_line` row child of the `department_session`. Each strip carries its own `(location, planned_open, planned_close)` and its own slot-picker scope.
+
+Implications for §43-49 of this ADR:
+- "one strip per session" → "stack of strips per session, one per `(department_session, location)`"
+- TimelineTab refactor (per ADR-0367 spec Phase C) extracts `<DayLineStrip>` from `<DayTimelineStrip>`
+- Aggregated overview surfaces when no scope filter is active
+- Status derivation moves from per-session-anchored to per-`day_line`-anchored helper at `apps/web/src/lib/cascade/derive-day-line-status.ts`
+- `daily_reconciliation.locked=true` cascade locks all child day_lines simultaneously — invariant preserved
+
+This amendment is a SCOPE CHANGE, not a reversal. The Day Control Panel remains the canonical admin surface — just with a richer per-area decomposition.
+
 ## References
 
 - Council session 2026-04-19 — `docs/council/COUNCIL-LOG.md`
+- Council session 2026-05-18 — Day Line Area-Anchored Runtime (ADR-0367)
 - Design spec — `DESIGN_DAY_INFORMATION_2026_04_19`
 - Implementation spec — `SPEC_WEB_DAY_CONTROL_IMPL_2026_04_19`
+- Implementation spec — `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md`
 - ADR-0114 — Server Actions Canonical Mutation Primitive
 - ADR-0133 — Web Composes, Mobile Executes
 - ADR-0157 — Server Actions Scope Amendment

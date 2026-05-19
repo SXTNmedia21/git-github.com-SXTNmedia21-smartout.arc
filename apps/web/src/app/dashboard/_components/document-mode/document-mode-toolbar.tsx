@@ -110,9 +110,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
   return (
     <div
       className={`flex items-center gap-0.5 border-b px-4 py-2 ${
-        isDark
-          ? "border-border bg-card/50"
-          : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"
+        isDark ? "border-border bg-card/50" : "border-[var(--border)] bg-[var(--surface-subtle)]"
       }`}
     >
       {TOOLBAR_ITEMS.map((item, i) => {
@@ -120,7 +118,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
           return (
             <div
               key={`sep-${i}`}
-              className={`mx-1 h-5 w-px ${isDark ? "bg-border" : "bg-[oklch(0.88_0.006_55)]"}`}
+              className={`mx-1 h-5 w-px ${isDark ? "bg-border" : "bg-[var(--border)]"}`}
             />
           );
         }
@@ -138,7 +136,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
                   : "bg-orange-100 text-orange-600"
                 : isDark
                   ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  : "text-[oklch(0.50_0.015_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.30_0.02_50)]"
+                  : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-mid)]"
             }`}
           >
             <Icon className="h-4 w-4" />

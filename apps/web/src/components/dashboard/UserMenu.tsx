@@ -78,18 +78,20 @@ export function UserMenu({ isDark: _isDark }: { isDark: boolean }) {
     return (
       <button
         type="button"
-        className="group hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none"
+        className="group hover:bg-accent flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none"
       >
-        <div className="text-right">
-          <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
-          <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+        <div className="border-border bg-muted flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border">
+          <span className="text-foreground text-xs font-bold">{initials}</span>
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-foreground truncate text-base leading-tight font-semibold">
+            {displayName}
+          </p>
+          <p className="text-muted-foreground truncate text-[10px] font-bold tracking-wider uppercase">
             Admin
           </p>
         </div>
-        <div className="border-border bg-muted flex h-8 w-8 items-center justify-center rounded-full border">
-          <span className="text-foreground text-xs font-bold">{initials}</span>
-        </div>
-        <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
+        <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 flex-shrink-0 transition-colors" />
       </button>
     );
   }
@@ -97,20 +99,22 @@ export function UserMenu({ isDark: _isDark }: { isDark: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="group hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none">
-          <div className="text-right">
-            <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
-            <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+        <button className="group hover:bg-accent flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none">
+          <div className="border-border bg-muted flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border">
+            <span className="text-foreground text-xs font-bold">{initials}</span>
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-foreground truncate text-base leading-tight font-semibold">
+              {displayName}
+            </p>
+            <p className="text-muted-foreground truncate text-[10px] font-bold tracking-wider uppercase">
               {user?.isSuperAdmin ? "Super Admin" : "Admin"}
             </p>
           </div>
-          <div className="border-border bg-muted flex h-8 w-8 items-center justify-center rounded-full border">
-            <span className="text-foreground text-xs font-bold">{initials}</span>
-          </div>
-          <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
+          <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 flex-shrink-0 transition-colors" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-border bg-card text-foreground w-56">
+      <DropdownMenuContent align="center" className="border-border bg-card text-foreground w-56">
         <div className="px-3 py-2">
           <p className="text-sm font-medium">{displayName}</p>
           <p className="text-muted-foreground text-xs">{user?.email}</p>

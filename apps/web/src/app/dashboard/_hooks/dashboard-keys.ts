@@ -78,6 +78,9 @@ export const dashboardKeys = {
   governanceOverview: (workspaceId: string) =>
     ["dashboard", "governance-overview", workspaceId] as const,
 
+  workforceReadiness: (workspaceId: string) =>
+    ["dashboard", "workforce-readiness", workspaceId] as const,
+
   protocolAssignees: (workspaceId: string, protocolId: string) =>
     ["dashboard", "protocol-assignees", workspaceId, protocolId] as const,
 

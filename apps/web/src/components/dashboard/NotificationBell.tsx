@@ -269,7 +269,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
             <button
               type="button"
               onClick={() => {
-                router.push("/dashboard/notifications");
+                router.push("/dashboard/komm/varsler");
                 setOpen(false);
               }}
               className="text-primary hover:text-primary/80 w-full text-center text-xs font-medium transition-colors"

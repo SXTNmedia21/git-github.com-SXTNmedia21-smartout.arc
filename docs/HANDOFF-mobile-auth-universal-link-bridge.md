@@ -105,7 +105,7 @@ Excluded `.well-known/*` from middleware execution — discovery files must be s
 
 - ADR-0368 (this sortie)
 - ADR-0021 (subdomain-workspace-routing, amended 2026-04-20)
-- ADR-0362 (portal-auth-redirect — web predecessor)
+- ADR-0374 (portal-auth-redirect — web predecessor)
 - ADR-0132 (mobile-ai-routing — thin client BFF)
 - ADR-0133 (web-composes-mobile-executes — verb-table boundary)
 - ADR-0134 (mobile-telemetry-contract — emit-site invariants)

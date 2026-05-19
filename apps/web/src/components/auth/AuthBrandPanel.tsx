@@ -56,19 +56,20 @@ export function AuthBrandPanel({
   const inviteAccent =
     variant === "workspace-invite" && workspaceSlug ? workspaceAccentOklch(workspaceSlug) : null;
 
+  // ADR-0366: CSS var references used; dynamic inviteAccent path retains computed value
   const orbs =
     inviteAccent !== null
-      ? "radial-gradient(circle at 30% 35%, oklch(0.72 0.16 45 / 0.35), transparent 55%)," +
+      ? "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
         `radial-gradient(circle at 72% 72%, ${inviteAccent.replace(")", " / 0.28)")}, transparent 60%),` +
-        "radial-gradient(circle at 20% 90%, oklch(0.55 0.18 300 / 0.10), transparent 55%)"
-      : "radial-gradient(circle at 30% 35%, oklch(0.72 0.16 45 / 0.35), transparent 55%)," +
-        "radial-gradient(circle at 72% 72%, oklch(0.65 0.22 40 / 0.22), transparent 60%)," +
-        "radial-gradient(circle at 20% 90%, oklch(0.55 0.18 300 / 0.10), transparent 55%)";
+        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)"
+      : "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
+        "radial-gradient(circle at 72% 72%, color-mix(in oklch, var(--brand-orange) 22%, transparent), transparent 60%)," +
+        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)";
 
   return (
     <div
       className="relative hidden flex-[0_0_44%] overflow-hidden lg:flex"
-      style={{ background: "oklch(0.18 0.03 50)" }}
+      style={{ background: "var(--panel)" }}
     >
       {/* Ambient orbs — radial gradients, not blur blobs (per Nordic Split skill). */}
       <div className="pointer-events-none absolute inset-0" style={{ background: orbs }} />
@@ -133,7 +134,7 @@ export function AuthBrandPanel({
                 <>
                   Teamet ditt,
                   <br />
-                  <span style={{ color: "oklch(0.78 0.16 45)" }}>klar</span> fra dag en.
+                  <span style={{ color: "var(--brand-orange-warm)" }}>klar</span> fra dag en.
                 </>
               )}
             </h2>

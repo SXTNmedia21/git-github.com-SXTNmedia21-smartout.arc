@@ -13,28 +13,28 @@ type Column = {
 };
 
 const COLUMNS: Column[] = [
-  { status: "open", label: "Apen", color: "text-red-500", borderColor: "border-red-500" },
+  { status: "open", label: "Apen", color: "text-destructive", borderColor: "border-destructive" },
   {
     status: "acknowledged",
     label: "Tildelt",
-    color: "text-yellow-500",
-    borderColor: "border-yellow-500",
+    color: "text-warning",
+    borderColor: "border-warning",
   },
   {
     status: "escalated",
     label: "Eskalert",
-    color: "text-blue-500",
-    borderColor: "border-blue-500",
+    color: "text-info",
+    borderColor: "border-info",
   },
-  { status: "resolved", label: "Lukket", color: "text-green-500", borderColor: "border-green-500" },
+  { status: "resolved", label: "Lukket", color: "text-success", borderColor: "border-success" },
 ];
 
 function severityBadge(severity: string) {
   const styles: Record<string, string> = {
-    critical: "bg-red-500 text-white",
-    high: "bg-red-500/80 text-white",
-    medium: "bg-yellow-500 text-white",
-    low: "bg-blue-500 text-white",
+    critical: "bg-destructive text-destructive-foreground",
+    high: "bg-destructive/80 text-destructive-foreground",
+    medium: "bg-warning text-warning-foreground",
+    low: "bg-info text-info-foreground",
   };
   const labels: Record<string, string> = {
     critical: "Kritisk",
@@ -93,7 +93,7 @@ export function DeviationKanban({ deviations, onSelect }: Props) {
                 {col.label}
               </span>
               <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${col.status === "open" ? "bg-red-500" : col.status === "acknowledged" ? "bg-yellow-500" : col.status === "escalated" ? "bg-blue-500" : "bg-green-500"}`}
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${col.status === "open" ? "bg-destructive text-destructive-foreground" : col.status === "acknowledged" ? "bg-warning text-warning-foreground" : col.status === "escalated" ? "bg-info text-info-foreground" : "bg-success text-success-foreground"}`}
               >
                 {items.length}
               </span>

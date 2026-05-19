@@ -1,0 +1,54 @@
+---
+title: Module — Smartout Core Structure
+status: in_progress
+updated: 2026-05-18
+created: 2026-05-18
+module: core-structure
+tags: [module, core-structure, location, area, department, foundation]
+---
+
+# Module — Smartout Core Structure
+
+> Foundation layer. Defines the structural entities (workspace, location/area, department) that every other module sits on. If code contradicts this doc → CODE wins, update this doc.
+
+This module captures the **structural axes** of a Smartout workspace: where operations happen (location/area), who performs them (department), and how the two relate. It exists because the term "location" has been overloaded in older docs and we needed a single canonical reference. The structural layer is **D1 in cascade terms** — permanent, slow-moving, the envelope that D2-D6 operate inside.
+
+## Scope (what this module documents)
+
+- `workspace` — tenant boundary
+- `location` (treated as "area" in V1 product context)
+- `zone` and `asset` — exist in schema, surfaced in V2/Phase 2
+- `department` — functional grouping of people
+- `department_location` (M:N junction — **new in ADR-0367**)
+- The orthogonality rule: HVOR vs HVEM
+
+## Out of scope (lives in other modules)
+
+- Day-of-operations runtime — see `docs/modules/daytimeline/`
+- Payroll — see `docs/modules/payroll/`
+- Scheduling — see `docs/modules/MODULE_YEAR_WHEEL_PRD.md`
+- Communication — see `docs/modules/MODULE_COMMUNICATION.md`
+
+## Reading order
+
+| # | File | Purpose |
+|---|---|---|
+| 1 | [MODULE_CORE_STRUCTURE.md](./MODULE_CORE_STRUCTURE.md) | Overview, axes, the orthogonality rule |
+| 2 | [LOCATIONS-AND-AREAS.md](./LOCATIONS-AND-AREAS.md) | `location` as area, zone, asset, `location_type` enum semantic |
+| 3 | [DEPARTMENTS.md](./DEPARTMENTS.md) | `department` + `department_location` junction + position relationship |
+
+## Cross-references
+
+### ADRs
+- **[ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md)** — paired decision that clarifies core structure semantic + introduces tri-layer D6 runtime. **Authoritative source for this module's V1 model.**
+
+### Modules
+- `docs/modules/daytimeline/` — direct consumer; `day_line` anchors on `location`
+- `docs/modules/payroll/` — consumes `department_session` (aggregate, untouched by ADR-0367)
+- `docs/modules/MODULE_YEAR_WHEEL_PRD.md` — D4 planning that fans out per `(location, department)`
+
+### Code
+- `supabase/migrations/00002_structure_tables.sql` — original `location`, `zone`, `asset`, `department`, `position` definitions
+- `packages/supabase/src/database.types.ts` — generated types
+- `apps/web/src/lib/cascade/` — cascade pure functions
+- `packages/ai/src/industry/` — I1 bootstrap (seeds workspace with default areas + departments)

@@ -46,3 +46,8 @@ fi
 # Standard quality gates
 pnpm lint
 pnpm typecheck
+
+# ADR-0348: Tool-name collision detector — blocks PRs that introduce new collisions.
+# Scans all apps/web/src/app/dashboard/**/_tools/use-*-tools.ts for duplicate modelToolName.
+# See scripts/check-tool-name-collisions.ts + docs/decisions/0348-l-0258-collision-detector-mandatory-ci.md
+pnpm lint:tool-collisions

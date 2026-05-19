@@ -615,7 +615,7 @@ function VoiceControls() {
           <button
             onClick={() => setVoiceActive(true)}
             className={[
-              "bg-brand-orange flex items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
+              "bg-brand-orange flex items-center justify-center rounded-full text-white shadow-[var(--shadow-cta-sm)] shadow-lg transition-[transform,box-shadow,filter] duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
               isCompact ? "h-11 w-11" : "h-12 w-12",
             ].join(" ")}
             aria-label="Start samtale"
@@ -646,7 +646,7 @@ function VoiceControls() {
               className={[
                 "flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95",
                 isCompact ? "h-11 w-11" : "h-12 w-12",
-                "bg-brand-orange text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)]",
+                "bg-brand-orange text-white shadow-[var(--shadow-cta-sm)] shadow-lg",
               ].join(" ")}
               aria-label="Avslutt"
             >

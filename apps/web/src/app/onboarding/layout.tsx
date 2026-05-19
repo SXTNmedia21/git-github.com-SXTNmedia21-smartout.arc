@@ -42,7 +42,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
   return (
     // Suspense required — BotssonProvider calls useSearchParams() for session URL param sync.
     <Suspense>
-      <div className="h-dvh w-full overflow-hidden bg-[oklch(0.08_0.015_50)]">
+      <div className="h-dvh w-full overflow-hidden bg-[var(--panel-deep)]">
         <BotssonProvider>{children}</BotssonProvider>
       </div>
     </Suspense>

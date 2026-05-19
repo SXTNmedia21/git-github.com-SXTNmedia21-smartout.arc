@@ -1,0 +1,174 @@
+# Page Polish Run — /dashboard/website, /dashboard/website/setup, /dashboard/website/pages/[pageId]
+
+route: /dashboard/website
+status: done
+verified: true
+started_at: 2026-05-16T09:00:00+02:00
+verified_at: 2026-05-16T09:30:00+02:00
+mobile_parity: web_only
+mobile_rationale: |
+  ADR-0133: Authoring verb (D1-D5 compose, not D6 execute). Website
+  administration is a configuration/authoring flow. Mobile owns
+  Approve/Execute verbs only. Web-only per Surface Boundary.
+
+linked_sub_routes:
+  - /dashboard/website/setup
+  - /dashboard/website/pages/[pageId]
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-ui-shell-wt-1
+  git_branch: feat/ui-shell-website-polish
+  components_count: 9
+    # website/_tools/use-website-tools.ts              ← new — 3 read tools
+    # website/_tools/website-tools-bridge.tsx           ← new — scope "website"
+    # website/setup/_tools/use-website-setup-tools.ts   ← new — 2 read tools
+    # website/setup/_tools/website-setup-tools-bridge.tsx ← new — scope "website-setup"
+    # website/pages/[pageId]/_tools/use-website-page-editor-tools.ts ← new — 3 read tools
+    # website/pages/[pageId]/_tools/website-page-editor-tools-bridge.tsx ← new — scope "website-page-editor"
+    # _components/WebsiteOverview.tsx                   ← modified — bridge wired
+    # _components/SetupWizard.tsx                       ← modified — bridge wired
+    # _components/SectionEditor.tsx                     ← modified — bridge wired
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/website/page.tsx
+  hooks:
+    - use-website.ts  (useWebsite — fetches WebsiteRow)
+    - use-pages.ts    (usePages — fetches PageRow[])
+    - use-sections.ts (useSections — fetches SectionRow[])
+    - use-templates.ts (useTemplates — synchronous registry read)
+  data_source: "Supabase direct (createClient) via websites schema — service role"
+  state: live (real data from Supabase local)
+  notes: |
+    WebsiteOverview (client) hosts WebsiteToolsBridge with live website + pages.
+    SetupWizard (client) hosts WebsiteSetupToolsBridge with live step + templates.
+    SectionEditor (client) hosts WebsitePageEditorToolsBridge with live sections + saveState.
+    Bridge props derived from existing hook results — no duplicate fetches.
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+
+# Step 4 — Datapoints
+datapoints:
+  - website: WebsiteRow | null (visibility, site_slug, template_key, name, updated_at)
+  - pages: PageRow[] (website_page_id, title, slug, page_type, is_visible, sort_order)
+  - sections: SectionRow[] (website_section_id, section_type, is_visible, sort_order)
+  - setupStep: "template" | "customize" | "confirm"
+  - templateKey: string | null
+  - saveState: SaveState ("saved" | "saving" | "error")
+server_actions:
+  - publishWebsite (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - unpublishWebsite (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - rollbackWebsite (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - deletePage (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - deleteSection (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - togglePageVisibility (ADR-0244 RISK-TIER — NOT exposed via tools)
+  - createWebsiteFromTemplate (user-confirmed form — NOT exposed via tools)
+write_operations: []  # no tools expose mutations
+
+# Step 5 — Design
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  notes: |
+    No styling touched. Tool hooks + bridges are pure logic — no JSX styling.
+    Existing components (WebsiteOverview, SetupWizard, SectionEditor) untouched
+    except for import + bridge render (null-returning).
+
+# Step 6 — Page knowledge
+page_knowledge:
+  header: Nettside
+  description: Opprett og administrer arbeidsplassens nettside — velg mal, tilpass utseende, legg til sider og seksjoner, og gå live.
+  empty_copy: Ingen nettside opprettet ennå. Gå til "Opprett nettside" for å komme i gang.
+  error_copy: Kunne ikke laste nettside — kontrollér tilkoblingen og prøv å laste siden på nytt.
+
+# Step 7 — Harness tools — SHIPPED
+harness_tools:
+  count: 8
+  scopes:
+    - website (3 tools)
+    - website-setup (2 tools)
+    - website-page-editor (3 tools)
+  bridge_files:
+    - apps/web/src/app/dashboard/website/_tools/use-website-tools.ts
+    - apps/web/src/app/dashboard/website/_tools/website-tools-bridge.tsx
+    - apps/web/src/app/dashboard/website/setup/_tools/use-website-setup-tools.ts
+    - apps/web/src/app/dashboard/website/setup/_tools/website-setup-tools-bridge.tsx
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/use-website-page-editor-tools.ts
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/website-page-editor-tools-bridge.tsx
+  registered_tools:
+    # scope: website
+    - key: getWebsiteState
+      type: read
+      note: visibility, site_slug, template_key, page_count, updated_at
+    - key: getPagesList
+      type: read
+      note: pages with title, slug, is_visible, sort_order — no content
+    - key: getPublishActionState
+      type: read
+      note: canPublish, canUnpublish, canRollback, hint
+    # scope: website-setup
+    - key: getSetupStatus
+      type: read
+      note: current step, completed steps, missing prereqs
+    - key: getTemplateOptions
+      type: read
+      note: available template keys + names (no full template body)
+    # scope: website-page-editor
+    - key: getPageState
+      type: read
+      note: title, is_visible, section_count, hasUnsavedChanges, lastSavedAt
+    - key: getSectionsList
+      type: read
+      note: sections with type, is_visible, sort_order — no content (PII guard)
+    - key: getSaveActionState
+      type: read
+      note: hasUnsavedChanges, canPublish, canPreview, hint
+
+# Step 8 — Speed test (DEFERRED)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  baseline_blocker: "dev server not running in this agent context"
+
+# Step 10 — Telemetry
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+  notes: |
+    All 8 tools are read-only. No emit() required. ADR-0244 RISK-TIER mutations
+    (publish/rollback/delete) deliberately excluded from Botsson tool surface.
+
+# Step 11 — Verification checklist
+checklist:
+  typecheck_pass: true  # 0 new errors; 20 pre-existing in contracts/payroll — out of scope
+  files_exist:
+    - apps/web/src/app/dashboard/website/_tools/use-website-tools.ts
+    - apps/web/src/app/dashboard/website/_tools/website-tools-bridge.tsx
+    - apps/web/src/app/dashboard/website/setup/_tools/use-website-setup-tools.ts
+    - apps/web/src/app/dashboard/website/setup/_tools/website-setup-tools-bridge.tsx
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/use-website-page-editor-tools.ts
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/website-page-editor-tools-bridge.tsx
+    - .claude/page-polish/dashboard-website.run.yml
+  site_map_touched: true   # 3 new entries added + generated_at bumped
+  no_hardcoded_colors: true
+  motion_tokens_used: true  # N/A — no new animations
+  telemetry_emit_per_mutation: true  # no mutations in any tool
+  harness_tools_registered: true
+  adr_0151_compliant: true   # workspace_id never passed as prop — RLS server-derived
+  adr_0238_compliant: true   # no domain chat surface, Orb interactive mode
+  adr_0244_compliant: true   # RISK-TIER actions excluded from tool surface
+
+# Notes
+notes: |
+  Harness tools shipped 2026-05-16 as part of website-polish sub-sortie.
+  8 read-only tools across 3 scopes. All ADR-0244 RISK-TIER mutations excluded.
+  Section content never returned (PII guard — spokesperson text may be present).
+  dataRef pattern: implementations read dataRef.current at call time — closure safe.
+  PARAMETER_LOCATION_BODY constant declared but only used on tools with dynamicParameters
+  (getSetupStatus and getTemplateOptions have zero params — constant unused but
+  present per convention for future extension).
+  Pre-existing 20 TS errors in contracts/payroll routes are out of scope.

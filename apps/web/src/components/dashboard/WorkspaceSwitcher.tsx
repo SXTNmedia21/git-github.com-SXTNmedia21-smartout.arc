@@ -81,18 +81,18 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
         className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 transition-colors ${
           isDark
             ? "bg-card hover:bg-accent"
-            : "bg-[oklch(0.95_0.004_55)] ring-1 ring-[oklch(0.90_0.005_50)] hover:bg-[oklch(0.93_0.005_55)]"
+            : "bg-[var(--surface-raised)] ring-1 ring-[var(--surface-border-strong)] hover:bg-[var(--surface-overlay)]"
         }`}
       >
         <Building2 className="h-4 w-4 text-orange-500" />
         <span
-          className={`text-sm font-bold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
+          className={`text-sm font-bold ${isDark ? "text-foreground" : "text-[var(--text-strong)]"}`}
         >
           {workspace.name}
         </span>
         <ChevronRight
           className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""} ${
-            isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
+            isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
           }`}
         />
       </button>
@@ -100,12 +100,12 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
       {open && (
         <div
           className={`absolute top-full left-0 z-50 mt-2 min-w-[240px] rounded-xl border p-1.5 shadow-xl ${
-            isDark ? "border-border bg-card" : "border-[oklch(0.90_0.005_50)] bg-white"
+            isDark ? "border-border bg-card" : "border-[var(--surface-border-strong)] bg-white"
           }`}
         >
           <p
             className={`px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase ${
-              isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
+              isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
             }`}
           >
             Workspaces
@@ -121,10 +121,10 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
                   isCurrent
                     ? isDark
                       ? "bg-accent"
-                      : "bg-[oklch(0.95_0.004_55)]"
+                      : "bg-[var(--surface-raised)]"
                     : isDark
                       ? "hover:bg-accent"
-                      : "hover:bg-[oklch(0.96_0.003_55)]"
+                      : "hover:bg-[var(--surface-subtle)]"
                 }`}
               >
                 <div className="bg-brand-orange/10 text-brand-orange flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
@@ -133,14 +133,14 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
                 <div className="min-w-0 flex-1">
                   <p
                     className={`truncate text-sm font-medium ${
-                      isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"
+                      isDark ? "text-foreground" : "text-[var(--text-strong)]"
                     }`}
                   >
                     {ws.name}
                   </p>
                   <p
                     className={`truncate text-xs ${
-                      isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
+                      isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                     }`}
                   >
                     {ws.slug}

@@ -44,7 +44,7 @@ export function TimelineBlock({ season, x, width, y, height, isSelected, onSelec
         width: Math.max(20, width),
         height,
         background: bg,
-        color: isActive ? "#fff" : "var(--foreground)",
+        color: isActive ? "var(--primary-foreground)" : "var(--foreground)",
         border: isDraft
           ? `1.5px dashed ${baseColor}`
           : isSelected
@@ -61,8 +61,10 @@ export function TimelineBlock({ season, x, width, y, height, isSelected, onSelec
     >
       {isActive && (
         <span
-          className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-white"
-          style={{ boxShadow: "0 0 0 3px rgba(255,255,255,0.25)" }}
+          className="bg-primary-foreground mr-2 inline-block h-1.5 w-1.5 rounded-full"
+          style={{
+            boxShadow: "0 0 0 3px color-mix(in oklab, var(--primary-foreground) 25%, transparent)",
+          }}
         />
       )}
       {season.name}

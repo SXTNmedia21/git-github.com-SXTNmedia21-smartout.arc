@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import {
@@ -7,6 +8,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  formatISO,
   getDay,
   isSameDay,
   isSameMonth,
@@ -17,6 +19,16 @@ import {
 import { nb } from "date-fns/locale";
 import { type CalendarEvent, EVENT_COLOR_HEX } from "../_lib/types";
 import type { DayHours } from "@/app/dashboard/website/_actions/bridge-actions";
+import { ShiftBadge } from "./overlays/ShiftBadge";
+import { HolidayBand } from "./overlays/HolidayBand";
+
+/**
+ * Returns the ISO yyyy-MM-dd key for a given Date.
+ * Uses local timezone via formatISO to match how CalendarPageShell stores selectedDayISO.
+ */
+function isoKey(d: Date): string {
+  return formatISO(d, { representation: "date" });
+}
 
 export type ViewMode = "day" | "week" | "month";
 
@@ -68,6 +80,10 @@ type CalendarTabProps = {
   cursor: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate?: Record<string, number>;
+  holidaysByDate?: Record<string, { name: string }>;
+  showShifts?: boolean;
+  showHolidays?: boolean;
   onEventClick: (event: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
   onDayOpen: (date: Date) => void;
@@ -78,6 +94,10 @@ export function CalendarTab({
   cursor,
   events,
   companyHours,
+  shiftsByDate = {},
+  holidaysByDate = {},
+  showShifts = false,
+  showHolidays = false,
   onEventClick,
   onSlotClick,
   onDayOpen,
@@ -100,15 +120,16 @@ export function CalendarTab({
   };
 
   // Re-key on view + period start so prev/next + view swap both animate.
+  // Use local-tz isoKey() — consistent with how CalendarPageShell stores selectedDayISO.
   const periodKey =
     view === "day"
-      ? cursor.toISOString().slice(0, 10)
+      ? isoKey(cursor)
       : view === "week"
-        ? startOfWeek(cursor, WEEK_OPTS).toISOString().slice(0, 10)
-        : startOfMonth(cursor).toISOString().slice(0, 7);
+        ? isoKey(startOfWeek(cursor, WEEK_OPTS))
+        : format(startOfMonth(cursor), "yyyy-MM");
 
   return (
-    <div className="border-border bg-card relative flex flex-col overflow-hidden rounded-xl border">
+    <div className="border-border bg-card relative flex flex-col rounded-xl border">
       <div className="min-h-[36rem]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={`${view}-${periodKey}`} {...swap}>
@@ -117,6 +138,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onSlotClick={onSlotClick}
               />
@@ -126,6 +151,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onSlotClick={onSlotClick}
                 onDayOpen={onDayOpen}
@@ -136,6 +165,10 @@ export function CalendarTab({
                 date={cursor}
                 events={events}
                 companyHours={effectiveHours}
+                shiftsByDate={shiftsByDate}
+                holidaysByDate={holidaysByDate}
+                showShifts={showShifts}
+                showHolidays={showHolidays}
                 onEventClick={onEventClick}
                 onDayOpen={onDayOpen}
               />
@@ -151,24 +184,57 @@ function DayView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onSlotClick,
 }: {
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
 }) {
   const dayEvents = events.filter((e) => isSameDay(parseISO(e.date), date));
   const window = openWindow(hoursForDate(date, companyHours));
+  const key = isoKey(date);
+  const hasOverlayStrip =
+    (showHolidays && !!holidaysByDate[key]) || (showShifts && (shiftsByDate[key] ?? 0) > 0);
+
+  // Scroll-to-current-hour parity with WeekView.
+  const currentHour = new Date().getHours();
+  const nowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    nowRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, []);
+
   return (
     <div className="grid grid-cols-[4rem_1fr]">
+      {/* Overlay top-strip: shows holiday name + shift count for this day */}
+      {hasOverlayStrip ? (
+        <div className="border-border col-span-2 flex items-center gap-3 border-b px-3 py-1.5">
+          {showHolidays && holidaysByDate[key] ? (
+            <span className="text-[10px] font-semibold tracking-wide text-[var(--brand-orange)] uppercase">
+              {holidaysByDate[key].name}
+            </span>
+          ) : null}
+          {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+            <ShiftBadge count={shiftsByDate[key]!} size="md" />
+          ) : null}
+        </div>
+      ) : null}
       <div className="border-border border-r">
         {HOURS.map((h) => (
           <div
             key={h}
-            className="text-muted-foreground border-border h-14 border-b px-2 pt-1 text-[10px]"
+            ref={h === currentHour ? nowRef : undefined}
+            className="text-muted-foreground border-border h-14 scroll-mt-16 border-b px-2 pt-1 text-[10px]"
           >
             {String(h).padStart(2, "0")}:00
           </div>
@@ -244,6 +310,10 @@ function WeekView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onSlotClick,
   onDayOpen,
@@ -251,6 +321,10 @@ function WeekView({
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onSlotClick: (date: Date, hour: number) => void;
   onDayOpen: (date: Date) => void;
@@ -258,13 +332,24 @@ function WeekView({
   const weekStart = startOfWeek(date, WEEK_OPTS);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Google-Calendar-style: scroll the time-grid so the current hour lands
+  // near the top of the visible area on mount + view change. Ref is on the
+  // hour-label row matching the current local hour; scrollIntoView climbs
+  // to the nearest scrolling ancestor (CalendarPageShell's overflow-y-auto).
+  const currentHour = new Date().getHours();
+  const nowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    nowRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, []);
+
   return (
     <div>
-      <div className="border-border grid grid-cols-[4rem_repeat(7,1fr)] border-b">
+      <div className="border-border bg-card sticky top-0 z-20 grid grid-cols-[4rem_repeat(7,1fr)] border-b">
         <div />
         {days.map((d) => {
           const row = hoursForDate(d, companyHours);
           const today = isSameDay(d, new Date());
+          const key = isoKey(d);
           return (
             <button
               key={d.toISOString()}
@@ -275,7 +360,13 @@ function WeekView({
               }`}
             >
               <div className="capitalize">{format(d, "EEE", { locale: nb })}</div>
-              <div className="text-foreground mt-0.5 text-base font-semibold">
+              <div
+                className={`mt-0.5 text-base font-semibold ${
+                  today
+                    ? "bg-primary text-primary-foreground mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    : "text-foreground"
+                }`}
+              >
                 {format(d, "d", { locale: nb })}
               </div>
               {row ? (
@@ -285,6 +376,14 @@ function WeekView({
                   }`}
                 >
                   {row.closed ? "Stengt" : `${row.open}–${row.close}`}
+                </div>
+              ) : null}
+              {showHolidays && holidaysByDate[key] ? (
+                <HolidayBand name={holidaysByDate[key].name} variant="week-header" />
+              ) : null}
+              {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+                <div className="mt-0.5 flex justify-center">
+                  <ShiftBadge count={shiftsByDate[key]!} size="sm" />
                 </div>
               ) : null}
             </button>
@@ -297,7 +396,8 @@ function WeekView({
           {HOURS.map((h) => (
             <div
               key={h}
-              className="text-muted-foreground border-border h-14 border-b px-2 pt-1 text-[10px]"
+              ref={h === currentHour ? nowRef : undefined}
+              className="text-muted-foreground border-border h-14 scroll-mt-16 border-b px-2 pt-1 text-[10px]"
             >
               {String(h).padStart(2, "0")}:00
             </div>
@@ -332,12 +432,20 @@ function MonthView({
   date,
   events,
   companyHours,
+  shiftsByDate,
+  holidaysByDate,
+  showShifts,
+  showHolidays,
   onEventClick,
   onDayOpen,
 }: {
   date: Date;
   events: CalendarEvent[];
   companyHours: DayHours[];
+  shiftsByDate: Record<string, number>;
+  holidaysByDate: Record<string, { name: string }>;
+  showShifts: boolean;
+  showHolidays: boolean;
   onEventClick: (e: CalendarEvent) => void;
   onDayOpen: (date: Date) => void;
 }) {
@@ -375,6 +483,7 @@ function MonthView({
           const isToday = isSameDay(d, new Date());
           const dayEvents = events.filter((e) => isSameDay(parseISO(e.date), d));
           const closed = companyHours.length > 0 && !openWindow(hoursForDate(d, companyHours));
+          const key = isoKey(d);
           return (
             <div
               key={d.toISOString()}
@@ -387,7 +496,7 @@ function MonthView({
                   onDayOpen(d);
                 }
               }}
-              className={`border-border min-h-24 cursor-pointer border-b border-l p-1.5 transition-colors first:border-l-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
+              className={`border-border relative min-h-24 cursor-pointer border-b border-l p-1.5 transition-colors first:border-l-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
                 inMonth
                   ? closed
                     ? "bg-muted/20 hover:bg-muted/40"
@@ -395,8 +504,13 @@ function MonthView({
                   : "bg-muted/30"
               }`}
             >
+              {/* HolidayBand — absolute top strip (~14px tall), aria-hidden */}
+              {showHolidays && holidaysByDate[key] ? (
+                <HolidayBand name={holidaysByDate[key].name} variant="month-cell" />
+              ) : null}
+              {/* Push day number below the holiday band when present */}
               <div
-                className={`text-xs ${
+                className={`text-xs ${showHolidays && holidaysByDate[key] ? "mt-4" : ""} ${
                   isToday
                     ? "bg-primary text-primary-foreground inline-flex h-6 w-6 items-center justify-center rounded-full font-bold"
                     : inMonth
@@ -414,9 +528,12 @@ function MonthView({
                       ev.stopPropagation();
                       onEventClick(e);
                     }}
-                    className="truncate rounded px-1.5 py-0.5 text-left text-[10px] font-semibold"
+                    className="block w-full truncate rounded-sm px-1.5 py-px text-left text-[10px] leading-5 font-semibold transition-opacity hover:opacity-80"
                     style={{
-                      backgroundColor: "color-mix(in oklch, var(--card) 60%, transparent)",
+                      // Solid color-keyed background gives reliable contrast
+                      // on both light and dark themes. 18% opacity is
+                      // enough to show the hue without competing with text.
+                      backgroundColor: `color-mix(in oklch, ${EVENT_COLOR_HEX[e.color]} 18%, var(--card))`,
                       color: EVENT_COLOR_HEX[e.color],
                       borderLeft: `2px solid ${EVENT_COLOR_HEX[e.color]}`,
                     }}
@@ -425,11 +542,17 @@ function MonthView({
                   </button>
                 ))}
                 {dayEvents.length > 2 ? (
-                  <div className="text-muted-foreground text-[10px]">
+                  <span className="text-muted-foreground inline-block rounded-sm px-1.5 py-px text-[9px] leading-5 font-medium">
                     +{dayEvents.length - 2} til
-                  </div>
+                  </span>
                 ) : null}
               </div>
+              {/* ShiftBadge — absolute bottom-right corner */}
+              {showShifts && (shiftsByDate[key] ?? 0) > 0 ? (
+                <div className="absolute right-1 bottom-1">
+                  <ShiftBadge count={shiftsByDate[key]!} size="sm" />
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -453,20 +576,21 @@ function EventBlock({
   return (
     <button
       onClick={() => onClick(event)}
-      className="absolute right-1 left-1 rounded-md border p-1.5 text-left text-[11px] font-semibold shadow-sm transition-shadow hover:shadow-md"
+      className="absolute right-1 left-1 overflow-hidden rounded-md border-l-2 p-1.5 text-left text-[11px] font-semibold transition-opacity hover:opacity-90"
       style={{
         top,
         height,
+        // Left border uses full event color; background is a subtle tint so
+        // the block reads clearly on both light and dark themes.
         borderColor: color,
-        backgroundColor: "color-mix(in oklch, var(--background) 70%, transparent)",
+        backgroundColor: `color-mix(in oklch, ${color} 12%, var(--card))`,
         color,
       }}
     >
-      <div className={compact ? "truncate" : ""}>{event.title}</div>
+      <div className={compact ? "truncate leading-4" : "leading-4"}>{event.title}</div>
       {!compact ? (
-        <div className="text-muted-foreground mt-0.5 text-[10px]">
-          {String(event.startHour).padStart(2, "0")}:00 – {String(event.endHour).padStart(2, "0")}
-          :00
+        <div className="mt-0.5 text-[10px] leading-3 opacity-70" style={{ color }}>
+          {String(event.startHour).padStart(2, "0")}:00–{String(event.endHour).padStart(2, "0")}:00
         </div>
       ) : null}
     </button>

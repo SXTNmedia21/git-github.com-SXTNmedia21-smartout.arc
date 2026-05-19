@@ -26,7 +26,7 @@ import { useRef } from "react";
 import { Anchor, AlertTriangle, CheckCircle2, LogIn, StickyNote, Type, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@smartout/ui";
 
@@ -47,8 +47,22 @@ export type SlotPickerProps = {
   role: WorkspaceRole | null;
   /** Called when user picks an action (caller opens the corresponding dialog). */
   onAction: (action: SlotPickerAction, time: string) => void;
-  /** Trigger element — the invisible hit-zone button from DayTimelineStrip. */
-  children: React.ReactNode;
+  /**
+   * Anchor element — invisible 1×1 span positioned at the click coordinate
+   * by the caller. Popover content positions relative to this anchor so the
+   * menu opens at the click point rather than at the strip wrapper.
+   */
+  anchor?: React.ReactNode;
+  /**
+   * day_line_id that owns this slot picker context.
+   * Added in ADR-0367 C-T1 — forwarded to action handlers so multi-strip
+   * TimelineTab knows which line an action targets.
+   */
+  dayLineId?: string;
+  /** Planned open time for the owning day_line (HH:MM:SS). Context for action handlers. */
+  plannedOpen?: string;
+  /** Planned close time for the owning day_line (HH:MM:SS). Context for action handlers. */
+  plannedClose?: string;
 };
 
 // ── Lane item definitions ──────────────────────────────────────────────────────
@@ -68,7 +82,7 @@ const D6_ITEMS: LaneItem[] = [
     Icon: Anchor,
     description: "Åpnings-, lukke- eller planlagt hook",
     iconClass:
-      "bg-[oklch(0.90_0.04_250)] border-[oklch(0.80_0.08_250)] text-[oklch(0.30_0.14_250)]",
+      "bg-[var(--slot-blue-bg)] border-[var(--slot-blue-border)] text-[var(--slot-blue-fg)]",
   },
   {
     action: "task",
@@ -76,21 +90,22 @@ const D6_ITEMS: LaneItem[] = [
     Icon: CheckCircle2,
     description: "Frittstående oppgave for sesjonen",
     iconClass:
-      "bg-[oklch(0.90_0.04_145)] border-[oklch(0.78_0.10_145)] text-[oklch(0.28_0.14_145)]",
+      "bg-[var(--slot-green-bg)] border-[var(--slot-green-border)] text-[var(--slot-green-fg)]",
   },
   {
     action: "note",
     label: "Notat",
     Icon: StickyNote,
     description: "Sesjonsnotat for dagen",
-    iconClass: "bg-[oklch(0.90_0.04_55)] border-[oklch(0.80_0.08_55)] text-[oklch(0.30_0.10_55)]",
+    iconClass:
+      "bg-[var(--slot-amber-bg)] border-[var(--slot-amber-border)] text-[var(--slot-amber-fg)]",
   },
   {
     action: "deviation",
     label: "Avvik",
     Icon: AlertTriangle,
     description: "Registrer et avvik",
-    iconClass: "bg-[oklch(0.90_0.04_25)] border-[oklch(0.78_0.10_25)] text-[oklch(0.32_0.14_25)]",
+    iconClass: "bg-[var(--slot-red-bg)] border-[var(--slot-red-border)] text-[var(--slot-red-fg)]",
   },
 ];
 
@@ -101,7 +116,7 @@ const D2_ITEMS: LaneItem[] = [
     Icon: LogIn,
     description: "Legg til et vaktslot",
     iconClass:
-      "bg-[oklch(0.90_0.04_310)] border-[oklch(0.78_0.10_310)] text-[oklch(0.30_0.14_310)]",
+      "bg-[var(--slot-purple-bg)] border-[var(--slot-purple-border)] text-[var(--slot-purple-fg)]",
   },
 ];
 
@@ -111,7 +126,8 @@ const FREE_ITEMS: LaneItem[] = [
     label: "Fri tekst",
     Icon: Type,
     description: "Tekstlapp — materialiseres ved bruk av mal",
-    iconClass: "bg-[oklch(0.92_0.01_58)] border-[oklch(0.84_0.01_58)] text-[oklch(0.40_0.02_55)]",
+    iconClass:
+      "bg-[var(--slot-neutral-bg)] border-[var(--slot-neutral-border)] text-[var(--slot-neutral-fg)]",
   },
 ];
 
@@ -238,7 +254,10 @@ export function SlotPicker({
   isLocationScope = false,
   role,
   onAction,
-  children,
+  anchor,
+  dayLineId: _dayLineId,
+  plannedOpen: _plannedOpen,
+  plannedClose: _plannedClose,
 }: SlotPickerProps) {
   const canWrite = role !== null && role !== "employee";
   const locationDisabledReason = "Lokasjons-malt godtar kun vakter";
@@ -250,11 +269,13 @@ export function SlotPicker({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      {anchor ? <PopoverAnchor asChild>{anchor}</PopoverAnchor> : null}
       <PopoverContent
         className="w-[300px] p-0"
-        align="start"
+        align="center"
+        side="bottom"
         sideOffset={6}
+        collisionPadding={12}
         onInteractOutside={() => onOpenChange(false)}
         data-testid="slot-picker-popover"
       >

@@ -18,6 +18,9 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 
 | Date       | Topic                                 | Type         | Verdict                  | Agents Consulted                                          | Prior verdict held? | ADR                                                                               | Learning                                                                                                                                                                                                                                                                                                                               |
 | ---------- | ------------------------------------- | ------------ | ------------------------ | --------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-18 | Announcement Kind/Tier/Entity-Link spec V1 Pragmatic Sidecar — sidecar `announcement_meta` 1:1 with `channel_message`, atomic RPC `publish_announcement_atomic`, tier-driven notification trigger refactor, harmonization of 4 composer paths. Spec at `docs/superpowers/specs/2026-05-18-announcement-kind-tier-link-design.md`. | spec | **REJECT — chair self-reversal precedent #10 per L-0294.** 6 BLOCKERS: B1 `SET CONSTRAINTS ALL DEFERRED` does not defer plain triggers (race-condition unsolved, every announcement gets `tier='work'` fallback); B2 capability-key divergence spec=`broadcast.send` (manager+/confirm) vs real=`communication` (employee+/suggest) silent privilege regression; B3 `callGateAction` phantom callback signature vs real positional `(supabase, workspaceId, profileId, args) → {allow, reason}`; B4 schema breaking change unflagged — `{title(120), body(1600)} → {content(800)}` no ADR no migration; B5 telemetry registry `ChannelMessageSent` interface not extended → TS error on emit + `announcement.link_followed` unregistered (ADR-0377 violation); B6 `in_app` IS in `notification_channel` enum via `ALTER TYPE ADD VALUE` at `20260324220000:7` — spec drops it. 7 MUST-FIX: RLS namespace `auth.uid()` vs `profile_id`, `EXCEPTION WHEN OTHERS` restoration, dynamic notification priority, stale `mode='elevated'` §16 ref, intent-classifier co-update (L-0292), NyheterClient sidecar JOIN, CSS tier-vars before component work. 5 SHOULD-FIX (Frontend-Designer): focus styling, kind-picker pattern, useReducedMotion gates, OKLCH literal migration, audience_preview PII shape. **Trust Gate 8/8 FAIL** — worst Trust Gate result in council corpus. Pre-flight fact-check applied 5 corrections inline (`is_manager_in_workspace` M0 prerequisite, removed phantom `is_service_role()`, fixed `notification_outbox` real columns, matched `notification_mode`/`notification_channel` enum values) — yet still missed B6 enum-extension (3rd Phase 2.5 grep-narrowness occurrence → ADR-grade promotion). | system-steward (chair, opus — Phase 3 APPROVE-WITH-CONDITIONS "3 must-fix mechanical to fix" → Phase 5 REVERSED to REJECT via L-0294 canonical format after 3 code-tracers brought file:line evidence; **10th L-0147 codified precedent**), supervisor (opus — REJECT, found B1 SET CONSTRAINTS semantics + B6 in_app enum via grep beyond CREATE TYPE; Layer 3 trigger/constraint scan; restored EXCEPTION/mute/sender filter requirements), system-agent-coordinator (opus — Code-Tracer Layer 2+4; B2 capability-key divergence at `publish-announcement.ts:91-96` vs spec §8 + B3 callGateAction signature mismatch at `gate.ts:52-57` + B4 title/body collapse breaking change unflagged + audience-resolver server/web non-duplication divergence), botsson-harness-builder (opus — Code-Tracer Layer 4; B5 telemetry registry `ChannelMessageSent` interface at `registry.ts:4171-4184` missing extension + `announcement.link_followed` unregistered; per-tool gate/emit/mutation table for 9 communication tools; pipe-by-pipe BOTSSON-SYSTEM-MAP — communication 🟢 unchanged but spec adds blockers; NyheterClient read-path JOIN omission), frontend-designer (sonnet — 5 must-fix WCAG/Nordic Split: CSS tier-vars vs ADR-0361, focus styling WCAG 2.4.11, kind picker pattern undefined, useReducedMotion WCAG 2.3.3, existing OKLCH literal migration; 4 should-fix card density + tag color hashing + tier override UX + ARIA radiogroup; designer prototype deviance acknowledged). 5/5 reviewers = NOT DEGRADED. Phase 2.5 fact-check (haiku) applied 5 corrections inline — but missed `ALTER TYPE ADD VALUE 'in_app'` (3rd occurrence of grep-narrowness pattern; promoted to ADR-grade hard rule via L-0313). | n/a — first council on Announcements module Wave B (Kind/Tier/Link). Prior Wave A (notification priority branching + audience picker + pin/unpin + PinnedStrip) shipped via plan `docs/modules/announcments/nyheter/project/docs/plans/PLAN-nyheter-engagement-wave-a.md`. | ADR-0369 NEW (proposed — Announcement Atomicity, RPC-body fan-out placeholder pending re-draft). ADR-0370 NEW (proposed — Capability Boundary for Announcement Surface). ADR-0371 NEW (proposed — Schema Contract Migration `{content}` collapse decision). | L-0312 NEW (canonical — `SET CONSTRAINTS ALL DEFERRED` does not defer plain triggers; hard rule for Phase 3 chair atomicity-claim verification). L-0313 NEW (canonical — Phase 2.5 fact-check must grep `ALTER TYPE ADD VALUE` not only `CREATE TYPE`; 3rd-occurrence ADR-grade promotion; sibling chat-whatsapp 2026-05-16 + HMS R1 PM 2026-05-17). L-0314 NEW (canonical — Capability-key drift between spec pseudocode and real agent router; L-0176-family; mandatory Phase 2.5 grep of router/capabilities/seed migrations for capability strings). L-0315 NEW (canonical — `callGateAction` signature is positional `(supabase, workspaceId, profileId, args) → {allow, reason}` not callback; L-0176-family; Phase 2.5 must verify shared-helper signatures match pseudocode). **Semantic conflict resolution (7 pairs):** (1) Chair Phase 3 "structurally sound defects mechanical" vs Supervisor "REJECT structural bug in atomicity mechanism" — DIFFERENT, REVERSED via PostgreSQL semantics + plain trigger evidence at `20260422310100:79-82`. (2) Chair Phase 3 R1 RLS namespace vs Supervisor Concern #2 — SAME, recurring trap concur. (3) Chair Phase 3 R2 RPC argument shape vs Agent-Coord #1 capability-key — DIFFERENT DOMAINS (RPC signature vs capability gate). (4) Chair Phase 3 R3 trigger behaviour vs Supervisor #3 EXCEPTION drop — SAME. (5) Supervisor #4 `in_app` in enum vs Phase 2.5 fact-check — PARTIAL OVERLAP (Phase 2.5 grep methodology missed ALTER TYPE; 3rd occurrence). (6) Harness build blocker (telemetry interface) vs Agent-Coord #3 (PII boundary return shape) — DIFFERENT DOMAINS. (7) Frontend-Designer #1 CSS vars vs ADR-0361 — SAME (first commit breaches ADR-0361 unless tier-vars declared first). **Chair Self-Reversal Phase 5 §1.5** explicit canonical format: "Phase 3 claim X was FALSE. Falsifying evidence: `20260422310100:79-82` plain `AFTER INSERT` trigger + `gate.ts:52-57` signature + `registry.ts:4171-4184` interface. Classification: REVERSED." **10th codified L-0147 precedent.** **Agent Trust Gate 8/8 FAIL** per-promise table: kind FAIL (schema), tier FAIL (atomicity B1), tags FAIL (schema), link FAIL (telemetry B5), capability gate FAIL (B2), callGateAction FAIL (B3), content collapse FAIL (B4), in_app routing FAIL (B6). Worst Trust Gate in council corpus. Pontus approved verdict 2026-05-18 → Phase 7+8 capture (this row + 3 ADRs + 4 learnings); spec marked `status: rejected-pending-rework`; BLUEPRINT.md updated to reference council outcome. Re-draft sortie requires resolving 3 deferred ADRs first. |
+| 2026-05-17 | BotssonProvider topology lift — runtime fix for `useBotsson must be used within <BotssonProvider>` thrown by ADR-0337 `<DomainChatOwnership>` consumers (komm/chat, komm/thread, shift-clock); in-place fix wrapped `{children}` inside `EmmaOverlay` (dynamic ssr:false) | post-implementation | **APPROVE WITH CHANGES — Solution C (split BotssonHost SSR-safe from EmmaOverlay dynamic-Orb-only)**. Pre-merge: (1) `BotssonHost.tsx` new file mounts `<BotssonProvider workspaceId={...}>{children}</BotssonProvider>`; (2) EmmaOverlay reduced to `<BotssonShell />` only, stays `dynamic({ssr:false})`; (3) DashboardShell wraps `<BotssonHost>{children}<EmmaOverlay/></BotssonHost>` at line 1786 + setup-page boundary comment at line 1122-1125; (4) `BotssonChatHero.tsx:30` nested inner BotssonProvider removed + stale comment 26-28 rewritten; (5) Botsson.css ancestor audit CLEAN (no transform/contain/will-change blocking Orb fixed escape); (6) ADR-0350 drafted (slot collision: 0348+0349 taken cross-branch) amending ADR-0113 §R51 with two conditions (SSR-safe wrapper + sole provider instance); (7) Playwright regression spec `apps/e2e/tests/domain-chat-ownership/botsson-provider-scope.spec.ts` 102 lines covers G2+G3+G4. | system-steward (chair, opus — Phase 3 "block merge for ADR-0113 R51 violation" → Phase 5 REVERSED to "block merge for SPLIT + ADR + nested-provider fix" via L-0147 protocol after 3 code-tracers brought runtime evidence; 8th codified precedent), supervisor (opus — dynamic-import boundary regression caught, `BotssonChatHero.tsx:30` nested-provider silent break identified, EmmaOverlay name-vs-purpose drift, recommended Solution C split + required children prop), system-agent-coordinator (opus — Code-Tracer; 10-side-effect mount-time table in BotssonProvider, counter-based ownership API verified correct, Trust Gate PASS on capability surface, `loadAll()` 3-GET-per-route follow-up flagged), botsson-harness-builder (opus — L1-L5 trace end-to-end across 3 consumers, ADR-0238/0337 compliance verified, BOTSSON-SYSTEM-MAP Komm ADR-0238 debt closure, BotssonChatHero conflict parallel-found with Supervisor), frontend-designer (sonnet — DEGRADED via smart-explore hook loop blocking file reads; inference-only review delivered LCP HIGH severity + skeleton-flash anti-pattern + a11y missing-`<main>`-landmark + Orb suppression-flash on chunk load, recommended Solution C split). 5/5 reviewers = NOT DEGRADED for verdict purposes (frontend partial but delivered all key findings). Phase 2.5 fact-check (haiku) caught ADR slot drift (briefing said 0346 highest; actually 0347 with cross-branch collision pair). | yes — sibling council 2026-05-14 polish-wave QA `ADR-0238 debt FLAGGED as build-or-retract threshold reached` HELD + EXTENDED. ADR-0337 closed the build gap (2026-05-16); this council closes the topology gap exposed by the consumers ADR-0337 added. L-0257 phantom-contract pattern now structurally closed — Komm + shift-clock all wired against live provider. | ADR-0350 NEW (proposed — BotssonHost mount pattern amends ADR-0113 §R51 with two conditions; canonical Host vs Overlay split documented; future Solution-D escalation trigger for strict-above-shell if remount-survival breaks). | L-0289 NEW (canonical — Context-hook consumer merges must verify provider-ancestor chain; sibling L-0176/L-0177/L-0257 artifact-author-asserts-compliance-body/tree-does-not-provide class; promote to `run-council` Phase 3 hard rule on 2nd occurrence — per-consumer × per-provider-ancestor file:line table required when topic adds context-hook consumers). L-0147 8th codified precedent (Chair Phase 3 "block merge for ADR violation" → Phase 5 "REVERSED to block merge for SPLIT" via 3-tracer reversal; pattern signature: chair operates on doc-trail axis, code-tracers expand scope to runtime axis). **Semantic conflict resolution (4 pairs):** (1) Steward "ADR-0113 R51 VIOLATION, block merge" vs Agent-coord "Trust Gate PASS, ship as-is" — DIFFERENT domains both true (Agent-coord scoped to harness contract; Steward scoped to doc-trail; neither absolves the other). (2) Frontend "LCP regression HIGH, decouple" vs Agent-coord "ship as-is" — DIFFERENT, Frontend wins on evidence weight (Agent-coord did not analyze SSR-boundary regression; Frontend's chunk-gating trace identifies genuine new degradation). (3) Harness "always-structural newly exposed" vs Steward "second build-or-retract in 2 days" — DIFFERENT framings both true (Harness: provider gap predates ADR-0337; Steward: process failure to verify provider chain at consumer-merge). (4) Steward "rename warranted" vs Harness "warranted not urgent" — COMPATIBLE; Solution C makes rename intrinsic. **Chair Self-Reversal Phase 5 §1.5** explicit. **Agent Trust Gate per-component:** DomainChatOwnership PASS (unchanged), BotssonProvider scope lift PASS (no capability surface change), EmmaOverlay in-place host pattern CONDITIONAL FAIL (SSR + nested), BotssonHost split PASS. **Solution C end-state shipped same session:** Track A (topology swap) + Track B (hero cleanup) + Track C (CSS audit CLEAN) + Track D (ADR-0350) + Track E (Playwright spec) + Track F (L-0289). G1 typecheck green; G5 CSS clean; G6 ADR registered; G7 spec written; G8 setup comment landed. Pontus approved Solution C verdict 2026-05-17 → all 6 tracks dispatched and closed same session. |
+| 2026-05-17 | M5 HMS cluster scoping — how to scope 8-route polish work (hms umbrella + 5 sub-tabs + procedure/[id] + policies + handbook) | plan | **APPROVE WITH CHANGES — Option C+ (4 sorties)**. Pre-M5 mutation closure (sortie 1, BLOCKER): convert use-update-deviation.ts + use-complete-task.ts to Server Actions w/ gate_action; add gate_action RPC to policy-actions.createPolicy; register "policy created" event. Pre-M5 collision-fix (sortie 2, BLOCKER): resolve 3 LIVE L-0258 collisions (listOpenDeviations 3-way, getDriftStatus 2-way, getProtocolDetail 2-way) + CI detector per ADR-0348. Then M5 sortie 3 hms-cluster-polish-read (umbrella+drift+documents+training+governance read-views, 11 components, 4-5 loading.tsx) + sortie 4 policies-handbook-polish-write (policies+handbook+procedure-detail+DeviationKanban motion budget). | system-steward (chair, opus — Phase 3 Option B → Phase 5 REVERSED to Option C+ via L-0147 protocol after 3 code-tracers brought file:line evidence; 9th codified precedent counting today's), supervisor (opus — corrected briefing telemetry claim, found ADR-0114 violations at use-update-deviation.ts:35-53 + use-complete-task.ts:25-33, recommended 4-sortie sequence with prereq), system-agent-coordinator (opus — Code-Tracer; traced 3 LIVE L-0258 collisions with file:line + per-action ADR-0204/ADR-0287 table for policy-actions.ts + use-update-deviation/use-complete-task; recommended Option B+2-carve-outs), botsson-harness-builder (opus — L1-L5 status matrix for HMS surface, BOTSSON-SYSTEM-MAP G3/G4/G8 gaps identified, cross-cutting law audit per option, Trust Gate CONDITIONAL FAIL), frontend-designer (sonnet — App Router streaming gap, hardcoded-token risk inventory by component, DeviationKanban motion-budget concern, recommended Option C with procedure/[id] in interaction sortie). 5/5 reviewers = NOT DEGRADED. Phase 2.5 fact-check (haiku) caught 3 false briefing claims (procedure/[id] existence, hook count, loading.tsx coverage) — re-verified by orchestrator before Phase 3 dispatch. | yes — 2026-05-14 Polish-Wave QA verdict (HMS bridge PASS w/ name-collision flag) HELD + EXTENDED via concrete trace. L-0258/L-0260/L-0257 sibling pattern. ADR-0325 Phase 1 grace-mode still live; this council triggers Phase 2 dedupe via M5 sortie 2. | ADR-0348 NEW (proposed — L-0258 collision detector mandatory in CI; formalizes Agent-coord's detector; Option B sub-sortie hms-collision-fix; renumbered from 0347 → 0348 in Sortie 1 G4 to resolve collision with schedule-density-persistence ADR-0347). | L-0286 NEW (canonical — Polish PRs gild half-converted patterns when prereq mutation closure skipped; sibling L-0260; promotes Phase 0 mutation-surface audit to smartout-page-polish skill). L-0287 NEW (canonical — Bridge tool description refinement = phantom-contract amplifier when L4 capability absent; sibling L-0257; promotes Phase 0 capability check to smartout-page-polish skill). L-0147 9th codified precedent (Chair Phase 3 Option B → Phase 5 Option C+ via 3-tracer reversal; pattern signature confirmed: chair generalizes from cascade-role axis, code-tracers falsify with file:line). **Semantic conflict resolution (7 pairs):** (1) Steward P3 "scope `hms` low collision risk" vs Agent-coord "3 LIVE collisions traced" — DIFFERENT, P3 FALSIFIED, REVERSED. (2) Steward P3 "policy-actions audit as precondition" vs Supervisor "prereq sortie" vs Agent-coord "30-min carve-out" — PARTIAL, all agree must precede; resolved to fold into pre-M5 closure sortie. (3) Steward P3 "capability gap = defer" vs Harness "phantom L4 contract IF polish adds descriptions" — DIFFERENT, P3 INCOMPLETE, REFINED (defer conditional on polish scope). (4) Steward cascade-role axis vs Frontend interaction-depth axis — DIFFERENT AXES, orthogonal not conflicting (sequence by Frontend axis, validate by Steward axis). (5) Supervisor prereq vs Agent-coord carve-out vs Harness "sortie 3 defer" — PARTIAL, two code-tracers beat one. (6) Brief "0 telemetry events" vs Supervisor "events exist with space-separator" — FACT CORRECTION. (7) Brief "L-0258 scope within HMS" vs Supervisor/Agent-coord "cross-bridge collisions" — FACT CORRECTION. **Chair Self-Reversal Phase 5 §1.5** explicit on 4 Phase 3 claims. **Agent Trust Gate CONDITIONAL FAIL:** PASS only if (a) collision-3 resolved before polish, (b) use-update-deviation migrated to Server Action with gate_action, (c) "policy created" registered, (d) polish does NOT expand bridge descriptions on capability-absent domains. Pontus approved verdict 2026-05-17 → Sortie 1 (pre-m5-mutation-closure) dispatch starts immediately + Phase 8 capture (this row). |
 | 2026-05-16 | Payroll Sortie-Triplet — S1 label sweep "lønnsslipp"→"lønnsgrunnlag", S2 mobile UX polish, S3 Phase 5 PII reveal (INVALID — done 2026-05-08) | plan | **APPROVE WITH CHANGES** — S1 HELD-WITH-REFINEMENT (8 live hits + 3 truncation guards, skip docs + pedagogy + AI alt-spellings + filename renames), S2 REVERSED→APPROVE (Frontend-Designer falsifiable scope: list view at `(me)/payroll/index.tsx` FlashList + skeleton, no period selector per ADR-0133, `expo-sharing` native PDF, a11y, motionTokens), S3 REVERSED→APPROVE F-CL-12 (3 tools at `packages/ai/src/capabilities/payroll/tools.ts:1323/1559/2534` missing ADR-0293 Pattern B recalc; same shape as F-CL-13 shipped `58d40f500`). Sequence: sync → S3 → S1‖S2 (NOT 3 parallel). | system-steward (chair, opus — Phase 3 + Phase 5 with **two L-0147 self-reversals same synthesis** on S2 + S3; 7th + 8th codified precedents), supervisor (opus — verified F-CL-13 closed via commit `58d40f500`, recommended Phase 4 polish for S3; corrected briefing 122 hits → 8 live UI), system-agent-coordinator (opus — Code-Tracer at `tools.ts:1323/1559/2534` verified Pattern B recalc absent; recommended F-CL-12 as S3), frontend-designer (sonnet — provided S2 falsifiable acceptance list incl. `expo-sharing` native PDF + FlashList + a11y; truncation guard for `QuickPathCards.tsx:40` 30% width increase), general-purpose (haiku — Phase 2.5 fact-check 12/13 VERIFIED + 1 OUTDATED on inflated 122-hit count). 5/5 reviewers = NOT DEGRADED. | n/a — first council on payroll positioning + post-Phase-5 sortie planning. | ADR-0346 NEW (accepted — Lønnsgrunnlag positioning canonical). | L-0284 NEW (promote — briefing hit-count inflation pattern, 3rd occurrence). L-0285 NEW (proposed — sortie candidate freshness check, `git log --all --grep` before nomination). L-0147 7th + 8th precedents (same synthesis dual-reversal on S2 + S3) — amends L-0283. **Semantic conflict resolution (4 pairs):** (1) Steward "REJECT all S3 candidates" vs Agent-Coord "Pick F-CL-12" vs Supervisor "Pick Phase 4 polish" — DIFFERENT, Agent-Coord wins on code-trace at 3 tool sites + helper exists; (2) Steward "S2 REJECT no scope" vs Frontend-Designer "S2 APPROVE WITH falsifiable scope" — REVERSED, Frontend wrote the missing scope; (3) Supervisor "5 files / 8 hits" vs Steward "5 code + 131 docs" vs briefing "122 hits" — RECONCILED, same orders of magnitude different granularity, Supervisor's 8-hit live UI count authoritative; (4) Steward "rescope S1" vs Frontend-Designer "S1 APPROVE WITH 3 GUARDS" — SAME OUTCOME, Frontend's 3 guards (QuickPathCards wrap-risk, LonnsgrunnlagViewer:101 pedagogy preservation, i18n JSON grep) adopted as S1 acceptance. **Chair Self-Reversal Phase 5 §1.5 explicit on BOTH S2 + S3** — 7th + 8th codified L-0147 precedents in single synthesis. **Agent Trust Gate GREEN** for F-CL-12 all 3 tools: helper at `packages/payroll-export/src/feriepenger.ts` exists, F-CL-13 commit `58d40f500` establishes pattern, telemetry events registered. Pontus approved verdict 2026-05-16 → execution: /sync-campaign + Phase 7-8 capture (this) + S3 dispatch first, then S1‖S2. |
 | 2026-05-14 (late evening) | ADR-0325 decision — tool-name discipline; pick A/B/C/hybrid for 11 confirmed tool-registry collisions | spec | **APPROVE Hybrid D+C+A-targeted-on-survivors** — 3-phase sequenced: Phase 1 detector (this sortie), Phase 2 semantic dedupe (follow-up sortie, 1-2 weeks), Phase 3 targeted rename on survivors (after dedupe, ~3-5 names). Rejected wholesale A (30:1 churn), Option B alone (parallel-registry smell), Option A on 11 (entrenches name-as-identity). | system-steward (chair, opus — Phase 3 + Phase 5 with **L-0147 Chair Self-Reversal precedent #6** on collision count 9→11 + Option B feasibility + missing Alternative D), supervisor (opus — verified telemetry-registry precedent 12,914 lines proves central-allowlist manageable; flagged voice view-tool L-0234 fresh convention untouched), system-agent-coordinator (opus — Code-Tracer; verified page-tool registry doesn't reach LLM today via voice-agent static catalogue + LiveKit stub + zero prompt hits; identified latent bomb when LiveKit stub becomes real), botsson-harness-builder (sonnet — full sweep confirms 11 collisions not 9; verified 241 modelToolName across 46 bridges; capability registry 29 entries proven manageable precedent), frontend-designer (sonnet — **Alternative D semantic dedupe** outpaced 3 opus chairs; reframed collision-as-duplicate-OR-conflict; Phase 2 dedupe likely collapses 6-8 of 11 to shared mounts). 5/5 reviewers, NOT DEGRADED. | yes — ADR-0324 (page-tool authority semantics, this morning) held + extended; ADR-0325 was proposed-by-same-council, now accepted. | ADR-0325 REVISED (proposed → accepted as Hybrid D+C+A). ADR-0326 NEW (page-tool registration semantics — sharedMount flag, identity invariant, three-layer affordance taxonomy). | L-0267 NEW (briefing collision counts are spot-checks), L-0268 NEW (naming churn cost bounded by name flow), L-0269 NEW (frontend reframe outpaced opus chairs). Note: assigned to 0267/0268/0269 due to 0261/0262/0263 taken by concurrent pipeline-traps council same session. **Semantic conflict resolution (4 pairs):** (1) Collision count 5/9/11 — RECONCILED: 5 = spot-check, 9 = briefing, 11 = full sweep (authoritative); 2 = practical co-mount UX. (2) Steward Phase 3 dot-separated vs Supervisor camelCase-integrated — RESOLVED to camelCase (`getKommUnreadCount`) per Frontend's voice-narration critique + L-0234 precedent. (3) Agent-Coord Option A vs Supervisor Option B — both code-traced, DIFFERENT scopes, RESOLVED via Alternative D (Frontend's reframe both A and B as local optima on structural duplicate). (4) Frontend Alternative D — PARTIAL OVERLAP with everyone else; reframed problem. **Chair Self-Reversal Phase 5 §1.5** explicit on 3 Phase 3 claims (collision count, Option B feasibility, missing Alternative D). **6th codified L-0147 precedent.** Pontus approved verdict → Phase 1 detector + Phase 8 capture (this sortie). Phase 2 dedupe + Phase 3 targeted rename queued as follow-up sorties. |
 | 2026-05-14 (evening) | Polish-Wave QA Pass — 33 dashboard polish bridges + 37 polish commits shipped same day. R1 audit. | post-implementation | **APPROVE WITH CHANGES** — 2 BLOCKERS (B1 shift-clock 7 dead-drop CustomEvents incl my-contract:download + setup:advance; B2 EditDepartmentDialog ungated browser-direct mutation amplified by openDepartmentEdit bridge tool); 4 MUST-FIX (M1 ADR-0238 build-or-retract — 40+ phantom comment refs; M2 docstring compliance sweep — L-0176 sweep across _tools/_hooks JSDoc; M3 tool-registry collision detector — 9 confirmed name collisions; M4 authority-config seeds for 33 bridge tools); 3 DEFER (D1 run.yml umbrella false-positive resolved; D2 season Server Action C4 compliant; D3 voice-channel guard per-bridge wave-wide). | system-steward (chair, opus — Phase 3 + Phase 5 **L-0147 Chair Self-Reversal precedent #7** counting morning's #6 from pre-promote council ADR-0323 — missed EditDepartmentDialog + tool-registry collisions + proposals docstring; extended via Agent-coord + Supervisor code-trace), supervisor (opus — ACCEPT with 1 promote-blocker; refined L-0255 "low contained" not "32 of 33 broken"; verified gate-action-coverage polarity excludes bridge dir by design; verified typecheck clean), system-agent-coordinator (opus — Code-Tracer; extended dead-drop count from 5 to 7 events across 3 bridges; found EditDepartmentDialog C-2; identified 9 name collisions C-4; flagged voice-channel guard gap C-5; flagged authority-seed gap C-6; per-tool Trust Gate table 2/5 PASS = 60% sample failure rate), botsson-harness-builder (opus — quantified mutation surface: 7 CustomEvent bridges, 5 TanStack-delegate, 2 Server-Action, 0 direct-Supabase; BOTSSON-SYSTEM-MAP 27 entries stale post-morning-refresh; DomainChatOwnership component confirmed non-existent), frontend-designer (sonnet — DEGRADED: smart-explore skill loop blocked file reads; inference-only review; confirmed ADR-0238 escalation threshold reached). 4.5/5 reviewers effective (frontend partial). | yes — morning's pre-promote council (ADR-0323) verdict held + extended; 6 of 7 originally-flagged bridges (notifications/calendar/komm/governance/year-wheel/reconciliation/season) included in same-day wave + audited intact. | ADR-0324 NEW (proposed — Page-tool authority semantics: read/navigate/propose modes; propose-* tools are confirmation-flow openers not C4-bearing; CustomEvent dispatcher MUST have matching addEventListener OR use uiActions injection; B1+B2 failure patterns canonicalized). ADR-0325 NEW (proposed — Tool-name discipline: page-scoped prefix convention; 9 collisions from wave; M3 sortie ships Option C collision detector; prefix-convention decision deferred to follow-up council). | L-0256 NEW (Bridge CustomEvent dead-end — 7 instances 2026-05-14, sibling L-0176/L-0178/L-0254), L-0257 NEW (ADR-0238 phantom-contract accumulator — 40+ comment refs to non-existent DomainChatOwnership, build-or-retract threshold reached), L-0258 NEW (Tool-registry Object.assign collision — 9 confirmed, silent last-wins, CI detector needed), L-0259 NEW (Hook-emit-location docstring drift — hook JSDoc lies about emit location vs BFF, L-0176 sibling), L-0260 NEW (Polish-wave amplifies pre-existing debt — agent-callable bridge mounted on page with ungated mutation expands blast radius from user-only to agent-triggers; EditDepartmentDialog example). **Semantic conflict resolution (4 pairs):** (1) Supervisor "use-punch.ts mobile-only" vs Steward "useShiftClock.ts web 9 emit calls" — RESOLVED: both exist independently, web hook real (8 emit not 9), Option A feasible; (2) Supervisor "L-0255 low contained" vs Steward Phase 3 "32 unaudited" — SAME observation different lenses (Supervisor counted broken-bridges = 1, Steward counted unaudited-bridges = 32, both correct in their axis); (3) Agent-coord 7 dead-drops vs Steward Phase 3 5 dead-drops — EXTENSION not conflict (Agent-coord found my-contract + setup beyond shift-clock); (4) EditDepartmentDialog ungated mutation: Agent-coord found in Phase 3 code-trace; Steward missed in Phase 3 sample — REVERSED via L-0147. **Chair Self-Reversal Phase 5 §1.5** explicit, 7th codified precedent (counting morning's #6). **Agent Trust Gate per-bridge (5 sampled, 60% fail):** shift-clock FAIL (5 dead-drops); year-wheel PASS w/ name-collision flag; hms PASS w/ name-collision flag; organization FAIL (B2 amplifies pre-existing); my-contract FAIL (1 dead-drop). Pontus approved verdict 2026-05-14 → B1+B2 sortie dispatched in parallel with this Phase 8 capture. |
@@ -1960,6 +1963,36 @@ Week 3 (gated):
 
 **Knowledge captured:** L-0270, L-0271. Phase 9 self-improvement: agents may complete reviews while parent action proceeds — council verdict can land "in retrospect" and remediation moves from pre-merge gate to post-merge cleanup commits. Worth tracking in `council_meta.md` as a precedent class.
 
+## 2026-05-16 — swap-marketplace-convergence-v2 schema decisions
+**Type:** architecture (pre-implementation, 5 schema decisions before T0)
+**Verdict:** APPROVE WITH CHANGES + mandatory Phase 0 gate
+**Agents consulted:** system-steward (chair, REVERSED Q1 via L-0147), supervisor, system-agent-coordinator, botsson-harness-builder (frontend-designer skipped — no UI in scope)
+**Prior verdict held?** Partial. ADR-0321 (G3 council 2026-05-14) baseline — accepted V2 path; this council resolved what 0321 left open. ADR-0321's `engine_authority_pipeline_instance` DDL sketch superseded by Q1=B (reuse engine_state).
+
+**Key decisions:**
+- Q1 (pipeline instance state) = **B reuse engine_state** (per ADR-0067; chair REVERSED from Phase 3 C, 6th L-0147 precedent)
+- Q2 (cross-workspace policy) = **DEFER + scope-bound single-ws + CHECK constraint** (unanimous; 3 options deferred to V2.1 ADR)
+- Q3 (multi-stage gate) = **A per-stage gate_action** (unanimous; action_type encodes stage)
+- Q4 (capability rename `shift_lifecycle_marketplace`) = **B defer** (unanimous; preserve V1 names)
+- Q5 (channel restriction) = **A chat-only at pipeline** (unanimous; per-tool inline ADR-0288 guards retained as Layer 3 defense-in-depth)
+- Phase 0 gate (6 items) MANDATORY before T0 migration
+- T0.5 seed migration for `<cap>.override` rows required before override_pipeline ships
+
+**Trust Gate:** 9 V1 tools PASS; `override_pipeline` FAIL until T0.5 seed lands; `approve_claim` 2-writes-1-gate atomic pattern at `marketplace/tools.ts:494-518` PRESERVED verbatim.
+
+**Preservation clauses (non-negotiable):** shift_swap.* telemetry (registry 5341-5397), shift_offer.* telemetry (registry 8610-8666), ADR-0173 frozen-4 capability names, ADR-0240 cross-namespace write-ban honored.
+
+**ADR created:** ADR-0340 (Shift Lifecycle Pipeline Implementation — supersedes ADR-0321)
+**Learnings created:** L-0279 (chair Phase 3 internal inconsistency), L-0280 (ADR DDL sketches != current truth), L-0281 (default-allow CVE recurrence on pipeline override), L-0282 (Phase 0 gate beats split-into-campaigns), L-0283 (6th L-0147 precedent)
+
+**Sortie context:** sub-sortie `feat/world-best-wfm-swap-marketplace-convergence-v2` in worktree `~/dev/smartout.ai-world-best-wfm-wt-1`. Council took 4 reviewers + chair synthesis + Phase 8 capture; Phase 0 work begins next. T0 migration blocked on Phase 0 exit gate (Pontus sign-off).
+
+**Phase 9 self-improvement (council_meta delta):**
+- 3-mot-1 split resolved via Phase 0 gate (new pattern documented as L-0282)
+- Chair Phase 3 internal inconsistency = mechanism BY WHICH chair generalizes incorrectly (L-0279) — sibling to L-0147 reversal protocol
+- Briefing fact-check skipped (same-session research, no stale-claim risk) — pattern reused from prior councils; explicit note kept
+- All 4 reviewers responded; no degraded mode
+
 ---
 
 ## 2026-05-16 — Chat-WhatsApp Phase 3 priority + scope
@@ -1990,6 +2023,212 @@ Week 3 (gated):
 **Phase 2.5 finding (L-0276):** Haiku fact-check reported 4 schema items VERIFIED MISSING; Supervisor sonnet caught all 4 as present under different names (`reply_to_id`, columns-on-channel, `channel_member_role` enum, `is_muted`+`muted_until`). Phase 2.5 prompt insufficient for concept-vs-name drift.
 
 ---
+
+## 2026-05-17 — Tidslinjen Redesign (Post-Implementation R1)
+
+**Type:** post-implementation
+**Verdict:** **APPROVE — with mandatory P2 follow-up sub-sortie**
+**Agents consulted:** system-steward (chair, opus), supervisor (opus), system-agent-coordinator (opus, Layer 2 + 4 code-trace), feature-dev:code-reviewer (sonnet, substitute for frontend-designer which is Skill-only)
+**Prior verdict held?** Phase 3 APPROVE held — REFINED, not REVERSED. L-0147 2-reviewer threshold NOT met (1 reviewer with new evidence vs 3 holding APPROVE).
+**Subject:** 3 commits on `campaign/ui-shell` (`ed3854d33` + `5a236d7d8` + `be0b43a4e`) + side-effect seed cleanup `94888a3f1`. Pushed to origin.
+
+**Phase 2.5 fact-check:** READY-FOR-PHASE-3 with all 7 claims VERIFIED.
+
+**Coverage discovery:** Phase 3 steward + supervisor + coordinator axes (cascade integrity, ADR compliance, telemetry routing, scope, payload-trace) all returned APPROVE. Design + a11y reviewer found 3 concrete defects orthogonal to those axes. **Phase 3 4-reviewer triplet systematically misses token-level design-system violations and a11y semantics.** Sibling of L-0147 (single-axis review insufficient) — different axis (design vs code-trace), same root.
+
+**Chair provenance check (`git blame`):**
+| Design finding | Provenance | Verdict |
+|---|---|---|
+| `TimelineTab.tsx:242` 3× OKLCH literals | `d0deaa6a9a` 2026-05-16 | **Pre-existing** — inherited debt, deferred to ADR-0361 migration sortie |
+| `DayTimelineStrip.tsx:481` `animate-pulse` no rm-gate | `5a236d7d82` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
+| `ClusterMarker.tsx:213` `focus-visible:outline-none` no ring | `be0b43a4eb` (sortie) | **Sortie-introduced** — fix in follow-up sub-sortie |
+
+Steward also discovered OKLCH-literal pattern is systemic across 6+ files in `apps/web/src/components/day/` (SlotPicker, ApplyTemplateDialog, SavedTimelinesDropdown, SaveTemplateDialog all predate the sortie).
+
+**Decisions:**
+- Ship `94888a3f1` as-is on `campaign/ui-shell` (already pushed).
+- Open sub-sortie `feat/ui-shell-ui-shell-tidslinjen-a11y-polish` for 2 sortie-introduced fixes (WCAG 2.3.3 + 2.4.11). Effort ~30 min. No new tests, no emit changes.
+- Defer `TimelineTab.tsx:242` OKLCH literal to broader Nordic Split token migration sortie driven by ADR-0361.
+
+**ADRs created:** ADR-0361 (proposed) Nordic Split OKLCH literal ban + ESLint rule `nordic-split/no-oklch-literal`. ADR-0363 (proposed) `getPhaseBoundaries` presentation-layer ontology disambiguation. Slots renumbered 0349→0361 and 0351→0363 per outsider-renumber convention (payroll kept 0347-0356 after merging to development first).
+
+**Learnings created:** `learning_phase3_coverage_gap_design_axis` — Phase 3 multi-agent triplet (steward+supervisor+coord) systematically misses token + a11y semantics; mandate design+a11y reviewer when Phase 3 touches `apps/web/src/components/**` visual surfaces.
+
+**Learning extended:** `learning_builder_agent_report_fabrication_2026_05_17` — Path A closure validated (4/4 APPROVE on shipped commits). R1 postscript adds: Phase 3 reviewers did not audit focus-ring tokens or reduced-motion gates; post-implementation council MUST include design+a11y axis distinct from ADR/cascade axis.
+
+**Trust Gate:** SKIP. PR modifies no Server Actions, no TanStack mutations, no capability tools, no emit routing destinations. 3 new UI-only events added to existing posthog+logger routing per ADR-0134 canonical pattern. No trust surface change.
+
+**Files touched in verification:**
+- `apps/web/src/components/day/tabs/TimelineTab.tsx:242` (pre-existing debt)
+- `apps/web/src/components/day/DayTimelineStrip.tsx:481` (sortie-introduced; fixed in this sub-sortie)
+- `apps/web/src/components/day/ClusterMarker.tsx:211-214` (sortie-introduced; fixed in this sub-sortie)
+- `apps/web/src/components/day/DayEventList.tsx:44` (canonical `useReducedMotion()` pattern mirrored)
+- `packages/design-tokens/src/tokens.css:66-67, 201-202` (`--warn-soft` tokens for future migration)
+- `apps/web/src/app/globals.css:358-362` (existing `prefers-reduced-motion` block — covers `animate-glow-pulse` only)
+
+## 2026-05-17 PM — HMS Cluster Polish Read (Post-Implementation R1)
+
+**Type:** post-implementation
+**Branch reviewed:** `campaign/ui-shell` @ `430563d27` (sub-sortie `feat/ui-shell-hms-cluster-polish-read` already merged)
+**Verdict:** APPROVE WITH CHANGES (3 BLOCKERS + 2 required-this-cluster)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, feature-dev:code-reviewer
+**Prior verdict held?** N/A — first council on this sub-sortie. Predecessor: Tidslinjen R1 2026-05-17 AM verdict APPROVE held.
+
+### Key decision
+
+Forward-fix sub-sortie `feat/ui-shell-hms-cluster-polish-fixup` closes 5 gates:
+
+- **G1 BLOCKER:** Wire `emit()` for 4 HMS view events (`hms.umbrella.viewed`, `hms.drift.viewed`, `hms.documents.opened`, `hms.training.viewed`). Registry shipped, call-sites missing — phantom contract (L-0176 sibling). Pattern: `useRef + useEffect + nonEmpty()` mirroring `apps/web/src/app/dashboard/contracts/page.tsx:71-88`.
+- **G2 CRITICAL (WCAG 4.1.2):** `HmsSubNav.tsx` Path A — remove `role="tablist"` + `role="tab"`; keep `<nav>` + `<Link>` + `aria-current="page"`. Add focus-visible ring tokens (closes D2 in same hop). Previous G4 HIGH fix (commit `21e066252`) was incomplete — added `role="tab"` without `aria-selected`/`aria-controls`/`tabpanel`.
+- **G3 MEDIUM (latent XSS + correctness):** Replace `dangerouslySetInnerHTML` in `LearnFlow.tsx:211` + `ProcedureDetailTabs.tsx:154` with `react-markdown` + `rehype-sanitize` + `remark-gfm`. Migration column comment says "Markdown supported" — current renderer interprets as HTML (intent mismatch + XSS vector). No authoring UI exists yet, so risk is LATENT not active; fix lands before first author UI ships. Severity downgraded HIGH→MEDIUM after write-path investigation showed zero existing data.
+- **G4 LOW:** Add `/dashboard/hms/training` to `apps/web/.botsson/site-map.json` (5 hms routes registered, training missing). `tools: []` per HANDOFF Decision #3 L-0287 phantom-contract avoidance.
+- **G5 META:** Amend `~/.claude/skills/run-council/SKILL.md:121-133` Phase 0 carve-out paragraph. Documented intentional tool-bridge skips on thin-shell delegating pages ACCEPTABLE; site-map + page header + telemetry view-emit NEVER skippable.
+
+**Chair Self-Reversal (L-0147 6th precedent):** Phase 3 Steward marked HmsSubNav a11y "PARTIAL — focus-visible missing." Phase 5 REVERSED to CRITICAL after Code-Reviewer F-1 surfaced mixed-ARIA pattern (WCAG 4.1.2 fail — `role="tab"` without `aria-selected`/`aria-controls`/`tabpanel`). Falsifying evidence: `HmsSubNav.tsx:34,45,46`. Pattern signature: chair operates on focus-visible-axis Phase 3; reviewer code-traces same surface and finds worse defect. 2nd same-day occurrence of design+a11y Phase 3 coverage gap (1st: Tidslinjen R1 AM).
+
+### Semantic conflict resolution
+
+- **Pair A:** Steward "a11y PARTIAL" vs Code-Reviewer "CRITICAL HmsSubNav" — same surface, different defect, different severity. Two distinct findings. Steward review INCOMPLETE on a11y axis (focus-visible-only vs full ARIA pattern audit).
+- **Pair B:** Supervisor "REJECT (Phase 0 BLOCKED on training)" vs Agent-Coord "Acceptable per HANDOFF Decision #3" — partial overlap. Both evidence-based. Rule-correct vs intent-correct. Resolved by G5 carve-out + ADR-0376.
+- **Pair C:** Steward Phase 2.5 "site-map ZERO hms entries" vs reality (5 entries) — Steward grep used wrong scope-key pattern (`"scope": "hms.*"` instead of `"path": "/dashboard/hms.*"`). 2nd occurrence of grep-wrong-pattern fact-check failure. Promoted to learning.
+
+### Knowledge captured
+
+- **ADR-0376 (proposed)** — Page-Polish 8-Phase Rule: Documented Intentional Skips. File: `docs/decisions/0376-page-polish-documented-intentional-skips.md`. Codifies G5 at ADR-grade.
+- **L-NEW-1** — `learning_telemetry_contract_without_emit_wiring.md` (Claude memory). Sibling L-0176 + L-0177. Trust-gate: grep `emit(` call-sites when reviewing `packages/telemetry/src/registry.ts` PRs.
+- **L-NEW-2** — `learning_phase_2_5_grep_wrong_scope_key.md` (Claude memory). 2nd occurrence — ADR-grade rule: VERIFIED-missing requires positive absence-evidence + appropriate grep pattern.
+- **L-NEW-3** — `learning_phase3_coverage_gap_design_axis.md` (Claude memory, existing — updated with 2nd occurrence). 2nd same-day occurrence: design+a11y axis mandatory. Already codified in run-council SKILL.md:105-119 after Tidslinjen R1; this confirms the rule.
+
+### Trust Gate
+
+N/A — sub-sortie introduces 0 new mutation tools / 0 Server Actions / 0 TanStack mutations / 0 capability tools / 0 new emit routing destinations. Read-side telemetry event registrations only.
+
+### Phase 9 self-improvement
+
+- **Fact-check methodology hard rule** (promote to SKILL.md Common Mistakes after 3rd occurrence): VERIFIED-missing requires positive schema-aware absence-evidence, not negative literal-string grep absence. 1st: chat-whatsapp 2026-05-16; 2nd: HMS R1 2026-05-17. Watch for 3rd → promote.
+- **Design+a11y axis 2nd same-day occurrence** confirms the rule added in run-council SKILL.md:105-119 earlier this session is correctly scoped. No further amendment needed.
+- **Page-polish Phase 0 strictness vs cascade intent** resolved via G5 carve-out + ADR-0376. First exercise of the rule; future councils will test it.
+
+### Files referenced (Phase 5 synthesis evidence)
+
+- `apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx:34,45,46` (G2 ARIA)
+- `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx:210-211` (G3 XSS)
+- `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx:148-154` (G3 XSS — pre-existing)
+- `apps/web/.botsson/site-map.json:494-825` (G4 — 5 hms entries present, training missing)
+- `packages/telemetry/src/registry.ts:2598-2638, 13723-13738` (G1 — 4 events registered, 0 emits)
+- `supabase/migrations/20260422300800_hms_procedure_step_training.sql:9` (column comment "Markdown supported")
+- `docs/HANDOFF-ui-shell-hms-cluster-polish-read.md` line 70 (Decision #3 L-0287)
+
+
+## 2026-05-17 PM2 — HMS Cluster Polish R2 verification (Post-Implementation R2)
+
+**Type:** post-implementation, R2 round
+**Branch reviewed:** `campaign/ui-shell` @ `9747dba59` (after fixup `ac17ca61e` + SlotPicker refactor)
+**Verdict:** APPROVE WITH CHANGES (3 BLOCKERs + 1 maintenance after B2 retraction)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, feature-dev:code-reviewer
+**Prior verdict held?** R1 (2026-05-17 PM) verdict mostly HELD — G1+G2+G3+G5 + capability surface unchanged. G4 DRIFTED on data side (validator caught purpose >140 chars).
+
+### Key decision
+
+Forward-fix sub-sortie `feat/ui-shell-hms-cluster-polish-r2-fixup` closes 3 BLOCKERs + 1 maintenance + 1 retracted:
+
+- **B1 (mechanical):** Trim site-map.json `routes[17].purpose` 165 → 130 chars. Validator was exit=1 with `✗ purpose >140 chars (165) — tighten`; post-fix exit=0.
+- **B3 (CRITICAL, WCAG 2.4.11):** Add focus-visible ring tokens to `ProcedureDetailTabs.tsx:106` tab buttons + replace `transition-all` with `transition-colors` (Nordic Split §10.4). Single template covers 4 tab buttons via `.map()`.
+- **B4 (CRITICAL, WCAG 2.4.11):** Same fix pattern at `LearnFlow.tsx:79` stage-progress buttons. Covers 5 stage buttons.
+- **B5 (maintenance):** Update predecessor HANDOFF Known Issue #3 — animate-spin count `6` → `297 across 180+ files`. Sortie 4 scope reframed as dashboard-wide convention shift.
+- **B2 RETRACTED:** R2 chair Phase 5 claimed validator "self-bug — prints ✗ then exits 0." Orchestrator verified with full output + exit code: validator exits 1 correctly. Chair adopted Agent-coord's head-truncated-output misread. Sibling trap class to L-NEW-2 (Phase 2.5 wrong-scope-key). Captured as `learning_head_truncated_output_false_negative.md`.
+
+**Chair Self-Reversal — REFINED (L-0147 7th-class precedent):** Phase 3 Steward verdict G4 "HELD CLOSED" on structural check; Phase 5 REFINED to "DRIFTED in data; validator self-bug masks" after Agent-coord code-trace. But Phase 5 chair claim itself was based on truncated reviewer output — orchestrator re-verified and retracted the "self-bug" portion while keeping the data-DRIFT portion (purpose >140 chars is real). Net: G4 was DRIFTED (data), not validator-bug (process-integrity); chair self-corrected mid-Phase-6 (after user "1" decision).
+
+### R1 → R2 gate closure
+
+| Gate | R1 verdict | R2 verdict | R2 evidence |
+|---|---|---|---|
+| G1 emit() | HELD | HELD | 4 emit() call-sites verified by chair end-to-end trace through DashboardContext + L-0177 nonEmpty guard |
+| G2 HmsSubNav Path A | HELD | HELD | Canonical Path A clean; zero ARIA debris |
+| G3 react-markdown | HELD | HELD | Both render sites + data-source hook unchanged |
+| G4 site-map | DRIFTED | DRIFTED-MECHANICAL | Purpose 165 chars > 140 cap — closed by B1 trim |
+| G5 ADR-0376 + skill | HELD with minor drift | HELD WITH ADDENDUM | v2 page-header inheritance carve-out added to ADR-0376 |
+| Capability surface | UNTOUCHED | UNTOUCHED | Zero `packages/ai/`, zero `services/stage-engine/` |
+
+### Semantic conflict resolution
+
+- **Steward "G4 HELD" vs Agent-coord "G4 DRIFTED":** Both partial-true. Data IS out-of-spec (165 > 140), validator DOES exit 1 (Phase 5 chair claim "exits 0" was wrong). DRIFTED-data + validator-correct = real fix needed (B1) but not via validator change.
+- **Supervisor "Phase 6 training PARTIAL" vs Steward/Code-Reviewer "Phase 6 PASS":** Supervisor's strict carve-out reading correct on page-file ownership; ADR-0376 v1 didn't anticipate inheritance pattern. Resolution: v2 addendum codifies inheritance pattern; training route PARTIAL → ACCEPTABLE-under-v2.
+- **Code-Reviewer "F-2 = 20 occurrences" vs chair "F-2 = 297 occurrences":** Code-Reviewer grep scope was HMS-only; chair grep was dashboard-wide. Same finding, different scope. Truth: 297 is dashboard-wide (correct count for D1 deferral scope).
+- **Validator "self-bug" claim (Phase 5 chair) vs orchestrator re-verification:** Phase 5 wrong. Orchestrator captured full output + exit code, validator works. B2 retracted. Promoted to L-NEW-C.
+
+### NEW IMPORTANT findings (pre-existing, deferred Sortie 4)
+
+- **NEW-3 hardcoded Tailwind palette** in TaskCard, SessionSignoffDrawer, OversiktDashboard, OversiktEmployee — 18+ classes
+- **NC-1 ProcedureDetailTabs `<Tabs>` vs custom `<button>` consistency** — sibling to B3 fix
+- **NIT i18n hardcoded label** ProcedureDetailTabs.tsx:153 (`"Opplaeringsinnhold:"` — also typo, should be "Opplæringsinnhold")
+
+### Knowledge captured
+
+- **ADR-0376 v2 addendum (proposed)** — Page-Header Inheritance Carve-Out for thin-shell delegating pages. Appended to existing file `docs/decisions/0376-page-polish-documented-intentional-skips.md`. Promote to accepted after 2nd independent council exercise.
+- **L-NEW-C** — `learning_head_truncated_output_false_negative.md` (Claude memory). 3rd occurrence of output-shaping-misread family (sibling L-NEW-2 Phase 2.5 wrong-scope-key, L-diff-hunk-misled-review). **Threshold met for SKILL.md promotion.**
+
+### Trust Gate
+
+N/A — sub-sortie introduces 0 mutation tools, 0 Server Actions, 0 capability changes, 0 telemetry routing changes. Read-side + UX-polish only.
+
+### Phase 9 self-improvement
+
+- **Promote L-NEW-C to run-council SKILL.md Common Mistakes table:** "Reviewer reports script/validator verdict from truncated output. Always capture full stdout/stderr + explicit exit code." 3rd occurrence threshold met (chat-whatsapp 2026-05-16, HMS R1 2026-05-17 PM, HMS R2 2026-05-17 PM2).
+- **Phase 5 chair re-verification step:** for any reviewer claim about validator/script output, chair MUST re-run before adopting into final verdict. Adds ~30 seconds, prevents B2-class false blockers.
+
+### Files referenced
+
+- `apps/web/.botsson/site-map.json:856` (B1)
+- `apps/web/scripts/validate-site-map.ts:236-244` (B2 retract — exit code paths verified correct)
+- `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx:106` (B3)
+- `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx:79` (B4)
+- `docs/HANDOFF-ui-shell-hms-cluster-polish-fixup.md` Known Issue #3 (B5)
+- `docs/decisions/0376-page-polish-documented-intentional-skips.md` (v2 addendum)
+
+---
+
+## 2026-05-17 PM3 — campaign/ui-shell Shippability R1
+
+**Type:** post-implementation (campaign promotion gate)
+**Verdict:** REJECT — REMEDIATE BEFORE HOP A
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, feature-dev:code-reviewer + general-purpose (Phase 2.5 fact-check) + narrator (Phase 4)
+**Prior verdict held?** N/A — first council on campaign tip; HMS R1 + R2 + Tidslinjen R1 are sub-sortie councils, not campaign-level
+**Key decision:** 3 hard blockers (B1 migrations × 2 + IF NOT EXISTS, B2 phantom telemetry × 2) + 4 required-before-promote (J3-J5) + governance gate on tri-campaign scope (world-best-wfm + mobile merged into ui-shell tip)
+**Chair self-reversals (L-0147):** 4 — phantom contract (telemetry-contract pipeline), tri-campaign scope drift (merge-ancestry), WCAG 4.1.2 ProcedureDetailTabs, ADR-0349 toothless. 7th per-component L-0147 precedent (component-level ARIA repeats HMS R1 HmsSubNav defect class).
+**ADR created:** ADR-0377 (telemetry-registry-requires-emit-wiring, L-NEW-1 2nd occurrence promoted)
+**Learnings created:** L-0304 (7th-L-0147-component-ARIA), L-0305 (chair-self-reversal-4-pattern), L-0303 (ADR-to-enforcement-code-receipt-rule)
+**Fixup sortie:** feat/ui-shell-r1-fixup (this sortie)
+
+### Blockers identified
+
+| ID | Severity | Description | Status |
+|---|---|---|---|
+| B1a | HARD | `supabase/migrations/20260514120001_ui_shell_hms_cluster_deviation_event.sql` — missing `IF NOT EXISTS` guards on `CREATE TYPE` + `CREATE TABLE` — not idempotent | Closed by T1 (feat/ui-shell-r1-fixup) |
+| B1b | HARD | `supabase/migrations/20260514120002_ui_shell_hms_cluster_handbook_event.sql` — same pattern | Closed by T1 |
+| B2 | HARD | `deviation_viewed` + `handbook_chapter_opened` registered in `packages/telemetry/src/registry.ts` — 0 emit() call-sites in `apps/` | Closed by T2 (feat/ui-shell-r1-fixup) |
+
+### Required-before-promote
+
+| ID | Description | Status |
+|---|---|---|
+| J3 | `/help` Tier 1 polish baseline — page-header + instructions pass smartout-page-polish Phase 6-8 | Addressed by T3 |
+| J4 | WCAG a11y fixes — `ProcedureDetailTabs.tsx:98-117` mixed-ARIA pattern + `HmsSubNav` any residual | Addressed by T4 |
+| J5 | i18n migration `ProcedureDetailTabs` — hardcoded Norwegian text `"Opplaeringsinnhold:"` (typo) → i18n key | Addressed by T5 |
+
+### Governance question (user-resolved)
+
+Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign/mobile (23 unique commits) merged into campaign/ui-shell tip. User confirmed this is intentional — ui-shell is the integration campaign for the promotion wave. No governance block.
+
+### Knowledge captured
+
+- ADR-0377 (proposed) — telemetry-registry-requires-emit-wiring. L-NEW-1 2nd occurrence → ADR-grade promotion threshold met.
+- L-0304 — 7th L-0147 component-level ARIA precedent (ProcedureDetailTabs)
+- L-0305 — 4 chair self-reversals in single council — Phase 3 blind spots pattern
+- L-0303 — ADR-to-enforcement-code receipt rule (toothless ADR class)
+- run-council SKILL.md amended: 3 new Phase 3 checks (telemetry-contract, merge-ancestry, ADR-to-enforcement)
+- ADR-0238 flipped to accepted (enforcement shipped via ADR-0337 + DomainChatOwnership implementation 2026-05-16)
 
 ## 2026-05-17 — Phase 7 Architectural Reframe: Lovdata as Riksavtalen Canonical
 **Prior verdict held?** N/A (first council on this topic)
@@ -2048,3 +2287,28 @@ Week 3 (gated):
 **Learning created:** L-0298 (ci:local mapping fidelity is only caught by code-trace)
 **Phase 2.5 fact-check:** skipped (small surface, files recent; risk accepted)
 **Process improvement:** Supervisor code-trace caught 9 missing path classes + 3 false mapping claims that Steward concept-review approved. L-0147 family 4th instance. Future: any topic proposing a mapping/coverage table must assign a code-tracer reviewer the explicit "open the source files, verify each row" task. Add this to run-council Phase 3 Hard Rules if pattern recurs once more.
+
+## 2026-05-18 — ADR-0367 Day Line Area-Anchored Runtime + Core-Structure Clarification
+**Type:** spec + architecture (pre-implementation)
+**Verdict:** APPROVE WITH CHANGES (unanimous, all 5 reviewers)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, feature-dev:code-reviewer (frontend-designer fallback per skill rule when file count > 6)
+**Prior verdict held?** n/a — first council on area-anchored Dagslinje model
+**Phase 2.5 fact-check:** 16/17 claims VERIFIED. 1 internal spec inconsistency (B5 row session_hook) fixed BEFORE Phase 3 dispatch. ADR-text-vs-code check passed.
+**Key decision:** Option C selected — tri-layer D6 model: `department_session` (aggregate, exists) → `day_line` (program per area, NEW) → `shift_session` (per-employee runtime, NEW). Pairs with Core-Structure module clarification (`location` semantic = "area" in V1, new `department_location` M:N junction). 5 new capabilities under namespaces `day-line` / `routine` / `org`. Push pipeline via existing `engine_event.idempotency_key` + `expo_push_token`. Mobile read-only per ADR-0133.
+**Chair self-reversal:** L-0147 protocol invoked. Classification: **REFINED** (not full REVERSED). Pattern B audit-symmetry promoted from "recommended" to "MANDATORY" after coord C-2 code-trace. Tool-naming convention corrected to BARE names after supervisor C1 verification. `day_line_status` enum dropped after steward C3 ADR-0156 precedent argument. `engine_event.idempotency_key` (existing column) substituted for invented `entity_id` after supervisor C7 + Phase 5 schema verification.
+**9 must-fix items consolidated from 39+ concerns** (folded into spec v1.2 + ADR-0367 v1.1 amendment same session):
+1. Drop `day_line_status` enum (derive from parent per ADR-0156)
+2. Bare tool names (`create`, `add_item`, `instantiate_template`)
+3. `session_hook` UNIQUE on `(workspace_id, department_id, hook_type)` Phase A migration
+4. `engine_event.idempotency_key` (existing TEXT + UNIQUE column) — no new column
+5. `department_location` RLS + API-key path
+6. Per-type dispatch table for `day-line.add_item` (V1 scope: task + routine only; booking/note/reminder deferred V2)
+7. ADR-0112 intent-enum + system-prompt prose same-commit Phase B gate (5th recurrence promoted)
+8. `session_task.scheduled_at` ALTER kept in scope (explicit in ADR-0367 Decision Outcome)
+9. Pattern B audit-symmetry MANDATORY on `task.create_session` extension
+**ADR created:** ADR-0367 (Day Line Area-Anchored Runtime + Core-Structure Clarification) — status promoted from `proposed` → `accepted` on v1.1 amendment.
+**ADRs amended:** ADR-0156 (multi-strip stack), ADR-0297 (workforce snapshot extension)
+**Learnings created:** L-0306 (ADR-0112 5th recurrence → pre-flight mandate), L-0307 (bare tool name convention), L-0308 (tri-layer D6 decomposition pattern), L-0309 (engine_event schema gap exposed by spec), L-0310 (Pattern B cascade audit-symmetry default), L-0311 (schema invariants in prose require enforcement — 3rd quarter occurrence)
+**Phase-A entry-gate:** Phase A migration sortie may dispatch after spec v1.1→v1.2 + ADR-0367 v1.1 amendment committed. Phase B BLOCKED on Phase A merge to development.
+**Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
+**Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.

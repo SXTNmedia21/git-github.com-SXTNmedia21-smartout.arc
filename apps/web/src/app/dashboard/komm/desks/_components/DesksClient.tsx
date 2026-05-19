@@ -126,13 +126,13 @@ export function DesksClient({
   };
 
   return (
-    <div className="mx-auto max-w-[880px] px-8 pt-12 pb-24">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <h1 className="font-heading text-foreground text-[44px] leading-[1.05] tracking-[-0.02em]">
+    <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
+      <header className="mb-5 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
             {t("page.desks_title")}
           </h1>
-          <p className="text-muted-foreground mt-2 max-w-[520px] text-sm">{t("page.desks_lede")}</p>
+          <p className="text-muted-foreground mt-1 max-w-[520px] text-sm">{t("page.desks_lede")}</p>
         </div>
         {canManage ? (
           <Button onClick={() => setCreateOpen(true)} className="shrink-0">
@@ -151,7 +151,7 @@ export function DesksClient({
             hidden: { opacity: 0 },
             show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.08 } },
           }}
-          className="mt-10 space-y-4"
+          className="space-y-3"
         >
           <AnimatePresence mode="popLayout">
             {desks.map((desk) => (
@@ -252,21 +252,24 @@ export function DesksClient({
 function EmptyState({ canManage, onCreate }: { canManage: boolean; onCreate: () => void }) {
   const { t } = useTranslation("helpdesk");
   return (
-    <div className="relative mt-20 flex flex-col items-center gap-6 text-center">
+    <div className="bg-card border-border flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border p-10 text-center shadow-sm">
       <div
         aria-hidden="true"
-        className="pointer-events-none h-60 w-60 rounded-full opacity-40 blur-[0.5px]"
+        className="pointer-events-none h-40 w-40 rounded-full opacity-40 blur-[0.5px]"
         style={{
-          background: "radial-gradient(circle at 50% 50%, oklch(0.72 0.06 50) 0%, transparent 70%)",
+          background:
+            "radial-gradient(circle at 50% 50%, var(--surface-raised) 0%, transparent 70%)",
         }}
       />
-      <div className="-mt-40 space-y-3">
-        <h2 className="font-heading text-foreground text-[32px]">{t("page.desks_empty_title")}</h2>
-        <p className="text-muted-foreground mx-auto max-w-[440px] text-base">
+      <div className="-mt-28 space-y-2">
+        <h2 className="font-heading text-foreground text-2xl tracking-tight">
+          {t("page.desks_empty_title")}
+        </h2>
+        <p className="text-muted-foreground mx-auto max-w-[440px] text-sm">
           {t("page.desks_empty_body")}
         </p>
         {canManage ? (
-          <div className="pt-4">
+          <div className="pt-3">
             <Button onClick={onCreate}>{t("page.desks_empty_cta")}</Button>
           </div>
         ) : null}

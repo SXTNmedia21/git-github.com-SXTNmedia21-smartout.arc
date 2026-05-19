@@ -501,7 +501,7 @@ export function InviteMemberDialog({
               if (e.target === e.currentTarget) onClose();
             }}
             style={{
-              background: "oklch(0.20 0.02 50 / 0.35)",
+              background: "color-mix(in oklch, var(--foreground) 35%, transparent)",
               backdropFilter: "blur(4px)",
             }}
           >
@@ -596,7 +596,7 @@ export function InviteMemberDialog({
                       <button
                         type="button"
                         onClick={handleCancel}
-                        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] active:scale-[0.98]"
                       >
                         Lukk
                       </button>
@@ -620,7 +620,7 @@ export function InviteMemberDialog({
                             (mode === "single" && channels.has("sms") && !singleRow.phone) ||
                             (mode === "csv" && csvRows.length === 0)
                           }
-                          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] hover:shadow-[0_12px_32px_-8px_oklch(0.78_0.18_55_/_0.65)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] hover:shadow-[var(--shadow-cta-lg-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                         >
                           {isSubmitting ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -769,7 +769,7 @@ function SingleInviteForm({
                 onClick={() => !locked && onToggleChannel(ch)}
                 className={`relative flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_24px_-4px_oklch(0.78_0.18_55_/_0.35)] ring-1"
+                    ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_24px_-4px_var(--brand-glow-warm)/35%] ring-1"
                     : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border border"
                 } ${locked ? "cursor-default" : "cursor-pointer"}`}
               >
@@ -993,7 +993,7 @@ function CsvImportView({
         <button
           type="button"
           onClick={onUploadClick}
-          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] active:scale-[0.98]"
         >
           <Upload className="h-4 w-4" />
           Velg fil

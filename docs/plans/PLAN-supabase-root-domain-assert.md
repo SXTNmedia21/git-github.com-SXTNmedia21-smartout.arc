@@ -18,13 +18,13 @@ Hard-fail at module load when `NEXT_PUBLIC_ROOT_DOMAIN` is unset in production, 
 F0 Track A architecture review of ADR-0357 found that `client.ts:13` and `server.ts:7` both consume `NEXT_PUBLIC_ROOT_DOMAIN` with a silent fallback to host-only. In production, a missing env var causes the browser client to write a host-scoped cookie (`app.smartout.ai`) while the server reads `.smartout.ai` — disjoint scopes, invisible cookie, auth race.
 
 ## Fix
-See ADR-0363. Shared assert helper called at module load in both client.ts and server.ts.
+See ADR-0375. Shared assert helper called at module load in both client.ts and server.ts.
 
 ## Files
 - `packages/supabase/src/_assert-root-domain.ts` (new)
 - `packages/supabase/src/client.ts` (import + top-level call)
 - `packages/supabase/src/server.ts` (import + top-level call)
-- `docs/decisions/0363-prod-assert-root-domain-for-supabase-cookie-domain.md` (new ADR)
+- `docs/decisions/0375-prod-assert-root-domain-for-supabase-cookie-domain.md` (new ADR)
 - `docs/decisions/0000-decision-log.md` (row added)
 - `docs/plans/PLAN-supabase-root-domain-assert.md` (this file)
 - `docs/HANDOFF-supabase-root-domain-assert.md`
@@ -35,7 +35,7 @@ See ADR-0363. Shared assert helper called at module load in both client.ts and s
 - [x] Write `_assert-root-domain.ts` helper
 - [x] Wire assert into client.ts (import + top-level call after imports)
 - [x] Wire assert into server.ts (import + top-level call after imports)
-- [x] Write ADR-0363
+- [x] Write ADR-0375
 - [x] Add decision log row after ADR-0358
 - [x] Write plan (this file)
 - [x] Write handoff

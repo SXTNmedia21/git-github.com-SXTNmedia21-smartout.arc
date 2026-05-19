@@ -13,7 +13,7 @@ tags: [handoff, auth, e2e, vitest, playwright, adr-0362]
 
 ## Summary
 
-Locked ADR-0362 (portal auth redirect) with three test suites — F11 (Playwright HTTP probes for the redirect class, 10 routes), F12 (Vitest unit tests for callback continue-validation, 8 cases), F13 (negative Playwright probes for paths that must NOT redirect). Discovered and fixed a load-bearing bug in `apps/web/src/proxy.ts` during the sortie: the original ADR-0362 implementation placed the portal-redirect inside §5 workspace handler, AFTER §3 PUBLIC_ROUTES bypass. Auth routes are in PUBLIC_ROUTES, so the redirect never fired in practice — until tests caught it. The fix moves the redirect to §2b, above the PUBLIC_ROUTES bypass.
+Locked ADR-0374 (portal auth redirect) with three test suites — F11 (Playwright HTTP probes for the redirect class, 10 routes), F12 (Vitest unit tests for callback continue-validation, 8 cases), F13 (negative Playwright probes for paths that must NOT redirect). Discovered and fixed a load-bearing bug in `apps/web/src/proxy.ts` during the sortie: the original ADR-0374 implementation placed the portal-redirect inside §5 workspace handler, AFTER §3 PUBLIC_ROUTES bypass. Auth routes are in PUBLIC_ROUTES, so the redirect never fired in practice — until tests caught it. The fix moves the redirect to §2b, above the PUBLIC_ROUTES bypass.
 
 ## What was built
 
@@ -35,7 +35,7 @@ Locked ADR-0362 (portal auth redirect) with three test suites — F11 (Playwrigh
 
 ### Production-code fix
 
-- **proxy.ts** middleware ordering: portal-redirect moved from §5a to §2b (above PUBLIC_ROUTES bypass at §3). Without this, `/login`, `/signup`, `/invite/*`, `/reset-password`, `/update-password` on workspace subdomain would render the public-route response instead of 307'ing to portal — the original ADR-0362 implementation was technically incorrect. Caught by manual curl-probe during sortie.
+- **proxy.ts** middleware ordering: portal-redirect moved from §5a to §2b (above PUBLIC_ROUTES bypass at §3). Without this, `/login`, `/signup`, `/invite/*`, `/reset-password`, `/update-password` on workspace subdomain would render the public-route response instead of 307'ing to portal — the original ADR-0374 implementation was technically incorrect. Caught by manual curl-probe during sortie.
 - **proxy.ts** dev-host support: portal-redirect now also fires on subdomain dev (`<slug>.localhost:3060` → `http://app.localhost:3060`), not just prod. Previously the `rootDomain !== "localhost"` guard skipped dev entirely. Required for E2E to run locally.
 - Net diff: 36 lines added in proxy.ts (new §2b), 21 lines removed from §5a (deduplicated).
 
@@ -43,13 +43,13 @@ Locked ADR-0362 (portal auth redirect) with three test suites — F11 (Playwrigh
 
 - **F12 as vitest unit, not Playwright.** Testing `resolveContinueDestination` against a live Supabase backend is fragile (needs seed data + valid code exchange). Mocked unit test is faster, deterministic, and covers all 8 logic paths. Trade-off: vitest doesn't catch route-handler integration with Next's actual request/response objects — but route handlers are thin, the helper is the load-bearing logic.
 - **F11+F13 as HTTP-level Playwright, not browser.** Browser navigation follows redirects automatically; `request.fetch({maxRedirects: 0})` gets us the raw 307. No browser context needed → tests run in parallel + complete in seconds.
-- **Bug fix landed without a new ADR.** The §2b move is a correctness fix to ADR-0362's implementation, not a new architectural decision. Noted in handoff + commit message + ADR-0362 implementation reference. If reviewers prefer an amendment, we can add one in a follow-up — but the canonical doc (`SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md`) already describes the intended behavior matching what's now in code.
+- **Bug fix landed without a new ADR.** The §2b move is a correctness fix to ADR-0374's implementation, not a new architectural decision. Noted in handoff + commit message + ADR-0374 implementation reference. If reviewers prefer an amendment, we can add one in a follow-up — but the canonical doc (`SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md`) already describes the intended behavior matching what's now in code.
 - **Helper extracted to `apps/e2e/helpers/`, not `packages/`.** Specs are e2e-internal; no other surface consumes the helper. Keep it close to its only consumer.
 
 ## Learnings
 
-- **Middleware bypass order is a load-bearing invariant.** `isPublicRoute(pathname)` matched `/login` and short-circuited before §5 workspace handler — the §5a portal-redirect was dead code. Lesson: when adding a guard in middleware, place it BEFORE any earlier bypass that targets the same path-class. Manual probe + tests caught this; in prod it would have surfaced as "Google OAuth still broken on workspace subdomain even after ADR-0362 deployed." Promote to general L-NNN if this happens again.
-- **Dev-mode portal-redirect was not exercised by the original ADR-0362 implementation.** The `rootDomain !== "localhost"` guard skipped subdomain-dev entirely. The fix unblocks E2E + multi-host dev. Add to canonical doc `SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md` §4.7 noting dev now exercises the redirect when host endsWith `.localhost`.
+- **Middleware bypass order is a load-bearing invariant.** `isPublicRoute(pathname)` matched `/login` and short-circuited before §5 workspace handler — the §5a portal-redirect was dead code. Lesson: when adding a guard in middleware, place it BEFORE any earlier bypass that targets the same path-class. Manual probe + tests caught this; in prod it would have surfaced as "Google OAuth still broken on workspace subdomain even after ADR-0374 deployed." Promote to general L-NNN if this happens again.
+- **Dev-mode portal-redirect was not exercised by the original ADR-0374 implementation.** The `rootDomain !== "localhost"` guard skipped subdomain-dev entirely. The fix unblocks E2E + multi-host dev. Add to canonical doc `SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md` §4.7 noting dev now exercises the redirect when host endsWith `.localhost`.
 - **F12 vitest exhaustion of `resolveContinueDestination` is high-value, low-effort.** 100ms test run covers more cases than a Playwright E2E would (different code values, malformed slugs, etc.). Pattern to copy for similar internal helpers in the future: extract a vitest unit suite even when there's a higher-level E2E nearby.
 
 ## Known issues / debt
@@ -81,7 +81,7 @@ Locked ADR-0362 (portal auth redirect) with three test suites — F11 (Playwrigh
 
 ## Refs
 
-- ADR-0362 (portal-auth-redirect-implementation)
+- ADR-0374 (portal-auth-redirect-implementation)
 - ADR-0021 (subdomain-workspace-routing, amended 2026-04-20)
 - `docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md` §8 (test surface), §6 (open-redirect guards)
 - `docs/superpowers/specs/2026-05-18-e2e-portal-redirect-tests.md` (this sortie's spec)

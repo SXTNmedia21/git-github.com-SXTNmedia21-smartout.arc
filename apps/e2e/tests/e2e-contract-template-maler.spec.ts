@@ -1,7 +1,7 @@
 /**
  * e2e-contract-template-maler.spec.ts — clone-from-K1a regression for Maler tab.
  *
- * Walks the workspace template flow from /dashboard/contracts?tab=maler:
+ * Walks the workspace template flow from /dashboard/people/contracts?tab=maler:
  *   1. Login as admin
  *   2. Navigate to Maler tab
  *   3. Open "Ny fra systemmal" picker
@@ -36,7 +36,7 @@ test.afterEach(async () => {
 test("@smoke Maler tab — clone K1a system template into workspace", async ({ page }) => {
   await loginAsAdmin(page);
 
-  await page.goto("/dashboard/contracts?tab=maler");
+  await page.goto("/dashboard/people/contracts?tab=maler");
   await page.waitForLoadState("domcontentloaded");
 
   // Wait for template list endpoint (fires on mount with workspace_id query).

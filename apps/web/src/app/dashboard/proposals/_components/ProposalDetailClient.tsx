@@ -71,7 +71,7 @@ function statusBadge(status: string) {
       return <Badge variant="secondary">Venter godkjenning</Badge>;
     case "applied":
       return (
-        <Badge variant="default" className="bg-green-700 text-white">
+        <Badge variant="default" className="bg-success text-success-foreground">
           Godkjent
         </Badge>
       );
@@ -372,8 +372,8 @@ export function ProposalDetailClient({ proposalId }: Props) {
                 <span
                   className={
                     delta >= 0
-                      ? "text-lg font-medium text-green-700"
-                      : "text-lg font-medium text-red-600"
+                      ? "text-success text-lg font-medium"
+                      : "text-destructive text-lg font-medium"
                   }
                 >
                   {delta >= 0 ? "+" : ""}
@@ -428,7 +428,7 @@ export function ProposalDetailClient({ proposalId }: Props) {
               <Button
                 variant="outline"
                 onClick={() => setRejectOpen(true)}
-                className="gap-2 text-red-600 hover:text-red-700"
+                className="text-destructive hover:text-destructive/80 gap-2"
                 disabled={approve.isPending || reject.isPending}
               >
                 <XCircle className="h-4 w-4" />

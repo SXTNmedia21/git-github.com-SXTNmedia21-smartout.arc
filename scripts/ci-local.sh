@@ -25,7 +25,7 @@ cd "$ROOT"
 # when coverage logic itself changes.
 # v2 (2026-05-17): added L-worktree-missing-pnpm-symlinks encoding +
 #                  preflight node_modules abort (was: ELIFECYCLE 15× on fresh wt).
-COVERAGE_MAPPING_VERSION=3
+COVERAGE_MAPPING_VERSION=4
 
 # Mirror CI workflow-level env (ci.yml line 16)
 export SKIP_ENV_VALIDATION=true
@@ -253,6 +253,17 @@ coverage_check() {
     '^scripts/.+\.ts$|—|WARN|gate-implementation change — re-verify dependent gates'
     '^scripts/.+\.mjs$|—|WARN|gate-implementation change — re-verify dependent gates'
     '^scripts/.+\.cjs$|—|WARN|gate-implementation change — re-verify dependent gates'
+    '^scripts/.+\.json$|—|WARN|gate-config change (e.g. tool-name allowlist)'
+    '^\.claude/hooks/.+\.sh$|—|WARN|harness hook — manual review'
+    '^\.claude/page-polish/.+\.run\.yml$|—|SKIP|page-polish skill config (no gate)'
+    '^\.claude/.+|—|SKIP|harness config (no gate)'
+    '^\.husky/.+|—|WARN|husky hook change — re-verify pre-commit/pre-push'
+    '^apps/web/.+\.css$|build|REQUIRE|CSS change reaches Next prerender'
+    '^apps/[^/]+/.+\.css$|build|REQUIRE|app CSS change'
+    '^packages/i18n/locales/.+\.json$|typecheck|REQUIRE|i18n locale change'
+    '^packages/.+/scripts/.+\.ts$|—|WARN|package-internal script change'
+    '^docs/missions/.+\.json$|—|SKIP|mission draft (doc-only)'
+    '^supabase/config\.toml$|—|WARN|local Supabase config — no CI gate'
     '\.md$|—|SKIP|doc-only'
   )
 

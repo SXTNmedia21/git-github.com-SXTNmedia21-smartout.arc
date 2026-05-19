@@ -3,23 +3,21 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  Emma Overlay                              */
 /*                                            */
-/*  Thin wrapper that drops Botsson into the   */
-/*  dashboard layout as a floating orb.       */
-/*  Loaded via dynamic import — zero SSR.     */
+/*  Floating Botsson Orb / Shell mount only.  */
+/*  Provider scope is owned by BotssonHost    */
+/*  (server-safe, SSR-preserving sibling).    */
+/*                                            */
+/*  Loaded via dynamic({ ssr: false }) from   */
+/*  DashboardShell so the Orb chunk stays     */
+/*  client-only without affecting children    */
+/*  SSR.                                       */
+/*                                            */
+/*  ADR-0238, ADR-0337, ADR-0362.             */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 import "./Botsson.css";
-import { BotssonProvider } from "./BotssonProvider";
 import { BotssonShell } from "./BotssonShell";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 export function EmmaOverlay() {
-  const ctx = useWorkspaceOptional();
-  const workspaceId = ctx?.workspace.workspace_id ?? null;
-
-  return (
-    <BotssonProvider workspaceId={workspaceId}>
-      <BotssonShell />
-    </BotssonProvider>
-  );
+  return <BotssonShell />;
 }

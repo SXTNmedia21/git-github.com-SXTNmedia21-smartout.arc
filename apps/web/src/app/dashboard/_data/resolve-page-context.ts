@@ -60,14 +60,17 @@ export async function resolveDashboardContext(): Promise<DashboardPageContext> {
     profileId = p.profile_id;
     profileStatus = p.status;
   } else if (wsParam) {
-    workspace = await timed("resolveCtx.getWorkspaceById[wsParam]", () =>
-      getWorkspaceById(wsParam),
-    );
-    if (!workspace) redirect("/access-denied");
-    const p = await timed("resolveCtx.getProfileInWorkspace[wsParam]", () =>
-      getProfileInWorkspace(user.id, workspace!.workspace_id),
-    );
+    // Parallelize workspace lookup + profile check — both need only wsParam (known here).
+    // Mirrors the Promise.all pattern in layout.tsx:99-101.
+    const [ws, p] = await Promise.all([
+      timed("resolveCtx.getWorkspaceById[wsParam]", () => getWorkspaceById(wsParam)),
+      timed("resolveCtx.getProfileInWorkspace[wsParam]", () =>
+        getProfileInWorkspace(user.id, wsParam),
+      ),
+    ]);
+    if (!ws) redirect("/access-denied");
     if (!p) redirect("/access-denied");
+    workspace = ws;
     profileId = p.profile_id;
     profileStatus = p.status;
   } else {

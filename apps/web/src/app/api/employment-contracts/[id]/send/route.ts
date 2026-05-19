@@ -386,7 +386,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       recipient_id: actorProfile.profile_id,
       title: "Du må signere arbeidsavtalen",
       body: `Arbeidsavtalen for ${employeeProfile.display_name} (${contract.position_title}) venter din signatur.`,
-      action_url: "/dashboard/contracts/awaiting-my-signature",
+      action_url: "/dashboard/people/contracts/awaiting-my-signature",
       icon_type: "info",
       metadata: {
         contract_id: id,

@@ -117,7 +117,7 @@ export function SelectWorkspaceClient({
       <div
         aria-hidden
         className="pointer-events-none fixed right-[-15%] bottom-[-20%] h-[60vh] w-[60vh] rounded-full opacity-[0.12] blur-[140px]"
-        style={{ backgroundColor: "oklch(0.72 0.16 45)" }}
+        style={{ backgroundColor: "var(--brand-orange-warm)" }}
       />
 
       {/* Header */}

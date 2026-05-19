@@ -81,7 +81,7 @@ const PRESETS: PresetConfig[] = [
   },
   {
     kind: "desk_public",
-    icon: <LifeBuoy className="h-4 w-4 text-[oklch(0.65_0.18_45)]" aria-hidden="true" />,
+    icon: <LifeBuoy className="text-brand-orange h-4 w-4" aria-hidden="true" />,
     title: "Skranke (offentlig)",
     lede: "Fag-skranke. Spørsmål rutes til ansvarlig kollega — hele kanalen lærer av svaret.",
     example: "#it-support · #vinkunnskap · #helsekontroll",
@@ -92,7 +92,7 @@ const PRESETS: PresetConfig[] = [
   },
   {
     kind: "desk_private",
-    icon: <Lock className="h-4 w-4 text-[oklch(0.55_0.10_240)]" aria-hidden="true" />,
+    icon: <Lock className="h-4 w-4 text-[var(--info)]" aria-hidden="true" />,
     title: "Skranke (privat)",
     lede: "HR-skranke. Hver sak får sin egen private undertråd mellom ansatt og ansvarlig.",
     example: "#lønn · #hr · #personlige-saker",
@@ -103,7 +103,7 @@ const PRESETS: PresetConfig[] = [
   },
   {
     kind: "dm",
-    icon: <MessageCircle className="h-4 w-4 text-[oklch(0.55_0.12_145)]" aria-hidden="true" />,
+    icon: <MessageCircle className="h-4 w-4 text-[var(--success)]" aria-hidden="true" />,
     title: "Direktemelding",
     lede: "Én-til-én eller liten gruppe. Ingen kanalliste — kun deltakerne ser samtalen.",
     example: "Spørsmål til en kollega · uformell prat",

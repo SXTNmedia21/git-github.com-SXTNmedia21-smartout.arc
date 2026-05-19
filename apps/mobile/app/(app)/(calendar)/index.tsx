@@ -285,6 +285,19 @@ export default function CalendarWeekScreen() {
 
   // ── Event handlers ────────────────────────────────────────────────────────
 
+  /**
+   * Shift items navigate to the dedicated detail screen. Non-shift items
+   * (task / booking / deviation / note) open the DetailSheet drawer.
+   * IDs from useOperationsFeed are prefixed "shift-<uuid>" — strip for routing.
+   */
+  const openShiftDetail = useCallback(
+    (id: string) => {
+      const shiftId = id.startsWith("shift-") ? id.slice("shift-".length) : id;
+      router.push({ pathname: "/(app)/(shifts)/[id]", params: { id: shiftId } });
+    },
+    [router],
+  );
+
   const handleDaySelect = useCallback(
     (date: Date) => {
       const iso = dateToISO(date, tz);
@@ -411,14 +424,7 @@ export default function CalendarWeekScreen() {
 
             {/* Shift card (first shift for the day, shown in Alt/Vakter modes) */}
             {(filter === "alt" || filter === "vakter") && shifts.length > 0 && (
-              <ShiftCard
-                shift={shifts[0]}
-                onTap={() => {
-                  // CalendarItem → CalendarItemExtended: base shape satisfies extended type.
-                  // Shift items carry no onComplete (completion is task-only per spec §4.5).
-                  detailSheetRef.current?.open(shifts[0] as CalendarItemExtended);
-                }}
-              />
+              <ShiftCard shift={shifts[0]} onTap={() => openShiftDetail(shifts[0].id)} />
             )}
 
             {/* Item list */}
@@ -450,9 +456,13 @@ export default function CalendarWeekScreen() {
                       }
                     })();
 
-                    // Open DetailSheet with the tapped item.
-                    // CalendarItem satisfies CalendarItemExtended (extended fields are optional).
-                    detailSheetRef.current?.open(item as CalendarItemExtended);
+                    // Shift items go to dedicated detail screen; other types
+                    // (task/booking/deviation/note) open the DetailSheet drawer.
+                    if (item.type === "shift") {
+                      openShiftDetail(item.id);
+                    } else {
+                      detailSheetRef.current?.open(item as CalendarItemExtended);
+                    }
                   }}
                 />
               ))}

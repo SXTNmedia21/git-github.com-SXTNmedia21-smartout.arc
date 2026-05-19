@@ -14,8 +14,16 @@ import { useWorkspaceActiveCalls } from "@/app/dashboard/komm/_hooks/use-workspa
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
+import { PageHeaderProvider, usePageHeader } from "./PageHeaderContext";
 import { ActiveCallProvider } from "./ActiveCallProvider";
 import { NavBadgePill, NavBadgeDot, type NavBadgeVariant } from "./NavBadge";
+import { NavItem } from "./NavItem";
+import { SidebarGroup } from "./SidebarGroup";
+import {
+  SIDEBAR_GROUPS_ADMIN,
+  SIDEBAR_GROUPS_EMPLOYEE,
+  SIDEBAR_GROUPS_DEMO,
+} from "./sidebar-config";
 import {
   AdminProvider,
   ScheduleCoordinationProvider,
@@ -51,6 +59,8 @@ const GlobalCreateMenu = dynamic(
   { ssr: false },
 );
 
+import { BotssonHost } from "@/app/Botsson/_components/BotssonHost";
+
 const EmmaOverlay = dynamic(
   () =>
     import("@/app/Botsson/_components/EmmaOverlay").then((m) => ({
@@ -76,7 +86,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/calendar": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
-  "/dashboard/ai": "mr-botsson",
+  "/dashboard/ai": "mr-botsson", // SM-10: delete when /ai/config moves to Innstillinger
   "/dashboard/settings": "mr-botsson",
   "/dashboard/help": "mr-botsson",
   "/dashboard/my-schedule": "shift-assistant",
@@ -288,8 +298,8 @@ export const DashboardContext = createContext({
   setScheduleDraftCount: (_val: number) => {
     void _val;
   },
-  scheduleCompactMode: false,
-  setScheduleCompactMode: (_val: boolean) => {
+  scheduleDensity: "default" as "cozy" | "default" | "compact" | "pulse",
+  setScheduleDensity: (_val: "cozy" | "default" | "compact" | "pulse") => {
     void _val;
   },
   workspaceData: null as { workspace_id: string; company_id: string | null; name: string } | null,
@@ -342,6 +352,7 @@ import {
   FileCheck,
 } from "lucide-react";
 
+import { useTranslation } from "@smartout/i18n";
 import { ContractPendingBanner } from "./ContractPendingBanner";
 import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
@@ -399,6 +410,7 @@ function DashboardShellInner({
   children: React.ReactNode;
   profileId?: string | null;
 }) {
+  const { t } = useTranslation("dashboard");
   // Theme-ready flag is only needed here (not part of the facade shape).
   const { themeReady } = useThemeContext();
 
@@ -461,8 +473,8 @@ function DashboardShellInner({
     setOnPublishAll,
     scheduleDraftCount: scheduleDraftCountDisplay,
     setScheduleDraftCount,
-    scheduleCompactMode,
-    setScheduleCompactMode,
+    scheduleDensity,
+    setScheduleDensity,
     workspaceData,
     isSetupMode,
     isSetupLoading,
@@ -570,8 +582,8 @@ function DashboardShellInner({
       setOnPublishAll,
       scheduleDraftCount: scheduleDraftCountDisplay,
       setScheduleDraftCount,
-      scheduleCompactMode,
-      setScheduleCompactMode,
+      scheduleDensity,
+      setScheduleDensity,
       workspaceData,
       profileId,
       isSetupMode,
@@ -601,8 +613,8 @@ function DashboardShellInner({
       setOnPublishAll,
       scheduleDraftCountDisplay,
       setScheduleDraftCount,
-      scheduleCompactMode,
-      setScheduleCompactMode,
+      scheduleDensity,
+      setScheduleDensity,
       workspaceData,
       profileId,
       isSetupMode,
@@ -864,10 +876,10 @@ function DashboardShellInner({
         expectedPathname: "/dashboard/komm",
       },
       {
-        id: "ai",
+        id: "botsson",
         label: "Open Mr. Botsson",
-        selector: '[data-autoplay="nav-/dashboard/ai"]',
-        expectedPathname: "/dashboard/ai",
+        selector: '[data-autoplay="botsson-open"]',
+        // No expectedPathname — orb opens as overlay, no route change
       },
       {
         id: "onboarding-assistant",
@@ -1075,6 +1087,31 @@ function DashboardShellInner({
   };
 
   // /dashboard/setup renders full-screen (no header/menu) — kept as-is.
+  // Dynamic sidebar indicators — built once per render, passed into SidebarGroup
+  // so individual NavItems can show live badges (unread counts, call pulse, etc.)
+  // without DashboardShell needing to enumerate every href inline.
+  const dynamicIndicators = useMemo<Record<string, NavBadgeVariant[]>>(() => {
+    const map: Record<string, NavBadgeVariant[]> = {};
+    if (inboundRequestCount > 0) {
+      map["/dashboard/people"] = [
+        {
+          type: "warning",
+          value: inboundRequestCount,
+          label: t("shell.badge.requests", { count: inboundRequestCount }),
+        },
+      ];
+    }
+    const kanalerInd: NavBadgeVariant[] = [];
+    if (hasKanalerCall) kanalerInd.push({ type: "live" });
+    if (kanalerUnread > 0) kanalerInd.push({ type: "count", value: kanalerUnread });
+    if (kanalerInd.length) map["/dashboard/komm"] = kanalerInd;
+    const chatInd: NavBadgeVariant[] = [];
+    if (hasChatCall) chatInd.push({ type: "live" });
+    if (chatUnread > 0) chatInd.push({ type: "count", value: chatUnread });
+    if (chatInd.length) map["/dashboard/komm/chat"] = chatInd;
+    return map;
+  }, [inboundRequestCount, hasKanalerCall, kanalerUnread, hasChatCall, chatUnread]);
+
   // Routing is decoupled from cascade tasks: setup redirect is now driven by
   // the workspace.setup_guide_completed flag (see useEffect above).
   if (isSetupPage) {
@@ -1085,6 +1122,10 @@ function DashboardShellInner({
             isDark ? "dark" : ""
           } bg-background text-foreground`}
         >
+          {/* Setup page intentionally bypasses BotssonHost / EmmaOverlay.
+              No workspace context yet → no BotssonProvider needed.
+              Any future setup-page child that needs DomainChatOwnership
+              must declare a local BotssonProvider. ADR-0362 §boundary. */}
           {children}
         </div>
       </DashboardContext.Provider>
@@ -1096,928 +1137,731 @@ function DashboardShellInner({
       <VoiceToolsProvider>
         <EntityDrawerProvider>
           <ChatPanelProvider>
-            <div
-              style={themeReady ? undefined : { opacity: 0 }}
-              className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
-                isDark ? "dark" : ""
-              } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
-            >
-              {/* TOP CONTEXT BAR */}
-              {/* UI Events:
+            <PageHeaderProvider>
+              <div
+                style={themeReady ? undefined : { opacity: 0 }}
+                className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
+                  isDark ? "dark" : ""
+                } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
+              >
+                {/* TOP CONTEXT BAR */}
+                {/* UI Events:
             - action: toggleTheme() (sun/moon button)
             - action: openVoiceAssistant() (mic button)
             - color-regime: isDark — dark=near-black, light=warm-cream header with orange accent */}
-              <header
-                className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
-                  isDark
-                    ? "border-border bg-background"
-                    : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-sm"
-                } print:hidden`}
-              >
-                <div className="flex items-center gap-6">
-                  <WorkspaceSwitcher isDark={isDark} />
+                <header
+                  className={`relative z-30 grid h-14 grid-cols-[1fr_auto_1fr] items-center border-b px-6 transition-colors duration-300 ${
+                    isDark
+                      ? "border-border bg-background"
+                      : "border-[var(--border)] bg-[var(--surface-base)] shadow-sm"
+                  } print:hidden`}
+                >
+                  <div className="flex items-center gap-6">
+                    <WorkspaceSwitcher isDark={isDark} />
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <span
-                      className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}
-                    >
-                      Aktiv sesong:
-                    </span>
-                    <span
-                      className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
-                    >
-                      Vinter 2026
-                    </span>
-                    <div
-                      className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
-                        isDark
-                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      }`}
-                    >
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold tracking-wider uppercase">Aktiv</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setIsDocumentMode(!isDocumentMode)}
-                    className={`rounded-md p-1.5 transition-colors ${
-                      isDocumentMode
-                        ? "bg-orange-500/20 text-orange-400"
-                        : isDark
-                          ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                    }`}
-                    title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => setIsDark(!isDark)}
-                    data-autoplay="top-theme-toggle"
-                    className={`rounded-md p-1.5 transition-colors ${
-                      isDark
-                        ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                    }`}
-                  >
-                    {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  </button>
-
-                  {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
-                  <div className="relative">
-                    <VoiceAssistantWithTools
-                      isOpen={isAssistantOpen}
-                      missionId={resolveMissionForRoute(pathname)}
-                      sessionContext={
-                        voiceSessionOverride ?? buildVoiceSessionContext(pathname, adminView)
-                      }
-                      onClose={() => {
-                        setIsAssistantOpen(false);
-                        setVoiceSessionOverride(null);
-                      }}
-                    />
-                  </div>
-
-                  <NotificationBell profileId={profileId ?? undefined} />
-                  <UserMenu isDark={isDark} />
-                </div>
-              </header>
-
-              <ContractPendingBanner />
-
-              {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
-                <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
-                  <div className="animate-in slide-in-from-right-2 fade-in border-border bg-card text-foreground rounded-xl border p-3 shadow-xl backdrop-blur-sm">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-orange-500" />
-                        <span className="text-xs font-semibold tracking-wide uppercase">
-                          Showcase Flow
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}>
+                        {t("shell.header.active_season")}
+                      </span>
+                      <span
+                        className={`font-semibold ${isDark ? "text-foreground" : "text-[var(--text-strong)]"}`}
+                      >
+                        {t("shell.header.season_placeholder")}
+                      </span>
+                      <div
+                        className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
+                          isDark
+                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                            : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-bold tracking-wider uppercase">
+                          {t("shell.header.season_active_badge")}
                         </span>
                       </div>
-                      {autoplayUiState.isRunning ? (
-                        <span className="flex items-center gap-1 text-[11px] text-orange-500">
-                          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                          Running
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-500">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Done
-                        </span>
-                      )}
                     </div>
+                  </div>
 
-                    <p className="text-foreground mb-2 text-[13px] font-medium">
-                      {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
-                    </p>
+                  {/* Centered global search — Pontus 2026-05-19 annotation C */}
+                  {!isDocumentMode ? (
+                    <div className="group relative justify-self-center">
+                      <Search
+                        className={`text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
+                          isDark
+                            ? "group-focus-within:text-orange-500"
+                            : "group-focus-within:text-orange-600"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.dispatchEvent(new Event("smartout:open-global-search"))
+                        }
+                        className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-80 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-colors focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
+                        aria-label="Open global search palette"
+                      >
+                        <span className="text-muted-foreground">
+                          {t("shell.search.placeholder")}
+                        </span>
+                        <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
+                          {typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+                            ? "⌘K"
+                            : "Ctrl+K"}
+                        </kbd>
+                      </button>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
 
-                    <div className="bg-muted mb-2 h-1.5 overflow-hidden rounded-full">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
-                        style={{
-                          width:
-                            autoplayUiState.totalCount > 0
-                              ? `${Math.round((autoplayUiState.completedCount / autoplayUiState.totalCount) * 100)}%`
-                              : "0%",
+                  <div className="flex items-center justify-end gap-4">
+                    <button
+                      onClick={() => setIsDocumentMode(!isDocumentMode)}
+                      className={`rounded-md p-1.5 transition-colors ${
+                        isDocumentMode
+                          ? "bg-orange-500/20 text-orange-400"
+                          : isDark
+                            ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
+                      }`}
+                      title={
+                        isDocumentMode
+                          ? t("shell.header.doc_mode_off")
+                          : t("shell.header.doc_mode_on")
+                      }
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => setIsDark(!isDark)}
+                      data-autoplay="top-theme-toggle"
+                      className={`rounded-md p-1.5 transition-colors ${
+                        isDark
+                          ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
+                      }`}
+                    >
+                      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    </button>
+
+                    {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
+                    <div className="relative">
+                      <VoiceAssistantWithTools
+                        isOpen={isAssistantOpen}
+                        missionId={resolveMissionForRoute(pathname)}
+                        sessionContext={
+                          voiceSessionOverride ?? buildVoiceSessionContext(pathname, adminView)
+                        }
+                        onClose={() => {
+                          setIsAssistantOpen(false);
+                          setVoiceSessionOverride(null);
                         }}
                       />
                     </div>
 
-                    <div className="text-muted-foreground flex items-center justify-between text-[11px]">
-                      <span>
-                        {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
-                      </span>
-                      <span>
-                        {autoplayUiState.isSettling ? "Waiting for UI settle..." : "UI settled"}
-                      </span>
-                    </div>
+                    <NotificationBell profileId={profileId ?? undefined} />
+                    {/* +Ny dropdown — moved from action bar per Pontus 2026-05-19 */}
+                    {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
+                    {/* UserMenu moved to sidebar bottom (below admin toggle) — Pontus 2026-05-19 */}
                   </div>
+                </header>
 
-                  {autoplayUiState.notices.map((notice) => (
-                    <div
-                      key={notice.id}
-                      className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
-                        notice.tone === "success"
-                          ? isDark
-                            ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                          : notice.tone === "warning"
-                            ? isDark
-                              ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
-                              : "border-amber-200 bg-amber-50 text-amber-900"
-                            : "border-border bg-card text-foreground"
-                      }`}
-                    >
-                      <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
-                        <Bell className="h-3.5 w-3.5" />
-                        {notice.title}
+                <ContractPendingBanner />
+
+                {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
+                  <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
+                    <div className="animate-in slide-in-from-right-2 fade-in border-border bg-card text-foreground rounded-xl border p-3 shadow-xl backdrop-blur-sm">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-orange-500" />
+                          <span className="text-xs font-semibold tracking-wide uppercase">
+                            Showcase Flow
+                          </span>
+                        </div>
+                        {autoplayUiState.isRunning ? (
+                          <span className="flex items-center gap-1 text-[11px] text-orange-500">
+                            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                            Running
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px] text-emerald-500">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Done
+                          </span>
+                        )}
                       </div>
-                      <p className="text-foreground text-[12px] leading-relaxed">
-                        {notice.message}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
 
-              <div className="relative flex flex-1 overflow-hidden">
-                {/* LEFT SIDEBAR NAVIGATION */}
-                {/* UI Events:
+                      <p className="text-foreground mb-2 text-[13px] font-medium">
+                        {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
+                      </p>
+
+                      <div className="bg-muted mb-2 h-1.5 overflow-hidden rounded-full">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
+                          style={{
+                            width:
+                              autoplayUiState.totalCount > 0
+                                ? `${Math.round((autoplayUiState.completedCount / autoplayUiState.totalCount) * 100)}%`
+                                : "0%",
+                          }}
+                        />
+                      </div>
+
+                      <div className="text-muted-foreground flex items-center justify-between text-[11px]">
+                        <span>
+                          {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
+                        </span>
+                        <span>
+                          {autoplayUiState.isSettling ? "Waiting for UI settle..." : "UI settled"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {autoplayUiState.notices.map((notice) => (
+                      <div
+                        key={notice.id}
+                        className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
+                          notice.tone === "success"
+                            ? isDark
+                              ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                            : notice.tone === "warning"
+                              ? isDark
+                                ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
+                                : "border-amber-200 bg-amber-50 text-amber-900"
+                              : "border-border bg-card text-foreground"
+                        }`}
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
+                          <Bell className="h-3.5 w-3.5" />
+                          {notice.title}
+                        </div>
+                        <p className="text-foreground text-[12px] leading-relaxed">
+                          {notice.message}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="relative flex flex-1 overflow-hidden">
+                  {/* LEFT SIDEBAR NAVIGATION */}
+                  {/* UI Events:
               - nav: all NavItem hrefs
               - action: toggleSidebarCollapse() (chevron button)
               - action: toggleAdminMode() (bottom toggle)
               - color-regime: isDark — dark=near-black, light=warm-cream gradient */}
-                <aside
-                  className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
-                    isSidebarCollapsed ? "w-16" : "w-64"
-                  } ${
-                    isDark
-                      ? "border-border bg-card"
-                      : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
-                  } print:hidden`}
-                >
-                  <TooltipProvider delayDuration={0}>
-                    {/* Sidebar collapse toggle — top */}
-                    <div
-                      className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
-                        isDark ? "border-border" : "border-[oklch(0.92_0.004_55)]"
-                      }`}
-                    >
-                      <button
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        className={`rounded-lg p-1.5 transition-colors ${
-                          isDark
-                            ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
-                        }`}
-                      >
-                        {isSidebarCollapsed ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : (
-                          <ChevronLeft className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-
-                    <nav
-                      className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
-                    >
-                      {isDocumentMode ? (
-                        <DocumentModeSidebar isDark={isDark} />
-                      ) : isAdminMode ? (
-                        isDemoMode ? (
-                          <>
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Showcase
-                              </div>
-                            )}
-                            <NavItem
-                              href="/dashboard"
-                              icon={LayoutDashboard}
-                              label="Oversikt"
-                              isDark={isDark}
-                              active={isActive("/dashboard")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/schedule"
-                              icon={CalendarDays}
-                              label="Templates"
-                              isDark={isDark}
-                              active={isActive("/dashboard/schedule")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reports"
-                              icon={TrendingUp}
-                              label="Analytics"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reports")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/onboarding"
-                              icon={Bot}
-                              label="System Intelligence"
-                              isDark={isDark}
-                              active={false}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Ledelse
-                              </div>
-                            )}
-                            <NavItem
-                              href="/dashboard"
-                              icon={LayoutDashboard}
-                              label="Oversikt"
-                              isDark={isDark}
-                              active={isActive("/dashboard")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/people"
-                              icon={Users}
-                              label="Ansatte"
-                              isDark={isDark}
-                              indicators={
-                                inboundRequestCount > 0
-                                  ? [
-                                      {
-                                        type: "warning",
-                                        value: inboundRequestCount,
-                                        label: `${inboundRequestCount} Forespørsler`,
-                                      },
-                                    ]
-                                  : undefined
-                              }
-                              active={
-                                isActive("/dashboard/people") || isActive("/dashboard/contracts")
-                              }
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/schedule"
-                              icon={CalendarDays}
-                              label="Vaktplan"
-                              isDark={isDark}
-                              active={isActive("/dashboard/schedule")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/calendar"
-                              icon={Calendar}
-                              label="Kalender"
-                              isDark={isDark}
-                              active={isActive("/dashboard/calendar")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reconciliation"
-                              icon={ListChecks}
-                              label="Avstemming"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reconciliation")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Administrasjon
-                              </div>
-                            )}
-                            {isSidebarCollapsed && <div className="mt-2" />}
-                            <NavItem
-                              href="/dashboard/organization"
-                              icon={Building2}
-                              label="Organisasjon"
-                              isDark={isDark}
-                              active={isActive("/dashboard/organization")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reports"
-                              icon={TrendingUp}
-                              label="Rapporter"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reports")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/payroll"
-                              icon={Receipt}
-                              label="Lønn"
-                              isDark={isDark}
-                              active={isActive("/dashboard/payroll")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </>
-                        )
-                      ) : (
-                        <>
-                          {!isSidebarCollapsed && (
-                            <div
-                              className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                              }`}
-                            >
-                              Mitt arbeidsrom
-                            </div>
-                          )}
-                          <NavItem
-                            href="/dashboard"
-                            icon={LayoutDashboard}
-                            label="Oversikt"
-                            isDark={isDark}
-                            active={isActive("/dashboard")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-schedule"
-                            icon={Calendar}
-                            label="Min vaktplan"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-schedule")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-training"
-                            icon={GraduationCap}
-                            label="Min opplæring"
-                            isDark={isDark}
-                            indicators={[{ type: "warning", label: "1 forfalt" }]}
-                            active={isActive("/dashboard/my-training")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          {FEATURE_FLAGS.MY_CV && (
-                            <NavItem
-                              href="/dashboard/my-cv"
-                              icon={FileText}
-                              label="Min profil"
-                              isDark={isDark}
-                              active={isActive("/dashboard/my-cv")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          )}
-                          <NavItem
-                            href="/dashboard/my-salary"
-                            icon={Banknote}
-                            label="Min lønn"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-salary")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-contract"
-                            icon={FileCheck}
-                            label="Min kontrakt"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-contract")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-profile"
-                            icon={UserCircle}
-                            label="Min profil"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-profile")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                        </>
-                      )}
-
-                      {!isDemoMode && (
-                        <>
-                          {!isSidebarCollapsed && (
-                            <div className="text-muted-foreground mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase">
-                              Kommunikasjon
-                            </div>
-                          )}
-                          {isSidebarCollapsed && <div className="mt-2" />}
-                          <NavItem
-                            href="/dashboard/komm"
-                            icon={Hash}
-                            label="Kanaler"
-                            isDark={isDark}
-                            active={pathname === "/dashboard/komm"}
-                            isCollapsed={isSidebarCollapsed}
-                            indicators={[
-                              ...(hasKanalerCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-                              ...(kanalerUnread > 0
-                                ? ([{ type: "count", value: kanalerUnread }] as NavBadgeVariant[])
-                                : []),
-                            ]}
-                          />
-                          <NavItem
-                            href="/dashboard/komm/chat"
-                            icon={MessageCircle}
-                            label="Chat"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/chat")}
-                            isCollapsed={isSidebarCollapsed}
-                            indicators={[
-                              ...(hasChatCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-                              ...(chatUnread > 0
-                                ? ([{ type: "count", value: chatUnread }] as NavBadgeVariant[])
-                                : []),
-                            ]}
-                          />
-                          <NavItem
-                            href="/dashboard/komm/nyheter"
-                            icon={Newspaper}
-                            label="Nyheter"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/nyheter")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          {FEATURE_FLAGS.AI_CHAT && (
-                            <NavItem
-                              href="/dashboard/ai"
-                              icon={Bot}
-                              label="Mr. Botsson"
-                              isDark={isDark}
-                              ai
-                              active={isActive("/dashboard/ai")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          )}
-                        </>
-                      )}
-                    </nav>
-
-                    {/* Sidebar bottom controls */}
-                    <div
-                      className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
-                        isDark
-                          ? "border-border bg-muted"
-                          : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
-                      } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
-                    >
-                      <NavItem
-                        href="/dashboard/settings"
-                        icon={Settings}
-                        label="Innstillinger"
-                        isDark={isDark}
-                        active={isActive("/dashboard/settings")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-                      <NavItem
-                        href="/dashboard/help"
-                        icon={HelpCircle}
-                        label="Hjelp"
-                        isDark={isDark}
-                        active={isActive("/dashboard/help")}
-                        isCollapsed={isSidebarCollapsed}
-                      />
-
-                      {/* Admin/Employee toggle */}
-                      <button
-                        onClick={() => setIsAdminMode(!isAdminMode)}
-                        data-autoplay="admin-mode-toggle"
-                        className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
-                          isAdminMode
-                            ? isDark
-                              ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
-                              : "border-orange-200 bg-orange-50 text-orange-600"
-                            : "border-border bg-muted text-foreground shadow-sm"
-                        }`}
-                      >
-                        {!isSidebarCollapsed && (
-                          <span>{isAdminMode ? "Adminmodus" : "Ansattmodus"}</span>
-                        )}
-                        <div
-                          className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
-                            isAdminMode ? "bg-orange-500" : "bg-muted-foreground"
-                          }`}
-                        >
-                          <div
-                            className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                              isAdminMode ? "translate-x-4" : "translate-x-0"
-                            }`}
-                          />
-                        </div>
-                      </button>
-                    </div>
-                  </TooltipProvider>
-                </aside>
-
-                {/* MAIN CONTENT AREA */}
-                <main
-                  className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-                    isDark ? "bg-background" : "bg-[oklch(0.965_0.003_55)]"
-                  } print:block print:h-auto print:overflow-visible print:bg-white`}
-                >
-                  {/* ACTION BAR */}
-                  <div
-                    className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
+                  <aside
+                    className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
+                      isSidebarCollapsed ? "w-16" : "w-64"
+                    } ${
                       isDark
-                        ? "border-border bg-background/90"
-                        : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
+                        ? "border-border bg-card"
+                        : "border-[var(--border)] bg-[var(--surface-base)] shadow-[1px_0_12px_-4px_color-mix(in_oklch,var(--foreground)_8%,transparent)]"
                     } print:hidden`}
                   >
-                    <div
-                      className={`flex items-center gap-2.5 text-sm ${
-                        isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
-                      }`}
-                    >
-                      <span
-                        className={`cursor-pointer transition-colors ${
-                          isDark
-                            ? "hover:text-accent-foreground"
-                            : "hover:text-[oklch(0.25_0.015_45)]"
+                    <TooltipProvider delayDuration={0}>
+                      {/* Sidebar collapse toggle — top */}
+                      <div
+                        className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
+                          isDark ? "border-border" : "border-[var(--border)]"
                         }`}
                       >
-                        {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5" />
-                      <span
-                        className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
-                          isDark
-                            ? "border-border bg-card text-foreground"
-                            : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
-                        }`}
-                      >
-                        {isDocumentMode
-                          ? "Dokumentmodus"
-                          : ((
-                              {
-                                schedule: "Vaktplan",
-                                people: "Ansatte",
-                                reports: "Rapporter",
-                                operations: "Drift",
-                                hms: "HMS",
-                                governance: "HMS",
-                                "year-wheel": "Årshjul",
-                                calendar: "Kalender",
-                                organization: "Organisasjon",
-                                settings: "Innstillinger",
-                                help: "Hjelp",
-                                komm: "Kanaler",
-                                ai: "Mr. Botsson",
-                                "onboarding-assistant": "Onboarding-assistent",
-                                "my-schedule": "Min vaktplan",
-                                "my-training": "Min opplæring",
-                                "my-cv": "Min profil",
-                                "my-salary": "Min lønn",
-                              } as Record<string, string>
-                            )[pathname.split("/").pop() ?? ""] ?? "Oversikt")}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-5">
-                      {/* Schedule page specific controls */}
-                      {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
-                        <>
-                          {/* LAYOUT TOGGLE */}
-                          <div
-                            className={`border-border bg-muted mr-2 hidden rounded-xl border p-1 shadow-sm md:flex`}
-                          >
-                            <button
-                              onClick={() => switchScheduleLayout("daily")}
-                              data-autoplay="schedule-layout-daily"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                            >
-                              Ukeplan
-                            </button>
-                            <button
-                              onClick={() => switchScheduleLayout("monthly")}
-                              data-autoplay="schedule-layout-monthly"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                            >
-                              Måned
-                            </button>
-                            <button
-                              onClick={() => switchScheduleLayout("list")}
-                              data-autoplay="schedule-layout-list"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                            >
-                              Vaktliste
-                            </button>
-                            <button
-                              onClick={() => switchScheduleLayout("grid")}
-                              data-autoplay="schedule-layout-grid"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                            >
-                              Bemanning
-                            </button>
-                          </div>
-
-                          {/* PERIOD COUNT SELECTOR (weekly only) */}
-                          {scheduleLayout === "weekly" && (
-                            <div
-                              className={`border-border bg-muted mr-2 hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex`}
-                            >
-                              {[
-                                { label: "3d", count: 3 },
-                                { label: "1u", count: 7 },
-                                { label: "2u", count: 10 },
-                                { label: "3u", count: 14 },
-                              ].map(({ label, count }) => (
-                                <button
-                                  key={label}
-                                  onClick={() => setWeeklyPeriodCount(count)}
-                                  className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-accent-foreground"}`}
-                                >
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
+                        <button
+                          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                          className={`rounded-lg p-1.5 transition-colors ${
+                            isDark
+                              ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              : "text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-mid)]"
+                          }`}
+                        >
+                          {isSidebarCollapsed ? (
+                            <ChevronRight className="h-4 w-4" />
+                          ) : (
+                            <ChevronLeft className="h-4 w-4" />
                           )}
+                        </button>
+                      </div>
 
-                          {/* DATE NAVIGATION */}
+                      <nav
+                        data-testid="sidebar-nav"
+                        className={`relative flex-1 space-y-0 overflow-x-hidden overflow-y-auto py-1 [scrollbar-width:thin] ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
+                      >
+                        {isDocumentMode ? (
+                          <DocumentModeSidebar isDark={isDark} />
+                        ) : (
+                          (() => {
+                            const groups = isAdminMode
+                              ? isDemoMode
+                                ? SIDEBAR_GROUPS_DEMO
+                                : SIDEBAR_GROUPS_ADMIN
+                              : SIDEBAR_GROUPS_EMPLOYEE;
+                            return groups.map((group) => (
+                              <SidebarGroup
+                                key={group.labelKey}
+                                group={group}
+                                pathname={pathname}
+                                isDark={isDark}
+                                isCollapsed={isSidebarCollapsed}
+                                dynamicIndicators={dynamicIndicators}
+                              />
+                            ));
+                          })()
+                        )}
+                      </nav>
+
+                      {/* Mr. Botsson — persistent orb button (SM-8, canonical §7) */}
+                      {/* Sits between main nav and footer controls. Dispatches botsson:open
+                        — BotssonShell handles expand() since it lives in BotssonProvider
+                        scope (ADR-0362). No route navigation. */}
+                      <div
+                        className={`border-t ${isSidebarCollapsed ? "px-2 py-2" : "px-2.5 py-2"} border-sidebar-border`}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              data-testid="sidebar-botsson-button"
+                              data-autoplay="botsson-open"
+                              onClick={() => window.dispatchEvent(new CustomEvent("botsson:open"))}
+                              aria-label={t("shell.nav.botsson")}
+                              className={[
+                                "flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-medium",
+                                "transition-colors duration-150",
+                                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                                isSidebarCollapsed ? "justify-center" : "gap-2.5",
+                              ].join(" ")}
+                            >
+                              {/* Bot icon — Lucide, same as /dashboard/ai page */}
+                              <Bot className="h-4 w-4 shrink-0 text-indigo-400" aria-hidden />
+                              {!isSidebarCollapsed && (
+                                <span className="truncate">{t("shell.nav.botsson")}</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {isSidebarCollapsed && (
+                            <TooltipContent side="right">{t("shell.nav.botsson")}</TooltipContent>
+                          )}
+                        </Tooltip>
+                      </div>
+
+                      {/* Sidebar bottom controls */}
+                      <div
+                        className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
+                          isDark
+                            ? "border-border bg-muted"
+                            : "border-[var(--border)] bg-[var(--surface-raised)]"
+                        } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
+                      >
+                        <NavItem
+                          href="/dashboard/settings"
+                          icon={Settings}
+                          label={t("shell.nav.settings")}
+                          isDark={isDark}
+                          active={isActive("/dashboard/settings")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/help"
+                          icon={HelpCircle}
+                          label={t("shell.nav.help")}
+                          isDark={isDark}
+                          active={isActive("/dashboard/help")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+
+                        {/* Admin/Employee toggle */}
+                        <button
+                          onClick={() => setIsAdminMode(!isAdminMode)}
+                          data-autoplay="admin-mode-toggle"
+                          className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
+                            isAdminMode
+                              ? isDark
+                                ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                                : "border-orange-200 bg-orange-50 text-orange-600"
+                              : "border-border bg-muted text-foreground shadow-sm"
+                          }`}
+                        >
+                          {!isSidebarCollapsed && (
+                            <span>
+                              {isAdminMode
+                                ? t("shell.nav.admin_mode")
+                                : t("shell.nav.employee_mode")}
+                            </span>
+                          )}
                           <div
-                            className={`border-border bg-muted mr-2 flex items-center gap-2 rounded-xl border p-1 pr-3`}
-                          >
-                            <button
-                              onClick={() => setScheduleDateOffset((prev) => prev - 1)}
-                              data-autoplay="schedule-date-prev"
-                              className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
-                            >
-                              <ChevronLeft className="h-3.5 w-3.5" />
-                            </button>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className="text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md px-1.5 py-1 text-[13px] font-bold transition-colors">
-                                  {(() => {
-                                    if (
-                                      scheduleLayout === "daily" ||
-                                      scheduleLayout === "list" ||
-                                      scheduleLayout === "grid"
-                                    ) {
-                                      const now = new Date();
-                                      now.setDate(
-                                        now.getDate() -
-                                          ((now.getDay() + 6) % 7) +
-                                          scheduleDateOffset * 7,
-                                      );
-                                      const w = getISOWeek(now);
-                                      const y = getISOWeekYear(now);
-                                      return `Uke ${w}, ${y}`;
-                                    }
-                                    if (scheduleLayout === "weekly") {
-                                      return scheduleDateOffset === 0
-                                        ? "Aktiv syklus"
-                                        : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
-                                    }
-                                    // monthly only
-                                    const now = new Date();
-                                    now.setMonth(now.getMonth() + scheduleDateOffset);
-                                    const months = [
-                                      "Januar",
-                                      "Februar",
-                                      "Mars",
-                                      "April",
-                                      "Mai",
-                                      "Juni",
-                                      "Juli",
-                                      "August",
-                                      "September",
-                                      "Oktober",
-                                      "November",
-                                      "Desember",
-                                    ];
-                                    return `${months[now.getMonth()]} ${now.getFullYear()}`;
-                                  })()}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="center">
-                                <CalendarUI
-                                  mode="single"
-                                  locale={nb}
-                                  selected={(() => {
-                                    const now = new Date();
-                                    if (scheduleLayout === "monthly") {
-                                      now.setMonth(now.getMonth() + scheduleDateOffset);
-                                    } else {
-                                      now.setDate(
-                                        now.getDate() -
-                                          ((now.getDay() + 6) % 7) +
-                                          scheduleDateOffset * 7,
-                                      );
-                                    }
-                                    return now;
-                                  })()}
-                                  onSelect={(date) => {
-                                    if (!date) return;
-                                    const now = new Date();
-                                    if (scheduleLayout === "monthly") {
-                                      const diff =
-                                        (date.getFullYear() - now.getFullYear()) * 12 +
-                                        date.getMonth() -
-                                        now.getMonth();
-                                      setScheduleDateOffset(diff);
-                                    } else {
-                                      const startOfCurrentWeek = new Date(now);
-                                      startOfCurrentWeek.setDate(
-                                        now.getDate() - ((now.getDay() + 6) % 7),
-                                      );
-                                      startOfCurrentWeek.setHours(0, 0, 0, 0);
-
-                                      const startOfSelectedWeek = new Date(date);
-                                      startOfSelectedWeek.setDate(
-                                        date.getDate() - ((date.getDay() + 6) % 7),
-                                      );
-                                      startOfSelectedWeek.setHours(0, 0, 0, 0);
-
-                                      const diffInDays = Math.round(
-                                        (startOfSelectedWeek.getTime() -
-                                          startOfCurrentWeek.getTime()) /
-                                          (1000 * 60 * 60 * 24),
-                                      );
-                                      const offset = Math.round(diffInDays / 7);
-                                      setScheduleDateOffset(offset);
-                                    }
-                                  }}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            {scheduleDateOffset !== 0 && (
-                              <button
-                                onClick={() => setScheduleDateOffset(0)}
-                                data-autoplay="schedule-date-today"
-                                className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
-                              >
-                                I dag
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setScheduleDateOffset((prev) => prev + 1)}
-                              data-autoplay="schedule-date-next"
-                              className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
-                            >
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-
-                          <button
-                            onClick={onPublishAllStable}
-                            disabled={scheduleDraftCountDisplay === 0}
-                            className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
-                              scheduleDraftCountDisplay > 0
-                                ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
-                                : "bg-muted cursor-not-allowed opacity-50"
+                            className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
+                              isAdminMode ? "bg-orange-500" : "bg-muted-foreground"
                             }`}
                           >
-                            Publiser ({scheduleDraftCountDisplay})
-                          </button>
-                        </>
-                      )}
+                            <div
+                              className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                                isAdminMode ? "translate-x-4" : "translate-x-0"
+                              }`}
+                            />
+                          </div>
+                        </button>
 
-                      {/* Dashboard variant switcher — flat tab bar per Pontus 2026-04-19.
+                        {/* UserMenu — moved from top header per Pontus 2026-05-19. */}
+                        <div className="border-border mt-2 border-t pt-2">
+                          <UserMenu isDark={isDark} />
+                        </div>
+                      </div>
+                    </TooltipProvider>
+                  </aside>
+
+                  {/* MAIN CONTENT AREA */}
+                  <main
+                    className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
+                      isDark ? "bg-background" : "bg-[var(--surface-subtle)]"
+                    } print:block print:h-auto print:overflow-visible print:bg-white`}
+                  >
+                    {/* ACTION BAR — left-aligned per Pontus 2026-05-19 */}
+                    <div
+                      className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
+                        isDark
+                          ? "border-border bg-background/90"
+                          : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
+                      } print:hidden`}
+                    >
+                      <BreadcrumbActiveSlot />
+
+                      <div className="ml-auto flex items-center gap-5">
+                        <PageActionsSlot />
+                        {/* Schedule page specific controls */}
+                        {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
+                          <>
+                            {/* LAYOUT TOGGLE */}
+                            <div
+                              className={`border-border bg-muted mr-2 hidden rounded-xl border p-1 shadow-sm md:flex`}
+                            >
+                              <button
+                                onClick={() => switchScheduleLayout("daily")}
+                                data-autoplay="schedule-layout-daily"
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              >
+                                {t("shell.schedule.layout_daily")}
+                              </button>
+                              <button
+                                onClick={() => switchScheduleLayout("monthly")}
+                                data-autoplay="schedule-layout-monthly"
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              >
+                                {t("shell.schedule.layout_monthly")}
+                              </button>
+                              <button
+                                onClick={() => switchScheduleLayout("list")}
+                                data-autoplay="schedule-layout-list"
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              >
+                                {t("shell.schedule.layout_list")}
+                              </button>
+                              <button
+                                onClick={() => switchScheduleLayout("grid")}
+                                data-autoplay="schedule-layout-grid"
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              >
+                                {t("shell.schedule.layout_grid")}
+                              </button>
+                            </div>
+
+                            {/* PERIOD COUNT SELECTOR (weekly only) */}
+                            {scheduleLayout === "weekly" && (
+                              <div
+                                className={`border-border bg-muted mr-2 hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex`}
+                              >
+                                {[
+                                  { label: "3d", count: 3 },
+                                  { label: "1u", count: 7 },
+                                  { label: "2u", count: 10 },
+                                  { label: "3u", count: 14 },
+                                ].map(({ label, count }) => (
+                                  <button
+                                    key={label}
+                                    onClick={() => setWeeklyPeriodCount(count)}
+                                    className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-accent-foreground"}`}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* DATE NAVIGATION */}
+                            <div
+                              className={`border-border bg-muted mr-2 flex items-center gap-2 rounded-xl border p-1 pr-3`}
+                            >
+                              <button
+                                onClick={() => setScheduleDateOffset((prev) => prev - 1)}
+                                data-autoplay="schedule-date-prev"
+                                className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
+                              >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                              </button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md px-1.5 py-1 text-[13px] font-bold transition-colors">
+                                    {(() => {
+                                      if (
+                                        scheduleLayout === "daily" ||
+                                        scheduleLayout === "list" ||
+                                        scheduleLayout === "grid"
+                                      ) {
+                                        const now = new Date();
+                                        now.setDate(
+                                          now.getDate() -
+                                            ((now.getDay() + 6) % 7) +
+                                            scheduleDateOffset * 7,
+                                        );
+                                        const w = getISOWeek(now);
+                                        const y = getISOWeekYear(now);
+                                        return t("shell.schedule.week", { week: w, year: y });
+                                      }
+                                      if (scheduleLayout === "weekly") {
+                                        return scheduleDateOffset === 0
+                                          ? t("shell.schedule.active_cycle")
+                                          : t("shell.schedule.cycle", {
+                                              offset: `${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`,
+                                            });
+                                      }
+                                      // monthly only
+                                      const now = new Date();
+                                      now.setMonth(now.getMonth() + scheduleDateOffset);
+                                      const monthKeys = [
+                                        "shell.schedule.month_jan",
+                                        "shell.schedule.month_feb",
+                                        "shell.schedule.month_mar",
+                                        "shell.schedule.month_apr",
+                                        "shell.schedule.month_may",
+                                        "shell.schedule.month_jun",
+                                        "shell.schedule.month_jul",
+                                        "shell.schedule.month_aug",
+                                        "shell.schedule.month_sep",
+                                        "shell.schedule.month_oct",
+                                        "shell.schedule.month_nov",
+                                        "shell.schedule.month_dec",
+                                      ];
+                                      return `${t(monthKeys[now.getMonth()] ?? "shell.schedule.month.jan")} ${now.getFullYear()}`;
+                                    })()}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="center">
+                                  <CalendarUI
+                                    mode="single"
+                                    locale={nb}
+                                    selected={(() => {
+                                      const now = new Date();
+                                      if (scheduleLayout === "monthly") {
+                                        now.setMonth(now.getMonth() + scheduleDateOffset);
+                                      } else {
+                                        now.setDate(
+                                          now.getDate() -
+                                            ((now.getDay() + 6) % 7) +
+                                            scheduleDateOffset * 7,
+                                        );
+                                      }
+                                      return now;
+                                    })()}
+                                    onSelect={(date) => {
+                                      if (!date) return;
+                                      const now = new Date();
+                                      if (scheduleLayout === "monthly") {
+                                        const diff =
+                                          (date.getFullYear() - now.getFullYear()) * 12 +
+                                          date.getMonth() -
+                                          now.getMonth();
+                                        setScheduleDateOffset(diff);
+                                      } else {
+                                        const startOfCurrentWeek = new Date(now);
+                                        startOfCurrentWeek.setDate(
+                                          now.getDate() - ((now.getDay() + 6) % 7),
+                                        );
+                                        startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+                                        const startOfSelectedWeek = new Date(date);
+                                        startOfSelectedWeek.setDate(
+                                          date.getDate() - ((date.getDay() + 6) % 7),
+                                        );
+                                        startOfSelectedWeek.setHours(0, 0, 0, 0);
+
+                                        const diffInDays = Math.round(
+                                          (startOfSelectedWeek.getTime() -
+                                            startOfCurrentWeek.getTime()) /
+                                            (1000 * 60 * 60 * 24),
+                                        );
+                                        const offset = Math.round(diffInDays / 7);
+                                        setScheduleDateOffset(offset);
+                                      }
+                                    }}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              {scheduleDateOffset !== 0 && (
+                                <button
+                                  onClick={() => setScheduleDateOffset(0)}
+                                  data-autoplay="schedule-date-today"
+                                  className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
+                                >
+                                  {t("shell.schedule.today")}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setScheduleDateOffset((prev) => prev + 1)}
+                                data-autoplay="schedule-date-next"
+                                className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
+                              >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={onPublishAllStable}
+                              disabled={scheduleDraftCountDisplay === 0}
+                              className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
+                                scheduleDraftCountDisplay > 0
+                                  ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
+                                  : "bg-muted cursor-not-allowed opacity-50"
+                              }`}
+                            >
+                              {t("shell.schedule.publish", { count: scheduleDraftCountDisplay })}
+                            </button>
+                          </>
+                        )}
+
+                        {/* Dashboard variant switcher — flat tab bar per Pontus 2026-04-19.
                           The Interactive tab is gated on
                           NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true so it only shows up
                           for developers who have opted in; in all other builds it
                           is invisible and unreachable. */}
-                      {!isDocumentMode && isDashboardPage && isAdminMode && (
-                        <div
-                          className={`border-border bg-muted mr-2 hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex`}
-                        >
-                          {(
-                            [
-                              { id: "oversikt", label: "Oversikt" },
-                              ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
-                                ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
-                                : ([] as const)),
-                              { id: "strategic", label: "Innsikt" },
-                              { id: "activity", label: "Aktivitet" },
-                            ] as const
-                          ).map((tab) => {
-                            const isActive = adminView === tab.id;
-                            return (
-                              <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => setAdminView(tab.id)}
-                                aria-pressed={isActive}
-                                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                                  isActive
-                                    ? "bg-card text-foreground shadow-sm"
-                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                }`}
-                              >
-                                {tab.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Standard Search Bar, hidden on schedule page and document mode */}
-                      {!isDocumentMode && pathname !== "/dashboard/schedule" && (
-                        <div className="group relative">
-                          <Search
-                            className={`text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
-                              isDark
-                                ? "group-focus-within:text-orange-500"
-                                : "group-focus-within:text-orange-600"
-                            }`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              window.dispatchEvent(new Event("smartout:open-global-search"))
-                            }
-                            className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
-                            aria-label="Open global search palette"
+                        {!isDocumentMode && isDashboardPage && isAdminMode && (
+                          <div
+                            className={`border-border bg-muted mr-2 hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex`}
                           >
-                            <span className="text-muted-foreground">Søk i drift...</span>
-                            <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
-                              {typeof navigator !== "undefined" &&
-                              navigator.platform.includes("Mac")
-                                ? "⌘K"
-                                : "Ctrl+K"}
-                            </kbd>
-                          </button>
+                            {(
+                              [
+                                { id: "oversikt", label: t("shell.dashboard_tabs.overview") },
+                                ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
+                                  ? ([
+                                      { id: "oversikt-interactive", label: "Interactive" },
+                                    ] as const)
+                                  : ([] as const)),
+                                { id: "strategic", label: t("shell.dashboard_tabs.insight") },
+                                { id: "activity", label: t("shell.dashboard_tabs.activity") },
+                              ] as const
+                            ).map((tab) => {
+                              const isActive = adminView === tab.id;
+                              return (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => setAdminView(tab.id)}
+                                  aria-pressed={isActive}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                                    isActive
+                                      ? "bg-card text-foreground shadow-sm"
+                                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                  }`}
+                                >
+                                  {tab.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Search bar moved to top header (centered) — Pontus 2026-05-19 annotation C. */}
+
+                        {/* Global "Ny" moved to top header right — Pontus 2026-05-19 */}
+                      </div>
+                    </div>
+
+                    <DashboardContext.Provider value={dashboardContextValue}>
+                      <GlobalSearchPalette />
+                      {isDocumentMode ? (
+                        <DocumentModeShell isDark={isDark} />
+                      ) : (
+                        <div className="flex min-h-0 flex-1 overflow-hidden">
+                          <div
+                            className={`scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden print:block print:h-auto print:overflow-visible print:p-0 ${isDashboardPage ? "p-2" : "p-6 md:p-8"}`}
+                          >
+                            {isAdminMode && isDashboardPage && (
+                              <>
+                                <div className="mb-4 flex-shrink-0">
+                                  <ActionStrip isDark={isDark} />
+                                </div>
+                              </>
+                            )}
+                            {/* BotssonHost owns BotssonProvider scope (SSR-safe, server-side
+                              rendered). EmmaOverlay is the floating Orb/Shell mounted as
+                              sibling under the same provider. Together they let
+                              DomainChatOwnership consumers in children share one provider
+                              with the Orb (ADR-0238 + ADR-0337 + ADR-0362). */}
+                            <BotssonHost>
+                              {children}
+                              <EmmaOverlay />
+                            </BotssonHost>
+                          </div>
+                          <AnimatePresence>
+                            <EntityDrawer />
+                          </AnimatePresence>
                         </div>
                       )}
+                    </DashboardContext.Provider>
+                  </main>
+                </div>
 
-                      {/* Global "Ny" create dropdown — always visible, far right */}
-                      {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
-                    </div>
-                  </div>
-
-                  <DashboardContext.Provider value={dashboardContextValue}>
-                    <GlobalSearchPalette />
-                    {isDocumentMode ? (
-                      <DocumentModeShell isDark={isDark} />
-                    ) : (
-                      <div className="flex min-h-0 flex-1 overflow-hidden">
-                        <div
-                          className={`scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden print:block print:h-auto print:overflow-visible print:p-0 ${isDashboardPage ? "p-2" : "p-6 md:p-8"}`}
-                        >
-                          {isAdminMode && isDashboardPage && (
-                            <>
-                              <div className="mb-4 flex-shrink-0">
-                                <ActionStrip isDark={isDark} />
-                              </div>
-                            </>
-                          )}
-                          {children}
-                        </div>
-                        <AnimatePresence>
-                          <EntityDrawer />
-                        </AnimatePresence>
-                      </div>
-                    )}
-                  </DashboardContext.Provider>
-                </main>
+                {/* Global incoming call overlay — works from any dashboard page */}
+                <GlobalCallAlert />
               </div>
-
-              {/* Global incoming call overlay — works from any dashboard page */}
-              <GlobalCallAlert />
-
-              {/* Emma — floating voice overlay (inside EntityDrawerProvider for agent bridge) */}
-              <EmmaOverlay />
-            </div>
+            </PageHeaderProvider>
           </ChatPanelProvider>
         </EntityDrawerProvider>
       </VoiceToolsProvider>
     </DocumentModeProvider>
   );
+}
+
+/**
+ * BreadcrumbActiveSlot — renders the second breadcrumb element in the
+ * action bar. Three render modes, in order of precedence:
+ *   1. Page published a tab strip via usePageTabs() → render the strip
+ *      verbatim (replaces the static segment pill entirely).
+ *   2. Page published a title via usePageTitle() → render styled pill
+ *      with the published title.
+ *   3. Fallback to the legacy URL-derived segment label.
+ *
+ * Per Pontus 2026-05-19 annotations A + B: title and sub-view tabs live
+ * here, not in the page body and not in the top header.
+ */
+function BreadcrumbActiveSlot() {
+  const { header, tabsNode } = usePageHeader();
+
+  if (tabsNode) {
+    return <>{tabsNode}</>;
+  }
+  if (header?.title) {
+    return <span>{header.title}</span>;
+  }
+  // Pages that publish neither tabs nor title render no breadcrumb element —
+  // matches Pontus 2026-05-19: no URL-derived "Oversikt"-style fallback pill.
+  return null;
+}
+
+/**
+ * PageActionsSlot — renders the page-published right-aligned action cluster
+ * (date controls, view toggles, page-scoped CTAs) inside the action bar.
+ * Pages publish via usePageActions(); shell renders verbatim. Returns null
+ * when nothing published so siblings (schedule layout toggle, etc.) keep
+ * their natural placement.
+ */
+function PageActionsSlot() {
+  const { actionsNode } = usePageHeader();
+  if (!actionsNode) return null;
+  return <>{actionsNode}</>;
 }
 
 /**
@@ -2084,6 +1928,7 @@ function TodoTabButton({
   isDark: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation("dashboard");
   const { data: taskCount } = useCascadeTaskCount();
   const pendingCount = (taskCount?.critical ?? 0) + (taskCount?.should ?? 0);
 
@@ -2096,7 +1941,8 @@ function TodoTabButton({
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
     >
-      <ListChecks className="h-3.5 w-3.5" />Å gjøre
+      <ListChecks className="h-3.5 w-3.5" />
+      {t("shell.dashboard_tabs.todo")}
       {pendingCount > 0 && (
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
@@ -2108,151 +1954,6 @@ function TodoTabButton({
       )}
     </button>
   );
-}
-
-interface NavItemProps {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  active?: boolean;
-  /** Stackable right-aligned badges (NavBadge variants). First item wins
-   *  priority for the collapsed-mode dot overlay. */
-  indicators?: NavBadgeVariant[];
-  /** @deprecated pass `{ type: "text", label }` via `indicators` instead */
-  badge?: string;
-  /** @deprecated pass `{ type: "live" }` via `indicators` instead */
-  liveIndicator?: boolean;
-  isDark?: boolean;
-  ai?: boolean;
-  isCollapsed?: boolean;
-  onClick?: () => void;
-  useButton?: boolean;
-}
-
-function NavItem({
-  icon: Icon,
-  label,
-  href,
-  active,
-  indicators,
-  badge,
-  liveIndicator,
-  isDark,
-  ai,
-  isCollapsed,
-  onClick,
-  useButton,
-}: NavItemProps) {
-  // Fold legacy props into the indicators array so rendering has a
-  // single source of truth. Live ranks first so it wins the collapsed dot.
-  const resolvedIndicators: NavBadgeVariant[] = [
-    ...(liveIndicator ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-    ...(indicators ?? []),
-    ...(badge ? ([{ type: "text", label: badge }] as NavBadgeVariant[]) : []),
-  ];
-  const hasIndicators = resolvedIndicators.length > 0;
-  const topIndicator = resolvedIndicators[0];
-  const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
-  const navAutoplayId = `nav-${href}`;
-  const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
-  const baseClassName = `group flex items-center rounded-xl transition-all ${
-    isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
-  } ${
-    active
-      ? isDark
-        ? "border border-border bg-accent font-semibold text-accent-foreground"
-        : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
-      : isDark
-        ? "border border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
-  }`;
-
-  const inner = (
-    <>
-      <div className={`flex items-center ${isCollapsed ? "" : "gap-2.5"}`}>
-        <Icon
-          className={`h-4 w-4 shrink-0 transition-colors ${
-            ai
-              ? "text-indigo-500 group-hover:text-indigo-400"
-              : active
-                ? isDark
-                  ? "text-accent-foreground"
-                  : "text-[oklch(0.55_0.18_42)]"
-                : isDark
-                  ? "text-muted-foreground group-hover:text-accent-foreground"
-                  : "text-[oklch(0.55_0.03_50)] group-hover:text-[oklch(0.38_0.05_45)]"
-          }`}
-        />
-        {!isCollapsed && (
-          <span className={`text-[12px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
-            {label}
-          </span>
-        )}
-      </div>
-      {/* Expanded: right-aligned stack of badges. Active-route dot is
-       *  suppressed when indicators are present so the row stays clean. */}
-      {!isCollapsed && hasIndicators && (
-        <div className="flex shrink-0 items-center gap-1">
-          {resolvedIndicators.map((variant, i) => (
-            <NavBadgePill key={`${variant.type}-${i}`} variant={variant} />
-          ))}
-        </div>
-      )}
-      {!isCollapsed && !hasIndicators && active && (
-        <div
-          className={`h-1.5 w-1.5 rounded-full ${
-            isDark
-              ? "bg-orange-500 shadow-[0_0_10px_rgba(234,88,12,0.8)]"
-              : "bg-orange-500 shadow-[0_0_6px_rgba(234,88,12,0.4)]"
-          }`}
-        />
-      )}
-      {/* Collapsed: single dot overlay on the icon corner using the
-       *  highest-priority indicator (live > warning > count/text). */}
-      {isCollapsed && topIndicator && (
-        <span className="absolute top-0.5 right-0.5">
-          <NavBadgeDot variant={topIndicator} />
-        </span>
-      )}
-    </>
-  );
-
-  const content = useButton ? (
-    <button
-      type="button"
-      onClick={onClick}
-      data-autoplay={navButtonAutoplayId}
-      className={baseClassName}
-    >
-      {inner}
-    </button>
-  ) : (
-    <Link
-      href={href}
-      prefetch={false}
-      onClick={onClick}
-      data-autoplay={navAutoplayId}
-      className={baseClassName}
-    >
-      {inner}
-    </Link>
-  );
-
-  if (isCollapsed) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="relative">{content}</div>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="text-xs font-semibold">
-          {label}
-          {badge ? ` (${badge})` : ""}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return content;
 }
 
 export default DashboardShell;

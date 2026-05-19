@@ -57,7 +57,10 @@ export type EventCategory =
   | "pos" // ADR-0305 — POS integration adapter pattern
   | "shift_marketplace" // ADR-0306 — Open-shift marketplace
   | "scheduler" // ADR-0307/0309 — Constraint-solver scheduler greedy V1
-  | "cascade"; // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
+  | "cost" // ui-shell-cost-polish — Cost overview telemetry
+  | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
+  | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
+  | "people"; // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -197,9 +200,15 @@ export type EntityType =
   | "session_note"
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ────────────────────
   | "timeline_template"
+  // ─── Cost overview (ui-shell-cost-polish) ────────────────────────────────────
+  | "cost_overview"
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────────
   | "workspace_union_binding"
-  | "supplement_rule";
+  | "supplement_rule"
+  // ─── Day-Line Runtime (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────────────
+  | "day_line"
+  | "shift_session"
+  | "day_line_item";
 
 export type ActionVerb =
   | "created"
@@ -1145,6 +1154,8 @@ export interface TaskCreated extends BaseEvent {
       compliance?: boolean;
       reason?: string;
       manual?: boolean;
+      description?: string;
+      scheduled_at?: string;
     };
   };
 }
@@ -1299,6 +1310,20 @@ export interface DeviationResolved extends BaseEvent {
     entity: EntityRef;
     data: {
       resolution_notes: string;
+    };
+  };
+}
+
+// Interaction event: manager opens the deviation detail drawer.
+// posthog (engagement funnel) + logger (observability) + activity_trail (audit).
+// No engine_event — viewing is not a state-machine input.
+export interface DeviationViewed extends BaseEvent {
+  event: "deviation viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      status: string;
+      severity: string;
     };
   };
 }
@@ -1509,6 +1534,18 @@ export interface ReconciliationLocked extends BaseEvent {
 // ─── Handbook ───────────────────────────────────
 export interface HandbookChapterSaved extends BaseEvent {
   event: "handbook chapter_saved";
+  properties: {
+    data: {
+      chapter_key: string;
+    };
+  };
+}
+
+// Interaction event: user clicks a chapter in the sidebar nav.
+// posthog (content engagement) + logger (observability) + activity_trail (audit).
+// No engine_event — navigation is not a state-machine input.
+export interface HandbookChapterOpened extends BaseEvent {
+  event: "handbook chapter_opened";
   properties: {
     data: {
       chapter_key: string;
@@ -2107,6 +2144,37 @@ export interface ChatChannelMessageSent extends BaseEvent {
   };
 }
 
+// ─── Chat: Message Read Receipt ─────────────────────
+export interface ChatMessageRead extends BaseEvent {
+  event: "chat message_read";
+  properties: {
+    data: {
+      channel_message_id: string;
+      profile_id: string;
+      read_at: string;
+    };
+  };
+}
+
+// ─── Chat: Typing Presence ──────────────────────────
+export interface ChatTyping extends BaseEvent {
+  event: "chat typing";
+  properties: {
+    data: { channel_id: string; profile_id: string };
+  };
+}
+
+// ─── Chat: Message Delivered (presence-join ack) ────
+// Fired on the SENDER side when a receiver broadcasts their presence-join
+// event, transitioning sender's outbound messages from `sent` → `delivered`.
+// Ephemeral — no durable column (Phase 2 T5, G1 decision: broadcast only).
+export interface ChatMessageDelivered extends BaseEvent {
+  event: "chat message_delivered";
+  properties: {
+    data: { channel_id: string; message_ids: string[] };
+  };
+}
+
 export interface RosterCreated extends BaseEvent {
   event: "roster created";
   properties: {
@@ -2558,6 +2626,104 @@ export interface ContractDetailViewed extends BaseEvent {
     data: {
       contract_id: string;
       status: string;
+    };
+  };
+}
+
+export interface ContractReviseOpened extends BaseEvent {
+  event: "contracts.revise.opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+    };
+  };
+}
+
+export interface CostOverviewViewed extends BaseEvent {
+  event: "cost.overview.viewed";
+  properties: {
+    entity: EntityRef;
+  };
+}
+
+// ─── HMS Read-surface events (ui-shell-hms-cluster-polish-read) ─────────────
+// hms.umbrella.viewed — emitted when manager lands on /dashboard/hms.
+//   activity_trail records manager readiness-surface engagement; posthog tracks adoption.
+// hms.drift.viewed — emitted when /dashboard/hms/drift loads; helps us know
+//   how often drift is actively monitored vs. ignored.
+// hms.documents.opened — emitted when /dashboard/hms/documents loads;
+//   distinguishes passive-document vs. training engagement patterns.
+// hms.training.viewed — emitted when /dashboard/hms/training loads;
+//   training funnel analytics entry point.
+// No engine_event: read-side HMS views do NOT trigger downstream workflow steps.
+
+export interface HmsUmbrellaViewed extends BaseEvent {
+  event: "hms.umbrella.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Snapshot of aggregate readiness at view time (0-100). Useful for cohort
+      // analysis: managers who see low readiness → do they take action?
+      workspace_readiness_percent: number;
+    };
+  };
+}
+
+export interface HmsDriftViewed extends BaseEvent {
+  event: "hms.drift.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Number of active sessions visible to the user at view time.
+      active_session_count: number;
+    };
+  };
+}
+
+export interface HmsDocumentsOpened extends BaseEvent {
+  event: "hms.documents.opened";
+  properties: {
+    entity: EntityRef;
+  };
+}
+
+export interface HmsTrainingViewed extends BaseEvent {
+  event: "hms.training.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Total protocols in scope at view time; lets us see how readiness-load
+      // affects return visit frequency.
+      protocol_count: number;
+    };
+  };
+}
+
+// people.training.viewed — emitted when /dashboard/people/training loads (manager view).
+// Mirrors hms.training.viewed but scoped to the people hub surface.
+// No engine_event: read-side view; no downstream workflow triggered.
+export interface PeopleTrainingViewed extends BaseEvent {
+  event: "people.training.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Total active+trainee profiles visible at view time.
+      profile_count: number;
+      // Workspace-level readiness snapshot (0-100) at view time.
+      workspace_readiness_percent: number;
+      // Count of expired assignments at view time.
+      expired_count: number;
+    };
+  };
+}
+
+export interface ContractAwaitingSignatureViewed extends BaseEvent {
+  event: "contracts.awaiting_signature.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pending_count: number;
     };
   };
 }
@@ -4064,6 +4230,62 @@ export interface ChannelMessageSent extends BaseEvent {
     target_profile_count?: number;
     notification_priority?: number;
     notification_mode?: string;
+    // V2 extensions — kind/tier/link/tags (Track D + Track F)
+    announcement_kind?: string;
+    announcement_tier?: string;
+    announcement_tag_count?: number;
+    announcement_has_link?: boolean;
+    announcement_link_type?: string; // AnnouncementLinkType
+    announcement_tier_overridden?: boolean;
+    has_entity_link?: boolean;
+    tag_count?: number;
+    // ADR-0372 extension — celebration branch
+    celebration_subtype?: string; // 'birthday' | 'work_anniversary'
+  };
+  entity: EntityRef;
+}
+
+// ─── Birthday celebration auto-publish (ADR-0372) ─────────────────────────────
+//
+// celebration.auto_published
+//   Emitted by publish-birthday-celebrations Edge Function after a birthday announcement
+//   is successfully published via publish_announcement_atomic.
+//   posthog:       product analytics (adoption + celebration funnel).
+//   activity_trail: audit — every auto-celebration is traceable to workspace + profile.
+//   logger:        stdout observability for Edge Function run.
+//   No engine_event: celebration publish is terminal, no downstream workflow reaction.
+//
+// Note: channel.message.sent is ALSO emitted per celebration (with celebration_subtype='birthday')
+// for continuity with the existing message analytics pipeline (ADR-0372 Q8 dual emit).
+
+export interface CelebrationAutoPublished extends BaseEvent {
+  event: "celebration.auto_published";
+  properties: {
+    workspace_id: string;
+    profile_id: string; // profile being celebrated
+    channel_id: string;
+    message_id: string;
+    celebration_subtype: string; // 'birthday' | 'work_anniversary'
+  };
+  entity: EntityRef;
+}
+
+export interface CelebrationSkippedWorkspaceDisabled extends BaseEvent {
+  event: "celebration.skipped_workspace_disabled";
+  properties: {
+    workspace_id: string;
+    profile_id: string;
+    celebration_subtype: string;
+  };
+  entity: EntityRef;
+}
+
+export interface CelebrationSkippedAlreadyPublished extends BaseEvent {
+  event: "celebration.skipped_already_published";
+  properties: {
+    workspace_id: string;
+    profile_id: string;
+    celebration_subtype: string;
   };
   entity: EntityRef;
 }
@@ -4159,6 +4381,37 @@ export interface NewsPostReacted extends BaseEvent {
   event: "news.post.reacted";
   properties: { channel_id: string; emoji: string };
   entity: EntityRef;
+}
+
+// ─── Announcement V2 Events (Track F — §12 spec 2026-05-18) ──────────────────
+// Registered per ADR-0358: every event has a wired emit() call-site.
+export interface AnnouncementLinkFollowed extends BaseEvent {
+  event: "announcement.link_followed";
+  properties: {
+    message_id: string;
+    kind: string; // AnnouncementKind
+    link_type: string; // AnnouncementLinkType
+    link_id: string;
+  };
+  entity: EntityRef; // entity_type: 'channel_message', entity_id: message_id
+}
+
+export interface AnnouncementKindChanged extends BaseEvent {
+  event: "announcement.kind_changed";
+  properties: {
+    from_kind: string;
+    to_kind: string;
+    tier_auto_updated: boolean;
+  };
+}
+
+export interface AnnouncementTierOverridden extends BaseEvent {
+  event: "announcement.tier_overridden";
+  properties: {
+    kind: string;
+    default_tier: string;
+    chosen_tier: string;
+  };
 }
 
 // ─── Website Factory Events ────────────────────
@@ -5925,6 +6178,25 @@ export interface BillingAccountantMarkedPaid extends BaseEvent {
       payment_reference: string | null; // fritext: "Melding fra regnskapsfører 2026-04"
       amount: number;
       currency: string;
+    };
+  };
+}
+
+// ─── Billing Fase 3B — EHF settings (workspace-admin) ──────────────────────
+// Firer når workspace-admin/owner slår EHF på/av eller oppdaterer
+// peppol_participant_id. Company-scoped (workspace_id null) fordi
+// EHF-konfigurasjonen følger org.nr., ikke enkelt workspace.
+// activity_trail gir audit-trail; posthog gir produkt-metric på
+// EHF-adopsjon på tvers av kunder.
+
+export interface CompanyEhfSettingsUpdated extends BaseEvent {
+  event: "company.ehf_settings_updated";
+  properties: {
+    entity_type: "company";
+    entity_id: string;
+    changes: {
+      ehf_enabled: { before: boolean | null; after: boolean };
+      peppol_participant_id: { before: string | null; after: string | null };
     };
   };
 }
@@ -7841,6 +8113,9 @@ export type SmartoutEvent =
   | ContractTemplateOpenedInAdmin
   | ContractTemplateCloned
   | ContractDetailViewed
+  | ContractReviseOpened
+  | ContractAwaitingSignatureViewed
+  | CostOverviewViewed
   | ContractResendSubmitted
   | ContractCancelDialogOpened
   | ContractCancelConfirmed
@@ -7857,6 +8132,7 @@ export type SmartoutEvent =
   | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
+  | HandbookChapterOpened
   | CommunicationSent
   | CommunicationCancelled
   | CommunicationFailed
@@ -7933,6 +8209,9 @@ export type SmartoutEvent =
   | HandoffSubmitted
   | ChatMessageSent
   | ChatChannelMessageSent
+  | ChatMessageRead
+  | ChatTyping
+  | ChatMessageDelivered
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -7976,6 +8255,9 @@ export type SmartoutEvent =
   | ContractDeleteDialogOpened
   | ContractDeleteConfirmed
   | ContractDetailViewed
+  | ContractReviseOpened
+  | ContractAwaitingSignatureViewed
+  | CostOverviewViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
   | ContractBulkSubmitted
@@ -8083,6 +8365,9 @@ export type SmartoutEvent =
   | KnowledgeShared
   | NewsPostCreated
   | NewsPostReacted
+  | AnnouncementLinkFollowed
+  | AnnouncementKindChanged
+  | AnnouncementTierOverridden
   | WebsiteCreated
   | WebsitePublished
   | WebsiteUnpublished
@@ -8114,6 +8399,7 @@ export type SmartoutEvent =
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
+  | DeviationViewed
   | SessionDutyLeaderUpdated
   | ChannelCallStarted
   | ChannelCallEnded
@@ -8320,6 +8606,7 @@ export type SmartoutEvent =
   // ─── Billing Fase 3B — CSV/PDF-eksport ───
   | BillingEhfExportGenerated
   | BillingAccountantMarkedPaid
+  | CompanyEhfSettingsUpdated
   // ─── Journey Engine (ADR-0175, S1.1) ─────────────
   | JourneyRunStarted
   | JourneyStepReached
@@ -8571,16 +8858,37 @@ export type SmartoutEvent =
   // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ──────────────────────────
   | UiDagslinjenSlotQuickaddActionPicked
   | UiDagslinjenScopeFilterChanged
+  // ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ───────
+  | UiDagslinjenMarkerClicked
+  | UiDagslinjenListRowClicked
+  // ─── Dagslinjen ClusterMarker telemetry (Tidslinjen-redesign sortie) ────────
+  | UiDagslinjenClusterExpanded
   // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
   | CommScheduledNoteDeleted
+  // ─── Pipeline stage envelope (ADR-0340) — additive, does NOT replace shift_swap.* / shift_offer.* ─
+  | PipelineStageProposed
+  | PipelineStageConsented
+  | PipelineStageApproved
+  | PipelineStageRejected
+  | PipelineStageCancelled
+  | PipelineStageOverridden
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ─────────────────
   | TimelineTemplateSaved
   | TimelineTemplateApplied
   | TimelineTemplateArchived
   | TimelineTemplateApplyFailed
   | TimelineTemplateListed
+  // ─── Schedule Density (feat/schedule-card-density) ───────────────────────────
+  | ScheduleDensityChanged
+  // ─── HMS Read-surface (ui-shell-hms-cluster-polish-read) ─────────────────────
+  | HmsUmbrellaViewed
+  | HmsDriftViewed
+  | HmsDocumentsOpened
+  | HmsTrainingViewed
+  // ─── People Training (SM-2-followup-training 2026-05-19) ─────────────────────
+  | PeopleTrainingViewed
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────
   | CascadeWorkspaceUnionBindingCreated
   | CascadeSupplementRuleAdded
@@ -8594,6 +8902,21 @@ export type SmartoutEvent =
   // Read-path telemetry (PostHog + Logger only; no activity_trail — view events).
   | PayrollTariffViewLoaded
   | PayrollTariffViewLoadedMobile
+  // ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────
+  | DayLineCreated
+  | DayLineOpeningChanged
+  | DayLineClosingChanged
+  | DayLineItemAdded
+  | DayLineItemNotified
+  | ShiftSessionBound
+  | ShiftSessionClockedIn
+  | ShiftSessionClockedOut
+  | RoutineAttached
+  | OrgDeptAreasUpdated
+  | ShiftSessionItemLeakDetected
+  | CelebrationAutoPublished
+  | CelebrationSkippedWorkspaceDisabled
+  | CelebrationSkippedAlreadyPublished
   // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────
   // Pre-auth events fired when an expired Supabase session is detected at /join.
   | JoinSessionExpiredRescued
@@ -8725,6 +9048,113 @@ export interface ShiftOfferCancelled extends BaseEvent {
       cancelled_by_profile_id: string;
       cancel_reason: string | null;
       gate_evaluation_id: string | null;
+    };
+  };
+}
+
+// ─── Pipeline stage envelope events (ADR-0340) ───────────────────────────────
+// Additive lifecycle telemetry for shift_swap_lifecycle + marketplace_lifecycle
+// pipelines. These do NOT replace shift_swap.* or shift_offer.* events (ADR-0340
+// §Preservation 1+2). pipeline_instance_id + gate_evaluation_id carry the
+// ADR-0204 correlation chain across all stage transitions.
+
+export interface PipelineStageProposed extends BaseEvent {
+  event: "pipeline.stage_proposed";
+  properties: {
+    entity: EntityRef; // entity = schedule_shift being orchestrated
+    data: {
+      pipeline_instance_id: string; // engine_state.id
+      blueprint_id: string; // "shift_swap_lifecycle" | "marketplace_lifecycle"
+      stage_index: number; // 0-2
+      action_type: string; // e.g. "shift_swap_lifecycle.stage_0_propose"
+      gate_evaluation_id: string | null; // ADR-0204 correlation chain
+      entity_id: string; // schedule_shift_id
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageConsented extends BaseEvent {
+  event: "pipeline.stage_consented";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageApproved extends BaseEvent {
+  event: "pipeline.stage_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageRejected extends BaseEvent {
+  event: "pipeline.stage_rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+      rejection_reason: string; // may be empty string when not provided
+      rejected_by: string; // actor profile_id
+    };
+  };
+}
+
+export interface PipelineStageCancelled extends BaseEvent {
+  event: "pipeline.stage_cancelled";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+    };
+  };
+}
+
+export interface PipelineStageOverridden extends BaseEvent {
+  event: "pipeline.stage_overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pipeline_instance_id: string;
+      blueprint_id: string;
+      stage_index: number;
+      action_type: string;
+      gate_evaluation_id: string | null;
+      entity_id: string;
+      entity_type: "schedule_shift";
+      override_reason: string; // admin justification, min 20 chars (ADR-0328)
+      overridden_from_status: string; // status that was overridden
+      overridden_by: string; // admin profile_id
     };
   };
 }
@@ -8929,6 +9359,14 @@ export interface PersonalSettingUpdated extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { key: string };
+  };
+}
+
+export interface ScheduleDensityChanged extends BaseEvent {
+  event: "schedule.density_changed";
+  properties: {
+    entity: EntityRef;
+    data: { density: "cozy" | "default" | "compact" | "pulse"; source: "ui" | "voice" };
   };
 }
 
@@ -9776,6 +10214,76 @@ export interface UiDagslinjenScopeFilterChanged extends BaseEvent {
   };
 }
 
+// ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ────────
+//
+// ui.dagslinjen.marker_clicked
+//   Emitted when a user clicks an event marker on the timeline strip.
+//   posthog: product analytics (strip engagement funnel).
+//   logger: debugging.
+//   No activity_trail (UI interaction only — the underlying entity's own events handle audit).
+//   No engine_event (not a state-machine input).
+//
+// ui.dagslinjen.list_row_clicked
+//   Emitted when a user clicks an event row in the event list.
+//   posthog: product analytics (list engagement vs strip engagement).
+//   logger: debugging.
+//   No activity_trail / engine_event (UI interaction only).
+
+export interface UiDagslinjenMarkerClicked extends BaseEvent {
+  event: "ui.dagslinjen.marker_clicked";
+  properties: {
+    data: {
+      eventId: string;
+      /** The type of the timeline event (booking, task, deviation, etc.) */
+      eventTypeKind: string;
+      departmentId: string;
+      sessionId: string;
+      /** Local HH:MM time of the event */
+      time: string;
+    };
+  };
+}
+
+export interface UiDagslinjenListRowClicked extends BaseEvent {
+  event: "ui.dagslinjen.list_row_clicked";
+  properties: {
+    data: {
+      eventId: string;
+      /** The type of the timeline event (booking, task, deviation, etc.) */
+      eventTypeKind: string;
+      departmentId: string;
+      sessionId: string;
+      /** Local HH:MM time of the event */
+      time: string;
+      /** Active filter value: "all" or a specific DayEventType */
+      filterActive: string;
+    };
+  };
+}
+
+// ─── Dagslinjen ClusterMarker telemetry (ui-shell Tidslinjen-redesign sortie) ───
+//
+// Emitted when a cluster marker is expanded (popover opens).
+// posthog: product analytics — how often dense timelines collapse.
+// logger: debugging.
+// No activity_trail (view interaction only, no write).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenClusterExpanded extends BaseEvent {
+  event: "ui.dagslinjen.cluster_expanded";
+  properties: {
+    data: {
+      /** HH:MM bucket start — which 15-min window was clustered. */
+      bucketStart: string;
+      /** Number of events collapsed into this cluster. */
+      eventCount: number;
+      /** Department context for the strip. */
+      departmentId: string;
+      /** Session context for the strip. */
+      sessionId: string;
+    };
+  };
+}
+
 // ─── Dagslinjen targeted note fanout events (ADR-0331 / ADR-0333, Track E) ────
 //
 // comm.scheduled_note.created
@@ -10104,6 +10612,171 @@ export interface PayrollTariffViewLoadedMobile extends BaseEvent {
       route: string; // "(me)/tariff" screen identifier
       is_bound: boolean; // whether the workspace has an active tariff binding at load time
       viewed_at: string; // ISO 8601 timestamp
+    };
+  };
+}
+
+// ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ───────────
+//
+// 11 events covering: day_line lifecycle, shift_session clock-in/out, item
+// distribution, routine attachment, org department-area updates, and the
+// leak-detection sentinel.
+//
+// Routing rationale (category: "scheduling"):
+//   day_line.created / day_line_item.added / shift_session.clocked_in|out /
+//   routine.attached: 4 destinations — D6 production mutations with engine_event
+//     reactions (guardian triggers, workflow state-machine inputs).
+//   day_line.opening_changed / day_line.closing_changed / shift_session.bound:
+//     3 destinations — operational adjustments; no downstream state-machine reaction.
+//   day_line_item.notified: 4 destinations — notification confirmed; engine_event
+//     needed for session acknowledgement workflow.
+//   org.dept_areas_updated: 3 destinations — org-structure change (posthog + logger
+//     + activity_trail). No engine_event: area edits do not drive state-machine.
+//   shift_session.item_leak_detected: 3 destinations (alert + audit, no engine_event).
+
+export interface DayLineCreated extends BaseEvent {
+  event: "day_line.created";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      department_session_id: string;
+      location_id: string;
+      department_id: string;
+      workspace_id: string;
+      planned_open: string;
+      planned_close: string;
+    };
+  };
+}
+
+export interface DayLineOpeningChanged extends BaseEvent {
+  event: "day_line.opening_changed";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      old: string;
+      new: string;
+    };
+  };
+}
+
+export interface DayLineClosingChanged extends BaseEvent {
+  event: "day_line.closing_changed";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      old: string;
+      new: string;
+    };
+  };
+}
+
+export interface DayLineItemAdded extends BaseEvent {
+  event: "day_line_item.added";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      item_type: "task" | "routine";
+      delegated_to_id: string;
+      /**
+       * Which capability initiated this write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability?: string;
+      /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
+      delegated_via?: string;
+    };
+  };
+}
+
+export interface DayLineItemNotified extends BaseEvent {
+  event: "day_line_item.notified";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: {
+      item_id: string;
+      shift_session_id: string;
+      employee_id: string;
+      day_line_id: string;
+    };
+  };
+}
+
+export interface ShiftSessionBound extends BaseEvent {
+  event: "shift_session.bound";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      day_line_ids: string[];
+    };
+  };
+}
+
+export interface ShiftSessionClockedIn extends BaseEvent {
+  event: "shift_session.clocked_in";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      clocked_in_at: string;
+    };
+  };
+}
+
+export interface ShiftSessionClockedOut extends BaseEvent {
+  event: "shift_session.clocked_out";
+  properties: {
+    entity: { entity_type: "shift_session"; entity_id: string };
+    data: {
+      shift_session_id: string;
+      clocked_out_at: string;
+    };
+  };
+}
+
+export interface RoutineAttached extends BaseEvent {
+  event: "routine.attached";
+  properties: {
+    entity: { entity_type: "day_line"; entity_id: string };
+    data: {
+      day_line_id: string;
+      template_id?: string;
+      items_applied: number;
+      /**
+       * Which capability initiated this write.
+       * Load-bearing per ADR-0356 §"Audit trail symmetry".
+       */
+      actor_capability?: string;
+      /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
+      delegated_via?: string;
+    };
+  };
+}
+
+export interface OrgDeptAreasUpdated extends BaseEvent {
+  event: "org.dept_areas_updated";
+  properties: {
+    entity: { entity_type: "department"; entity_id: string };
+    data: {
+      department_id: string;
+      location_id: string;
+      action: "add" | "remove";
+    };
+  };
+}
+
+export interface ShiftSessionItemLeakDetected extends BaseEvent {
+  event: "shift_session.item_leak_detected";
+  properties: {
+    entity: { entity_type: "session_task"; entity_id: string };
+    data: {
+      offending_day_line_id: string;
+      shift_session_id: string;
     };
   };
 }
@@ -10523,6 +11196,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "engine_event"],
     category: "training",
   },
+  // Interaction: user navigates to a handbook chapter via sidebar click.
+  // Read-path: posthog (content engagement) + logger + activity_trail. No engine_event.
+  "handbook chapter_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "training",
+  },
 
   "signup completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
@@ -10831,6 +11510,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
+  "chat message_read": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "chat typing": {
+    destinations: ["logger"],
+    category: "channels",
+  },
+  "chat message_delivered": {
+    destinations: ["logger", "activity_trail"],
+    category: "channels",
+  },
 
   "roster created": {
     destinations: ["posthog", "logger", "activity_trail"],
@@ -10956,6 +11647,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contracts.detail.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.revise.opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.awaiting_signature.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
@@ -11467,6 +12166,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
 
+  // Announcement V2 events (Track F — spec §12, ADR-0358)
+  "announcement.link_followed": {
+    destinations: ["posthog", "activity_trail"], // skip logger: volume concern (§12.2)
+    category: "channels",
+  },
+  "announcement.kind_changed": {
+    destinations: ["posthog"], // composer analytics only (§12.3)
+    category: "channels",
+  },
+  "announcement.tier_overridden": {
+    destinations: ["posthog", "activity_trail"], // §12.4
+    category: "channels",
+  },
+
   // Website factory events
   "website created": { destinations: ["posthog", "activity_trail"], category: "system" },
   "website published": {
@@ -11532,6 +12245,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "deviation resolved": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // Interaction: manager opens deviation detail drawer.
+  // Read-path: posthog (engagement) + logger + activity_trail. No engine_event.
+  "deviation viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
 
@@ -12402,6 +13121,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "billing",
   },
 
+  // EHF-innstillinger er company-scoped (workspace_id null).
+  // posthog: adopsjonskurve for EHF-aktivering.
+  // logger: drift-synlighet.
+  // activity_trail utelatt: provider har early-return på workspace_id === null — company-scoped events faller gjennom; audit dekkes av posthog + logger.
+  "company.ehf_settings_updated": {
+    destinations: ["posthog", "logger"],
+    category: "billing",
+  },
+
   // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
   // actor_id = user_identity.user_id (not profile_id) for accountant
   // events — blueprint §7 grants exception for category "billing" from
@@ -12990,6 +13718,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "agent",
   },
+  // ─── Schedule Density (feat/schedule-card-density) ───────────────────────
+  "schedule.density_changed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "scheduling",
+  },
   // ─── Welcome Wizard (first-login) ────────────────────────────────────────
   // started + step_completed + skipped_optional: posthog (funnel analytics)
   //   + activity_trail (per-step audit for PII governance — who completed each
@@ -13507,6 +14240,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "navigation",
   },
 
+  // ─── Dagslinjen selection interaction telemetry (B1 sortie 2026-05-17) ───────
+  // UI interaction only — posthog + logger. No activity_trail (not a write event).
+  // Underlying entities emit their own events when state mutates.
+  "ui.dagslinjen.marker_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  "ui.dagslinjen.list_row_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ClusterMarker expanded — user tapped a collapsed bucket on DayTimelineStrip.
+  // posthog: dense-timeline adoption funnel. logger: debug. No audit trail (view only).
+  "ui.dagslinjen.cluster_expanded": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
   // ─── Dagslinjen targeted note fanout (ADR-0331 / ADR-0333, Track E) ─────────
   // created: manager writes a note → posthog (adoption) + audit + logger.
   // delivered: scheduler fires fanout → audit + logger (system event, not user funnel).
@@ -13522,6 +14275,45 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "comm.scheduled_note.deleted": {
     destinations: ["activity_trail", "logger"],
     category: "communication",
+  },
+
+  // ─── Pipeline stage envelope (ADR-0340) ─────────────────────────────────────
+  // Additive lifecycle telemetry — does NOT replace shift_swap.* / shift_offer.*
+  // (ADR-0340 §Preservation 1+2).
+  //
+  // proposed/consented/approved/cancelled: standard pipeline advancement.
+  //   4 destinations: posthog (funnel analytics) + logger + activity_trail (C4 audit
+  //   chain, ADR-0204 correlation_id linkage) + engine_event (downstream reaction e.g.
+  //   trigger notification, unlock next stage wait).
+  //
+  // rejected: pipeline reaches failed terminal state.
+  //   posthog + logger + activity_trail. No engine_event (no downstream D6 effect).
+  //
+  // overridden: admin C4 override (T5). All 4 destinations — override is a governance
+  //   event that must trigger downstream reset + notification fanout.
+  "pipeline.stage_proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_consented": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "pipeline.stage_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "pipeline.stage_cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "pipeline.stage_overridden": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
   },
 
   // ─── Timeline Templates (ADR-0334, T2 sortie 2026-05-16) ───────────────────
@@ -13551,6 +14343,37 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "timeline_template.listed": {
     destinations: ["logger"],
     category: "scheduling",
+  },
+  "cost.overview.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "cost",
+  },
+
+  // ─── HMS Read-surface (ui-shell-hms-cluster-polish-read) ─────────────────
+  // Read-side views: posthog (adoption funnel) + logger (observability) +
+  // activity_trail (manager engagement audit). No engine_event — reads do
+  // NOT trigger downstream workflow reactions.
+  "hms.umbrella.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.drift.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.documents.opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  "hms.training.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "hms",
+  },
+  // people.training.viewed: 3 destinations (posthog + logger + activity_trail).
+  // No engine_event — read-side view does not trigger downstream workflow steps.
+  "people.training.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "people",
   },
 
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ────────────────────
@@ -13606,6 +14429,90 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.tariff_view_loaded_mobile": {
     destinations: ["posthog", "logger"],
     category: "payroll",
+  },
+
+  // ─── Day-Line Runtime Events (ADR-0367, BT0-FOUNDATION 2026-05-18) ───────────
+  // day_line.created: 4 destinations — D6 production mutation; engine_event triggers
+  //   guardian + workflow state-machine reactions.
+  // day_line.opening_changed / closing_changed: 3 destinations — operational adjustment;
+  //   no state-machine reaction (day_line hours change does not drive workflow transitions).
+  // day_line_item.added: 4 destinations — item distribution is a D6 mutation;
+  //   engine_event required for session acknowledgement workflow.
+  // day_line_item.notified: 4 destinations — notification confirmation drives
+  //   acknowledgement workflow state-machine.
+  // shift_session.bound: 3 destinations — binding confirmed; no downstream engine_event.
+  // shift_session.clocked_in / clocked_out: 4 destinations — payroll-relevant lifecycle
+  //   events that drive engine_event reactions (settlement, timebank).
+  // routine.attached: 4 destinations — routine attachment is a D6 mutation with
+  //   workflow reactions (task materialization).
+  // org.dept_areas_updated: 3 destinations — org-structure change (audit + analytics);
+  //   no engine_event (area edits do not drive state-machine transitions).
+  // shift_session.item_leak_detected: 3 destinations — sentinel/alert; no engine_event.
+  "day_line.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "day_line.opening_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_line.closing_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_line_item.added": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "day_line_item.notified": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_session.bound": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "shift_session.clocked_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift_session.clocked_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.attached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "org.dept_areas_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "shift_session.item_leak_detected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+
+  // ─── Birthday celebration auto-publish (ADR-0372, 2026-05-18) ──────────────
+  // celebration.auto_published: 3 destinations — posthog (adoption analytics),
+  //   activity_trail (audit trail for every auto-celebration), logger (stdout).
+  //   No engine_event: birthday publish is terminal, no state-machine reaction needed.
+  //   channel.message.sent is ALSO emitted per celebration (dual emit per Q8).
+  "celebration.auto_published": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+
+  // celebration.skipped_workspace_disabled / celebration.skipped_already_published:
+  //   activity_trail only — audit trail for idempotency skips and opt-out enforcement.
+  //   No posthog: skips are not product-funnel events. No engine_event: no action needed.
+  "celebration.skipped_workspace_disabled": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
+  },
+  "celebration.skipped_already_published": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
   },
 
   // ─── Join Session Recovery (ADR-0358, 2026-05-18) ────────────────────────

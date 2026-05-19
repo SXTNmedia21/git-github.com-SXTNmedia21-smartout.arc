@@ -125,7 +125,7 @@ Sidebar har en toggle (Adminmodus / Ansattmodus) som kun endrer menyens form. Ek
 
 - **employee**: egne sider (/dashboard/my-schedule, my-training, my-cv, my-salary, my-contract, my-profile), egne vakter, deltakelse i kanaler/chat/nyheter.
 - **manager**: alt employee har + lese/redigere vaktplan for tildelte avdelinger, bekrefte timer, svare paa helpdesk-tickets, channel-admin der tildelt.
-- **admin**: alt manager har + /dashboard/people (invitere og redigere), /dashboard/organization, /dashboard/payroll (lukke periode), /dashboard/governance (policy + protokoll), /dashboard/contracts (opprette), /dashboard/komm/desks (opprette helpdesk).
+- **admin**: alt manager har + /dashboard/people (invitere og redigere), /dashboard/organization, /dashboard/payroll (lukke periode), /dashboard/governance (policy + protokoll), /dashboard/people/contracts (opprette), /dashboard/komm/desks (opprette helpdesk).
 - **owner**: alt admin har + transferere eierskap og slette workspace.
 
 Platform-admin-sider (/platform-admin/*) er Smartout-internt og krever is_platform_admin — ingen workspace-rolle gir tilgang.

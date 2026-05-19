@@ -34,6 +34,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { DocumentExtractionResult } from "./wizard-state";
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useDocumentDropTools } from "./tools/document-drop-tools";
+import { useTranslation } from "@smartout/i18n";
 
 // ─── Constants ────────────────────────────────────────────
 
@@ -241,6 +242,7 @@ export function DocumentDropStep({
   const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation("dashboard");
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -507,11 +509,15 @@ export function DocumentDropStep({
         <Upload
           className={`mb-4 h-10 w-10 ${isDragging ? "text-brand-orange" : "text-muted-foreground"}`}
         />
-        <p className="text-foreground text-base font-medium">Dra og slipp dokumenter her</p>
-        <p className="text-muted-foreground mt-1 text-sm">eller klikk for \u00e5 velge filer</p>
+        <p className="text-foreground text-base font-medium">
+          {t("setup.document_drop.drop_here")}
+        </p>
+        <p className="text-muted-foreground mt-1 text-sm">{t("setup.document_drop.or_click")}</p>
         <p className="text-muted-foreground mt-3 text-xs">
-          PDF, DOCX, XLSX, CSV, bilder \u00b7 Maks {MAX_FILES} filer,{" "}
-          {MAX_FILE_SIZE / (1024 * 1024)} MB per fil
+          {t("setup.document_drop.hint", {
+            max_files: MAX_FILES,
+            max_mb: MAX_FILE_SIZE / (1024 * 1024),
+          })}
         </p>
         <input
           ref={fileInputRef}
