@@ -1529,7 +1529,7 @@ function DashboardShellInner({
                     >
                       <BreadcrumbActiveSlot />
 
-                      <div className="flex items-center gap-5">
+                      <div className="ml-auto flex items-center gap-5">
                         {/* Schedule page specific controls */}
                         {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
                           <>
