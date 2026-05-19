@@ -330,5 +330,5 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.brandOrange,
     ...theme.shadows.lg,
   },
-  ctaText: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
+  ctaText: { fontSize: 18, fontWeight: "700", color: theme.colors.primaryForeground },
 }));

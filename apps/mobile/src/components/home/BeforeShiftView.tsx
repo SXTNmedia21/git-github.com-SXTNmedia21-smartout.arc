@@ -169,7 +169,11 @@ export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShift
         >
           {/* Background icon */}
           <View style={styles.shiftCardBgIcon}>
-            <Utensils size={64} color="rgba(255,255,255,0.15)" strokeWidth={1} />
+            <Utensils
+              size={64}
+              color={withOpacity(theme.colors.primaryForeground, 0.15)}
+              strokeWidth={1}
+            />
           </View>
 
           <View style={styles.shiftCardContent}>
@@ -183,7 +187,11 @@ export function BeforeShiftView({ shift, colleagues = [], dayInfo }: BeforeShift
             {/* Leader note — from department_session.handoff_notes */}
             {leaderNote ? (
               <View style={styles.leaderNote}>
-                <UserRound size={16} color="rgba(255,219,204,0.8)" strokeWidth={1.5} />
+                <UserRound
+                  size={16}
+                  color={withOpacity(theme.colors.primaryForeground, 0.8)}
+                  strokeWidth={1.5}
+                />
                 <View>
                   <Text style={styles.leaderNoteLabel}>LEADER NOTE</Text>
                   <Text style={styles.leaderNoteText}>{leaderNote}</Text>
@@ -320,31 +328,36 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "500",
     letterSpacing: 2,
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.75)",
+    color: withOpacity(theme.colors.primaryForeground, 0.75),
   },
-  shiftTime: { fontSize: 36, fontWeight: "300", letterSpacing: -1, color: "#ffffff" },
+  shiftTime: {
+    fontSize: 36,
+    fontWeight: "300",
+    letterSpacing: -1,
+    color: theme.colors.primaryForeground,
+  },
 
   leaderNote: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.1),
     borderRadius: theme.radius.lg,
     padding: theme.spacing.card,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: withOpacity(theme.colors.primaryForeground, 0.1),
   },
   leaderNoteLabel: {
     fontSize: 9,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "rgba(255,255,255,0.6)",
+    color: withOpacity(theme.colors.primaryForeground, 0.6),
   },
   leaderNoteText: {
     fontSize: 16,
     fontWeight: "300",
     fontStyle: "italic",
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     marginTop: 2,
   },
 

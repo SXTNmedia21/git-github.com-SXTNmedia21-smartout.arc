@@ -180,8 +180,8 @@ export function DuringShiftViewV2({
             styles.noise,
             {
               backgroundColor: theme.isDark
-                ? withOpacity("#000000", 0.1)
-                : withOpacity("#ffffff", 0.05),
+                ? withOpacity(theme.colors.foreground, 0.1)
+                : withOpacity(theme.colors.background, 0.05),
             },
           ]}
           accessibilityElementsHidden
@@ -272,7 +272,7 @@ export function DuringShiftViewV2({
           accessibilityRole="button"
           accessibilityLabel="Ring leder"
         >
-          <Phone size={24} color="#ffffff" strokeWidth={1.5} />
+          <Phone size={24} color={theme.colors.primaryForeground} strokeWidth={1.5} />
           <Text style={styles.actionLabelPrimary}>Ring leder</Text>
         </Pressable>
         <Pressable
@@ -476,7 +476,7 @@ const useStyles = createStyles((theme) => ({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 
   liveCard: {
@@ -560,7 +560,7 @@ const useStyles = createStyles((theme) => ({
   actionLabelPrimary: {
     ...theme.typography.subheadline,
     fontWeight: "500",
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
   actionLabelMuted: {
     ...theme.typography.subheadline,
