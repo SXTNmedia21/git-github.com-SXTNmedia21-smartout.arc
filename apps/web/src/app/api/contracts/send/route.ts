@@ -129,7 +129,9 @@ export async function POST(request: NextRequest) {
   // ADR-0151: verify target profile is in caller's workspace
   const { data: targetProfile } = await admin
     .from("profile")
-    .select("profile_id, display_name, personal_number, bank_account, address_line_1, postal_code")
+    .select(
+      "profile_id, display_name, personal_number, bank_account, address_line_1, postal_code, city",
+    )
     .eq("profile_id", target_profile_id)
     .eq("workspace_id", workspaceId)
     .single();
@@ -168,11 +170,32 @@ export async function POST(request: NextRequest) {
       tier: "hoy",
     });
   }
-  if (
-    !(targetProfile as { address_line_1?: string | null }).address_line_1 ||
-    !(targetProfile as { postal_code?: string | null }).postal_code
-  ) {
-    missingFields.push({ field: "address", label_no: "Adresse", section: "Adresse", tier: "lav" });
+  // Granular address fields — RPC `admin_submit_employee_pii` writes
+  // address_line_1/postal_code/city per key. Single "address" key would be
+  // silently dropped (NULLs written), creating a 422-retry loop.
+  if (!(targetProfile as { address_line_1?: string | null }).address_line_1) {
+    missingFields.push({
+      field: "address_line_1",
+      label_no: "Gateadresse",
+      section: "Adresse",
+      tier: "lav",
+    });
+  }
+  if (!(targetProfile as { postal_code?: string | null }).postal_code) {
+    missingFields.push({
+      field: "postal_code",
+      label_no: "Postnummer",
+      section: "Adresse",
+      tier: "lav",
+    });
+  }
+  if (!(targetProfile as { city?: string | null }).city) {
+    missingFields.push({
+      field: "city",
+      label_no: "Poststed",
+      section: "Adresse",
+      tier: "lav",
+    });
   }
 
   // Employment-contract checks (Ansettelse) — find latest draft / pending_data row.
