@@ -94,11 +94,14 @@ describe("calculateShiftPhase", () => {
       expect(result.nextShift).toBeNull();
     });
 
-    it("returns no_shift when all shifts are in the past", () => {
+    it("returns no_shift when all shifts are in the past beyond the 48h lookahead", () => {
+      // Shift ended 2026-03-15T08:00Z — 52h before BASE_DATE (2026-03-18T12:00Z),
+      // so it falls outside the LOOKAHEAD_HOURS=48 window and does NOT surface
+      // as missed_shift. Shifts within 48h of end do surface as missed_shift.
       const pastShift = makeShift({
-        shift_date: "2026-03-17",
-        start_time: "08:00:00",
-        end_time: "15:00:00",
+        shift_date: "2026-03-15",
+        start_time: "00:00:00",
+        end_time: "08:00:00",
       });
 
       const result = calculateShiftPhase({
@@ -162,8 +165,11 @@ describe("calculateShiftPhase", () => {
       expect(result.nextShift).toEqual(shift);
     });
 
-    it("returns before_shift when shift started but no punch (late punch scenario)", () => {
-      // Shift started at 16:00 UTC, now is 16:10 UTC, no time_entry → before_shift with warning
+    it("returns awaiting_punch_in when shift started but no punch (late punch scenario)", () => {
+      // Shift started at 16:00 UTC, now is 16:10 UTC, no time_entry.
+      // Phase machine: start <= now < end with no active punch → awaiting_punch_in.
+      // This replaced the old before_shift "late punch warning" — the concept is the
+      // same (shift in window, employee hasn't punched) but now has its own phase.
       const shift = makeShift();
       const now = new Date("2026-03-18T16:10:00Z");
 
@@ -173,7 +179,7 @@ describe("calculateShiftPhase", () => {
         now,
       });
 
-      expect(result.phase).toBe("before_shift");
+      expect(result.phase).toBe("awaiting_punch_in");
       expect(result.nextShift).toEqual(shift);
     });
 
@@ -235,7 +241,10 @@ describe("calculateShiftPhase", () => {
     });
 
     it("does NOT return during_shift when shift is in progress but no time_entry", () => {
-      // This is the CRITICAL rule: shift time without punch != during_shift
+      // This is the CRITICAL rule: shift time without punch != during_shift.
+      // Phase machine now returns awaiting_punch_in for this scenario
+      // (start <= now < end, no active entry) — the invariant is the same,
+      // the surface label changed from the old "late punch before_shift" path.
       const shift = makeShift();
       const now = new Date("2026-03-18T18:00:00Z"); // middle of shift
 
@@ -245,8 +254,7 @@ describe("calculateShiftPhase", () => {
         now,
       });
 
-      // Should be before_shift (shift started, no punch → late warning)
-      expect(result.phase).toBe("before_shift");
+      expect(result.phase).toBe("awaiting_punch_in");
       expect(result.phase).not.toBe("during_shift");
     });
 
@@ -363,7 +371,11 @@ describe("calculateShiftPhase", () => {
     });
 
     it("handles shift ending right now", () => {
-      // Shift ends at 23:00 UTC, now is 23:00 UTC — shift hasn't fully ended yet
+      // Shift ends at 23:00 UTC, now is 23:00 UTC — endMs is NOT strictly < nowMs,
+      // so the shift is not classified as past. It is also not awaiting_punch_in
+      // (23:00 < 23:00 is false) and not before_shift (start 16:00 > now 23:00 is false).
+      // The lookahead check (startMs - nowMs is negative ≤ 48h) triggers no_shift
+      // with nextShift populated — the shift window has closed without a punch.
       const shift = makeShift();
       const now = new Date("2026-03-18T23:00:00Z");
 
@@ -373,8 +385,8 @@ describe("calculateShiftPhase", () => {
         now,
       });
 
-      // Shift end time equals now → not past yet → before_shift (started, no punch)
-      expect(result.phase).toBe("before_shift");
+      expect(result.phase).toBe("no_shift");
+      expect(result.nextShift).toEqual(shift);
     });
   });
 });
