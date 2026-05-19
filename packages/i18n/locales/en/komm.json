@@ -6,6 +6,10 @@
     "retry": "Try again",
     "loading_profile": "Loading profile..."
   },
+  "tab_kanaler": "Channels",
+  "tab_skranke": "Reception",
+  "tab_nyheter": "News",
+  "tab_varsler": "Notifications",
   "tabs": {
     "overview": "Overview",
     "channels": "Channels",

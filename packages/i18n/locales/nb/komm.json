@@ -6,6 +6,10 @@
     "retry": "Prøv igjen",
     "loading_profile": "Laster profil..."
   },
+  "tab_kanaler": "Kanaler",
+  "tab_skranke": "Skranke",
+  "tab_nyheter": "Nyheter",
+  "tab_varsler": "Varsler",
   "tabs": {
     "overview": "Oversikt",
     "channels": "Kanaler",
