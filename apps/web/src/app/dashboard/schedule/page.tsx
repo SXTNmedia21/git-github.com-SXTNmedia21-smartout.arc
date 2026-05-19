@@ -249,6 +249,8 @@ function SchedulePageContent() {
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
   const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
   const [highlightedDayId, setHighlightedDayId] = useState<string | null>(null);
+  // View-mode: tidslinjer stub — SM-6 ships the Gantt component
+  const [viewMode, setViewMode] = useState<"liste" | "kalender" | "tidslinjer">("liste");
   const [loadSecondaryData, setLoadSecondaryData] = useState(false);
   const [sendMessageDialog, setSendMessageDialog] = useState<{
     open: boolean;
@@ -1076,6 +1078,36 @@ function SchedulePageContent() {
             </motion.div>
           ) : (
             <motion.div key="ready" {...contentFade} className="flex h-full flex-1 flex-col">
+              {/* View-mode toggle — spec §4.3. Tidslinjer disabled until SM-6. */}
+              <div className="flex justify-end px-3 pt-2">
+                <div className="flex items-center gap-1" role="group" aria-label="Visningsmodus">
+                  {(["liste", "kalender"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setViewMode(mode)}
+                      aria-pressed={viewMode === mode}
+                      className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                        viewMode === mode
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {mode === "liste" ? "Liste" : "Kalender"}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled
+                    title="Bygges i SM-6"
+                    aria-disabled="true"
+                    className="text-muted-foreground/40 cursor-not-allowed rounded-md px-2 py-1 text-xs font-medium"
+                  >
+                    Tidslinjer
+                  </button>
+                </div>
+              </div>
+
               {/* Agent proposal banner — shows when Emma has pending shift proposals */}
               <ProposalBanner />
 
