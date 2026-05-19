@@ -180,31 +180,87 @@ export const orbTools = {
   }),
 
   // -- NAVIGATE --------------------------------------------------------------
+  // Allowlist of valid Botsson-navigable paths. Kept in sync with
+  // apps/web/src/app/Botsson/_components/BotssonTools.ts DASHBOARD_PAGES.
+  // Phase 2 sortie will move both to a shared package (@smartout/ai or similar).
+  // Reason: 2026-05-19 — LLM hallucinated /dashboard/hse via free-form path.
   navigate_to: llm.tool({
     description: [
       "Naviger brukeren til en bestemt side i Smartout-dashbordet.",
       'Bruk når brukeren sier "gå til vaktplan", "vis meg kontrakten min",',
       '"åpne innstillinger", "ta meg til opplæring", osv.',
-      "Eksempel-ruter: /dashboard/schedule, /dashboard/training,",
-      "/dashboard/profile, /dashboard/governance.",
-      "Publiserer en navigasjonshendelse til nettleseren via LiveKit-datakanal.",
-      "Bekreft navigasjonen med én kort setning etter at verktøyet returnerer.",
+      "Stien MÅ være eksakt match mot allowlisten — ikke gjett, ikke konstruér nye URL-er.",
+      "Gyldige stier: /dashboard, /dashboard/schedule, /dashboard/my-schedule,",
+      "/dashboard/calendar, /dashboard/operations, /dashboard/shift-clock, /dashboard/close,",
+      "/dashboard/reconciliation, /dashboard/planning, /dashboard/year-wheel,",
+      "/dashboard/people, /dashboard/contracts, /dashboard/governance, /dashboard/policies,",
+      "/dashboard/handbook, /dashboard/hms, /dashboard/reports, /dashboard/payroll,",
+      "/dashboard/cost, /dashboard/billing, /dashboard/komm, /dashboard/chat,",
+      "/dashboard/notifications, /dashboard/proposals, /dashboard/my-training,",
+      "/dashboard/my-contract, /dashboard/my-cv, /dashboard/my-profile, /dashboard/my-salary,",
+      "/dashboard/settings, /dashboard/ai, /dashboard/website, /dashboard/help.",
+      "Hvis brukeren ber om en side som ikke er i listen, si fra — IKKE finn opp en URL.",
     ].join(" "),
     parameters: {
       type: "object" as const,
       properties: {
         path: {
           type: "string",
-          description:
-            "Relativ URL-sti å navigere til, f.eks. /dashboard/schedule. Må starte med /.",
+          description: "Eksakt relativ URL-sti fra allowlisten over, f.eks. /dashboard/schedule.",
         },
       },
       required: ["path"],
       additionalProperties: false,
     },
     execute: async ({ path }: { path: string }) => {
+      // Allowlist enforced server-side. Phase 1 keeps the list inline; Phase
+      // 2 sortie will share it with apps/web via a shared package.
+      const ALLOWED_PATHS = new Set<string>([
+        "/dashboard",
+        "/dashboard/schedule",
+        "/dashboard/my-schedule",
+        "/dashboard/calendar",
+        "/dashboard/operations",
+        "/dashboard/shift-clock",
+        "/dashboard/close",
+        "/dashboard/reconciliation",
+        "/dashboard/planning",
+        "/dashboard/year-wheel",
+        "/dashboard/people",
+        "/dashboard/contracts",
+        "/dashboard/governance",
+        "/dashboard/policies",
+        "/dashboard/handbook",
+        "/dashboard/hms",
+        "/dashboard/reports",
+        "/dashboard/payroll",
+        "/dashboard/cost",
+        "/dashboard/billing",
+        "/dashboard/komm",
+        "/dashboard/chat",
+        "/dashboard/notifications",
+        "/dashboard/proposals",
+        "/dashboard/my-training",
+        "/dashboard/my-contract",
+        "/dashboard/my-cv",
+        "/dashboard/my-profile",
+        "/dashboard/my-salary",
+        // SM-9: organization → settings#struktur-overview
+        "/dashboard/settings#struktur-overview",
+        "/dashboard/settings",
+        "/dashboard/ai",
+        "/dashboard/website",
+        "/dashboard/help",
+      ]);
       if (!path.startsWith("/")) {
         return `Ugyldig sti: "${path}". Stien må starte med /.`;
+      }
+      if (!ALLOWED_PATHS.has(path)) {
+        return (
+          `Ugyldig sti: "${path}". Stien er ikke i allowlisten. ` +
+          `Du kan kun navigere til kjente dashbord-ruter. ` +
+          `Si fra til brukeren at siden ikke finnes — IKKE finn opp en URL.`
+        );
       }
       // Publish a navigate activity event. BotssonShell.handleVoiceActivity
       // listens on topic "botsson-activity" and calls router.push(ev.path).
