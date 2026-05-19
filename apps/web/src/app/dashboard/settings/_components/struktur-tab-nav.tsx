@@ -19,20 +19,31 @@
 
 import { Building2, MapPin, Network, LayoutGrid } from "lucide-react";
 import { cn } from "@smartout/ui";
+import { useTranslation } from "@smartout/i18n";
 import type { OrgTab } from "../../organization/_components/types";
 
 type TabDef = {
   id: OrgTab;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
   countKey?: "departments" | "locations" | "teams";
 };
 
 const TABS: TabDef[] = [
-  { id: "overview", label: "Oversikt", icon: LayoutGrid },
-  { id: "departments", label: "Avdelinger", icon: Building2, countKey: "departments" },
-  { id: "locations", label: "Lokasjoner", icon: MapPin, countKey: "locations" },
-  { id: "teams", label: "Team", icon: Network, countKey: "teams" },
+  { id: "overview", labelKey: "settings_page.tabs.struktur_overview", icon: LayoutGrid },
+  {
+    id: "departments",
+    labelKey: "settings_page.tabs.avdelinger",
+    icon: Building2,
+    countKey: "departments",
+  },
+  {
+    id: "locations",
+    labelKey: "settings_page.tabs.lokasjoner",
+    icon: MapPin,
+    countKey: "locations",
+  },
+  { id: "teams", labelKey: "settings_page.tabs.team", icon: Network, countKey: "teams" },
 ];
 
 type StrukturTabNavProps = {
@@ -42,6 +53,8 @@ type StrukturTabNavProps = {
 };
 
 export function StrukturTabNav({ activeTab, onTabChange, counts }: StrukturTabNavProps) {
+  const { t } = useTranslation("dashboard");
+
   return (
     <div className="border-border bg-muted flex items-center gap-1 rounded-xl border p-1">
       {TABS.map((tab) => {
@@ -61,7 +74,7 @@ export function StrukturTabNav({ activeTab, onTabChange, counts }: StrukturTabNa
             )}
           >
             <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden sm:inline">{t(tab.labelKey)}</span>
             {count !== undefined && (
               <span
                 className={cn(
