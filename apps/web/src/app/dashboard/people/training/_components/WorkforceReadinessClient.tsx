@@ -179,11 +179,7 @@ export function WorkforceReadinessClient({ workspaceId, profileId }: Props) {
           label={t("people.training.kpi_expired")}
           value={forfaltCount}
         />
-        <KpiCard
-          icon={Clock}
-          label={t("people.training.kpi_soon")}
-          value={soonCount}
-        />
+        <KpiCard icon={Clock} label={t("people.training.kpi_soon")} value={soonCount} />
       </div>
 
       {/* Department filter — only shown when ≥2 departments */}

@@ -16,10 +16,5 @@ export const dynamic = "force-dynamic";
 export default async function TrainingPage() {
   const { workspace, profileId } = await resolveDashboardContext();
 
-  return (
-    <WorkforceReadinessClient
-      workspaceId={workspace.workspace_id}
-      profileId={profileId}
-    />
-  );
+  return <WorkforceReadinessClient workspaceId={workspace.workspace_id} profileId={profileId} />;
 }

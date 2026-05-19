@@ -18,16 +18,16 @@ describe("Pill", () => {
     expect(html).toContain("color:var(--foreground)");
   });
 
-  it("applies brand tone (oklch 0.65 0.22 40 / 0.10 → brand-orange-dark fg)", () => {
+  it("applies brand tone (var(--brand-orange) 10% mix → brand-orange-dark fg)", () => {
     const html = renderToStaticMarkup(<Pill tone="brand">test</Pill>);
-    expect(html).toContain("oklch(0.65 0.22 40 / 0.1");
+    expect(html).toContain("color-mix(in oklch, var(--brand-orange) 10%, transparent)");
     expect(html).toContain("var(--brand-orange-dark)");
   });
 
-  it("applies success tone (oklch 0.68 0.15 145 / 0.10 → 0.45 fg)", () => {
+  it("applies success tone (var(--success) 10% mix → status-active fg)", () => {
     const html = renderToStaticMarkup(<Pill tone="success">test</Pill>);
-    expect(html).toContain("oklch(0.68 0.15 145 / 0.1");
-    expect(html).toContain("oklch(0.45 0.15 145)");
+    expect(html).toContain("color-mix(in oklch, var(--success) 10%, transparent)");
+    expect(html).toContain("var(--status-active)");
   });
 
   it("is rounded-full with padding 2px 8px and mono 11px", () => {

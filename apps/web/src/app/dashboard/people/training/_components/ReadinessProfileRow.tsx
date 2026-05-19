@@ -15,29 +15,33 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { Badge } from "@/components/ui/badge";
-import type { MatrixRow, ProtocolColumn, AssignmentStatus } from "@/app/dashboard/_hooks/use-workforce-readiness";
+import type {
+  MatrixRow,
+  ProtocolColumn,
+  AssignmentStatus,
+} from "@/app/dashboard/_hooks/use-workforce-readiness";
 
 // ── Status color map ────────────────────────────────────────────────────────
 // Matches CompetenceMatrix ProgressCell color logic — CSS variables only, no OKLCH literals.
 
 const STATUS_COLORS: Record<AssignmentStatus, string> = {
-  completed:    "bg-success/15 text-success",
-  expired:      "bg-destructive/15 text-destructive",
-  in_progress:  "bg-primary/15 text-primary",
-  pending:      "bg-primary/15 text-primary",
-  not_started:  "bg-muted text-muted-foreground",
-  waived:       "bg-warning/15 text-warning",
+  completed: "bg-success/15 text-success",
+  expired: "bg-destructive/15 text-destructive",
+  in_progress: "bg-primary/15 text-primary",
+  pending: "bg-primary/15 text-primary",
+  not_started: "bg-muted text-muted-foreground",
+  waived: "bg-warning/15 text-warning",
   not_assigned: "",
 };
 
 // Sort order: expired → in_progress/pending → not_started → completed → waived
 const STATUS_SORT_ORDER: Record<AssignmentStatus, number> = {
-  expired:      0,
-  in_progress:  1,
-  pending:      2,
-  not_started:  3,
-  completed:    4,
-  waived:       5,
+  expired: 0,
+  in_progress: 1,
+  pending: 2,
+  not_started: 3,
+  completed: 4,
+  waived: 5,
   not_assigned: 6,
 };
 
@@ -58,15 +62,16 @@ function ProfileAvatar({ name }: { name: string }) {
 // ── Readiness bar ───────────────────────────────────────────────────────────
 
 function ReadinessBar({ percent }: { percent: number }) {
-  const colorClass =
-    percent >= 80
-      ? "bg-success"
-      : percent >= 40
-        ? "bg-warning"
-        : "bg-destructive";
+  const colorClass = percent >= 80 ? "bg-success" : percent >= 40 ? "bg-warning" : "bg-destructive";
 
   return (
-    <div className="bg-muted h-1.5 w-20 overflow-hidden rounded-full" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      className="bg-muted h-1.5 w-20 overflow-hidden rounded-full"
+      role="progressbar"
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div
         className={`${colorClass} h-full rounded-full transition-[width]`}
         style={{ width: `${percent}%` }}
@@ -145,7 +150,7 @@ export function ReadinessProfileRow({ row, columns }: Props) {
 
       {/* Expanded protocol list */}
       {expanded && (
-        <div className="border-border border-t px-4 pb-3 pt-2">
+        <div className="border-border border-t px-4 pt-2 pb-3">
           {assignedEntries.length === 0 ? (
             <p className="text-muted-foreground py-2 text-sm">
               {t("people.training.no_assigned_protocols")}
@@ -175,9 +180,7 @@ export function ReadinessProfileRow({ row, columns }: Props) {
                         </div>
                       )}
 
-                    <Badge className={`${colorClass} shrink-0 text-[11px]`}>
-                      {statusLabel}
-                    </Badge>
+                    <Badge className={`${colorClass} shrink-0 text-[11px]`}>{statusLabel}</Badge>
                   </li>
                 );
               })}
