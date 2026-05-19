@@ -1198,5 +1198,12 @@
       "status_pending": "Venter",
       "filter_all": "Alle"
     }
+  },
+  "planning": {
+    "tab_kalender": "Kalender",
+    "tab_arshjul": "Årshjul",
+    "tab_eventer": "Eventer",
+    "tab_bookings": "Bookings",
+    "page_description": "Datoer, sesonger, eventer og bookinger på ett sted"
   }
 }

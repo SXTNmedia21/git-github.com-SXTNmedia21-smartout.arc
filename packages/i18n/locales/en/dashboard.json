@@ -1198,5 +1198,12 @@
       "status_pending": "Pending",
       "filter_all": "All"
     }
+  },
+  "planning": {
+    "tab_kalender": "Calendar",
+    "tab_arshjul": "Year Wheel",
+    "tab_eventer": "Events",
+    "tab_bookings": "Bookings",
+    "page_description": "Dates, seasons, events and bookings in one place"
   }
 }
