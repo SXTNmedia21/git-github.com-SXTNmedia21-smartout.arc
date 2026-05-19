@@ -470,16 +470,17 @@ Recommended sortie sequence (each independent, each reversible):
 |---|---|---|---|
 | **SM-1** ✅ | Sidebar config rewrite — 11-flat structure (visual files preserved per "kun navigation" scope-tightening 2026-05-19) | M (executed ~30min) | `sidebar-config.ts`, `nb/dashboard.json`, `en/dashboard.json` |
 | **SM-2** ✅ | Ansatte hub — Roller page (profile.role D2 query) + Trening placeholder + tabs Liste·Roller·Kontrakter·Trening + Invitert filter chip. Contracts URL move deferred to SM-2-followup-contracts. | M (executed ~2h) | `/people/roles`, `/people/training`, `_lib/people-tabs.ts`, `people-page-client.tsx`, i18n |
-| **SM-2-followup-contracts** | Move `/dashboard/contracts/*` → `/dashboard/people/contracts/*` with redirects. 20+ existing refs (API routes, drawer imports, layout deep-links, tests). | M (4h) | broad |
-| **SM-2-followup-training** | Wire Trening page to `protocol_assignment` + `knowledge_test`. Workforce readiness matrix. | M (5h) | `/people/training` |
+| **SM-2-followup-contracts** ✅ | Move `/dashboard/contracts/*` → `/dashboard/people/contracts/*` with redirects. 132 refs swept across pkgs/EFs/e2e. 2026-05-19. | M (executed ~6h) | broad |
+| **SM-2-followup-training** ✅ | Wire Trening to `protocol_assignment` + `knowledge_test`. Workforce readiness matrix shared with HMS via `useWorkforceReadiness` hook. 2026-05-19. | M (executed ~3h) | `/people/training` |
 | **SM-2-followup-positions** | Decide if hospitality job-title catalog (currently inline in ConfirmRoles.tsx wizard) deserves a separate surface. Backed by DB table `workspace_position` if yes. | M (5h) | wizard + new surface |
-| **SM-3** | Planlegging hub — gather Kalender, Årshjul, Eventer, Bookings | M (5h) | `/planning` (new), absorbs `/year-wheel`, `/season` |
-| **SM-4** | Vaktplan tab structure + Vaktbørs + Ferieplan | M (4h) | `/schedule` |
-| **SM-5** | Chat + Kommunikasjon split | M (4h) | `/chat` (new), `/komm` restructure |
+| **SM-3** ✅ | Planlegging hub — gather Kalender, Årshjul, Eventer, Bookings. Sub-page route shims + PLANNING_TAB_DEFS + i18n. 2026-05-19. | M (executed ~2h) | `/planning` (new) |
+| **SM-3-followup-absorb** | Absorb `/year-wheel` + `/season` into `/planning` tabs (deferred from SM-3 — Årshjul + Eventer currently shim to `?tab=` deep-links into CalendarPageShell). | M (3h) | `/planning` |
+| **SM-4** ✅ | Vaktplan tab structure + Vaktbørs + Ferieplan + view-mode toggle (Tidslinjer disabled until SM-6). 2026-05-19. | M (executed ~3h) | `/schedule` |
+| **SM-5** ✅ | Chat + Kommunikasjon split — top-level `/chat`, `/komm` four-tab (Kanaler·Skranke·Nyheter·Varsler), `/notifications` → `/komm/varsler` redirect. 2026-05-19. | M (executed ~3h) | `/chat`, `/komm` |
 | **SM-6** | Tidslinjer view-mode component | L (8h) | new component, wired into 8 callsites |
 | **SM-7** ✅ | PageTabNav variant=route + codemod 7 hand-rolled TabsList (5 exceptions kept) | M (executed ~45min) | `PageTabNav.tsx`, 7 page-component files |
-| **SM-8** | Mr. Botsson as orb (not menu item) | S (2h) | `DashboardShell.tsx` |
-| **SM-9** | Settings absorbs Organisasjon (Struktur tab) + Integrasjoner tab | M (3h) | `/settings` |
+| **SM-8** ✅ | Mr. Botsson as orb (not menu item) — sidebar button + `botsson:open` window-event bridge + E2E spec. 2026-05-19. | S (executed ~1.5h) | `DashboardShell.tsx`, `BotssonShell.tsx` |
+| **SM-9** ✅ | Settings absorbs Organisasjon (Struktur tab) + Integrasjoner tab. `/dashboard/organization` → `/dashboard/settings` redirect. 2026-05-19. | M (executed ~2h) | `/settings` |
 | **SM-10** | Drop dead routes: `/onboarding-assistant`, `/ai/config` (move to settings), maybe `/website` (see §13) | S (2h) | various |
 
 Total: ~43h of sortie work. Parallelizable into 3–4 worktrees if needed. Order is roughly SM-1 → SM-2/3/4/5 (parallel) → SM-6/7 (parallel) → SM-8/9/10.
