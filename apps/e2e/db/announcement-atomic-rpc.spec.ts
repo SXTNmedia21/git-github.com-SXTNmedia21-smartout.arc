@@ -16,6 +16,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? "sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz"; // local dev only — not a production secret
 
+// Guard: skip the entire suite when Supabase Local is not running.
+// CI has no Supabase Local instance; these tests make live HTTP+RPC calls.
+// Mirrors the same pattern used in birthday-auto-publish.spec.ts.
+const HAS_SUPABASE_ENV =
+  Boolean(process.env.SUPABASE_URL) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 const TEST_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 const TEST_ACTOR_PROFILE_ID = "f0000000-0000-0000-0000-000000000000"; // Anna (owner) from seed
 const TEST_CHANNEL_ID = "ca000000-0000-0000-0000-000000000020"; // Nyheter & oppdateringer (news)
@@ -38,7 +44,7 @@ afterEach(async () => {
 // ---------------------------------------------------------------------------
 // Test 1: Happy path — atomic INSERT channel_message + announcement_meta + notification_outbox
 // ---------------------------------------------------------------------------
-describe("publish_announcement_atomic RPC", () => {
+describe.skipIf(!HAS_SUPABASE_ENV)("publish_announcement_atomic RPC", () => {
   it("Test 1: inserts channel_message + announcement_meta + notification_outbox atomically (happy path)", async () => {
     const db = serviceClient();
     const content = "Testmelding\nDette er kroppen av kunngjøringen.";
