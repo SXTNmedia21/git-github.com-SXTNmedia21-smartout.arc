@@ -375,9 +375,9 @@ function HeroStat({ label, value }: { label: string; value: string }) {
 const useStyles = createStyles((theme) => ({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 0,
     paddingTop: theme.spacing.tight,
-    paddingBottom: theme.spacing.xl + 40,
+    paddingBottom: theme.spacing.lg,
     gap: theme.spacing.element,
   },
 
@@ -437,9 +437,9 @@ const useStyles = createStyles((theme) => ({
     opacity: 0.55,
   },
   heroInner: {
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 6,
     position: "relative",
   },
   heroLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -526,8 +526,8 @@ const useStyles = createStyles((theme) => ({
   // Card primitive
   card: {
     backgroundColor: theme.colors.background,
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: withOpacity(theme.colors.border, 0.4),
     gap: 6,
@@ -584,12 +584,12 @@ const useStyles = createStyles((theme) => ({
   quickGrid: { flexDirection: "row", gap: 10 },
   quickCard: {
     flex: 1,
-    padding: 14,
+    padding: 12,
     borderRadius: 14,
     backgroundColor: theme.colors.background,
     borderWidth: 1,
     borderColor: withOpacity(theme.colors.border, 0.4),
-    gap: 8,
+    gap: 6,
   },
   quickTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.foreground, marginTop: 4 },
   quickMeta: { fontSize: 11, color: theme.colors.mutedForeground },

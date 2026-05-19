@@ -343,9 +343,9 @@ export function BeforeShiftView({
 const useStyles = createStyles((theme) => ({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 0,
     paddingTop: theme.spacing.tight,
-    paddingBottom: theme.spacing.xl + 40,
+    paddingBottom: theme.spacing.lg,
     gap: theme.spacing.element,
   },
 
@@ -412,8 +412,8 @@ const useStyles = createStyles((theme) => ({
   // Card primitive
   card: {
     backgroundColor: theme.colors.background,
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: withOpacity(theme.colors.border, 0.4),
     gap: 6,
@@ -430,7 +430,7 @@ const useStyles = createStyles((theme) => ({
   featureCard: {
     position: "relative",
     backgroundColor: theme.colors.background,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: withOpacity(theme.colors.border, 0.4),
     overflow: "hidden",
@@ -443,7 +443,7 @@ const useStyles = createStyles((theme) => ({
     bottom: 0,
   },
   featureContent: {
-    padding: 18,
+    padding: 14,
     gap: 6,
   },
   featureHeadRow: {

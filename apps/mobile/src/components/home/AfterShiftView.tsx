@@ -312,9 +312,9 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 const useStyles = createStyles((theme) => ({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 0,
     paddingTop: theme.spacing.tight,
-    paddingBottom: theme.spacing.xl + 40,
+    paddingBottom: theme.spacing.lg,
     gap: theme.spacing.element,
   },
 
@@ -343,8 +343,8 @@ const useStyles = createStyles((theme) => ({
   // Card primitive
   card: {
     backgroundColor: theme.colors.background,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: withOpacity(theme.colors.border, 0.4),
     gap: 4,

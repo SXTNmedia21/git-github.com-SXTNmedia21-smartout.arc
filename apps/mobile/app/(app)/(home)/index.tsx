@@ -156,7 +156,7 @@ const useStyles = createStyles((theme) => ({
     flex: 1,
   },
   phaseContent: {
-    paddingHorizontal: theme.spacing.section,
+    paddingHorizontal: theme.spacing.md,
     paddingBottom: 160,
   },
   topBar: {
