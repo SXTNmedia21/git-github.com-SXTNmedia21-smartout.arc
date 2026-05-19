@@ -15,7 +15,7 @@
  *
  * Spec: docs/design/sitemap/web/00-CANONICAL.md §3 (Vaktplan tabs).
  */
-import { useTranslations } from "next-intl";
+import { useTranslation } from "@smartout/i18n";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { SCHEDULE_TAB_DEFS } from "../_lib/schedule-tabs";
 
@@ -29,18 +29,18 @@ const TAB_LABEL_KEY: Record<string, "vaktplan" | "vaktbors" | "ferieplan"> = {
 };
 
 export function ScheduleTabNav() {
-  const t = useTranslations("schedule.tabs");
+  const { t } = useTranslation("dashboard");
 
   return (
     <PageTabNav
       tabs={SCHEDULE_TAB_DEFS.map((tab) => ({
         key: tab.key,
-        label: t(TAB_LABEL_KEY[tab.key] ?? "vaktplan"),
+        label: t(`schedule.tabs.${TAB_LABEL_KEY[tab.key] ?? "vaktplan"}`),
         icon: tab.icon,
       }))}
       variant="route"
       basePath={BASE_PATH}
-      ariaLabel={t("aria_label")}
+      ariaLabel={t("schedule.tabs.aria_label")}
     />
   );
 }

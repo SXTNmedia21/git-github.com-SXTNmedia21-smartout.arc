@@ -118,7 +118,7 @@ import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedul
 import { useDayInfo } from "./_hooks/use-day-info";
 import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useTranslation } from "@smartout/i18n";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -242,7 +242,8 @@ function SchedulePageContent() {
     setWeeklyPeriodCount,
     profileId,
   } = useContext(DashboardContext);
-  const tSchedule = useTranslations("schedule");
+  const { t: tRaw } = useTranslation("dashboard");
+  const tSchedule = (key: string) => tRaw(`schedule.${key}`);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");

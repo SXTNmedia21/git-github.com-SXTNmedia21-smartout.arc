@@ -11,7 +11,7 @@
  */
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslation } from "@smartout/i18n";
 
 export type VacationAbsence = {
   schedule_absence_id: string;
@@ -32,7 +32,8 @@ function formatDate(dateStr: string): string {
 }
 
 export function FerieplanPageClient({ absences }: { absences: VacationAbsence[] }) {
-  const t = useTranslations("schedule");
+  const { t: tRaw } = useTranslation("dashboard");
+  const t = (key: string) => tRaw(`schedule.${key}`);
   const [viewMode, setViewMode] = useState<ViewMode>("liste");
 
   return (
@@ -127,7 +128,7 @@ function StatusChip({
   t,
 }: {
   status: "pending" | "approved" | "rejected";
-  t: ReturnType<typeof useTranslations<"schedule">>;
+  t: (key: string) => string;
 }) {
   if (status === "approved") {
     return (

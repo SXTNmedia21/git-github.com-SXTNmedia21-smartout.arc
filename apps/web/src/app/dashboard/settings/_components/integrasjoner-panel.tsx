@@ -85,7 +85,8 @@ export function IntegrasjonerPanel({ initialTab = "pos" }: IntegrasjonerPanelPro
   const { t } = useTranslation("dashboard");
   const { workspaceData } = useContext(DashboardContext);
   const workspaceId = workspaceData?.workspace_id ?? "";
-  const workspaceIsActive = workspaceData?.is_active ?? false;
+  // workspaceData doesn't expose is_active; gate behavior is upstream (admin RLS).
+  const workspaceIsActive = Boolean(workspaceId);
 
   const [activeTab, setActiveTab] = useState<IntegrasjonerTab>(initialTab);
 

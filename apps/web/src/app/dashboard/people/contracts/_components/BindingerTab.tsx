@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy import to avoid shipping the matrix UI in the initial hub bundle.
 const ContractTemplateBindingsSettings = lazy(() =>
-  import("../../settings/_components/contract-template-bindings-settings").then((m) => ({
+  import("../../../settings/_components/contract-template-bindings-settings").then((m) => ({
     default: m.ContractTemplateBindingsSettings,
   })),
 );
