@@ -1493,20 +1493,6 @@ function DashboardShellInner({
                           isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                         }`}
                       >
-                        <span
-                          className={`cursor-pointer transition-colors ${
-                            isDark
-                              ? "hover:text-accent-foreground"
-                              : "hover:text-[var(--text-strong)]"
-                          }`}
-                        >
-                          {isDocumentMode
-                            ? t("shell.breadcrumb.handbook")
-                            : isAdminMode
-                              ? t("shell.breadcrumb.drift")
-                              : t("shell.breadcrumb.workspace")}
-                        </span>
-                        <ChevronRight className="h-3.5 w-3.5" />
                         <BreadcrumbActiveSlot
                           isDark={isDark}
                           isDocumentMode={isDocumentMode}
