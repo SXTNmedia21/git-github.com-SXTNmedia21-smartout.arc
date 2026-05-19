@@ -34,6 +34,16 @@ VALUES
   ('d0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'Service', 'service', 2),
   ('d0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'Bar', 'bar', 3);
 
+-- 4b. Link all departments to the Oslo Downtown Hub location
+-- ADR-0367 §4.4: day_line creation requires at least one department_location row.
+-- ------------------------------------------------------------------------------
+INSERT INTO public.department_location (department_id, location_id, workspace_id)
+VALUES
+  ('d0000000-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000');
+
 -- 5. Create Auth Users
 -- ------------------------------------------------------------------------------
 -- Admin user
@@ -3276,3 +3286,110 @@ WHERE i.company_id IN (
   AND NOT EXISTS (
     SELECT 1 FROM public.invoice_line_item li WHERE li.invoice_id = i.invoice_id
   );
+
+-- ============================================
+-- Calendar + Communication seed
+-- ADR-0367 (day_line tri-layer), ADR-0369..0371 (announcements)
+-- Adapts to CURRENT_DATE so seed produces fresh sessions each reset.
+-- ============================================
+
+-- Calendar: 4 depts × 3 days (yesterday, today, tomorrow) = 12 sessions + 12 day_lines.
+DO $seed_calendar$
+DECLARE
+  ws_id        CONSTANT UUID := 'b0000000-0000-0000-0000-000000000000';
+  loc_id       CONSTANT UUID := 'c0000000-0000-0000-0000-000000000000';
+  admin_pid    CONSTANT UUID := 'f0000000-0000-0000-0000-000000000000';
+  dept_id      UUID;
+  day_offset   INTEGER;
+  business_d   DATE;
+  sess_id      UUID;
+BEGIN
+  FOREACH dept_id IN ARRAY ARRAY[
+    'd0000000-0000-0000-0000-000000000000'::UUID,
+    'd0000000-0000-0000-0000-000000000001'::UUID,
+    'd0000000-0000-0000-0000-000000000002'::UUID,
+    'd0000000-0000-0000-0000-000000000003'::UUID
+  ] LOOP
+    FOR day_offset IN -1..1 LOOP
+      business_d := CURRENT_DATE + day_offset;
+
+      INSERT INTO public.department_session (
+        workspace_id, department_id, session_date, status,
+        planned_shifts, actual_shifts
+      ) VALUES (
+        ws_id, dept_id, business_d,
+        CASE
+          WHEN day_offset < 0 THEN 'closed'::department_session_status
+          WHEN day_offset = 0 THEN 'active'::department_session_status
+          ELSE 'upcoming'::department_session_status
+        END,
+        0, 0
+      )
+      ON CONFLICT ON CONSTRAINT uq_dept_session_date DO NOTHING
+      RETURNING department_session_id INTO sess_id;
+
+      IF sess_id IS NULL THEN
+        SELECT department_session_id INTO sess_id
+        FROM public.department_session
+        WHERE workspace_id = ws_id
+          AND department_id = dept_id
+          AND session_date = business_d;
+      END IF;
+
+      INSERT INTO public.day_line (
+        workspace_id, department_session_id, department_id, location_id,
+        business_date, planned_open, planned_close, created_by
+      ) VALUES (
+        ws_id, sess_id, dept_id, loc_id,
+        business_d, '09:00'::TIME, '23:00'::TIME, admin_pid
+      )
+      ON CONFLICT ON CONSTRAINT uq_day_line DO NOTHING;
+    END LOOP;
+  END LOOP;
+END;
+$seed_calendar$;
+
+-- Channels: news + custom + skill (department channels auto-created by trigger per dept).
+INSERT INTO public.channel (id, workspace_id, channel_type, name, description, created_by, department_id)
+VALUES
+  ('c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'news',   'Nyheter',    'Workspace-nyheter', 'f0000000-0000-0000-0000-000000000000', NULL),
+  ('c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'custom', 'Skranke',    'Helpdesk-tråder',   'f0000000-0000-0000-0000-000000000000', NULL),
+  ('c1000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'skill',  'Kompetanse', 'Tips og triks',     'f0000000-0000-0000-0000-000000000000', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- Channel messages: 5 nyheter (one per announcement kind) + 3 skranke threads.
+INSERT INTO public.channel_message (id, channel_id, workspace_id, sender_id, content, message_type)
+VALUES
+  ('cf000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Velkommen til Smartout! Vi ruller ut nye dagslinjer denne uka.', 'announcement'),
+  ('cf000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Ny meny lansert. Se oppskrifter under Kompetanse.',              'announcement'),
+  ('cf000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Maria starter i Service i dag — si hei!',                          'announcement'),
+  ('cf000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Personalfest 25. juni — meld deg på i Skranke.',                  'announcement'),
+  ('cf000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Vaktbytte fredag: Anna tar Thomas sin vakt.',                      'announcement'),
+  ('cf000000-0000-0000-0000-000000000010', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Hvem har nøkkel til kjølerommet i kveld?',                         'text'),
+  ('cf000000-0000-0000-0000-000000000011', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Kassen henger — restart hjelper ikke. Noen som har vært borti dette?', 'text'),
+  ('cf000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Trenger bytte fredag kveld — hvem kan dekke?',                      'text')
+ON CONFLICT (id) DO NOTHING;
+
+-- Announcement sidecars: one per kind (general, new_menu, new_hire, staff_event, schedule_change).
+INSERT INTO public.announcement_meta (message_id, workspace_id, kind, tier)
+VALUES
+  ('cf000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'general',         'work'),
+  ('cf000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'new_menu',        'work'),
+  ('cf000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'new_hire',        'work'),
+  ('cf000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'staff_event',     'social'),
+  ('cf000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'schedule_change', 'work')
+ON CONFLICT (message_id) DO NOTHING;
+
+-- Notifications: 4 varsler for admin, one per representative icon_type.
+INSERT INTO public.notification (workspace_id, recipient_id, title, body, icon_type, action_url)
+SELECT * FROM (VALUES
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Velkommen til Smartout',          'Du er logget inn som admin.',           'info',    '/dashboard'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Vaktbytte venter godkjenning',    'Anna har bedt om bytte fredag.',        'warning', '/dashboard/schedule'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Avvik registrert',                'Tom kjøler i Drift — sjekk i morgen.',  'error',   '/dashboard/operations'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Lønnskjøring fullført',           'April godkjent og sendt til Tripletex.', 'success', '/dashboard/payroll')
+) AS v(workspace_id, recipient_id, title, body, icon_type, action_url)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.notification n
+  WHERE n.recipient_id = 'f0000000-0000-0000-0000-000000000000'
+    AND n.title = v.title
+);
