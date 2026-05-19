@@ -12,7 +12,7 @@ import { View, Text, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Button, Input } from "@/components/ui";
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 import { strings } from "@/constants/strings";
 import { useSubmitHandoff, type HandoffPayload } from "@/hooks/mutations/use-submit-handoff";
 
@@ -117,7 +117,7 @@ const useStyles = createStyles((theme) => ({
     textAlign: "center",
   },
   submittedBanner: {
-    backgroundColor: theme.colors.success + "1A",
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
     borderRadius: theme.radius.md,
     padding: theme.spacing.card,
     alignItems: "center",

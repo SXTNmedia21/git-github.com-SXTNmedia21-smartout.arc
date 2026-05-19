@@ -15,7 +15,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { Download, Share2, Check, ChevronRight } from "lucide-react-native";
-import { createStyles, useTheme, withOpacity } from "@/theme";
+import { createStyles, useTheme, withOpacity, type ThemeColors } from "@/theme";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { strings } from "@/constants/strings";
 import { usePayslips, usePayslipDetail } from "@/hooks/queries/use-payslips";
@@ -52,24 +52,45 @@ function formatNOK(amount: number): string {
   });
 }
 
-/** Determine badge color for supplement line items */
-function getSupplementBadge(description: string): {
+/** Determine badge color for supplement line items.
+ * Accepts ThemeColors so badge backgrounds use design tokens, not raw hex.
+ */
+function getSupplementBadge(
+  description: string,
+  colors: ThemeColors,
+): {
   label: string;
   bgColor: string;
   textColor: string;
 } | null {
   const desc = description.toLowerCase();
   if (desc.includes("overtid")) {
-    return { label: "OVERTID", bgColor: "rgba(139,92,246,0.12)", textColor: "#8b5cf6" };
+    return {
+      label: "OVERTID",
+      bgColor: withOpacity(colors.brandPurple, 0.12),
+      textColor: colors.brandPurple,
+    };
   }
   if (desc.includes("kveld")) {
-    return { label: "KVELD", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+    return {
+      label: "KVELD",
+      bgColor: withOpacity(colors.brandOrange, 0.12),
+      textColor: colors.brandOrange,
+    };
   }
   if (desc.includes("helg")) {
-    return { label: "HELG", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+    return {
+      label: "HELG",
+      bgColor: withOpacity(colors.brandOrange, 0.12),
+      textColor: colors.brandOrange,
+    };
   }
   if (desc.includes("helligdag")) {
-    return { label: "HELLIGDAG", bgColor: "rgba(249,115,22,0.12)", textColor: "#f97316" };
+    return {
+      label: "HELLIGDAG",
+      bgColor: withOpacity(colors.brandOrange, 0.12),
+      textColor: colors.brandOrange,
+    };
   }
   return null;
 }
@@ -148,7 +169,7 @@ export function PayslipScreen() {
 
         {/* UTBETALT badge */}
         <View style={styles.paidBadge}>
-          <Check size={10} color="#11ad32" strokeWidth={3} />
+          <Check size={10} color={theme.colors.success} strokeWidth={3} />
           <Text style={styles.paidBadgeText}>UTBETALT</Text>
         </View>
 
@@ -196,7 +217,7 @@ export function PayslipScreen() {
 
           {/* Supplement lines with badges */}
           {supplementLines.map((line, i) => {
-            const badge = getSupplementBadge(line.description);
+            const badge = getSupplementBadge(line.description, theme.colors);
             return (
               <View key={`supp-${i}`}>
                 <View style={styles.divider} />
@@ -279,7 +300,7 @@ export function PayslipScreen() {
                     </Text>
                     {isExported && (
                       <View style={styles.historyCheck}>
-                        <Check size={12} color="#11ad32" strokeWidth={2.5} />
+                        <Check size={12} color={theme.colors.success} strokeWidth={2.5} />
                       </View>
                     )}
                   </View>
