@@ -25,6 +25,8 @@ type Ctx = {
   setHeader: (h: PageHeader | null) => void;
   tabsNode: ReactNode | null;
   setTabsNode: (node: ReactNode | null) => void;
+  actionsNode: ReactNode | null;
+  setActionsNode: (node: ReactNode | null) => void;
 };
 
 const PageHeaderContext = createContext<Ctx | null>(null);
@@ -32,17 +34,26 @@ const PageHeaderContext = createContext<Ctx | null>(null);
 export function PageHeaderProvider({ children }: { children: React.ReactNode }) {
   const [header, setHeader] = useState<PageHeader | null>(null);
   const [tabsNode, setTabsNode] = useState<ReactNode | null>(null);
+  const [actionsNode, setActionsNode] = useState<ReactNode | null>(null);
   const value = useMemo<Ctx>(
-    () => ({ header, setHeader, tabsNode, setTabsNode }),
-    [header, tabsNode],
+    () => ({ header, setHeader, tabsNode, setTabsNode, actionsNode, setActionsNode }),
+    [header, tabsNode, actionsNode],
   );
   return <PageHeaderContext.Provider value={value}>{children}</PageHeaderContext.Provider>;
 }
 
-/** Read-only consumer for the shell to render the title + tabs slots. */
-export function usePageHeader(): { header: PageHeader | null; tabsNode: ReactNode | null } {
+/** Read-only consumer for the shell to render the title + tabs + actions slots. */
+export function usePageHeader(): {
+  header: PageHeader | null;
+  tabsNode: ReactNode | null;
+  actionsNode: ReactNode | null;
+} {
   const ctx = useContext(PageHeaderContext);
-  return { header: ctx?.header ?? null, tabsNode: ctx?.tabsNode ?? null };
+  return {
+    header: ctx?.header ?? null,
+    tabsNode: ctx?.tabsNode ?? null,
+    actionsNode: ctx?.actionsNode ?? null,
+  };
 }
 
 /**
@@ -82,4 +93,23 @@ export function usePageTabs(node: ReactNode | null): void {
     };
     // eslint-disable-next-line -- exhaustive-deps: node identity intentionally drives updates
   }, [node, ctx?.setTabsNode]);
+}
+
+/**
+ * Publish a page's right-aligned action cluster (date controls, view toggles,
+ * page-scoped CTAs) to the shell action bar. The shell renders the node
+ * verbatim on the right side of the action bar.
+ *
+ * Pass `null` to clear.
+ */
+export function usePageActions(node: ReactNode | null): void {
+  const ctx = useContext(PageHeaderContext);
+  useEffect(() => {
+    if (!ctx) return;
+    ctx.setActionsNode(node);
+    return () => {
+      ctx.setActionsNode(null);
+    };
+    // eslint-disable-next-line -- exhaustive-deps: node identity intentionally drives updates
+  }, [node, ctx?.setActionsNode]);
 }

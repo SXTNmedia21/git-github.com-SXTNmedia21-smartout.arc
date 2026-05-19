@@ -53,7 +53,11 @@ import { useCalendarBookings, useCalendarEvents, useCalendarSettings } from "../
 import type { Booking, CalendarEvent } from "../_lib/types";
 import { useCompanyHours } from "@/app/dashboard/website/_hooks/use-company-hours";
 import { useCalendarOverlays } from "../_hooks/use-calendar-overlays";
-import { usePageTitle, usePageTabs } from "@/components/dashboard/PageHeaderContext";
+import {
+  usePageTitle,
+  usePageTabs,
+  usePageActions,
+} from "@/components/dashboard/PageHeaderContext";
 
 const tabLoading = () => <SkeletonCard className="min-h-96" />;
 
@@ -246,6 +250,62 @@ export function CalendarPageShell() {
     [reduce],
   );
 
+  // Page-scoped right-aligned action cluster — published to shell action bar
+  // via usePageActions per Pontus 2026-05-19 (moved up from page body wrapper
+  // that previously sat at top of CalendarPageShell return).
+  const actionsNode = useMemo(
+    () => (
+      <div className="flex items-center gap-2">
+        <AnimatePresence mode="wait" initial={false}>
+          {isCalendar ? (
+            <motion.div
+              key="calendar-controls"
+              {...controlsFade}
+              style={{ opacity: 1, transform: "none" }}
+              className="flex items-center gap-2"
+            >
+              <Button size="sm" variant="outline" className="rounded-lg" onClick={handleToday}>
+                I dag
+              </Button>
+              <div className="flex items-center">
+                <Button size="icon" variant="ghost" onClick={handlePrev} aria-label="Forrige">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={handleNext} aria-label="Neste">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                    <CalendarDays className="h-4 w-4" />
+                    <span className="text-foreground text-sm font-semibold capitalize">
+                      {headerLabel}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-0">
+                  <Calendar mode="single" selected={cursor} onSelect={(d) => d && setCursor(d)} />
+                </PopoverContent>
+              </Popover>
+              <ViewToggle view={view} setView={setView} />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Innstillinger"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
+    [isCalendar, controlsFade, handleToday, handlePrev, handleNext, headerLabel, cursor, view],
+  );
+  usePageActions(actionsNode);
+
   return (
     <ScheduleUIProvider>
       <>
@@ -270,64 +330,7 @@ export function CalendarPageShell() {
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Page Header — title published to top shell via usePageTitle */}
-          <div className="mb-5 flex items-end justify-end gap-4">
-            <div className="flex items-center gap-2">
-              <AnimatePresence mode="wait" initial={false}>
-                {isCalendar ? (
-                  <motion.div
-                    key="calendar-controls"
-                    {...controlsFade}
-                    style={{ opacity: 1, transform: "none" }}
-                    className="flex items-center gap-2"
-                  >
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-lg"
-                      onClick={handleToday}
-                    >
-                      I dag
-                    </Button>
-                    <div className="flex items-center">
-                      <Button size="icon" variant="ghost" onClick={handlePrev} aria-label="Forrige">
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={handleNext} aria-label="Neste">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-2 rounded-lg">
-                          <CalendarDays className="h-4 w-4" />
-                          <span className="text-foreground text-sm font-semibold capitalize">
-                            {headerLabel}
-                          </span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="end" className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={cursor}
-                          onSelect={(d) => d && setCursor(d)}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <ViewToggle view={view} setView={setView} />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setSettingsOpen(true)}
-                aria-label="Innstillinger"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          {/* Page Header — title via usePageTitle, action cluster via usePageActions */}
 
           {/* Tabs — strip moved to shell breadcrumb via usePageTabs; body keeps Tabs context */}
           <Tabs

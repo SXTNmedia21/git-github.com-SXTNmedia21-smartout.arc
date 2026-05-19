@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import {
@@ -128,7 +129,7 @@ export function CalendarTab({
         : format(startOfMonth(cursor), "yyyy-MM");
 
   return (
-    <div className="border-border bg-card relative flex flex-col overflow-hidden rounded-xl border">
+    <div className="border-border bg-card relative flex flex-col rounded-xl border">
       <div className="min-h-[36rem]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={`${view}-${periodKey}`} {...swap}>
@@ -205,6 +206,14 @@ function DayView({
   const key = isoKey(date);
   const hasOverlayStrip =
     (showHolidays && !!holidaysByDate[key]) || (showShifts && (shiftsByDate[key] ?? 0) > 0);
+
+  // Scroll-to-current-hour parity with WeekView.
+  const currentHour = new Date().getHours();
+  const nowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    nowRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, []);
+
   return (
     <div className="grid grid-cols-[4rem_1fr]">
       {/* Overlay top-strip: shows holiday name + shift count for this day */}
@@ -224,7 +233,8 @@ function DayView({
         {HOURS.map((h) => (
           <div
             key={h}
-            className="text-muted-foreground border-border h-14 border-b px-2 pt-1 text-[10px]"
+            ref={h === currentHour ? nowRef : undefined}
+            className="text-muted-foreground border-border h-14 scroll-mt-16 border-b px-2 pt-1 text-[10px]"
           >
             {String(h).padStart(2, "0")}:00
           </div>
@@ -322,9 +332,19 @@ function WeekView({
   const weekStart = startOfWeek(date, WEEK_OPTS);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Google-Calendar-style: scroll the time-grid so the current hour lands
+  // near the top of the visible area on mount + view change. Ref is on the
+  // hour-label row matching the current local hour; scrollIntoView climbs
+  // to the nearest scrolling ancestor (CalendarPageShell's overflow-y-auto).
+  const currentHour = new Date().getHours();
+  const nowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    nowRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, []);
+
   return (
     <div>
-      <div className="border-border grid grid-cols-[4rem_repeat(7,1fr)] border-b">
+      <div className="border-border bg-card sticky top-0 z-20 grid grid-cols-[4rem_repeat(7,1fr)] border-b">
         <div />
         {days.map((d) => {
           const row = hoursForDate(d, companyHours);
@@ -376,7 +396,8 @@ function WeekView({
           {HOURS.map((h) => (
             <div
               key={h}
-              className="text-muted-foreground border-border h-14 border-b px-2 pt-1 text-[10px]"
+              ref={h === currentHour ? nowRef : undefined}
+              className="text-muted-foreground border-border h-14 scroll-mt-16 border-b px-2 pt-1 text-[10px]"
             >
               {String(h).padStart(2, "0")}:00
             </div>

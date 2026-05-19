@@ -1530,6 +1530,7 @@ function DashboardShellInner({
                       <BreadcrumbActiveSlot />
 
                       <div className="ml-auto flex items-center gap-5">
+                        <PageActionsSlot />
                         {/* Schedule page specific controls */}
                         {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
                           <>
@@ -1848,6 +1849,19 @@ function BreadcrumbActiveSlot() {
   // Pages that publish neither tabs nor title render no breadcrumb element —
   // matches Pontus 2026-05-19: no URL-derived "Oversikt"-style fallback pill.
   return null;
+}
+
+/**
+ * PageActionsSlot — renders the page-published right-aligned action cluster
+ * (date controls, view toggles, page-scoped CTAs) inside the action bar.
+ * Pages publish via usePageActions(); shell renders verbatim. Returns null
+ * when nothing published so siblings (schedule layout toggle, etc.) keep
+ * their natural placement.
+ */
+function PageActionsSlot() {
+  const { actionsNode } = usePageHeader();
+  if (!actionsNode) return null;
+  return <>{actionsNode}</>;
 }
 
 /**
