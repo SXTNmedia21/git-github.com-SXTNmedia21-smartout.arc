@@ -1262,6 +1262,8 @@ function DashboardShellInner({
                     </div>
 
                     <NotificationBell profileId={profileId ?? undefined} />
+                    {/* +Ny dropdown — moved from action bar per Pontus 2026-05-19 */}
+                    {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
                     {/* UserMenu moved to sidebar bottom (below admin toggle) — Pontus 2026-05-19 */}
                   </div>
                 </header>
@@ -1783,8 +1785,7 @@ function DashboardShellInner({
 
                         {/* Search bar moved to top header (centered) — Pontus 2026-05-19 annotation C. */}
 
-                        {/* Global "Ny" create dropdown — always visible, far right */}
-                        {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
+                        {/* Global "Ny" moved to top header right — Pontus 2026-05-19 */}
                       </div>
                     </div>
 
