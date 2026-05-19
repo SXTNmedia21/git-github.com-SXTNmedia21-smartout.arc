@@ -15,13 +15,14 @@
  *
  * Spec: docs/design/sitemap/web/00-CANONICAL.md §3 (Vaktplan tabs).
  */
+import { useMemo } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { SCHEDULE_TAB_DEFS } from "../_lib/schedule-tabs";
 
 const BASE_PATH = "/dashboard/schedule";
 
-// Map tab key → i18n sub-key in "schedule.tabs.*"
 const TAB_LABEL_KEY: Record<string, "vaktplan" | "vaktbors" | "ferieplan"> = {
   "": "vaktplan",
   marketplace: "vaktbors",
@@ -31,16 +32,22 @@ const TAB_LABEL_KEY: Record<string, "vaktplan" | "vaktbors" | "ferieplan"> = {
 export function ScheduleTabNav() {
   const { t } = useTranslation("dashboard");
 
-  return (
-    <PageTabNav
-      tabs={SCHEDULE_TAB_DEFS.map((tab) => ({
-        key: tab.key,
-        label: t(`schedule.tabs.${TAB_LABEL_KEY[tab.key] ?? "vaktplan"}`),
-        icon: tab.icon,
-      }))}
-      variant="route"
-      basePath={BASE_PATH}
-      ariaLabel={t("schedule.tabs.aria_label")}
-    />
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={SCHEDULE_TAB_DEFS.map((tab) => ({
+          key: tab.key,
+          label: t(`schedule.tabs.${TAB_LABEL_KEY[tab.key] ?? "vaktplan"}`),
+          icon: tab.icon,
+        }))}
+        variant="route"
+        basePath={BASE_PATH}
+        ariaLabel={t("schedule.tabs.aria_label")}
+      />
+    ),
+    [t],
   );
+  usePageTabs(tabsNode);
+
+  return null;
 }

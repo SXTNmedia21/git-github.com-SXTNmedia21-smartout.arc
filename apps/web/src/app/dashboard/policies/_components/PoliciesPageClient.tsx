@@ -17,6 +17,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { BookOpen, ShieldCheck, Users, Plus } from "lucide-react";
 import { KpiAccentTile } from "@smartout/ui";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import { PolicyTypeBadge } from "./PolicyTypeBadge";
 import { PolicyCreateDialog } from "./PolicyCreateDialog";
@@ -119,13 +120,8 @@ export function PoliciesPageClient({ initialData }: { initialData: PoliciesPageI
         </button>
       </div>
 
-      {/* Page tab nav — People-module pill row */}
-      <PageTabNav
-        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
-        active={pathname ?? "/dashboard/policies"}
-        onChange={(href) => router.push(href)}
-        ariaLabel="Ansatte-seksjoner"
-      />
+      {/* Page tab nav published to shell breadcrumb via usePageTabs */}
+      <PoliciesTabsPublisher pathname={pathname ?? "/dashboard/policies"} router={router} />
 
       {/* KPI strip */}
       <div
@@ -284,4 +280,26 @@ function PolicyRow({ policy }: { policy: PolicyRow }) {
       </td>
     </tr>
   );
+}
+
+function PoliciesTabsPublisher({
+  pathname,
+  router,
+}: {
+  pathname: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        active={pathname}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
+    ),
+    [pathname, router],
+  );
+  usePageTabs(tabsNode);
+  return null;
 }

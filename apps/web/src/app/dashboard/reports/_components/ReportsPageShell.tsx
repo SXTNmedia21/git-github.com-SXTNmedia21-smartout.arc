@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useCallback, useContext } from "react";
+import { useState, useCallback, useContext, useMemo } from "react";
 import {
   BarChart3,
   Users,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import dynamic from "next/dynamic";
@@ -271,12 +272,9 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
         onValueChange={(v) => setActiveTab(v as ReportsTab)}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <PageTabNav
-          tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
-          active={activeTab}
+        <ReportsTabsPublisher
+          activeTab={activeTab}
           onChange={(v) => setActiveTab(v as ReportsTab)}
-          className="mb-5"
-          ariaLabel="Rapport-seksjoner"
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
@@ -338,4 +336,26 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
       />
     </div>
   );
+}
+
+function ReportsTabsPublisher({
+  activeTab,
+  onChange,
+}: {
+  activeTab: string;
+  onChange: (v: string) => void;
+}) {
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
+        active={activeTab}
+        onChange={onChange}
+        ariaLabel="Rapport-seksjoner"
+      />
+    ),
+    [activeTab, onChange],
+  );
+  usePageTabs(tabsNode);
+  return null;
 }

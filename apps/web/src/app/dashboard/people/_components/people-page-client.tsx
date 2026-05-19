@@ -7,6 +7,7 @@ import { KpiAccentTile, cn } from "@smartout/ui";
 import { PeopleDataTable } from "./people-data-table";
 import { PeopleVoiceToolsBridge } from "./people-voice-tools-bridge";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { fetchWorkspacePeople } from "@smartout/utils";
@@ -162,13 +163,8 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
         </div>
       </div>
 
-      {/* Page tab nav — same pill-row as Oversikt */}
-      <PageTabNav
-        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
-        active={pathname ?? "/dashboard/people"}
-        onChange={(href) => router.push(href)}
-        ariaLabel="Ansatte-seksjoner"
-      />
+      {/* Page tab nav published to shell breadcrumb via usePageTabs */}
+      <PeopleTabsPublisher pathname={pathname ?? "/dashboard/people"} router={router} />
 
       {/* KPI strip — compact KpiAccentTile */}
       <div
@@ -246,4 +242,26 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
       </div>
     </div>
   );
+}
+
+function PeopleTabsPublisher({
+  pathname,
+  router,
+}: {
+  pathname: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        active={pathname}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
+    ),
+    [pathname, router],
+  );
+  usePageTabs(tabsNode);
+  return null;
 }

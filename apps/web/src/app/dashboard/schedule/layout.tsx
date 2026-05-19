@@ -22,9 +22,11 @@ import { ScheduleTabNav } from "./_components/ScheduleTabNav";
 
 export default function ScheduleLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-4">
+    <>
+      {/* ScheduleTabNav publishes itself to the shell breadcrumb via usePageTabs.
+          Component renders null in-place; kept mounted to scope publish lifecycle. */}
       <ScheduleTabNav />
       {children}
-    </div>
+    </>
   );
 }
