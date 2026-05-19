@@ -469,7 +469,10 @@ Recommended sortie sequence (each independent, each reversible):
 | Sortie | Scope | Effort | Touch |
 |---|---|---|---|
 | **SM-1** ✅ | Sidebar config rewrite — 11-flat structure (visual files preserved per "kun navigation" scope-tightening 2026-05-19) | M (executed ~30min) | `sidebar-config.ts`, `nb/dashboard.json`, `en/dashboard.json` |
-| **SM-2** | Ansatte hub — add Roller / Trening / move Contracts under `/people/contracts` | M (6h) | `/people/*` |
+| **SM-2** ✅ | Ansatte hub — Roller page (profile.role D2 query) + Trening placeholder + tabs Liste·Roller·Kontrakter·Trening + Invitert filter chip. Contracts URL move deferred to SM-2-followup-contracts. | M (executed ~2h) | `/people/roles`, `/people/training`, `_lib/people-tabs.ts`, `people-page-client.tsx`, i18n |
+| **SM-2-followup-contracts** | Move `/dashboard/contracts/*` → `/dashboard/people/contracts/*` with redirects. 20+ existing refs (API routes, drawer imports, layout deep-links, tests). | M (4h) | broad |
+| **SM-2-followup-training** | Wire Trening page to `protocol_assignment` + `knowledge_test`. Workforce readiness matrix. | M (5h) | `/people/training` |
+| **SM-2-followup-positions** | Decide if hospitality job-title catalog (currently inline in ConfirmRoles.tsx wizard) deserves a separate surface. Backed by DB table `workspace_position` if yes. | M (5h) | wizard + new surface |
 | **SM-3** | Planlegging hub — gather Kalender, Årshjul, Eventer, Bookings | M (5h) | `/planning` (new), absorbs `/year-wheel`, `/season` |
 | **SM-4** | Vaktplan tab structure + Vaktbørs + Ferieplan | M (4h) | `/schedule` |
 | **SM-5** | Chat + Kommunikasjon split | M (4h) | `/chat` (new), `/komm` restructure |
