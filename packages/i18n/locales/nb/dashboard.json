@@ -1162,5 +1162,12 @@
       "no_dept_heading": "Ingen avdeling knyttet",
       "no_dept_body": "Du har ingen avdeling registrert på profilen din, og arbeidsrommet har ingen avdelinger satt opp. Kontakt admin for å få tildelt en avdeling."
     }
+  },
+  "people": {
+    "tab_list": "Liste",
+    "tab_roles": "Roller",
+    "tab_contracts": "Kontrakter",
+    "tab_training": "Trening",
+    "filter_invited": "Invitert"
   }
 }

@@ -1161,5 +1161,12 @@
       "no_dept_heading": "No department linked",
       "no_dept_body": "You have no department registered on your profile, and the workspace has no departments set up. Contact admin to be assigned a department."
     }
+  },
+  "people": {
+    "tab_list": "List",
+    "tab_roles": "Roles",
+    "tab_contracts": "Contracts",
+    "tab_training": "Training",
+    "filter_invited": "Invited"
   }
 }

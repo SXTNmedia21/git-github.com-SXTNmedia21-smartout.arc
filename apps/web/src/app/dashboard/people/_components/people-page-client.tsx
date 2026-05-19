@@ -3,7 +3,7 @@
 import { useState, useContext, useCallback, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Users, Star, ShieldCheck } from "lucide-react";
-import { KpiAccentTile } from "@smartout/ui";
+import { KpiAccentTile, cn } from "@smartout/ui";
 import { PeopleDataTable } from "./people-data-table";
 import { PeopleVoiceToolsBridge } from "./people-voice-tools-bridge";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
@@ -13,7 +13,7 @@ import { fetchWorkspacePeople } from "@smartout/utils";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import type { Employee, Department, ProfileRole } from "./types";
 
-type MetricFilter = "all" | "active" | "readiness";
+type MetricFilter = "all" | "active" | "readiness" | "invites";
 
 export type PeoplePageInitialData = {
   employees: Employee[];
@@ -210,6 +210,26 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
           onClick={() => handleCardClick("readiness")}
         />
       </div>
+
+      {/* Invitert filter chip — shown only when pending invitations exist */}
+      {invitations.length > 0 && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Status-filter">
+          <button
+            type="button"
+            onClick={() => setActiveFilter((prev) => (prev === "invites" ? "all" : "invites"))}
+            data-active={activeFilter === "invites" ? "true" : "false"}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              activeFilter === "invites"
+                ? "border-foreground/20 bg-foreground text-background"
+                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted",
+            )}
+          >
+            Invitert
+            <span className="ml-1.5 font-mono tabular-nums opacity-70">{invitations.length}</span>
+          </button>
+        </div>
+      )}
 
       {/* Data Table */}
       <div className="relative flex min-h-0 flex-1 flex-col">

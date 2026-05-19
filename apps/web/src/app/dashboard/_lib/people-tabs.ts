@@ -1,4 +1,4 @@
-import { Users, FileSignature, BookOpen, Send } from "lucide-react";
+import { Users, ShieldUser, FileSignature, GraduationCap } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export type PeopleTabDef = {
@@ -7,13 +7,28 @@ export type PeopleTabDef = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-// Tab keys MUST point to real routes. "Policys" routes to HMS governance —
-// the canonical home for policy authoring. "Innkalling" gets a dedicated
-// admin-only invitations view so the tab has a real destination (and active
-// state matches via pathname).
+/**
+ * Ansatte hub tabs per docs/design/sitemap/web/00-CANONICAL.md §3.
+ *
+ * Tab keys are full pathnames so PageTabNav variant="route" can drive them
+ * directly. Active state derived from pathname match.
+ *
+ * - Liste: master person table + status filters (Aktive/Trainee/Invitert/...)
+ * - Roller: profile.role distribution per workspace (SM-2 phase A shipped)
+ * - Kontrakter: cross-jumps to /dashboard/contracts until SM-2-followup-contracts
+ *   moves it under /people/contracts. Documented temporary cross-jump.
+ * - Trening: workforce readiness placeholder (SM-2-followup-training wires content)
+ *
+ * Dropped per canonical spec:
+ * - Policys: was cross-jump to /hms/governance — spec §3.3 forbids
+ *   cross-group navigation tabs (one hub = one sidebar group).
+ * - Innkalling: semantics moved to calendar event in Planlegging (spec §5.1).
+ *   Workspace-invitation state surfaces as Invitert filter chip on Liste
+ *   (spec §5.3 + §6).
+ */
 export const PEOPLE_TAB_DEFS: readonly PeopleTabDef[] = [
-  { key: "/dashboard/people", label: "Ansatte", icon: Users },
+  { key: "/dashboard/people", label: "Liste", icon: Users },
+  { key: "/dashboard/people/roles", label: "Roller", icon: ShieldUser },
   { key: "/dashboard/contracts", label: "Kontrakter", icon: FileSignature },
-  { key: "/dashboard/hms/governance", label: "Policys", icon: BookOpen },
-  { key: "/dashboard/people/invitations", label: "Innkalling", icon: Send },
+  { key: "/dashboard/people/training", label: "Trening", icon: GraduationCap },
 ] as const;
