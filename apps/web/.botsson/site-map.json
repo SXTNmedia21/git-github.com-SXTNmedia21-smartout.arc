@@ -330,8 +330,29 @@
       ]
     },
     {
+      "path": "/dashboard/chat",
+      "purpose": "Direkte meldinger og gruppechat med kolleger — uformell 1:1 og gruppekommunikasjon. Promotert til eget toppnivå-punkt i sidefeltet (SM-5).",
+      "module": "Communication",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "owns_chat_surface": true,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "createChat",
+          "description": "Create a 1:1 direct-message channel with another workspace member by profile_id. If the DM already exists, it returns the existing channel_id. Use when the user says 'start chat med NN', 'send DM til NN'. The caller must look up the profile_id first via the people directory."
+        }
+      ],
+      "suggested_prompts": [
+        "Start en DM med [navn]",
+        "Hvem kan jeg chatte med?",
+        "Åpne chat med teamet"
+      ]
+    },
+    {
       "path": "/dashboard/komm",
-      "purpose": "Kanaler, direktemeldinger og talesamtaler — send meldinger, se historikk og bli med i aktive calls.",
+      "purpose": "Kommunikasjon — fire faner: Kanaler (kanaler, DM, tale), Skranke (helpdesk), Nyheter (kunngjøringer), Varsler (notifications).",
+      "tabs": ["kanaler", "skranke", "nyheter", "varsler"],
       "module": "Communication",
       "tier": 1,
       "access": ["owner", "admin", "manager", "employee"],
@@ -459,8 +480,10 @@
       ]
     },
     {
-      "path": "/dashboard/notifications",
-      "purpose": "Alle varsler om vakter, oppgaver, avvik og kontrakter — samlet på ett sted. Klikk for å gå til kilden.",
+      "path": "/dashboard/komm/varsler",
+      "purpose": "Varsler — alle varsler om vakter, oppgaver, avvik og kontrakter samlet på ett sted. Tab under Kommunikasjon (SM-5). Gammel sti /dashboard/notifications redirecter hit (307).",
+      "deprecated_path": "/dashboard/notifications",
+      "redirects_from": "/dashboard/notifications",
       "module": "Core",
       "tier": 3,
       "access": ["owner", "admin", "manager", "employee"],
