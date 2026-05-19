@@ -32,8 +32,8 @@ export default function KommLayout({ children }: { children: React.ReactNode }) 
   }));
 
   return (
-    <div className="flex flex-col">
-      <div className="border-border border-b px-6 pt-4">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="px-4 pt-3 md:px-6 md:pt-4">
         <PageTabNav
           variant="route"
           tabs={tabs}
@@ -41,7 +41,7 @@ export default function KommLayout({ children }: { children: React.ReactNode }) 
           ariaLabel={t("shell.title")}
         />
       </div>
-      <div className="flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

@@ -559,13 +559,13 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   /* ---- Loading state ---- */
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="mb-6">
-          <div className="bg-muted h-7 w-24 animate-pulse rounded" />
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
+        <div className="mb-5">
+          <div className="bg-muted h-9 w-32 animate-pulse rounded" />
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-muted h-36 animate-pulse rounded-xl" />
+            <div key={i} className="bg-muted h-36 animate-pulse rounded-2xl" />
           ))}
         </div>
       </div>
@@ -575,9 +575,11 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   /* ---- Empty state ---- */
   if (!newsChannel || messages.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
+            {t("nyheter.title")}
+          </h1>
           <div className="flex items-center gap-2">
             {canCompose && newsChannel && (
               <Button size="sm" onClick={() => setComposeOpen(true)}>
@@ -608,10 +610,12 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   return (
     <>
       <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={null} />
-      <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
         {/* Header row */}
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
+            {t("nyheter.title")}
+          </h1>
           <div className="flex items-center gap-2">
             <Select defaultValue="all">
               <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">

@@ -179,7 +179,7 @@ export function VarslerClient() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
       {/* Harness bridge — registers Botsson tools for this surface */}
       <NotificationsToolsBridge
         notifications={notifications}
@@ -189,15 +189,19 @@ export function VarslerClient() {
         markAllAsRead={() => markAllAsRead.mutate()}
         setActiveFilter={setActiveFilter}
       />
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="font-heading text-foreground text-2xl font-semibold">{t("page.title")}</h1>
-          {unreadCount > 0 && (
-            <span className="bg-destructive text-destructive-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
+      {/* Header — Oversikt design system */}
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
+              {t("page.title")}
+            </h1>
+            {unreadCount > 0 && (
+              <span className="bg-destructive text-destructive-foreground flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </div>
         </div>
 
         {unreadCount > 0 && (
