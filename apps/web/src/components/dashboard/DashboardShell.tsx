@@ -1262,7 +1262,7 @@ function DashboardShellInner({
                     </div>
 
                     <NotificationBell profileId={profileId ?? undefined} />
-                    <UserMenu isDark={isDark} />
+                    {/* UserMenu moved to sidebar bottom (below admin toggle) — Pontus 2026-05-19 */}
                   </div>
                 </header>
 
@@ -1502,6 +1502,11 @@ function DashboardShellInner({
                             />
                           </div>
                         </button>
+
+                        {/* UserMenu — moved from top header per Pontus 2026-05-19. */}
+                        <div className="border-border mt-2 border-t pt-2">
+                          <UserMenu isDark={isDark} />
+                        </div>
                       </div>
                     </TooltipProvider>
                   </aside>
