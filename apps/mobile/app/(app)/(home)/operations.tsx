@@ -13,7 +13,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
   ChevronLeft,
@@ -125,13 +125,27 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
 
 /* ── Main ── */
 
+function parseDateParam(raw: string | string[] | undefined): Date {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v) return new Date();
+  const parsed = new Date(`${v}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function parseFilterParam(raw: string | string[] | undefined): FilterKey {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  const allowed: FilterKey[] = ["all", "tasks", "shifts", "bookings", "notes"];
+  return allowed.includes(v as FilterKey) ? (v as FilterKey) : "all";
+}
+
 export default function OperationsScreen() {
   const s = useStyles();
   const theme = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ date?: string; filter?: string }>();
 
-  const [selected, setSelected] = useState(new Date());
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [selected, setSelected] = useState(() => parseDateParam(params.date));
+  const [filter, setFilter] = useState<FilterKey>(() => parseFilterParam(params.filter));
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
 
   const { data: feed, isLoading, isError, refetch } = useOperationsFeed(selected);

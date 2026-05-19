@@ -355,6 +355,11 @@
       "error_id": "Error ID: {digest}",
       "back_to_dashboard": "Back to dashboard",
       "retry": "Try again"
+    },
+    "document_drop": {
+      "drop_here": "Drag and drop documents here",
+      "or_click": "or click to choose files",
+      "hint": "PDF, DOCX, XLSX, CSV, images · Max {max_files} files, {max_mb} MB per file"
     }
   },
   "steps": {

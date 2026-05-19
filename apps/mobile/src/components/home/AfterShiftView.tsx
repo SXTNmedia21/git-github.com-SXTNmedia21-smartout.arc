@@ -1,22 +1,31 @@
 /**
- * AfterShiftView — "Bra jobba!" post-shift summary.
+ * AfterShiftView — phase "VENTER PÅ OPPGJØR" handoff layout.
  *
- * Layout:
- * 1. Hero — "Bra jobba, Sofia!" + subtitle
- * 2. Bento grid — hours worked + points earned
- * 3. Deviation badge (if any)
- * 4. Confirm hours — planned vs registered + confirm/dispute
- * 5. Handoff textarea
- * 6. "Ferdig" CTA
+ * Mirrors docs/design/day-handoff/source/day/mobile-day.jsx →
+ * `MobileHomeAfter`. Anna-perspective:
+ *  1. Phase pill "VENTER PÅ OPPGJØR" + greeting + shift caption
+ *  2. Card 1 — green check "Vakten er ferdig" · Instrument-Serif "God jobb i dag."
+ *     · klokket-ut tid · 3-col stats inset (TIMER / LØNN / TILLEGG)
+ *  3. Card 2 (amber-tinted) — "Venter på oppgjør" + body (leder godkjenner)
+ *  4. Card 3 — NESTE VAKT mono time + dept caption
+ *
+ * Real-data: timeEntry (punch_out + elapsed), shift (work_hours), useShiftPhase
+ * (nextShift), useDutyLeader (leader-name for "X godkjenner").
+ *
+ * Note: per CLAUDE.md memory L-lønnsgrunnlag the "LØNN" label is an estimated
+ * lønnsgrunnlag (basis), not a payslip. Label kept to match handoff design;
+ * rename to "GRUNNLAG" if Phase 4 spec lands.
  */
 
-import React, { useState, useCallback } from "react";
-import { View, Text, ScrollView, TextInput, Pressable } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { AlertTriangle, Clock, Send } from "lucide-react-native";
+import { Check, Clock } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
-import { strings } from "@/constants/strings";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
+import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
@@ -25,6 +34,12 @@ type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
 type AfterShiftViewProps = {
   shift: ScheduleShift | null;
   timeEntry: TimeEntry;
+  /**
+   * Optional workflow callbacks — when provided, appends a handoff textarea
+   * + confirm/dispute action bar below the passive cards. Used by
+   * ShiftClockView's after_shift phase. Home (`(home)/index.tsx`) omits
+   * these so the surface stays passive ("Venter på oppgjør" only).
+   */
   onSubmitHandoff?: (text: string) => void;
   submittingHandoff?: boolean;
   onConfirmHours?: () => void;
@@ -32,12 +47,43 @@ type AfterShiftViewProps = {
   onDisputeHours?: () => void;
 };
 
-function formatDuration(start: string, end: string): string {
-  const diff = Math.max(0, new Date(end).getTime() - new Date(start).getTime());
-  const totalMin = Math.floor(diff / 60_000);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return `${h}t ${m.toString().padStart(2, "0")}m`;
+const HOURLY_RATE_FALLBACK = 220;
+const DAY_LONG = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function clockHM(time: string): string {
+  return time.slice(0, 5);
+}
+
+function clockFromIso(iso: string): string {
+  const d = new Date(iso);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function formatNok(kr: number): string {
+  return new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 }).format(kr);
+}
+
+function hoursBetween(start: string, end: string): number {
+  return Math.max(0, (new Date(end).getTime() - new Date(start).getTime()) / 3_600_000);
+}
+
+function freeHoursUntil(next: ScheduleShift, fromPunchOut: string | null | undefined): string {
+  if (!fromPunchOut) return "";
+  const clean = next.start_time.replace(/[Z+-].*$/, "");
+  const startMs = new Date(`${next.shift_date}T${clean}`).getTime();
+  const diff = startMs - new Date(fromPunchOut).getTime();
+  if (diff <= 0) return "";
+  const h = Math.floor(diff / 3_600_000);
+  return `${h}t fri`;
+}
+
+function dayLabelOf(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return DAY_LONG[d.getDay()] ?? "";
 }
 
 export function AfterShiftView({
@@ -51,20 +97,37 @@ export function AfterShiftView({
 }: AfterShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
+  const { data: profile } = useMyProfile();
+  const { nextShift } = useShiftPhase();
+  const { data: leader } = useDutyLeader(
+    shift?.department_id ?? null,
+    profile?.workspace_id ?? null,
+  );
+
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
+  const showWorkflow = !!(onSubmitHandoff || onConfirmHours || onDisputeHours);
   const [handoffText, setHandoffText] = useState("");
   const [handoffSent, setHandoffSent] = useState(false);
 
-  const registeredTime = timeEntry.punch_out
-    ? formatDuration(timeEntry.punch_in, timeEntry.punch_out)
-    : "—";
-  const plannedTime = shift ? `${shift.work_hours}t 00m` : "—";
-
   const handleSubmitHandoff = useCallback(() => {
-    if (!handoffText.trim()) return;
+    const trimmed = handoffText.trim();
+    if (!trimmed) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onSubmitHandoff?.(handoffText.trim());
+    onSubmitHandoff?.(trimmed);
     setHandoffSent(true);
   }, [handoffText, onSubmitHandoff]);
+
+  const punchOutClock = timeEntry.punch_out ? clockFromIso(timeEntry.punch_out) : "—";
+
+  const workedH = useMemo(() => {
+    if (!timeEntry.punch_out) return 0;
+    return hoursBetween(timeEntry.punch_in, timeEntry.punch_out);
+  }, [timeEntry.punch_in, timeEntry.punch_out]);
+
+  const estimatedNok = useMemo(() => formatNok(workedH * HOURLY_RATE_FALLBACK), [workedH]);
+
+  const leaderName = leader?.name?.split(" ")[0] ?? "leder";
+  const oppgjorBody = `${leaderName} godkjenner dagen før timene låses. Du får varsel når oppgjøret er ferdig.`;
 
   return (
     <ScrollView
@@ -72,100 +135,97 @@ export function AfterShiftView({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero */}
-      <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.hero}>
-        <Text style={styles.heroTitle}>Bra jobba!</Text>
-        <Text style={styles.heroSubtitle}>
-          Din vakt er nå fullført. Her er dagens oppsummering.
-        </Text>
+      {/* Phase header */}
+      <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.header}>
+        <View style={styles.phasePill}>
+          <View style={[styles.phaseDot, { backgroundColor: theme.colors.warning }]} />
+          <Text style={[styles.phaseLabel, { color: theme.colors.warning }]}>
+            VENTER PÅ OPPGJØR
+          </Text>
+        </View>
+        <Text style={styles.greeting}>God dag{firstName ? `, ${firstName}` : ""}</Text>
+        {shift ? (
+          <Text style={styles.greetingCaption}>
+            Din vakt{" "}
+            <Text style={styles.greetingTime}>
+              {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
+            </Text>
+            {shift.zone ? ` · ${shift.zone}` : ""}
+          </Text>
+        ) : null}
       </Animated.View>
 
-      {/* Bento stats */}
-      <Animated.View
-        entering={FadeInDown.delay(150).duration(400).springify()}
-        style={styles.statsGrid}
-      >
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>TIMER</Text>
-          <Text style={styles.statValue}>{registeredTime}</Text>
+      {/* Card 1 — Vakten er ferdig */}
+      <Animated.View entering={FadeInDown.delay(150).duration(400).springify()} style={styles.card}>
+        <View style={styles.doneLabelRow}>
+          <Check size={12} color={theme.colors.success} strokeWidth={3} />
+          <Text style={[styles.doneLabel, { color: theme.colors.success }]}>VAKTEN ER FERDIG</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>POENG</Text>
-          <Text style={[styles.statValue, styles.statValueAccent]}>+45</Text>
+        <Text style={styles.bigStatement}>God jobb i dag.</Text>
+        <Text style={styles.doneCaption}>Du klokket ut {punchOutClock}.</Text>
+
+        <View style={styles.statsInset}>
+          <SummaryStat label="TIMER" value={`${workedH.toFixed(1).replace(".", ",")}t`} />
+          <View style={styles.statDivider} />
+          <SummaryStat label="LØNN" value={estimatedNok} />
+          <View style={styles.statDivider} />
+          <SummaryStat label="TILLEGG" value="—" />
         </View>
       </Animated.View>
 
-      {/* Deviation badge */}
+      {/* Card 2 — Venter på oppgjør (amber-tint) */}
       <Animated.View
         entering={FadeInDown.delay(250).duration(400).springify()}
-        style={styles.deviationBadge}
+        style={[
+          styles.card,
+          {
+            backgroundColor: withOpacity(theme.colors.warning, 0.06),
+            borderColor: withOpacity(theme.colors.warning, 0.18),
+          },
+        ]}
       >
-        <AlertTriangle size={20} color={theme.colors.destructive} strokeWidth={2} />
-        <View>
-          <Text style={styles.deviationTitle}>1 avvik rapportert</Text>
-          <Text style={styles.deviationDetail}>Kjøleskap A · Temperatur-logg</Text>
+        <View style={styles.oppgjorTitleRow}>
+          <Clock size={16} color={theme.colors.warning} strokeWidth={1.6} />
+          <Text style={styles.oppgjorTitle}>Venter på oppgjør</Text>
         </View>
+        <Text style={styles.oppgjorBody}>{oppgjorBody}</Text>
       </Animated.View>
 
-      {/* Confirm hours */}
-      <Animated.View
-        entering={FadeInDown.delay(350).duration(400).springify()}
-        style={styles.confirmCard}
-      >
-        <View style={styles.confirmHeader}>
-          <Text style={styles.sectionTitle}>{strings.hours.title}</Text>
-          <Clock
-            size={20}
-            color={withOpacity(theme.colors.mutedForeground, 0.4)}
-            strokeWidth={1.5}
-          />
-        </View>
-        <View style={styles.hoursRow}>
-          <View style={styles.hoursCol}>
-            <Text style={styles.hoursLabel}>PLANLAGT</Text>
-            <Text style={styles.hoursValue}>{plannedTime}</Text>
-          </View>
-          <View style={styles.hoursDivider} />
-          <View style={[styles.hoursCol, styles.hoursColRight]}>
-            <Text style={styles.hoursLabel}>REGISTRERT</Text>
-            <Text style={[styles.hoursValue, styles.hoursValueAccent]}>{registeredTime}</Text>
-          </View>
-        </View>
-        <View style={styles.confirmActions}>
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              onDisputeHours?.();
-            }}
-            style={({ pressed }) => [styles.disputeButton, pressed && styles.actionPressed]}
-          >
-            <Text style={styles.disputeText}>{strings.hours.dispute}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              onConfirmHours?.();
-            }}
-            disabled={confirmingHours}
-            style={({ pressed }) => [styles.confirmButton, pressed && styles.actionPressed]}
-          >
-            <Text style={styles.confirmText}>{strings.hours.confirm}</Text>
-          </Pressable>
-        </View>
-      </Animated.View>
+      {/* Card 3 — Neste vakt */}
+      {nextShift ? (
+        <Animated.View
+          entering={FadeInDown.delay(350).duration(400).springify()}
+          style={styles.card}
+        >
+          <Text style={styles.cardEyebrow}>NESTE VAKT</Text>
+          <Text style={styles.nextShiftTime}>
+            {dayLabelOf(nextShift.shift_date)} {clockHM(nextShift.start_time)}–
+            {clockHM(nextShift.end_time)}
+          </Text>
+          <Text style={styles.nextShiftMeta}>
+            {nextShift.zone ?? "Arbeidsplass"}
+            {nextShift.role ? ` · ${nextShift.role}` : ""}
+            {(() => {
+              const free = freeHoursUntil(nextShift, timeEntry.punch_out);
+              return free ? ` · ${free}` : "";
+            })()}
+          </Text>
+        </Animated.View>
+      ) : null}
 
-      {/* Handoff */}
-      <Animated.View
-        entering={FadeInDown.delay(450).duration(400).springify()}
-        style={styles.handoffSection}
-      >
-        <Text style={styles.sectionTitle}>Overlevering (Handoff)</Text>
-        {handoffSent ? (
-          <View style={styles.handoffSent}>
-            <Text style={styles.handoffSentText}>{strings.common.done}</Text>
-          </View>
-        ) : (
-          <View style={styles.handoffInputWrap}>
+      {/* Workflow strip — only when caller passes workflow callbacks
+          (ShiftClockView after-punch flow). Home stays passive. */}
+      {showWorkflow ? (
+        <Animated.View
+          entering={FadeInDown.delay(450).duration(400).springify()}
+          style={styles.card}
+        >
+          <Text style={styles.cardEyebrow}>OVERLEVERING</Text>
+          {handoffSent ? (
+            <Text style={[styles.oppgjorBody, { color: theme.colors.success }]}>
+              Notat sendt til neste skift.
+            </Text>
+          ) : (
             <TextInput
               style={styles.handoffInput}
               placeholder="Skriv notater til neste skift..."
@@ -173,162 +233,236 @@ export function AfterShiftView({
               value={handoffText}
               onChangeText={setHandoffText}
               multiline
-              numberOfLines={5}
+              numberOfLines={4}
               textAlignVertical="top"
             />
-          </View>
-        )}
-      </Animated.View>
+          )}
+          {onSubmitHandoff && !handoffSent ? (
+            <Pressable
+              onPress={handleSubmitHandoff}
+              disabled={submittingHandoff || !handoffText.trim()}
+              style={({ pressed }) => [
+                styles.workflowGhostBtn,
+                pressed && { opacity: 0.7 },
+                (!handoffText.trim() || submittingHandoff) && { opacity: 0.4 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Send overlevering"
+            >
+              <Text style={styles.workflowGhostText}>
+                {submittingHandoff ? "Sender..." : "Send notat"}
+              </Text>
+            </Pressable>
+          ) : null}
 
-      {/* Final CTA */}
-      <Animated.View
-        entering={FadeInDown.delay(550).duration(500).springify()}
-        style={styles.ctaSection}
-      >
-        <Pressable
-          onPress={() => {
-            if (handoffText.trim() && !handoffSent) handleSubmitHandoff();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }}
-          style={({ pressed }) => [styles.ctaButton, pressed && styles.actionPressed]}
-        >
-          <Text style={styles.ctaText}>Ferdig</Text>
-        </Pressable>
-      </Animated.View>
+          {onConfirmHours || onDisputeHours ? (
+            <View style={styles.workflowActions}>
+              {onDisputeHours ? (
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onDisputeHours();
+                  }}
+                  style={({ pressed }) => [styles.workflowGhostBtn, pressed && { opacity: 0.7 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Bestrid timer"
+                >
+                  <Text style={styles.workflowGhostText}>Bestrid timer</Text>
+                </Pressable>
+              ) : null}
+              {onConfirmHours ? (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    onConfirmHours();
+                  }}
+                  disabled={confirmingHours}
+                  style={({ pressed }) => [
+                    styles.workflowPrimaryBtn,
+                    { backgroundColor: theme.colors.brandOrange },
+                    pressed && { opacity: 0.85 },
+                    confirmingHours && { opacity: 0.5 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Bekreft timer"
+                >
+                  <Text style={styles.workflowPrimaryText}>
+                    {confirmingHours ? "Bekrefter..." : "Bekreft timer"}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+        </Animated.View>
+      ) : null}
     </ScrollView>
+  );
+}
+
+function SummaryStat({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.summaryStat}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+    </View>
   );
 }
 
 const useStyles = createStyles((theme) => ({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.section,
-    paddingTop: theme.spacing.section,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.tight,
     paddingBottom: theme.spacing.xl + 40,
-  },
-
-  hero: { gap: 8, marginBottom: theme.spacing.page },
-  heroTitle: { fontSize: 40, fontWeight: "300", letterSpacing: -1, color: theme.colors.foreground },
-  heroSubtitle: {
-    ...theme.typography.body,
-    fontStyle: "italic",
-    color: withOpacity(theme.colors.mutedForeground, 0.8),
-    lineHeight: 22,
-  },
-
-  statsGrid: { flexDirection: "row", gap: theme.spacing.md, marginBottom: theme.spacing.section },
-  statCard: {
-    flex: 1,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.section,
-    gap: 8,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 2,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
-  },
-  statValue: { fontSize: 24, fontWeight: "600", color: theme.colors.foreground },
-  statValueAccent: { color: theme.colors.brandOrange, fontWeight: "700" },
-
-  deviationBadge: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: theme.spacing.element,
-    backgroundColor: withOpacity(theme.colors.destructive, 0.06),
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.destructive, 0.1),
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.section,
-  },
-  deviationTitle: {
-    ...theme.typography.subheadline,
-    fontWeight: "600",
-    color: theme.colors.destructive,
-  },
-  deviationDetail: {
-    ...theme.typography.caption,
-    color: withOpacity(theme.colors.destructive, 0.7),
   },
 
-  confirmCard: {
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.background,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.section,
-    ...theme.shadows.sm,
-    marginBottom: theme.spacing.section,
-    gap: theme.spacing.section,
+  header: {
+    paddingHorizontal: theme.spacing.xs,
+    paddingTop: theme.spacing.tight,
+    gap: 6,
   },
-  confirmHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sectionTitle: { ...theme.typography.title, color: theme.colors.foreground },
-  hoursRow: {
+  phasePill: { flexDirection: "row", alignItems: "center", gap: 6 },
+  phaseDot: { width: 5, height: 5, borderRadius: 9999 },
+  phaseLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 2 },
+  greeting: {
+    fontFamily: "InstrumentSerif-Regular",
+    fontSize: 32,
+    letterSpacing: -0.5,
+    color: theme.colors.foreground,
+    lineHeight: 36,
+  },
+  greetingCaption: { fontSize: 13, color: theme.colors.mutedForeground },
+  greetingTime: {
+    fontFamily: "GeistMono-Regular",
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+
+  // Card primitive
+  card: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    gap: 4,
+  },
+  cardEyebrow: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 2,
+    color: theme.colors.mutedForeground,
+    marginBottom: 6,
+  },
+
+  // Card 1 (done)
+  doneLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  doneLabel: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2,
+  },
+  bigStatement: {
+    fontFamily: "InstrumentSerif-Regular",
+    fontSize: 26,
+    letterSpacing: -0.5,
+    color: theme.colors.foreground,
+    marginTop: 4,
+  },
+  doneCaption: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    marginTop: 4,
+  },
+  statsInset: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: theme.spacing.section,
-    borderBottomWidth: 1,
-    borderBottomColor: withOpacity(theme.colors.border, 0.15),
+    gap: 12,
   },
-  hoursCol: { flex: 1, gap: 4 },
-  hoursColRight: { alignItems: "flex-end" },
-  hoursDivider: {
+  statDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: withOpacity(theme.colors.border, 0.2),
-    alignSelf: "center",
+    alignSelf: "stretch",
+    backgroundColor: withOpacity(theme.colors.border, 0.5),
   },
-  hoursLabel: {
+  summaryStat: { flex: 1 },
+  summaryLabel: {
+    fontFamily: "GeistMono-Regular",
     fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 1,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
-    textTransform: "uppercase",
+    fontWeight: "600",
+    letterSpacing: 1.4,
+    color: theme.colors.mutedForeground,
   },
-  hoursValue: { fontSize: 22, fontWeight: "500", color: theme.colors.foreground },
-  hoursValueAccent: { color: theme.colors.brandOrange, fontWeight: "700" },
-  confirmActions: { flexDirection: "row", gap: theme.spacing.element },
-  disputeButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.2),
-    alignItems: "center",
-  },
-  confirmButton: {
-    flex: 2,
-    paddingVertical: 16,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.muted,
-    alignItems: "center",
-  },
-  disputeText: { ...theme.typography.bodyBold, color: theme.colors.foreground },
-  confirmText: { ...theme.typography.bodyBold, color: theme.colors.foreground },
-  actionPressed: { transform: [{ scale: 0.95 }], opacity: 0.9 },
-
-  handoffSection: { gap: theme.spacing.md, marginBottom: theme.spacing.section },
-  handoffInputWrap: { position: "relative" },
-  handoffInput: {
-    ...theme.typography.body,
+  summaryValue: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 18,
+    fontWeight: "700",
     color: theme.colors.foreground,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.card,
-    minHeight: 160,
+    marginTop: 3,
   },
-  handoffSent: { alignItems: "center", paddingVertical: theme.spacing.section },
-  handoffSentText: { ...theme.typography.bodyBold, color: theme.colors.success },
 
-  ctaSection: { paddingTop: theme.spacing.md },
-  ctaButton: {
+  // Card 2 (oppgjør)
+  oppgjorTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  oppgjorTitle: { fontSize: 14, fontWeight: "600", color: theme.colors.foreground },
+  oppgjorBody: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+
+  // Card 3 (neste vakt)
+  nextShiftTime: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  nextShiftMeta: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    marginTop: 4,
+  },
+
+  // Workflow strip (shift-clock only)
+  handoffInput: {
+    fontSize: 14,
+    color: theme.colors.foreground,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 100,
+    marginTop: 6,
+  },
+  workflowActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  workflowGhostBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.6),
     alignItems: "center",
     justifyContent: "center",
-    height: 56,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.brandOrange,
-    ...theme.shadows.lg,
+    marginTop: 8,
   },
-  ctaText: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
+  workflowGhostText: { fontSize: 14, fontWeight: "600", color: theme.colors.foreground },
+  workflowPrimaryBtn: {
+    flex: 2,
+    height: 56,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  workflowPrimaryText: { fontSize: 15, fontWeight: "700", letterSpacing: 0.4, color: "#ffffff" },
 }));

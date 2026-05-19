@@ -40,7 +40,6 @@ import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
 import { useDayInfo } from "@/hooks/queries/use-day-info";
 import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
-import { ShiftCard } from "@/components/shift/ShiftCard";
 
 export default function HomeScreen() {
   const styles = useStyles();
@@ -94,25 +93,24 @@ export default function HomeScreen() {
         contentContainerStyle={styles.phaseContent}
         showsVerticalScrollIndicator={false}
       >
-        {/*
-         * Council 6.4: the ShiftCard header hosts the 56pt PhaseStrip so the
-         * employee always sees the full lifecycle arc before the phase-
-         * specific body loads. Rendered whenever an active or upcoming shift
-         * exists — suppressed on the 'no_shift' surface.
-         */}
-        {relevantShift && phase !== "no_shift" ? (
-          /* PhaseStrip hidden 2026-05-15 pending lifecycle-arc review.
-             Council 6.4 intent honored elsewhere via dot+status row. */
-          <ShiftCard shift={relevantShift} />
-        ) : null}
-
         {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
+        {phase === "missed_shift" && <NoShiftView firstName={firstName} nextShift={null} />}
         {phase === "before_shift" && nextShift && (
           <BeforeShiftView
             shift={nextShift}
             colleagues={colleagues ?? []}
             dayInfo={dayInfo}
             tasks={tasks ?? []}
+            variant="before"
+          />
+        )}
+        {phase === "awaiting_punch_in" && relevantShift && (
+          <BeforeShiftView
+            shift={relevantShift}
+            colleagues={colleagues ?? []}
+            dayInfo={dayInfo}
+            tasks={tasks ?? []}
+            variant="late"
           />
         )}
         {phase === "before_shift" && !nextShift && (

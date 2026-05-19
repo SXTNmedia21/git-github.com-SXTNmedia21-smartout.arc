@@ -355,6 +355,11 @@
       "error_id": "Feil-ID: {digest}",
       "back_to_dashboard": "Tilbake til dashbord",
       "retry": "Prøv igjen"
+    },
+    "document_drop": {
+      "drop_here": "Dra og slipp dokumenter her",
+      "or_click": "eller klikk for å velge filer",
+      "hint": "PDF, DOCX, XLSX, CSV, bilder · Maks {max_files} filer, {max_mb} MB per fil"
     }
   },
   "steps": {
