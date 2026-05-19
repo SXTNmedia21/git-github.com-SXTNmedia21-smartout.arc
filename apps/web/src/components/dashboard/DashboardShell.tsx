@@ -1885,15 +1885,7 @@ function BreadcrumbActiveSlot({
 
   const label = header?.title ?? fallbackLabel;
 
-  return (
-    <span
-      className={`font-heading text-base font-semibold ${
-        isDark ? "text-foreground" : "text-[var(--text-strong)]"
-      }`}
-    >
-      {label}
-    </span>
-  );
+  return <span>{label}</span>;
 }
 
 /**
