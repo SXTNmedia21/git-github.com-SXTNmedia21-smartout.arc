@@ -1519,26 +1519,20 @@ function DashboardShellInner({
                       isDark ? "bg-background" : "bg-[var(--surface-subtle)]"
                     } print:block print:h-auto print:overflow-visible print:bg-white`}
                   >
-                    {/* ACTION BAR */}
+                    {/* ACTION BAR — left-aligned per Pontus 2026-05-19 */}
                     <div
-                      className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
+                      className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
                         isDark
                           ? "border-border bg-background/90"
                           : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
                       } print:hidden`}
                     >
-                      <div
-                        className={`flex items-center gap-2.5 text-sm ${
-                          isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
-                        }`}
-                      >
-                        <BreadcrumbActiveSlot
-                          isDark={isDark}
-                          isDocumentMode={isDocumentMode}
-                          pathname={pathname}
-                          t={t}
-                        />
-                      </div>
+                      <BreadcrumbActiveSlot
+                        isDark={isDark}
+                        isDocumentMode={isDocumentMode}
+                        pathname={pathname}
+                        t={t}
+                      />
 
                       <div className="flex items-center gap-5">
                         {/* Schedule page specific controls */}
