@@ -8,12 +8,13 @@
 
 export type EventColor = "orange" | "warm" | "amber" | "rose" | "neutral";
 
+// ADR-0366: CSS var references — resolved at render time from tokens.css
 export const EVENT_COLOR_HEX: Record<EventColor, string> = {
-  orange: "oklch(0.55 0.18 42)",
-  warm: "oklch(0.62 0.14 60)",
-  amber: "oklch(0.70 0.15 75)",
-  rose: "oklch(0.60 0.16 25)",
-  neutral: "oklch(0.50 0.02 50)",
+  orange: "var(--brand-orange-dark)",
+  warm: "var(--data-estimate)",
+  amber: "var(--warning)",
+  rose: "var(--destructive)",
+  neutral: "var(--text-dim)",
 };
 
 export type CalendarEvent = {

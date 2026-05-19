@@ -1,16 +1,20 @@
 /**
- * Calendar tab — DayView timeline.
+ * Calendar tab — DayView timeline, rewired to shift_session data (ADR-0367 §M3).
  *
- * Handoff §4.3: timeline 08:00–24:00, items absolute-positioned by start time,
- * NÅ-indicator (orange line + dot + label) for today, DayStat strip (3 tiles),
- * notes section at the bottom.
+ * Data source:
+ *   - useShiftSession(profileId, date) — session row + joined day_lines
+ *   - useDayLineItems(dayLineIds, allowedIds, sessionId) — session_task rows
+ *     with defensive leak filter
  *
- * Route: /(app)/(calendar)/day/[date] — [date] is YYYY-MM-DD.
- * Back arrow navigates to previous screen (week or month) via router.back().
+ * Layout: one section per day_line (location + open–close), items sorted by
+ * scheduled_at within each section. When no session exists for the date,
+ * falls back to the original CalendarItems timeline (non-session days).
+ *
+ * Preserved UX: header, back nav, NÅ-indicator, DayStat strip, notes section.
+ * Changed: timed items now come from session_task; section headers per day_line.
  *
  * Telemetry: calendar view_changed / item_viewed via getProfileContext() (ADR-0134).
- * All times via workspace.timezone (Lovsen F-09/F-11) — date-fns-tz fromZonedTime
- * used for offset calculation.
+ * All times via workspace.timezone (Lovsen F-09/F-11) — date-fns-tz fromZonedTime.
  *
  * Read-only (ADR-0133). No mutations.
  */
@@ -26,7 +30,7 @@ import {
   Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Calendar, CheckSquare, Users } from "lucide-react-native";
+import { ChevronLeft, Calendar, CheckSquare, Users, MapPin } from "lucide-react-native";
 import { toZonedTime } from "date-fns-tz";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { useTheme } from "@/theme";
@@ -35,8 +39,11 @@ import { nativeTheme } from "@smartout/design-tokens/native";
 import { DayStat } from "@/components/calendar/DayStat";
 import { useCalendarItems } from "@/hooks/queries/use-calendar-items";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useShiftSession } from "@/hooks/queries/use-shift-session";
+import { useDayLineItems } from "@/hooks/queries/use-day-line-items";
 import { getProfileContext } from "@/lib/profile-context";
 import type { CalendarItem } from "@/components/calendar/types";
+import type { DayLineItem } from "@/hooks/queries/use-day-line-items";
 
 /** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
 const FALLBACK_TZ = "Europe/Oslo";
@@ -98,17 +105,6 @@ function parseTimeRange(time: string | undefined): { startH: number; endH: numbe
   return { startH, endH };
 }
 
-/** Get the accent color for a CalendarItem based on type and dept. */
-function colorForItem(item: CalendarItem, theme: ReturnType<typeof useTheme>): string {
-  if (item.status === "overdue") return theme.colors.destructive;
-  if (item.type === "shift") {
-    return DEPT_COLORS[item.dept as keyof typeof DEPT_COLORS] ?? theme.colors.brandOrange;
-  }
-  if (item.type === "booking") return theme.colors.brandOrange;
-  if (item.type === "task") return theme.colors.brandOrange;
-  return theme.colors.mutedForeground;
-}
-
 /**
  * Get current time as fractional hours (15.5 = 15:30) in workspace timezone.
  * Used for the NÅ-indicator — must use workspace tz, not device tz (BLOCKING-3 / F-09).
@@ -118,7 +114,7 @@ function currentHourInTz(tz: string): number {
   return zoned.getHours() + zoned.getMinutes() / 60;
 }
 
-// ── Positioned item block ─────────────────────────────────────────────────────
+// ── Positioned item block (legacy CalendarItem timeline) ─────────────────────
 
 type TimeBlockProps = {
   item: CalendarItem;
@@ -177,6 +173,100 @@ function TimeBlock({ item, startH, endH, colOffset, onPress, themeColors }: Time
   );
 }
 
+// ── Day-line section item row ─────────────────────────────────────────────────
+
+type DayLineItemRowProps = {
+  item: DayLineItem;
+  themeColors: ReturnType<typeof useTheme>["colors"];
+};
+
+function DayLineItemRow({ item, themeColors }: DayLineItemRowProps) {
+  const isDone = item.status === "done" || item.status === "completed";
+  const isOverdue = item.status === "overdue";
+  return (
+    <View
+      testID={`day-line-item-${item.id}`}
+      style={[
+        styles.dayLineItemRow,
+        {
+          backgroundColor: themeColors.card,
+          borderColor: themeColors.border,
+          opacity: isDone ? 0.55 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.dayLineItemDot,
+          {
+            backgroundColor: isOverdue
+              ? themeColors.destructive
+              : isDone
+                ? themeColors.mutedForeground
+                : themeColors.brandOrange,
+          },
+        ]}
+      />
+      <View style={styles.dayLineItemContent}>
+        <Text
+          style={[
+            styles.dayLineItemTitle,
+            {
+              color: isOverdue ? themeColors.destructive : themeColors.foreground,
+              textDecorationLine: isDone ? "line-through" : "none",
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {item.title}
+        </Text>
+        {item.scheduled_at && (
+          <Text style={[styles.dayLineItemTime, { color: themeColors.mutedForeground }]}>
+            {new Date(item.scheduled_at).toLocaleTimeString("nb-NO", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ── Day-line section header ───────────────────────────────────────────────────
+
+type DayLineSectionHeaderProps = {
+  locationName: string;
+  plannedOpen: string;
+  plannedClose: string;
+  themeColors: ReturnType<typeof useTheme>["colors"];
+};
+
+function DayLineSectionHeader({
+  locationName,
+  plannedOpen,
+  plannedClose,
+  themeColors,
+}: DayLineSectionHeaderProps) {
+  return (
+    <View
+      testID={`day-line-section-${locationName}`}
+      style={[styles.dayLineSectionHeader, { borderBottomColor: themeColors.border }]}
+    >
+      <MapPin size={13} color={themeColors.mutedForeground} strokeWidth={2} />
+      <Text
+        style={[styles.dayLineSectionLocation, { color: themeColors.mutedForeground }]}
+        numberOfLines={1}
+      >
+        {locationName.toUpperCase()}
+      </Text>
+      <Text style={[styles.dayLineSectionTime, { color: themeColors.mutedForeground }]}>
+        {plannedOpen.slice(0, 5)}–{plannedClose.slice(0, 5)}
+      </Text>
+    </View>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function CalendarDayScreen() {
@@ -190,6 +280,10 @@ export default function CalendarDayScreen() {
   const { data: profile } = useMyProfile();
   const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
+  // Pass null when profile hasn't loaded — useShiftSession disabled when null (L-0083)
+  const profileId = profile?.profile_id ?? null;
+  const dateISO = dateToISO(displayDate);
+
   // isToday must compare dates in workspace tz, not device tz.
   const todayZoned = toZonedTime(todayRaw, tz);
   const displayZoned = toZonedTime(displayDate, tz);
@@ -198,11 +292,34 @@ export default function CalendarDayScreen() {
     displayZoned.getMonth() === todayZoned.getMonth() &&
     displayZoned.getDate() === todayZoned.getDate();
 
-  const { data: items, isLoading } = useCalendarItems({
+  // ── shift_session data (ADR-0367 §M3) ─────────────────────────────────────
+
+  const { data: session, isLoading: sessionLoading } = useShiftSession(profileId, dateISO);
+
+  const dayLineIds = useMemo(
+    () => (session?.day_lines ?? []).map((dl) => dl.day_line_id),
+    [session],
+  );
+
+  const { data: sessionItems = [], isLoading: itemsLoading } = useDayLineItems(
+    dayLineIds,
+    dayLineIds, // allowed == queried: filter acts as sentinel
+    // null when session not yet loaded — hook disabled when null (L-0083)
+    session?.shift_session_id ?? null,
+  );
+
+  // ── Fallback: legacy CalendarItems (non-session days) ─────────────────────
+
+  const { data: legacyItems, isLoading: legacyLoading } = useCalendarItems({
     date: displayDate,
     filter: "alt",
     scope: { kind: "me" },
   });
+
+  // Use session data when a session exists; fall back to legacy calendar items.
+  const hasSession = Boolean(session);
+  const isLoading = hasSession ? sessionLoading || itemsLoading : legacyLoading;
+  const items: CalendarItem[] = hasSession ? [] : legacyItems; // legacy items for non-session days
 
   // ── Telemetry ─────────────────────────────────────────────────────────────
 
@@ -233,7 +350,7 @@ export default function CalendarDayScreen() {
             entity_id: item.id,
             data: {
               item_type: item.type === "deviation" ? "deviation" : item.type,
-              date: dateToISO(displayDate),
+              date: dateISO,
             },
           },
         });
@@ -241,7 +358,7 @@ export default function CalendarDayScreen() {
         // swallow
       }
     },
-    [displayDate],
+    [dateISO],
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -251,7 +368,7 @@ export default function CalendarDayScreen() {
     router.back();
   }, [emitViewChanged, router]);
 
-  // ── Derived data ──────────────────────────────────────────────────────────
+  // ── Derived data (legacy path) ────────────────────────────────────────────
 
   const shifts = items.filter((i) => i.type === "shift");
   const tasks = items.filter((i) => i.type === "task" || i.type === "deviation");
@@ -259,12 +376,9 @@ export default function CalendarDayScreen() {
   const notes = items.filter((i) => i.type === "note");
   const hasOverdueTasks = tasks.some((t) => t.status === "overdue");
 
-  const doneTasks = tasks.filter((t) => t.status === "done" || t.status === "completed").length;
-
   const totalGuests = bookings.reduce((sum, b) => sum + (b.guests ?? 0), 0);
-  const totalShiftHours = shifts.reduce((sum, s) => sum + (s.planned ?? 0), 0);
 
-  // Items with parseable times for the timeline
+  // Items with parseable times for the legacy timeline
   const timedItems = useMemo(() => {
     const result: { item: CalendarItem; startH: number; endH: number }[] = [];
     for (const item of items) {
@@ -275,6 +389,24 @@ export default function CalendarDayScreen() {
     }
     return result;
   }, [items]);
+
+  // ── Session items grouped by day_line ─────────────────────────────────────
+
+  const dayLineSections = useMemo(() => {
+    if (!session) return [];
+    return (session.day_lines ?? []).map((dl) => ({
+      dayLine: dl,
+      items: sessionItems
+        .filter((item) => item.day_line_id === dl.day_line_id)
+        .sort((a, b) => {
+          // Sort by scheduled_at ascending; null scheduled_at goes to bottom.
+          if (!a.scheduled_at && !b.scheduled_at) return 0;
+          if (!a.scheduled_at) return 1;
+          if (!b.scheduled_at) return -1;
+          return a.scheduled_at.localeCompare(b.scheduled_at);
+        }),
+    }));
+  }, [session, sessionItems]);
 
   // NÅ-indicator: compute current hour in workspace tz (not device tz) — BLOCKING-3.
   const nowH = currentHourInTz(tz);
@@ -292,8 +424,15 @@ export default function CalendarDayScreen() {
     (_, i) => TIMELINE_START_H + i,
   );
 
+  // DayStat counts — session path uses session_task counts
+  const sessionTaskCount = sessionItems.length;
+  const sessionOverdue = sessionItems.some((i) => i.status === "overdue");
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      testID="calendar-day-screen"
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Header with back */}
       <View style={[styles.header, { paddingTop: Platform.OS === "android" ? 32 : 12 }]}>
         <Pressable
@@ -301,15 +440,22 @@ export default function CalendarDayScreen() {
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel="Tilbake"
+          testID="day-screen-back"
         >
           <ChevronLeft size={22} color={theme.colors.foreground} strokeWidth={2} />
         </Pressable>
 
         <View style={styles.headerCenter}>
-          <Text style={[styles.dayName, { color: theme.colors.mutedForeground }]}>
+          <Text
+            testID="day-screen-day-name"
+            style={[styles.dayName, { color: theme.colors.mutedForeground }]}
+          >
             {dayLong(displayDate).toUpperCase()}
           </Text>
-          <Text style={[styles.dayDate, { color: theme.colors.foreground }]}>
+          <Text
+            testID="day-screen-day-date"
+            style={[styles.dayDate, { color: theme.colors.foreground }]}
+          >
             {displayDate.getDate()}. {displayDate.toLocaleDateString("nb-NO", { month: "long" })}
           </Text>
         </View>
@@ -319,29 +465,74 @@ export default function CalendarDayScreen() {
 
       {/* DayStat strip */}
       <View style={styles.statStrip}>
-        <DayStat icon={Calendar} count={shifts.length} label="Vakter" tone="default" />
-        <DayStat
-          icon={CheckSquare}
-          count={tasks.length}
-          label="Oppgaver"
-          tone={hasOverdueTasks ? "error" : "default"}
-        />
-        <DayStat icon={Users} count={totalGuests} label="Bookinger" tone="default" />
+        {hasSession ? (
+          <>
+            <DayStat icon={MapPin} count={dayLineSections.length} label="Steder" tone="default" />
+            <DayStat
+              icon={CheckSquare}
+              count={sessionTaskCount}
+              label="Oppgaver"
+              tone={sessionOverdue ? "error" : "default"}
+            />
+            <DayStat icon={Calendar} count={0} label="Bookinger" tone="default" />
+          </>
+        ) : (
+          <>
+            <DayStat icon={Calendar} count={shifts.length} label="Vakter" tone="default" />
+            <DayStat
+              icon={CheckSquare}
+              count={tasks.length}
+              label="Oppgaver"
+              tone={hasOverdueTasks ? "error" : "default"}
+            />
+            <DayStat icon={Users} count={totalGuests} label="Bookinger" tone="default" />
+          </>
+        )}
       </View>
 
-      {/* Timeline */}
       <ScrollView
+        testID="day-screen-scroll"
         style={styles.timeline}
         contentContainerStyle={styles.timelineContent}
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <View style={styles.loadingPlaceholder}>
+          <View style={styles.loadingPlaceholder} testID="day-screen-loading">
             <Text style={[styles.loadingText, { color: theme.colors.mutedForeground }]}>
               Laster...
             </Text>
           </View>
+        ) : hasSession ? (
+          // ── Session path: sections per day_line ──────────────────────────
+          <View testID="day-line-sections">
+            {dayLineSections.map(({ dayLine, items: sectionItems }) => (
+              <View
+                key={dayLine.day_line_id}
+                testID={`day-line-section-view-${dayLine.day_line_id}`}
+              >
+                <DayLineSectionHeader
+                  locationName={dayLine.location.name}
+                  plannedOpen={dayLine.planned_open}
+                  plannedClose={dayLine.planned_close}
+                  themeColors={theme.colors}
+                />
+                {sectionItems.length === 0 ? (
+                  <Text
+                    testID={`day-line-empty-${dayLine.day_line_id}`}
+                    style={[styles.emptySection, { color: theme.colors.mutedForeground }]}
+                  >
+                    Ingen oppgaver
+                  </Text>
+                ) : (
+                  sectionItems.map((item) => (
+                    <DayLineItemRow key={item.id} item={item} themeColors={theme.colors} />
+                  ))
+                )}
+              </View>
+            ))}
+          </View>
         ) : (
+          // ── Legacy path: CalendarItems timeline for non-session days ─────
           <View style={[styles.timelineInner, { height: timelineHeight }]}>
             {/* Hour rows */}
             {hours.map((h) => (
@@ -396,8 +587,8 @@ export default function CalendarDayScreen() {
           </View>
         )}
 
-        {/* Notes section */}
-        {notes.length > 0 && (
+        {/* Notes section (legacy path only) */}
+        {!hasSession && notes.length > 0 && (
           <View style={styles.notesSection}>
             <Text style={[styles.notesLabel, { color: theme.colors.mutedForeground }]}>
               NOTATER
@@ -562,5 +753,61 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
+  },
+  // Day-line section styles
+  dayLineSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  dayLineSectionLocation: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+  },
+  dayLineSectionTime: {
+    fontSize: 10,
+    fontFamily: "GeistMono-Regular",
+  },
+  dayLineItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginHorizontal: 16,
+    marginTop: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+    gap: 10,
+  },
+  dayLineItemDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
+    marginTop: 4,
+    flexShrink: 0,
+  },
+  dayLineItemContent: {
+    flex: 1,
+    gap: 2,
+  },
+  dayLineItemTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  dayLineItemTime: {
+    fontSize: 11,
+    fontFamily: "GeistMono-Regular",
+  },
+  emptySection: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: 13,
+    fontStyle: "italic",
   },
 });

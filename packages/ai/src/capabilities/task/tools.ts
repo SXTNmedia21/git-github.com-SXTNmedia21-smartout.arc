@@ -385,6 +385,38 @@ export const createSession = defineTool({
         .optional()
         .describe("Om oppgaven er compliance-relatert (HACCP, HMS, o.l.). Standard false."),
       reason: ReasonSchema.describe("Årsak til at oppgaven opprettes — logges til aktivitetsspor."),
+      // ─── ADR-0367 Pattern B extension ────────────────────────────────────────
+      // When day_line_id is supplied, the tool delegates the departmentSession
+      // resolution to the day_line row (server-resolved — ADR-0091).
+      // Requires actor_capability + delegated_via for audit symmetry (ADR-0356).
+      day_line_id: UUIDSchema.optional().describe(
+        "Valgfri: UUID for day_line oppgaven er forankret til (ADR-0367 Pattern B). " +
+          "Krever actor_capability + delegated_via når oppgitt.",
+      ),
+      actor_capability: z
+        .string()
+        .optional()
+        .describe(
+          "Hvilken capability som initierer dette kryssnavnromsskriveriet (ADR-0356 Pattern B). " +
+            "Påkrevd når day_line_id er oppgitt.",
+        ),
+      delegated_via: z
+        .string()
+        .optional()
+        .describe(
+          "Delegasjonskjeden — f.eks. 'day-line' (ADR-0356 Pattern B). " +
+            "Påkrevd når day_line_id er oppgitt.",
+        ),
+      description: z
+        .string()
+        .max(2000)
+        .optional()
+        .describe("Valgfri beskrivelse av oppgaven (maks 2000 tegn)."),
+      scheduled_at: z
+        .string()
+        .datetime()
+        .optional()
+        .describe("Valgfri ISO-8601 tidspunkt for når oppgaven skal utføres."),
     })
     .strict(),
   execute: async (params, ctx: AgentToolContext) => {
@@ -405,11 +437,43 @@ export const createSession = defineTool({
       return JSON.stringify({ ok: false, error: gate.reason ?? "ikke_tillatt" });
     }
 
+    // ─── ADR-0367 Pattern B: day_line_id overrides session resolution ────────
+    // When day_line_id is supplied, resolve department_session from the day_line
+    // row (server-side, ADR-0091). Requires actor_capability + delegated_via
+    // for audit symmetry (ADR-0356 §"Audit trail symmetry").
+    // Fail fast on row-not-found (L-0177 — no silent JWT-default fallback).
+    let effectiveSessionId = params.session_id;
+    let resolvedDayLineId: string | null = null;
+
+    if (params.day_line_id) {
+      if (!params.actor_capability || !params.delegated_via) {
+        return JSON.stringify({
+          ok: false,
+          error:
+            "task.create_session: day_line_id requires actor_capability + delegated_via (ADR-0356 Pattern B)",
+        });
+      }
+      const { data: line } = await supabase
+        .from("day_line")
+        .select("day_line_id, workspace_id, department_session_id")
+        .eq("day_line_id", params.day_line_id)
+        .maybeSingle();
+
+      if (!line) {
+        return JSON.stringify({ ok: false, error: "day_line_not_found" });
+      }
+      if (line.workspace_id !== ctx.workspaceId) {
+        return JSON.stringify({ ok: false, error: "day_line_wrong_workspace" });
+      }
+      effectiveSessionId = line.department_session_id;
+      resolvedDayLineId = line.day_line_id;
+    }
+
     // Load the session and verify workspace match — never trust client sessionId (ADR-0151).
     const { data: session } = await supabase
       .from("department_session")
       .select("department_session_id, workspace_id, department_id")
-      .eq("department_session_id", params.session_id)
+      .eq("department_session_id", effectiveSessionId)
       .maybeSingle();
 
     if (!session || session.workspace_id !== ctx.workspaceId) {
@@ -455,9 +519,12 @@ export const createSession = defineTool({
         session_hook_id: params.hook_id ?? null,
         assigned_to: params.assignee_profile_id ?? null,
         title: params.title,
-        description: null,
+        description: params.description ?? null,
+        scheduled_at: params.scheduled_at ?? null,
         is_compliance_required: params.compliance ?? false,
         status: "pending",
+        // ADR-0367 Pattern B: anchor task to day_line when resolved above.
+        day_line_id: resolvedDayLineId,
       })
       .select("id")
       .single();
@@ -488,6 +555,15 @@ export const createSession = defineTool({
           compliance: params.compliance ?? false,
           reason: params.reason,
           manual: true,
+          // New optional fields (audit symmetry — present when supplied).
+          ...(params.description !== undefined && { description: params.description }),
+          ...(params.scheduled_at !== undefined && { scheduled_at: params.scheduled_at }),
+          // ADR-0367 Pattern B audit trail — undefined when not a day_line delegation.
+          ...(resolvedDayLineId && {
+            day_line_id: resolvedDayLineId,
+            actor_capability: params.actor_capability,
+            delegated_via: params.delegated_via,
+          }),
         },
       },
     });
@@ -511,6 +587,12 @@ export const createSession = defineTool({
           is_compliance_required: params.compliance ?? false,
           reason: params.reason,
           manual: true,
+          // ADR-0367 Pattern B audit trail.
+          ...(resolvedDayLineId && {
+            day_line_id: resolvedDayLineId,
+            actor_capability: params.actor_capability,
+            delegated_via: params.delegated_via,
+          }),
         },
       },
     });

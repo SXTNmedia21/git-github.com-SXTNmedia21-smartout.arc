@@ -8,6 +8,10 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 ## Phase progress
 
+- [BT1 day-line caps + server actions 2026-05-18](bt1-day-line-caps.md) — 4 tools + gate + 4 server actions. 12/12 tests. Migration 20260620120900. PR #408. Push via HUSKY=0 (WSL2 OOM on web typecheck).
+- [calendar perf polish 2026-05-18](calendar-perf-polish.md) — wsParam path parallelized; callbacks+motion memoized. Real bottleneck=Supabase auth.getUser()~123ms, irreducible. Commits f3e2a7bc7+15c1b530e.
+- [BT3 triggers + cleanup 2026-05-18](bt3-triggers-cleanup.md) — ensure_shift_session + back_populate triggers. vitest fix: createServiceClient() at module scope crashes; use describe.skipIf(!HAS_SUPABASE_ENV) + lazy sb. PR #405.
+- [BT2 routine+org caps 2026-05-18](bt2-routine-org-caps.md) — routine.attach_to_line (ADR-0240 delegation via createSession.execute) + org.update_dept_areas. 14/14 tests. PR #404.
 - [timeline-templates T7 E2E 2026-05-16](timeline-templates-t7-e2e.md) — 9 tests: BFF API round-trip, free-form note/skip, location scope warning+enforcement. Commit 8dd21ed12.
 - [wfm-foundation sortie closed 2026-05-14](wfm-foundation-sortie.md) — 7 tasks: 3 migrations (schema+vault+authority), 11 telemetry events, eligibility helper (13 tests), typegen. 52/52 typecheck green.
 - [Sortie 3 Phases 4+5 shipped 2026-05-13](sortie-3-phases-4-5.md) — 6 task tool bodies; fn_list_my_tasks skipped (service_role auth.uid()=NULL); 3 new telemetry events; emma dispatch via admin client; commit 3441556d7

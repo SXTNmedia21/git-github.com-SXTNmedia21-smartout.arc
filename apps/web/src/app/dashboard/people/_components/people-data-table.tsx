@@ -29,7 +29,7 @@ const EmployeeProfileCard = dynamic(
 );
 const ContractSendDrawer = dynamic(
   () =>
-    import("../../contracts/_components/contract-send-drawer").then((m) => ({
+    import("../contracts/_components/contract-send-drawer").then((m) => ({
       default: m.ContractSendDrawer,
     })),
   { ssr: false },

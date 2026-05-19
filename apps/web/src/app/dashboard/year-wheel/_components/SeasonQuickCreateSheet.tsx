@@ -37,13 +37,19 @@ import { useSeasons, usePlanningCycles } from "@/app/dashboard/year-wheel/_hooks
 
 // Curated palette: brand orange + five distinct swatches (amber, red, blue,
 // purple, green) so a workspace with 6 active seasons still reads clearly.
+//
+// DESIGN DEBT (Nordic Split): hex literals below are season-palette swatches.
+// No canonical `nativeTheme.season` token exists yet in packages/design-tokens.
+// Until that token is added, keep these as named hex constants rather than
+// mapping to wrong semantic tokens. Tracked: move to design-tokens/src/native.ts
+// in a dedicated `motion-token-sweep` / `design-token-sweep` sortie.
 const COLOR_PRESETS = [
   "var(--brand-orange)",
-  "#c18200",
-  "#e7000b",
-  "#2784d5",
-  "#864ad2",
-  "#2ba85a",
+  "#c18200", // amber — season swatch 2 (DEBT: move to design-tokens nativeTheme.season)
+  "#e7000b", // red — season swatch 3 (DEBT: move to design-tokens nativeTheme.season)
+  "#2784d5", // blue — season swatch 4 (DEBT: move to design-tokens nativeTheme.season)
+  "#864ad2", // purple — season swatch 5 (DEBT: move to design-tokens nativeTheme.season)
+  "#2ba85a", // green — season swatch 6 (DEBT: move to design-tokens nativeTheme.season)
 ];
 
 type Props = {

@@ -15,6 +15,7 @@ export type WorkspaceData = {
   contract_status: string | null;
   onboarding_completed: boolean;
   setup_guide_completed: boolean;
+  is_active: boolean;
 };
 
 type WorkspaceContextValue = {

@@ -311,7 +311,7 @@ function ValidNewUserPanel({
       <button
         type="button"
         onClick={() => onNavigate(signupHref)}
-        className="bg-brand-orange hover:bg-brand-orange/90 focus-visible:ring-brand-orange/40 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-[0_0_24px_oklch(0.65_0.22_40/0.28)] focus-visible:ring-4 focus-visible:outline-none"
+        className="bg-brand-orange hover:bg-brand-orange/90 focus-visible:ring-brand-orange/40 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-[var(--shadow-cta-glow)] focus-visible:ring-4 focus-visible:outline-none"
       >
         <UserPlus className="h-4 w-4" aria-hidden />
         Opprett konto og bli med
@@ -368,7 +368,7 @@ function ValidExistingUserPanel({
       <button
         type="button"
         onClick={onNavigate}
-        className="bg-brand-orange hover:bg-brand-orange/90 focus-visible:ring-brand-orange/40 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-[0_0_24px_oklch(0.65_0.22_40/0.28)] focus-visible:ring-4 focus-visible:outline-none"
+        className="bg-brand-orange hover:bg-brand-orange/90 focus-visible:ring-brand-orange/40 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-[var(--shadow-cta-glow)] focus-visible:ring-4 focus-visible:outline-none"
       >
         Logg inn og bli med {workspaceName}
         <ArrowRight className="h-4 w-4" aria-hidden />

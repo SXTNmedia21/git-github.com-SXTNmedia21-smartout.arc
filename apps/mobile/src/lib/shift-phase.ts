@@ -10,7 +10,13 @@
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
-export type ShiftPhase = "no_shift" | "before_shift" | "during_shift" | "after_shift";
+export type ShiftPhase =
+  | "no_shift"
+  | "before_shift"
+  | "awaiting_punch_in"
+  | "during_shift"
+  | "missed_shift"
+  | "after_shift";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
 
@@ -109,19 +115,39 @@ export function calculateShiftPhase(input: ShiftPhaseInput): ShiftPhaseResult {
     (a, b) => getShiftStart(a).getTime() - getShiftStart(b).getTime(),
   );
 
+  // Bucket time-observant phases. Cascade D6 lifecycle:
+  // upcoming → active → pending_signoff → closed | missed
+  //
+  // Mobile mapping with no active time entry:
+  //   end < now              → missed_shift (only most-recent missed surfaces)
+  //   start <= now < end     → awaiting_punch_in (shift in progress, no punch)
+  //   now < start <= +window → before_shift
+  //   start within 48h       → no_shift (peek at upcoming)
+  let recentlyMissed: ScheduleShift | null = null;
+
   for (const shift of sortedShifts) {
-    const shiftStart = getShiftStart(shift);
-    const shiftEnd = getShiftEnd(shift);
-    const startMs = shiftStart.getTime();
-    const endMs = shiftEnd.getTime();
+    const startMs = getShiftStart(shift).getTime();
+    const endMs = getShiftEnd(shift).getTime();
 
-    // Skip shifts that ended in the past
-    if (endMs < nowMs) continue;
+    // Past shift — surface as missed only if no completed time entry covered it
+    if (endMs < nowMs) {
+      recentlyMissed = shift;
+      continue;
+    }
 
-    // Shift is upcoming (within beforeShiftHours window) → before_shift
-    // This also covers the case where shift started but no punch — still before_shift
-    // (the employee should see a late punch warning)
-    if (startMs - nowMs <= beforeShiftMs) {
+    // Shift in progress (start passed, end not yet) AND no active punch
+    // → late-punch surface, NOT before_shift
+    if (startMs <= nowMs && nowMs < endMs) {
+      return {
+        phase: "awaiting_punch_in",
+        activeShift: shift,
+        activeTimeEntry: null,
+        nextShift: shift,
+      };
+    }
+
+    // Strictly in the future, within beforeShiftHours window
+    if (startMs > nowMs && startMs - nowMs <= beforeShiftMs) {
       return {
         phase: "before_shift",
         activeShift: null,
@@ -130,7 +156,7 @@ export function calculateShiftPhase(input: ShiftPhaseInput): ShiftPhaseResult {
       };
     }
 
-    // Shift is within 24h but outside the "before" window → no_shift with next shift info
+    // Within lookahead window but outside before-window — peek
     if (startMs - nowMs <= lookaheadMs) {
       return {
         phase: "no_shift",
@@ -141,7 +167,20 @@ export function calculateShiftPhase(input: ShiftPhaseInput): ShiftPhaseResult {
     }
   }
 
-  // 4. Nothing within 24h → no_shift
+  // 4a. Most-recently missed shift in current lookahead window → missed_shift
+  if (recentlyMissed) {
+    const missedEnd = getShiftEnd(recentlyMissed).getTime();
+    if (nowMs - missedEnd <= lookaheadMs) {
+      return {
+        phase: "missed_shift",
+        activeShift: recentlyMissed,
+        activeTimeEntry: null,
+        nextShift: null,
+      };
+    }
+  }
+
+  // 4b. Nothing relevant → no_shift
   return {
     phase: "no_shift",
     activeShift: null,

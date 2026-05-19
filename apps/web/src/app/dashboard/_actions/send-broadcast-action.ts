@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { emitAnnouncementPublished } from "@smartout/ai/capabilities/communication/emit-announcement-events";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 import { hasMinimumRole, detectPii } from "./_shared-utils";
@@ -83,7 +84,8 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
   // authority; admin client writes with workspace_id from server-derived profile).
   const supabase = createAdminClient();
 
-  // Resolve-or-create the workspace news channel (matches useSendBroadcast pattern)
+  // Resolve-or-create the workspace news channel (matches useSendBroadcast pattern).
+  // Channel resolution stays here; only the message write goes through RPC.
   const { data: existing } = await supabase
     .from("channel")
     .select("id")
@@ -109,30 +111,38 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
     channelId = created.id;
   }
 
-  // channel_message has a single `content` text column. Title is encoded in
-  // system_data for the rendering layer; broadcast_type encoded in system_data
-  // per ADR-0156 — no new column, no silent schema drift.
-  const { data: msg, error: insertErr } = await supabase
-    .from("channel_message")
-    .insert({
-      channel_id: channelId,
-      workspace_id: profile.workspaceId,
-      sender_id: profile.profileId,
-      content: `**${parsed.data.title}**\n\n${parsed.data.body}`,
-      message_type: "announcement",
-      delivery_mode: "notification_only",
-      target_profile_ids: parsed.data.recipientIds ?? null,
-      system_data: {
-        broadcast_type: parsed.data.type,
-        title: parsed.data.title,
-        department_id: parsed.data.departmentId ?? null,
-        session_id: parsed.data.sessionId ?? null,
-      },
-    })
-    .select("id")
-    .single();
+  // V2 RPC migration: delegate to publish_announcement_atomic (Track C M4).
+  // Defense-in-depth: broadcast.send capability gate above already fired and
+  // passed — this RPC layer is the second gate. Both gates are intentional per
+  // audit-symmetry requirements; activity-trail documents both authorization
+  // events. Title + body encoded in content field per ADR-0156; broadcast_type
+  // + session/department context preserved in system_data JSONB.
+  const { data: rpcData, error: rpcErr } = await supabase.rpc("publish_announcement_atomic", {
+    p_workspace_id: profile.workspaceId,
+    p_actor_profile_id: profile.profileId,
+    p_channel_id: channelId,
+    p_content: `**${parsed.data.title}**\n\n${parsed.data.body}`,
+    p_visibility_scope:
+      (parsed.data.recipientIds?.length ?? 0) > 0 ? "targeted_members" : "all_members",
+    p_target_profile_ids: parsed.data.recipientIds ?? [],
+    p_system_data: {
+      broadcast_type: parsed.data.type,
+      title: parsed.data.title,
+      department_id: parsed.data.departmentId ?? null,
+      session_id: parsed.data.sessionId ?? null,
+    },
+    p_kind: "general",
+    p_tier: "work",
+    p_tags: [],
+    p_linked_entity_type: undefined,
+    p_linked_entity_id: undefined,
+    p_client_message_id: crypto.randomUUID(),
+  });
 
-  if (insertErr || !msg) return { ok: false, error: insertErr?.message ?? "Insert mislyktes." };
+  if (rpcErr || !rpcData)
+    return { ok: false, error: rpcErr?.message ?? "Publisering via RPC mislyktes." };
+
+  const msg = { id: rpcData as string };
 
   await emit({
     event: "communication.broadcast_sent",
@@ -151,6 +161,21 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
   // posthog only — activity-trail provider expects entity ref which is
   // absent by design for this event (broadcast is a channel_message whose
   // activity belongs in channel_event audit, not activity_trail rows).
+
+  // V2 channel.message.sent with announcement properties via shared helper (spec §9.b).
+  // Day-control server action defaults: kind='general' (formerly workspace_news), tier='work' per §9 table.
+  await emitAnnouncementPublished({
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    message_id: msg.id,
+    channel_id: channelId,
+    origin_type: "system",
+    kind: "general",
+    tier: "work",
+    target_profile_count: parsed.data.recipientIds?.length ?? 0,
+    visibility_scope:
+      (parsed.data.recipientIds?.length ?? 0) > 0 ? "targeted_members" : "all_members",
+  });
 
   revalidatePath("/dashboard");
   return { ok: true, channelId, messageId: msg.id };

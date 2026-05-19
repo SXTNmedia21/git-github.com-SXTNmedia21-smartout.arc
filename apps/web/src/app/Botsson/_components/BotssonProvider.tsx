@@ -926,7 +926,7 @@ export function BotssonProvider({
 
   /**
    * Listen for `botsson:open` window events dispatched from elsewhere in the dashboard
-   * (e.g. the "Lag kontrakt med Botsson" button on /dashboard/contracts). The event
+   * (e.g. the "Lag kontrakt med Botsson" button on /dashboard/people/contracts). The event
    * carries an optional view type and prime context that we forward as the next view's
    * props. The admin-chat view reads `props.primeContext` on mount.
    *

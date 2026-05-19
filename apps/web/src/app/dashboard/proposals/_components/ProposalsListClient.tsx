@@ -99,8 +99,8 @@ function ProposalRow({ item }: { item: ProposalListItem }) {
                 <span
                   className={
                     delta.positive
-                      ? "text-xs font-medium text-green-700"
-                      : "text-xs font-medium text-red-600"
+                      ? "text-success text-xs font-medium"
+                      : "text-destructive text-xs font-medium"
                   }
                 >
                   {delta.text}

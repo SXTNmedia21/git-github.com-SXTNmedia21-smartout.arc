@@ -7,10 +7,11 @@
 // Connected to: use-schedule-voice-tools.ts and voice-tools-context.tsx.
 // ============================================
 
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import type { ScheduleViewChangePayload } from "@/app/Botsson/_components/BotssonOrbVoiceMount";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
 import { AgentConfirmationDialog } from "./agent-confirmation-dialog";
@@ -60,6 +61,9 @@ export function ScheduleVoiceToolsBridge({
   switchLayout,
 }: ScheduleVoiceToolsBridgeProps) {
   const { addProposal, pendingConfirmation, resolveConfirmation } = useAgentProposals();
+  // L-0233: voice set_density uses the SAME UI setter — single path for both voice
+  // and button click. Persistence is fire-and-forget via the setter, not the tool.
+  const { setScheduleDensity } = useContext(DashboardContext);
 
   // Receive shift proposals from voice-agent via BotssonShell data-channel bridge.
   // Voice-agent publishes shift_proposal_* events → BotssonShell dispatches
@@ -127,6 +131,11 @@ export function ScheduleVoiceToolsBridge({
         case "focus_day":
           focusDayInUI(payload.dateId, payload.openPlanner);
           return;
+        case "set_density":
+          // L-0233: same setter the UI button uses — single source of truth.
+          // Optimistic UI update + fire-and-forget persistence happen inside setScheduleDensity.
+          setScheduleDensity(payload.density);
+          return;
         default: {
           const _exhaustive: never = payload;
           console.warn("[schedule-bridge] unknown view-change action:", _exhaustive);
@@ -142,6 +151,7 @@ export function ScheduleVoiceToolsBridge({
     setFilterSituation,
     switchLayout,
     focusDayInUI,
+    setScheduleDensity,
   ]);
 
   const voiceTools = useScheduleVoiceTools({

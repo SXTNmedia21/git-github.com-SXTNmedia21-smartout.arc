@@ -53,19 +53,19 @@ import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import {
   useComposeContract,
   useSendContract,
-} from "@/app/dashboard/contracts/_hooks/use-employment-contracts";
-import { GhostValueCard } from "@/app/dashboard/contracts/_components/GhostValueCard";
-import { ComplianceBadge } from "@/app/dashboard/contracts/_components/ComplianceBadge";
-import { BlockerCounter } from "@/app/dashboard/contracts/_components/BlockerCounter";
-import { AcknowledgementRing } from "@/app/dashboard/contracts/_components/AcknowledgementRing";
-import { ReasoningDrawer } from "@/app/dashboard/contracts/_components/ReasoningDrawer";
+} from "@/app/dashboard/people/contracts/_hooks/use-employment-contracts";
+import { GhostValueCard } from "@/app/dashboard/people/contracts/_components/GhostValueCard";
+import { ComplianceBadge } from "@/app/dashboard/people/contracts/_components/ComplianceBadge";
+import { BlockerCounter } from "@/app/dashboard/people/contracts/_components/BlockerCounter";
+import { AcknowledgementRing } from "@/app/dashboard/people/contracts/_components/AcknowledgementRing";
+import { ReasoningDrawer } from "@/app/dashboard/people/contracts/_components/ReasoningDrawer";
 import { SelectEmployeeStep, type EmployeeProfile } from "./SelectEmployeeStep";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 
 const ContractPreviewEditor = dynamic(
   () =>
-    import("@/app/dashboard/contracts/_components/contract-preview-editor").then((m) => ({
+    import("@/app/dashboard/people/contracts/_components/contract-preview-editor").then((m) => ({
       default: withEntrance(m.ContractPreviewEditor),
     })),
   { ssr: false, loading: () => <EditorSkeleton /> },
@@ -343,7 +343,7 @@ export function CompositionDrawer({
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(135deg, oklch(0.82 0.14 55 / 0.25) 0%, transparent 40%, transparent 60%, oklch(0.82 0.14 55 / 0.10) 100%)",
+                "linear-gradient(135deg, color-mix(in oklch, var(--brand-glow-warm) 25%, transparent) 0%, transparent 40%, transparent 60%, color-mix(in oklch, var(--brand-glow-warm) 10%, transparent) 100%)",
               mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
               maskComposite: "exclude",
               padding: 1,
@@ -862,7 +862,7 @@ function GjennomgangStep({
             <p className="text-muted-foreground text-xs leading-relaxed">
               {t("composition.deprecated_description")}{" "}
               <a
-                href="/dashboard/contracts?tab=maler"
+                href="/dashboard/people/contracts?tab=maler"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-foreground underline underline-offset-2 hover:no-underline"

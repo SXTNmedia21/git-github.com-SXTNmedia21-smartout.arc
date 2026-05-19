@@ -134,7 +134,7 @@ export function WelcomeClient({ workspaceName, workspaceSlug, role, dashboardHre
       <div
         aria-hidden
         className="pointer-events-none absolute right-[-10%] bottom-[-30%] h-[60vh] w-[60vh] rounded-full opacity-[0.1] blur-[120px]"
-        style={{ backgroundColor: "oklch(0.72 0.16 45)" }}
+        style={{ backgroundColor: "var(--brand-orange-warm)" }}
       />
 
       <main className="relative z-10 mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-16">
@@ -197,7 +197,7 @@ export function WelcomeClient({ workspaceName, workspaceSlug, role, dashboardHre
             type="button"
             disabled={isFinishing}
             onClick={() => finish("primary")}
-            className="bg-brand-orange focus-visible:ring-brand-orange/40 inline-flex items-center justify-center rounded-xl px-8 py-3.5 text-sm font-semibold text-white shadow-[0_4px_20px_oklch(0.65_0.22_40/0.25)] transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+            className="bg-brand-orange focus-visible:ring-brand-orange/40 inline-flex items-center justify-center rounded-xl px-8 py-3.5 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
             {isFinishing ? "Åpner dashbord …" : "Kom i gang"}
           </button>

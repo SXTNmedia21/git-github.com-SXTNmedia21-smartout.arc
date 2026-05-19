@@ -147,6 +147,17 @@ collector.ts selects `id, display_name` from profile table. But the actual profi
 - SeasonCard in StrategicView via `useActiveSeason` hook
 - Seed data: `supabase/seed/season-mission.sql`
 
+## Capability Tools Audit Findings (2026-05-18 Slice 01)
+
+37 tools.ts files traced. Key findings:
+- **M-001** `billing-query/tools.ts:270` — `get_usage_snapshot` accepts body-supplied `workspace_id`, violates ADR-0151. Fix: use `ctx.workspaceId` instead.
+- **M-002** `payroll/tools.ts` — `adjust_timebank_balance` (line 1104) + `force_timebank_payout` (line 1186): callGateAction then direct INSERT outside gatedMutation (ADR-0204 gap). Multiple payroll tools follow this "gate-then-direct" convention — needs ADR amendment.
+- **M-003** `shift-lifecycle/tools.ts` — `publish_shift` (line 177) + `approve_shift` (line 350): callGateAction then direct update outside gatedMutation (same class as M-002).
+- **M-004** `timeline-template/tools.ts:318-346` — `apply_template` inserts `session_hook` rows directly without delegating to an owning capability tool (ADR-0173 gap).
+- **Smoke run journey-authoring:483-509 NOT confirmed**: publish_draft dual-namespace writes ARE inside gatedMutation. PASS.
+- **Pattern insight**: "callGateAction + direct write" used across payroll/shift-lifecycle/operations/day-line/task — consistent per-capability convention but not ADR-0204 compliant. Needs cross-cutting ADR amendment.
+- Audit output: `docs/audits/2026-05-18-adr-contract-validation-02/01-capability-tools.md`
+
 ## Tool Context Patterns
 
 - **SessionContext** (`session-context.ts`): wraps `onboarding_session` table. Used by onboarding tools only.

@@ -1,3 +1,12 @@
+---
+title: Sidebar Reorganization Implementation Plan
+status: done
+updated: 2026-05-16
+created: 2026-05-15
+module: dashboard
+tags: [sidebar, navigation, ui-shell, plan, superpowers]
+---
+
 # Sidebar Reorganization Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

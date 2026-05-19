@@ -539,7 +539,7 @@ function SignupPageInner() {
               <button
                 type="submit"
                 disabled={loading || inviteResolving}
-                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? "Oppretter konto..." : "Godta invitasjon og bli med"}
                 <ArrowRight className="h-4 w-4" />
@@ -566,7 +566,7 @@ function SignupPageInner() {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
                 {loading ? "Sender lenke..." : "Send lenke"}
@@ -620,7 +620,7 @@ function SignupPageInner() {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? "Oppretter konto..." : "Opprett konto"}
                 <ArrowRight className="h-4 w-4" />
@@ -653,7 +653,7 @@ function SignupPageInner() {
               type="button"
               onClick={handleGoogleSignup}
               disabled={googleLoading || loading}
-              className="border-border bg-background text-foreground hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+              className="border-border bg-background text-foreground hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
             >
               <GoogleIcon />
               {googleLoading ? "Registrerer..." : "Fortsett med Google"}
@@ -705,7 +705,7 @@ function SignupPageInner() {
           <>
             Teamet ditt,
             <br />
-            <span style={{ color: "oklch(0.78 0.16 45)" }}>klar</span> fra dag en.
+            <span style={{ color: "var(--brand-orange-warm)" }}>klar</span> fra dag en.
           </>
         }
       />

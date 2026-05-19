@@ -11,12 +11,13 @@
  * - color-regime: orange (active chapter), zinc (inactive)
  */
 
-import { useContext, useMemo } from "react";
+import { useContext, useEffect, useRef, useMemo } from "react";
 import { Loader2, FileText } from "lucide-react";
 import { generateHTML } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
 import type { JSONContent } from "@tiptap/core";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { CHAPTERS, type ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
 import { useHandbookChapters, type HandbookChapter } from "../_hooks/use-handbook-chapters";
@@ -45,8 +46,29 @@ type ChapterReaderProps = {
 };
 
 export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterReaderProps) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
   const { data: chapters, isLoading } = useHandbookChapters();
+
+  // Emit `handbook chapter_opened` on each chapter selection, keyed by chapter_key.
+  // Re-fires when activeChapterKey changes so every navigation is captured.
+  // L-0177: nonEmpty() throws on empty string — never silent fallback.
+  const emittedChapterRef = useRef<string | null>(null);
+  useEffect(() => {
+    const workspaceId = workspaceData?.workspace_id ?? null;
+    if (!workspaceId || !profileId) return;
+    if (emittedChapterRef.current === activeChapterKey) return;
+    emittedChapterRef.current = activeChapterKey;
+    void emit({
+      event: "handbook chapter_opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        data: {
+          chapter_key: activeChapterKey,
+        },
+      },
+    });
+  }, [activeChapterKey, workspaceData, profileId]);
 
   // Map chapter data by key
   const chapterMap = useMemo(() => {
@@ -87,18 +109,14 @@ export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterRead
               onClick={() => onChapterChange(chapter.key)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                 isActive
-                  ? isDark
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "bg-orange-50 text-orange-600"
+                  ? "bg-brand-orange/10 text-brand-orange"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-black ${
                   isActive
-                    ? isDark
-                      ? "bg-orange-500/20 text-orange-400"
-                      : "bg-orange-100 text-orange-600"
+                    ? "bg-brand-orange/20 text-brand-orange"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -140,13 +158,7 @@ export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterRead
             <div className="mb-6">
               <div className="mb-2 flex items-center gap-3">
                 {activeChapterDef.icon && (
-                  <div
-                    className={`rounded-lg border p-2 ${
-                      isDark
-                        ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
-                        : "border-orange-200 bg-orange-50 text-orange-600"
-                    }`}
-                  >
+                  <div className="border-brand-orange/20 bg-brand-orange/10 text-brand-orange rounded-lg border p-2">
                     <activeChapterDef.icon className="h-5 w-5" />
                   </div>
                 )}

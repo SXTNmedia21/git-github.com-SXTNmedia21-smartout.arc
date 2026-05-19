@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-17T00:00:00Z",
+  "generated_at": "2026-05-18T00:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -132,6 +132,31 @@
         "Vis avvik",
         "Lås gårsdagen",
         "Vis strategisk oversikt"
+      ]
+    },
+    {
+      "path": "/dashboard/admin/pos-accounts",
+      "purpose": "Administrer POS-tilkoblinger — koble til Lightspeed K-Series for automatisk salgsdata til bemanningsprognose.",
+      "module": "Admin",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getPosAccountsState",
+          "description": "Get current POS account inventory — count and per-account metadata. Use to answer 'hvor mange POS er tilkoblet?', 'hvilke kontoer er aktive?', or any status question about POS integrations."
+        },
+        {
+          "name": "getPosActionState",
+          "description": "Get action-gate flags for POS management — whether a new account can be connected and whether an active account exists. Use before proposing a connect action or answering 'kan jeg koble til Lightspeed?'."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange POS er tilkoblet?",
+        "Kan jeg koble til Lightspeed?",
+        "Hvilke POS-kontoer er aktive?"
       ]
     },
     {
@@ -305,8 +330,29 @@
       ]
     },
     {
+      "path": "/dashboard/chat",
+      "purpose": "Direkte meldinger og gruppechat med kolleger — uformell 1:1 og gruppekommunikasjon. Promotert til eget toppnivå-punkt i sidefeltet (SM-5).",
+      "module": "Communication",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "owns_chat_surface": true,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "createChat",
+          "description": "Create a 1:1 direct-message channel with another workspace member by profile_id. If the DM already exists, it returns the existing channel_id. Use when the user says 'start chat med NN', 'send DM til NN'. The caller must look up the profile_id first via the people directory."
+        }
+      ],
+      "suggested_prompts": [
+        "Start en DM med [navn]",
+        "Hvem kan jeg chatte med?",
+        "Åpne chat med teamet"
+      ]
+    },
+    {
       "path": "/dashboard/komm",
-      "purpose": "Kanaler, direktemeldinger og talesamtaler — send meldinger, se historikk og bli med i aktive calls.",
+      "purpose": "Kommunikasjon — fire faner: Kanaler (kanaler, DM, tale), Skranke (helpdesk), Nyheter (kunngjøringer), Varsler (notifications).",
+      "tabs": ["kanaler", "skranke", "nyheter", "varsler"],
       "module": "Communication",
       "tier": 1,
       "access": ["owner", "admin", "manager", "employee"],
@@ -434,8 +480,10 @@
       ]
     },
     {
-      "path": "/dashboard/notifications",
-      "purpose": "Alle varsler om vakter, oppgaver, avvik og kontrakter — samlet på ett sted. Klikk for å gå til kilden.",
+      "path": "/dashboard/komm/varsler",
+      "purpose": "Varsler — alle varsler om vakter, oppgaver, avvik og kontrakter samlet på ett sted. Tab under Kommunikasjon (SM-5). Gammel sti /dashboard/notifications redirecter hit (307).",
+      "deprecated_path": "/dashboard/notifications",
+      "redirects_from": "/dashboard/notifications",
       "module": "Core",
       "tier": 3,
       "access": ["owner", "admin", "manager", "employee"],
@@ -529,7 +577,7 @@
       "module": "Year Wheel",
       "tier": 2,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -828,7 +876,25 @@
       ]
     },
     {
-      "path": "/dashboard/contracts",
+      "path": "/dashboard/hms/training",
+      "purpose": "Training mode for protocols + competence matrix. Admin sees readiness matrix; employee sees assigned protocols (role-conditional).",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-17",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Vis mine protokoller",
+        "Hva er opplæringsstatus for teamet?",
+        "Vis kompetansematrise",
+        "Hvilke protokoller er tildelt meg?",
+        "Er noen utløpt på opplæring?"
+      ]
+    },
+    {
+      "path": "/dashboard/people/contracts",
       "purpose": "Employment contracts list — D2 resource availability. Status filter, signatures pending, AML §14-6 compliance.",
       "module": "Contracts",
       "tier": 3,
@@ -875,7 +941,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]",
+      "path": "/dashboard/people/contracts/[id]",
       "purpose": "Kontraktdetalj — ansatt, stilling, status, vilkår, decline-info, ADR-0244 compliance overrides, lineage. Read + nav.",
       "module": "Contracts",
       "tier": 3,
@@ -898,7 +964,7 @@
         },
         {
           "name": "navigateToReviseContract",
-          "description": "Navigate to the contract revision composer at /dashboard/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
+          "description": "Navigate to the contract revision composer at /dashboard/people/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
         },
         {
           "name": "navigateToCompleteEmployeeData",
@@ -914,7 +980,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]/revise",
+      "path": "/dashboard/people/contracts/[id]/revise",
       "purpose": "Kontraktrevisjon — CompositionWizard wrapper. Tools dekker kun kontekst + tilbake-nav.",
       "module": "Contracts",
       "tier": 3,
@@ -929,7 +995,7 @@
         },
         {
           "name": "navigateBackToContract",
-          "description": "Navigate back to the original contract detail view (/dashboard/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
+          "description": "Navigate back to the original contract detail view (/dashboard/people/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
         }
       ],
       "common_intents": [
@@ -941,7 +1007,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/awaiting-my-signature",
+      "path": "/dashboard/people/contracts/awaiting-my-signature",
       "purpose": "Inbox over kontrakter som venter arbeidsgivers signatur. Server-component med klient-bridge for tools.",
       "module": "Contracts",
       "tier": 3,
@@ -972,8 +1038,8 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/new",
-      "purpose": "Deprecated redirect — sender til /dashboard/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
+      "path": "/dashboard/people/contracts/new",
+      "purpose": "Deprecated redirect — sender til /dashboard/people/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
       "module": "Contracts",
       "tier": 3,
       "access": ["manager", "admin", "owner"],
@@ -1030,7 +1096,7 @@
     },
     {
       "path": "/dashboard/settings",
-      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface.",
+      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface. Also hosts organisasjonsstruktur (Struktur: Avdelinger/Lokasjoner/Team) and POS-integrasjoner (SM-9 2026-05-19).",
       "module": "Settings",
       "tier": 3,
       "access": ["owner", "admin"],
@@ -1044,7 +1110,7 @@
         },
         {
           "name": "listSettingsSections",
-          "description": "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+          "description": "List all settings sections (General, Payroll, Schedule, Framework, Kontrakter, Struktur, Integrasjoner) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
         },
         {
           "name": "getCurrentTabInfo",
@@ -1052,7 +1118,7 @@
         },
         {
           "name": "openSettingsSection",
-          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', 'vis avdelinger', 'gå til struktur', 'åpne POS integrasjoner', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings, struktur-overview, avdelinger, lokasjoner, team, pos, tripletex, sendgrid."
         },
         {
           "name": "getPayrollSettingsSummary",
@@ -1061,6 +1127,14 @@
         {
           "name": "getOperatingHoursSummary",
           "description": "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+        },
+        {
+          "name": "openStrukturTab",
+          "description": "Navigate to the Struktur section in Settings — shows organisation structure (Avdelinger, Lokasjoner, Team). Valid sub-tab args: struktur-overview, avdelinger, lokasjoner, team."
+        },
+        {
+          "name": "openIntegrasjonerTab",
+          "description": "Navigate to the Integrasjoner section in Settings. Valid tab: pos (POS Integrasjoner — live data). Tripletex + SendGrid are placeholders."
         }
       ],
       "common_intents": [
@@ -1108,7 +1182,7 @@
     },
     {
       "path": "/dashboard/organization",
-      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
+      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin. Redirects to /dashboard/settings#struktur-overview as of SM-9 2026-05-19. Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected.",
       "module": "Organization",
       "tier": 3,
       "access": ["owner", "admin"],
@@ -1552,7 +1626,7 @@
       "module": "Proposals",
       "tier": 3,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -1591,7 +1665,7 @@
       "module": "Setup",
       "tier": 3,
       "access": ["owner", "admin"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -2004,6 +2078,95 @@
         "Lag nytt team",
         "Hvem leder teamet?",
         "Tildel leder"
+      ]
+    },
+    {
+      "path": "/dashboard/website",
+      "purpose": "Nettside-oversikt — vis og administrer arbeidsplassens nettside, sider og publiseringsstatus.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getWebsiteState",
+          "description": "Get the workspace website's current state — whether a website has been set up, its name, visibility (live/draft), domain slug, template key, and when it was last updated. Call first when answering open-ended questions about the workspace website."
+        },
+        {
+          "name": "getPagesList",
+          "description": "List all website pages with title, URL slug, visibility status, and sort order. Use when the user asks 'hvilke sider finnes?', 'er forsiden synlig?', 'vis alle sider', or wants a page overview."
+        },
+        {
+          "name": "getPublishActionState",
+          "description": "Get the current publish action availability — canPublish, canUnpublish, canRollback, and a short hint explaining the current state. Use when the user asks 'kan jeg publisere?', 'er nettsiden live?', 'hva er publiseringsstatusen?'."
+        }
+      ],
+      "common_intents": [
+        "Er nettsiden publisert?",
+        "Hvilke sider har vi?",
+        "Kan jeg publisere nå?",
+        "Hva er domenenavnet?",
+        "Vis nettside-status"
+      ]
+    },
+    {
+      "path": "/dashboard/website/setup",
+      "purpose": "Nettside-oppsett — 3-stegs veiviser for å opprette nettside fra mal med navn og fargetema.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSetupStatus",
+          "description": "Get the current state of the website setup wizard — which step the user is on, which steps are completed, and what is missing before proceeding. Use when the user asks 'hvor langt er jeg?', 'hva gjenstår?', 'kan jeg gå videre?', or needs guidance in the wizard."
+        },
+        {
+          "name": "getTemplateOptions",
+          "description": "List available website templates with name and key. Use when the user asks 'hvilke maler finnes?', 'vis malalternativene', 'hva slags nettside kan jeg lage?'. Does NOT return full template content — names and keys only."
+        }
+      ],
+      "common_intents": [
+        "Hvilke maler finnes?",
+        "Hvor er jeg i veiviseren?",
+        "Hva gjenstår for å opprette nettsiden?",
+        "Kan jeg gå videre til neste steg?",
+        "Hjelp meg velge mal"
+      ]
+    },
+    {
+      "path": "/dashboard/website/pages/[pageId]",
+      "purpose": "Side-editor — rediger seksjoner på en nettside-side, administrer seksjonsrekkefølge og synlighet.",
+      "module": "Website",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-16",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getPageState",
+          "description": "Get the current state of the page being edited — title, visibility, section count, unsaved changes status, and last saved timestamp. Call first when answering open-ended questions about the page editor."
+        },
+        {
+          "name": "getSectionsList",
+          "description": "List all sections on the current page — section type, visibility, and sort order. Use when the user asks 'hvilke seksjoner er det?', 'hva inneholder siden?', 'er hero-seksjonen synlig?'. Does NOT return section content."
+        },
+        {
+          "name": "getSaveActionState",
+          "description": "Get the current save and publish action availability — hasUnsavedChanges, canPublish, canPreview, and a hint. Use when the user asks 'er endringene lagret?', 'kan jeg publisere siden?', 'hva gjenstår?'."
+        }
+      ],
+      "common_intents": [
+        "Hvilke seksjoner er på denne siden?",
+        "Er endringene lagret?",
+        "Hvor mange seksjoner er synlige?",
+        "Hva er tittelen på siden?",
+        "Kan jeg forhåndsvise siden?"
       ]
     },
     {

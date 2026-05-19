@@ -1,13 +1,16 @@
 ---
 title: "Botsson Surface Disambiguation on Pages with Embedded Chat"
 id: ADR_0238
-status: proposed
+status: accepted
+accepted_date: 2026-05-17
 layer: decision
 created: 2026-04-29
-updated: 2026-04-29
+updated: 2026-05-17
 ---
 
 # ADR-0238: Botsson Surface Disambiguation on Pages with Embedded Chat
+
+> **Status flipped proposed → accepted 2026-05-17.** Reason: enforcement shipped via ADR-0337 (`DomainChatOwnership` component mandate) + implementation verified by ui-shell R1 council Agent-coord trace (2026-05-16 commit `16b000387` — `DomainChatOwnership` component live in `apps/web/src/app/Botsson/_components/`, wired in `dashboard/komm/chat` + `dashboard/komm/thread/[id]` + `dashboard/shift-clock`). Enforcement requirement met per L-0277 (ADR-declared-pattern-component-never-built closed). Sub-sortie feat/ui-shell-r1-fixup, verified by system-agent-coordinator Phase 3.
 
 ## Context and Problem Statement
 

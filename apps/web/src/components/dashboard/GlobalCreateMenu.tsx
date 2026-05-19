@@ -133,7 +133,7 @@ export function GlobalCreateMenu({ profileId }: GlobalCreateMenuProps) {
         <DropdownMenuTrigger asChild>
           <Button
             size="sm"
-            className="group gap-1.5 rounded-lg bg-[oklch(0.55_0.18_245)] text-white shadow-sm transition-all hover:bg-[oklch(0.50_0.18_245)] hover:shadow-md hover:shadow-[oklch(0.55_0.18_245/0.25)]"
+            className="group gap-1.5 rounded-lg bg-[var(--info)] text-white shadow-sm transition-all hover:bg-[var(--info-foreground)] hover:shadow-[var(--shadow-cta-sm)] hover:shadow-md"
           >
             <Plus className="h-4 w-4 transition-transform group-data-[state=open]:rotate-45" />
             <span className="font-semibold">Ny</span>

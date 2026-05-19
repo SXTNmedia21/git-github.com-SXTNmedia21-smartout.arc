@@ -293,6 +293,24 @@
       "sign_with_exceptions": "Sign with exceptions",
       "sign_session": "Sign session",
       "sent_to_review": "Sent for review"
+    },
+    "procedureDetailTabs": {
+      "overview": "Overview",
+      "steps": "Steps",
+      "quiz": "Quiz",
+      "confirmation": "Confirmation",
+      "required": "Required",
+      "active": "Active",
+      "inactive": "Inactive",
+      "not_found": "Procedure not found.",
+      "no_steps": "No steps defined.",
+      "knowledge_tests_placeholder": "Knowledge tests shown here. Connected in next iteration.",
+      "confirmations_placeholder": "Confirmations shown here. Connected in next iteration.",
+      "protocol_label": "Protocol",
+      "policy_label": "Policy",
+      "steps_count": "Steps",
+      "last_updated": "Last updated",
+      "training_content_label": "Training content:"
     }
   },
   "setup": {
@@ -316,7 +334,33 @@
     "brand_season_sub": "Seasons, budget and staffing in one place.",
     "brand_handbook_heading": "Your own\nhandbook.",
     "brand_handbook_sub": "Ready to use from day one.",
-    "skip_to_dashboard": "Skip to dashboard"
+    "skip_to_dashboard": "Skip to dashboard",
+    "value_props": {
+      "governance": {
+        "title": "Policies",
+        "text": "Your rules, automatically routed to training"
+      },
+      "schedule": {
+        "title": "Schedule",
+        "text": "Right person, right time, right role"
+      },
+      "operations": {
+        "title": "Operations",
+        "text": "The day runs itself, from open to close"
+      }
+    },
+    "error": {
+      "title": "Could not load setup",
+      "body": "The wizard failed to start. Check your internet connection and try again. If the problem persists, return to the dashboard.",
+      "error_id": "Error ID: {digest}",
+      "back_to_dashboard": "Back to dashboard",
+      "retry": "Try again"
+    },
+    "document_drop": {
+      "drop_here": "Drag and drop documents here",
+      "or_click": "or click to choose files",
+      "hint": "PDF, DOCX, XLSX, CSV, images · Max {max_files} files, {max_mb} MB per file"
+    }
   },
   "steps": {
     "welcome": "Welcome",
@@ -643,6 +687,84 @@
   "nav": {
     "todo": "To Do"
   },
+  "sidebar": {
+    "disabled_tooltip": "Coming soon",
+    "disabled_badge": "Soon",
+    "group_oversikt": "Overview",
+    "group_drift": "Operations",
+    "group_planlegging": "Planning",
+    "group_administrasjon": "Administration",
+    "group_hms_compliance": "Safety & Compliance",
+    "group_kommunikasjon": "Communication",
+    "group_integrasjoner": "Integrations",
+    "group_ai_botsson": "AI & Botsson",
+    "group_veiledning": "Guidance",
+    "group_min_tid": "My Time",
+    "group_showcase": "Showcase",
+    "item_oversikt": "Overview",
+    "item_kanaler": "Channels",
+    "item_chat": "Chat",
+    "item_nyheter": "News",
+    "item_desks": "Desks",
+    "item_ansatte": "Employees",
+    "item_vaktplan": "Schedule",
+    "item_kalender": "Calendar",
+    "item_vaktbors": "Shift Market",
+    "item_rutiner": "Routines",
+    "item_forslag": "Proposals",
+    "item_arshjul": "Year Wheel",
+    "item_setup_veiviser": "Setup Wizard",
+    "item_organisasjon": "Organization",
+    "item_lonn": "Payroll",
+    "item_avstemming": "Reconciliation",
+    "item_rapporter": "Reports",
+    "item_kontrakter": "Contracts",
+    "item_kostnader": "Costs",
+    "item_fakturering": "Billing",
+    "item_nettside": "Website",
+    "item_hms_oversikt": "Safety Overview",
+    "item_avvik": "Deviations",
+    "item_dokumenter": "Documents",
+    "item_trening": "Training",
+    "item_drift_sjekk": "Ops Check",
+    "item_styring": "Governance",
+    "item_policies": "Policies",
+    "item_handbok": "Handbook",
+    "item_pos_lightspeed": "POS Lightspeed",
+    "item_mr_botsson": "Mr. Botsson",
+    "item_onboarding_assistent": "Onboarding Assistant",
+    "item_manualer": "Manuals",
+    "item_min_plan": "My Schedule",
+    "item_min_lonn": "My Pay",
+    "item_min_kontrakt": "My Contract",
+    "item_min_cv": "My CV",
+    "item_min_trening": "My Training",
+    "item_min_profil": "My Profile",
+    "item_stempelur": "Time Clock",
+    "item_templates": "Templates",
+    "item_analytics": "Analytics",
+    "item_system_intelligence": "System Intelligence",
+    "item_chat_standalone": "Chat",
+    "item_kommunikasjon_root": "Communication",
+    "item_oppgaver": "Tasks",
+    "item_planlegging": "Planning",
+    "item_hms": "Safety",
+    "group_oppgaver": "Tasks",
+    "group_vaktplan": "Schedule",
+    "group_ansatte": "People",
+    "group_hms": "Safety",
+    "group_lonn": "Payroll",
+    "group_avstemming": "Reconciliation",
+    "group_rapporter": "Reports",
+    "group_chat": "Chat",
+    "group_min_plan": "My schedule",
+    "group_min_lonn": "My pay",
+    "group_min_kontrakt": "My contract",
+    "group_min_cv": "My CV",
+    "group_min_trening": "My training",
+    "group_min_profil": "My profile",
+    "group_stempelur": "Time clock"
+  },
   "todo_group": {
     "departments": "Departments",
     "staff": "Staff",
@@ -723,7 +845,10 @@
       "payroll": "Payroll",
       "schedule": "Schedule",
       "framework": "Framework",
-      "organization": "Organization"
+      "organization": "Organization",
+      "kontrakter": "Contracts",
+      "struktur": "Structure",
+      "integrasjoner": "Integrations"
     },
     "tabs": {
       "general": "General",
@@ -745,7 +870,15 @@
       "framework_rules": "Work rules",
       "tariff_rates": "Tariff rates",
       "change_proposals": "Change proposals",
-      "holidays": "Holidays"
+      "holidays": "Holidays",
+      "contract_template_bindings": "Contract bindings",
+      "struktur_overview": "Overview",
+      "avdelinger": "Departments",
+      "lokasjoner": "Locations",
+      "team": "Teams",
+      "pos_integrasjoner": "POS Integrations",
+      "tripletex": "Tripletex",
+      "sendgrid": "SendGrid"
     }
   },
   "settings_hours": {
@@ -956,5 +1089,167 @@
     "toast_approved": "Approved",
     "toast_reminder_sent": "Reminder sent",
     "toast_task_completed": "Task completed"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Absence requests",
+      "reject": "Reject",
+      "confirm_reject": "Are you sure you want to reject this absence request?",
+      "cancel": "Cancel",
+      "days_count": "{count} days",
+      "type_sick": "Sick leave",
+      "type_vacation": "Vacation",
+      "type_parental": "Parental leave",
+      "type_unpaid": "Unpaid leave",
+      "type_military": "Military service",
+      "type_training": "Training",
+      "type_welfare": "Welfare"
+    },
+    "tabs": {
+      "aria_label": "Schedule sections",
+      "vaktplan": "Schedule",
+      "vaktbors": "Open Shifts",
+      "ferieplan": "Vacation Plan"
+    },
+    "view_mode": {
+      "aria_label": "View mode",
+      "liste": "List",
+      "kalender": "Calendar",
+      "tidslinjer": "Timeline",
+      "tidslinjer_tooltip": "Coming in SM-6"
+    },
+    "ferieplan": {
+      "loading": "Loading vacation plan…",
+      "empty": "No vacation requests registered",
+      "status_pending": "Requested",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected"
+    }
+  },
+  "shell": {
+    "header": {
+      "active_season": "Active season:",
+      "season_placeholder": "Winter 2026",
+      "season_active_badge": "Active",
+      "doc_mode_off": "Back to operations",
+      "doc_mode_on": "Document mode"
+    },
+    "nav": {
+      "settings": "Settings",
+      "help": "Help",
+      "admin_mode": "Admin mode",
+      "employee_mode": "Employee mode",
+      "botsson": "Mr. Botsson"
+    },
+    "breadcrumb": {
+      "drift": "Operations",
+      "workspace": "Workspace",
+      "handbook": "Handbook",
+      "doc_mode": "Document mode"
+    },
+    "segment": {
+      "schedule": "Schedule",
+      "people": "Staff",
+      "reports": "Reports",
+      "operations": "Operations",
+      "hms": "HMS",
+      "year_wheel": "Year wheel",
+      "calendar": "Calendar",
+      "organization": "Organization",
+      "settings": "Settings",
+      "help": "Help",
+      "komm": "Channels",
+      "ai": "Mr. Botsson",
+      "onboarding_assistant": "Onboarding assistant",
+      "my_schedule": "My schedule",
+      "my_training": "My training",
+      "my_cv": "My profile",
+      "my_salary": "My salary",
+      "overview": "Overview"
+    },
+    "schedule": {
+      "layout_daily": "Week plan",
+      "layout_monthly": "Month",
+      "layout_list": "Shift list",
+      "layout_grid": "Staffing",
+      "week": "Week {week}, {year}",
+      "active_cycle": "Active cycle",
+      "cycle": "Cycle {offset}",
+      "today": "Today",
+      "month_jan": "January",
+      "month_feb": "February",
+      "month_mar": "March",
+      "month_apr": "April",
+      "month_may": "May",
+      "month_jun": "June",
+      "month_jul": "July",
+      "month_aug": "August",
+      "month_sep": "September",
+      "month_oct": "October",
+      "month_nov": "November",
+      "month_dec": "December",
+      "publish": "Publish ({count})"
+    },
+    "dashboard_tabs": {
+      "overview": "Overview",
+      "insight": "Insights",
+      "activity": "Activity",
+      "todo": "To do"
+    },
+    "search": {
+      "placeholder": "Search operations..."
+    },
+    "badge": {
+      "requests": "{count} Requests"
+    }
+  },
+  "day": {
+    "control": {
+      "tab_overview": "Overview",
+      "tab_timeline": "Day line",
+      "tab_roster": "Staffing",
+      "tab_tasks": "Tasks",
+      "tab_deviations": "Deviations",
+      "tab_broadcast": "Message",
+      "aria_tabs": "Day information sections",
+      "elapsed_opened": "Opened {time}",
+      "elapsed_pending_signoff": "Awaiting sign-off",
+      "elapsed_closed": "Closed",
+      "elapsed_missed": "Grace period exceeded",
+      "no_dept_heading": "No department linked",
+      "no_dept_body": "You have no department registered on your profile, and the workspace has no departments set up. Contact admin to be assigned a department."
+    }
+  },
+  "people": {
+    "tab_list": "List",
+    "tab_roles": "Roles",
+    "tab_contracts": "Contracts",
+    "tab_training": "Training",
+    "filter_invited": "Invited",
+    "training": {
+      "subtitle": "Workforce readiness per employee",
+      "kpi_ready": "Ready workforce",
+      "kpi_avg": "Avg. readiness",
+      "kpi_expired": "Overdue",
+      "kpi_soon": "Expiring <14d",
+      "no_assignments": "No protocols assigned yet.",
+      "expand_row": "Show protocols",
+      "collapse_row": "Hide protocols",
+      "no_assigned_protocols": "No assigned protocols.",
+      "status_expired": "Overdue",
+      "status_completed": "Done",
+      "status_in_progress": "In progress",
+      "status_not_started": "Not started",
+      "status_waived": "Waived",
+      "status_pending": "Pending",
+      "filter_all": "All"
+    }
+  },
+  "planning": {
+    "tab_kalender": "Calendar",
+    "tab_arshjul": "Year Wheel",
+    "tab_eventer": "Events",
+    "tab_bookings": "Bookings",
+    "page_description": "Dates, seasons, events and bookings in one place"
   }
 }

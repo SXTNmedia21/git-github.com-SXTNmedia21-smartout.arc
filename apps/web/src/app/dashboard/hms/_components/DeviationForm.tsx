@@ -76,8 +76,8 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
     <div className="mx-auto max-w-lg space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-          <AlertTriangle className="h-5 w-5 text-red-500" />
+        <div className="bg-destructive/10 flex h-10 w-10 items-center justify-center rounded-lg">
+          <AlertTriangle className="text-destructive h-5 w-5" />
         </div>
         <div>
           <h2 className="text-foreground text-lg font-bold">{t("hms.deviation_form.title")}</h2>
@@ -88,7 +88,7 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
       {/* Title */}
       <div className="space-y-1.5">
         <Label htmlFor="deviation-title">
-          {t("hms.deviation_form.what_happened")} <span className="text-red-500">*</span>
+          {t("hms.deviation_form.what_happened")} <span className="text-destructive">*</span>
         </Label>
         <Input
           id="deviation-title"
@@ -102,7 +102,7 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>
-            {t("hms.deviation_form.category")} <span className="text-red-500">*</span>
+            {t("hms.deviation_form.category")} <span className="text-destructive">*</span>
           </Label>
           <Select value={domain} onValueChange={(v) => setDomain(v as DeviationDomain)}>
             <SelectTrigger>
@@ -119,7 +119,7 @@ export function DeviationForm({ prefill, onSuccess }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label>
-            {t("hms.deviation_form.severity")} <span className="text-red-500">*</span>
+            {t("hms.deviation_form.severity")} <span className="text-destructive">*</span>
           </Label>
           <Select value={severity} onValueChange={(v) => setSeverity(v as DeviationSeverity)}>
             <SelectTrigger>

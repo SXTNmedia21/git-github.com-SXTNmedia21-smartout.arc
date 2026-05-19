@@ -70,8 +70,8 @@ test.describe("J1 — Admin creates employee contract", () => {
       await dismissDevOverlay(page);
     });
 
-    await test.step("act — navigate to /dashboard/contracts", async () => {
-      await page.goto("/dashboard/contracts");
+    await test.step("act — navigate to /dashboard/people/contracts", async () => {
+      await page.goto("/dashboard/people/contracts");
       await page.waitForLoadState("domcontentloaded");
       await dismissDevOverlay(page);
     });
@@ -274,7 +274,7 @@ test.describe("J1 — Admin creates employee contract", () => {
     await test.step("setup", async () => {
       await loginAsAdmin(page);
       // Navigate directly via URL param — skips CTA click
-      await page.goto("/dashboard/contracts?open=compose");
+      await page.goto("/dashboard/people/contracts?open=compose");
       await page.waitForLoadState("domcontentloaded");
       await dismissDevOverlay(page);
     });

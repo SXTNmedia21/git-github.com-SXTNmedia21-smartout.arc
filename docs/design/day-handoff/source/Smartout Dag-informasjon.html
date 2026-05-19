@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Smartout — Dag-informasjon</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Geist', system-ui, sans-serif; margin: 0; }
+    @keyframes soPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.85); }
+    }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- shared -->
+  <script src="day/data.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="components/primitives.jsx"></script>
+
+  <!-- dag-widgets & views -->
+  <script type="text/babel" src="day/widgets.jsx"></script>
+  <script type="text/babel" src="day/web-day.jsx"></script>
+  <script type="text/babel" src="day/mobile-day.jsx"></script>
+  <script type="text/babel" src="day/recon.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAKS = /*EDITMODE-BEGIN*/{
+      "phase": "locked",
+      "role": "leader",
+      "density": "compact"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [phase, setPhase]     = React.useState(TWEAKS.phase);
+      const [density, setDensity] = React.useState(TWEAKS.density);
+      const [tweaksOn, setTweaksOn] = React.useState(false);
+
+      // Edit-mode protocol
+      React.useEffect(() => {
+        const handler = (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === '__activate_edit_mode')   setTweaksOn(true);
+          if (e.data.type === '__deactivate_edit_mode') setTweaksOn(false);
+        };
+        window.addEventListener('message', handler);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', handler);
+      }, []);
+
+      const setTweak = (k, v) => {
+        if (k === 'phase') setPhase(v);
+        if (k === 'density') setDensity(v);
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+      };
+
+      return (
+        <>
+          <DesignCanvas>
+            <div style={{ padding: '0 60px 28px' }}>
+              <div style={{ fontFamily: 'Instrument Serif, serif', fontSize: 44, letterSpacing: '-0.02em', color: 'rgba(40,30,20,0.9)' }}>
+                Smartout — Dag-informasjon
+              </div>
+              <div style={{ fontSize: 15, color: 'rgba(60,50,40,0.65)', marginTop: 4, maxWidth: 780, lineHeight: 1.5 }}>
+                Dag &amp; Session som et orkestrerende produkt. 10 kanoniske widgets, web day-control panel (7 tabs), mobil home i Before/During/After-faser, og admin-avstemming.
+                All data er Café Skuta · Kjøkken · mandag 19. april 2026.
+              </div>
+            </div>
+
+            <DCSection title="1. Kanoniske widgets" subtitle="Alle ti byggestenene som driver både web og mobil">
+              <DCArtboard label="SessionHeader — alle faser" width={1280} height={220}>
+                <div style={{ padding: 24, display: "grid", gap: 18, background: SO.bg }}>
+                  {["upcoming","active","pending_signoff","closed","missed","locked"].map(p => (
+                    <div key={p}><SessionHeader session={DATA.SESSION} phase={p} variant="inline" /></div>
+                  ))}
+                </div>
+              </DCArtboard>
+              <DCArtboard label="PhaseTimeline — active state" width={1280} height={180}>
+                <div style={{ padding: 28, background: SO.bg, height: "100%" }}><PhaseTimeline hooks={DATA.HOOKS} phase="active" nowPct={34} /></div>
+              </DCArtboard>
+              <DCArtboard label="ShiftCard — default, compact, detailed" width={1280} height={260}>
+                <div style={{ padding: 20, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, background: SO.secondary, height: "100%" }}>
+                  <div><div style={{ fontSize: 10, fontWeight: 600, color: SO.muted, marginBottom: 8, letterSpacing: "0.14em", textTransform: "uppercase" }}>Default</div><ShiftCard shift={DATA.SHIFTS[1]} /></div>
+                  <div><div style={{ fontSize: 10, fontWeight: 600, color: SO.muted, marginBottom: 8, letterSpacing: "0.14em", textTransform: "uppercase" }}>Detailed</div><ShiftCard shift={DATA.SHIFTS[1]} variant="detailed" /></div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: SO.muted, marginBottom: 8, letterSpacing: "0.14em", textTransform: "uppercase" }}>Compact (stack)</div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {DATA.SHIFTS.slice(0, 3).map(s => <ShiftCard key={s.id} shift={s} variant="compact" />)}
+                    </div>
+                  </div>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="HookTile — collapsed + expanded med TaskRow" width={1280} height={520}>
+                <div style={{ padding: 20, display: "grid", gap: 12, background: SO.secondary, height: "100%", overflow: "auto" }}>
+                  <HookTile hook={DATA.HOOKS[2]} defaultOpen={true} />
+                  <HookTile hook={DATA.HOOKS[0]} defaultOpen={false} />
+                  <HookTile hook={DATA.HOOKS[4]} defaultOpen={false} />
+                </div>
+              </DCArtboard>
+              <DCArtboard label="KpiTile — 6 varianter" width={1280} height={220}>
+                <div style={{ padding: 20, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, background: SO.secondary, height: "100%" }}>
+                  {DATA.KPIS.map(k => <KpiTile key={k.key} tile={k} />)}
+                </div>
+              </DCArtboard>
+              <DCArtboard label="DeviationCard — open + resolved" width={1280} height={340}>
+                <div style={{ padding: 20, display: "grid", gap: 12, background: SO.secondary, height: "100%" }}>
+                  {DATA.DEVIATIONS.map(d => <DeviationCard key={d.id} deviation={d} />)}
+                </div>
+              </DCArtboard>
+              <DCArtboard label="BroadcastComposer" width={1280} height={140}>
+                <div style={{ padding: 20, background: SO.secondary, height: "100%" }}><BroadcastComposer /></div>
+              </DCArtboard>
+              <DCArtboard label="SignoffPanel + ReconSummary" width={1280} height={420}>
+                <div style={{ padding: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, background: SO.secondary, height: "100%" }}>
+                  <SignoffPanel />
+                  <ReconSummary data={{ phase: "pending_signoff" }} />
+                </div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="2. Web day-control panel — interaktiv" subtitle="Leder / admin · sub-tabs · bytt fase med Tweaks">
+              <DCArtboard label="Day-control · live prototype" width={1360} height={860}>
+                <WebDayControl phase={phase} initialTab="overview" height={860} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="3. Mobil home — fase-basert" subtitle="Anna Olsen (ansatt) · Before · During (live timer) · After">
+              <DCArtboard label="Før vakt · 12:30 i dag" width={410} height={864}>
+                <MobileHomeFrame phase="upcoming" />
+              </DCArtboard>
+              <DCArtboard label="Under vakt · klokka 18:32 (live timer)" width={410} height={864}>
+                <MobileHomeFrame phase="active" />
+              </DCArtboard>
+              <DCArtboard label="Etter vakt · venter oppgjør" width={410} height={864}>
+                <MobileHomeFrame phase="pending_signoff" />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="4. Admin-avstemming — uke 17" subtitle="Pontus · liste + detalj · klikk 18. apr (pending) for å åpne">
+              <DCArtboard label="Uke-oversikt · klikkbar" width={1360} height={780}>
+                <ReconView />
+              </DCArtboard>
+            </DCSection>
+
+            <DCPostIt top={210} left={30} rotate={-3} width={220}>
+              Alt er én sesjon per dag per avdeling. Faser driver visningen, ikke omvendt.
+            </DCPostIt>
+            <DCPostIt top={1560} left={30} rotate={2} width={220}>
+              Day-control bruker 7 sub-tabs for å unngå overlast. Oppgjør alltid siste steg.
+            </DCPostIt>
+            <DCPostIt top={3060} left={30} rotate={-2} width={220}>
+              Mobil "During" har live tikkende timer som oppdateres hvert sekund. Prøv Tweaks for å bytte fase.
+            </DCPostIt>
+          </DesignCanvas>
+
+          {/* Tweaks panel */}
+          {tweaksOn && (
+            <div style={{
+              position: "fixed", bottom: 20, right: 20, width: 280, padding: 16,
+              background: SO.bg, border: `1px solid ${SO.border}`, borderRadius: 14,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.12)", fontFamily: "Geist, sans-serif", zIndex: 9999,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: SO.muted, marginBottom: 12 }}>Tweaks</div>
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: SO.fg, marginBottom: 6 }}>Fase (day-control + mobil)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 14 }}>
+                {[
+                  { key: "upcoming", label: "Starter snart" },
+                  { key: "active", label: "Pågår" },
+                  { key: "pending_signoff", label: "Venter oppgjør" },
+                  { key: "closed", label: "Stengt" },
+                  { key: "missed", label: "Ikke åpnet" },
+                  { key: "locked", label: "Låst" },
+                ].map(p => (
+                  <button key={p.key} onClick={() => setTweak('phase', p.key)} style={{
+                    padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    border: `1px solid ${phase === p.key ? SO.orange : SO.border}`,
+                    background: phase === p.key ? "rgba(249,115,22,0.1)" : "transparent",
+                    color: phase === p.key ? SO.orange : SO.fg,
+                  }}>{p.label}</button>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: SO.fg, marginBottom: 6 }}>Tetthet</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {["compact", "default", "detailed"].map(d => (
+                  <button key={d} onClick={() => setTweak('density', d)} style={{
+                    flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    border: `1px solid ${density === d ? SO.orange : SO.border}`,
+                    background: density === d ? "rgba(249,115,22,0.1)" : "transparent",
+                    color: density === d ? SO.orange : SO.fg,
+                  }}>{d}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

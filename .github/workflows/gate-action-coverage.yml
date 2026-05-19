@@ -1,9 +1,11 @@
-name: ADR-0287 gate_action coverage
+name: ADR-0287 gate_action coverage + ADR-0340 pipeline override parity
 on:
   pull_request:
     paths:
       - 'packages/ai/src/capabilities/**'
+      - 'supabase/migrations/**'
       - 'scripts/gate-action-coverage.ts'
+      - 'scripts/check-pipeline-override-parity.ts'
       - '.github/workflows/gate-action-coverage.yml'
 jobs:
   check-gate-coverage:
@@ -19,5 +21,11 @@ jobs:
       # current state of the codebase. Flip to --strict after the
       # ADR-0204 backlog drains (see F-DB-11 closure note in
       # docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md).
-      - name: Check gate_action coverage (baseline)
+      - name: Check gate_action coverage (baseline) — ADR-0287
         run: tsx scripts/gate-action-coverage.ts --baseline
+      # Strict mode: exit 1 if any pipeline-defining capability lacks a
+      # sibling .override seed. This check is strict from day one — the
+      # seed migration (T0.5) lands in the same commit as the check.
+      # ADR-0340 T0.5 + L-0281: default-allow CVE prevention for pipeline overrides.
+      - name: Check pipeline override parity (strict) — ADR-0340 T0.5
+        run: tsx scripts/check-pipeline-override-parity.ts --strict

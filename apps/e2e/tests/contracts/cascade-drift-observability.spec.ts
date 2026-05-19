@@ -5,7 +5,7 @@
  *
  * Flow:
  *   1. Seed a drifted pair (K1a at v3, workspace fork at v1).
- *   2. Navigate to /dashboard/contracts?tab=maler.
+ *   2. Navigate to /dashboard/people/contracts?tab=maler.
  *   3. MalerTab renders the amber drift dot on the fork row.
  *   4. Click the dot (or workbench chip) → DriftDiffDrawer opens.
  *   5. `contract_template.drift_viewed` emits on open.
@@ -49,7 +49,7 @@ test.describe("cascade drift observability — MalerTab amber chip → DriftDiff
     });
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts?tab=maler");
+    await page.goto("/dashboard/people/contracts?tab=maler");
     await page.waitForLoadState("domcontentloaded");
 
     // Find the row for our drifted fork. Fork names start with "Test Drifted Fork".

@@ -40,18 +40,19 @@ const SCOPE_META: Record<ScopeTypeT, { label: string; Icon: typeof Users; colorC
     label: "Team",
     Icon: Users,
     colorClass:
-      "bg-[oklch(0.90_0.04_250)] text-[oklch(0.35_0.14_250)] border-[oklch(0.80_0.08_250)]",
+      "bg-[var(--slot-blue-bg)] text-[var(--slot-blue-fg)] border-[var(--slot-blue-border)]",
   },
   department: {
     label: "Avdeling",
     Icon: Building,
     colorClass:
-      "bg-[oklch(0.90_0.04_145)] text-[oklch(0.30_0.14_145)] border-[oklch(0.78_0.10_145)]",
+      "bg-[var(--slot-green-bg)] text-[var(--slot-green-fg)] border-[var(--slot-green-border)]",
   },
   location: {
     label: "Lokasjon",
     Icon: MapPin,
-    colorClass: "bg-[oklch(0.90_0.04_55)] text-[oklch(0.30_0.10_55)] border-[oklch(0.82_0.08_55)]",
+    colorClass:
+      "bg-[var(--slot-amber-bg)] text-[var(--slot-amber-fg)] border-[var(--slot-amber-border)]",
   },
   shift: {
     label: "Vakt",

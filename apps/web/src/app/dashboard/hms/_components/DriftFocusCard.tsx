@@ -66,7 +66,7 @@ export function DriftFocusCard() {
           {t("hms.drift_focus.next_task")}
         </p>
         {isOverdue && (
-          <Badge className="bg-red-500/15 text-[10px] text-red-600 hover:bg-red-500/15">
+          <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15 text-[10px]">
             {t("hms.drift_focus.overdue")}
           </Badge>
         )}
@@ -81,9 +81,7 @@ export function DriftFocusCard() {
         {Array.from({ length: totalTasks }).map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 w-1.5 rounded-full ${
-              i < completedTasks ? "bg-green-500" : "bg-muted"
-            }`}
+            className={`h-1.5 w-1.5 rounded-full ${i < completedTasks ? "bg-success" : "bg-muted"}`}
           />
         ))}
         <span className="text-muted-foreground ml-2 text-[10px]">

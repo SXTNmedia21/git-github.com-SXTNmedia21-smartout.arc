@@ -501,10 +501,22 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
       [],
     );
 
+    /** Triggered by BottomSheet onClose AFTER close animation settles. */
     const handleClose = useCallback(() => {
       setItem(null);
       onClose?.();
     }, [onClose]);
+
+    /**
+     * Used by the X header button + footer Lukk button. Drives the BottomSheet
+     * close animation; the BottomSheet's onClose callback then fires
+     * handleClose to clear state. Setting state alone does NOT animate the
+     * sheet closed — @gorhom/bottom-sheet ignores prop-driven index changes
+     * once mounted; you must call the ref method.
+     */
+    const requestClose = useCallback(() => {
+      sheetRef.current?.close();
+    }, []);
 
     if (item == null) {
       // Sheet is closed — render mount but keep invisible
@@ -542,7 +554,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
         <View style={[detailStyles.header, { borderBottomColor: theme.colors.border }]}>
           {/* Close */}
           <Pressable
-            onPress={handleClose}
+            onPress={requestClose}
             style={detailStyles.headerBtn}
             accessibilityRole="button"
             accessibilityLabel="Lukk detaljer"
@@ -658,7 +670,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
             )}
 
           <Pressable
-            onPress={handleClose}
+            onPress={requestClose}
             style={[
               detailStyles.footerSecondaryBtn,
               {

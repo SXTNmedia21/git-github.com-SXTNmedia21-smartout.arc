@@ -11,6 +11,7 @@
     "dev:mobile": "op run --env-file=.env.template -- pnpm --filter mobile dev",
     "dev:journey-control": "pnpm --filter @smartout/journey-control dev",
     "lint": "turbo run lint",
+    "lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -48,6 +49,7 @@
     "docs:ingest:git:main": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git --git-ref origin/main",
     "authority-seed-parity": "tsx scripts/authority-seed-parity.ts",
     "cascade-gate-entity-type-coverage": "tsx scripts/cascade-gate-entity-type-coverage.ts",
+    "pipeline-override-parity": "tsx scripts/check-pipeline-override-parity.ts",
     "prepare": "husky || true"
   },
   "devDependencies": {

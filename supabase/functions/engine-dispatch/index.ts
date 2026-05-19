@@ -2,6 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleSyncIntegration } from "./handlers/sync-integration.ts";
 import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
 import { handleNotifyPeriodLocked } from "./handlers/period-locked-notifier.ts";
+import { dispatchDayLinePush } from "./handlers/day-line-push.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
@@ -504,6 +505,52 @@ Deno.serve(async (req) => {
           resumed++;
         }
       }
+    }
+
+    // ── ADR-0367 §5.7: day_line_push tick ──────────────────────────
+    // Run on every engine-dispatch invocation (1-minute pg_cron tick
+    // drives the EF). Scans session_task rows with scheduled_at in the
+    // ±60s window and day_line_id NOT NULL, then fans out Expo push
+    // notifications to all clocked-in employees in the area.
+    // Non-fatal: any failure is logged but does not block the event
+    // processing response above.
+    const emitBridge = async (evt: {
+      event: string;
+      actor_id: string | null;
+      workspace_id: string | null;
+      properties: Record<string, unknown>;
+    }): Promise<void> => {
+      const emitUrl = Deno.env.get("INTERNAL_EMIT_URL");
+      const emitSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
+      if (!emitUrl || !emitSecret) return;
+      try {
+        await fetch(emitUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${emitSecret}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(evt),
+        });
+      } catch (emitErr) {
+        console.error(
+          "[day_line_push] emit bridge failed:",
+          emitErr instanceof Error ? emitErr.message : String(emitErr),
+        );
+      }
+    };
+
+    const pushResult = await dispatchDayLinePush({ sb: supabase, emit: emitBridge }).catch(
+      (err) => {
+        console.error("[day_line_push] tick threw:", err instanceof Error ? err.message : String(err));
+        return null;
+      },
+    );
+    if (pushResult) {
+      console.info(
+        "[day_line_push] tick done:",
+        JSON.stringify(pushResult),
+      );
     }
 
     return new Response(

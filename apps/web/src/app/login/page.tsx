@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { validateReturnTo } from "@/lib/safe-redirect";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
+import { useTranslation } from "@smartout/i18n";
 
 /* ─────────────────────────────────────────────────────
    Nordic Split — Choreographed panel swap
@@ -137,22 +138,8 @@ const brandTextVariant = {
   },
 };
 
-// Next 16 strict mode requires `useSearchParams()` consumers to be wrapped
-// in a Suspense boundary at module level so the page can prerender without
-// the URL query (search params resolve at the Suspense boundary at request
-// time). Without this, `next build` fails on /login with:
-//   "useSearchParams() should be wrapped in a suspense boundary at page /login"
-// Per ADR-0358 expired-session rescue (commit 296181b1a) added
-// useSearchParams to read ?return_to + ?reason — this fix wraps the consumer.
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginPageInner />
-    </Suspense>
-  );
-}
-
-function LoginPageInner() {
+function LoginContent() {
+  const { t } = useTranslation("auth");
   const router = useRouter();
   const routerRef = useRef(router);
   const searchParams = useSearchParams();
@@ -243,7 +230,7 @@ function LoginPageInner() {
         setGoogleLoading(false);
       }
     } catch {
-      setError("Noe gikk galt med Google-innlogging.");
+      setError(t("login.error.google"));
       setGoogleLoading(false);
     }
   }
@@ -287,7 +274,7 @@ function LoginPageInner() {
           authError.message.includes("NetworkError") ||
           authError.message.includes("network")
         ) {
-          setError("Kunne ikke koble til databasen. Sjekk at Supabase kjører lokalt.");
+          setError(t("login.error.network"));
           setLoading(false);
           return;
         }
@@ -295,7 +282,7 @@ function LoginPageInner() {
           authError.message.includes("Invalid login credentials") ||
           authError.message.includes("invalid_credentials")
         ) {
-          setError("Feil e-post eller passord.");
+          setError(t("login.error.credentials"));
           setLoading(false);
           return;
         }
@@ -309,9 +296,9 @@ function LoginPageInner() {
       setTimeout(() => setPendingMode("logging-in"), 200);
     } catch (err) {
       if (err instanceof TypeError && err.message === "Failed to fetch") {
-        setError("Kunne ikke koble til serveren. Prøv igjen om litt.");
+        setError(t("login.error.server"));
       } else {
-        setError("Noe gikk galt. Prøv igjen.");
+        setError(t("login.error.generic"));
       }
       setLoading(false);
     }
@@ -342,24 +329,27 @@ function LoginPageInner() {
         }}
         transition={isSwapped ? swapSpring : isLoggingIn ? expandSpring : panelSpring}
       >
-        <div className="absolute inset-0 bg-[oklch(0.18_0.03_50)]" />
+        <div className="absolute inset-0 bg-[var(--panel)]" />
 
         {/* Darkening overlay when logging in */}
         <motion.div
-          className="absolute inset-0 bg-[oklch(0.06_0.015_50)]"
+          className="absolute inset-0 bg-[var(--panel-deep)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: isLoggingIn ? 1 : 0 }}
           transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
         />
 
-        {/* Ambient orbs — radial gradients (Nordic Split spec) */}
+        {/* Ambient orbs — radial gradients (Nordic Split spec).
+            ADR-0366 sweep wrote `var(--brand-orange-warm) 35%` for the first
+            orb — that's a gradient stop, not an alpha. It painted a solid
+            disc to 35% of the radius. Use color-mix to recover ambient alpha. */}
         <motion.div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle at 30% 35%, oklch(0.72 0.16 45 / 0.35), transparent 55%)," +
-              "radial-gradient(circle at 72% 72%, oklch(0.65 0.22 40 / 0.22), transparent 60%)," +
-              "radial-gradient(circle at 20% 90%, oklch(0.55 0.18 300 / 0.10), transparent 55%)",
+              "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
+              "radial-gradient(circle at 72% 72%, color-mix(in oklch, var(--brand-orange) 22%, transparent), transparent 60%)," +
+              "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)",
           }}
           animate={{ opacity: isLoggingIn ? 0.45 : 1 }}
           transition={{ duration: 1.5 }}
@@ -391,12 +381,13 @@ function LoginPageInner() {
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    Teamet ditt,
+                    {t("login.brand.tagline")}
                     <br />
-                    <span className="text-[oklch(0.75_0.18_40)]">klar</span> fra dag en.
+                    <span className="text-brand-orange-light">{t("login.brand.ready")}</span>{" "}
+                    {t("login.brand.tagline_suffix")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/50">
-                    Alt du trenger for opplæring, drift og utvikling — samlet i ett system.
+                    {t("login.brand.subtitle")}
                   </p>
                 </motion.div>
               )}
@@ -409,14 +400,14 @@ function LoginPageInner() {
                   exit="exit"
                 >
                   <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
-                    Bygg noe
+                    {t("login.brand.signup_heading")}
                     <br />
-                    <span className="text-[oklch(0.75_0.18_40)]">teamet ditt</span>
+                    <span className="text-brand-orange-light">{t("login.brand.signup_team")}</span>
                     <br />
-                    fortjener.
+                    {t("login.brand.signup_suffix")}
                   </h2>
                   <p className="mt-4 text-[0.9rem] leading-relaxed text-white/50">
-                    Opplæring, drift og utvikling — klart på under fem minutter.
+                    {t("login.brand.signup_subtitle")}
                   </p>
                 </motion.div>
               )}
@@ -428,9 +419,11 @@ function LoginPageInner() {
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    La oss sette
+                    {t("login.brand.lets_go")}
                     <br />
-                    <span className="text-[oklch(0.75_0.18_40)]">i gang.</span>
+                    <span className="text-brand-orange-light">
+                      {t("login.brand.lets_go_suffix")}
+                    </span>
                   </h2>
                 </motion.div>
               )}
@@ -442,10 +435,10 @@ function LoginPageInner() {
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
-                    Der er du jo.
+                    {t("login.brand.welcome_back")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
-                    Dashboardet ditt er klart.
+                    {t("login.brand.dashboard_ready")}
                   </p>
                 </motion.div>
               )}
@@ -464,7 +457,7 @@ function LoginPageInner() {
 
       {/* ── FORM PANEL ── */}
       <motion.div
-        className="relative flex w-full flex-1 flex-col items-center justify-center bg-[oklch(0.99_0.004_60)] px-6 py-12"
+        className="relative flex w-full flex-1 flex-col items-center justify-center bg-[var(--surface-base)] px-6 py-12"
         style={{ willChange: "transform, max-width", maxWidth: "520px" }}
         initial={false}
         animate={{
@@ -475,7 +468,7 @@ function LoginPageInner() {
       >
         {/* Edge line — hidden when swapped */}
         <motion.div
-          className="absolute top-0 left-0 hidden h-full w-px bg-gradient-to-b from-transparent via-[oklch(0_0_0/0.06)] to-transparent lg:block"
+          className="absolute top-0 left-0 hidden h-full w-px bg-gradient-to-b from-transparent via-black/6 to-transparent lg:block"
           animate={{ opacity: isSwapped || isLoggingIn ? 0 : 1 }}
           transition={{ duration: 0.3 }}
         />
@@ -515,11 +508,11 @@ function LoginPageInner() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
-                      Velkommen tilbake
+                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[var(--foreground)]">
+                      {t("login.heading")}
                     </h1>
-                    <p className="mt-2 text-[0.875rem] text-[oklch(0.5_0.01_52)]">
-                      Logg inn for å fortsette til Smartout.
+                    <p className="mt-2 text-[0.875rem] text-[var(--text-dim)]">
+                      {t("login.subtitle")}
                     </p>
                   </div>
                 </motion.div>
@@ -532,7 +525,7 @@ function LoginPageInner() {
                     style={!hasInteracted ? { animationDelay: "20ms" } : undefined}
                   >
                     <div className="border-border bg-muted text-foreground mb-6 rounded-lg border p-3 text-sm">
-                      Sesjonen er utløpt — logg inn for å fortsette der du slapp.
+                      {t("login.session_expired")}
                     </div>
                   </motion.div>
                 )}
@@ -543,7 +536,7 @@ function LoginPageInner() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "40ms" } : undefined}
                 >
-                  <div className="mb-6 flex gap-1 rounded-xl bg-[oklch(0.95_0.004_55)] p-1">
+                  <div className="mb-6 flex gap-1 rounded-xl bg-[var(--surface-raised)] p-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -554,11 +547,11 @@ function LoginPageInner() {
                       className={cn(
                         "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
                         authMethod === "password"
-                          ? "bg-white text-[oklch(0.15_0.01_50)] shadow-sm"
-                          : "text-[oklch(0.5_0.01_52)] hover:text-[oklch(0.3_0.01_50)]",
+                          ? "bg-white text-[var(--foreground)] shadow-sm"
+                          : "text-[var(--text-dim)] hover:text-[var(--text-mid)]",
                       )}
                     >
-                      E-post og passord
+                      {t("login.method.password")}
                     </button>
                     <button
                       type="button"
@@ -569,11 +562,11 @@ function LoginPageInner() {
                       className={cn(
                         "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
                         authMethod === "otp"
-                          ? "bg-white text-[oklch(0.15_0.01_50)] shadow-sm"
-                          : "text-[oklch(0.5_0.01_52)] hover:text-[oklch(0.3_0.01_50)]",
+                          ? "bg-white text-[var(--foreground)] shadow-sm"
+                          : "text-[var(--text-dim)] hover:text-[var(--text-mid)]",
                       )}
                     >
-                      Engangskode
+                      {t("login.method.otp")}
                     </button>
                   </div>
                 </motion.div>
@@ -604,10 +597,10 @@ function LoginPageInner() {
                         type="button"
                         onClick={handleGoogleLogin}
                         disabled={googleLoading || loading}
-                        className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] font-medium text-[oklch(0.2_0.01_50)] shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                        className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-[0.875rem] font-medium text-[var(--text-strong)] shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
                       >
                         <GoogleIcon />
-                        {googleLoading ? "Logger inn..." : "Fortsett med Google"}
+                        {googleLoading ? t("login.google.loading") : t("login.google.button")}
                       </button>
                     </motion.div>
 
@@ -619,11 +612,11 @@ function LoginPageInner() {
                     >
                       <div className="relative my-7">
                         <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
+                          <div className="w-full border-t border-[var(--border)]" />
                         </div>
                         <div className="relative flex justify-center">
-                          <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
-                            eller
+                          <span className="bg-[var(--surface-base)] px-3 text-xs text-[var(--text-dim)]">
+                            {t("login.divider")}
                           </span>
                         </div>
                       </div>
@@ -645,8 +638,8 @@ function LoginPageInner() {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="din@epost.no"
-                          label="E-post"
+                          placeholder={t("login.email.placeholder")}
+                          label={t("login.email.label")}
                           icon={<Mail className="h-4 w-4" />}
                         />
                         <div>
@@ -655,13 +648,13 @@ function LoginPageInner() {
                               htmlFor="password"
                               className="text-foreground text-[0.8125rem] font-medium"
                             >
-                              Passord
+                              {t("login.password.label")}
                             </label>
                             <Link
                               href="/reset-password"
                               className="text-muted-foreground hover:text-brand-orange text-[0.8125rem] transition-colors"
                             >
-                              Glemt passord?
+                              {t("login.forgot_password")}
                             </Link>
                           </div>
                           <AuthIconInput
@@ -683,9 +676,9 @@ function LoginPageInner() {
                             data-testid="login-submit"
                             type="submit"
                             disabled={loading}
-                            className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                            className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                           >
-                            {loading ? "Logger inn..." : "Logg inn"}
+                            {loading ? t("login.submit.loading") : t("login.submit.idle")}
                           </button>
                         </div>
                       </form>
@@ -702,8 +695,8 @@ function LoginPageInner() {
                   >
                     {otpSent ? (
                       <div className="space-y-4">
-                        <p className="text-center text-[0.8125rem] text-[oklch(0.5_0.01_52)]">
-                          Hvis denne e-posten finnes, har vi sendt en kode
+                        <p className="text-center text-[0.8125rem] text-[var(--text-dim)]">
+                          {t("otp.ifExists")}
                         </p>
                         <OtpVerificationForm
                           email={email}
@@ -714,7 +707,7 @@ function LoginPageInner() {
                     ) : (
                       <div className="space-y-4">
                         <p className="text-muted-foreground text-[0.8125rem]">
-                          Vi sender en engangskode til e-posten din
+                          {t("login.otp.description")}
                         </p>
                         <AuthIconInput
                           id="otp-email"
@@ -723,17 +716,17 @@ function LoginPageInner() {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="din@epost.no"
-                          label="E-post"
+                          placeholder={t("login.email.placeholder")}
+                          label={t("login.email.label")}
                           icon={<Mail className="h-4 w-4" />}
                         />
                         <button
                           type="button"
                           onClick={handleSendOtp}
                           disabled={loading || !email.includes("@")}
-                          className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                          className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                         >
-                          {loading ? "Sender..." : "Send kode"}
+                          {loading ? t("login.otp.loading") : t("login.method.sendCode")}
                         </button>
                       </div>
                     )}
@@ -746,14 +739,14 @@ function LoginPageInner() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "280ms" } : undefined}
                 >
-                  <p className="mt-8 text-center text-[0.8125rem] text-[oklch(0.55_0.01_52)]">
-                    Har du ikke konto?{" "}
+                  <p className="mt-8 text-center text-[0.8125rem] text-[var(--text-dim)]">
+                    {t("login.no_account")}{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("signup")}
-                      className="cursor-pointer font-medium text-[oklch(0.65_0.22_40)] transition-colors hover:text-[oklch(0.55_0.22_40)]"
+                      className="text-brand-orange hover:text-brand-orange-dark cursor-pointer font-medium transition-colors"
                     >
-                      Opprett konto
+                      {t("login.create_account")}
                     </button>
                   </p>
                 </motion.div>
@@ -771,13 +764,13 @@ function LoginPageInner() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
-                      Kom i gang
+                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[var(--foreground)]">
+                      {t("login.signup.heading")}
                     </h1>
-                    <p className="mt-3 text-[0.9rem] leading-relaxed text-[oklch(0.5_0.01_52)]">
-                      Sett opp bedriften din på under fem minutter.
+                    <p className="mt-3 text-[0.9rem] leading-relaxed text-[var(--text-dim)]">
+                      {t("login.signup.subtitle")}
                       <br />
-                      Ingen kredittkort. Ingen forpliktelser.
+                      {t("login.signup.no_credit_card")}
                     </p>
                   </div>
                 </motion.div>
@@ -786,9 +779,9 @@ function LoginPageInner() {
                   <button
                     type="button"
                     onClick={() => switchMode("navigating")}
-                    className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3.5 text-[0.9rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98]"
+                    className="bg-brand-orange mb-4 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3.5 text-[0.9rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98]"
                   >
-                    Start registrering
+                    {t("login.signup.start")}
                     <ArrowRightIcon />
                   </button>
                 </motion.div>
@@ -796,11 +789,11 @@ function LoginPageInner() {
                 <motion.div variants={itemVariant}>
                   <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
+                      <div className="w-full border-t border-[var(--border)]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
-                        eller
+                      <span className="bg-[var(--surface-base)] px-3 text-xs text-[var(--text-dim)]">
+                        {t("login.divider")}
                       </span>
                     </div>
                   </div>
@@ -810,22 +803,22 @@ function LoginPageInner() {
                   <button
                     type="button"
                     onClick={() => switchMode("navigating")}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-3 text-[0.875rem] font-medium text-[oklch(0.2_0.01_50)] shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98]"
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-[0.875rem] font-medium text-[var(--text-strong)] shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.98]"
                   >
                     <GoogleIcon />
-                    Registrer med Google
+                    {t("login.signup.google")}
                   </button>
                 </motion.div>
 
                 <motion.div variants={itemVariant}>
-                  <p className="mt-10 text-center text-[0.8125rem] text-[oklch(0.55_0.01_52)]">
-                    Har du allerede konto?{" "}
+                  <p className="mt-10 text-center text-[0.8125rem] text-[var(--text-dim)]">
+                    {t("login.signup.has_account")}{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("login")}
-                      className="cursor-pointer font-medium text-[oklch(0.65_0.22_40)] transition-colors hover:text-[oklch(0.55_0.22_40)]"
+                      className="text-brand-orange hover:text-brand-orange-dark cursor-pointer font-medium transition-colors"
                     >
-                      Logg inn
+                      {t("login.signup.login_link")}
                     </button>
                   </p>
                 </motion.div>
@@ -851,9 +844,9 @@ function LoginPageInner() {
                         exit={{ opacity: 0, scale: 0.5 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <div className="absolute inset-0 rounded-full border-2 border-[oklch(0.65_0.22_40/0.15)]" />
+                        <div className="border-brand-orange/15 absolute inset-0 rounded-full border-2" />
                         <motion.div
-                          className="absolute inset-0 rounded-full border-2 border-transparent border-t-[oklch(0.65_0.22_40)]"
+                          className="border-t-brand-orange absolute inset-0 rounded-full border-2 border-transparent"
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
                         />
@@ -873,13 +866,13 @@ function LoginPageInner() {
                       >
                         {/* Burst ring */}
                         <motion.div
-                          className="absolute inset-[-8px] rounded-full border-2 border-[oklch(0.65_0.22_40)]"
+                          className="border-brand-orange absolute inset-[-8px] rounded-full border-2"
                           initial={{ scale: 0.5, opacity: 1 }}
                           animate={{ scale: 1.8, opacity: 0 }}
                           transition={{ duration: 0.6, ease: "easeOut" }}
                         />
                         {/* Check circle */}
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[oklch(0.65_0.22_40)]">
+                        <div className="bg-brand-orange flex h-10 w-10 items-center justify-center rounded-full">
                           <motion.svg
                             className="h-5 w-5 text-white"
                             viewBox="0 0 24 24"
@@ -904,8 +897,8 @@ function LoginPageInner() {
                 <AnimatePresence>
                   {navStep < 3 && (
                     <motion.div exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
-                      <h2 className="mb-3 text-[1.4rem] font-semibold tracking-tight text-[oklch(0.2_0.01_50)]">
-                        Gjør deg klar...
+                      <h2 className="mb-3 text-[1.4rem] font-semibold tracking-tight text-[var(--text-strong)]">
+                        {t("login.navigating.heading")}
                       </h2>
 
                       {/* Pulsing subtitle */}
@@ -913,15 +906,15 @@ function LoginPageInner() {
                         <AnimatePresence mode="wait">
                           <motion.p
                             key={navStep}
-                            className="text-[0.875rem] text-[oklch(0.55_0.01_52)]"
+                            className="text-[0.875rem] text-[var(--text-dim)]"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
                           >
-                            {navStep === 0 && "Et øyeblikk..."}
-                            {navStep === 1 && "Fremtiden er her."}
-                            {navStep === 2 && "Er du klar?"}
+                            {navStep === 0 && t("login.navigating.step0")}
+                            {navStep === 1 && t("login.navigating.step1")}
+                            {navStep === 2 && t("login.navigating.step2")}
                           </motion.p>
                         </AnimatePresence>
                       </div>
@@ -941,19 +934,29 @@ function LoginPageInner() {
                 className="flex flex-col items-center justify-center py-12 text-center"
               >
                 <div className="relative mb-5 h-8 w-8">
-                  <div className="absolute inset-0 rounded-full border-2 border-[oklch(0.65_0.22_40/0.12)]" />
+                  <div className="border-brand-orange/12 absolute inset-0 rounded-full border-2" />
                   <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-transparent border-t-[oklch(0.65_0.22_40/0.6)]"
+                    className="border-t-brand-orange/60 absolute inset-0 rounded-full border-2 border-transparent"
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                   />
                 </div>
-                <p className="text-[0.8125rem] text-[oklch(0.5_0.01_52)]">Logger inn...</p>
+                <p className="text-[0.8125rem] text-[var(--text-dim)]">
+                  {t("login.logging_in.spinner")}
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-[var(--surface-base)]" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

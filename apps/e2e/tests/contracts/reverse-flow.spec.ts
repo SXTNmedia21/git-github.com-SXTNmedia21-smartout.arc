@@ -7,7 +7,7 @@
  *
  * Entry:  /dashboard/people/<profile_id>
  *   → click "Lag kontrakt" actions button
- *   → router.push to /dashboard/contracts?open=compose&profileId=<id>
+ *   → router.push to /dashboard/people/contracts?open=compose&profileId=<id>
  *
  * The CompositionDrawer's reverse-flow seeding applies `initialProfileId`
  * once when the drawer opens and jumps the step cursor to `stilling` (step 2)
@@ -16,7 +16,7 @@
  * What we assert:
  *   A. The people-page CTA renders for a seeded profile (Anna Olsen,
  *      f0000000-0000-0000-0000-000000000001).
- *   B. Clicking it navigates to /dashboard/contracts with BOTH
+ *   B. Clicking it navigates to /dashboard/people/contracts with BOTH
  *      open=compose AND profileId=<anna> in the query string.
  *   C. On arrival, the drawer opens on step 2 (Stilling) — proven by the
  *      `02` step indicator being the active one. If the drawer still sits
@@ -53,7 +53,7 @@ test.describe("reverse flow — /people/[id] → /contracts?open=compose&profile
 
     // Navigated to the contracts hub with BOTH query params.
     await expect(page).toHaveURL(
-      new RegExp(`/dashboard/contracts\\?.*open=compose.*profileId=${ANNA_PROFILE_ID}`),
+      new RegExp(`/dashboard/people/contracts\\?.*open=compose.*profileId=${ANNA_PROFILE_ID}`),
       { timeout: 10_000 },
     );
 

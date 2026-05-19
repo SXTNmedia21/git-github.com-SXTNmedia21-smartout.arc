@@ -227,13 +227,17 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
       {/* Questions */}
       <div className="space-y-4">
         {questions.map((q, idx) => {
+          // DB returns questions as JSONB (typed `unknown`); legacy rows may
+          // omit `id`. Derive stable React-key fallback. State-keys still use
+          // raw q.id so submitTest payload matches DB question identifiers.
+          const qKey = q.id ?? `q-${idx}`;
           const selectedAnswer = answers[q.id];
           const isCorrect = showResults && selectedAnswer === q.correctOptionId;
           const isWrong = showResults && selectedAnswer && selectedAnswer !== q.correctOptionId;
 
           return (
             <div
-              key={q.id}
+              key={qKey}
               className={`rounded-lg border p-3 ${
                 isDark ? "border-border bg-muted" : "border-border bg-muted"
               }`}
@@ -250,13 +254,14 @@ export function KnowledgeTestView({ tests, assignmentId, isDark }: KnowledgeTest
               </p>
 
               <div className="space-y-1.5">
-                {q.options.map((opt) => {
+                {q.options.map((opt, optIdx) => {
+                  const optKey = opt.id ?? `${qKey}-opt-${optIdx}`;
                   const isSelected = selectedAnswer === opt.id;
                   const isThisCorrect = showResults && opt.id === q.correctOptionId;
 
                   return (
                     <button
-                      key={opt.id}
+                      key={optKey}
                       onClick={() => {
                         if (showResults) return;
                         setAnswers((prev) => ({ ...prev, [q.id]: opt.id }));

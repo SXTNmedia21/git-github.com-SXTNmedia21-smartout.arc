@@ -71,8 +71,8 @@ export function DriftTimeline() {
 
       {/* "Now" marker */}
       <div className="relative mb-4 flex items-center">
-        <div className="absolute left-[-20px] h-3.5 w-3.5 rounded-full border-2 border-red-500 bg-red-500" />
-        <span className="text-xs font-bold text-red-500">
+        <div className="border-destructive bg-destructive absolute left-[-20px] h-3.5 w-3.5 rounded-full border-2" />
+        <span className="text-destructive text-xs font-bold">
           {t("hms.drift_timeline.now")} — {nowStr}
         </span>
       </div>

@@ -21,7 +21,7 @@ related_adrs:
   - ADR-0167
   - ADR-0168
   - ADR-0169
-  - ADR-0362
+  - ADR-0374
 tags:
   - auth
   - oauth
@@ -42,12 +42,12 @@ tables:
   - signup_progress
 changelog:
   - date: 2026-05-18
-    change: "Initial canonical version — consolidates ADR-0021 amendment, ADR-0362 portal-redirect, ADR-0167/0168/0169 auth-invitation council, and the unshipped mobile universal-link doctrine into one ground-truth document."
+    change: "Initial canonical version — consolidates ADR-0021 amendment, ADR-0374 portal-redirect, ADR-0167/0168/0169 auth-invitation council, and the unshipped mobile universal-link doctrine into one ground-truth document."
 ---
 
 # Smartout — Auth & Deep-Link Architecture
 
-> **Status:** Canonical (v1.0). Web portal-redirect shipped 2026-05-18 (ADR-0362). Mobile universal-link bridge is P2 (Phase 6 of `docs/superpowers/specs/2026-04-20-auth-invitation-implementation-plan.md`).
+> **Status:** Canonical (v1.0). Web portal-redirect shipped 2026-05-18 (ADR-0374). Mobile universal-link bridge is P2 (Phase 6 of `docs/superpowers/specs/2026-04-20-auth-invitation-implementation-plan.md`).
 > **Depends on:** `SMARTOUT_Subdomain_Routing_Architecture.md` (host topology + cookie-domain rules).
 > **Audience:** anyone touching `apps/web/src/proxy.ts`, `apps/web/src/app/api/auth/`, `apps/web/src/app/login`, `apps/web/src/app/signup`, `apps/web/src/app/invite`, `apps/web/src/app/reset-password`, `apps/web/src/app/update-password`, `apps/mobile/app/(auth)/`, `supabase/config.toml`, or Supabase Cloud / Google Cloud / Apple / Google Play auth config.
 
@@ -59,7 +59,7 @@ Every auth flow in Smartout — web or mobile, OAuth or magic-link or password �
 
 ### I1. Portal Doctrine — `app.smartout.ai` is the only auth surface.
 
-Per **ADR-0021 amendment 2026-04-20** (Auth & Invitation Council Q1=b) and **ADR-0362**: every auth screen (`/login`, `/signup`, `/join`, `/reset-password`, `/update-password`, `/invite/**`, `/confirm-email`, `/select-workspace`, `/welcome`) lives on `app.smartout.ai` only. Workspace subdomains (`{slug}.smartout.ai`) middleware-redirect (307) every auth-route request to the portal with `?continue=<slug>` preserved. Rationale: PKCE code-verifier cookies are host-scoped. Centralising on one host means one Supabase Cloud Redirect URL whitelist entry — and zero whitelist churn as new workspaces are added.
+Per **ADR-0021 amendment 2026-04-20** (Auth & Invitation Council Q1=b) and **ADR-0374**: every auth screen (`/login`, `/signup`, `/join`, `/reset-password`, `/update-password`, `/invite/**`, `/confirm-email`, `/select-workspace`, `/welcome`) lives on `app.smartout.ai` only. Workspace subdomains (`{slug}.smartout.ai`) middleware-redirect (307) every auth-route request to the portal with `?continue=<slug>` preserved. Rationale: PKCE code-verifier cookies are host-scoped. Centralising on one host means one Supabase Cloud Redirect URL whitelist entry — and zero whitelist churn as new workspaces are added.
 
 ### I2. Cookie Doctrine — sessions are scoped to `.smartout.ai`.
 
@@ -123,7 +123,7 @@ Each flow is documented in three sections: **happy path**, **sequence**, and **f
 
 #### Happy path — Web
 
-User on `acme.smartout.ai/login` → 307 to `app.smartout.ai/login?continue=acme` (proxy.ts §5a, ADR-0362). User clicks "Fortsett med Google" → `supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "https://app.smartout.ai/api/auth/callback?next=/dashboard" }})`. Supabase client sets PKCE `code-verifier` cookie on `.smartout.ai` (via `createBrowserClient` cookie config). Browser → Google → Supabase Cloud GoTrue (`<ref>.supabase.co/auth/v1/callback`) → 302 to `app.smartout.ai/api/auth/callback?code=<authcode>&continue=acme` (continue preserved by Supabase pass-through). Callback runs `exchangeCodeForSession(code)`, reads PKCE verifier from cookie (same host = success), creates session. `resolveContinueDestination()` validates `continue=acme` against `SLUG_PATTERN` + `profile` existence → 307 to `https://acme.smartout.ai/dashboard`. Browser sends `.smartout.ai`-scoped cookies on new request → workspace dashboard renders.
+User on `acme.smartout.ai/login` → 307 to `app.smartout.ai/login?continue=acme` (proxy.ts §5a, ADR-0374). User clicks "Fortsett med Google" → `supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "https://app.smartout.ai/api/auth/callback?next=/dashboard" }})`. Supabase client sets PKCE `code-verifier` cookie on `.smartout.ai` (via `createBrowserClient` cookie config). Browser → Google → Supabase Cloud GoTrue (`<ref>.supabase.co/auth/v1/callback`) → 302 to `app.smartout.ai/api/auth/callback?code=<authcode>&continue=acme` (continue preserved by Supabase pass-through). Callback runs `exchangeCodeForSession(code)`, reads PKCE verifier from cookie (same host = success), creates session. `resolveContinueDestination()` validates `continue=acme` against `SLUG_PATTERN` + `profile` existence → 307 to `https://acme.smartout.ai/dashboard`. Browser sends `.smartout.ai`-scoped cookies on new request → workspace dashboard renders.
 
 #### Happy path — Mobile
 
@@ -163,7 +163,7 @@ Mobile:
 
 | Failure | Cause | User-visible | Recovery |
 |---|---|---|---|
-| `/login?error=Invalid_link` after Google → callback | PKCE verifier cookie missing or host-mismatch (e.g. OAuth init on workspace host, callback on portal). Pre-ADR-0362 default. | Bounced back to portal `/login` with error banner | Fixed by ADR-0362 (workspace-subdomain auth-route redirect). If still occurs post-fix: Supabase Cloud Redirect URLs whitelist doesn't include `https://app.smartout.ai/**`. |
+| `/login?error=Invalid_link` after Google → callback | PKCE verifier cookie missing or host-mismatch (e.g. OAuth init on workspace host, callback on portal). Pre-ADR-0374 default. | Bounced back to portal `/login` with error banner | Fixed by ADR-0374 (workspace-subdomain auth-route redirect). If still occurs post-fix: Supabase Cloud Redirect URLs whitelist doesn't include `https://app.smartout.ai/**`. |
 | Google OAuth screen shows `redirect_uri_mismatch` | Google Cloud Console Authorized redirect URIs missing `https://<ref>.supabase.co/auth/v1/callback` | Google error page (never reaches Supabase) | Add the Supabase project callback URI to Google Cloud Console. |
 | Mobile callback opens browser (not app) | iOS associatedDomains not propagated, OR `apple-app-site-association` file missing/invalid on portal | Web `/m/auth/callback` bridge attempts manual deep-link via `smartout://auth/callback` (P2 fallback) | Verify `apple-app-site-association` JSON valid + served with `Content-Type: application/json` at `https://app.smartout.ai/.well-known/apple-app-site-association`. |
 | `continue=victim-slug` redirect bypass attempt | Bad-faith query param crafted to bounce user to wrong workspace | Falls through to portal `/dashboard` (`resolveContinueDestination` rejects on profile-existence) | Guard already in place (callback/route.ts:39-52). |
@@ -237,7 +237,7 @@ QR or in-app paste → `(auth)/invite/[token]` native screen. Invite info displa
 |---|---|---|
 | Invite "already used" | Token single-use, already accepted | Admin re-issues invitation. |
 | Invite "expired" | Token TTL exceeded | Admin re-issues. |
-| Invite-Google flow lands on `/login?error=Invalid_link` | Pre-ADR-0362 PKCE-verifier-host-mismatch bug | Fixed by ADR-0362. |
+| Invite-Google flow lands on `/login?error=Invalid_link` | Pre-ADR-0374 PKCE-verifier-host-mismatch bug | Fixed by ADR-0374. |
 | Mobile invite opens web instead of app | Universal Link not wired (P2 pending) | Web fallback shows "Last ned appen" prompt + same accept-invite flow proceeds in browser. |
 
 ---
@@ -540,7 +540,7 @@ Documented in `infra/scripts/smoke-probe.sh` extensions OR as `docs/runbooks/AUT
 
 | Symptom | Most-likely cause | First diagnostic |
 |---|---|---|
-| `/login?error=Invalid_link` after Google | PKCE verifier mismatch; usually missing `app.smartout.ai/**` in Supabase Cloud Redirect URLs OR pre-ADR-0362 build | Supabase Cloud → Auth → Logs filter `auth.url_redirect_to` |
+| `/login?error=Invalid_link` after Google | PKCE verifier mismatch; usually missing `app.smartout.ai/**` in Supabase Cloud Redirect URLs OR pre-ADR-0374 build | Supabase Cloud → Auth → Logs filter `auth.url_redirect_to` |
 | Reset email never arrives | SMTP not wired, rate-limited | Supabase Cloud → Auth → SMTP Settings; Logs filter `mail` |
 | Session works on portal but not workspace subdomain | `NEXT_PUBLIC_ROOT_DOMAIN` missing → cookie host-scoped | `curl -I https://app.smartout.ai/<auth-needed-path>` inspect `Set-Cookie` header — should show `Domain=.smartout.ai` |
 | Mobile invite opens browser instead of app | Universal Link not verified by OS | iOS: `adb shell pm get-app-links ai.smartout.mobile`; Android same; verify well-known file served with correct MIME |
@@ -601,7 +601,7 @@ Documented in `infra/scripts/smoke-probe.sh` extensions OR as `docs/runbooks/AUT
 - [ADR-0167](../decisions/0167-invitation-tokens-as-credentials.md) — Invitation tokens as credentials
 - [ADR-0168](../decisions/0168-magic-link-as-default-auth-method.md) — Magic-link default
 - [ADR-0169](../decisions/0169-partial-unique-index-pending-invitation.md) — Partial unique index on pending invitations
-- [ADR-0362](../decisions/0362-portal-auth-redirect-implementation.md) — Portal auth redirect implementation
+- [ADR-0374](../decisions/0374-portal-auth-redirect-implementation.md) — Portal auth redirect implementation
 
 ### Specs
 

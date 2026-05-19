@@ -20,6 +20,11 @@ import {
   GitBranch,
   FileSignature,
   Link2,
+  LayoutGrid,
+  MapPin,
+  Network,
+  Plug,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
@@ -31,7 +36,9 @@ import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
 
 const MalerTab = lazy(() =>
-  import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+  import("@/app/dashboard/people/contracts/_components/MalerTab").then((m) => ({
+    default: m.MalerTab,
+  })),
 );
 
 const ContractTemplateBindingsSettings = lazy(() =>
@@ -91,6 +98,15 @@ const FinancialCloseSettings = lazy(() =>
 const ShiftLockPolicySettings = lazy(() =>
   import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
 );
+
+const StrukturPanel = lazy(() =>
+  import("./struktur-panel").then((m) => ({ default: m.StrukturPanel })),
+);
+
+const IntegrasjonerPanel = lazy(() =>
+  import("./integrasjoner-panel").then((m) => ({ default: m.IntegrasjonerPanel })),
+);
+
 type Tab = { id: string; labelKey: string; icon: LucideIcon };
 type Section = { id: string; titleKey: string; tabs: Tab[] };
 
@@ -138,8 +154,10 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "organization",
-    titleKey: "settings_page.sections.organization",
+    // Renamed from "organization" — this section holds contract/holiday config,
+    // not D1-envelope structure. The "Struktur" section below hosts org structure.
+    id: "kontrakter",
+    titleKey: "settings_page.sections.kontrakter",
     tabs: [
       { id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays },
       {
@@ -152,6 +170,29 @@ const SECTIONS: Section[] = [
         labelKey: "settings_page.tabs.contract_template_bindings",
         icon: Link2,
       },
+    ],
+  },
+  {
+    id: "struktur",
+    titleKey: "settings_page.sections.struktur",
+    tabs: [
+      {
+        id: "struktur-overview",
+        labelKey: "settings_page.tabs.struktur_overview",
+        icon: LayoutGrid,
+      },
+      { id: "avdelinger", labelKey: "settings_page.tabs.avdelinger", icon: Building2 },
+      { id: "lokasjoner", labelKey: "settings_page.tabs.lokasjoner", icon: MapPin },
+      { id: "team", labelKey: "settings_page.tabs.team", icon: Network },
+    ],
+  },
+  {
+    id: "integrasjoner",
+    titleKey: "settings_page.sections.integrasjoner",
+    tabs: [
+      { id: "pos", labelKey: "settings_page.tabs.pos_integrasjoner", icon: Plug },
+      { id: "tripletex", labelKey: "settings_page.tabs.tripletex", icon: Link2 },
+      { id: "sendgrid", labelKey: "settings_page.tabs.sendgrid", icon: Mail },
     ],
   },
 ];
@@ -181,7 +222,16 @@ export type TabId =
   | "change-proposals"
   | "holidays"
   | "contract-templates"
-  | "contract-template-bindings";
+  | "contract-template-bindings"
+  // SM-9: Struktur section
+  | "struktur-overview"
+  | "avdelinger"
+  | "lokasjoner"
+  | "team"
+  // SM-9: Integrasjoner section
+  | "pos"
+  | "tripletex"
+  | "sendgrid";
 
 function TabPlaceholder({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   const { t } = useTranslation("dashboard");
@@ -326,6 +376,35 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <ContractTemplateBindingsSettings />
+        </Suspense>
+      );
+    // SM-9: Struktur — all four sub-tabs map to StrukturPanel with an initialTab hint
+    case "struktur-overview":
+    case "avdelinger":
+    case "lokasjoner":
+    case "team":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <StrukturPanel
+            initialTab={
+              tabId === "struktur-overview"
+                ? "overview"
+                : tabId === "avdelinger"
+                  ? "departments"
+                  : tabId === "lokasjoner"
+                    ? "locations"
+                    : "teams"
+            }
+          />
+        </Suspense>
+      );
+    // SM-9: Integrasjoner — sub-tabs map to IntegrasjonerPanel with initialTab hint
+    case "pos":
+    case "tripletex":
+    case "sendgrid":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <IntegrasjonerPanel initialTab={tabId} />
         </Suspense>
       );
     default: {

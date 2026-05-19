@@ -49,7 +49,7 @@ tags: [journey, payroll, admin, tariff, dashboard, phase-7e, page-polish]
 
 **Postcondition:** supplement_rule row created OR explicit guidance shown.
 
-## Page polish (ADR-0357) — 7/8 PASS
+## Page polish (ADR-0376) — 7/8 PASS
 
 | Phase | Status |
 |---|---|

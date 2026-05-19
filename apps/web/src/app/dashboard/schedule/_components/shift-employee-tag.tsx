@@ -10,6 +10,7 @@ import { ArrowLeftRight, Check, Circle, MessageCircle } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import type { MalEmployeeAssignment } from "@smartout/schedule";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PipelineLockBadge } from "./PipelineLockBadge";
 
 type MalEmployeeTagProps = {
   assignment: MalEmployeeAssignment;
@@ -19,37 +20,37 @@ type MalEmployeeTagProps = {
 };
 
 // Six deterministic color variants based on a hash of the employeeId.
-// Colors use oklch values for perceptual consistency across light/dark modes.
+// CSS token values sourced from --tag-* in tokens.css (ADR-0366: no OKLCH literals here).
 const COLOR_VARIANTS = [
   {
-    bg: "oklch(0.62 0.2 260 / 0.07)",
+    bg: "var(--tag-indigo-bg)",
     color: "#3b82f6",
-    avatarBg: "oklch(0.62 0.2 260 / 0.14)",
+    avatarBg: "var(--tag-indigo-avatar)",
   },
   {
-    bg: "oklch(0.72 0.17 160 / 0.07)",
+    bg: "var(--tag-teal-bg)",
     color: "#22c55e",
-    avatarBg: "oklch(0.72 0.17 160 / 0.14)",
+    avatarBg: "var(--tag-teal-avatar)",
   },
   {
-    bg: "oklch(0.55 0.25 300 / 0.07)",
+    bg: "var(--tag-purple-bg)",
     color: "#a855f7",
-    avatarBg: "oklch(0.55 0.25 300 / 0.14)",
+    avatarBg: "var(--tag-purple-avatar)",
   },
   {
-    bg: "oklch(0.65 0.22 40 / 0.07)",
+    bg: "var(--tag-orange-bg)",
     color: "#f97316",
-    avatarBg: "oklch(0.65 0.22 40 / 0.14)",
+    avatarBg: "var(--tag-orange-avatar)",
   },
   {
-    bg: "oklch(0.6 0.22 350 / 0.07)",
+    bg: "var(--tag-rose-bg)",
     color: "#f43f5e",
-    avatarBg: "oklch(0.6 0.22 350 / 0.14)",
+    avatarBg: "var(--tag-rose-avatar)",
   },
   {
-    bg: "oklch(0.7 0.15 200 / 0.07)",
+    bg: "var(--tag-cyan-bg)",
     color: "#06b6d4",
-    avatarBg: "oklch(0.7 0.15 200 / 0.14)",
+    avatarBg: "var(--tag-cyan-avatar)",
   },
 ] as const;
 
@@ -97,7 +98,7 @@ export function MalEmployeeTag({ assignment, onClick, draggable = false }: MalEm
       ref={draggable ? setNodeRef : undefined}
       type="button"
       onClick={isDragging ? undefined : onClick}
-      className={`inline-flex items-center gap-[3px] rounded-lg py-[3px] pr-[6px] pl-[3px] transition-shadow duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_oklch(0_0_0/0.1)] ${isDragging ? "relative z-50 scale-105 opacity-90 shadow-2xl ring-2 ring-orange-500/40" : ""} ${draggable ? "cursor-grab touch-none active:cursor-grabbing" : "cursor-pointer"}`}
+      className={`inline-flex items-center gap-[3px] rounded-lg py-[3px] pr-[6px] pl-[3px] transition-shadow duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_black/10] ${isDragging ? "relative z-50 scale-105 opacity-90 shadow-2xl ring-2 ring-orange-500/40" : ""} ${draggable ? "cursor-grab touch-none active:cursor-grabbing" : "cursor-pointer"}`}
       style={dragStyle}
       {...(draggable ? { ...attributes, ...listeners } : {})}
     >
@@ -136,6 +137,7 @@ export function MalEmployeeTag({ assignment, onClick, draggable = false }: MalEm
             style={{ color: "#3b82f6" }}
           />
         )}
+        <PipelineLockBadge shiftId={assignment.shiftId} />
       </span>
     </button>
   );

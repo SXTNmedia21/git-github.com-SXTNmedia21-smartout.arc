@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { enqueue } from "@/lib/sync/queue";
 import { getProfileContext } from "@/lib/profile-context";
 import { emit } from "@smartout/telemetry";
+import { subscribeShiftSessionTopic, unsubscribeShiftSessionTopic } from "@/lib/push";
 import type { TimeEntry } from "@/types/time-entry";
 import type { BreakEntry } from "@smartout/shift-clock";
 
@@ -33,9 +34,15 @@ export function usePunch() {
    * Generates a client-side UUID for the time_entry_id, builds the payload,
    * enqueues a 'punch_in' action, and optimistically sets the active time entry
    * in the query cache so the PunchButton flips to "STEMPLE UT" immediately.
+   *
+   * @param shiftId         - schedule_shift_id.
+   * @param shiftSessionId  - Optional shift_session_id. When provided (ADR-0367 §M4),
+   *                          subscribe to the push topic for live session updates.
+   * @param pushTopic       - push_topic from the shift_session row (required when
+   *                          shiftSessionId is supplied).
    */
   const punchIn = useCallback(
-    async (shiftId: string) => {
+    async (shiftId: string, shiftSessionId?: string, pushTopic?: string) => {
       const { profileId, workspaceId } = await getProfileContext();
       const timeEntryId = randomUUID();
       const now = new Date().toISOString();
@@ -83,6 +90,13 @@ export function usePunch() {
           },
         },
       });
+
+      // ADR-0367 §M4 — subscribe push topic on clock-in when session is known.
+      if (shiftSessionId && pushTopic) {
+        void subscribeShiftSessionTopic(shiftSessionId, pushTopic).catch(() => {
+          // Non-fatal — push subscribe failure does not abort clock-in.
+        });
+      }
     },
     [queryClient],
   );
@@ -93,9 +107,14 @@ export function usePunch() {
    * Sets punch_out timestamp and status to 'completed', enqueues a 'punch_out'
    * action, and optimistically nulls the active time entry in the query cache
    * so the PunchButton flips back to "STEMPLE INN" immediately.
+   *
+   * @param timeEntryId    - The active time_entry_id.
+   * @param shiftSessionId - Optional shift_session_id (ADR-0367 §M4). When
+   *                         provided, unsubscribes from the push topic and emits
+   *                         shift_session.clocked_out.
    */
   const punchOut = useCallback(
-    async (timeEntryId: string) => {
+    async (timeEntryId: string, shiftSessionId?: string) => {
       // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
       const { profileId, workspaceId } = await getProfileContext();
       // Capture shift_id from the cache BEFORE we clear it — needed for
@@ -159,6 +178,13 @@ export function usePunch() {
           },
         },
       });
+
+      // ADR-0367 §M4 — unsubscribe push topic on clock-out when session is known.
+      if (shiftSessionId) {
+        void unsubscribeShiftSessionTopic(shiftSessionId).catch(() => {
+          // Non-fatal — push unsubscribe failure does not abort clock-out.
+        });
+      }
     },
     [queryClient],
   );
