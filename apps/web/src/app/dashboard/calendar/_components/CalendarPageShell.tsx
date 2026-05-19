@@ -53,6 +53,7 @@ import { useCalendarBookings, useCalendarEvents, useCalendarSettings } from "../
 import type { Booking, CalendarEvent } from "../_lib/types";
 import { useCompanyHours } from "@/app/dashboard/website/_hooks/use-company-hours";
 import { useCalendarOverlays } from "../_hooks/use-calendar-overlays";
+import { usePageTitle } from "@/components/dashboard/PageHeaderContext";
 
 const tabLoading = () => <SkeletonCard className="min-h-96" />;
 
@@ -74,6 +75,10 @@ const TABS = [
 const WEEK_OPTS = { weekStartsOn: 1 as const, locale: nb };
 
 export function CalendarPageShell() {
+  usePageTitle({
+    title: "Kalender",
+    subtitle: "Datoer, sesonger, eventer og bookinger på ett sted",
+  });
   const [activeTab, setActiveTab] = useState<string>("calendar");
   const [view, setView] = useState<ViewMode>("week");
   const [cursor, setCursor] = useState<Date>(new Date());
@@ -253,17 +258,8 @@ export function CalendarPageShell() {
         />
 
         <div className="flex min-h-0 flex-1 flex-col">
-          {/* Page Header */}
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
-                Kalender
-              </h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Datoer, sesonger, eventer og bookinger på ett sted
-              </p>
-            </div>
-
+          {/* Page Header — title published to top shell via usePageTitle */}
+          <div className="mb-5 flex items-end justify-end gap-4">
             <div className="flex items-center gap-2">
               <AnimatePresence mode="wait" initial={false}>
                 {isCalendar ? (
