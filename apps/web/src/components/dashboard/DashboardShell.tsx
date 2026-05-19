@@ -1262,7 +1262,103 @@ function DashboardShellInner({
                     </div>
 
                     <NotificationBell profileId={profileId ?? undefined} />
-                    {/* UserMenu moved to sidebar bottom (below admin toggle) — Pontus 2026-05-19 */}
+
+                    {/* Contextual page actions — far right per Pontus 2026-05-19 "til høyre" */}
+                    {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
+                      <>
+                        <div className="border-border bg-muted mr-2 hidden rounded-xl border p-1 shadow-sm md:flex">
+                          {(
+                            [
+                              { id: "daily", labelKey: "shell.schedule.layout_daily" },
+                              { id: "monthly", labelKey: "shell.schedule.layout_monthly" },
+                              { id: "list", labelKey: "shell.schedule.layout_list" },
+                              { id: "grid", labelKey: "shell.schedule.layout_grid" },
+                            ] as const
+                          ).map((layout) => (
+                            <button
+                              key={layout.id}
+                              onClick={() => switchScheduleLayout(layout.id)}
+                              data-autoplay={`schedule-layout-${layout.id}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                                scheduleLayout === layout.id
+                                  ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]"
+                                  : "text-muted-foreground hover:text-accent-foreground"
+                              }`}
+                            >
+                              {t(layout.labelKey)}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="border-border bg-muted mr-2 flex items-center gap-1 rounded-xl border p-1 pr-2">
+                          <button
+                            onClick={() => setScheduleDateOffset((prev) => prev - 1)}
+                            data-autoplay="schedule-date-prev"
+                            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md p-1.5 transition-colors"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          {scheduleDateOffset !== 0 && (
+                            <button
+                              onClick={() => setScheduleDateOffset(0)}
+                              data-autoplay="schedule-date-today"
+                              className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
+                            >
+                              {t("shell.schedule.today")}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setScheduleDateOffset((prev) => prev + 1)}
+                            data-autoplay="schedule-date-next"
+                            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md p-1.5 transition-colors"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={onPublishAllStable}
+                          disabled={scheduleDraftCountDisplay === 0}
+                          className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
+                            scheduleDraftCountDisplay > 0
+                              ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
+                              : "bg-muted cursor-not-allowed opacity-50"
+                          }`}
+                        >
+                          {t("shell.schedule.publish", { count: scheduleDraftCountDisplay })}
+                        </button>
+                      </>
+                    )}
+                    {!isDocumentMode && isDashboardPage && isAdminMode && (
+                      <div className="border-border bg-muted mr-2 hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex">
+                        {(
+                          [
+                            { id: "oversikt", label: t("shell.dashboard_tabs.overview") },
+                            ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
+                              ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
+                              : ([] as const)),
+                            { id: "strategic", label: t("shell.dashboard_tabs.insight") },
+                            { id: "activity", label: t("shell.dashboard_tabs.activity") },
+                          ] as const
+                        ).map((tab) => {
+                          const isActive = adminView === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => setAdminView(tab.id)}
+                              aria-pressed={isActive}
+                              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                                isActive
+                                  ? "bg-card text-foreground shadow-sm"
+                                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              }`}
+                            >
+                              {tab.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
                   </div>
                 </header>
 
@@ -1538,254 +1634,8 @@ function DashboardShellInner({
                         />
                       </div>
 
-                      <div className="flex items-center gap-5">
-                        {/* Schedule page specific controls */}
-                        {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
-                          <>
-                            {/* LAYOUT TOGGLE */}
-                            <div
-                              className={`border-border bg-muted mr-2 hidden rounded-xl border p-1 shadow-sm md:flex`}
-                            >
-                              <button
-                                onClick={() => switchScheduleLayout("daily")}
-                                data-autoplay="schedule-layout-daily"
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                              >
-                                {t("shell.schedule.layout_daily")}
-                              </button>
-                              <button
-                                onClick={() => switchScheduleLayout("monthly")}
-                                data-autoplay="schedule-layout-monthly"
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                              >
-                                {t("shell.schedule.layout_monthly")}
-                              </button>
-                              <button
-                                onClick={() => switchScheduleLayout("list")}
-                                data-autoplay="schedule-layout-list"
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                              >
-                                {t("shell.schedule.layout_list")}
-                              </button>
-                              <button
-                                onClick={() => switchScheduleLayout("grid")}
-                                data-autoplay="schedule-layout-grid"
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
-                              >
-                                {t("shell.schedule.layout_grid")}
-                              </button>
-                            </div>
-
-                            {/* PERIOD COUNT SELECTOR (weekly only) */}
-                            {scheduleLayout === "weekly" && (
-                              <div
-                                className={`border-border bg-muted mr-2 hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex`}
-                              >
-                                {[
-                                  { label: "3d", count: 3 },
-                                  { label: "1u", count: 7 },
-                                  { label: "2u", count: 10 },
-                                  { label: "3u", count: 14 },
-                                ].map(({ label, count }) => (
-                                  <button
-                                    key={label}
-                                    onClick={() => setWeeklyPeriodCount(count)}
-                                    className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-accent-foreground"}`}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* DATE NAVIGATION */}
-                            <div
-                              className={`border-border bg-muted mr-2 flex items-center gap-2 rounded-xl border p-1 pr-3`}
-                            >
-                              <button
-                                onClick={() => setScheduleDateOffset((prev) => prev - 1)}
-                                data-autoplay="schedule-date-prev"
-                                className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" />
-                              </button>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md px-1.5 py-1 text-[13px] font-bold transition-colors">
-                                    {(() => {
-                                      if (
-                                        scheduleLayout === "daily" ||
-                                        scheduleLayout === "list" ||
-                                        scheduleLayout === "grid"
-                                      ) {
-                                        const now = new Date();
-                                        now.setDate(
-                                          now.getDate() -
-                                            ((now.getDay() + 6) % 7) +
-                                            scheduleDateOffset * 7,
-                                        );
-                                        const w = getISOWeek(now);
-                                        const y = getISOWeekYear(now);
-                                        return t("shell.schedule.week", { week: w, year: y });
-                                      }
-                                      if (scheduleLayout === "weekly") {
-                                        return scheduleDateOffset === 0
-                                          ? t("shell.schedule.active_cycle")
-                                          : t("shell.schedule.cycle", {
-                                              offset: `${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`,
-                                            });
-                                      }
-                                      // monthly only
-                                      const now = new Date();
-                                      now.setMonth(now.getMonth() + scheduleDateOffset);
-                                      const monthKeys = [
-                                        "shell.schedule.month_jan",
-                                        "shell.schedule.month_feb",
-                                        "shell.schedule.month_mar",
-                                        "shell.schedule.month_apr",
-                                        "shell.schedule.month_may",
-                                        "shell.schedule.month_jun",
-                                        "shell.schedule.month_jul",
-                                        "shell.schedule.month_aug",
-                                        "shell.schedule.month_sep",
-                                        "shell.schedule.month_oct",
-                                        "shell.schedule.month_nov",
-                                        "shell.schedule.month_dec",
-                                      ];
-                                      return `${t(monthKeys[now.getMonth()] ?? "shell.schedule.month.jan")} ${now.getFullYear()}`;
-                                    })()}
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="center">
-                                  <CalendarUI
-                                    mode="single"
-                                    locale={nb}
-                                    selected={(() => {
-                                      const now = new Date();
-                                      if (scheduleLayout === "monthly") {
-                                        now.setMonth(now.getMonth() + scheduleDateOffset);
-                                      } else {
-                                        now.setDate(
-                                          now.getDate() -
-                                            ((now.getDay() + 6) % 7) +
-                                            scheduleDateOffset * 7,
-                                        );
-                                      }
-                                      return now;
-                                    })()}
-                                    onSelect={(date) => {
-                                      if (!date) return;
-                                      const now = new Date();
-                                      if (scheduleLayout === "monthly") {
-                                        const diff =
-                                          (date.getFullYear() - now.getFullYear()) * 12 +
-                                          date.getMonth() -
-                                          now.getMonth();
-                                        setScheduleDateOffset(diff);
-                                      } else {
-                                        const startOfCurrentWeek = new Date(now);
-                                        startOfCurrentWeek.setDate(
-                                          now.getDate() - ((now.getDay() + 6) % 7),
-                                        );
-                                        startOfCurrentWeek.setHours(0, 0, 0, 0);
-
-                                        const startOfSelectedWeek = new Date(date);
-                                        startOfSelectedWeek.setDate(
-                                          date.getDate() - ((date.getDay() + 6) % 7),
-                                        );
-                                        startOfSelectedWeek.setHours(0, 0, 0, 0);
-
-                                        const diffInDays = Math.round(
-                                          (startOfSelectedWeek.getTime() -
-                                            startOfCurrentWeek.getTime()) /
-                                            (1000 * 60 * 60 * 24),
-                                        );
-                                        const offset = Math.round(diffInDays / 7);
-                                        setScheduleDateOffset(offset);
-                                      }
-                                    }}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                              {scheduleDateOffset !== 0 && (
-                                <button
-                                  onClick={() => setScheduleDateOffset(0)}
-                                  data-autoplay="schedule-date-today"
-                                  className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
-                                >
-                                  {t("shell.schedule.today")}
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setScheduleDateOffset((prev) => prev + 1)}
-                                data-autoplay="schedule-date-next"
-                                className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
-                              >
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-
-                            <button
-                              onClick={onPublishAllStable}
-                              disabled={scheduleDraftCountDisplay === 0}
-                              className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
-                                scheduleDraftCountDisplay > 0
-                                  ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
-                                  : "bg-muted cursor-not-allowed opacity-50"
-                              }`}
-                            >
-                              {t("shell.schedule.publish", { count: scheduleDraftCountDisplay })}
-                            </button>
-                          </>
-                        )}
-
-                        {/* Dashboard variant switcher — flat tab bar per Pontus 2026-04-19.
-                          The Interactive tab is gated on
-                          NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true so it only shows up
-                          for developers who have opted in; in all other builds it
-                          is invisible and unreachable. */}
-                        {!isDocumentMode && isDashboardPage && isAdminMode && (
-                          <div
-                            className={`border-border bg-muted mr-2 hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex`}
-                          >
-                            {(
-                              [
-                                { id: "oversikt", label: t("shell.dashboard_tabs.overview") },
-                                ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
-                                  ? ([
-                                      { id: "oversikt-interactive", label: "Interactive" },
-                                    ] as const)
-                                  : ([] as const)),
-                                { id: "strategic", label: t("shell.dashboard_tabs.insight") },
-                                { id: "activity", label: t("shell.dashboard_tabs.activity") },
-                              ] as const
-                            ).map((tab) => {
-                              const isActive = adminView === tab.id;
-                              return (
-                                <button
-                                  key={tab.id}
-                                  type="button"
-                                  onClick={() => setAdminView(tab.id)}
-                                  aria-pressed={isActive}
-                                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                                    isActive
-                                      ? "bg-card text-foreground shadow-sm"
-                                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                  }`}
-                                >
-                                  {tab.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Search bar moved to top header (centered) — Pontus 2026-05-19 annotation C. */}
-
-                        {/* Global "Ny" create dropdown — always visible, far right */}
-                        {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
-                      </div>
+                      {/* Contextual page actions (Schedule controls + dashboard variant switcher +
+                          GlobalCreateMenu) moved to top header right cluster — Pontus 2026-05-19. */}
                     </div>
 
                     <DashboardContext.Provider value={dashboardContextValue}>
