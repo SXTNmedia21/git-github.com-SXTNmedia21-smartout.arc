@@ -53,7 +53,7 @@ import { useCalendarBookings, useCalendarEvents, useCalendarSettings } from "../
 import type { Booking, CalendarEvent } from "../_lib/types";
 import { useCompanyHours } from "@/app/dashboard/website/_hooks/use-company-hours";
 import { useCalendarOverlays } from "../_hooks/use-calendar-overlays";
-import { usePageTitle } from "@/components/dashboard/PageHeaderContext";
+import { usePageTitle, usePageTabs } from "@/components/dashboard/PageHeaderContext";
 
 const tabLoading = () => <SkeletonCard className="min-h-96" />;
 
@@ -80,6 +80,18 @@ export function CalendarPageShell() {
     subtitle: "Datoer, sesonger, eventer og bookinger på ett sted",
   });
   const [activeTab, setActiveTab] = useState<string>("calendar");
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
+        active={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Kalender-seksjoner"
+      />
+    ),
+    [activeTab],
+  );
+  usePageTabs(tabsNode);
   const [view, setView] = useState<ViewMode>("week");
   const [cursor, setCursor] = useState<Date>(new Date());
   const reduce = useReducedMotion();
@@ -317,20 +329,12 @@ export function CalendarPageShell() {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs — strip moved to shell breadcrumb via usePageTabs; body keeps Tabs context */}
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <PageTabNav
-              tabs={TABS.map((tab) => ({ key: tab.value, label: tab.label, icon: tab.icon }))}
-              active={activeTab}
-              onChange={setActiveTab}
-              className="mb-5"
-              ariaLabel="Kalender-seksjoner"
-            />
-
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div key={activeTab} {...tabFade} style={{ opacity: 1, transform: "none" }}>

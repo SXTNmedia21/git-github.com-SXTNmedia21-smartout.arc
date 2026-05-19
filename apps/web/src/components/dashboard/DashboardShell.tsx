@@ -1183,9 +1183,6 @@ function DashboardShellInner({
                     </div>
                   </div>
 
-                  {/* Page title slot — published by pages via usePageTitle() */}
-                  <PageTitleSlot />
-
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setIsDocumentMode(!isDocumentMode)}
@@ -1510,38 +1507,12 @@ function DashboardShellInner({
                               : t("shell.breadcrumb.workspace")}
                         </span>
                         <ChevronRight className="h-3.5 w-3.5" />
-                        <span
-                          className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
-                            isDark
-                              ? "border-border bg-card text-foreground"
-                              : "border-[var(--surface-border-strong)] bg-[var(--surface-raised)] text-[var(--text-strong)]"
-                          }`}
-                        >
-                          {isDocumentMode
-                            ? t("shell.breadcrumb.doc_mode")
-                            : ((
-                                {
-                                  schedule: t("shell.segment.schedule"),
-                                  people: t("shell.segment.people"),
-                                  reports: t("shell.segment.reports"),
-                                  operations: t("shell.segment.operations"),
-                                  hms: t("shell.segment.hms"),
-                                  governance: t("shell.segment.hms"),
-                                  "year-wheel": t("shell.segment.year_wheel"),
-                                  calendar: t("shell.segment.calendar"),
-                                  organization: t("shell.segment.organization"),
-                                  settings: t("shell.segment.settings"),
-                                  help: t("shell.segment.help"),
-                                  komm: t("shell.segment.komm"),
-                                  ai: t("shell.segment.ai"),
-                                  "onboarding-assistant": t("shell.segment.onboarding_assistant"),
-                                  "my-schedule": t("shell.segment.my_schedule"),
-                                  "my-training": t("shell.segment.my_training"),
-                                  "my-cv": t("shell.segment.my_cv"),
-                                  "my-salary": t("shell.segment.my_salary"),
-                                } as Record<string, string>
-                              )[pathname.split("/").pop() ?? ""] ?? t("shell.segment.overview"))}
-                        </span>
+                        <BreadcrumbActiveSlot
+                          isDark={isDark}
+                          isDocumentMode={isDocumentMode}
+                          pathname={pathname}
+                          t={t}
+                        />
                       </div>
 
                       <div className="flex items-center gap-5">
@@ -1870,25 +1841,71 @@ function DashboardShellInner({
 }
 
 /**
- * PageTitleSlot — renders the title published by the current page via
- * usePageTitle(). Placed in the middle of the top context bar, between
- * the workspace cluster (left) and the action cluster (right). Returns
- * null when no page has published — keeps the header lean.
+ * BreadcrumbActiveSlot — renders the second breadcrumb element in the
+ * action bar. Three render modes, in order of precedence:
+ *   1. Page published a tab strip via usePageTabs() → render the strip
+ *      verbatim (replaces the static segment pill entirely).
+ *   2. Page published a title via usePageTitle() → render styled pill
+ *      with the published title.
+ *   3. Fallback to the legacy URL-derived segment label.
+ *
+ * Per Pontus 2026-05-19 annotations A + B: title and sub-view tabs live
+ * here, not in the page body and not in the top header.
  */
-function PageTitleSlot() {
-  const header = usePageHeader();
-  if (!header) return null;
+function BreadcrumbActiveSlot({
+  isDark,
+  isDocumentMode,
+  pathname,
+  t,
+}: {
+  isDark: boolean;
+  isDocumentMode: boolean;
+  pathname: string;
+  t: (key: string) => string;
+}) {
+  const { header, tabsNode } = usePageHeader();
+
+  if (tabsNode) {
+    return <>{tabsNode}</>;
+  }
+
+  const fallbackLabel = isDocumentMode
+    ? t("shell.breadcrumb.doc_mode")
+    : ((
+        {
+          schedule: t("shell.segment.schedule"),
+          people: t("shell.segment.people"),
+          reports: t("shell.segment.reports"),
+          operations: t("shell.segment.operations"),
+          hms: t("shell.segment.hms"),
+          governance: t("shell.segment.hms"),
+          "year-wheel": t("shell.segment.year_wheel"),
+          calendar: t("shell.segment.calendar"),
+          organization: t("shell.segment.organization"),
+          settings: t("shell.segment.settings"),
+          help: t("shell.segment.help"),
+          komm: t("shell.segment.komm"),
+          ai: t("shell.segment.ai"),
+          "onboarding-assistant": t("shell.segment.onboarding_assistant"),
+          "my-schedule": t("shell.segment.my_schedule"),
+          "my-training": t("shell.segment.my_training"),
+          "my-cv": t("shell.segment.my_cv"),
+          "my-salary": t("shell.segment.my_salary"),
+        } as Record<string, string>
+      )[pathname.split("/").pop() ?? ""] ?? t("shell.segment.overview"));
+
+  const label = header?.title ?? fallbackLabel;
+
   return (
-    <div className="min-w-0 flex-1 px-6 text-center">
-      <div className="truncate">
-        <span className="font-heading text-foreground text-base leading-none tracking-tight">
-          {header.title}
-        </span>
-        {header.subtitle ? (
-          <span className="text-muted-foreground ml-2 text-xs">{header.subtitle}</span>
-        ) : null}
-      </div>
-    </div>
+    <span
+      className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
+        isDark
+          ? "border-border bg-card text-foreground"
+          : "border-[var(--surface-border-strong)] bg-[var(--surface-raised)] text-[var(--text-strong)]"
+      }`}
+    >
+      {label}
+    </span>
   );
 }
 
