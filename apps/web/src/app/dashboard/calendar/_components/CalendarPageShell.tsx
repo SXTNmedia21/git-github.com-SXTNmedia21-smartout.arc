@@ -270,6 +270,7 @@ export function CalendarPageShell() {
                   <motion.div
                     key="calendar-controls"
                     {...controlsFade}
+                    style={{ opacity: 1, transform: "none" }}
                     className="flex items-center gap-2"
                   >
                     <Button
@@ -336,7 +337,7 @@ export function CalendarPageShell() {
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
               <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={activeTab} {...tabFade}>
+                <motion.div key={activeTab} {...tabFade} style={{ opacity: 1, transform: "none" }}>
                   <TabsContent
                     value="calendar"
                     className="mt-0"
