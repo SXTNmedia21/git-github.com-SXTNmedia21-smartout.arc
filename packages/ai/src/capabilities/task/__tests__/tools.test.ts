@@ -665,3 +665,94 @@ describe("T9 — telemetry emit shape for task.create_personal", () => {
     expect(metadata.assigned_to_self).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T8 — create_session optional fields: description + scheduled_at
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T8 — create_session description + scheduled_at round-trips", () => {
+  const VALID_SESSION_ID = "00000000-0000-0000-0000-000000000010";
+  const SESSION_ROW = {
+    department_session_id: VALID_SESSION_ID,
+    workspace_id: "ws-test-1",
+    department_id: "dept-1",
+  };
+
+  it("description round-trips to the inserted row", async () => {
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedInserts: inserts,
+      tableReads: {
+        department_session: { data: SESSION_ROW, error: null },
+        session_task: { data: { id: "st-desc-1" }, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await createSession.execute(
+      {
+        session_id: VALID_SESSION_ID,
+        title: "Sjekk kjølerom",
+        description: "Verifiser at temperaturen er under 4°C.",
+        reason: "Dagsplan",
+      },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.id).toBeTruthy();
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]!.row.description).toBe("Verifiser at temperaturen er under 4°C.");
+  });
+
+  it("scheduled_at round-trips to the inserted row", async () => {
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const scheduledAt = "2026-06-01T08:00:00.000Z";
+    const sb = makeSupabase({
+      capturedInserts: inserts,
+      tableReads: {
+        department_session: { data: SESSION_ROW, error: null },
+        session_task: { data: { id: "st-sched-1" }, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await createSession.execute(
+      {
+        session_id: VALID_SESSION_ID,
+        title: "Morgenmøte",
+        scheduled_at: scheduledAt,
+        reason: "Dagsplan",
+      },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.id).toBeTruthy();
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]!.row.scheduled_at).toBe(scheduledAt);
+  });
+
+  it("absent params produce null columns (default-null assertion)", async () => {
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedInserts: inserts,
+      tableReads: {
+        department_session: { data: SESSION_ROW, error: null },
+        session_task: { data: { id: "st-null-1" }, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await createSession.execute(
+      { session_id: VALID_SESSION_ID, title: "Åpne kassa", reason: "Dagsplan" },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.id).toBeTruthy();
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]!.row.description).toBeNull();
+    expect(inserts[0]!.row.scheduled_at).toBeNull();
+  });
+});

@@ -365,8 +365,8 @@ const PUNCH_STYLES = /* css */ `
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: oklch(0.13 0.005 60);
-    color: oklch(0.9 0.01 60);
+    background: var(--punch-bg);
+    color: var(--punch-fg);
   }
 
   /* ---- IDLE SCREEN ---- */
@@ -389,7 +389,7 @@ const PUNCH_STYLES = /* css */ `
   }
   .punch-shift-label {
     font-size: 12px;
-    color: oklch(0.7 0.02 60);
+    color: var(--punch-fg-mid);
     letter-spacing: 1px;
     text-transform: uppercase;
     font-family: var(--font-geist-sans, system-ui, sans-serif);
@@ -398,7 +398,7 @@ const PUNCH_STYLES = /* css */ `
     font-size: 32px;
     font-weight: 700;
     font-family: var(--font-heading, 'Instrument Serif', Georgia, serif);
-    color: oklch(0.95 0.01 60);
+    color: var(--punch-fg-bright);
     margin-top: 6px;
   }
   .punch-shift-badges {
@@ -518,7 +518,7 @@ const PUNCH_STYLES = /* css */ `
   .punch-countdown-text {
     text-align: center;
     margin-top: 20px;
-    color: oklch(0.55 0.01 60);
+    color: var(--punch-fg-dim);
     font-size: 13px;
     font-family: var(--font-geist-sans, system-ui, sans-serif);
   }
@@ -532,7 +532,7 @@ const PUNCH_STYLES = /* css */ `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: oklch(0.13 0.005 60);
+    background: var(--punch-bg);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -580,7 +580,7 @@ const PUNCH_STYLES = /* css */ `
   .punch-scan-text {
     margin-top: 24px;
     font-size: 15px;
-    color: oklch(0.7 0.02 60);
+    color: var(--punch-fg-mid);
     font-family: var(--font-geist-sans, system-ui, sans-serif);
   }
 
@@ -597,7 +597,7 @@ const PUNCH_STYLES = /* css */ `
     align-items: center;
     gap: 10px;
     font-size: 13px;
-    color: oklch(0.4 0.005 60);
+    color: var(--punch-fg-muted);
     transition: color 0.3s ease;
     font-family: var(--font-geist-sans, system-ui, sans-serif);
   }
@@ -612,7 +612,7 @@ const PUNCH_STYLES = /* css */ `
     width: 20px;
     height: 20px;
     border-radius: 10px;
-    border: 2px solid oklch(0.25 0.005 60);
+    border: 2px solid var(--punch-border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -664,7 +664,7 @@ const PUNCH_STYLES = /* css */ `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: oklch(0.13 0.005 60);
+    background: var(--punch-bg);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.4s ease;
@@ -711,7 +711,7 @@ const PUNCH_STYLES = /* css */ `
     font-size: 24px;
     font-weight: 700;
     font-family: var(--font-heading, 'Instrument Serif', Georgia, serif);
-    color: oklch(0.95 0.01 60);
+    color: var(--punch-fg-bright);
     margin-top: 24px;
     opacity: 0;
     animation: punch-fade-up 0.5s ease 0.5s forwards;

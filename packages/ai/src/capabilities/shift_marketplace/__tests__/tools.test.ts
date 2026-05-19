@@ -8,6 +8,10 @@
  *   - Supabase admin client is mocked at the from().select/insert/update level.
  *   - mutateWithGate is mocked to isolate gate evaluation from DB writes.
  *   - eligibilityFor is real (pure TS) — not mocked.
+ *   - engine/authority-pipeline is mocked: readActivePipelineInstancesForShift
+ *     returns [] by default so activePipeline=null and pipeline writes are skipped.
+ *     This preserves the 12 original tool-contract tests unchanged (ADR-0340 T3
+ *     pipeline-path tests live in T6).
  *
  * ADR-0099: gate always checked before mutation.
  * ADR-0288: voice channel returns chat-only message for claim + approve_claim + post_open.
@@ -31,6 +35,41 @@ vi.mock("../../_shared/mutate-with-gate.js", async (importOriginal) => {
     mutateWithGate: vi.fn(),
   };
 });
+
+// ── Mock engine/authority-pipeline ───────────────────────────────────────────
+// Default: no active pipeline instances (activePipeline=null → pipeline writes skipped).
+// Pipeline-path contract tests live in T6.
+vi.mock("../../../engine/authority-pipeline/index.js", () => ({
+  createPipelineInstance: vi.fn().mockResolvedValue({ id: "pipeline-instance-1" }),
+  advancePipelineInstance: vi
+    .fn()
+    .mockResolvedValue({ id: "pipeline-instance-1", status: "running" }),
+  terminatePipelineInstance: vi
+    .fn()
+    .mockResolvedValue({ id: "pipeline-instance-1", status: "complete" }),
+  readActivePipelineInstancesForShift: vi.fn().mockResolvedValue([]),
+  acquirePipelineLock: vi.fn().mockResolvedValue(undefined),
+  releasePipelineLock: vi.fn().mockResolvedValue(undefined),
+  emitStageProposed: vi.fn().mockResolvedValue(undefined),
+  emitStageConsented: vi.fn().mockResolvedValue(undefined),
+  emitStageApproved: vi.fn().mockResolvedValue(undefined),
+  emitStageCancelled: vi.fn().mockResolvedValue(undefined),
+  PipelineLockHeldError: class PipelineLockHeldError extends Error {
+    readonly code = "pipeline_lock_held" as const;
+    readonly shiftId: string;
+    constructor(shiftId: string) {
+      super(`Pipeline lock held on shift ${shiftId}`);
+      this.shiftId = shiftId;
+    }
+  },
+  PipelineContextError: class PipelineContextError extends Error {
+    readonly code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.code = code;
+    }
+  },
+}));
 
 import { emit } from "@smartout/telemetry";
 import { mutateWithGate, MutateWithGateDenied } from "../../_shared/mutate-with-gate.js";

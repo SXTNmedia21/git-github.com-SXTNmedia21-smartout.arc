@@ -48,7 +48,7 @@ test.describe("contract preview editor — Bekreft step (step 4)", () => {
     });
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts?open=compose");
+    await page.goto("/dashboard/people/contracts?open=compose");
     await page.waitForLoadState("domcontentloaded");
 
     // Drawer mounts — step indicator proves the module graph resolved.
@@ -81,7 +81,7 @@ test.describe("contract preview editor — Bekreft step (step 4)", () => {
     test.setTimeout(90_000);
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts?open=compose");
+    await page.goto("/dashboard/people/contracts?open=compose");
     await page.waitForLoadState("domcontentloaded");
 
     // The drawer opens on step 1 (Ansatt). Picking a profile + stepping

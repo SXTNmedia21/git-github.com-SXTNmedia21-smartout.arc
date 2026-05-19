@@ -170,6 +170,27 @@ const nextConfig: NextConfig = {
         destination: "/platform-admin/dashboard",
         permanent: false,
       },
+      // SM-5: Norwegian alias for /dashboard/komm/desks. Moved from a
+      // redirect-only page component to a server-config redirect because
+      // Next 16 throws "negative time stamp" on Performance.measure when
+      // a page throws RedirectError before its render end-mark fires.
+      {
+        source: "/dashboard/komm/skranke",
+        destination: "/dashboard/komm/desks",
+        permanent: false,
+      },
+      // SM-9: Organisasjon overview redirects to Settings → Struktur.
+      // Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected —
+      // those remain live deep-link targets.
+      // Note: Next.js may strip the hash in the redirect target (hash fragments are
+      // client-side only, not sent to server). If the hash is stripped, the user lands
+      // on /dashboard/settings and must click "Struktur" manually. This is the
+      // acceptable fallback per SM-9 OD-6.
+      {
+        source: "/dashboard/organization",
+        destination: "/dashboard/settings#struktur-overview",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
@@ -185,6 +206,10 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    // Mobile PWA runs on a different origin (Metro on :8083 in dev, m.smartout.ai in prod),
+    // so /api/mobile/* must serve CORS headers or browser fetch fails preflight.
+    const isDev = process.env.NODE_ENV !== "production";
+    const allowOrigin = isDev ? "*" : "https://m.smartout.ai";
     // Universal-Link / App-Link discovery files.
     // Apple requires `apple-app-site-association` (NO extension) served as
     // `application/json` — Vercel defaults to `application/octet-stream` for
@@ -192,6 +217,15 @@ const nextConfig: NextConfig = {
     // the right MIME via its extension but we set it explicitly for parity.
     // Per docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §4.4-4.5.
     return [
+      {
+        source: "/api/mobile/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: allowOrigin },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, PUT, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
+          { key: "Access-Control-Max-Age", value: "86400" },
+        ],
+      },
       {
         source: "/.well-known/apple-app-site-association",
         headers: [

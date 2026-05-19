@@ -111,7 +111,7 @@ export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }:
           {completedCount}/{sortedTasks.length} {t("hms.drift_task_list.completed")}
         </span>
         {overdueCount > 0 && (
-          <span className="text-xs font-semibold text-red-500">
+          <span className="text-destructive text-xs font-semibold">
             {overdueCount} {t("hms.drift_task_list.overdue")}
           </span>
         )}

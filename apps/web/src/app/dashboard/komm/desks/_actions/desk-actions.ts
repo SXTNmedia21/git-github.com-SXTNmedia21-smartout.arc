@@ -140,16 +140,13 @@ export async function createDesk(
   );
   if (!eligibility.ok) return eligibility;
 
-  // Uniqueness per workspace: handled by a conditional duplicate check
-  // (no DB UNIQUE constraint on channel.name yet — adding one would
-  // collide with DM auto-naming). This check races under concurrent
-  // creates but collisions are rare and the subsequent insert will
-  // succeed regardless (duplicate names are ugly, not broken).
+  // Uniqueness per workspace — desks are helpdesk_enabled channels per ADR-0165
+  // (Phase 1A.1). Legacy channel_type='desk' rows (pre-flag) also counted.
   const { data: existing } = await supabase
     .from("channel")
     .select("id")
     .eq("workspace_id", ctx.workspaceId)
-    .eq("channel_type", "desk")
+    .or("helpdesk_enabled.eq.true,channel_type.eq.desk")
     .ilike("name", parsed.data.name)
     .limit(1)
     .maybeSingle();
@@ -158,11 +155,17 @@ export async function createDesk(
     return { ok: false, error: "Skranken finnes allerede." };
   }
 
+  // ADR-0165 Phase 1A.1: desks are channel_type='custom' + helpdesk_enabled=true.
+  // RLS policy channel_jwt_insert allows custom/direct only; legacy 'desk' enum
+  // is blocked from JWT users (deprecated-not-dropped). Setting helpdesk_enabled
+  // requires admin-in-workspace — gated upstream via resolveAdminContext.
   const { data: insert, error: insertErr } = await supabase
     .from("channel")
     .insert({
       workspace_id: ctx.workspaceId,
-      channel_type: "desk",
+      channel_type: "custom",
+      helpdesk_enabled: true,
+      privacy_mode: "public",
       name: parsed.data.name,
       description: parsed.data.description ?? null,
       responsible_profile_id: parsed.data.responsible_profile_id,

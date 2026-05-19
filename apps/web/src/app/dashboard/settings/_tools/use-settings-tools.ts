@@ -28,7 +28,15 @@ import type {
 
 /* ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-export type SettingsSectionId = "general" | "payroll" | "schedule" | "framework" | "organization";
+export type SettingsSectionId =
+  | "general"
+  | "payroll"
+  | "schedule"
+  | "framework"
+  | "organization"
+  | "kontrakter"
+  | "struktur"
+  | "integrasjoner";
 export type SettingsTabId =
   | "general"
   | "hours"
@@ -50,7 +58,16 @@ export type SettingsTabId =
   | "change-proposals"
   | "holidays"
   | "contract-templates"
-  | "contract-template-bindings";
+  | "contract-template-bindings"
+  // SM-9: Struktur section
+  | "struktur-overview"
+  | "avdelinger"
+  | "lokasjoner"
+  | "team"
+  // SM-9: Integrasjoner section
+  | "pos"
+  | "tripletex"
+  | "sendgrid";
 
 export type PayrollSettingsSummary = {
   period_type: string | null;
@@ -97,9 +114,23 @@ const SECTION_TABS: Record<SettingsSectionId, { tabIds: SettingsTabId[]; label: 
     label: "Framework",
     tabIds: ["framework-rules", "tariff-rates", "change-proposals"],
   },
+  // Retained for backward compat — "organization" section ID was renamed to "kontrakter"
+  // in the UI but kept here so existing Botsson tools still resolve correctly.
   organization: {
-    label: "Organization",
+    label: "Organization (legacy alias → Kontrakter)",
     tabIds: ["holidays", "contract-templates", "contract-template-bindings"],
+  },
+  kontrakter: {
+    label: "Kontrakter",
+    tabIds: ["holidays", "contract-templates", "contract-template-bindings"],
+  },
+  struktur: {
+    label: "Struktur",
+    tabIds: ["struktur-overview", "avdelinger", "lokasjoner", "team"],
+  },
+  integrasjoner: {
+    label: "Integrasjoner",
+    tabIds: ["pos", "tripletex", "sendgrid"],
   },
 };
 
@@ -125,6 +156,15 @@ const TAB_LABELS: Record<SettingsTabId, string> = {
   holidays: "Holiday Calendar",
   "contract-templates": "Contract Templates",
   "contract-template-bindings": "Contract Bindings",
+  // SM-9: Struktur
+  "struktur-overview": "Oversikt (Structure)",
+  avdelinger: "Avdelinger (Departments)",
+  lokasjoner: "Lokasjoner (Locations)",
+  team: "Team",
+  // SM-9: Integrasjoner
+  pos: "POS Integrasjoner",
+  tripletex: "Tripletex",
+  sendgrid: "SendGrid",
 };
 
 const ALL_TAB_IDS = Object.keys(TAB_LABELS) as SettingsTabId[];
@@ -162,7 +202,7 @@ export function useSettingsTools(input: SettingsToolInput): ClientToolKit {
         temporaryTool: {
           modelToolName: "listSettingsSections",
           description:
-            "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic.",
+            "List all settings sections (General, Payroll, Schedule, Framework, Kontrakter, Struktur, Integrasjoner) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic.",
           dynamicParameters: [],
           client: {},
         },
@@ -180,7 +220,7 @@ export function useSettingsTools(input: SettingsToolInput): ClientToolKit {
         temporaryTool: {
           modelToolName: "openSettingsSection",
           description:
-            "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings.",
+            "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', 'vis avdelinger', 'gå til struktur', 'åpne POS integrasjoner', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings, struktur-overview, avdelinger, lokasjoner, team, pos, tripletex, sendgrid.",
           dynamicParameters: [
             {
               name: "tabId",

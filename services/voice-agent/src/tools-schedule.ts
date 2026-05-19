@@ -552,4 +552,45 @@ export const scheduleTools = {
       return open_planner ? `Åpner dagsplan for ${date_id}.` : `Fokuserer ${date_id} i vaktplanen.`;
     },
   }),
+
+  // ── set_schedule_density ───────────────────────────────────────────────────
+  // L-0234: single schedule_view_change event, new "set_density" action discriminant.
+  // Persistence is ride-along via the shared UI setter in schedule-voice-tools-bridge.tsx
+  // — voice tool itself does NOT write to domain tables (view-state-only per plan §5).
+  set_schedule_density: llm.tool({
+    description: [
+      "Bytt tetthet på vaktplan-kort.",
+      'Bruk når brukeren sier "vis mer info", "kompakt visning", "gi meg pulsen",',
+      '"større kort", "krymp", "vis dagen som hetekart".',
+      "Allowed values: cozy | default | compact | pulse.",
+      "Pulse = heatmap-modus for å se hele uka på én skjerm.",
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        density: {
+          type: "string",
+          enum: ["cozy", "default", "compact", "pulse"],
+        },
+      },
+      required: ["density"],
+      additionalProperties: false,
+    },
+    execute: async ({ density }: { density: string }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      if (!["cozy", "default", "compact", "pulse"].includes(density)) {
+        return `Ugyldig tetthet "${density}". Tillatte verdier: cozy, default, compact, pulse.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: {
+          action: "set_density",
+          density: density as "cozy" | "default" | "compact" | "pulse",
+        },
+      });
+      return density === "pulse" ? "Bytter til puls-modus." : `Bytter til ${density}-visning.`;
+    },
+  }),
 };

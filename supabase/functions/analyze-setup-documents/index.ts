@@ -1,5 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireSecrets } from "../_shared/required-secrets.ts";
 
 /**
  * analyze-setup-documents
@@ -14,7 +15,18 @@ import { getCorsHeaders } from "../_shared/cors.ts";
  *   result: ExtractionResult,           — merged AI extraction
  *   files: FileStatus[],                — per-file extraction status
  * }
+ *
+ * Boot-time secret validation — throws at module-eval if any of the listed
+ * secrets are missing or empty. The edge-runtime worker fails to bootstrap,
+ * surfacing a BOOT_ERROR via edge-functions-boot-check.sh AT STARTUP rather
+ * than as a runtime 401 when a user clicks "Analyser". Per Pontus 2026-05-19:
+ * "MUST BE ALEARTED ON STARTUP. THIS CAN NEVER HAPPEND IN RUNTIME".
  */
+requireSecrets("analyze-setup-documents", [
+  "SCRAPLING_SERVICE_URL",
+  "SCRAPLING_AUTH_TOKEN",
+  "OPENROUTER_API_KEY",
+]);
 
 type ExtractionResult = {
   policies?: Array<{ name: string; content: string; source: string }>;

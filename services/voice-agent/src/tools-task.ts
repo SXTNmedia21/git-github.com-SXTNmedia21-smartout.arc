@@ -131,6 +131,8 @@ export function buildTaskTools(ask: AskFn) {
     }),
 
     // ── create_session_task ───────────────────────────────────────────────────
+    // V1: voice surface intentionally narrower than chat per ADR-0298 R6 + L-0233 (Two LLM contexts).
+    // description + scheduled_at are chat-only params; voice channel is rejected at tools.ts:415.
     create_session_task: llm.tool({
       description: [
         "Lag en D6 oppgave knyttet til en åpen vakt/session. Manager-only.",

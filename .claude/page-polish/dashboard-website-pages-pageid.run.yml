@@ -1,0 +1,66 @@
+# Page Polish Run — /dashboard/website/pages/[pageId]
+
+route: /dashboard/website/pages/[pageId]
+status: done
+verified: true
+started_at: 2026-05-16T09:00:00+02:00
+verified_at: 2026-05-16T16:00:00+02:00
+tier: 3
+parent: /dashboard/website
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-ui-shell-wt-1
+  git_branch: feat/ui-shell-website-polish
+  url: https://app.smartout.ai/dashboard/website/pages/[pageId]
+  components_count: 2
+
+architecture:
+  entry: apps/web/src/app/dashboard/website/pages/[pageId]/page.tsx
+  rendering: Client Component
+  data_source: "Live page + sections via useWebsitePageEditorTools"
+  client_bridge:
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/use-website-page-editor-tools.ts
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/website-page-editor-tools-bridge.tsx
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 3
+  scope: website-page-editor
+  registered_tools:
+    - { key: getPageState, type: read, note: "title, is_visible, section_count, hasUnsavedChanges, lastSavedAt" }
+    - { key: getSectionsList, type: read, note: "sections with type, is_visible, sort_order — no content (PII guard)" }
+    - { key: getSaveActionState, type: read, note: "hasUnsavedChanges, canPublish, canPreview, hint" }
+
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+  notes: |
+    All tools are read-only. No emit() required. Page mutations
+    (delete, toggleVisibility) are ADR-0244 RISK-TIER actions
+    not exposed via tools.
+
+mobile_parity: web_only
+mobile_rationale: |
+  ADR-0133: Authoring verb (D1-D5 compose, not D6 execute).
+  Page editor is a composition/authoring surface. Mobile owns
+  Approve/Execute verbs only. Web-only per Surface Boundary.
+
+site_map_entry: /dashboard/website/pages/[pageId]
+
+notes: |
+  Sub-route under dashboard-website. Pre-commit hook does not enforce
+  sub-route run.yml — documentation-only per smartout-page-polish
+  skill Phase 8. Tools bridge wired to SectionEditor component.
+  Section content never returned (PII guard). All dataRef patterns
+  closure-safe.
+
+checklist:
+  typecheck_pass: true
+  files_exist:
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/use-website-page-editor-tools.ts
+    - apps/web/src/app/dashboard/website/pages/[pageId]/_tools/website-page-editor-tools-bridge.tsx
+    - .claude/page-polish/dashboard-website-pages-pageid.run.yml
+  harness_tools_registered: true
+  adr_0244_compliant: true

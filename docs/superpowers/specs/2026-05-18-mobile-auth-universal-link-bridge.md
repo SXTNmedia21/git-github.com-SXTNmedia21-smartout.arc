@@ -14,7 +14,7 @@ related_adrs:
   - ADR-0133
   - ADR-0134
   - ADR-0167
-  - ADR-0362
+  - ADR-0374
 related_docs:
   - SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md (canonical, §3.1, §3.4, §4.4, §4.5, §5, §6)
   - SMARTOUT_Subdomain_Routing_Architecture.md (cookie-domain rule §5)
@@ -38,7 +38,7 @@ Replace mobile `smartout://` redirectTo targets with `https://app.smartout.ai/m/
 
 ## 2. Why now
 
-- ADR-0362 just landed (2026-05-18) closing the web side of the auth-host doctrine. Mobile remains the only surface that still uses host-specific scheme URLs in `redirectTo`.
+- ADR-0374 just landed (2026-05-18) closing the web side of the auth-host doctrine. Mobile remains the only surface that still uses host-specific scheme URLs in `redirectTo`.
 - Recovery and OTP emails on mobile contain `smartout://` URLs that are dead links when the email is opened on desktop — silent failure for end-users who switch devices.
 - Q22=b 2026-04-20 deferred 4 mobile auth screens to P2. P1 closed 2026-05-02. This sortie executes P2 Phase 6.
 - iOS `associatedDomains: ["applinks:app.smartout.ai"]` is already declared in `apps/mobile/app.json:25` but no Universal Link target exists on the web side — declaration is currently a no-op.
@@ -192,7 +192,7 @@ Verify `.well-known/*` not rewritten or intercepted. If any rewrite rule applies
 ### T8 — ADR
 
 Draft ADR-0363 `mobile-auth-universal-link-bridge` covering:
-- Universal Link as the canonical mobile redirectTo target (extends ADR-0362 + ADR-0021)
+- Universal Link as the canonical mobile redirectTo target (extends ADR-0374 + ADR-0021)
 - Bridge route pattern (web fallback)
 - Scheme URL `smartout://` retained as in-app fallback only (NOT for OAuth redirectTo, NOT in emails)
 - .well-known file serving + MIME requirements
@@ -229,7 +229,7 @@ Manual smoke per acceptance criteria + `close-feature.sh`.
 ## 10. References
 
 - Canonical: `docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md` §3, §4.4, §4.5, §5, §6
-- ADR-0362 (web portal-redirect — the predecessor)
+- ADR-0374 (web portal-redirect — the predecessor)
 - ADR-0021 amendment 2026-04-20
 - Auth & Invitation Council `docs/superpowers/specs/2026-04-20-auth-invitation-implementation-plan.md` Q22=b
 - Holistic design `docs/superpowers/specs/2026-04-19-auth-invitation-holistic-design.md` §11.3, §11.4

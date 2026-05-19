@@ -46,10 +46,19 @@ const PHASE_ACTIONS: Record<ShiftPhase, QuickAction[]> = {
     { key: "deviation", label: "Avvik", icon: AlertTriangle },
     { key: "call_leader", label: "Ring leder", icon: Phone },
   ],
+  awaiting_punch_in: [
+    { key: "punch_in", label: "Punch inn", icon: CheckCircle },
+    { key: "call_leader", label: "Ring leder", icon: Phone },
+    { key: "deviation", label: "Avvik", icon: AlertTriangle },
+  ],
   before_shift: [
     { key: "shift_card", label: "Skiftkort", icon: FileText },
     { key: "day_brief", label: "Day brief", icon: BarChart3 },
     { key: "confirm_shift", label: "Bekreft vakt", icon: CheckCircle },
+  ],
+  missed_shift: [
+    { key: "report_missed", label: "Meld fravær", icon: AlertTriangle },
+    { key: "call_leader", label: "Ring leder", icon: Phone },
   ],
   after_shift: [
     { key: "handoff", label: "Handoff", icon: PenLine },

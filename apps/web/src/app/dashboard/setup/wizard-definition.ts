@@ -186,14 +186,16 @@ async function loadState(): Promise<Partial<SetupState>> {
     "handbook",
   ];
 
-  let _initialStepIndex: number | undefined;
-  for (let i = 0; i < STEP_IDS.length; i++) {
-    const moduleId = STEP_TO_MODULE[STEP_IDS[i]!];
-    if (moduleId && !moduleComplete[moduleId]) {
-      _initialStepIndex = i;
-      break;
-    }
-  }
+  // Pontus 2026-05-19: "/dashboard/setup burde start på velkommen".
+  // Auto-advance disabled entirely — every visit lands on the welcome step
+  // (index 0) regardless of module-completion state. Users click through
+  // explicitly; ?step=<id> URL override (setup/page.tsx) still respected.
+  // STEP_IDS + STEP_TO_MODULE + moduleComplete kept above for future tools
+  // that may surface incomplete-module hints in chat (void to silence
+  // unused-warnings while preserving the queries for diagnostics).
+  void STEP_IDS;
+  void moduleComplete;
+  const _initialStepIndex = 0;
 
   return { scrapedData, workspaceId, profileId, _initialStepIndex } as Partial<SetupState> & {
     _initialStepIndex?: number;

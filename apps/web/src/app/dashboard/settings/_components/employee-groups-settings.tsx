@@ -301,7 +301,7 @@ function GroupSheet({ open, onClose, mode, initialValues }: GroupSheetProps) {
             />
           </div>
 
-          {/* Contract template management — link to /dashboard/contracts?tab=maler.
+          {/* Contract template management — link to /dashboard/people/contracts?tab=maler.
               Per-category template bindings live in the expanded card view via
               TemplateBindingsPanel; this link is the entry point to author
               templates themselves. */}
@@ -317,7 +317,7 @@ function GroupSheet({ open, onClose, mode, initialValues }: GroupSheetProps) {
                 </div>
               </div>
               <Link
-                href="/dashboard/contracts?tab=maler"
+                href="/dashboard/people/contracts?tab=maler"
                 className="text-primary hover:bg-muted inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors"
               >
                 Åpne

@@ -278,8 +278,9 @@ export function useShiftClock() {
       }
     },
 
-    onError: () => {
-      toast.error("Kunne ikke stemple inn");
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Kunne ikke stemple inn: ${msg}`);
     },
   });
 

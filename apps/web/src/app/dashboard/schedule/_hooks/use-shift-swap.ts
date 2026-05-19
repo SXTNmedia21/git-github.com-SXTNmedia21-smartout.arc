@@ -18,6 +18,10 @@
  * BFF; this hook holds the existing emit() call sites in the interim
  * (no regression vs pre-refactor behaviour).
  *
+ * ADR-0328: 409 PIPELINE_LOCK_HELD responses surface as a discriminated
+ * sonner toast (5 s, dismiss button) so employees understand why the
+ * action was blocked without seeing a raw error code.
+ *
  * Connected to: engine_state (process_id = 'shift_swap')
  * Connected to: schedule_shift (read for eligibility, mutated by RPCs)
  */
@@ -25,6 +29,7 @@
 import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -32,9 +37,53 @@ import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import type { ShiftSwapContext } from "@smartout/utils";
 
+// ── Pipeline lock error envelope (ADR-0328) ─────────────────────────────────
+// Zod parse: fail silently (safeParse) so unknown shapes fall through to
+// the generic error path without crashing.
+
+const PipelineLockEnvelopeSchema = z.object({
+  ok: z.literal(false),
+  error: z.literal("PIPELINE_LOCK_HELD"),
+  locking_blueprint_id: z.string().optional(),
+});
+
+type PipelineLockEnvelope = z.infer<typeof PipelineLockEnvelopeSchema>;
+
+/** Discriminated class so onError handlers can instanceof-check without
+ *  coupling to error strings. */
+export class PipelineLockError extends Error {
+  public readonly lockingBlueprintId: string | undefined;
+  constructor(envelope: PipelineLockEnvelope) {
+    super("PIPELINE_LOCK_HELD");
+    this.name = "PipelineLockError";
+    this.lockingBlueprintId = envelope.locking_blueprint_id;
+  }
+}
+
+/** Norwegian toast copy discriminated by locking blueprint (ADR-0328). */
+function showPipelineLockToast(lockingBlueprintId: string | undefined): void {
+  let message: string;
+
+  if (lockingBlueprintId === "marketplace_lifecycle") {
+    // swap-on-marketplace: employee tried to initiate a swap but the shift is
+    // already in the marketplace pipeline
+    message = "Vakten er låst av et åpent vakttilbud — venter på godkjenning";
+  } else if (lockingBlueprintId === "shift_swap_lifecycle") {
+    // same-capability-double: two swap initiations on the same shift
+    message = "Det finnes allerede en åpen flyt på denne vakten";
+  } else {
+    message = "Vakten er allerede i en aktiv flyt";
+  }
+
+  toast.error(message, { duration: 5000, dismissible: true });
+}
+
 // ── BFF fetch helper ────────────────────────────────────────────────────────
 // Same-origin fetch; Next.js middleware attaches the session cookie.
 // Identity fields are NEVER in the body (ADR-0176 Invariant 3).
+//
+// On 409 PIPELINE_LOCK_HELD: throws PipelineLockError (not a generic Error)
+// so mutation onError handlers can discriminate without inspecting strings.
 async function bffPost<TBody extends Record<string, unknown>, TOk = unknown>(
   path: string,
   body: TBody,
@@ -45,6 +94,22 @@ async function bffPost<TBody extends Record<string, unknown>, TOk = unknown>(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
+  if (res.status === 409) {
+    let envelope: unknown;
+    try {
+      envelope = await res.json();
+    } catch {
+      envelope = {};
+    }
+    const parsed = PipelineLockEnvelopeSchema.safeParse(envelope);
+    if (parsed.success) {
+      throw new PipelineLockError(parsed.data);
+    }
+    // Non-PIPELINE_LOCK_HELD 409 — fall through to generic error
+    throw new Error(`BFF 409`);
+  }
+
   if (!res.ok) {
     let msg = `BFF ${res.status}`;
     try {
@@ -155,6 +220,10 @@ export function useInitiateSwap() {
       toast.success("Bytteforespørsel sendt");
     },
     onError: (err) => {
+      if (err instanceof PipelineLockError) {
+        showPipelineLockToast(err.lockingBlueprintId);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Kunne ikke sende bytteforespørsel";
       toast.error(message);
     },
@@ -204,6 +273,10 @@ export function useRespondToSwap() {
       toast.success(vars.accepted ? "Bytte akseptert" : "Bytte avvist");
     },
     onError: (err) => {
+      if (err instanceof PipelineLockError) {
+        showPipelineLockToast(err.lockingBlueprintId);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Kunne ikke svare på bytteforespørsel";
       toast.error(message);
     },
@@ -272,6 +345,10 @@ export function useApproveSwap() {
       toast.success(vars.approved ? "Bytte godkjent" : "Bytte avvist");
     },
     onError: (err) => {
+      if (err instanceof PipelineLockError) {
+        showPipelineLockToast(err.lockingBlueprintId);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Kunne ikke behandle bytteforespørsel";
       toast.error(message);
     },
@@ -305,6 +382,10 @@ export function useCancelSwap() {
       toast.success("Byttforespørsel kansellert");
     },
     onError: (err) => {
+      if (err instanceof PipelineLockError) {
+        showPipelineLockToast(err.lockingBlueprintId);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Kunne ikke kansellere bytte";
       toast.error(message);
     },

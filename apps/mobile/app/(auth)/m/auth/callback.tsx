@@ -20,7 +20,7 @@
  * server-side post-login.
  *
  * Refs:
- *   - ADR-0021 amendment (portal canonical), ADR-0362 (web portal-redirect),
+ *   - ADR-0021 amendment (portal canonical), ADR-0374 (web portal-redirect),
  *     ADR-0368 (this sortie — mobile UL bridge)
  *   - docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §3.1 (mobile
  *     Google flow), §3.3 (mobile recovery flow)

@@ -14,96 +14,124 @@ import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 import type { RoleOption } from "../types";
 
-const DEFAULT_ROLES: RoleOption[] = [
+interface RoleDefinition {
+  id: string;
+  nameKey: string;
+  descriptionKey: string;
+  selected: boolean;
+  required: boolean;
+}
+
+const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
     id: "role-daglig-leder",
-    name: "Daglig leder",
-    description: "Overordnet ansvar for daglig drift",
+    nameKey: "roles.dagligLeder.name",
+    descriptionKey: "roles.dagligLeder.description",
     selected: true,
     required: false,
   },
   {
     id: "role-restaurantsjef",
-    name: "Restaurantsjef",
-    description: "Leder for restaurant og sal",
+    nameKey: "roles.restaurantsjef.name",
+    descriptionKey: "roles.restaurantsjef.description",
     selected: true,
     required: false,
   },
   {
     id: "role-kjokkensjef",
-    name: "Kjøkkensjef",
-    description: "Leder for kjøkken og matlaging",
+    nameKey: "roles.kjokkensjef.name",
+    descriptionKey: "roles.kjokkensjef.description",
     selected: true,
     required: false,
   },
   {
     id: "role-barsjef",
-    name: "Barsjef",
-    description: "Ansvarlig for bar og drikke",
+    nameKey: "roles.barsjef.name",
+    descriptionKey: "roles.barsjef.description",
     selected: false,
     required: false,
   },
   {
     id: "role-skiftleder",
-    name: "Skiftleder",
-    description: "Leder for enkeltvakter",
+    nameKey: "roles.skiftleder.name",
+    descriptionKey: "roles.skiftleder.description",
     selected: false,
     required: false,
   },
   {
     id: "role-verneombud",
-    name: "Verneombud",
-    description: "Lovpålagt HMS-rolle — påkrevd ved 10+ ansatte",
+    nameKey: "roles.verneombud.name",
+    descriptionKey: "roles.verneombud.description",
     selected: true,
     required: true,
   },
   {
     id: "role-brannvernleder",
-    name: "Brannvernleder",
-    description: "Ansvarlig for brannsikkerhet og evakuering",
+    nameKey: "roles.brannvernleder.name",
+    descriptionKey: "roles.brannvernleder.description",
     selected: true,
     required: true,
   },
   {
     id: "role-tillitsvalgt",
-    name: "Tillitsvalgt",
-    description: "Representerer de ansatte overfor ledelsen",
+    nameKey: "roles.tillitsvalgt.name",
+    descriptionKey: "roles.tillitsvalgt.description",
     selected: false,
     required: false,
   },
   {
     id: "role-vaktmester",
-    name: "Vaktmester",
-    description: "Ansvarlig for bygning og vedlikehold",
+    nameKey: "roles.vaktmester.name",
+    descriptionKey: "roles.vaktmester.description",
     selected: false,
     required: false,
   },
   {
     id: "role-fagansvarlig",
-    name: "Fagansvarlig",
-    description: "Ansvarlig for faglig utvikling og opplæring",
+    nameKey: "roles.fagansvarlig.name",
+    descriptionKey: "roles.fagansvarlig.description",
     selected: false,
     required: false,
   },
 ];
 
-export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingConfirmState>) {
+export function ConfirmRoles({ state, updateState, t }: WizardStepProps<OnboardingConfirmState>) {
   const [showPopover, setShowPopover] = useState(false);
   const [customInput, setCustomInput] = useState(false);
   const [customName, setCustomName] = useState("");
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Initialize roles on first render if empty
+  // Initialize roles on first render if empty — resolve i18n keys to strings at init time
   const needsInit = state.roles.length === 0;
   useEffect(() => {
     if (needsInit) {
-      updateState({ roles: DEFAULT_ROLES });
+      updateState({
+        roles: ROLE_DEFINITIONS.map((def) => ({
+          id: def.id,
+          name: t(def.nameKey),
+          description: t(def.descriptionKey),
+          selected: def.selected,
+          required: def.required,
+        })),
+      });
     }
   }, [needsInit, updateState]);
 
+  const resolvedDefaultRoles: RoleOption[] = useMemo(
+    () =>
+      ROLE_DEFINITIONS.map((def) => ({
+        id: def.id,
+        name: t(def.nameKey),
+        description: t(def.descriptionKey),
+        selected: def.selected,
+        required: def.required,
+      })),
+    [t],
+  );
+
   const roles = useMemo(
-    () => (state.roles.length > 0 ? state.roles : DEFAULT_ROLES),
-    [state.roles],
+    () => (state.roles.length > 0 ? state.roles : resolvedDefaultRoles),
+    [state.roles, resolvedDefaultRoles],
   );
 
   // Close popover on outside click
@@ -161,13 +189,13 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Roller</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Hvilke lederskap- og ansvarsroller har dere? Noen er lovpålagt.
-        </p>
+        <h2 className="font-heading text-foreground text-2xl font-bold">
+          {t("confirm.roles_title")}
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("confirm.roles_description")}</p>
         <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
-          {selectedRoles.length} roller valgt
+          {t("roles.selectedCount", { count: selectedRoles.length })}
         </p>
       </div>
 
@@ -192,7 +220,7 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
             {role.required ? (
               <span className="flex items-center gap-1 text-[10px] text-[var(--brand-orange)]">
                 <Shield className="size-3" />
-                Påkrevd
+                {t("roles.required")}
               </span>
             ) : (
               <button
@@ -214,7 +242,7 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
             className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
           >
             <Plus className="size-3.5" />
-            Legg til flere roller
+            {t("roles.addMore")}
           </button>
 
           {showPopover && (
@@ -248,7 +276,7 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
                         setCustomName("");
                       }
                     }}
-                    placeholder="Rollenavn"
+                    placeholder={t("roles.customPlaceholder")}
                     className="border-border bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded border px-2 py-1 text-xs focus-visible:outline-none"
                     autoFocus
                   />
@@ -267,7 +295,7 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
                   className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs"
                 >
                   <Plus className="size-3" />
-                  Egendefinert...
+                  {t("roles.custom")}
                 </button>
               )}
             </div>

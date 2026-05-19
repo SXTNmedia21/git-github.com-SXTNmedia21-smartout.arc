@@ -61,7 +61,10 @@ export function ProgressRing({ total, completed, hasError = false, size = 56 }: 
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          // Rotate so progress starts from 12 o'clock
+          // Rotate so progress starts from 12 o'clock.
+          // Use SVG transform attr (not rotation/origin props) to avoid
+          // react-native-svg web-shim emitting kebab `transform-origin`
+          // which React 19 rejects on the DOM circle element.
           transform={`rotate(-90 ${cx} ${cy})`}
         />
       </Svg>

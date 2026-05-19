@@ -158,8 +158,6 @@ export default function ShiftDetailScreen() {
       try {
         await enqueue("confirm_shift", {
           schedule_shift_id: shiftId,
-          confirmed_at: new Date().toISOString(),
-          confirmed_by: profile.profile_id,
         });
         queryClient.setQueryData<ScheduleShift[]>(["my-shifts", selectedProfileId], (old) =>
           old?.map((s) =>
@@ -376,42 +374,50 @@ export default function ShiftDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Bottom action bar — contextual CTA */}
+      {/* Bottom action bar — contextual CTA. Secondary actions (Bekreft/Bytt)
+          stack as a top row; Stemple inn is the full-width primary on bottom. */}
       <Animated.View
         entering={FadeInDown.delay(600).duration(500).springify()}
         style={styles.bottomBar}
       >
-        {/* Confirm shift — only if not yet confirmed */}
-        {!isConfirmed && (
-          <Pressable
-            onPress={() => handleConfirm(shift.schedule_shift_id)}
-            disabled={confirming}
-            style={({ pressed }) => [styles.confirmButton, pressed && styles.confirmPressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Bekreft vakt"
-          >
-            <UserCheck size={16} color={theme.colors.brandOrange} strokeWidth={2} />
-            <Text style={styles.confirmText}>{confirming ? "Bekrefter..." : "Bekreft vakt"}</Text>
-          </Pressable>
-        )}
+        {(!isConfirmed ||
+          (shift.status === "published" && shift.employee_id === selectedProfileId)) && (
+          <View style={styles.secondaryRow}>
+            {/* Confirm shift — only if not yet confirmed */}
+            {!isConfirmed && (
+              <Pressable
+                onPress={() => handleConfirm(shift.schedule_shift_id)}
+                disabled={confirming}
+                style={({ pressed }) => [styles.confirmButton, pressed && styles.confirmPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Bekreft vakt"
+              >
+                <UserCheck size={16} color={theme.colors.brandOrange} strokeWidth={2} />
+                <Text style={styles.confirmText}>
+                  {confirming ? "Bekrefter..." : "Bekreft vakt"}
+                </Text>
+              </Pressable>
+            )}
 
-        {/* Swap shift — only published shifts owned by current user */}
-        {shift.status === "published" && shift.employee_id === selectedProfileId && (
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.push({
-                pathname: "/(app)/(shifts)/swap",
-                params: { shiftId: shift.schedule_shift_id },
-              });
-            }}
-            style={({ pressed }) => [styles.swapButton, pressed && styles.confirmPressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Bytt vakt"
-          >
-            <ArrowLeftRight size={16} color={theme.colors.brandOrange} strokeWidth={2} />
-            <Text style={styles.confirmText}>Bytt vakt</Text>
-          </Pressable>
+            {/* Swap shift — only published shifts owned by current user */}
+            {shift.status === "published" && shift.employee_id === selectedProfileId && (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  router.push({
+                    pathname: "/(app)/(shifts)/swap",
+                    params: { shiftId: shift.schedule_shift_id },
+                  });
+                }}
+                style={({ pressed }) => [styles.swapButton, pressed && styles.confirmPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Bytt vakt"
+              >
+                <ArrowLeftRight size={16} color={theme.colors.brandOrange} strokeWidth={2} />
+                <Text style={styles.confirmText}>Bytt vakt</Text>
+              </Pressable>
+            )}
+          </View>
         )}
 
         {/* Primary CTA — navigate to punch clock */}
@@ -675,8 +681,7 @@ const useStyles = createStyles((theme) => ({
 
   /* Bottom action bar */
   bottomBar: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
     gap: theme.spacing.element,
     paddingHorizontal: theme.spacing.page,
     paddingVertical: theme.spacing.md,
@@ -684,9 +689,16 @@ const useStyles = createStyles((theme) => ({
     borderTopColor: withOpacity(theme.colors.border, 0.1),
     backgroundColor: theme.colors.background,
   },
-  confirmButton: {
+  secondaryRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: theme.spacing.element,
+  },
+  confirmButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.section,
@@ -705,8 +717,10 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.brandOrange,
   },
   swapButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.section,
@@ -716,7 +730,6 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: withOpacity(theme.colors.brandOrange, 0.06),
   },
   punchButton: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

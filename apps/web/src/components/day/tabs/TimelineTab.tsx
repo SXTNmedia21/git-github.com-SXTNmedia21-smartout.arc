@@ -1,9 +1,10 @@
 "use client";
 
-import { useContext, useState, useCallback } from "react";
+import { useContext, useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Info } from "lucide-react";
-import type { UiPhase } from "@smartout/utils";
+import { Info, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { type UiPhase, getPhaseBoundaries } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import {
   useDayTimelineEvents,
@@ -25,7 +26,14 @@ import { DailyNoteSheet } from "@/components/dashboard/cockpit/sheets/DailyNoteS
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { useDayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
+import { useTimelineSelection } from "@/components/day/use-timeline-selection";
 import type { TimelineTemplateItemT } from "@smartout/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NoSessionCTA } from "@/components/day/NoSessionCTA";
+import { DayLineStrip } from "@/components/day/DayLineStrip";
+import { DayLineCreateSheet } from "@/components/day/DayLineCreateSheet";
+import { AggregatedDayLineList } from "@/components/day/AggregatedDayLineList";
+import { useDayLines } from "@/components/day/_hooks/use-day-lines";
 
 // Local type for slot-picker anchor — time + whether it is open.
 type SlotPickerState = {
@@ -40,6 +48,17 @@ type DraftChip = {
   label: string;
   time: string;
 };
+
+// ── Session status adapter ────────────────────────────────────────────────────
+// DepartmentSessionRow.status uses a richer enum than deriveDayLineStatus expects.
+// Map to the simple three-way union the helper understands.
+type SimpleSessionStatus = "draft" | "open" | "closed";
+
+function toSimpleSessionStatus(status: DepartmentSessionRow["status"]): SimpleSessionStatus {
+  if (status === "upcoming") return "draft";
+  if (status === "active" || status === "pending_signoff") return "open";
+  return "closed"; // closed | missed
+}
 
 export function TimelineTab({
   session,
@@ -62,8 +81,11 @@ export function TimelineTab({
   const dashCtx = useContext(DashboardContext);
   const profileId = dashCtx.profileId;
 
-  const [selected, setSelected] = useState<DayEvent | null>(null);
+  const selection = useTimelineSelection();
   const [slotPicker, setSlotPicker] = useState<SlotPickerState>(CLOSED_SLOT_PICKER);
+  // Anchor rect for SlotPicker — set on hit-zone click so popover opens
+  // exactly under the cursor instead of attached to the full-width strip.
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   // In-memory draft chips — free-form items added by user, not yet saved as template
   const [draftChips, setDraftChips] = useState<DraftChip[]>([]);
   const [freeFormDialogOpen, setFreeFormDialogOpen] = useState(false);
@@ -76,9 +98,21 @@ export function TimelineTab({
   const [shiftStartOpen, setShiftStartOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [avvikDialogOpen, setAvvikDialogOpen] = useState(false);
+  const [dayLineCreateOpen, setDayLineCreateOpen] = useState(false);
 
   // Manager and above can write; employees get read-only strip.
   const canEdit = role !== null && role !== undefined && role !== "employee";
+
+  // Phase boundaries — computed from session bounds for phase-tinting bands on the strip.
+  // Memoised: recomputes only when session open/close changes.
+  const phaseBoundaries = useMemo(
+    () =>
+      getPhaseBoundaries({
+        plannedOpen: session.plannedOpen,
+        plannedClose: session.plannedClose,
+      }),
+    [session.plannedOpen, session.plannedClose],
+  );
 
   // Scope filter (URL search-param ?scope=type:<id>)
   const { scope } = useDayTimelineScope();
@@ -99,11 +133,23 @@ export function TimelineTab({
     shiftId,
   });
 
+  // ─── Multi-strip day_line query ───────────────────────────────────────────────
+  const dayLines = useDayLines({
+    workspaceId,
+    date: dateISO,
+    departmentIds: [departmentId],
+  });
+
+  const simpleSessionStatus = toSimpleSessionStatus(session.status);
+  // Reconciliation lock: not yet wired — future sortie will query
+  // daily_reconciliation.locked_at. Default false until then.
+  const reconciliationLocked = false;
+
   function refreshEvents() {
     qc.invalidateQueries({ queryKey: ["day-control", "timeline-events"] });
   }
 
-  function handleSelect(e: DayEvent) {
+  function handleSelectFromStrip(e: DayEvent) {
     if (drawer) {
       if (e.type === "checkin" || e.type === "checkout") {
         drawer.openDrawer("shift", e.refId);
@@ -118,12 +164,46 @@ export function TimelineTab({
         return;
       }
     }
-    setSelected((prev) => (prev?.id === e.id ? null : e));
+    // Toggle: clicking the same event again clears selection
+    if (selection.selectedId === e.id) {
+      selection.clear();
+    } else {
+      selection.selectFromStrip(e);
+    }
   }
 
-  function handleSlotClick(time: string) {
+  function handleSelectFromList(e: DayEvent) {
+    if (drawer) {
+      if (e.type === "checkin" || e.type === "checkout") {
+        drawer.openDrawer("shift", e.refId);
+        return;
+      }
+      if (e.type === "task") {
+        drawer.openDrawer("cascade_task", e.refId);
+        return;
+      }
+      if (e.type === "deviation") {
+        drawer.openDrawer("deviation", e.refId);
+        return;
+      }
+    }
+    // Toggle: clicking the same event again clears selection
+    if (selection.selectedId === e.id) {
+      selection.clear();
+    } else {
+      selection.selectFromList(e);
+    }
+  }
+
+  function handleSlotClick(time: string, rect: DOMRect) {
     if (!canEdit) return;
+    setAnchorRect(rect);
     setSlotPicker({ open: true, time });
+  }
+
+  function handleSlotPickerOpenChange(open: boolean) {
+    setSlotPicker((prev) => ({ ...prev, open }));
+    if (!open) setAnchorRect(null);
   }
 
   const handleSlotPickerAction = useCallback((action: SlotPickerAction, time: string) => {
@@ -153,6 +233,16 @@ export function TimelineTab({
     }
   }, []);
 
+  // ─── DayLineStrip slot-action dispatcher ─────────────────────────────────────
+  // Receives (action, time, dayLineId) from a DayLineStrip child.
+  // dayLineId is available for future dialog context (CT3+ will use it).
+  const handleDayLineSlotAction = useCallback(
+    (action: SlotPickerAction, time: string, _dayLineId: string) => {
+      handleSlotPickerAction(action, time);
+    },
+    [handleSlotPickerAction],
+  );
+
   function handleAddDraftChip(label: string, time: string) {
     setDraftChips((prev) => [...prev, { label, time }]);
   }
@@ -172,6 +262,7 @@ export function TimelineTab({
   const data = events.data ?? [];
   // Coerce role to WorkspaceRole | null for picker prop
   const pickerRole = (role ?? null) as WorkspaceRole | null;
+  const dayLineRows = dayLines.data ?? [];
 
   return (
     <div className="scrollbar-thin flex h-full min-h-0 flex-1 flex-col overflow-y-auto pr-1">
@@ -199,7 +290,7 @@ export function TimelineTab({
             <div
               role="alert"
               aria-live="polite"
-              className="mb-2 flex items-start gap-2 rounded border border-[oklch(0.82_0.08_65)] bg-[oklch(0.96_0.03_65)] px-3 py-2 text-[11px] leading-snug text-[oklch(0.35_0.10_55)]"
+              className="mb-2 flex items-start gap-2 rounded border border-[var(--komm-announcement)] bg-[var(--color-phase-service)] px-3 py-2 text-[11px] leading-snug text-[var(--text-mid)]"
             >
               <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
               <span>
@@ -208,31 +299,122 @@ export function TimelineTab({
             </div>
           )}
 
-          {/* The popover trigger is rendered inline inside DayTimelineStrip hit-zones.
-              We use a controlled popover here: DayTimelineStrip fires onSlotClick,
-              which opens SlotPicker. The popover trigger is a transparent div wrapper. */}
+          {/* Controlled popover anchored at the click coordinate.
+              DayTimelineStrip's hit-zone onClick provides the clicked button's
+              bounding rect; we render an invisible 1×1 span at that rect and
+              hand it to SlotPicker as the popover anchor. Menu opens under the
+              cursor instead of attached to the full-width strip wrapper. */}
+          <div className="relative w-full">
+            <DayTimelineStrip
+              events={data}
+              startHHMM={session.plannedOpen}
+              endHHMM={session.plannedClose}
+              dateISO={dateISO}
+              onSelect={handleSelectFromStrip}
+              editable={canEdit}
+              onSlotClick={handleSlotClick}
+              highlightedId={selection.selectedId}
+              pulseSource={selection.pulseSource}
+              departmentId={departmentId}
+              sessionId={session.sessionId}
+              phaseBoundaries={phaseBoundaries}
+            />
+          </div>
           <SlotPicker
             open={slotPicker.open}
-            onOpenChange={(o) => setSlotPicker((prev) => ({ ...prev, open: o }))}
+            onOpenChange={handleSlotPickerOpenChange}
             time={slotPicker.time || "--:--"}
             isLocationScope={isLocationScope}
             role={pickerRole}
             onAction={handleSlotPickerAction}
-          >
-            {/* Transparent div so popover attaches to the strip area */}
-            <div className="relative w-full">
-              <DayTimelineStrip
-                events={data}
-                startHHMM={session.plannedOpen}
-                endHHMM={session.plannedClose}
-                dateISO={dateISO}
-                onSelect={handleSelect}
-                editable={canEdit}
-                onSlotClick={handleSlotClick}
-              />
-            </div>
-          </SlotPicker>
+            anchor={
+              anchorRect ? (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "fixed",
+                    left: anchorRect.left + anchorRect.width / 2,
+                    top: anchorRect.top,
+                    width: 1,
+                    height: anchorRect.height,
+                    pointerEvents: "none",
+                  }}
+                />
+              ) : null
+            }
+          />
         </div>
+
+        {/* ─── Multi-strip DayLine section ─────────────────────────────────── */}
+
+        {/* "Ny dagslinje" trigger — visible when canEdit and session is not closed */}
+        {canEdit && session.status !== "closed" && workspaceId && (
+          <div className="flex justify-end" data-testid="day-line-create-trigger-row">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => setDayLineCreateOpen(true)}
+              data-testid="day-line-create-trigger"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Ny dagslinje
+            </Button>
+          </div>
+        )}
+
+        {dayLines.isLoading && (
+          <div
+            className="flex flex-col gap-2"
+            data-testid="timeline-tab-loading"
+            aria-label="Laster dagslinjer…"
+          >
+            <Skeleton className="h-12 w-full rounded-[--radius]" />
+            <Skeleton className="h-12 w-full rounded-[--radius]" />
+          </div>
+        )}
+
+        {!dayLines.isLoading && dayLineRows.length === 0 && workspaceId && (
+          // NoSessionCTA reused as empty state — no day_lines exist for this date/dept.
+          // departmentName is not available directly on session; use departmentId as fallback
+          // until CT3 wires a richer context. The CTA itself shows date context.
+          <div data-testid="timeline-tab-no-lines">
+            <NoSessionCTA
+              departmentId={departmentId}
+              departmentName={session.departmentName}
+              dateISO={dateISO}
+              onOpened={() => {
+                qc.invalidateQueries({ queryKey: ["day-line"] });
+              }}
+            />
+          </div>
+        )}
+
+        {/* Location scope: show aggregated overview across all day_lines for this date.
+            Pass locationId when scope is "location" so the list filters to that location. */}
+        {!dayLines.isLoading && isLocationScope && workspaceId && (
+          <AggregatedDayLineList
+            workspaceId={workspaceId}
+            date={dateISO}
+            locationId={scope.type === "location" ? scope.id : null}
+          />
+        )}
+
+        {!dayLines.isLoading && !isLocationScope && dayLineRows.length > 0 && (
+          <div className="flex flex-col gap-3" data-testid="timeline-tab-strips">
+            {dayLineRows.map((line) => (
+              <DayLineStrip
+                key={line.day_line_id}
+                line={line}
+                sessionStatus={simpleSessionStatus}
+                reconciliationLocked={reconciliationLocked}
+                canEdit={canEdit}
+                role={pickerRole}
+                onSlotAction={handleDayLineSlotAction}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty state when scope filter is active but yields no events */}
         {data.length === 0 && scope.type !== "all" && (
@@ -246,8 +428,8 @@ export function TimelineTab({
 
         {/* Inline editor for selected event */}
         <EventDetailPanel
-          event={selected}
-          onClose={() => setSelected(null)}
+          event={selection.selectedEvent}
+          onClose={selection.clear}
           onSaved={() => {
             refreshEvents();
           }}
@@ -255,8 +437,11 @@ export function TimelineTab({
 
         <DayEventList
           events={data}
-          highlightedId={selected?.id ?? null}
-          onEventClick={handleSelect}
+          highlightedId={selection.selectedId}
+          onEventClick={handleSelectFromList}
+          pulseSource={selection.pulseSource}
+          departmentId={departmentId}
+          sessionId={session.sessionId}
         />
       </div>
 
@@ -310,6 +495,16 @@ export function TimelineTab({
         time={freeFormTime}
         onAdd={handleAddDraftChip}
       />
+
+      {/* ── DayLineCreateSheet — "Ny dagslinje" path ──────────────────── */}
+      {workspaceId && session.sessionId && (
+        <DayLineCreateSheet
+          open={dayLineCreateOpen}
+          onOpenChange={setDayLineCreateOpen}
+          departmentId={departmentId}
+          departmentSessionId={session.sessionId}
+        />
+      )}
     </div>
   );
 }

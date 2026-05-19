@@ -19,7 +19,7 @@ Implemented ADR-0021 amendment (2026-04-20 Auth & Invitation Council Q1=b) that 
 
 1. **`apps/web/src/proxy.ts`** — added `AUTH_ROUTES_REDIRECT_TO_PORTAL` set + `isAuthRouteForPortal()` helper + portal-redirect branch at top of workspace handler (§5a). 10 auth routes covered. `/api/auth/callback` intentionally excluded (PKCE verifier cookie is host-scoped). Skip on localhost (single-host dev).
 2. **`apps/web/src/app/api/auth/callback/route.ts`** — added `resolveContinueDestination()` helper. After a successful session exchange and a profile lookup, if `?continue=<slug>` is present, regex-matches `SLUG_PATTERN`, and the user has a `profile` row in the workspace with that slug, redirect to `https://<slug>.${NEXT_PUBLIC_ROOT_DOMAIN}${next}`. Cookie domain `.smartout.ai` (already configured per ADR-0021 §5) propagates the session.
-3. **ADR-0362** — `docs/decisions/0362-portal-auth-redirect-implementation.md`.
+3. **ADR-0374** — `docs/decisions/0374-portal-auth-redirect-implementation.md`.
 4. **Journey** — `docs/journeys/JOURNEY-portal-auth-redirect.md` covering 3 user paths (invitee-via-Google, self-service reset, portal-then-workspace SSO).
 5. **Decision log** — index row added.
 
@@ -61,7 +61,7 @@ Implemented ADR-0021 amendment (2026-04-20 Auth & Invitation Council Q1=b) that 
 
 - [x] Plan written (`docs/plans/PLAN-portal-auth-redirect.md`)
 - [x] Journey written (`docs/journeys/JOURNEY-portal-auth-redirect.md`)
-- [x] ADR-0362 written + registered in decision log
+- [x] ADR-0374 written + registered in decision log
 - [x] `apps/web/src/proxy.ts` workspace handler 307-redirects auth routes
 - [x] `apps/web/src/app/api/auth/callback/route.ts` honors `continue` with profile-existence guard
 - [x] Open-redirect guards: `SLUG_PATTERN` + profile-existence + `next.startsWith("/")`

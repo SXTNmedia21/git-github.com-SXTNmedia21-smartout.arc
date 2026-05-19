@@ -26,13 +26,11 @@ import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
 
-// Canonical Expo Router initial route declaration — more reliable than the
-// initialRouteName prop on <Tabs> when the target screen has href: null.
-// Ensures /(app) always resolves to (calendar) as the daily anchor tab.
-// (home) is kept in the config with href:null so Expo Router doesn't 404 on
-// the existing folder; it is not shown in the tab bar.
+// Initial route = (home) — 3-screen pager (Pre/On/Post shift).
+// Supersedes the ADR-0268 anchor decision (was (calendar)).
+// Calendar remains accessible via its tab; no longer the landing screen.
 export const unstable_settings = {
-  initialRouteName: "(calendar)",
+  initialRouteName: "(home)",
 };
 
 export default function AppLayout() {
@@ -45,9 +43,9 @@ export default function AppLayout() {
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const addSheetRef = useRef<AddSheetHandle>(null);
 
-  /** Tap → return to Kalender (daily anchor per ADR-0268). */
+  /** Tap → return to Home (3-screen pager). Supersedes ADR-0268 anchor target. */
   const handleFabTap = useCallback(() => {
-    router.replace("/(app)/(calendar)");
+    router.replace("/(app)/(home)");
   }, [router]);
 
   /** Swipe layer 1 (≥80px up) → open AddSheet only. */
@@ -87,19 +85,18 @@ export default function AppLayout() {
       <View style={styles.container}>
         <Tabs
           screenOptions={{ headerShown: false }}
-          initialRouteName="(calendar)"
+          initialRouteName="(home)"
           tabBar={renderTabBar}
         >
-          {/* ── 5-tab canonical layout per ADR-0268 ─────────────────────── */}
-          <Tabs.Screen name="(calendar)" options={{ title: strings.tabs.kalender }} />
+          {/* ── Tab bar layout: Home · Vakter · FAB · Chat · Min Tid ────── */}
+          <Tabs.Screen name="(home)" options={{ title: "Hjem" }} />
           <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.vakter }} />
           {/* FAB slot: center button in TabBar — no navigable route */}
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
           <Tabs.Screen name="(me)" options={{ title: strings.tabs.minTid }} />
 
-          {/* ── Hidden legacy folders — DO NOT remove, folders still exist ─ */}
-          {/* Expo Router shows 404 if a folder exists but no Tabs.Screen entry */}
-          <Tabs.Screen name="(home)" options={{ href: null }} />
+          {/* ── Hidden — Calendar still reachable but not in tab bar ────── */}
+          <Tabs.Screen name="(calendar)" options={{ href: null }} />
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />

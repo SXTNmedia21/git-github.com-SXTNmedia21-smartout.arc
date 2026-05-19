@@ -215,24 +215,66 @@ const showChatDef: ClientToolDefinition = {
 
 /* ━━━ Navigation tool ━━━━━━━━━━━━━━━━━━━━━ */
 
+// Single source of truth for Botsson page-navigation allowlist. Both the chat
+// tool (navigate_to_page below) and the voice tool (services/voice-agent
+// tools-orb.ts navigate_to) gate every navigation through this set. LLM
+// hallucination produced /dashboard/hse 2026-05-19 — allowlist prevents that.
+// Admin-only routes (/dashboard/admin, /dashboard/setup, onboarding-assistant)
+// are intentionally NOT here; RLS still hides their data but Botsson should
+// not surface those entry points conversationally.
 const DASHBOARD_PAGES: Record<string, { path: string; label: string }> = {
   dashboard: { path: "/dashboard", label: "Dashboard" },
+  // Scheduling & operations
   schedule: { path: "/dashboard/schedule", label: "Vaktplan" },
   "my-schedule": { path: "/dashboard/my-schedule", label: "Min vaktplan" },
+  calendar: { path: "/dashboard/calendar", label: "Kalender" },
   operations: { path: "/dashboard/operations", label: "Daglig drift" },
-  people: { path: "/dashboard/people", label: "Ansatte" },
-  organization: { path: "/dashboard/organization", label: "Organisasjon" },
-  season: { path: "/dashboard/year-wheel", label: "Årshjul" },
-  handbook: { path: "/dashboard/handbook", label: "Håndbok" },
-  governance: { path: "/dashboard/governance", label: "Retningslinjer" },
-  "my-training": { path: "/dashboard/my-training", label: "Min opplæring" },
-  reconciliation: { path: "/dashboard/reconciliation", label: "Avstemming" },
-  reports: { path: "/dashboard/reports", label: "Rapporter" },
+  "shift-clock": { path: "/dashboard/shift-clock", label: "Stempling" },
   close: { path: "/dashboard/close", label: "Dagsslutt" },
-  settings: { path: "/dashboard/settings", label: "Innstillinger" },
+  reconciliation: { path: "/dashboard/reconciliation", label: "Avstemming" },
+  planning: { path: "/dashboard/planning", label: "Planlegging" },
+  season: { path: "/dashboard/year-wheel", label: "Årshjul" },
+  "year-wheel": { path: "/dashboard/year-wheel", label: "Årshjul" },
+  // People
+  people: { path: "/dashboard/people", label: "Ansatte" },
+  contracts: { path: "/dashboard/contracts", label: "Kontrakter" },
+  // Governance / handbook / HMS
+  governance: { path: "/dashboard/governance", label: "Retningslinjer" },
+  policies: { path: "/dashboard/policies", label: "Policies" },
+  handbook: { path: "/dashboard/handbook", label: "Håndbok" },
+  hms: { path: "/dashboard/hms", label: "HMS" },
+  // Reports & financial
+  reports: { path: "/dashboard/reports", label: "Rapporter" },
+  payroll: { path: "/dashboard/payroll", label: "Lønnsgrunnlag" },
+  cost: { path: "/dashboard/cost", label: "Kostnader" },
+  billing: { path: "/dashboard/billing", label: "Fakturering" },
+  // Communication & notifications
   komm: { path: "/dashboard/komm", label: "Kommunikasjon" },
+  chat: { path: "/dashboard/chat", label: "Chat" },
+  notifications: { path: "/dashboard/notifications", label: "Varslinger" },
+  proposals: { path: "/dashboard/proposals", label: "Forslag" },
+  // My-* (employee self-service)
+  "my-training": { path: "/dashboard/my-training", label: "Min opplæring" },
+  "my-contract": { path: "/dashboard/my-contract", label: "Min kontrakt" },
+  "my-cv": { path: "/dashboard/my-cv", label: "Min CV" },
+  "my-profile": { path: "/dashboard/my-profile", label: "Min profil" },
+  "my-salary": { path: "/dashboard/my-salary", label: "Min lønn" },
+  // Settings & meta
+  // SM-9: organization redirects to settings#struktur-overview; label kept for user display
+  organization: { path: "/dashboard/settings#struktur-overview", label: "Organisasjon" },
+  settings: { path: "/dashboard/settings", label: "Innstillinger" },
+  ai: { path: "/dashboard/ai", label: "AI-konfig" },
+  website: { path: "/dashboard/website", label: "Nettside" },
   help: { path: "/dashboard/help", label: "Hjelp" },
 };
+
+/** Allowlist of valid Botsson-navigable paths. Voice tool imports nothing
+ * from apps/web, so the path-set is reproduced inline in tools-orb.ts and
+ * MUST be kept in sync with the values above (Phase 2 sortie will move both
+ * to a shared package). */
+export const DASHBOARD_ALLOWED_PATHS = new Set<string>(
+  Object.values(DASHBOARD_PAGES).map((p) => p.path),
+);
 
 const navigatePageDef: ClientToolDefinition = {
   temporaryTool: {
@@ -240,8 +282,11 @@ const navigatePageDef: ClientToolDefinition = {
     description:
       "Navigate the user to a different page in the dashboard. " +
       "Use when the user says 'gå til vaktplanen', 'vis ansatte', 'åpne rapporter', or similar. " +
-      "Available pages: dashboard, schedule, my-schedule, operations, people, organization, " +
-      "season, handbook, governance, my-training, reconciliation, reports, close, settings, komm, help. " +
+      "Available page keys: dashboard, schedule, my-schedule, calendar, operations, shift-clock, " +
+      "close, reconciliation, planning, season (year-wheel), people, contracts, governance, policies, " +
+      "handbook, hms, reports, payroll, cost, billing, komm, chat, notifications, proposals, " +
+      "my-training, my-contract, my-cv, my-profile, my-salary, organization, settings, ai, website, help. " +
+      "If the user asks for a page not in this list, say so — do NOT make up paths. " +
       "After navigating, briefly confirm where you went.",
     dynamicParameters: [
       {

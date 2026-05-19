@@ -6,11 +6,11 @@ layer: spec
 created: 2026-05-18
 updated: 2026-05-18
 sortie: feat/e2e-portal-redirect-tests
-phase: P2 follow-up to ADR-0362
+phase: P2 follow-up to ADR-0374
 estimated_complexity: small
 related_adrs:
   - ADR-0021
-  - ADR-0362
+  - ADR-0374
 related_docs:
   - SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md (canonical, §8 Test Surface)
 tags: [e2e, playwright, auth, subdomain, portal-redirect, regression]
@@ -29,11 +29,11 @@ tags: [e2e, playwright, auth, subdomain, portal-redirect, regression]
 
 ## 1. Goal
 
-Lock in ADR-0362 behavior with three Playwright specs so a future refactor of `proxy.ts` cannot silently break the workspace → portal redirect class. Catches regressions before they reach prod (where they look like `Invalid_link` to end users).
+Lock in ADR-0374 behavior with three Playwright specs so a future refactor of `proxy.ts` cannot silently break the workspace → portal redirect class. Catches regressions before they reach prod (where they look like `Invalid_link` to end users).
 
 ## 2. Why now
 
-- ADR-0362 just landed and has zero test coverage beyond manual smoke.
+- ADR-0374 just landed and has zero test coverage beyond manual smoke.
 - The auth-invitation E2E suite (F1–F10) covers happy-path login/signup/reset/invite but NONE exercise the workspace-subdomain redirect.
 - Recurring failure class: a developer adds a new auth route, forgets to add it to `AUTH_ROUTES_REDIRECT_TO_PORTAL`, and the new route silently runs on workspace subdomains until prod surfaces a PKCE failure. Tests close this gap.
 
@@ -200,7 +200,7 @@ Verify the new specs run in the existing `auth-invitation` suite by listing them
 ## 10. References
 
 - Canonical: `docs/architecture/SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md` §8
-- ADR-0362
+- ADR-0374
 - Existing suite: `apps/e2e/tests/auth-invitation/F1–F10`
 - Helper conventions: `apps/e2e/helpers/`
 - Playwright config: `apps/e2e/playwright.config.ts`

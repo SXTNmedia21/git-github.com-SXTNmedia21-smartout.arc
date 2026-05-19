@@ -34,6 +34,16 @@ VALUES
   ('d0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'Service', 'service', 2),
   ('d0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'Bar', 'bar', 3);
 
+-- 4b. Link all departments to the Oslo Downtown Hub location
+-- ADR-0367 §4.4: day_line creation requires at least one department_location row.
+-- ------------------------------------------------------------------------------
+INSERT INTO public.department_location (department_id, location_id, workspace_id)
+VALUES
+  ('d0000000-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000'),
+  ('d0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000000');
+
 -- 5. Create Auth Users
 -- ------------------------------------------------------------------------------
 -- Admin user
@@ -2773,125 +2783,16 @@ INSERT INTO public.schedule_shift (
 
 
 -- ============================================================================
--- 21. PAYROLL — Periods, Calculations, Lines (for Anna)
+-- 21. PAYROLL SEED — REMOVED 2026-05-17
 -- ============================================================================
-
--- ── 21.1 Payroll Periods (3 months) ──
-INSERT INTO payroll.period (id, workspace_id, start_date, end_date, status, exported_at) VALUES
-  ('ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' - interval '1 day')::date,
-   'exported', (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '1 month' + interval '11 days')::timestamptz),
-  ('ab000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '1 day')::date,
-   'exported', (date_trunc('month', CURRENT_DATE) + interval '11 days')::timestamptz),
-  ('ab000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   date_trunc('month', CURRENT_DATE)::date,
-   (date_trunc('month', CURRENT_DATE) + interval '1 month' - interval '1 day')::date,
-   'approved', NULL);
-
--- ── 21.2 Calculations for Anna (3 months) ──
-INSERT INTO payroll.calculation (
-  id, workspace_id, period_id, profile_id, schedule_shift_id,
-  shift_date, scheduled_start, scheduled_end,
-  base_rate, gross_minutes, net_working_minutes, break_minutes_paid, break_minutes_unpaid,
-  base_pay, total_supplements, total_deductions, total_pay, calculation_version
-) VALUES
-  -- January: 162.5 hrs, 280kr/hr
-  ('ac000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000050',
-   (date_trunc('month', CURRENT_DATE) - interval '2 months')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) - interval '2 months' + interval '18 hours')::timestamptz,
-   280.00, 9750, 9750, 0, 30,
-   45500.00, 5220.00, 16230.40, 34489.60, 1),
-  -- February: 150 hrs
-  ('ac000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000051',
-   (date_trunc('month', CURRENT_DATE) - interval '1 month')::date,
-   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) - interval '1 month' + interval '18 hours')::timestamptz,
-   280.00, 9000, 9000, 0, 30,
-   42000.00, 4850.00, 14992.00, 31858.00, 1),
-  -- March (current): 127.5 hrs so far
-  ('ac000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'ab000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000001',
-   'ee000000-0000-0000-0000-000000000052',
-   date_trunc('month', CURRENT_DATE)::date,
-   (date_trunc('month', CURRENT_DATE) + interval '10 hours')::timestamptz,
-   (date_trunc('month', CURRENT_DATE) + interval '18 hours')::timestamptz,
-   280.00, 7650, 7650, 0, 30,
-   35700.00, 3980.00, 12697.60, 26982.40, 1);
-
--- ── 21.3 Calculation Lines (January detail) ──
-INSERT INTO payroll.calculation_line (
-  id, workspace_id, calculation_id, line_type, salary_code, description, amount, hours, rate
-) VALUES
-  ('ad000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'base', 'BASE', 'Grunnlønn', 45500.00, 162.5, 280.00),
-  ('ad000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'EVE', 'Kveldstillegg', 2450.00, 35.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
-  ('ad000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'supplement', 'HOL', 'Helligdagstillegg', 950.00, 8.0, 118.75),
-  ('ad000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'deduction', 'TAX', 'Skattetrekk (32%)', 16230.40, NULL, NULL),
-  ('ad000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000001', 'deduction', 'PEN', 'Pensjonsinnskudd (2%)', 1014.40, NULL, NULL),
-
-  -- February lines
-  ('ad000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'base', 'BASE', 'Grunnlønn', 42000.00, 150.0, 280.00),
-  ('ad000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'EVE', 'Kveldstillegg', 2100.00, 30.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'WKD', 'Helgetillegg', 1820.00, 16.0, 113.75),
-  ('ad000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'supplement', 'OT50', 'Overtid 50%', 930.00, 3.0, 310.00),
-  ('ad000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000002', 'deduction', 'TAX', 'Skattetrekk (32%)', 14992.00, NULL, NULL),
-
-  -- March lines (partial)
-  ('ad000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'base', 'BASE', 'Grunnlønn', 35700.00, 127.5, 280.00),
-  ('ad000000-0000-0000-0000-000000000021', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'supplement', 'EVE', 'Kveldstillegg', 1960.00, 28.0, 70.00),
-  ('ad000000-0000-0000-0000-000000000022', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'supplement', 'WKD', 'Helgetillegg', 2020.00, 17.75, 113.75),
-  ('ad000000-0000-0000-0000-000000000023', 'b0000000-0000-0000-0000-000000000000',
-   'ac000000-0000-0000-0000-000000000003', 'deduction', 'TAX', 'Skattetrekk (32%)', 12697.60, NULL, NULL);
+-- Removed: payroll.period (3 rows) + payroll.calculation (3 rows for Anna) +
+-- payroll.calculation_line (~20 rows) + payroll.timebank_entry (9 rows).
+-- Reason: rendered as "fake PDFs" in mobile my-salary surface — calculation
+-- rows showed seed numbers but no payroll.export_event existed → PDF download
+-- 404. Decision 2026-05-17 (decision-log): clean dev state, generate real
+-- PDFs via admin /api/payroll/generate-pdf-bundle when needed for testing.
 
 
--- ============================================================================
--- 22. TIMEBANK — Entries for Anna
--- ============================================================================
-
-INSERT INTO payroll.timebank_entry (
-  id, workspace_id, profile_id, entry_type, hours, effective_date, description
-) VALUES
-  ('db000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 30, 'Overtid 50%'),
-  ('db000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 3.5, CURRENT_DATE - 25, 'Merarbeid prosjekt'),
-  ('db000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 4.0, CURRENT_DATE - 20, 'Uttak avspasering'),
-  ('db000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 15, 'Overtid kveldsvakt'),
-  ('db000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'withdrawal', 2.0, CURRENT_DATE - 10, 'Tidlig avgang fredag'),
-  ('db000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 2.0, CURRENT_DATE - 5, 'Overtid 50%'),
-  ('db000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000001', 'accrual', 1.5, CURRENT_DATE - 2, 'Ekstra timer selskap'),
-  -- Ole (Bartender)
-  ('db000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000004', 'accrual', 3.0, CURRENT_DATE - 14, 'Overtid helg'),
-  ('db000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
-   'f0000000-0000-0000-0000-000000000004', 'withdrawal', 1.5, CURRENT_DATE - 7, 'Uttak avspasering');
 
 
 -- ============================================================================
@@ -3385,3 +3286,110 @@ WHERE i.company_id IN (
   AND NOT EXISTS (
     SELECT 1 FROM public.invoice_line_item li WHERE li.invoice_id = i.invoice_id
   );
+
+-- ============================================
+-- Calendar + Communication seed
+-- ADR-0367 (day_line tri-layer), ADR-0369..0371 (announcements)
+-- Adapts to CURRENT_DATE so seed produces fresh sessions each reset.
+-- ============================================
+
+-- Calendar: 4 depts × 3 days (yesterday, today, tomorrow) = 12 sessions + 12 day_lines.
+DO $seed_calendar$
+DECLARE
+  ws_id        CONSTANT UUID := 'b0000000-0000-0000-0000-000000000000';
+  loc_id       CONSTANT UUID := 'c0000000-0000-0000-0000-000000000000';
+  admin_pid    CONSTANT UUID := 'f0000000-0000-0000-0000-000000000000';
+  dept_id      UUID;
+  day_offset   INTEGER;
+  business_d   DATE;
+  sess_id      UUID;
+BEGIN
+  FOREACH dept_id IN ARRAY ARRAY[
+    'd0000000-0000-0000-0000-000000000000'::UUID,
+    'd0000000-0000-0000-0000-000000000001'::UUID,
+    'd0000000-0000-0000-0000-000000000002'::UUID,
+    'd0000000-0000-0000-0000-000000000003'::UUID
+  ] LOOP
+    FOR day_offset IN -1..1 LOOP
+      business_d := CURRENT_DATE + day_offset;
+
+      INSERT INTO public.department_session (
+        workspace_id, department_id, session_date, status,
+        planned_shifts, actual_shifts
+      ) VALUES (
+        ws_id, dept_id, business_d,
+        CASE
+          WHEN day_offset < 0 THEN 'closed'::department_session_status
+          WHEN day_offset = 0 THEN 'active'::department_session_status
+          ELSE 'upcoming'::department_session_status
+        END,
+        0, 0
+      )
+      ON CONFLICT ON CONSTRAINT uq_dept_session_date DO NOTHING
+      RETURNING department_session_id INTO sess_id;
+
+      IF sess_id IS NULL THEN
+        SELECT department_session_id INTO sess_id
+        FROM public.department_session
+        WHERE workspace_id = ws_id
+          AND department_id = dept_id
+          AND session_date = business_d;
+      END IF;
+
+      INSERT INTO public.day_line (
+        workspace_id, department_session_id, department_id, location_id,
+        business_date, planned_open, planned_close, created_by
+      ) VALUES (
+        ws_id, sess_id, dept_id, loc_id,
+        business_d, '09:00'::TIME, '23:00'::TIME, admin_pid
+      )
+      ON CONFLICT ON CONSTRAINT uq_day_line DO NOTHING;
+    END LOOP;
+  END LOOP;
+END;
+$seed_calendar$;
+
+-- Channels: news + custom + skill (department channels auto-created by trigger per dept).
+INSERT INTO public.channel (id, workspace_id, channel_type, name, description, created_by, department_id)
+VALUES
+  ('c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'news',   'Nyheter',    'Workspace-nyheter', 'f0000000-0000-0000-0000-000000000000', NULL),
+  ('c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'custom', 'Skranke',    'Helpdesk-tråder',   'f0000000-0000-0000-0000-000000000000', NULL),
+  ('c1000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'skill',  'Kompetanse', 'Tips og triks',     'f0000000-0000-0000-0000-000000000000', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- Channel messages: 5 nyheter (one per announcement kind) + 3 skranke threads.
+INSERT INTO public.channel_message (id, channel_id, workspace_id, sender_id, content, message_type)
+VALUES
+  ('cf000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Velkommen til Smartout! Vi ruller ut nye dagslinjer denne uka.', 'announcement'),
+  ('cf000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Ny meny lansert. Se oppskrifter under Kompetanse.',              'announcement'),
+  ('cf000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Maria starter i Service i dag — si hei!',                          'announcement'),
+  ('cf000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Personalfest 25. juni — meld deg på i Skranke.',                  'announcement'),
+  ('cf000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Vaktbytte fredag: Anna tar Thomas sin vakt.',                      'announcement'),
+  ('cf000000-0000-0000-0000-000000000010', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Hvem har nøkkel til kjølerommet i kveld?',                         'text'),
+  ('cf000000-0000-0000-0000-000000000011', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Kassen henger — restart hjelper ikke. Noen som har vært borti dette?', 'text'),
+  ('cf000000-0000-0000-0000-000000000012', 'c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000', 'Trenger bytte fredag kveld — hvem kan dekke?',                      'text')
+ON CONFLICT (id) DO NOTHING;
+
+-- Announcement sidecars: one per kind (general, new_menu, new_hire, staff_event, schedule_change).
+INSERT INTO public.announcement_meta (message_id, workspace_id, kind, tier)
+VALUES
+  ('cf000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000', 'general',         'work'),
+  ('cf000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000', 'new_menu',        'work'),
+  ('cf000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000', 'new_hire',        'work'),
+  ('cf000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000', 'staff_event',     'social'),
+  ('cf000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000', 'schedule_change', 'work')
+ON CONFLICT (message_id) DO NOTHING;
+
+-- Notifications: 4 varsler for admin, one per representative icon_type.
+INSERT INTO public.notification (workspace_id, recipient_id, title, body, icon_type, action_url)
+SELECT * FROM (VALUES
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Velkommen til Smartout',          'Du er logget inn som admin.',           'info',    '/dashboard'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Vaktbytte venter godkjenning',    'Anna har bedt om bytte fredag.',        'warning', '/dashboard/schedule'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Avvik registrert',                'Tom kjøler i Drift — sjekk i morgen.',  'error',   '/dashboard/operations'),
+  ('b0000000-0000-0000-0000-000000000000'::UUID, 'f0000000-0000-0000-0000-000000000000'::UUID, 'Lønnskjøring fullført',           'April godkjent og sendt til Tripletex.', 'success', '/dashboard/payroll')
+) AS v(workspace_id, recipient_id, title, body, icon_type, action_url)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.notification n
+  WHERE n.recipient_id = 'f0000000-0000-0000-0000-000000000000'
+    AND n.title = v.title
+);

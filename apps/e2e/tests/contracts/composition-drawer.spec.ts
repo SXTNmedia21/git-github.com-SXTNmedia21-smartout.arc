@@ -35,7 +35,7 @@ test.describe("composition drawer — open/close + URL query-param state", () =>
     test.setTimeout(60_000);
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts");
+    await page.goto("/dashboard/people/contracts");
     await page.waitForLoadState("domcontentloaded");
 
     // Header CTA — the Plus-icon "Lag kontrakt" button.
@@ -58,7 +58,7 @@ test.describe("composition drawer — open/close + URL query-param state", () =>
     test.setTimeout(60_000);
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts?open=compose");
+    await page.goto("/dashboard/people/contracts?open=compose");
     await page.waitForLoadState("domcontentloaded");
 
     // Drawer must mount since the query param is set.

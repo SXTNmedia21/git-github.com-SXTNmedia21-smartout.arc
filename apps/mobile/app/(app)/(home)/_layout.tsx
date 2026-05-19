@@ -20,7 +20,6 @@ export default function HomeLayout() {
       <Stack.Screen name="safety-round" />
       <Stack.Screen name="temp-deviation" />
       <Stack.Screen name="flow-player" />
-      <Stack.Screen name="shift-hub" />
       <Stack.Screen name="operations" />
       <Stack.Screen name="clockout" />
       <Stack.Screen name="settings" />

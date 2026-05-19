@@ -77,10 +77,10 @@ export const AuthIconInput = forwardRef<HTMLInputElement, Props>(function AuthIc
       <div
         className={cn(
           "border-border flex h-11 items-center gap-2.5 rounded-xl border px-3 transition-[border-color,box-shadow] duration-200",
-          "focus-within:border-brand-orange focus-within:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.15)]",
+          "focus-within:border-brand-orange focus-within:shadow-[0_0_0_3px_var(--ring)/15%]",
           locked ? "bg-muted/50" : "bg-background",
           error &&
-            "border-destructive focus-within:border-destructive focus-within:shadow-[0_0_0_3px_oklch(0.55_0.22_25/0.15)]",
+            "border-destructive focus-within:border-destructive focus-within:shadow-[0_0_0_3px_var(--destructive)/15%]",
         )}
       >
         {icon && <span className="text-muted-foreground flex shrink-0 items-center">{icon}</span>}

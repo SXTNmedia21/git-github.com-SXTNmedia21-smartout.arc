@@ -18,6 +18,10 @@
       "types": "./dist/capabilities/communication/publish-announcement.d.ts",
       "default": "./dist/capabilities/communication/publish-announcement.js"
     },
+    "./capabilities/communication/emit-announcement-events": {
+      "types": "./dist/capabilities/communication/emit-announcement-events.d.ts",
+      "default": "./dist/capabilities/communication/emit-announcement-events.js"
+    },
     "./industry": {
       "types": "./dist/industry/index.d.ts",
       "default": "./dist/industry/index.js"
@@ -150,6 +154,10 @@
       "types": "./dist/capabilities/task/tools.d.ts",
       "default": "./dist/capabilities/task/tools.js"
     },
+    "./capabilities/day-line/tools": {
+      "types": "./dist/capabilities/day-line/tools.d.ts",
+      "default": "./dist/capabilities/day-line/tools.js"
+    },
     "./capabilities/timeline-template": {
       "types": "./dist/capabilities/timeline-template/index.d.ts",
       "default": "./dist/capabilities/timeline-template/index.js"
@@ -213,6 +221,10 @@
     "./context/memory-writer": {
       "types": "./dist/context/memory-writer.d.ts",
       "default": "./dist/context/memory-writer.js"
+    },
+    "./engine/authority-pipeline": {
+      "types": "./dist/engine/authority-pipeline/index.d.ts",
+      "default": "./dist/engine/authority-pipeline/index.js"
     },
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",

@@ -11,7 +11,7 @@
  * In production: throw, blocking module evaluation. Better to fail fast at
  * startup than to ship a silent auth-race regression.
  *
- * See ADR-0363.
+ * See ADR-0375.
  */
 let asserted = false;
 
@@ -40,6 +40,6 @@ export function assertRootDomain(): void {
   console.warn(
     "[@smartout/supabase] NEXT_PUBLIC_ROOT_DOMAIN is unset. Cookie domain " +
       "will fall back to host-only, which is OK locally but a deploy bug in prod. " +
-      "See ADR-0363.",
+      "See ADR-0375.",
   );
 }

@@ -56,13 +56,15 @@ const SPRING = { stiffness: 35, damping: 22, mass: 2.2 };
 function MembershipToggle({
   value,
   onChange,
+  t,
 }: {
   value: boolean | null;
   onChange: (v: boolean) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const options = [
-    { label: "Ja, vi er medlemmer", val: true },
-    { label: "Nei, ikke relevant for oss", val: false },
+    { label: t("tariff.memberYes"), val: true },
+    { label: t("tariff.memberNo"), val: false },
   ];
 
   return (
@@ -157,14 +159,18 @@ function LawVersionSelect({
   union,
   selected,
   onChange,
+  t,
 }: {
   union: TariffUnionOption;
   selected: string | null;
   onChange: (v: string) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="relative">
-      <label className="text-muted-foreground mb-1 block text-xs font-medium">Tariffversjon</label>
+      <label className="text-muted-foreground mb-1 block text-xs font-medium">
+        {t("tariff.lawVersionLabel")}
+      </label>
       <div className="relative">
         <select
           value={selected ?? ""}
@@ -172,7 +178,7 @@ function LawVersionSelect({
           className="border-border bg-background text-foreground w-full appearance-none rounded-lg border px-3 py-2.5 pr-9 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
         >
           <option value="" disabled>
-            Velg tariffversjon...
+            {t("tariff.lawVersionPlaceholder")}
           </option>
           {union.lawVersions.map((lv) => (
             <option key={lv.value} value={lv.value}>
@@ -195,11 +201,13 @@ function SuccessCard({
   lawVersion,
   effectiveFrom,
   prefersReduced,
+  t,
 }: {
   unionLabel: string;
   lawVersion: string;
   effectiveFrom: string;
   prefersReduced: boolean;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   return (
     <motion.div
@@ -210,9 +218,13 @@ function SuccessCard({
     >
       <CheckCircle className="mt-0.5 size-4 shrink-0 text-[var(--success)]" />
       <div className="flex flex-col gap-0.5">
-        <p className="text-foreground text-sm font-medium">Tariff koblet til</p>
+        <p className="text-foreground text-sm font-medium">{t("tariff.successTitle")}</p>
         <p className="text-muted-foreground text-xs">
-          {unionLabel} · {lawVersion}-satser · gjelder fra {effectiveFrom}
+          {t("tariff.successDetail", {
+            union: unionLabel,
+            version: lawVersion,
+            date: effectiveFrom,
+          })}
         </p>
       </div>
     </motion.div>
@@ -223,7 +235,13 @@ function SuccessCard({
  * SoftGuideCard — shown when user picks Nei (not tariff bound).
  * Per scope doc: bransjenorm som default, manuell justering tilgjengelig.
  */
-function SoftGuideCard({ prefersReduced }: { prefersReduced: boolean }) {
+function SoftGuideCard({
+  prefersReduced,
+  t,
+}: {
+  prefersReduced: boolean;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
   return (
     <motion.div
       initial={prefersReduced ? false : { opacity: 0, y: 8 }}
@@ -232,10 +250,7 @@ function SoftGuideCard({ prefersReduced }: { prefersReduced: boolean }) {
       className="flex items-start gap-3 rounded-lg border border-[var(--brand-orange)]/15 bg-[var(--brand-orange)]/5 p-4"
     >
       <Building2 className="mt-0.5 size-4 shrink-0 text-[var(--brand-orange)]" />
-      <p className="text-muted-foreground text-xs leading-relaxed">
-        Bransjenorm brukes som default — du kan justere supplement-regler manuelt under
-        Innstillinger → Lønn etter at oppsettet er fullført.
-      </p>
+      <p className="text-muted-foreground text-xs leading-relaxed">{t("tariff.softGuide")}</p>
     </motion.div>
   );
 }
@@ -246,6 +261,7 @@ export function TariffSection({
   // state not needed — TariffSection manages its own local state and writes back via updateState
   updateState,
   next,
+  t,
 }: WizardStepProps<OnboardingConfirmState>) {
   const prefersReduced = useReducedMotion() ?? false;
 
@@ -322,7 +338,7 @@ export function TariffSection({
       if (!parsed.success) {
         patchTariff({
           status: "error",
-          errorMessage: "Uventet svar fra serveren. Prøv igjen.",
+          errorMessage: t("tariff.errorUnexpected"),
         });
         return;
       }
@@ -354,7 +370,7 @@ export function TariffSection({
     } catch {
       patchTariff({
         status: "error",
-        errorMessage: "Nettverksfeil. Sjekk tilkoblingen og prøv igjen.",
+        errorMessage: t("tariff.errorNetwork"),
       });
     }
   }
@@ -379,15 +395,13 @@ export function TariffSection({
       <div>
         <div className="mb-2 flex items-center gap-2">
           <FileText className="text-brand-orange size-5" />
-          <h2 className="font-heading text-foreground text-2xl font-bold">Tariffavtale</h2>
+          <h2 className="font-heading text-foreground text-2xl font-bold">{t("tariff.title")}</h2>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Er arbeidsplassen din dekket av NHO Reiseliv-tariff (Riksavtalen)?
-        </p>
+        <p className="text-muted-foreground text-sm">{t("tariff.subtitle")}</p>
       </div>
 
       {/* Step 1: Ja / Nei */}
-      <MembershipToggle value={tariff.isMember} onChange={handleMemberChange} />
+      <MembershipToggle value={tariff.isMember} onChange={handleMemberChange} t={t} />
 
       {/* Step 2: Union + Law version (only for Ja) */}
       <AnimatePresence>
@@ -403,7 +417,7 @@ export function TariffSection({
             <div className="space-y-4">
               <div>
                 <p className="text-muted-foreground mb-2 text-xs font-medium">
-                  Hvilken overenskomst gjelder?
+                  {t("tariff.whichAgreement")}
                 </p>
                 <UnionPicker selected={tariff.selectedUnionId} onChange={handleUnionChange} />
               </div>
@@ -422,6 +436,7 @@ export function TariffSection({
                       union={selectedUnion}
                       selected={tariff.selectedLawVersion}
                       onChange={handleLawVersionChange}
+                      t={t}
                     />
                   </motion.div>
                 )}
@@ -442,7 +457,7 @@ export function TariffSection({
             transition={SPRING}
             className="overflow-hidden"
           >
-            <SoftGuideCard prefersReduced={prefersReduced} />
+            <SoftGuideCard prefersReduced={prefersReduced} t={t} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -462,6 +477,7 @@ export function TariffSection({
               lawVersion={tariff.result.law_version}
               effectiveFrom={tariff.result.effective_from}
               prefersReduced={prefersReduced}
+              t={t}
             />
           </motion.div>
         )}
@@ -500,12 +516,12 @@ export function TariffSection({
         {tariff.status === "submitting" ? (
           <>
             <Loader2 className="size-4 animate-spin" />
-            Kobler til tariff...
+            {t("tariff.submitting")}
           </>
         ) : tariff.isMember === true && tariff.status !== "success" ? (
-          "Koble til tariff og fortsett"
+          t("tariff.submitAndContinue")
         ) : (
-          "Fortsett"
+          t("tariff.continue")
         )}
       </button>
     </div>

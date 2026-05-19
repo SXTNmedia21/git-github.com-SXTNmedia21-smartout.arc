@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 // Fase 3B B6 — workspace-admin toggler EHF for selskapet sitt.
 //
@@ -63,6 +64,15 @@ export async function updateCompanyEhfSettings(
     .maybeSingle();
   if (!member) return { ok: false, error: "unauthorized", code: "unauthorized" };
 
+  // Snapshot before-values for the audit diff. Fail-fast if row is missing
+  // (should be impossible given the company_member join above, but safe).
+  const { data: before } = await admin
+    .from("company")
+    .select("ehf_enabled, peppol_participant_id")
+    .eq("company_id", member.company_id)
+    .maybeSingle();
+  if (!before) return { ok: false, error: "company_not_found", code: "db_error" };
+
   const { error } = await admin
     .from("company")
     .update({
@@ -74,6 +84,26 @@ export async function updateCompanyEhfSettings(
   if (error) {
     return { ok: false, error: error.message, code: "db_error" };
   }
+
+  await emit({
+    event: "company.ehf_settings_updated",
+    actor_id: nonEmpty(user.id, "actor_id"),
+    workspace_id: null, // company-scoped; no single workspace
+    properties: {
+      entity_type: "company",
+      entity_id: member.company_id,
+      changes: {
+        ehf_enabled: {
+          before: before.ehf_enabled,
+          after: parsed.data.ehf_enabled,
+        },
+        peppol_participant_id: {
+          before: before.peppol_participant_id,
+          after: parsed.data.peppol_participant_id,
+        },
+      },
+    },
+  });
 
   revalidatePath("/dashboard/billing/settings");
   return { ok: true };

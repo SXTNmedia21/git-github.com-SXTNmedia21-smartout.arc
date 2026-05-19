@@ -34,7 +34,7 @@ export function HandbookPageClient() {
           <h1 className="text-foreground text-3xl font-extrabold tracking-tight">
             Personalhandbok
           </h1>
-          <BookOpen className="h-6 w-6 text-orange-500" />
+          <BookOpen className="text-brand-orange h-6 w-6" />
         </div>
         <p className="text-muted-foreground text-sm">
           Bedriftens retningslinjer, rutiner og kultur — samlet på ett sted.

@@ -3,18 +3,17 @@
 import React, { useContext, useRef, useState } from "react";
 import {
   CalendarDays,
-  Filter,
   Users,
   Briefcase,
   Network,
   MapPin,
   ChevronDown,
   Check,
-  Rows3,
   Building2,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
+import { DensitySelector } from "./density-selector";
 
 type PlannerCommandBarProps = {
   isDark: boolean;
@@ -28,8 +27,8 @@ type PlannerCommandBarProps = {
 
 export function PlannerCommandBar({
   isDark,
-  filterSituation,
-  setFilterSituation,
+  filterSituation: _filterSituation,
+  setFilterSituation: _setFilterSituation,
   weekSpan,
   setWeekSpan,
   scheduleLayout,
@@ -40,8 +39,8 @@ export function PlannerCommandBar({
     setScheduleView,
     activeDepartment,
     setActiveDepartment,
-    scheduleCompactMode,
-    setScheduleCompactMode,
+    scheduleDensity,
+    setScheduleDensity,
   } = useContext(DashboardContext);
 
   return (
@@ -100,19 +99,13 @@ export function PlannerCommandBar({
 
         <div className="bg-border hidden h-3 w-px sm:block" />
 
-        {/* Compact mode toggle — only relevant for daily grid */}
+        {/* Density selector — only relevant for daily grid */}
         {(!scheduleLayout || scheduleLayout === "daily") && (
-          <button
-            onClick={() => setScheduleCompactMode(!scheduleCompactMode)}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
-              scheduleCompactMode
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <Rows3 className={`h-3 w-3 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
-            Kompakt
-          </button>
+          <DensitySelector
+            value={scheduleDensity}
+            onChange={setScheduleDensity}
+            data-testid="schedule-density-selector"
+          />
         )}
       </div>
 
@@ -136,30 +129,8 @@ export function PlannerCommandBar({
         </div>
       )}
 
-      <div className="mt-1 flex items-center gap-1.5 sm:mt-0">
-        <button
-          onClick={() => setFilterSituation("Alle")}
-          className={`rounded-md p-1 transition-colors ${filterSituation !== "Alle" ? "text-orange-400 hover:text-orange-300" : "text-muted-foreground"}`}
-          title="Fjern filter"
-        >
-          <Filter className="h-3.5 w-3.5" />
-        </button>
-        <div className="border-border bg-muted flex rounded-lg border p-0.5">
-          {["Alle", "Selskap", "Krise", "Normal"].map((situation) => (
-            <button
-              key={situation}
-              onClick={() => setFilterSituation(situation)}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${
-                filterSituation === situation
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {situation}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Situation filter (Alle/Selskap/Krise/Normal) hidden on vaktplan per Pontus 2026-05-19.
+          State + setter retained until use sites + ScheduleCoordinationContext are reviewed. */}
     </div>
   );
 }
