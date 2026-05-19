@@ -180,6 +180,8 @@
     "locations_description": "Confirm your locations and zones.",
     "procedures_title": "Routines",
     "procedures_description": "Choose which routines to enable.",
+    "tariff_title": "Tariff",
+    "tariff_description": "Link the workplace to a tariff agreement (optional).",
     "summary_title": "Summary",
     "summary_description": "All set. Confirm to finalize your workspace setup.",
     "finalize": "Finalize Setup",

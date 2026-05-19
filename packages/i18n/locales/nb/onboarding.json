@@ -180,6 +180,8 @@
     "locations_description": "Bekreft dine lokasjoner og soner.",
     "procedures_title": "Rutiner",
     "procedures_description": "Velg hvilke rutiner som skal aktiveres.",
+    "tariff_title": "Tariff",
+    "tariff_description": "Koble arbeidsplassen til en tariffavtale (valgfritt).",
     "summary_title": "Oppsummering",
     "summary_description": "Alt klart. Bekreft for å fullføre oppsettet.",
     "finalize": "Fullfør oppsett",
