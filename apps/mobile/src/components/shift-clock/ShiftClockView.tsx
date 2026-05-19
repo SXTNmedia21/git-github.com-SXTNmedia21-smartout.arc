@@ -12,7 +12,7 @@
  * and mutation hooks.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -24,6 +24,7 @@ import { createStyles } from "@/theme";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
+import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
 import { useSupplements } from "@/hooks/shift-clock/useSupplements";
 import { useSubmitHandoff } from "@/hooks/mutations/use-submit-handoff";
 import { useConfirmHours } from "@/hooks/mutations/use-confirm-hours";
@@ -37,6 +38,7 @@ import { AfterShiftView } from "@/components/home/AfterShiftView";
 import { PunchAnimation } from "./PunchAnimation";
 import { ShiftClockHeader } from "./ShiftClockHeader";
 import { ShiftClockActions } from "./ShiftClockActions";
+import { NoteSheet, type NoteSheetRef } from "./NoteSheet";
 import { ShiftClockSummary } from "./ShiftClockSummary";
 import { SupplementSheet } from "./SupplementSheet";
 
@@ -48,6 +50,7 @@ export function ShiftClockView() {
   const { phase, activeShift, nextShift, activeTimeEntry: phaseTimeEntry } = useShiftPhase();
   const { data: queryTimeEntry } = useActiveTimeEntry();
   const { punchIn, punchOut } = usePunch();
+  const { startBreak, endBreak } = useShiftClock();
   const { data: tasks } = useMyTasks();
   const { data: profile } = useMyProfile();
   const { data: leaderPhone } = useLeaderPhone(profile?.profile_id);
@@ -83,6 +86,7 @@ export function ShiftClockView() {
   // Local view phase — drives which child renders
   const [viewPhase, setViewPhase] = useState<ShiftClockPhase>("idle");
   const [showSupplements, setShowSupplements] = useState(false);
+  const noteSheetRef = useRef<NoteSheetRef>(null);
   // Captured at the moment of punch-out so the summary timestamp doesn't drift on re-renders
   const [capturedPunchOut, setCapturedPunchOut] = useState<string | null>(null);
 
@@ -122,15 +126,27 @@ export function ShiftClockView() {
   }, [currentTimeEntry, punchOut]);
 
   /* ---- Break handlers ---- */
-  // isOnBreak is now derived from server state, so these handlers only trigger
-  // the mutation. The useEffect above will update viewPhase when the query refreshes.
-  const handleStartBreak = useCallback(() => {
+  // Mutations enqueue break_start / break_end via useShiftClock; the breaks
+  // JSONB array on time_entry drives derived isOnBreak. useEffect above
+  // mirrors viewPhase to server state once query refreshes. Optimistic
+  // setViewPhase gives instant UI feedback before the mutation lands.
+  const handleStartBreak = useCallback(async () => {
     setViewPhase("on_break");
-  }, []);
+    try {
+      await startBreak();
+    } catch {
+      setViewPhase("clocked_in");
+    }
+  }, [startBreak]);
 
-  const handleEndBreak = useCallback(() => {
+  const handleEndBreak = useCallback(async () => {
     setViewPhase("clocked_in");
-  }, []);
+    try {
+      await endBreak();
+    } catch {
+      setViewPhase("on_break");
+    }
+  }, [endBreak]);
 
   /* ---- Dismiss summary → transition to after-shift flow ---- */
   const handleDismissSummary = useCallback(() => {
@@ -177,8 +193,8 @@ export function ShiftClockView() {
   const shiftInfo = shiftForPunch
     ? {
         time: `${formatShiftTime(shiftForPunch.start_time)} \u2013 ${formatShiftTime(shiftForPunch.end_time)}`,
-        department: "Restaurant",
-        zone: "Sal",
+        department: shiftForPunch.role ?? "Vakt",
+        zone: shiftForPunch.zone ?? "Arbeidsplass",
       }
     : null;
 
@@ -309,8 +325,8 @@ export function ShiftClockView() {
         onStartBreak={handleStartBreak}
         onEndBreak={handleEndBreak}
         onOpenNotes={() => {
-          // Notes are captured in the shift chat — navigate to active conversation
-          router.push("/(app)/(chat)");
+          Haptics.selectionAsync();
+          noteSheetRef.current?.open();
         }}
         onOpenSupplements={() => setShowSupplements(true)}
         onCallLeader={() => {
@@ -386,6 +402,9 @@ export function ShiftClockView() {
           });
         }}
       />
+
+      {/* Note bottom-drawer — opened from Notat action */}
+      <NoteSheet ref={noteSheetRef} sessionId={currentTimeEntry?.shift_id ?? null} />
     </SafeAreaView>
   );
 }
@@ -394,10 +413,13 @@ export function ShiftClockView() {
 /*  Helpers                                                                   */
 /* -------------------------------------------------------------------------- */
 
-function formatShiftTime(iso: string | null): string {
-  if (!iso) return "--:--";
-  const d = new Date(iso);
-  return d.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", hour12: false });
+/**
+ * Postgres TIME columns serialize as "HH:MM:SS" (or "HH:MM:SS+00").
+ * `new Date("11:00:00")` returns Invalid Date — slice the leading HH:MM.
+ */
+function formatShiftTime(time: string | null): string {
+  if (!time) return "--:--";
+  return time.slice(0, 5);
 }
 
 /* -------------------------------------------------------------------------- */
