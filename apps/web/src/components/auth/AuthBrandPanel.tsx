@@ -56,15 +56,18 @@ export function AuthBrandPanel({
   const inviteAccent =
     variant === "workspace-invite" && workspaceSlug ? workspaceAccentOklch(workspaceSlug) : null;
 
-  // ADR-0366: CSS var references used; dynamic inviteAccent path retains computed value
+  // ADR-0366: CSS var references; first orb uses brand-orange (L=0.65) instead of
+  // brand-orange-warm (L=0.78) which post-sweep bumped orb intensity too high.
+  // Mix percentages match the pre-sweep alpha intent (0.20 first orb, 0.16 second,
+  // 0.08 third) — ambient, not foreground.
   const orbs =
     inviteAccent !== null
-      ? "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
-        `radial-gradient(circle at 72% 72%, ${inviteAccent.replace(")", " / 0.28)")}, transparent 60%),` +
-        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)"
-      : "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
-        "radial-gradient(circle at 72% 72%, color-mix(in oklch, var(--brand-orange) 22%, transparent), transparent 60%)," +
-        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)";
+      ? "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange) 20%, transparent), transparent 55%)," +
+        `radial-gradient(circle at 72% 72%, ${inviteAccent.replace(")", " / 0.18)")}, transparent 60%),` +
+        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 8%, transparent), transparent 55%)"
+      : "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange) 20%, transparent), transparent 55%)," +
+        "radial-gradient(circle at 72% 72%, color-mix(in oklch, var(--brand-orange-dark) 16%, transparent), transparent 60%)," +
+        "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 8%, transparent), transparent 55%)";
 
   return (
     <div
