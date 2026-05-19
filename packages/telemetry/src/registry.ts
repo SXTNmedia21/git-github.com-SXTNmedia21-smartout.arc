@@ -4755,6 +4755,63 @@ export interface VoiceSessionAbandonment extends BaseEvent {
   };
 }
 
+// ─── Voice Bootstrap Snapshot Events (ADR-0297, feat/mobile-voice-bootstrap-pipe) ──────────────
+// Emitted by POST /api/emma/voice/transcript (BFF) during workforce snapshot lifecycle.
+// Routing: posthog + activity_trail.
+//   posthog: bootstrap funnel analytics (cold-start vs drift-refresh adoption).
+//   activity_trail: audit — snapshot dispatch is a data-transfer event that must be traceable.
+//   No engine_event: these are informational events, not workflow-driving state transitions.
+//   No logger-only: snapshot_assembly_failed needs audit trail for debugging PII-boundary issues.
+export interface VoiceBootstrapSnapshotSent extends BaseEvent {
+  event: "voice.bootstrap.snapshot_sent";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Stable version token: `${workspaceId}:${profileId}:${unix_ms}` */
+      snapshot_version: string;
+      /** sha256(JSON.stringify(payload)) truncated to 16 hex chars */
+      snapshot_hash: string;
+      /** Serialised payload size in bytes (for size-guard monitoring) */
+      payload_bytes: number;
+      /** Whether payload was omitted and a payload_url was returned instead */
+      size_guard_triggered: boolean;
+    };
+  };
+}
+
+export interface VoiceBootstrapSnapshotRefreshed extends BaseEvent {
+  event: "voice.bootstrap.snapshot_refreshed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Version token of the stale snapshot sent by the client */
+      stale_version: string;
+      /** Version token of the refreshed snapshot */
+      new_version: string;
+      snapshot_hash: string;
+      payload_bytes: number;
+      size_guard_triggered: boolean;
+    };
+  };
+}
+
+export interface VoiceBootstrapSnapshotAssemblyFailed extends BaseEvent {
+  event: "voice.bootstrap.snapshot_assembly_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Short error code — never PII, never full stack trace */
+      error_code: string;
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -8582,7 +8639,11 @@ export type SmartoutEvent =
   | TimelineTemplateApplied
   | TimelineTemplateArchived
   | TimelineTemplateApplyFailed
-  | TimelineTemplateListed;
+  | TimelineTemplateListed
+  // ─── Voice Bootstrap Snapshot (ADR-0297, feat/mobile-voice-bootstrap-pipe 2026-05-20) ──
+  | VoiceBootstrapSnapshotSent
+  | VoiceBootstrapSnapshotRefreshed
+  | VoiceBootstrapSnapshotAssemblyFailed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -13307,5 +13368,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "timeline_template.listed": {
     destinations: ["logger"],
     category: "scheduling",
+  },
+
+  // ─── Voice Bootstrap Snapshot (ADR-0297, feat/mobile-voice-bootstrap-pipe 2026-05-20) ──
+  // snapshot_sent + snapshot_refreshed: posthog (funnel analytics) + logger + activity_trail
+  //   (data-transfer audit). No engine_event — informational, not workflow-driving.
+  // snapshot_assembly_failed: posthog + logger + activity_trail (error audit).
+  //   No engine_event — not a state-machine input.
+  "voice.bootstrap.snapshot_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.snapshot_refreshed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.snapshot_assembly_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };
