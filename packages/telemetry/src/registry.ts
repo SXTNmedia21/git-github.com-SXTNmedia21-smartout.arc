@@ -59,7 +59,8 @@ export type EventCategory =
   | "scheduler" // ADR-0307/0309 — Constraint-solver scheduler greedy V1
   | "cost" // ui-shell-cost-polish — Cost overview telemetry
   | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
-  | "cascade"; // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
+  | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
+  | "people"; // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -2695,6 +2696,24 @@ export interface HmsTrainingViewed extends BaseEvent {
       // Total protocols in scope at view time; lets us see how readiness-load
       // affects return visit frequency.
       protocol_count: number;
+    };
+  };
+}
+
+// people.training.viewed — emitted when /dashboard/people/training loads (manager view).
+// Mirrors hms.training.viewed but scoped to the people hub surface.
+// No engine_event: read-side view; no downstream workflow triggered.
+export interface PeopleTrainingViewed extends BaseEvent {
+  event: "people.training.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Total active+trainee profiles visible at view time.
+      profile_count: number;
+      // Workspace-level readiness snapshot (0-100) at view time.
+      workspace_readiness_percent: number;
+      // Count of expired assignments at view time.
+      expired_count: number;
     };
   };
 }
@@ -8868,6 +8887,8 @@ export type SmartoutEvent =
   | HmsDriftViewed
   | HmsDocumentsOpened
   | HmsTrainingViewed
+  // ─── People Training (SM-2-followup-training 2026-05-19) ─────────────────────
+  | PeopleTrainingViewed
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────
   | CascadeWorkspaceUnionBindingCreated
   | CascadeSupplementRuleAdded
@@ -14347,6 +14368,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "hms.training.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "hms",
+  },
+  // people.training.viewed: 3 destinations (posthog + logger + activity_trail).
+  // No engine_event — read-side view does not trigger downstream workflow steps.
+  "people.training.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "people",
   },
 
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ────────────────────

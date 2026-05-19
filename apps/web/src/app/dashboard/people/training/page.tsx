@@ -1,32 +1,25 @@
-import { Construction } from "lucide-react";
+/**
+ * /dashboard/people/training/page.tsx
+ *
+ * Server Component shell — resolves workspace context server-side,
+ * then hands workspaceId + profileId to the client island.
+ * All data fetching, loading states, and KPI logic live in WorkforceReadinessClient.
+ *
+ * Pattern: same as people/roles/page.tsx (RSC shell + client island).
+ * Replaces the "Kommer snart" placeholder (SM-2-followup-training).
+ */
+import { resolveDashboardContext } from "../../_data/resolve-page-context";
+import { WorkforceReadinessClient } from "./_components/WorkforceReadinessClient";
 
 export const dynamic = "force-dynamic";
 
-export default function TrainingPage() {
-  return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3">
-      <div className="mb-5 flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
-            Trening
-          </h1>
-          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
-            <span>Workforce readiness per ansatt</span>
-          </div>
-        </div>
-      </div>
+export default async function TrainingPage() {
+  const { workspace, profileId } = await resolveDashboardContext();
 
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <div className="bg-card border-border flex h-full flex-col items-center justify-center rounded-2xl border p-12 shadow-sm">
-          <Construction className="text-muted-foreground mb-4 h-12 w-12" aria-hidden />
-          <h2 className="text-foreground text-lg font-semibold">Kommer snart</h2>
-          <p className="text-muted-foreground mt-2 max-w-md text-center text-sm">
-            Trenings-matrise viser hvem som har gjennomført hvilke protokoller, hvem som er forfalt,
-            og workforce readiness per avdeling. Samme data som /hms/training men fra
-            ansatt-perspektiv. Bygges i SM-2-followup-training.
-          </p>
-        </div>
-      </div>
-    </div>
+  return (
+    <WorkforceReadinessClient
+      workspaceId={workspace.workspace_id}
+      profileId={profileId}
+    />
   );
 }
