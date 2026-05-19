@@ -15,8 +15,7 @@ export type PeopleTabDef = {
  *
  * - Liste: master person table + status filters (Aktive/Trainee/Invitert/...)
  * - Roller: profile.role distribution per workspace (SM-2 phase A shipped)
- * - Kontrakter: cross-jumps to /dashboard/contracts until SM-2-followup-contracts
- *   moves it under /people/contracts. Documented temporary cross-jump.
+ * - Kontrakter: /dashboard/people/contracts (SM-2-followup-contracts shipped 2026-05-19)
  * - Trening: workforce readiness placeholder (SM-2-followup-training wires content)
  *
  * Dropped per canonical spec:
@@ -29,6 +28,6 @@ export type PeopleTabDef = {
 export const PEOPLE_TAB_DEFS: readonly PeopleTabDef[] = [
   { key: "/dashboard/people", label: "Liste", icon: Users },
   { key: "/dashboard/people/roles", label: "Roller", icon: ShieldUser },
-  { key: "/dashboard/contracts", label: "Kontrakter", icon: FileSignature },
+  { key: "/dashboard/people/contracts", label: "Kontrakter", icon: FileSignature },
   { key: "/dashboard/people/training", label: "Trening", icon: GraduationCap },
 ] as const;

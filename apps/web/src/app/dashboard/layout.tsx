@@ -139,7 +139,9 @@ export default async function DashboardLayout({
   // (root) are shared.
   const ADMIN_ONLY_PATH_PREFIXES = [
     "/dashboard/people",
-    "/dashboard/contracts",
+    // "/dashboard/contracts" removed — now under /dashboard/people/contracts (SM-2-followup-contracts).
+    // Redirect stubs at old path are safe for non-admins (immediate redirect, no data access).
+    // /dashboard/people prefix above already covers /dashboard/people/contracts.
     "/dashboard/settings",
     "/dashboard/billing",
     "/dashboard/governance",

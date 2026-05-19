@@ -862,7 +862,7 @@ function GjennomgangStep({
             <p className="text-muted-foreground text-xs leading-relaxed">
               {t("composition.deprecated_description")}{" "}
               <a
-                href="/dashboard/contracts?tab=maler"
+                href="/dashboard/people/contracts?tab=maler"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-foreground underline underline-offset-2 hover:no-underline"
