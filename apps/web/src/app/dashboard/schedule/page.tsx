@@ -118,6 +118,7 @@ import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedul
 import { useDayInfo } from "./_hooks/use-day-info";
 import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -241,6 +242,7 @@ function SchedulePageContent() {
     setWeeklyPeriodCount,
     profileId,
   } = useContext(DashboardContext);
+  const tSchedule = useTranslations("schedule");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
@@ -1080,7 +1082,11 @@ function SchedulePageContent() {
             <motion.div key="ready" {...contentFade} className="flex h-full flex-1 flex-col">
               {/* View-mode toggle — spec §4.3. Tidslinjer disabled until SM-6. */}
               <div className="flex justify-end px-3 pt-2">
-                <div className="flex items-center gap-1" role="group" aria-label="Visningsmodus">
+                <div
+                  className="flex items-center gap-1"
+                  role="group"
+                  aria-label={tSchedule("view_mode.aria_label")}
+                >
                   {(["liste", "kalender"] as const).map((mode) => (
                     <button
                       key={mode}
@@ -1093,17 +1099,19 @@ function SchedulePageContent() {
                           : "bg-muted text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {mode === "liste" ? "Liste" : "Kalender"}
+                      {mode === "liste"
+                        ? tSchedule("view_mode.liste")
+                        : tSchedule("view_mode.kalender")}
                     </button>
                   ))}
                   <button
                     type="button"
                     disabled
-                    title="Bygges i SM-6"
+                    title={tSchedule("view_mode.tidslinjer_tooltip")}
                     aria-disabled="true"
                     className="text-muted-foreground/40 cursor-not-allowed rounded-md px-2 py-1 text-xs font-medium"
                   >
-                    Tidslinjer
+                    {tSchedule("view_mode.tidslinjer")}
                   </button>
                 </div>
               </div>

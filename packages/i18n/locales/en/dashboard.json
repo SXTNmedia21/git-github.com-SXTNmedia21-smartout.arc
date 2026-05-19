@@ -1078,6 +1078,26 @@
       "type_military": "Military service",
       "type_training": "Training",
       "type_welfare": "Welfare"
+    },
+    "tabs": {
+      "aria_label": "Schedule sections",
+      "vaktplan": "Schedule",
+      "vaktbors": "Open Shifts",
+      "ferieplan": "Vacation Plan"
+    },
+    "view_mode": {
+      "aria_label": "View mode",
+      "liste": "List",
+      "kalender": "Calendar",
+      "tidslinjer": "Timeline",
+      "tidslinjer_tooltip": "Coming in SM-6"
+    },
+    "ferieplan": {
+      "loading": "Loading vacation plan…",
+      "empty": "No vacation requests registered",
+      "status_pending": "Requested",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected"
     }
   },
   "shell": {

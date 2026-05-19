@@ -1078,6 +1078,26 @@
       "type_military": "Militærtjeneste",
       "type_training": "Opplæring",
       "type_welfare": "Velferd"
+    },
+    "tabs": {
+      "aria_label": "Vaktplan-seksjoner",
+      "vaktplan": "Vaktplan",
+      "vaktbors": "Vaktbørs",
+      "ferieplan": "Ferieplan"
+    },
+    "view_mode": {
+      "aria_label": "Visningsmodus",
+      "liste": "Liste",
+      "kalender": "Kalender",
+      "tidslinjer": "Tidslinjer",
+      "tidslinjer_tooltip": "Bygges i SM-6"
+    },
+    "ferieplan": {
+      "loading": "Laster ferieplan…",
+      "empty": "Ingen ferieønsker registrert",
+      "status_pending": "Søkt",
+      "status_approved": "Godkjent",
+      "status_rejected": "Avslått"
     }
   },
   "shell": {
