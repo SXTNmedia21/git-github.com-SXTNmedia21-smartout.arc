@@ -79,7 +79,7 @@ export function useWorkforceReadiness() {
           .from("profile")
           .select("profile_id, display_name, department:department_id(name)")
           .eq("workspace_id", workspace.workspace_id)
-          .in("profile_status", ["active", "trainee"])
+          .in("status", ["active", "trainee"])
           .order("display_name"),
         supabase
           .from("protocol")

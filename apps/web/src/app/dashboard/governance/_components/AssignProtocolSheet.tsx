@@ -117,7 +117,7 @@ export function AssignProtocolSheet({
         .from("profile")
         .select("profile_id, display_name, avatar_url, department:department_id(name)")
         .eq("workspace_id", workspace.workspace_id)
-        .in("profile_status", ["active", "trainee"])
+        .in("status", ["active", "trainee"])
         .order("display_name");
 
       if (profileError) throw profileError;
