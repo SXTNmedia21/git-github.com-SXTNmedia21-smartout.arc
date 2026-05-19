@@ -20,11 +20,14 @@ import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { ChevronLeft, LogOut } from "lucide-react-native";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { createStyles } from "@/theme";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
+import { enqueue } from "@/lib/sync/queue";
+import type { TimeEntry } from "@/types/time-entry";
 import { useSupplements } from "@/hooks/shift-clock/useSupplements";
 import { useSubmitHandoff } from "@/hooks/mutations/use-submit-handoff";
 import { useConfirmHours } from "@/hooks/mutations/use-confirm-hours";
@@ -126,27 +129,80 @@ export function ShiftClockView() {
   }, [currentTimeEntry, punchOut]);
 
   /* ---- Break handlers ---- */
-  // Mutations enqueue break_start / break_end via useShiftClock; the breaks
-  // JSONB array on time_entry drives derived isOnBreak. useEffect above
-  // mirrors viewPhase to server state once query refreshes. Optimistic
-  // setViewPhase gives instant UI feedback before the mutation lands.
+  // Patch cache + enqueue directly. useShiftClock's gated startBreak/endBreak
+  // silently early-returned when its internal `phase` resolver lagged behind
+  // the user's tap (race against useActiveTimeEntry hydration), so the
+  // break_start mutation never fired. Going direct keeps optimistic UI
+  // instant and surfaces errors via Alert instead of silent swallow.
+  void startBreak; // imported but bypassed — kept for type-stability when reverting
+  void endBreak;
+  const queryClient = useQueryClient();
+
   const handleStartBreak = useCallback(async () => {
+    if (!currentTimeEntry || currentTimeEntry.status !== "clocked_in") return;
+
+    const now = new Date().toISOString();
+    const existingBreaks = Array.isArray(currentTimeEntry.breaks)
+      ? (currentTimeEntry.breaks as Array<{ start: string; end: string | null }>)
+      : [];
+    const updatedBreaks = [
+      ...existingBreaks,
+      { start: now, end: null, startLocation: null, endLocation: null },
+    ];
+
+    // Optimistic patch first so UI flips instantly to "on_break".
+    queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], {
+      ...currentTimeEntry,
+      breaks: updatedBreaks,
+      updated_at: now,
+    });
     setViewPhase("on_break");
+
     try {
-      await startBreak();
-    } catch {
+      await enqueue("break_start", {
+        time_entry_id: currentTimeEntry.time_entry_id,
+        breaks: updatedBreaks,
+        updated_at: now,
+      });
+    } catch (e) {
+      // Revert cache + UI on failure so user sees real state.
+      queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], currentTimeEntry);
       setViewPhase("clocked_in");
+      Alert.alert("Kunne ikke starte pause", e instanceof Error ? e.message : "Ukjent feil");
     }
-  }, [startBreak]);
+  }, [currentTimeEntry, queryClient]);
 
   const handleEndBreak = useCallback(async () => {
+    if (!currentTimeEntry) return;
+    const existingBreaks = Array.isArray(currentTimeEntry.breaks)
+      ? (currentTimeEntry.breaks as Array<{ start: string; end: string | null }>)
+      : [];
+    if (!existingBreaks.some((b) => b.start && !b.end)) return;
+
+    const now = new Date().toISOString();
+    const updatedBreaks = existingBreaks.map((b, idx) =>
+      idx === existingBreaks.length - 1 && !b.end ? { ...b, end: now } : b,
+    );
+
+    queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], {
+      ...currentTimeEntry,
+      breaks: updatedBreaks,
+      updated_at: now,
+    });
     setViewPhase("clocked_in");
+
     try {
-      await endBreak();
-    } catch {
+      await enqueue("break_end", {
+        time_entry_id: currentTimeEntry.time_entry_id,
+        breaks: updatedBreaks,
+        updated_at: now,
+      });
+    } catch (e) {
+      queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], currentTimeEntry);
       setViewPhase("on_break");
+      Alert.alert("Kunne ikke avslutte pause", e instanceof Error ? e.message : "Ukjent feil");
     }
-  }, [endBreak]);
+  }, [currentTimeEntry, queryClient]);
 
   /* ---- Dismiss summary → transition to after-shift flow ---- */
   const handleDismissSummary = useCallback(() => {
