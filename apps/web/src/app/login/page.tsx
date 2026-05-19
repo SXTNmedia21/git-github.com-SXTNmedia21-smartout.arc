@@ -339,12 +339,15 @@ function LoginContent() {
           transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
         />
 
-        {/* Ambient orbs — radial gradients (Nordic Split spec) */}
+        {/* Ambient orbs — radial gradients (Nordic Split spec).
+            ADR-0366 sweep wrote `var(--brand-orange-warm) 35%` for the first
+            orb — that's a gradient stop, not an alpha. It painted a solid
+            disc to 35% of the radius. Use color-mix to recover ambient alpha. */}
         <motion.div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle at 30% 35%, var(--brand-orange-warm) 35%, transparent 55%)," +
+              "radial-gradient(circle at 30% 35%, color-mix(in oklch, var(--brand-orange-warm) 35%, transparent), transparent 55%)," +
               "radial-gradient(circle at 72% 72%, color-mix(in oklch, var(--brand-orange) 22%, transparent), transparent 60%)," +
               "radial-gradient(circle at 20% 90%, color-mix(in oklch, var(--brand-purple) 10%, transparent), transparent 55%)",
           }}
