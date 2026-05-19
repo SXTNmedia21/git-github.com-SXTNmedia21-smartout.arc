@@ -90,7 +90,7 @@ async function dismissDevOverlay(page: Page): Promise<void> {
     .catch(() => {});
 }
 
-/** Navigate to /dashboard/contracts and wait for table to hydrate.
+/** Navigate to /dashboard/people/contracts and wait for table to hydrate.
  *
  * We wait for the response from /api/employment-contracts/list so the table
  * rows are populated before the row-visibility check. networkidle times out
@@ -106,7 +106,7 @@ async function goToContracts(page: Page): Promise<void> {
     { timeout: 20_000 },
   );
 
-  await page.goto("/dashboard/contracts");
+  await page.goto("/dashboard/people/contracts");
   await page.waitForLoadState("domcontentloaded");
 
   // Wait for the list API response — ensures the table rendered its rows before

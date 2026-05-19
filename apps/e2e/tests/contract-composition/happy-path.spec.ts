@@ -96,7 +96,7 @@ test.describe("Contract Composition wizard", () => {
 
     // ── 2. Navigate to new contract wizard ───────────────────────────────────
     for (let attempt = 0; attempt < 3; attempt++) {
-      await page.goto("/dashboard/contracts/new");
+      await page.goto("/dashboard/people/contracts/new");
       await page.waitForLoadState("domcontentloaded");
       await dismissDevOverlay(page);
 
