@@ -819,7 +819,10 @@
       "payroll": "Payroll",
       "schedule": "Schedule",
       "framework": "Framework",
-      "organization": "Organization"
+      "organization": "Organization",
+      "kontrakter": "Contracts",
+      "struktur": "Structure",
+      "integrasjoner": "Integrations"
     },
     "tabs": {
       "general": "General",
@@ -841,7 +844,15 @@
       "framework_rules": "Work rules",
       "tariff_rates": "Tariff rates",
       "change_proposals": "Change proposals",
-      "holidays": "Holidays"
+      "holidays": "Holidays",
+      "contract_template_bindings": "Contract bindings",
+      "struktur_overview": "Overview",
+      "avdelinger": "Departments",
+      "lokasjoner": "Locations",
+      "team": "Teams",
+      "pos_integrasjoner": "POS Integrations",
+      "tripletex": "Tripletex",
+      "sendgrid": "SendGrid"
     }
   },
   "settings_hours": {
@@ -1081,7 +1092,8 @@
       "settings": "Settings",
       "help": "Help",
       "admin_mode": "Admin mode",
-      "employee_mode": "Employee mode"
+      "employee_mode": "Employee mode",
+      "botsson": "Mr. Botsson"
     },
     "breadcrumb": {
       "drift": "Operations",
@@ -1167,6 +1179,24 @@
     "tab_roles": "Roles",
     "tab_contracts": "Contracts",
     "tab_training": "Training",
-    "filter_invited": "Invited"
+    "filter_invited": "Invited",
+    "training": {
+      "subtitle": "Workforce readiness per employee",
+      "kpi_ready": "Ready workforce",
+      "kpi_avg": "Avg. readiness",
+      "kpi_expired": "Overdue",
+      "kpi_soon": "Expiring <14d",
+      "no_assignments": "No protocols assigned yet.",
+      "expand_row": "Show protocols",
+      "collapse_row": "Hide protocols",
+      "no_assigned_protocols": "No assigned protocols.",
+      "status_expired": "Overdue",
+      "status_completed": "Done",
+      "status_in_progress": "In progress",
+      "status_not_started": "Not started",
+      "status_waived": "Waived",
+      "status_pending": "Pending",
+      "filter_all": "All"
+    }
   }
 }

@@ -442,6 +442,16 @@ export function BotssonShell() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isArena, isSticky, isImmersive, goSticky, collapse, expand]);
 
+  /* ━━━ Sidebar orb button → expand ━━━ */
+  useEffect(() => {
+    function handleOpen() {
+      if (!isOrb && !isSticky) return; // already expanded
+      expand();
+    }
+    window.addEventListener("botsson:open" as keyof WindowEventMap, handleOpen);
+    return () => window.removeEventListener("botsson:open" as keyof WindowEventMap, handleOpen);
+  }, [isOrb, isSticky, expand]);
+
   if (!mounted) return null;
 
   /* ━━━ Sticky retract transform ━━━ */

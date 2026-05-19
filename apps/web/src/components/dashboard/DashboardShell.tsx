@@ -85,7 +85,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/calendar": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
-  "/dashboard/ai": "mr-botsson",
+  "/dashboard/ai": "mr-botsson", // SM-10: delete when /ai/config moves to Innstillinger
   "/dashboard/settings": "mr-botsson",
   "/dashboard/help": "mr-botsson",
   "/dashboard/my-schedule": "shift-assistant",
@@ -875,10 +875,10 @@ function DashboardShellInner({
         expectedPathname: "/dashboard/komm",
       },
       {
-        id: "ai",
+        id: "botsson",
         label: "Open Mr. Botsson",
-        selector: '[data-autoplay="nav-/dashboard/ai"]',
-        expectedPathname: "/dashboard/ai",
+        selector: '[data-autoplay="botsson-open"]',
+        // No expectedPathname — orb opens as overlay, no route change
       },
       {
         id: "onboarding-assistant",
@@ -1375,6 +1375,42 @@ function DashboardShellInner({
                         })()
                       )}
                     </nav>
+
+                    {/* Mr. Botsson — persistent orb button (SM-8, canonical §7) */}
+                    {/* Sits between main nav and footer controls. Dispatches botsson:open
+                        — BotssonShell handles expand() since it lives in BotssonProvider
+                        scope (ADR-0362). No route navigation. */}
+                    <div
+                      className={`border-t ${isSidebarCollapsed ? "px-2 py-2" : "px-2.5 py-2"} border-sidebar-border`}
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            data-testid="sidebar-botsson-button"
+                            data-autoplay="botsson-open"
+                            onClick={() => window.dispatchEvent(new CustomEvent("botsson:open"))}
+                            aria-label={t("shell.nav.botsson")}
+                            className={[
+                              "flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-medium",
+                              "transition-colors duration-150",
+                              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                              isSidebarCollapsed ? "justify-center" : "gap-2.5",
+                            ].join(" ")}
+                          >
+                            {/* Bot icon — Lucide, same as /dashboard/ai page */}
+                            <Bot className="h-4 w-4 shrink-0 text-indigo-400" aria-hidden />
+                            {!isSidebarCollapsed && (
+                              <span className="truncate">{t("shell.nav.botsson")}</span>
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        {isSidebarCollapsed && (
+                          <TooltipContent side="right">{t("shell.nav.botsson")}</TooltipContent>
+                        )}
+                      </Tooltip>
+                    </div>
 
                     {/* Sidebar bottom controls */}
                     <div

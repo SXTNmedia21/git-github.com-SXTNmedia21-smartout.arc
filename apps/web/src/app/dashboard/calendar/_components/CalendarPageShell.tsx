@@ -117,6 +117,16 @@ export function CalendarPageShell() {
   const newAction = searchParams?.get("new");
 
   useEffect(() => {
+    // One-shot tab deep-link — consumed from ?tab=<value> then cleared.
+    // Used by /dashboard/planning/arshjul etc. shim redirects.
+    const tabParam = searchParams?.get("tab");
+    const VALID_TABS = ["calendar", "year-wheel", "events", "bookings"] as const;
+    if (tabParam && (VALID_TABS as readonly string[]).includes(tabParam)) {
+      setActiveTab(tabParam);
+      router.replace("/dashboard/planning", { scroll: false });
+    }
+
+    // Legacy action params — unchanged.
     if (newAction === "event") {
       setEventDraft({
         date: formatISO(new Date(), { representation: "date" }),
@@ -130,7 +140,7 @@ export function CalendarPageShell() {
       setBookingSheetOpen(true);
       router.replace("/dashboard/calendar", { scroll: false });
     }
-  }, [newAction, router]);
+  }, [newAction, router, searchParams]);
 
   const visibleEvents = useMemo(() => {
     return events.filter((e) => {
