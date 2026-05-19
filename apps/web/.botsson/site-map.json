@@ -1096,7 +1096,7 @@
     },
     {
       "path": "/dashboard/settings",
-      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface.",
+      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface. Also hosts organisasjonsstruktur (Struktur: Avdelinger/Lokasjoner/Team) and POS-integrasjoner (SM-9 2026-05-19).",
       "module": "Settings",
       "tier": 3,
       "access": ["owner", "admin"],
@@ -1110,7 +1110,7 @@
         },
         {
           "name": "listSettingsSections",
-          "description": "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+          "description": "List all settings sections (General, Payroll, Schedule, Framework, Kontrakter, Struktur, Integrasjoner) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
         },
         {
           "name": "getCurrentTabInfo",
@@ -1118,7 +1118,7 @@
         },
         {
           "name": "openSettingsSection",
-          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', 'vis avdelinger', 'gå til struktur', 'åpne POS integrasjoner', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings, struktur-overview, avdelinger, lokasjoner, team, pos, tripletex, sendgrid."
         },
         {
           "name": "getPayrollSettingsSummary",
@@ -1127,6 +1127,14 @@
         {
           "name": "getOperatingHoursSummary",
           "description": "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+        },
+        {
+          "name": "openStrukturTab",
+          "description": "Navigate to the Struktur section in Settings — shows organisation structure (Avdelinger, Lokasjoner, Team). Valid sub-tab args: struktur-overview, avdelinger, lokasjoner, team."
+        },
+        {
+          "name": "openIntegrasjonerTab",
+          "description": "Navigate to the Integrasjoner section in Settings. Valid tab: pos (POS Integrasjoner — live data). Tripletex + SendGrid are placeholders."
         }
       ],
       "common_intents": [
@@ -1174,7 +1182,7 @@
     },
     {
       "path": "/dashboard/organization",
-      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
+      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin. Redirects to /dashboard/settings#struktur-overview as of SM-9 2026-05-19. Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected.",
       "module": "Organization",
       "tier": 3,
       "access": ["owner", "admin"],

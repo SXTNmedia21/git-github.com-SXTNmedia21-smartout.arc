@@ -170,6 +170,18 @@ const nextConfig: NextConfig = {
         destination: "/platform-admin/dashboard",
         permanent: false,
       },
+      // SM-9: Organisasjon overview redirects to Settings → Struktur.
+      // Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected —
+      // those remain live deep-link targets.
+      // Note: Next.js may strip the hash in the redirect target (hash fragments are
+      // client-side only, not sent to server). If the hash is stripped, the user lands
+      // on /dashboard/settings and must click "Struktur" manually. This is the
+      // acceptable fallback per SM-9 OD-6.
+      {
+        source: "/dashboard/organization",
+        destination: "/dashboard/settings#struktur-overview",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

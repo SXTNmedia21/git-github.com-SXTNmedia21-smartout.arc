@@ -221,7 +221,8 @@ const DASHBOARD_PAGES: Record<string, { path: string; label: string }> = {
   "my-schedule": { path: "/dashboard/my-schedule", label: "Min vaktplan" },
   operations: { path: "/dashboard/operations", label: "Daglig drift" },
   people: { path: "/dashboard/people", label: "Ansatte" },
-  organization: { path: "/dashboard/organization", label: "Organisasjon" },
+  // SM-9: organization redirects to settings#struktur-overview; label kept for user display
+  organization: { path: "/dashboard/settings#struktur-overview", label: "Organisasjon" },
   season: { path: "/dashboard/year-wheel", label: "Årshjul" },
   handbook: { path: "/dashboard/handbook", label: "Håndbok" },
   governance: { path: "/dashboard/governance", label: "Retningslinjer" },
