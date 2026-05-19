@@ -1887,10 +1887,8 @@ function BreadcrumbActiveSlot({
 
   return (
     <span
-      className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
-        isDark
-          ? "border-border bg-card text-foreground"
-          : "border-[var(--surface-border-strong)] bg-[var(--surface-raised)] text-[var(--text-strong)]"
+      className={`font-heading text-base font-semibold ${
+        isDark ? "text-foreground" : "text-[var(--text-strong)]"
       }`}
     >
       {label}
