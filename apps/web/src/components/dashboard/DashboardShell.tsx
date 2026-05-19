@@ -1150,7 +1150,7 @@ function DashboardShellInner({
             - action: openVoiceAssistant() (mic button)
             - color-regime: isDark — dark=near-black, light=warm-cream header with orange accent */}
                 <header
-                  className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
+                  className={`relative z-30 grid h-14 grid-cols-[1fr_auto_1fr] items-center border-b px-6 transition-colors duration-300 ${
                     isDark
                       ? "border-border bg-background"
                       : "border-[var(--border)] bg-[var(--surface-base)] shadow-sm"
@@ -1183,7 +1183,39 @@ function DashboardShellInner({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  {/* Centered global search — Pontus 2026-05-19 annotation C */}
+                  {!isDocumentMode ? (
+                    <div className="group relative justify-self-center">
+                      <Search
+                        className={`text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
+                          isDark
+                            ? "group-focus-within:text-orange-500"
+                            : "group-focus-within:text-orange-600"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.dispatchEvent(new Event("smartout:open-global-search"))
+                        }
+                        className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-80 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-colors focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
+                        aria-label="Open global search palette"
+                      >
+                        <span className="text-muted-foreground">
+                          {t("shell.search.placeholder")}
+                        </span>
+                        <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
+                          {typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+                            ? "⌘K"
+                            : "Ctrl+K"}
+                        </kbd>
+                      </button>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex items-center justify-end gap-4">
                     <button
                       onClick={() => setIsDocumentMode(!isDocumentMode)}
                       className={`rounded-md p-1.5 transition-colors ${
@@ -1744,36 +1776,7 @@ function DashboardShellInner({
                           </div>
                         )}
 
-                        {/* Standard Search Bar, hidden on schedule page and document mode */}
-                        {!isDocumentMode && pathname !== "/dashboard/schedule" && (
-                          <div className="group relative">
-                            <Search
-                              className={`text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
-                                isDark
-                                  ? "group-focus-within:text-orange-500"
-                                  : "group-focus-within:text-orange-600"
-                              }`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                window.dispatchEvent(new Event("smartout:open-global-search"))
-                              }
-                              className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
-                              aria-label="Open global search palette"
-                            >
-                              <span className="text-muted-foreground">
-                                {t("shell.search.placeholder")}
-                              </span>
-                              <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
-                                {typeof navigator !== "undefined" &&
-                                navigator.platform.includes("Mac")
-                                  ? "⌘K"
-                                  : "Ctrl+K"}
-                              </kbd>
-                            </button>
-                          </div>
-                        )}
+                        {/* Search bar moved to top header (centered) — Pontus 2026-05-19 annotation C. */}
 
                         {/* Global "Ny" create dropdown — always visible, far right */}
                         {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
