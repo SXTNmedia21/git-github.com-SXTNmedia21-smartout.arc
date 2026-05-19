@@ -1,4 +1,4 @@
-// Streaming skeleton for /dashboard/contracts/[id]/revise — back link + form wizard skeleton.
+// Streaming skeleton for /dashboard/people/contracts/[id]/revise — back link + form wizard skeleton.
 
 export default function ReviseContractLoading() {
   return (

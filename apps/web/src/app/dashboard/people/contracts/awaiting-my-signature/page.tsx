@@ -1,5 +1,5 @@
 /**
- * /dashboard/contracts/awaiting-my-signature
+ * /dashboard/people/contracts/awaiting-my-signature
  *
  * Server Component. Lists employee contracts where the current admin (employer)
  * has not yet signed. Identified by matching sender_email to the authenticated

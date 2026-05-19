@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * use-contract-detail-tools.ts — Botsson tools for /dashboard/contracts/[id].
+ * use-contract-detail-tools.ts — Botsson tools for /dashboard/people/contracts/[id].
  *
  * Five tools: 3 read, 2 navigate.
  *   getContractDetail              — full contract record (status, terms, employee, overrides)
  *   getContractTerms               — pay terms only (rate, salary, %, start date)
  *   getContractComplianceOverrides — list of ADR-0244 compliance overrides with level + message
- *   navigateToReviseContract       — open /dashboard/contracts/[id]/revise (draft only)
+ *   navigateToReviseContract       — open /dashboard/people/contracts/[id]/revise (draft only)
  *   navigateToCompleteEmployeeData — open /dashboard/people/[profile_id]/complete-data
  *
  * Why no signing/sending tools:
@@ -101,7 +101,7 @@ export function useContractDetailTools(input: ContractDetailToolInput): ClientTo
         temporaryTool: {
           modelToolName: "navigateToReviseContract",
           description:
-            "Navigate to the contract revision composer at /dashboard/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'.",
+            "Navigate to the contract revision composer at /dashboard/people/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'.",
           dynamicParameters: [],
           client: {},
         },
@@ -211,7 +211,7 @@ export function useContractDetailTools(input: ContractDetailToolInput): ClientTo
             }),
           );
         }
-        const href = `/dashboard/contracts/${d.contract.contract_id}/revise`;
+        const href = `/dashboard/people/contracts/${d.contract.contract_id}/revise`;
         d.navigateTo(href);
         return Promise.resolve(JSON.stringify({ ok: true, navigatedTo: href }));
       },

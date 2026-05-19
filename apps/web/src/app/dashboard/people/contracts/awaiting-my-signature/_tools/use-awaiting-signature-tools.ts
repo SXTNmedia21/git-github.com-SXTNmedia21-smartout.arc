@@ -2,7 +2,7 @@
 
 /**
  * use-awaiting-signature-tools.ts — Botsson tools for
- * /dashboard/contracts/awaiting-my-signature.
+ * /dashboard/people/contracts/awaiting-my-signature.
  *
  * Three tools: 2 read, 1 navigate.
  *   getAwaitingSignatureCount       — number of contracts requiring employer signature

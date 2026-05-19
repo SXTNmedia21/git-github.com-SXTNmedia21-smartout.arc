@@ -2,7 +2,7 @@
 
 /**
  * contract-detail-tools-bridge.tsx — registers Botsson tools for
- * /dashboard/contracts/[id].
+ * /dashboard/people/contracts/[id].
  *
  * ADR-0238: page does not own a domain chat surface.
  */

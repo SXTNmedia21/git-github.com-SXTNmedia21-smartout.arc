@@ -26,7 +26,7 @@ export default function ContractDetailError({ error, reset }: ErrorProps) {
       </div>
       <div className="flex items-center gap-3">
         <Button variant="outline" asChild>
-          <Link href="/dashboard/contracts">Tilbake til kontrakter</Link>
+          <Link href="/dashboard/people/contracts">Tilbake til kontrakter</Link>
         </Button>
         <Button variant="outline" onClick={() => reset()}>
           Prøv igjen

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /dashboard/contracts/[id]/revise — Revise an existing contract.
+ * /dashboard/people/contracts/[id]/revise — Revise an existing contract.
  *
  * Stub page: shows the contract ID and renders CompositionWizard.
  * Pre-filling from the existing contract will be wired in a later task.
@@ -53,7 +53,7 @@ export default function ReviseContractPage() {
       <div className="flex flex-col gap-6">
         {/* Back link */}
         <Link
-          href={`/dashboard/contracts/${id}`}
+          href={`/dashboard/people/contracts/${id}`}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

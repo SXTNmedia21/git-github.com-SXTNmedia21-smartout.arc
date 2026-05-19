@@ -1,4 +1,4 @@
-// Streaming skeleton for /dashboard/contracts/awaiting-my-signature — list of pending signing rows.
+// Streaming skeleton for /dashboard/people/contracts/awaiting-my-signature — list of pending signing rows.
 
 export default function AwaitingSignatureLoading() {
   return (

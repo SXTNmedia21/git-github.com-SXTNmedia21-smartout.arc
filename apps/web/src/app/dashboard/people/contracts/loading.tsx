@@ -1,4 +1,4 @@
-// Streaming skeleton for /dashboard/contracts — header + tab nav + list rows.
+// Streaming skeleton for /dashboard/people/contracts — header + tab nav + list rows.
 
 export default function ContractsLoading() {
   return (

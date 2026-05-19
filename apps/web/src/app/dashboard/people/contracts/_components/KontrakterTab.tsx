@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * KontrakterTab — the "Kontrakter" (contracts) sub-surface of /dashboard/contracts.
+ * KontrakterTab — the "Kontrakter" (contracts) sub-surface of /dashboard/people/contracts.
  *
  * Lifts the existing contract list + bucket filters into a tab component. Bucket
  * filters (`all | ready_for_action | waiting_employee | completed`) become a

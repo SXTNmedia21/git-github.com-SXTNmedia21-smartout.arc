@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * contracts-tools-bridge.tsx — registers Botsson tools for /dashboard/contracts.
+ * contracts-tools-bridge.tsx — registers Botsson tools for /dashboard/people/contracts.
  *
  * Mounted inside ContractsPage so it captures live contract data + UI actions.
  * Returns null — side-effect only. Tools are unregistered automatically on

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ContractsPage — /dashboard/contracts
+ * ContractsPage — /dashboard/people/contracts
  *
  * Phase 2 hub redesign per JOURNEY-contract-hub-redesign. Tabs-in-hub
  * layout: `Kontrakter | Maler | Bindinger`. The header carries the primary
@@ -10,9 +10,9 @@
  * `BotssonAmbientChip` pinned to the bottom-right of the hub.
  *
  * Deep-link behavior:
- *  - `/dashboard/contracts` → Kontrakter tab
- *  - `/dashboard/contracts?tab=maler` → Maler tab (and similarly `bindinger`)
- *  - `/dashboard/contracts?open=compose[&profileId=…]` → toggles drawerOpen
+ *  - `/dashboard/people/contracts` → Kontrakter tab
+ *  - `/dashboard/people/contracts?tab=maler` → Maler tab (and similarly `bindinger`)
+ *  - `/dashboard/people/contracts?open=compose[&profileId=…]` → toggles drawerOpen
  *    state (the actual composition drawer is stubbed here — Phase 3 wires the
  *    CompositionDrawer proper).
  *
@@ -130,7 +130,7 @@ export default function ContractsPage() {
     setDrawerOpen(true);
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("open", "compose");
-    router.replace(`/dashboard/contracts?${nextParams.toString()}`, { scroll: false });
+    router.replace(`/dashboard/people/contracts?${nextParams.toString()}`, { scroll: false });
   }, [router, searchParams, workspaceId, profileId]);
 
   // `?open=compose` sync — only honour the deep-link once both ids are present
@@ -173,7 +173,7 @@ export default function ContractsPage() {
       {/* Top-level Ansatte-modul nav (matches /dashboard/people) */}
       <PageTabNav
         tabs={PEOPLE_TAB_DEFS.map((tab) => ({ key: tab.key, label: tab.label, icon: tab.icon }))}
-        active={pathname ?? "/dashboard/contracts"}
+        active={pathname ?? "/dashboard/people/contracts"}
         onChange={(href) => router.push(href)}
         ariaLabel="Ansatte-seksjoner"
       />
@@ -200,9 +200,12 @@ export default function ContractsPage() {
             nextParams.delete("open");
             nextParams.delete("profileId");
             const qs = nextParams.toString();
-            router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
-              scroll: false,
-            });
+            router.replace(
+              qs ? `/dashboard/people/contracts?${qs}` : "/dashboard/people/contracts",
+              {
+                scroll: false,
+              },
+            );
           }
         }}
         workspaceId={workspaceId}
@@ -224,9 +227,12 @@ export default function ContractsPage() {
               nextParams.delete("open");
               nextParams.delete("profileId");
               const qs = nextParams.toString();
-              router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
-                scroll: false,
-              });
+              router.replace(
+                qs ? `/dashboard/people/contracts?${qs}` : "/dashboard/people/contracts",
+                {
+                  scroll: false,
+                },
+              );
             }
           }}
           targetProfileId={pickedProfile.profile_id}
@@ -246,7 +252,8 @@ export default function ContractsPage() {
         activeBucket={activeBucketForBridge}
         actorProfileId={profileId}
         uiActions={{
-          openContractDetail: (contractId) => router.push(`/dashboard/contracts/${contractId}`),
+          openContractDetail: (contractId) =>
+            router.push(`/dashboard/people/contracts/${contractId}`),
           openNewContractFlow: handleCreateContract,
           switchStatusFilter: setActiveBucketForBridge,
         }}

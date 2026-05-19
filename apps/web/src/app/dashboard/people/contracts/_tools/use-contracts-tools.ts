@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * use-contracts-tools.ts — Botsson tools for /dashboard/contracts.
+ * use-contracts-tools.ts — Botsson tools for /dashboard/people/contracts.
  *
  * Six tools — read + navigation:
  *
@@ -9,7 +9,7 @@
  *   getContractCounts      — counts per status bucket (ready_for_action / waiting_employee / completed / all)
  *   getPendingMine         — contracts awaiting action from the current user (pending signature)
  *   searchContracts        — search by employee display name substring
- *   openContractDetail     — navigate to /dashboard/contracts/[id]
+ *   openContractDetail     — navigate to /dashboard/people/contracts/[id]
  *   openNewContractFlow    — open the new-contract compose drawer (sets ?open=compose)
  *   switchStatusFilter     — switch the active bucket tab in KontrakterTab
  *

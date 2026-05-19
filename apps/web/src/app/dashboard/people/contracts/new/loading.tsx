@@ -1,4 +1,4 @@
-// Streaming skeleton for /dashboard/contracts/new — redirect stub, shown for one frame.
+// Streaming skeleton for /dashboard/people/contracts/new — redirect stub, shown for one frame.
 
 export default function NewContractLoading() {
   return (

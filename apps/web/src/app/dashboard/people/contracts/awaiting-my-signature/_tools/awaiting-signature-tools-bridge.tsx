@@ -2,7 +2,7 @@
 
 /**
  * awaiting-signature-tools-bridge.tsx — registers Botsson tools for the
- * /dashboard/contracts/awaiting-my-signature server page.
+ * /dashboard/people/contracts/awaiting-my-signature server page.
  *
  * Host is a Server Component. This bridge is a thin client island that
  * receives the serialized contract list as props + uses next/navigation

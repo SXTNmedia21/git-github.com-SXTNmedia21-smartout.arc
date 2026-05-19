@@ -1,4 +1,4 @@
-// Streaming skeleton for /dashboard/contracts/[id] — back link + header + detail sections.
+// Streaming skeleton for /dashboard/people/contracts/[id] — back link + header + detail sections.
 
 export default function ContractDetailLoading() {
   return (

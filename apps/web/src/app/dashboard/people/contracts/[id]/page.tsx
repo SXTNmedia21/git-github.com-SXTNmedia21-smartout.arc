@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /dashboard/contracts/[id] — Contract detail view.
+ * /dashboard/people/contracts/[id] — Contract detail view.
  *
  * Shows employee name, position, status, terms, decline info,
  * compliance overrides, and parent lineage. Provides edit (draft)
@@ -185,7 +185,7 @@ export default function ContractDetailPage() {
         {bridge}
         <div className="flex flex-col items-center justify-center py-20">
           <p className="text-muted-foreground text-sm">{t("detail_page.not_found")}</p>
-          <Link href="/dashboard/contracts" className="text-primary mt-2 text-sm underline">
+          <Link href="/dashboard/people/contracts" className="text-primary mt-2 text-sm underline">
             {t("detail_page.back_to_contracts")}
           </Link>
         </div>
@@ -206,7 +206,7 @@ export default function ContractDetailPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         {/* Back link */}
         <Link
-          href="/dashboard/contracts"
+          href="/dashboard/people/contracts"
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -233,7 +233,7 @@ export default function ContractDetailPage() {
           <div className="flex gap-2">
             {isDraft && (
               <Button asChild variant="outline" size="sm" className="gap-1.5">
-                <Link href={`/dashboard/contracts/${contract.contract_id}/revise`}>
+                <Link href={`/dashboard/people/contracts/${contract.contract_id}/revise`}>
                   <FileEdit className="h-3.5 w-3.5" />
                   {t("detail_page.edit")}
                 </Link>
@@ -342,7 +342,7 @@ export default function ContractDetailPage() {
             <Link2 className="text-muted-foreground h-4 w-4" />
             <span className="text-muted-foreground">{t("detail_page.parent_contract")}</span>
             <Link
-              href={`/dashboard/contracts/${contract.parent_contract_id}`}
+              href={`/dashboard/people/contracts/${contract.parent_contract_id}`}
               className="text-primary underline"
             >
               {contract.parent_contract_id}

@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * use-contract-revise-tools.ts — Botsson tools for /dashboard/contracts/[id]/revise.
+ * use-contract-revise-tools.ts — Botsson tools for /dashboard/people/contracts/[id]/revise.
  *
  * Two tools: 1 read, 1 navigate.
  *   getRevisionContext      — returns the contract id being revised
- *   navigateBackToContract  — go back to /dashboard/contracts/[id]
+ *   navigateBackToContract  — go back to /dashboard/people/contracts/[id]
  *
  * Why minimal:
  *   CompositionWizard owns all composition state internally. Tools here
@@ -47,7 +47,7 @@ export function useContractReviseTools(input: ContractReviseToolInput): ClientTo
         temporaryTool: {
           modelToolName: "navigateBackToContract",
           description:
-            "Navigate back to the original contract detail view (/dashboard/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'.",
+            "Navigate back to the original contract detail view (/dashboard/people/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'.",
           dynamicParameters: [],
           client: {},
         },
@@ -71,7 +71,7 @@ export function useContractReviseTools(input: ContractReviseToolInput): ClientTo
 
       navigateBackToContract: () => {
         const d = dataRef.current;
-        const href = `/dashboard/contracts/${d.contractId}`;
+        const href = `/dashboard/people/contracts/${d.contractId}`;
         d.navigateTo(href);
         return Promise.resolve(JSON.stringify({ ok: true, navigatedTo: href }));
       },
