@@ -894,7 +894,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts",
+      "path": "/dashboard/people/contracts",
       "purpose": "Employment contracts list — D2 resource availability. Status filter, signatures pending, AML §14-6 compliance.",
       "module": "Contracts",
       "tier": 3,
@@ -941,7 +941,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]",
+      "path": "/dashboard/people/contracts/[id]",
       "purpose": "Kontraktdetalj — ansatt, stilling, status, vilkår, decline-info, ADR-0244 compliance overrides, lineage. Read + nav.",
       "module": "Contracts",
       "tier": 3,
@@ -964,7 +964,7 @@
         },
         {
           "name": "navigateToReviseContract",
-          "description": "Navigate to the contract revision composer at /dashboard/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
+          "description": "Navigate to the contract revision composer at /dashboard/people/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
         },
         {
           "name": "navigateToCompleteEmployeeData",
@@ -980,7 +980,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]/revise",
+      "path": "/dashboard/people/contracts/[id]/revise",
       "purpose": "Kontraktrevisjon — CompositionWizard wrapper. Tools dekker kun kontekst + tilbake-nav.",
       "module": "Contracts",
       "tier": 3,
@@ -995,7 +995,7 @@
         },
         {
           "name": "navigateBackToContract",
-          "description": "Navigate back to the original contract detail view (/dashboard/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
+          "description": "Navigate back to the original contract detail view (/dashboard/people/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
         }
       ],
       "common_intents": [
@@ -1007,7 +1007,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/awaiting-my-signature",
+      "path": "/dashboard/people/contracts/awaiting-my-signature",
       "purpose": "Inbox over kontrakter som venter arbeidsgivers signatur. Server-component med klient-bridge for tools.",
       "module": "Contracts",
       "tier": 3,
@@ -1038,8 +1038,8 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/new",
-      "purpose": "Deprecated redirect — sender til /dashboard/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
+      "path": "/dashboard/people/contracts/new",
+      "purpose": "Deprecated redirect — sender til /dashboard/people/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
       "module": "Contracts",
       "tier": 3,
       "access": ["manager", "admin", "owner"],
