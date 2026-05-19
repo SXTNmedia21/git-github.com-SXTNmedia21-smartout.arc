@@ -170,6 +170,15 @@ const nextConfig: NextConfig = {
         destination: "/platform-admin/dashboard",
         permanent: false,
       },
+      // SM-5: Norwegian alias for /dashboard/komm/desks. Moved from a
+      // redirect-only page component to a server-config redirect because
+      // Next 16 throws "negative time stamp" on Performance.measure when
+      // a page throws RedirectError before its render end-mark fires.
+      {
+        source: "/dashboard/komm/skranke",
+        destination: "/dashboard/komm/desks",
+        permanent: false,
+      },
       // SM-9: Organisasjon overview redirects to Settings → Struktur.
       // Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected —
       // those remain live deep-link targets.
