@@ -4,7 +4,9 @@
 
 **Goal:** Restructure the Ansatte hub to match the canonical tab set `Liste · Roller · Kontrakter · Trening`. Add placeholder pages for Roller + Trening. Drop the Policys cross-jump tab. Drop the Innkalling tab (semantics moved to Planlegging → Kalender per spec §5.1). Surface workspace invitations as a status-filter chip with count badge on the Liste tab. Contracts URL move is deferred to a follow-up sortie.
 
-**Architecture:** Two new pages (`/dashboard/people/roles` + `/dashboard/people/training`) read their content from Cascade K1a industry sources, not from empty placeholders. Per Pontus 2026-05-19: "roles + trening skal komme fra Cascade — samme som velges i Wizard". The Roller page reads from a shared `ROLE_DEFINITIONS` constant extracted from the existing `ConfirmRoles.tsx` wizard step (it currently lives inline there); Wizard imports become the canonical source. The Trening page reads procedure suggestions from the same I1 source the wizard already uses (`state.procedures` upstream — needs recon by implementer to locate the seed). PEOPLE_TAB_DEFS in `_lib/people-tabs.ts` is rewritten to four entries. The Liste tab body in `people-page-client.tsx` gains an "Invitert" filter chip with count badge.
+**Architecture:** Two new pages (`/dashboard/people/roles` + `/dashboard/people/training`). Roller page is a server component that mirrors `/dashboard/people/page.tsx` data-fetching pattern: `resolveDashboardContext()` + `fetchWorkspacePeople()` from `@smartout/utils`, then groups results by `profile.role` (`employee/manager/admin/owner/system` enum). Renders KPI cards per role with live counts + list of profiles under each role — **real D2 (Resource) cascade data, not a hardcoded catalog**. Trening page is a clean "Kommer snart" placeholder until the protocol_assignment query layer is ready. PEOPLE_TAB_DEFS rewritten to four entries. Liste tab gains an "Invitert" filter chip with count badge.
+
+Per Pontus 2026-05-19 (revised after recon): the original plan proposed extracting `ROLE_DEFINITIONS` from the wizard to a shared K1a module. That was incorrect — the wizard's inline array is *job titles for hospitality* (daglig-leder, restaurantsjef, kjøkkensjef…), not the canonical `profile_role` enum (`employee/manager/admin/owner`). These are two different concepts (operational job-title vs auth permission level). The Roller hub-page should answer "who has which permission level" → query `profile.role`. The hospitality job-title catalog belongs to the wizard surface only, until a future workspace_position DB-tier sortie surfaces it elsewhere.
 
 **Tech Stack:** Next.js 16 App Router, React 19 server components, TypeScript strict, Lucide icons. No new dependencies, no migrations, no API changes.
 
@@ -18,12 +20,9 @@
 
 | Operation | Path | Responsibility |
 |---|---|---|
-| Create | `packages/ai/src/industry/cascade-roles.ts` | Shared `ROLE_DEFINITIONS` + types. Extracted from `ConfirmRoles.tsx`. Wizard imports from here; Roller page imports from here. K1a-aligned location (industry-level role baseline). |
-| Modify | `apps/web/src/app/onboarding/steps/ConfirmRoles.tsx` | Replace inline `ROLE_DEFINITIONS` array with `import { ROLE_DEFINITIONS } from "@smartout/ai/industry/cascade-roles"`. Behaviour unchanged. |
-| Modify | `packages/ai/src/industry/index.ts` | Re-export from new `cascade-roles` module. |
-| Create | `apps/web/src/app/dashboard/people/roles/page.tsx` | Roller page — renders the same role list the wizard offers. Static list now (workspace-state filter pending DB-tier sortie). |
+| Create | `apps/web/src/app/dashboard/people/roles/page.tsx` | Roller server component — `resolveDashboardContext` + `fetchWorkspacePeople`, groups by `profile.role`, renders KPI strip + per-role profile list. Real D2 data. |
 | Create | `apps/web/src/app/dashboard/people/roles/loading.tsx` | Skeleton fallback. |
-| Create | `apps/web/src/app/dashboard/people/training/page.tsx` | Trening page — placeholder body that references the cascade I1 source the wizard uses (`state.procedures`). Real list rendering deferred to followup until the seed source is located (recon task within this plan). |
+| Create | `apps/web/src/app/dashboard/people/training/page.tsx` | Trening clean "Kommer snart" placeholder. Real data lands in followup sortie wired to `protocol_assignment`. |
 | Create | `apps/web/src/app/dashboard/people/training/loading.tsx` | Skeleton. |
 | Modify | `apps/web/src/app/dashboard/_lib/people-tabs.ts` | Replace PEOPLE_TAB_DEFS with new four-entry array: Liste · Roller · Kontrakter · Trening. Drop Policys + Innkalling. Update icon imports. |
 | Modify | `apps/web/src/app/dashboard/people/_components/people-page-client.tsx` | Add "Invitert" filter chip with count badge above the data table. Driven by `invitations.length`. Click toggles `statusFilter === "invited"`. |
@@ -34,9 +33,15 @@ No deletions. No file moves. No URL changes outside the two new pages.
 
 ---
 
-## Phase A — Roller (Cascade-connected)
+## Phase A — Roller (workspace D2 data)
 
-### Task A0: Extract ROLE_DEFINITIONS to shared module
+### Task A0: ~~Extract ROLE_DEFINITIONS to shared module~~ DROPPED
+
+Decision recorded 2026-05-19 after recon. The wizard's inline `ROLE_DEFINITIONS` array is a hospitality job-title catalog (12 entries: daglig-leder, restaurantsjef, kjøkkensjef, etc) — NOT the canonical role source for the Ansatte hub. The Roller hub-page answers a workspace question ("who has which role here?") which is properly answered by querying `profile.role` (the `profile_role` enum: employee/manager/admin/owner/system). The hospitality job-title catalog stays inside the wizard surface where it belongs; extracting it would have shipped a static "catalog" view that ignored the actual workspace state.
+
+The wizard step itself is untouched in this sortie.
+
+### ~~Task A0 superseded~~ — proceed directly to Task A1
 
 **Files:**
 - Create: `packages/ai/src/industry/cascade-roles.ts`
@@ -154,19 +159,38 @@ Expected: server component, async function, fetches data, renders client compone
 
 - [ ] **Step 3: Create roles/page.tsx**
 
-Renders the same role list the wizard offers. Each role shown as a card with name + description + required-badge. Workspace-specific filter (which roles selected for THIS workspace) is pending the DB-tier sortie — for now the page shows the full available catalog with a banner explaining the state.
+Server component. Reuses the same data-fetching pattern as `/dashboard/people/page.tsx`: `resolveDashboardContext` + `fetchWorkspacePeople`. Groups results by `profile.role`. Renders KPI strip per role (employee, manager, admin, owner — system rows excluded from UI), then per-role profile listings.
 
 Path: `apps/web/src/app/dashboard/people/roles/page.tsx`
 
 ```tsx
-import { ShieldCheck, Info } from "lucide-react";
-import { ROLE_DEFINITIONS } from "@smartout/ai/industry/cascade-roles";
-import { getTranslations } from "@smartout/i18n/server";
+import { Briefcase, Users, ShieldCheck, Crown } from "lucide-react";
+import { createClient } from "@smartout/supabase/server";
+import { fetchWorkspacePeople } from "@smartout/utils";
+import { resolveDashboardContext } from "../../_data/resolve-page-context";
 
 export const dynamic = "force-dynamic";
 
+const ROLE_META = [
+  { key: "owner", label: "Eier", icon: Crown, accent: "amber" },
+  { key: "admin", label: "Admin", icon: ShieldCheck, accent: "orange" },
+  { key: "manager", label: "Manager", icon: Briefcase, accent: "blue" },
+  { key: "employee", label: "Ansatt", icon: Users, accent: "emerald" },
+] as const;
+
 export default async function RolesPage() {
-  const t = await getTranslations("dashboard");
+  const { workspace } = await resolveDashboardContext();
+  const supabase = await createClient();
+  const result = await fetchWorkspacePeople(supabase, workspace.workspace_id);
+
+  // Group profiles by role (filter out 'system' from operator view).
+  const byRole = new Map<string, typeof result.profiles>();
+  for (const p of result.profiles) {
+    if (p.role === "system") continue;
+    const bucket = byRole.get(p.role) ?? [];
+    bucket.push(p);
+    byRole.set(p.role, bucket);
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3">
@@ -177,47 +201,70 @@ export default async function RolesPage() {
             Roller
           </h1>
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
-            <span>Roller tilgjengelig fra Setup-veiviser (Cascade K1a hospitality)</span>
+            <span>Rolle-fordeling i workspace</span>
             <span aria-hidden className="opacity-50">·</span>
-            <span className="font-mono tabular-nums">{ROLE_DEFINITIONS.length} roller</span>
+            <span className="font-mono tabular-nums">{result.profiles.filter((p) => p.role !== "system").length} ansatte</span>
           </div>
         </div>
       </div>
 
-      {/* Banner: workspace-specific filter pending */}
-      <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
-        <p className="text-sm text-amber-800 dark:text-amber-300">
-          Workspace-spesifikk rolle-tildeling kommer i oppfølgings-sortie. Denne siden
-          viser hele katalogen som Setup-veiviseren tilbyr.
-        </p>
+      {/* KPI strip — count per role */}
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {ROLE_META.map((meta) => {
+          const count = byRole.get(meta.key)?.length ?? 0;
+          const Icon = meta.icon;
+          return (
+            <div
+              key={meta.key}
+              className="bg-card border-border relative overflow-hidden rounded-2xl border p-5 shadow-sm"
+              data-role-key={meta.key}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <Icon className="text-muted-foreground h-4 w-4" aria-hidden />
+                <span className="text-muted-foreground text-[11px] font-bold tracking-widest uppercase">
+                  {meta.label}
+                </span>
+              </div>
+              <div className="font-mono text-[36px] font-black leading-none tracking-tight tabular-nums">
+                {count}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Body — role catalog */}
+      {/* Body — per-role profile listings */}
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {ROLE_DEFINITIONS.map((role) => (
-            <div
-              key={role.id}
-              className="bg-card border-border rounded-2xl border p-5 shadow-sm"
-              data-role-id={role.id}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="text-muted-foreground h-4 w-4" aria-hidden />
-                  <h3 className="text-foreground text-sm font-bold tracking-tight">
-                    {t(role.nameKey)}
-                  </h3>
-                </div>
-                {role.required && (
-                  <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-orange-600 uppercase dark:text-orange-400">
-                    Påkrevd
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {ROLE_META.map((meta) => {
+            const profiles = byRole.get(meta.key) ?? [];
+            if (profiles.length === 0) return null;
+            return (
+              <section
+                key={meta.key}
+                className="bg-card border-border rounded-2xl border p-5 shadow-sm"
+                aria-label={`Rolle: ${meta.label}`}
+              >
+                <h2 className="text-foreground mb-3 text-sm font-bold tracking-tight">
+                  {meta.label}{" "}
+                  <span className="text-muted-foreground font-mono font-normal tabular-nums">
+                    ({profiles.length})
                   </span>
-                )}
-              </div>
-              <p className="text-muted-foreground text-xs">{t(role.descriptionKey)}</p>
-            </div>
-          ))}
+                </h2>
+                <ul className="space-y-1.5">
+                  {profiles.map((p) => (
+                    <li
+                      key={p.profile_id}
+                      className="text-foreground text-sm"
+                      data-profile-id={p.profile_id}
+                    >
+                      {p.user_identity?.display_name ?? p.user_identity?.email ?? "Ukjent"}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -225,9 +272,9 @@ export default async function RolesPage() {
 }
 ```
 
-If `@smartout/i18n/server` does not export `getTranslations`, fall back to the helper actually exported by the package — `grep -n 'export' packages/i18n/src/server*` to find. As a last resort, render `role.nameKey` and `role.descriptionKey` as raw strings with a `// TODO i18n wire` comment and report as DONE_WITH_CONCERNS.
+If `fetchWorkspacePeople` return shape uses different property names than `user_identity.display_name` / `user_identity.email`, inspect the type signature (`grep -n 'fetchWorkspacePeople' packages/utils/src` to locate) and adjust. The list-item line is the only place this matters — adjust to whatever the actual shape exposes.
 
-If the `@smartout/ai/industry/cascade-roles` import path fails to resolve in the web app (subpath imports require `@smartout/ai` to be built — known trap from L-stage-engine-subpath-imports), ensure the ai package was built in Task A0 Step 5 before this task. If still failing, fall back to a deep import: `import { ROLE_DEFINITIONS } from "@smartout/ai/dist/industry/cascade-roles"` and flag in commit message.
+If the package import resolves but `result.profiles[].role` is typed as something other than the `profile_role` enum directly (e.g. wrapped in a transform), cast explicitly: `const role = p.role as "employee" | "manager" | "admin" | "owner" | "system";` and continue.
 
 - [ ] **Step 4: Typecheck**
 
@@ -306,37 +353,18 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 Same shape as A1. Different page-title + body text.
 
-**Pre-step: locate the I1 procedure source the wizard uses.**
-
-`ConfirmProcedures.tsx` reads `state.procedures` — that array is seeded upstream from Cascade I1. Recon to find the seed source:
-
-```bash
-grep -rn 'procedures.*\[' apps/web/src/app/onboarding --include='*.ts' --include='*.tsx' | head -10
-grep -rn 'PROCEDURE_DEFINITIONS\|procedureSuggestions\|defaultProcedures' apps/web/src apps/web/src/lib packages/ai/src --include='*.ts' | head -10
-```
-
-The seed is likely in `packages/ai/src/industry/packages/hospitality.ts` (K1a baseline) or in `apps/web/src/app/onboarding/lib/`. Identify the canonical export.
-
-If found: this task imports from the same module the wizard's state-initialization uses.
-
-If NOT found (seed lives in mock or local fallback): ship the Trening page as a referenced placeholder citing the path the implementer searched, plus a "Kommer snart" banner with cascade context. Report as DONE_WITH_CONCERNS naming the missing seed location.
-
 - [ ] **Step 1: Create training/page.tsx**
+
+Pure "Kommer snart" placeholder. Real data lives in `protocol_assignment` + `knowledge_test` (HMS schema). Wiring those queries + building a workforce-readiness matrix is a separate sortie (SM-2-followup-training). Until then, the tab needs to exist so PEOPLE_TAB_DEFS can point to it.
 
 Path: `apps/web/src/app/dashboard/people/training/page.tsx`
 
 ```tsx
-import { GraduationCap, Info } from "lucide-react";
-// If procedure-seed source is found, import it:
-// import { PROCEDURE_DEFINITIONS } from "@smartout/ai/industry/cascade-procedures";
+import { Construction } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default function TrainingPage() {
-  // Replace this stub array with the actual import once cascade-procedures
-  // module exists. Until then this page renders an empty list with explanatory banner.
-  const procedures: Array<{ id: string; name: string; description: string; recommended: boolean }> = [];
-
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3">
       <div className="mb-5 flex items-end justify-between gap-4">
@@ -345,51 +373,26 @@ export default function TrainingPage() {
             Trening
           </h1>
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
-            <span>Prosedyrer tilgjengelig fra Setup-veiviser (Cascade I1)</span>
-            <span aria-hidden className="opacity-50">·</span>
-            <span className="font-mono tabular-nums">{procedures.length} prosedyrer</span>
+            <span>Workforce readiness per ansatt</span>
           </div>
         </div>
       </div>
 
-      <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
-        <p className="text-sm text-amber-800 dark:text-amber-300">
-          Cascade I1-prosedyrer kobles inn når kilde-modulen er extracted (samme mønster
-          som ROLE_DEFINITIONS i SM-2 fase A0). Workforce readiness-matrise kommer i
-          oppfølgings-sortie.
-        </p>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        {procedures.length === 0 ? (
-          <div className="bg-card border-border flex h-full flex-col items-center justify-center rounded-2xl border p-12 shadow-sm">
-            <GraduationCap className="text-muted-foreground mb-4 h-12 w-12" aria-hidden />
-            <p className="text-muted-foreground mt-2 max-w-md text-center text-sm">
-              Ingen prosedyrer å vise enda — Cascade I1-kilden må extracted først.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {procedures.map((proc) => (
-              <div
-                key={proc.id}
-                className="bg-card border-border rounded-2xl border p-5 shadow-sm"
-                data-procedure-id={proc.id}
-              >
-                <h3 className="text-foreground text-sm font-bold tracking-tight">{proc.name}</h3>
-                <p className="text-muted-foreground mt-2 text-xs">{proc.description}</p>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="bg-card border-border flex h-full flex-col items-center justify-center rounded-2xl border p-12 shadow-sm">
+          <Construction className="text-muted-foreground mb-4 h-12 w-12" aria-hidden />
+          <h2 className="text-foreground text-lg font-semibold">Kommer snart</h2>
+          <p className="text-muted-foreground mt-2 max-w-md text-center text-sm">
+            Trenings-matrise viser hvem som har gjennomført hvilke protokoller, hvem
+            som er forfalt, og workforce readiness per avdeling. Samme data som
+            /hms/training men fra ansatt-perspektiv. Bygges i SM-2-followup-training.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 ```
-
-This page is intentionally "almost-empty" because the procedure seed source needs to be located + extracted in a parallel sortie (out of SM-2 scope). The page is consistent with the canonical shell pattern and ready to receive real data when the cascade-procedures module is built.
 
 - [ ] **Step 2: Typecheck + commit**
 
@@ -702,10 +705,10 @@ Expected commit count: 7–9 commits.
 
 ## Out of Scope (deferred)
 
-- **Roller matrix UI** — the matrix view (who has which role) ships in a follow-up sortie. This sortie shows the role *catalog* (what roles exist), not the assignment view.
-- **Workspace-scoped role filter** — requires a `workspace_role` DB table that does not yet exist. SM-2-DB-tier sortie introduces it.
-- **PROCEDURE_DEFINITIONS extraction + cascade-procedures module** — parallel to A0 but harder (seed source needs location). Tracked as its own sortie. Trening page degrades gracefully until then.
-- **Trening matrix content** — workforce readiness UI. Will reuse `protocol_assignment` + `knowledge_test` query hooks from `/dashboard/hms/training` when ready.
+- **Workspace position catalog** — the hospitality job-title list (daglig-leder, restaurantsjef, kjøkkensjef, etc) currently lives inline in `ConfirmRoles.tsx` wizard step. Surfacing it elsewhere (e.g. an admin page "Definer stillinger") requires deciding whether to back it with a DB table (`workspace_position`). Tracked as SM-2-followup-positions. Not blocking SM-2.
+- **Trening matrix content** — workforce readiness UI. Will reuse `protocol_assignment` + `knowledge_test` query hooks from `/dashboard/hms/training`. Tracked as SM-2-followup-training.
+- **Per-role drill-in** — clicking a role on `/people/roles` could open an entity drawer or push to `/people/roles/[role]` for a filtered list. Out of SM-2 scope; the role-grouped lists rendered inline are sufficient for v1.
+- **Contracts URL move** — SM-2-followup-contracts. Touches 20+ files; risk too high to bundle.
 - **Contracts URL move** — SM-2-followup. Touches 20+ files; risk too high to bundle here.
 - **Drill-in tab harmonization** on `/dashboard/people/[id]` — separate sortie (spec §3.3 prescribes Profil · Roller · Kontrakt · Trening · Fravær · Aktivitet; current detail page may differ).
 - **Active-state highlighting on Kontrakter tab** when user is on `/dashboard/contracts` — already works via existing `compositeActive: ["/dashboard/contracts"]` on the Ansatte sidebar item; PEOPLE_TAB_DEFS pattern-match handles this if the existing `tab-nav` component already pathnames-prefix-matches.
