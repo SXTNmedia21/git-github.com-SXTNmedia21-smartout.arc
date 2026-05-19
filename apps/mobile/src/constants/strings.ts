@@ -37,6 +37,9 @@ export const strings = {
     leader: "Leder",
     dayInfo: "Daginfo",
     position: "Posisjon",
+    // P0-C gate: useShiftChat send path throws Zod at enqueue (channel_id missing).
+    // Banner replaces the input row until mobile-shift-chat-bff-migration ships.
+    chatUnavailableBanner: "Skiftchat oppdateres for øyeblikket — kommer tilbake i neste versjon.",
   },
   tasks: {
     title: "Oppgaver",
