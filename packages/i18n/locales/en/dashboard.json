@@ -334,7 +334,28 @@
     "brand_season_sub": "Seasons, budget and staffing in one place.",
     "brand_handbook_heading": "Your own\nhandbook.",
     "brand_handbook_sub": "Ready to use from day one.",
-    "skip_to_dashboard": "Skip to dashboard"
+    "skip_to_dashboard": "Skip to dashboard",
+    "value_props": {
+      "governance": {
+        "title": "Policies",
+        "text": "Your rules, automatically routed to training"
+      },
+      "schedule": {
+        "title": "Schedule",
+        "text": "Right person, right time, right role"
+      },
+      "operations": {
+        "title": "Operations",
+        "text": "The day runs itself, from open to close"
+      }
+    },
+    "error": {
+      "title": "Could not load setup",
+      "body": "The wizard failed to start. Check your internet connection and try again. If the problem persists, return to the dashboard.",
+      "error_id": "Error ID: {digest}",
+      "back_to_dashboard": "Back to dashboard",
+      "retry": "Try again"
+    }
   },
   "steps": {
     "welcome": "Welcome",

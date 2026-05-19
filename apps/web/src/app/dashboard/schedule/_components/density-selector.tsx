@@ -7,7 +7,6 @@
 // planner-command-bar.tsx L120-137.
 
 import { Maximize2, Rows3, Rows4, Activity } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,36 +70,14 @@ type DensitySelectorProps = {
  *   - Buttons: "schedule-density-button-{cozy|default|compact|pulse}"
  */
 export function DensitySelector({
-  value,
-  onChange,
-  visible = true,
-  "data-testid": testId = "schedule-density-selector",
+  value: _value,
+  onChange: _onChange,
+  visible: _visible = true,
+  "data-testid": _testId = "schedule-density-selector",
 }: DensitySelectorProps) {
-  if (!visible) return null;
-
-  return (
-    <div className="border-border bg-muted flex rounded-lg border p-0.5" data-testid={testId}>
-      {DENSITY_OPTIONS.map((option) => {
-        const isActive = value === option.value;
-        return (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            title={option.title}
-            aria-pressed={isActive}
-            data-testid={`schedule-density-button-${option.value}`}
-            className={cn(
-              "flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors",
-              isActive
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {isActive ? <span className="text-orange-500">{option.icon}</span> : option.icon}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+  // Pontus 2026-05-19: density selector hidden on schedule top bar.
+  // Component returns null but kept as no-op for callers / tests.
+  // Restore the full markup (segmented button group with DENSITY_OPTIONS)
+  // from git history if re-introducing.
+  return null;
 }

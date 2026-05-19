@@ -334,7 +334,28 @@
     "brand_season_sub": "Sesonger, budsjett og bemanning på ett sted.",
     "brand_handbook_heading": "Din egen\nhandbok.",
     "brand_handbook_sub": "Klar til bruk fra første dag.",
-    "skip_to_dashboard": "Hopp over og gå til dashboard"
+    "skip_to_dashboard": "Hopp over og gå til dashboard",
+    "value_props": {
+      "governance": {
+        "title": "Retningslinjer",
+        "text": "Reglene dine, automatisk til opplæring"
+      },
+      "schedule": {
+        "title": "Vaktplan",
+        "text": "Riktig person, riktig tid, riktig rolle"
+      },
+      "operations": {
+        "title": "Drift",
+        "text": "Dagen styrer seg selv, fra åpning til stenging"
+      }
+    },
+    "error": {
+      "title": "Kunne ikke laste setup",
+      "body": "Veiviseren klarte ikke å starte. Sjekk internettforbindelsen og prøv igjen. Hvis problemet vedvarer, gå tilbake til dashbordet.",
+      "error_id": "Feil-ID: {digest}",
+      "back_to_dashboard": "Tilbake til dashbord",
+      "retry": "Prøv igjen"
+    }
   },
   "steps": {
     "welcome": "Velkommen",
