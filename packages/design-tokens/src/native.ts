@@ -96,6 +96,12 @@ export const nativeTheme = {
     // Hex values sourced from handoff; match English keys above exactly.
     kjokken: "#ee560c", // = kitchen
     sal: "#00ab93", // = floor
+    // Extended 2026-05-18 — DB slug audit (SELECT DISTINCT slug FROM department)
+    // found slugs not previously in the union: kitchen (= kjokken), service (≈ sal/floor),
+    // operations. Colors derived from Nordic Split muted palette as sensible defaults;
+    // workspace admins may override via department.color in the DB.
+    service: "#00ab93", // ≈ sal/floor — same teal; service staff → floor color
+    operations: "#7a756e", // neutral warm-gray (nativeTheme.light.mutedForeground)
   },
   status: {
     trainee: "#2784d5",
