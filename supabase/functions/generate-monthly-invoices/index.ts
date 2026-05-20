@@ -1,8 +1,8 @@
 /**
  * generate-monthly-invoices — Cron-triggered billing generator.
  *
- * Runs day 5 of each month at 00:01 CET (n8n trigger, see
- * docs/runbooks/billing-monthly-cron-n8n.md). For every active company:
+ * Runs day 5 of each month at 00:01 UTC (pg_cron trigger, see
+ * docs/runbooks/billing-monthly-cron.md). For every active company:
  *
  *  1. Freezes one `usage_snapshot` per workspace for the previous month
  *     using the ADR-0119 predicate (completed shifts with employee_id).
