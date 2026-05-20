@@ -5029,6 +5029,12 @@ export interface VoiceBootstrapSnapshotSent extends BaseEvent {
       payload_bytes: number;
       /** Whether payload was omitted and a payload_url was returned instead */
       size_guard_triggered: boolean;
+      /**
+       * Discriminator for how this snapshot_sent was triggered.
+       * Absent on normal cold-start / drift-refresh (transcript route).
+       * "payload_url_fetch" when emitted by GET /api/emma/voice/snapshot/:version.
+       */
+      trigger?: "payload_url_fetch";
     };
   };
 }
