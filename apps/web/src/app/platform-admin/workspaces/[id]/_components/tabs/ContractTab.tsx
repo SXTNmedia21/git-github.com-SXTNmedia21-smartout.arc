@@ -66,6 +66,7 @@ type ContractTabProps = {
   trialDaysLeft: number | null;
   contracts: ContractRow[];
   pricingTerms: PricingTermsData | null;
+  signatory: { profileId: string; displayName: string; email: string } | null;
 };
 
 // Contract status badge colors — distinct from the generic StatusBadge map.
@@ -124,6 +125,7 @@ export function ContractTab({
   trialDaysLeft,
   contracts,
   pricingTerms: initialPricingTerms,
+  signatory,
 }: ContractTabProps) {
   // Build pre-filled "Ny kontrakt" URL with all known data
   const newContractParams = new URLSearchParams();
@@ -203,6 +205,30 @@ export function ContractTab({
 
   return (
     <TabsContent value="avtaler" className="mt-4 space-y-6">
+      {/* ── Signatory (prokura) ───────────────────────────────────────────── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-muted-foreground text-xs uppercase">Signatar (prokura)</p>
+              {signatory ? (
+                <div className="mt-1.5">
+                  <p className="text-base font-medium">{signatory.displayName}</p>
+                  <p className="text-muted-foreground text-sm">{signatory.email}</p>
+                </div>
+              ) : (
+                <p className="mt-1.5 text-sm text-amber-500">
+                  Ingen signatar satt — invitér owner først (Champions-fanen).
+                </p>
+              )}
+            </div>
+            <Badge variant={signatory ? "default" : "outline"} className="text-xs">
+              {signatory ? "Klar for kontrakt" : "Mangler"}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ── Section 1: Status row ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Abonnement */}

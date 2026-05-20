@@ -328,6 +328,24 @@ Deno.serve(async (req: Request) => {
     // ── 3b. Ensure company_member exists ──
     await ensureCompanyMember(adminClient, userId, invitation.company_id);
 
+    // ── 3c. Owner-role: set workspace.signatory_profile_id (prokura) ──
+    // When an owner-role invitation is accepted, the new profile becomes the
+    // legal signatory for the workspace. Downstream contract-service reads
+    // workspace.signatory_profile_id to address the DocuSeal envelope.
+    if (invitation.role === "owner") {
+      const { error: signatoryErr } = await adminClient
+        .from("workspace")
+        .update({ signatory_profile_id: profile.profile_id })
+        .eq("workspace_id", invitation.workspace_id);
+
+      if (signatoryErr) {
+        console.warn(
+          "[accept-invitation] failed to set workspace.signatory_profile_id:",
+          signatoryErr.message,
+        );
+      }
+    }
+
     // ── 4. Assign teams via team_member join table ──
     if (teamIds.length > 0) {
       const teamRows = teamIds.map((teamId: string) => ({

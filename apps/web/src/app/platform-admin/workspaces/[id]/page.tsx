@@ -92,6 +92,28 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
 
   const company = workspace.company as Record<string, unknown> | null;
 
+  // Resolve workspace signatory (prokura) — null for legacy workspaces or
+  // workspaces with no owner-role invite accepted yet. See migration
+  // 20260520163330_workspace_signatory_profile.sql.
+  let signatory: { profileId: string; displayName: string; email: string } | null = null;
+  const signatoryProfileId = (workspace as { signatory_profile_id?: string | null })
+    .signatory_profile_id;
+  if (signatoryProfileId) {
+    const { data: sig } = await admin
+      .from("profile")
+      .select("profile_id, display_name, user_identity:user_id(email)")
+      .eq("profile_id", signatoryProfileId)
+      .maybeSingle();
+    if (sig) {
+      const ui = sig.user_identity as unknown as { email?: string } | null;
+      signatory = {
+        profileId: sig.profile_id,
+        displayName: sig.display_name ?? "—",
+        email: ui?.email ?? "",
+      };
+    }
+  }
+
   // Fetch storage files for workspace
   const { data: storageFiles } = await admin.storage
     .from("workspace-documents")
@@ -227,6 +249,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         template: c.template as { name: string; contract_type: string } | null,
         events: [],
       }))}
+      signatory={signatory}
       pricingTerms={
         pricingTerms
           ? {
