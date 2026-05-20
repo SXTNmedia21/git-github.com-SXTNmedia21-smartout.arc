@@ -313,12 +313,31 @@ export async function POST(request: NextRequest) {
           .eq("signing_contract_id", contract.contract_id);
       }
 
-      // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition
-      // The engine_event drives profile_status update (trainee → active) via engine_process.
-      // Columns per database.types.ts Insert: event_type, workspace_id, idempotency_key, payload, fired_at.
-      // entity_type + entity_id live in payload (no top-level columns for those).
+      // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition.
+      // Option A (feat/contract-signed-active-cascade): resolve profile_id from
+      // employment_contract so engine_state.entity_type=profile + entity_id=profile_id.
+      // This lets update_entity target the profile row directly without a resolution step.
+      // engine-dispatch reads entity_type/entity_id from payload (engine-dispatch:355-356).
       if (contract.workspace_id) {
         const submissionId = data.submission_id;
+
+        // Resolve employee profile_id — required so the activation process can flip the
+        // profile row via update_entity without an intermediate resolution step (Option A).
+        // Fail-fast: if profile_id cannot be resolved, log and skip activation (contract
+        // update above already succeeded; only the cascade tail is deferred).
+        const { data: empContract } = await admin
+          .from("employment_contract")
+          .select("profile_id")
+          .eq("signing_contract_id", contract.contract_id)
+          .maybeSingle();
+
+        if (!empContract?.profile_id) {
+          console.error("[docuseal] could not resolve profile_id for employee activation", {
+            signing_contract_id: contract.contract_id,
+            submission_id: submissionId,
+          });
+        }
+
         void admin
           .from("engine_event")
           .insert({
@@ -326,11 +345,15 @@ export async function POST(request: NextRequest) {
             event_type: "contract.signed",
             idempotency_key: `docuseal:${submissionId}:signed`,
             payload: {
-              entity_type: "employment_contract",
-              entity_id: contract.contract_id,
+              // entity_type + entity_id target the PROFILE so update_entity handler
+              // flips profile.status without a separate resolution step (Option A,
+              // ADR-0379: signature = C4 authorization, no change_proposal required).
+              entity_type: empContract?.profile_id ? "profile" : "employment_contract",
+              entity_id: empContract?.profile_id ?? contract.contract_id,
               signed_at: new Date().toISOString(),
               contract_type: "employee",
               submission_id: submissionId,
+              contract_id: contract.contract_id,
             } as Json,
           })
           .then(({ error }) => {
