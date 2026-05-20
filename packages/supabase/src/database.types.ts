@@ -14889,6 +14889,7 @@ export type Database = {
           onboarding_cost: number | null
           onboarding_package: string | null
           overage_price_per_user: number | null
+          payment_terms_days: number
           price_per_employee: number
           pricing_terms_id: string
           trial_days: number | null
@@ -14915,6 +14916,7 @@ export type Database = {
           onboarding_cost?: number | null
           onboarding_package?: string | null
           overage_price_per_user?: number | null
+          payment_terms_days?: number
           price_per_employee: number
           pricing_terms_id?: string
           trial_days?: number | null
@@ -14941,6 +14943,7 @@ export type Database = {
           onboarding_cost?: number | null
           onboarding_package?: string | null
           overage_price_per_user?: number | null
+          payment_terms_days?: number
           price_per_employee?: number
           pricing_terms_id?: string
           trial_days?: number | null
@@ -20738,6 +20741,13 @@ export type Database = {
             referencedRelation: "contract"
             referencedColumns: ["contract_id"]
           },
+          {
+            foreignKeyName: "workspace_signatory_profile_id_fkey"
+            columns: ["signatory_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       workspace_bootstrap_run: {
@@ -22246,6 +22256,26 @@ export type Database = {
         Returns: {
           display_name: string
           profile_id: string
+        }[]
+      }
+      fn_check_billing_run: { Args: never; Returns: number }
+      fn_generate_company_invoice: {
+        Args: {
+          p_amount_excl_vat: number
+          p_amount_incl_vat: number
+          p_company_id: string
+          p_currency: string
+          p_due_at: string
+          p_line_items: Json
+          p_period_from: string
+          p_period_to: string
+          p_pricing_terms_id: string
+          p_vat_amount: number
+          p_vat_rate: number
+        }
+        Returns: {
+          invoice_id: string
+          invoice_number: number
         }[]
       }
       fn_list_my_tasks: {
@@ -24954,4 +24984,3 @@ export const Constants = {
     },
   },
 } as const
-

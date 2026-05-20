@@ -251,8 +251,8 @@ async function generateForCompany(
   const amount_incl_vat = toMoney(amount_excl_vat + vat_amount);
 
   const due_at = toIsoDate(
-    new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-  ); // net 14
+    new Date(Date.now() + (pt.payment_terms_days ?? 14) * 24 * 60 * 60 * 1000),
+  ); // net = pricing_terms.payment_terms_days (default 14)
 
   // Build line items array to pass to the atomic RPC. The invoice_id is
   // assigned inside the function, so we omit it here — the RPC joins it
