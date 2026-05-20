@@ -4,14 +4,18 @@
  * Manages session lifecycle and provides mobile-specific context
  * (shift phase, channel, device type) to the AI agent.
  *
- * Voice mode uses Ultravox WebRTC (browser context via Expo Web).
- * Text mode connects to Stage Engine via useAgentChat.
+ * Voice mode uses LiveKit (ADR-0282 / ADR-0135).
+ * Text mode POSTs typed messages to /api/emma/chat via useEmmaChat.
  *
  * ADR-0107: `channel` is a SessionChannel ('chat' | 'voice' | 'system' | ...).
  * It MUST be derived from `mode` — never a device/platform label like
  * "mobile" or "web". Device type is surfaced separately on `device_type`
  * for telemetry only. The security defence-in-depth declared by ADR-0077,
  * ADR-0078 and the ADR-0099 gate_action RPC all read this field verbatim.
+ *
+ * Transcript: voice and text turns share a single `transcript` array. Mode
+ * switching voice ↔ text mid-session preserves transcript history — neither
+ * startVoiceSession nor startTextSession clears it. Only endSession resets.
  */
 
 import {
@@ -35,6 +39,8 @@ import type {
   BotssonLanguage,
   BotssonInteractionMode,
 } from "@/hooks/stores/use-botsson-settings-store";
+import { useEmmaChat } from "@/hooks/use-emma-chat";
+import type { ChatTurnResponse } from "@/hooks/use-emma-chat";
 import {
   deriveBotssonChannel,
   type BotssonDeviceType,
@@ -124,12 +130,17 @@ type BotssonContextValue = {
    */
   lastVoiceResponse: string;
   /**
-   * Accumulated conversation transcript for the current voice session.
-   * Alternates user → agent turns in chronological order. Reset when a new
-   * session starts (`startVoiceSession`) or the session ends (`endSession`).
-   * Empty array when no session has been started or in text/chat mode.
+   * Shared conversation transcript for the current session — covers BOTH
+   * voice and text turns. Alternates user → agent turns in chronological
+   * order. Mode switching voice ↔ text preserves history (no clear).
+   * Reset only on endSession().
+   *
+   * `voiceTranscript` is kept as an alias for backwards-compat callers
+   * (BotssonSheet) — it exposes the same array.
    */
   voiceTranscript: TranscriptEntry[];
+  /** P5: unified transcript exposed under its canonical name. */
+  transcript: TranscriptEntry[];
   sessionContext: BotssonSessionContext;
   /** Intent to consume when the next session starts (one-shot). */
   pendingIntent: BotssonIntent | null;
@@ -137,7 +148,18 @@ type BotssonContextValue = {
   startTextSession: () => void;
   endSession: () => void;
   /**
-   * Mute or unmute the microphone in the active Ultravox session.
+   * P5: Send a typed message in text mode. Performs optimistic append to
+   * transcript, posts to /api/emma/chat, appends agent response.
+   * Rolls back optimistic entry on network failure.
+   * Returns false when the hook is not ready (no workspaceId).
+   */
+  sendTextMessage: (text: string) => Promise<boolean>;
+  /** True while a text message is in flight to the BFF. */
+  isSendingText: boolean;
+  /** Friendly error string from last text send failure, or null. */
+  textError: string | null;
+  /**
+   * Mute or unmute the microphone in the active voice session.
    * No-op if there is no active voice session.
    */
   setMicrophoneMuted: (muted: boolean) => void;
@@ -185,6 +207,13 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
    * Dedup is by version — if incoming version matches stored, skip.
    */
   const [currentSnapshot, setCurrentSnapshot] = useState<ResolvedSnapshot | null>(null);
+
+  /**
+   * P5 text-session state.
+   * session_id from the BFF is persisted here so subsequent text turns
+   * continue the same engine_sessions row (warm turns).
+   */
+  const [textSessionId, setTextSessionId] = useState<string | null>(null);
 
   // AI settings — user preferences persisted via MMKV.
   const {
@@ -250,8 +279,37 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     onSnapshot: handleSnapshot,
   });
 
-  // Accumulated voice transcript for the current session.
-  const [voiceTranscript, setVoiceTranscript] = useState<TranscriptEntry[]>([]);
+  /**
+   * P5 — unified transcript for both voice and text turns.
+   * Never cleared on mode switch — only on endSession().
+   */
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+
+  /**
+   * P5 — text chat hook. Active regardless of mode so session continuity
+   * (textSessionId) persists across voice ↔ text switches within one
+   * BotssonProvider lifetime.
+   */
+  const emmaChatOnResponse = useCallback((response: ChatTurnResponse) => {
+    // Agent turn appended here (after network round-trip).
+    setTranscript((prev) => [
+      ...prev,
+      {
+        id: `agent-text-${response.sessionId}-${Date.now()}`,
+        role: "agent",
+        text: response.text,
+        timestamp: Date.now(),
+      },
+    ]);
+    // Persist session id for warm turns.
+    setTextSessionId(response.sessionId);
+  }, []);
+
+  const emmaChat = useEmmaChat({
+    workspaceId,
+    sessionId: textSessionId,
+    onResponse: emmaChatOnResponse,
+  });
 
   // Append a user turn when a new ASR utterance arrives.
   // Guard against duplicate appends: only fire when the text actually changes
@@ -259,19 +317,19 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   useEffect(() => {
     const text = voice.lastUserTranscript;
     if (!text || mode !== "voice") return;
-    setVoiceTranscript((prev) => [
+    setTranscript((prev) => [
       ...prev,
-      { id: `user-${Date.now()}`, role: "user", text, timestamp: Date.now() },
+      { id: `user-voice-${Date.now()}`, role: "user", text, timestamp: Date.now() },
     ]);
   }, [voice.lastUserTranscript, mode]);
 
-  // Append an agent turn when the BFF response arrives.
+  // Append an agent turn when the BFF voice response arrives.
   useEffect(() => {
     const text = voice.lastResponse;
     if (!text || mode !== "voice") return;
-    setVoiceTranscript((prev) => [
+    setTranscript((prev) => [
       ...prev,
-      { id: `agent-${Date.now()}`, role: "agent", text, timestamp: Date.now() },
+      { id: `agent-voice-${Date.now()}`, role: "agent", text, timestamp: Date.now() },
     ]);
   }, [voice.lastResponse, mode]);
 
@@ -345,7 +403,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const startVoiceSession = useCallback(async () => {
     setError(null);
-    setVoiceTranscript([]);
+    // Transcript is NOT cleared — mode switching preserves history.
     setMode("voice");
     setStatus("connecting");
     try {
@@ -358,19 +416,65 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const startTextSession = useCallback(() => {
     setError(null);
+    // Transcript is NOT cleared — mode switching preserves history.
     setStatus("active");
     setMode("text");
   }, []);
 
+  /**
+   * P5: Send a typed message in text mode.
+   *
+   * Optimistic flow:
+   * 1. Immediately append user entry to transcript (visible within one render).
+   * 2. POST to BFF via useEmmaChat.
+   * 3a. On success: agent entry appended by emmaChatOnResponse callback.
+   * 3b. On failure: rollback optimistic entry + return false.
+   *
+   * Returns true on success, false on any failure (network, 4xx, 5xx).
+   */
+  const sendTextMessage = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!workspaceId) return false;
+      const trimmed = text.trim();
+      if (!trimmed) return false;
+
+      // Optimistic user entry — appended BEFORE the network call so the
+      // user sees their message within one render cycle.
+      const optimisticId = `user-text-opt-${Date.now()}`;
+      const optimisticEntry: TranscriptEntry = {
+        id: optimisticId,
+        role: "user",
+        text: trimmed,
+        timestamp: Date.now(),
+      };
+      setTranscript((prev) => [...prev, optimisticEntry]);
+
+      const result = await emmaChat.send(trimmed);
+
+      if (result === null) {
+        // Rollback: remove the optimistic entry. Keep any other turns that
+        // may have been appended after ours (e.g. from voice concurrently —
+        // unlikely, but safe via id-match rollback).
+        setTranscript((prev) => prev.filter((entry) => entry.id !== optimisticId));
+        return false;
+      }
+
+      return true;
+    },
+    [workspaceId, emmaChat],
+  );
+
   const endSession = useCallback(() => {
     voiceSessionRef.current?.leave();
     voiceSessionRef.current = null;
-    // Tear down the new C1.b voice session too. `stop()` is idempotent.
+    // Tear down the C1.b voice session. `stop()` is idempotent.
     void voice.stop();
     setStatus("idle");
     setMode(null);
     setError(null);
-    setVoiceTranscript([]);
+    // Clear unified transcript and text session id on full session end.
+    setTranscript([]);
+    setTextSessionId(null);
     // ADR-0297: clear snapshot on session end so the next session always
     // gets a fresh cold-start snapshot from the BFF.
     setCurrentSnapshot(null);
@@ -409,12 +513,18 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       isMuted: voice.isMuted,
       voiceStatus: voice.status,
       lastVoiceResponse: voice.lastResponse,
-      voiceTranscript,
+      // voiceTranscript kept as alias for backwards-compat callers.
+      voiceTranscript: transcript,
+      // P5: canonical unified transcript surface.
+      transcript,
       sessionContext,
       pendingIntent,
       startVoiceSession,
       startTextSession,
       endSession,
+      sendTextMessage,
+      isSendingText: emmaChat.isSending,
+      textError: emmaChat.error?.message ?? null,
       setMicrophoneMuted,
       openWithIntent,
       clearIntent,
@@ -433,12 +543,15 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       voice.isMuted,
       voice.status,
       voice.lastResponse,
-      voiceTranscript,
+      transcript,
       sessionContext,
       pendingIntent,
       startVoiceSession,
       startTextSession,
       endSession,
+      sendTextMessage,
+      emmaChat.isSending,
+      emmaChat.error,
       setMicrophoneMuted,
       openWithIntent,
       clearIntent,

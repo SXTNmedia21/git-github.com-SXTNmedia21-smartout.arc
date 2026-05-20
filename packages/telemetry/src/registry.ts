@@ -5211,6 +5211,55 @@ export interface MobileBotssonSheetOpened extends BaseEvent {
   };
 }
 
+// ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ────────────
+// Emitted by use-emma-chat.ts on the mobile thin client.
+// message_sent: posthog (funnel analytics) + logger + activity_trail (message-send audit).
+//   No engine_event — informational, not workflow-driving.
+// response_received: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+//   No engine_event — informational.
+// error: posthog (error funnel) + logger + activity_trail (error audit for degraded sessions).
+//   No engine_event — not a state-machine input.
+export interface MobileChatMessageSent extends BaseEvent {
+  event: "mobile.chat.message_sent";
+  properties: {
+    data: {
+      /** Character length of the message — no PII. */
+      length: number;
+      /** Whether a stage-engine session_id was supplied (warm vs cold turn). */
+      session_id_present: boolean;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileChatResponseReceived extends BaseEvent {
+  event: "mobile.chat.response_received";
+  properties: {
+    data: {
+      /** End-to-end latency from send() call to response parsed (ms). */
+      latency_ms: number;
+      /** Character length of the agent response — no PII. */
+      response_length: number;
+      /** Routed intent returned by stage-engine (e.g. "schedule", "profile"). */
+      intent?: string;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileChatError extends BaseEvent {
+  event: "mobile.chat.error";
+  properties: {
+    data: {
+      /** Short error code — never PII, never full stack trace. */
+      reason: string;
+      /** HTTP status from BFF, or 0 for network failures. */
+      status_code: number;
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -9140,7 +9189,11 @@ export type SmartoutEvent =
   // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
   | MobileFabLongPress
   | MobileAiPrefsChanged
-  | MobileBotssonSheetOpened;
+  | MobileBotssonSheetOpened
+  // ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ──
+  | MobileChatMessageSent
+  | MobileChatResponseReceived
+  | MobileChatError;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -14821,6 +14874,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "mobile.botsson_sheet.opened": {
     destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
+  // ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ──
+  // message_sent: posthog (funnel) + logger + activity_trail (send-audit).
+  // response_received: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+  // error: posthog + logger + activity_trail (error audit for degraded sessions).
+  "mobile.chat.message_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.chat.response_received": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.chat.error": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
 };

@@ -1,16 +1,18 @@
 /**
- * BotssonSheet — Bottom sheet (75% height) for voice AI interaction.
+ * BotssonSheet — Bottom sheet (75% height) for voice/text AI interaction.
  *
- * Tap → mic toggles mute/unmute. Shows real-time transcript.
- * Status orb indicates: connecting (pulse), listening (glow),
- * thinking (rotate), speaking (wave).
+ * Voice mode: tap mic to toggle mute/unmute. Status orb shows session state.
+ * Text mode: text input + send button in thumb zone. Same TranscriptPane.
+ *
+ * Mode is controlled by BotssonProvider.mode — the sheet renders the
+ * appropriate control area based on the current mode.
  *
  * Voice session powered by LiveKit (per ADR-0282).
- * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
+ * Text mode POSTs to /api/emma/chat via BotssonProvider.sendTextMessage.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Text, Pressable } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, Pressable, TextInput } from "react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -64,15 +66,22 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     const theme = useTheme();
     const {
       status,
+      mode,
       isMuted,
       voiceEnabled,
-      voiceTranscript,
+      transcript,
       pendingIntent,
       clearIntent,
       startVoiceSession,
       endSession,
       setMicrophoneMuted,
+      sendTextMessage,
+      isSendingText,
+      textError,
     } = useBotsson();
+
+    // Local text input state — controlled input for the text-mode compose field.
+    const [textInput, setTextInput] = useState("");
 
     // Snapshot the intent the moment it arrives so the prompt persists for the
     // duration of the sheet session even after clearIntent() fires.
@@ -87,17 +96,27 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       }
     }, [pendingIntent, clearIntent]);
 
-    // Reset captured intent when the sheet closes (endSession resets status to idle).
+    // Reset captured intent + text input when the sheet closes.
     useEffect(() => {
       if (status === "idle") {
         capturedIntentRef.current = null;
+        setTextInput("");
       }
     }, [status]);
 
-    // transcript is the provider-accumulated voice turn history.
-    // When voice is disabled the array stays empty — chat-only path uses it too
-    // (empty state remains until a voice session starts).
-    const transcript = voiceEnabled ? voiceTranscript : [];
+    /**
+     * P5 text-mode send handler.
+     * 1. Trims and guards empty input.
+     * 2. Clears the compose field immediately so the user can type the next message.
+     * 3. Delegates to sendTextMessage() which handles optimistic append + rollback.
+     */
+    const handleSendText = useCallback(async () => {
+      const trimmed = textInput.trim();
+      if (!trimmed || isSendingText) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setTextInput("");
+      await sendTextMessage(trimmed);
+    }, [textInput, isSendingText, sendTextMessage]);
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -132,6 +151,11 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
 
     /** Human-readable status label shown above the orb */
     const statusLabel = useMemo(() => {
+      if (mode === "text") {
+        if (textError) return "Feil — prøv igjen";
+        if (isSendingText) return "Sender...";
+        return "Skriv en melding";
+      }
       switch (status) {
         case "connecting":
           return "Kobler til...";
@@ -142,7 +166,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
         default:
           return "Klar";
       }
-    }, [status, isMuted]);
+    }, [mode, status, isMuted, isSendingText, textError]);
 
     /**
      * Orb color encodes session state at a glance:
@@ -229,29 +253,64 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             </View>
           ) : null}
 
-          {/* Transcript — scrollable conversation history (extracted to TranscriptPane) */}
+          {/* Transcript — shared for voice and text turns */}
           <TranscriptPane transcripts={transcript} />
 
-          {/* Control area — status orb + mic button in thumb zone */}
+          {/* Control area — mode-conditional: text input OR voice mic */}
           <View style={styles.controlArea}>
             <Text style={styles.statusLabel}>{statusLabel}</Text>
 
-            {/* Animated orb — color + pulse encode session state */}
-            <Animated.View style={[styles.orb, orbStyle, { backgroundColor: orbColor }]} />
+            {mode === "text" ? (
+              /* P5 — Text mode compose row */
+              <View style={styles.textRow}>
+                <TextInput
+                  style={styles.textInput}
+                  value={textInput}
+                  onChangeText={setTextInput}
+                  placeholder="Skriv en melding..."
+                  placeholderTextColor={theme.colors.mutedForeground}
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSendText}
+                  editable={!isSendingText}
+                  accessibilityLabel="Skriv melding til Botsson"
+                  accessibilityRole="search"
+                />
+                <Pressable
+                  onPress={handleSendText}
+                  disabled={isSendingText || textInput.trim().length === 0}
+                  style={({ pressed }) => [
+                    styles.sendButton,
+                    pressed && styles.sendButtonPressed,
+                    (isSendingText || textInput.trim().length === 0) && styles.sendButtonDisabled,
+                  ]}
+                  accessibilityLabel="Send melding"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.sendIcon}>{isSendingText ? "…" : "↑"}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              /* Voice mode — orb + mic button */
+              <>
+                {/* Animated orb — color + pulse encode session state */}
+                <Animated.View style={[styles.orb, orbStyle, { backgroundColor: orbColor }]} />
 
-            {/* Large mic button — positioned in thumb zone at bottom of sheet */}
-            <Pressable
-              onPress={handleMicPress}
-              style={({ pressed }) => [
-                styles.micButton,
-                pressed && styles.micButtonPressed,
-                isMuted && status === "active" && styles.micButtonMuted,
-              ]}
-              accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
-              accessibilityRole="button"
-            >
-              <Text style={styles.micIcon}>{isMuted ? "🔇" : "🎙"}</Text>
-            </Pressable>
+                {/* Large mic button — positioned in thumb zone at bottom of sheet */}
+                <Pressable
+                  onPress={handleMicPress}
+                  style={({ pressed }) => [
+                    styles.micButton,
+                    pressed && styles.micButtonPressed,
+                    isMuted && status === "active" && styles.micButtonMuted,
+                  ]}
+                  accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.micIcon}>{isMuted ? "🔇" : "🎙"}</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </GorhomBottomSheet>
@@ -345,5 +404,45 @@ const useStyles = createStyles((theme) => ({
   },
   micIcon: {
     fontSize: 28,
+  },
+  // P5 — text-mode compose row
+  textRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.tight,
+    paddingHorizontal: theme.spacing.card,
+    width: "100%",
+  },
+  textInput: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.foreground,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.tight,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minHeight: 44,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.brandOrange,
+    alignItems: "center",
+    justifyContent: "center",
+    ...theme.shadows.sm,
+  },
+  sendButtonPressed: {
+    opacity: 0.8,
+  },
+  sendButtonDisabled: {
+    backgroundColor: theme.colors.muted,
+  },
+  sendIcon: {
+    ...theme.typography.headline,
+    color: theme.colors.background,
+    fontSize: 20,
   },
 }));
