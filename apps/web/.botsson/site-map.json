@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-16T00:00:00.000Z",
+  "generated_at": "2026-05-18T00:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -330,8 +330,29 @@
       ]
     },
     {
+      "path": "/dashboard/chat",
+      "purpose": "Direkte meldinger og gruppechat med kolleger — uformell 1:1 og gruppekommunikasjon. Promotert til eget toppnivå-punkt i sidefeltet (SM-5).",
+      "module": "Communication",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "owns_chat_surface": true,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "createChat",
+          "description": "Create a 1:1 direct-message channel with another workspace member by profile_id. If the DM already exists, it returns the existing channel_id. Use when the user says 'start chat med NN', 'send DM til NN'. The caller must look up the profile_id first via the people directory."
+        }
+      ],
+      "suggested_prompts": [
+        "Start en DM med [navn]",
+        "Hvem kan jeg chatte med?",
+        "Åpne chat med teamet"
+      ]
+    },
+    {
       "path": "/dashboard/komm",
-      "purpose": "Kanaler, direktemeldinger og talesamtaler — send meldinger, se historikk og bli med i aktive calls.",
+      "purpose": "Kommunikasjon — fire faner: Kanaler (kanaler, DM, tale), Skranke (helpdesk), Nyheter (kunngjøringer), Varsler (notifications).",
+      "tabs": ["kanaler", "skranke", "nyheter", "varsler"],
       "module": "Communication",
       "tier": 1,
       "access": ["owner", "admin", "manager", "employee"],
@@ -459,8 +480,10 @@
       ]
     },
     {
-      "path": "/dashboard/notifications",
-      "purpose": "Alle varsler om vakter, oppgaver, avvik og kontrakter — samlet på ett sted. Klikk for å gå til kilden.",
+      "path": "/dashboard/komm/varsler",
+      "purpose": "Varsler — alle varsler om vakter, oppgaver, avvik og kontrakter samlet på ett sted. Tab under Kommunikasjon (SM-5). Gammel sti /dashboard/notifications redirecter hit (307).",
+      "deprecated_path": "/dashboard/notifications",
+      "redirects_from": "/dashboard/notifications",
       "module": "Core",
       "tier": 3,
       "access": ["owner", "admin", "manager", "employee"],
@@ -554,7 +577,7 @@
       "module": "Year Wheel",
       "tier": 2,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -853,7 +876,25 @@
       ]
     },
     {
-      "path": "/dashboard/contracts",
+      "path": "/dashboard/hms/training",
+      "purpose": "Training mode for protocols + competence matrix. Admin sees readiness matrix; employee sees assigned protocols (role-conditional).",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-17",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Vis mine protokoller",
+        "Hva er opplæringsstatus for teamet?",
+        "Vis kompetansematrise",
+        "Hvilke protokoller er tildelt meg?",
+        "Er noen utløpt på opplæring?"
+      ]
+    },
+    {
+      "path": "/dashboard/people/contracts",
       "purpose": "Employment contracts list — D2 resource availability. Status filter, signatures pending, AML §14-6 compliance.",
       "module": "Contracts",
       "tier": 3,
@@ -900,7 +941,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]",
+      "path": "/dashboard/people/contracts/[id]",
       "purpose": "Kontraktdetalj — ansatt, stilling, status, vilkår, decline-info, ADR-0244 compliance overrides, lineage. Read + nav.",
       "module": "Contracts",
       "tier": 3,
@@ -923,7 +964,7 @@
         },
         {
           "name": "navigateToReviseContract",
-          "description": "Navigate to the contract revision composer at /dashboard/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
+          "description": "Navigate to the contract revision composer at /dashboard/people/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
         },
         {
           "name": "navigateToCompleteEmployeeData",
@@ -939,7 +980,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/[id]/revise",
+      "path": "/dashboard/people/contracts/[id]/revise",
       "purpose": "Kontraktrevisjon — CompositionWizard wrapper. Tools dekker kun kontekst + tilbake-nav.",
       "module": "Contracts",
       "tier": 3,
@@ -954,7 +995,7 @@
         },
         {
           "name": "navigateBackToContract",
-          "description": "Navigate back to the original contract detail view (/dashboard/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
+          "description": "Navigate back to the original contract detail view (/dashboard/people/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
         }
       ],
       "common_intents": [
@@ -966,7 +1007,7 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/awaiting-my-signature",
+      "path": "/dashboard/people/contracts/awaiting-my-signature",
       "purpose": "Inbox over kontrakter som venter arbeidsgivers signatur. Server-component med klient-bridge for tools.",
       "module": "Contracts",
       "tier": 3,
@@ -997,8 +1038,8 @@
       ]
     },
     {
-      "path": "/dashboard/contracts/new",
-      "purpose": "Deprecated redirect — sender til /dashboard/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
+      "path": "/dashboard/people/contracts/new",
+      "purpose": "Deprecated redirect — sender til /dashboard/people/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
       "module": "Contracts",
       "tier": 3,
       "access": ["manager", "admin", "owner"],
@@ -1055,7 +1096,7 @@
     },
     {
       "path": "/dashboard/settings",
-      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface.",
+      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface. Also hosts organisasjonsstruktur (Struktur: Avdelinger/Lokasjoner/Team) and POS-integrasjoner (SM-9 2026-05-19).",
       "module": "Settings",
       "tier": 3,
       "access": ["owner", "admin"],
@@ -1069,7 +1110,7 @@
         },
         {
           "name": "listSettingsSections",
-          "description": "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+          "description": "List all settings sections (General, Payroll, Schedule, Framework, Kontrakter, Struktur, Integrasjoner) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
         },
         {
           "name": "getCurrentTabInfo",
@@ -1077,7 +1118,7 @@
         },
         {
           "name": "openSettingsSection",
-          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', 'vis avdelinger', 'gå til struktur', 'åpne POS integrasjoner', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings, struktur-overview, avdelinger, lokasjoner, team, pos, tripletex, sendgrid."
         },
         {
           "name": "getPayrollSettingsSummary",
@@ -1086,6 +1127,14 @@
         {
           "name": "getOperatingHoursSummary",
           "description": "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+        },
+        {
+          "name": "openStrukturTab",
+          "description": "Navigate to the Struktur section in Settings — shows organisation structure (Avdelinger, Lokasjoner, Team). Valid sub-tab args: struktur-overview, avdelinger, lokasjoner, team."
+        },
+        {
+          "name": "openIntegrasjonerTab",
+          "description": "Navigate to the Integrasjoner section in Settings. Valid tab: pos (POS Integrasjoner — live data). Tripletex + SendGrid are placeholders."
         }
       ],
       "common_intents": [
@@ -1133,7 +1182,7 @@
     },
     {
       "path": "/dashboard/organization",
-      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
+      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin. Redirects to /dashboard/settings#struktur-overview as of SM-9 2026-05-19. Sub-routes (departments/[id], locations/[id], teams/[id]) are NOT redirected.",
       "module": "Organization",
       "tier": 3,
       "access": ["owner", "admin"],
@@ -1577,7 +1626,7 @@
       "module": "Proposals",
       "tier": 3,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -1616,7 +1665,7 @@
       "module": "Setup",
       "tier": 3,
       "access": ["owner", "admin"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-18",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -2118,6 +2167,37 @@
         "Hvor mange seksjoner er synlige?",
         "Hva er tittelen på siden?",
         "Kan jeg forhåndsvise siden?"
+      ]
+    },
+    {
+      "path": "/dashboard/payroll/tariff",
+      "purpose": "Administrer arbeidsplassens tariffbinding (fagforenings-ID, avtaleversjon, ikrafttredelsesdato) og lokale tillegg over tariffgulvet. Viser gjeldende binding, paragraf-referanser og historikk over bindingsbytter.",
+      "module": "Payroll",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-17",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCurrentTariffBinding",
+          "description": "Get the current tariff binding for this workspace — union name, law version, effective date, and paragraf references. Call first when the user asks 'hvilken tariff er vi på?', 'hva er tariffversjon?', or 'vis tariffbinding'."
+        },
+        {
+          "name": "changeTariffBinding",
+          "description": "Change (or set up) the workspace tariff binding. Requires admin role. Use when the user says 'bytt tariff', 'oppdater overenskomst', 'ny tariffversjon', or 'endre tariffbinding'. Requires: union_id (UUID), law_version, official_effective_date."
+        },
+        {
+          "name": "addSupplementOverride",
+          "description": "Add a workspace-level supplement override on top of the tariff baseline. Use when the user says 'legg til tillegg', 'kveldstillegg', 'helgetillegg', or 'lokalt tillegg'. The supplement cannot be set below the tariff floor."
+        }
+      ],
+      "common_intents": [
+        "Hvilken tariff er vi bundet til?",
+        "Bytt til ny tariffversjon",
+        "Legg til kveldstillegg",
+        "Vis tarifffastlagte satser",
+        "Hva er gjeldende overenskomst?"
       ]
     }
   ]

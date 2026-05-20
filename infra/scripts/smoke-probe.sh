@@ -58,13 +58,20 @@ NC='\033[0m'
 ok()   { echo -e "  ${GREEN}OK${NC}    $1"; }
 fail() { echo -e "  ${RED}FAIL${NC}  $1"; }
 warn() { echo -e "  ${YELLOW}WARN${NC}  $1"; }
+skip() { echo -e "  ${YELLOW}SKIP${NC}  $1"; }
 
-# Surface URLs per environment
+# Surface URLs per environment.
+#
+# Preview Supabase note (ADR-0071-amendment, ADR-0360, L-0300, 2026-05-17):
+# preview tier no longer maintains a persistent Branch DB. Supabase REST + EF
+# surfaces are INTENTIONALLY skipped for preview when SUPABASE_PREVIEW_REF is
+# empty/unset (no override). Production retains hard-fail behavior — its ref
+# is load-bearing.
 case "$ENV" in
   preview)
     WEB="${VERCEL_PREVIEW_WEB_URL:-https://smartout-web-git-preview-smartout.vercel.app}"
     LANDING="${VERCEL_PREVIEW_LANDING_URL:-https://smartout-landing-git-preview-smartout.vercel.app}"
-    SUPABASE_REF="${SUPABASE_PREVIEW_REF:-rrjfrisxvrrhyzzitlxd}"
+    SUPABASE_REF="${SUPABASE_PREVIEW_REF:-}"   # Empty default per ADR-0360
     DROPLET_PROBE=false   # No preview droplet (ADR-0071 accepted asymmetry)
     ;;
   production)
@@ -107,26 +114,40 @@ case "$ENV:$LANDING_CODE" in
   *) fail "Vercel landing ($LANDING) — http $LANDING_CODE"; FAILED=$((FAILED + 1)) ;;
 esac
 
-# ── Probe: Supabase REST (reachability — 200/401/403 all = alive) ───
-# Supabase REST always requires apikey. We only verify the endpoint
-# responds with a known auth-status, not 5xx or DNS failure.
-SUPA_REST_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-  "https://${SUPABASE_REF}.supabase.co/rest/v1/" 2>/dev/null || echo "000")
-case "$SUPA_REST_CODE" in
-  200|401|403) ok "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE = alive" ;;
-  *) fail "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE"; FAILED=$((FAILED + 1)) ;;
-esac
+# ── Probe: Supabase REST + Edge Functions ──────────────────────────────────
+# Preview tier (per ADR-0360): no persistent Branch DB. When SUPABASE_REF is
+# empty, intentionally SKIP both Supabase surfaces — not a failure. Override
+# by exporting SUPABASE_PREVIEW_REF=<ref> if a Branch DB has been provisioned.
+# Production tier always probes (ref is load-bearing).
+if [ -z "$SUPABASE_REF" ]; then
+  if [ "$ENV" = "preview" ]; then
+    skip "Supabase REST — no preview Branch DB (intentional per ADR-0360); export SUPABASE_PREVIEW_REF to override"
+    skip "Edge Functions — no preview Branch DB (intentional per ADR-0360); export SUPABASE_PREVIEW_REF to override"
+  else
+    fail "Supabase REST — SUPABASE_REF empty for env=$ENV (unexpected)"
+    FAILED=$((FAILED + 1))
+    fail "Edge Functions — SUPABASE_REF empty for env=$ENV (unexpected)"
+    FAILED=$((FAILED + 1))
+  fi
+else
+  # Supabase REST always requires apikey. Verify endpoint responds with a known
+  # auth-status, not 5xx or DNS failure.
+  SUPA_REST_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+    "https://${SUPABASE_REF}.supabase.co/rest/v1/" 2>/dev/null || echo "000")
+  case "$SUPA_REST_CODE" in
+    200|401|403) ok "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE = alive" ;;
+    *) fail "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE"; FAILED=$((FAILED + 1)) ;;
+  esac
 
-# ── Probe: Edge Functions (workspace-api reachability) ──────
-# workspace-api is the canonical entry per ADR-0039. 200/401/404 = function alive.
-# 5xx or no response = function dead.
-EF_URL="https://${SUPABASE_REF}.supabase.co/functions/v1/workspace-api/health"
-EF_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$EF_URL" 2>/dev/null || echo "000")
-case "$EF_CODE" in
-  200|204) ok "Edge Functions (workspace-api/health) — http $EF_CODE" ;;
-  401|403|404) ok "Edge Functions reachable — http $EF_CODE = alive (auth-gated)" ;;
-  *) fail "Edge Functions ($EF_URL) — http $EF_CODE"; FAILED=$((FAILED + 1)) ;;
-esac
+  # workspace-api is the canonical entry per ADR-0039. 200/401/404 = function alive.
+  EF_URL="https://${SUPABASE_REF}.supabase.co/functions/v1/workspace-api/health"
+  EF_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$EF_URL" 2>/dev/null || echo "000")
+  case "$EF_CODE" in
+    200|204) ok "Edge Functions (workspace-api/health) — http $EF_CODE" ;;
+    401|403|404) ok "Edge Functions reachable — http $EF_CODE = alive (auth-gated)" ;;
+    *) fail "Edge Functions ($EF_URL) — http $EF_CODE"; FAILED=$((FAILED + 1)) ;;
+  esac
+fi
 
 # ── Probe: Droplet (production only, SSH-aware) ─────────────
 if [ "$DROPLET_PROBE" = "true" ]; then

@@ -169,18 +169,18 @@ export const P_SIDEBAR_ORPHAN_COVERAGE: JourneyIR = {
     {
       key: "5_contracts",
       order: 5,
-      title: "Administrasjon > Kontrakter — /dashboard/contracts er nåbar",
-      action: "Naviger til /dashboard/contracts.",
-      assertion: "URL er /dashboard/contracts — ingen 500-redirect.",
+      title: "Administrasjon > Kontrakter — /dashboard/people/contracts er nåbar",
+      action: "Naviger til /dashboard/people/contracts.",
+      assertion: "URL er /dashboard/people/contracts — ingen 500-redirect.",
       description:
-        "Smoke: /dashboard/contracts (Kontrakter, linked-orphan in Administrasjon group).",
+        "Smoke: /dashboard/people/contracts (Kontrakter, linked-orphan in Administrasjon group).",
       actions: [
-        { type: "navigate", url: "/dashboard/contracts" },
+        { type: "navigate", url: "/dashboard/people/contracts" },
         { type: "settle", ms: 1_500 },
       ],
       gate: {
         type: "url_match",
-        pattern: "/dashboard/contracts",
+        pattern: "/dashboard/people/contracts",
         timeout_ms: 10_000,
       },
       screenshot: false,

@@ -1,8 +1,21 @@
 "use client";
 
-import { Calendar, CheckCircle2, AlertTriangle, StickyNote, LogIn, LogOut } from "lucide-react";
+import { useMemo, useState, useContext } from "react";
+import type React from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@smartout/ui";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
+import type { SelectionSource } from "./use-timeline-selection";
+import { EVENT_TYPE_META, EVENT_TYPE_ORDER, type ShapeKind } from "./event-types";
+import { ClusterMarker } from "./ClusterMarker";
+
+const SPARSE_THRESHOLD = 4; // events within bounds at/below this → auto-zoom near now
+const ZOOM_HALF_WINDOW = 180; // minutes either side of now
 
 export type DayTimelineStripProps = {
   events: DayEvent[];
@@ -22,76 +35,44 @@ export type DayTimelineStripProps = {
   editable?: boolean;
   /**
    * Called with the resolved HH:MM string when a time-axis slot is clicked.
-   * Only fires when editable=true.
+   * Second arg is the clicked button's bounding rect, so the caller can
+   * anchor a popover at the click point. Only fires when editable=true.
    */
-  onSlotClick?: (timeHHMM: string) => void;
+  onSlotClick?: (timeHHMM: string, rect: DOMRect) => void;
+  /** The currently selected event id — drives selection ring on the matching marker. */
+  highlightedId?: string | null;
+  /** Which surface triggered the current selection — "list" → pulse marker. */
+  pulseSource?: SelectionSource;
+  /**
+   * Department ID — passed through to telemetry and ClusterMarker.
+   * Required for ui.dagslinjen.cluster_expanded (ADR-0134).
+   */
+  departmentId?: string;
+  /**
+   * Session ID — passed through to telemetry and ClusterMarker.
+   */
+  sessionId?: string;
+  /**
+   * Phase boundaries in minute-of-day space. When provided, renders three
+   * subtle phase-tint bands between the background bar and now-marker.
+   * Computed by getPhaseBoundaries() from @smartout/utils.
+   * null = session bounds missing; undefined = not yet computed.
+   */
+  phaseBoundaries?: {
+    prep: [number, number];
+    service: [number, number];
+    windDown: [number, number];
+  } | null;
 };
 
-type ShapeKind = "dot" | "flag" | "diamond" | "arrow-down" | "arrow-up" | "ring";
+// ShapeKind is imported from ./event-types above; used by the Marker component below.
 
-const TYPE_META: Record<
-  DayEventType,
-  {
-    icon: typeof Calendar;
-    shape: ShapeKind;
-    /** Tailwind class for fill color (use /80 for soft). */
-    fill: string;
-    /** Ring color for halo. */
-    ring: string;
-    /** Icon color (white for solid shapes, inherits when ring-only). */
-    iconColor: string;
-    label: string;
-  }
-> = {
-  booking: {
-    icon: Calendar,
-    shape: "dot",
-    fill: "bg-blue-400/90 dark:bg-blue-500/80",
-    ring: "ring-blue-300/40 dark:ring-blue-500/25",
-    iconColor: "text-white",
-    label: "Booking",
-  },
-  note: {
-    icon: StickyNote,
-    shape: "flag",
-    fill: "bg-purple-400/90 dark:bg-purple-500/80",
-    ring: "ring-purple-300/40 dark:ring-purple-500/25",
-    iconColor: "text-white",
-    label: "Notat",
-  },
-  task: {
-    icon: CheckCircle2,
-    shape: "ring",
-    fill: "bg-emerald-400/85 dark:bg-emerald-500/75",
-    ring: "ring-emerald-300/40 dark:ring-emerald-500/25",
-    iconColor: "text-white",
-    label: "Oppgave",
-  },
-  deviation: {
-    icon: AlertTriangle,
-    shape: "diamond",
-    fill: "bg-rose-400/90 dark:bg-rose-500/80",
-    ring: "ring-rose-300/40 dark:ring-rose-500/25",
-    iconColor: "text-white",
-    label: "Avvik",
-  },
-  checkin: {
-    icon: LogIn,
-    shape: "arrow-down",
-    fill: "bg-amber-400/90 dark:bg-amber-500/80",
-    ring: "ring-amber-300/40 dark:ring-amber-500/25",
-    iconColor: "text-white",
-    label: "Innsjekk",
-  },
-  checkout: {
-    icon: LogOut,
-    shape: "arrow-up",
-    fill: "bg-muted-foreground/60",
-    ring: "ring-muted-foreground/20",
-    iconColor: "text-background",
-    label: "Utsjekk",
-  },
-};
+function minutesToHHMM(m: number): string {
+  const wrapped = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const mm = wrapped % 60;
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
 
 function timeToMinutes(hhmm: string | null): number | null {
   if (!hhmm) return null;
@@ -113,7 +94,7 @@ function Marker({
   fill: string;
   ring: string;
   iconColor: string;
-  Icon: typeof Calendar;
+  Icon: React.FC<React.SVGProps<SVGSVGElement>>;
 }) {
   if (shape === "dot") {
     return (
@@ -210,68 +191,169 @@ export function DayTimelineStrip({
   onSelect,
   editable = false,
   onSlotClick,
+  highlightedId,
+  pulseSource,
+  departmentId = "",
+  sessionId = "",
+  phaseBoundaries,
 }: DayTimelineStripProps) {
-  const startMin = timeToMinutes(startHHMM) ?? 6 * 60;
-  let endMin = timeToMinutes(endHHMM) ?? 26 * 60;
-  if (endMin <= startMin) endMin += 24 * 60;
-  const span = endMin - startMin;
+  const reduceMotion = useReducedMotion();
+  const dashCtx = useContext(DashboardContext);
+  const wsCtx = useWorkspaceOptional();
+  const profileId = dashCtx.profileId;
+  const workspaceId = wsCtx?.workspace.workspace_id;
 
-  // Hour ticks every 2 hours
-  const ticks: { min: number; label: string }[] = [];
-  for (let m = Math.ceil(startMin / 60) * 60; m <= endMin; m += 120) {
-    const h = Math.floor((m % (24 * 60)) / 60);
-    ticks.push({
-      min: m - startMin,
-      label: `${String(h).padStart(2, "0")}:00`,
-    });
-  }
+  // Session bounds — the full operating window.
+  const boundsStart = timeToMinutes(startHHMM) ?? 6 * 60;
+  let boundsEnd = timeToMinutes(endHHMM) ?? 26 * 60;
+  if (boundsEnd <= boundsStart) boundsEnd += 24 * 60;
 
-  // Now marker
+  // Now marker (computed against bounds — visible-window decision uses this).
   const now = new Date();
   const todayISO = now.toISOString().slice(0, 10);
   const isToday = todayISO === dateISO;
   const nowMin = isToday ? now.getHours() * 60 + now.getMinutes() : null;
+
+  // Normalise events to absolute minutes within bounds (handles post-midnight).
+  const normalised = useMemo(
+    () =>
+      events
+        .map((e) => {
+          const m = timeToMinutes(e.time);
+          if (m == null) return null;
+          let normM = m;
+          if (normM < boundsStart && normM + 24 * 60 <= boundsEnd) normM += 24 * 60;
+          if (normM < boundsStart || normM > boundsEnd) return null;
+          let normEnd: number | null = null;
+          if (e.endTime) {
+            const em = timeToMinutes(e.endTime);
+            if (em != null) {
+              let nem = em;
+              if (nem < boundsStart && nem + 24 * 60 <= boundsEnd) nem += 24 * 60;
+              if (nem >= boundsStart && nem <= boundsEnd) normEnd = nem;
+            }
+          }
+          return { event: e, normM, normEnd };
+        })
+        .filter((x): x is { event: DayEvent; normM: number; normEnd: number | null } => x !== null)
+        .sort((a, b) => a.normM - b.normM),
+    [events, boundsStart, boundsEnd],
+  );
+
+  // Zoom mode — "auto" means: today + sparse + now-in-bounds → zoom near now.
+  const [zoomMode, setZoomMode] = useState<"auto" | "full">("auto");
+
+  const isSparse = normalised.length <= SPARSE_THRESHOLD;
+  const nowInBounds = nowMin != null && nowMin >= boundsStart && nowMin <= boundsEnd;
+  const shouldZoom = zoomMode === "auto" && isSparse && nowInBounds;
+
+  let visibleStart = boundsStart;
+  let visibleEnd = boundsEnd;
+  if (shouldZoom && nowMin != null) {
+    // Snap window to 30-min boundaries for clean ticks.
+    const rawStart = Math.max(boundsStart, nowMin - ZOOM_HALF_WINDOW);
+    const rawEnd = Math.min(boundsEnd, nowMin + ZOOM_HALF_WINDOW);
+    visibleStart = Math.floor(rawStart / 30) * 30;
+    visibleEnd = Math.ceil(rawEnd / 30) * 30;
+    // Re-clamp after snapping.
+    if (visibleStart < boundsStart) visibleStart = boundsStart;
+    if (visibleEnd > boundsEnd) visibleEnd = boundsEnd;
+  }
+  const span = visibleEnd - visibleStart;
+
+  // Hour ticks — interval adapts to visible span.
+  const tickInterval = span <= 8 * 60 ? 60 : 120;
+  const ticks: { min: number; label: string }[] = [];
+  for (let m = Math.ceil(visibleStart / 60) * 60; m <= visibleEnd; m += tickInterval) {
+    const h = Math.floor((m % (24 * 60)) / 60);
+    ticks.push({
+      min: m - visibleStart,
+      label: `${String(h).padStart(2, "0")}:00`,
+    });
+  }
+
   const nowPct =
-    nowMin != null && nowMin >= startMin && nowMin <= endMin
-      ? ((nowMin - startMin) / span) * 100
+    nowInBounds && nowMin! >= visibleStart && nowMin! <= visibleEnd
+      ? ((nowMin! - visibleStart) / span) * 100
       : null;
 
-  // Map events to position percent + optional end percent (for duration bars).
-  const positioned = events
-    .map((e) => {
-      const m = timeToMinutes(e.time);
-      if (m == null) return null;
-      let normM = m;
-      if (normM < startMin && normM + 24 * 60 <= endMin) normM += 24 * 60;
-      if (normM < startMin || normM > endMin) return null;
-      const pct = ((normM - startMin) / span) * 100;
-      let pctEnd: number | null = null;
-      if (e.endTime) {
-        const em = timeToMinutes(e.endTime);
-        if (em != null) {
-          let nem = em;
-          if (nem < startMin && nem + 24 * 60 <= endMin) nem += 24 * 60;
-          if (nem >= startMin && nem <= endMin) {
-            pctEnd = ((nem - startMin) / span) * 100;
-          }
-        }
+  // Position events using visible window. Events outside window counted for edge pills.
+  let offscreenLeft = 0;
+  let offscreenRight = 0;
+  const positioned = normalised
+    .map(({ event, normM, normEnd }) => {
+      if (normM < visibleStart) {
+        offscreenLeft += 1;
+        return null;
       }
-      return { event: e, pct, pctEnd };
+      if (normM > visibleEnd) {
+        offscreenRight += 1;
+        return null;
+      }
+      const pct = ((normM - visibleStart) / span) * 100;
+      let pctEnd: number | null = null;
+      if (normEnd != null && normEnd >= visibleStart && normEnd <= visibleEnd) {
+        pctEnd = ((normEnd - visibleStart) / span) * 100;
+      }
+      return { event, pct, pctEnd };
     })
-    .filter((x): x is { event: DayEvent; pct: number; pctEnd: number | null } => x !== null)
-    .sort((a, b) => a.pct - b.pct);
+    .filter((x): x is { event: DayEvent; pct: number; pctEnd: number | null } => x !== null);
+  // Keep backwards-compat names below (startMin/endMin) so following hit-zone code untouched.
+  const startMin = visibleStart;
+  const endMin = visibleEnd;
 
-  // Simple lane assignment to avoid overlap when markers within 2% of each other
+  // ─── Cluster pre-processing ───────────────────────────────────────────────
+  // Group positioned entries by 15-min bucket. Buckets with 2+ events collapse
+  // to a ClusterMarker; buckets with 1 event remain as normal markers.
+  const CLUSTER_BUCKET_MIN = 15;
+  type ClusterBucket = {
+    bucketIdx: number;
+    startMin: number;
+    endMin: number;
+    entries: typeof positioned;
+    pct: number; // center pct of the bucket's first entry (anchor)
+  };
+
+  const bucketMap = new Map<number, typeof positioned>();
+  for (const p of positioned) {
+    // Reconstruct normM from pct: normM = startMin + (pct/100)*span
+    const normM = startMin + (p.pct / 100) * span;
+    const bucketKey = Math.floor((normM - startMin) / CLUSTER_BUCKET_MIN);
+    const bucket = bucketMap.get(bucketKey) ?? [];
+    bucket.push(p);
+    bucketMap.set(bucketKey, bucket);
+  }
+
+  const clusters: ClusterBucket[] = [];
+  const singlesPositioned: typeof positioned = [];
+
+  for (const [key, entries] of bucketMap.entries()) {
+    if (entries.length >= 2) {
+      const bucketStartAbsMin = startMin + key * CLUSTER_BUCKET_MIN;
+      const bucketEndAbsMin = bucketStartAbsMin + CLUSTER_BUCKET_MIN;
+      clusters.push({
+        bucketIdx: key,
+        startMin: bucketStartAbsMin,
+        endMin: bucketEndAbsMin,
+        entries,
+        pct: entries[0]?.pct ?? 0,
+      });
+    } else if (entries[0]) {
+      singlesPositioned.push(entries[0]);
+    }
+  }
+
+  // Lane assignment for singles only — clusters get their own marker.
   const LANES = 3;
   const laneTails: number[] = [-100, -100, -100];
-  const withLanes = positioned.map((p) => {
+  const withLanes = singlesPositioned.map((p) => {
     let lane = 0;
     for (let i = 0; i < LANES; i++) {
       if (p.pct - (laneTails[i] ?? -100) > 2) {
         lane = i;
         break;
       }
-      if (i === LANES - 1) lane = 0; // overflow → top
+      if (i === LANES - 1) lane = 0;
     }
     laneTails[lane] = p.pct;
     return { ...p, lane };
@@ -299,11 +381,26 @@ export function DayTimelineStrip({
   return (
     <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-5 shadow-sm">
       <div className="relative z-10">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-foreground text-sm font-bold tracking-tight">Dagslinjen</h3>
-          <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
-            {startHHMM ?? "—"}–{endHHMM ?? "—"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
+              {minutesToHHMM(visibleStart)}–{minutesToHHMM(visibleEnd)}
+            </span>
+            {nowInBounds && isSparse && (
+              <button
+                type="button"
+                onClick={() => setZoomMode((m) => (m === "auto" ? "full" : "auto"))}
+                className={cn(
+                  "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase transition-colors",
+                  "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                )}
+                aria-label={zoomMode === "auto" ? "Vis hele dagen" : "Zoom inn på nå"}
+              >
+                {zoomMode === "auto" ? "Hele dagen" : "Nær nå"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Track */}
@@ -311,14 +408,86 @@ export function DayTimelineStrip({
           {/* Background bar */}
           <div className="border-border bg-muted/40 absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full border" />
 
+          {/* Off-screen counters (auto-zoom only) */}
+          {offscreenLeft > 0 && (
+            <button
+              type="button"
+              onClick={() => setZoomMode("full")}
+              className="bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border-border focus-visible:ring-ring absolute top-1/2 left-1 z-20 flex -translate-y-1/2 items-center gap-0.5 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tabular-nums shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              aria-label={`${offscreenLeft} hendelser før dette vinduet — vis hele dagen`}
+            >
+              <ChevronLeft className="h-3 w-3" aria-hidden />
+              {offscreenLeft}
+            </button>
+          )}
+          {offscreenRight > 0 && (
+            <button
+              type="button"
+              onClick={() => setZoomMode("full")}
+              className="bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border-border focus-visible:ring-ring absolute top-1/2 right-1 z-20 flex -translate-y-1/2 items-center gap-0.5 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tabular-nums shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              aria-label={`${offscreenRight} hendelser etter dette vinduet — vis hele dagen`}
+            >
+              {offscreenRight}
+              <ChevronRight className="h-3 w-3" aria-hidden />
+            </button>
+          )}
+
+          {/* Phase tinting — three bands rendered between background bar and now-marker.
+              Only rendered when phaseBoundaries is provided (calculated in TimelineTab). */}
+          {phaseBoundaries != null && (
+            <>
+              {(
+                [
+                  ["prep", phaseBoundaries.prep, "var(--color-phase-prep)"] as const,
+                  ["service", phaseBoundaries.service, "var(--color-phase-service)"] as const,
+                  ["winddown", phaseBoundaries.windDown, "var(--color-phase-winddown)"] as const,
+                ] as const
+              ).map(([key, [rangeStart, rangeEnd], color]) => {
+                // Skip degenerate bands or those fully outside visible range.
+                if (rangeEnd <= rangeStart) return null;
+                if (rangeEnd < startMin || rangeStart > endMin) return null;
+                const clampedStart = Math.max(rangeStart, startMin);
+                const clampedEnd = Math.min(rangeEnd, endMin);
+                const leftPct = ((clampedStart - startMin) / span) * 100;
+                const widthPct = ((clampedEnd - clampedStart) / span) * 100;
+                return (
+                  <div
+                    key={key}
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      height: 8,
+                      top: "50%",
+                      transform: "translateY(2px)",
+                      backgroundColor: color,
+                      opacity: 0.4,
+                      borderRadius: 4,
+                    }}
+                  />
+                );
+              })}
+            </>
+          )}
+
           {/* Now marker */}
           {nowPct != null ? (
             <div
-              className="absolute top-2 bottom-2 w-px bg-orange-500/60"
+              className="absolute top-2 bottom-2 z-[1] w-0.5 rounded-full bg-orange-500/80"
               style={{ left: `${nowPct}%` }}
-              aria-label="Nå"
+              role="img"
+              aria-label={`Klokken er nå ${minutesToHHMM(nowMin!)}`}
             >
-              <span className="absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50" />
+              <span
+                className={cn(
+                  "absolute -top-1 left-1/2 inline-block h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-md ring-2 ring-orange-200 dark:ring-orange-900/50",
+                  !reduceMotion && "animate-pulse",
+                )}
+              />
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-sm bg-orange-500 px-1 py-px font-mono text-[9px] font-bold tracking-wider text-white tabular-nums shadow-sm">
+                NÅ {minutesToHHMM(nowMin!)}
+              </span>
             </div>
           ) : null}
 
@@ -356,11 +525,13 @@ export function DayTimelineStrip({
                   key={`slot-${slot.label}`}
                   type="button"
                   aria-label={`Legg til kl ${slot.label}`}
-                  onClick={() => onSlotClick?.(slot.label)}
+                  onClick={(e) =>
+                    onSlotClick?.(slot.label, e.currentTarget.getBoundingClientRect())
+                  }
                   className={cn(
                     "group absolute top-0 bottom-0 z-0",
                     "cursor-pointer",
-                    "focus-visible:outline-none",
+                    "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
                   )}
                   style={{ left: `${slot.pct}%`, width: `${widthPct}%` }}
                 >
@@ -380,13 +551,13 @@ export function DayTimelineStrip({
           {/* Duration bars (tasks with start+end). Rendered behind markers. */}
           {withLanes.map(({ event, pct, pctEnd, lane }) => {
             if (pctEnd == null || pctEnd <= pct) return null;
-            const meta = TYPE_META[event.type];
+            const meta = EVENT_TYPE_META[event.type];
             const offsetY = lane === 0 ? "0" : lane === 1 ? "-22px" : "22px";
             return (
               <div
                 key={`bar-${event.id}`}
                 aria-hidden
-                className={cn("absolute top-1/2 h-2 rounded-full", meta.fill)}
+                className={cn("absolute top-1/2 h-2 rounded-full", meta.stripFill)}
                 style={{
                   left: `${pct}%`,
                   width: `${pctEnd - pct}%`,
@@ -397,21 +568,58 @@ export function DayTimelineStrip({
             );
           })}
 
-          {/* Event markers in lanes */}
+          {/* Single event markers in lanes */}
           {withLanes.map(({ event, pct, lane }) => {
-            const meta = TYPE_META[event.type];
+            const meta = EVENT_TYPE_META[event.type];
             const Icon = meta.icon;
             const offsetY = lane === 0 ? "0" : lane === 1 ? "-22px" : "22px";
+            const isHighlighted = highlightedId === event.id;
+            const shouldPulse = isHighlighted && pulseSource === "list" && !reduceMotion;
+            // Key bump when shouldPulse: forces remount → re-fires keyframe animation
+            // even when user clicks the same row twice in succession.
+            const motionKey = shouldPulse
+              ? `marker-${event.id}-pulse-${Date.now()}`
+              : `marker-${event.id}`;
             return (
-              <button
-                key={event.id}
+              <motion.button
+                key={motionKey}
                 type="button"
-                onClick={() => onSelect?.(event)}
+                onClick={() => {
+                  onSelect?.(event);
+                  // Emit telemetry — guard: only when IDs present (ADR-0134)
+                  if (workspaceId && profileId) {
+                    void emit({
+                      event: "ui.dagslinjen.marker_clicked",
+                      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+                      actor_id: nonEmpty(profileId, "actor_id"),
+                      properties: {
+                        data: {
+                          eventId: event.id,
+                          eventTypeKind: event.type,
+                          departmentId: departmentId ?? "",
+                          sessionId: sessionId ?? "",
+                          time: event.time,
+                        },
+                      },
+                    });
+                  }
+                }}
                 title={`${event.time} · ${event.title}${event.actor ? ` · ${event.actor}` : ""}`}
-                aria-label={`${event.time} ${event.title}`}
+                aria-label={`${event.time} — ${EVENT_TYPE_META[event.type].label}: ${event.title}`}
+                initial={false}
+                animate={shouldPulse ? { scale: [1, 1.3, 1] } : { scale: 1 }}
+                transition={
+                  shouldPulse
+                    ? { duration: 1.2, ease: motionTokens.easingArray }
+                    : { type: "spring", ...motionTokens.springSnappy }
+                }
                 className={cn(
-                  "absolute top-1/2 z-10 transition-transform",
+                  "absolute top-1/2 z-10",
+                  // Selection state: outline-based indicator (decoupled from focus ring)
+                  isHighlighted && "outline-ring rounded-full outline outline-2 outline-offset-1",
+                  // Focus ring: always present for keyboard users, independent of selection
                   "hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
+                  "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2",
                 )}
                 style={{
                   left: `${pct}%`,
@@ -420,36 +628,56 @@ export function DayTimelineStrip({
               >
                 <Marker
                   shape={meta.shape}
-                  fill={meta.fill}
-                  ring={meta.ring}
-                  iconColor={meta.iconColor}
+                  fill={meta.stripFill}
+                  ring={meta.stripRing}
+                  iconColor={meta.stripIconColor}
                   Icon={Icon}
                 />
-              </button>
+              </motion.button>
+            );
+          })}
+
+          {/* Cluster markers — collapsed from buckets with 2+ events */}
+          {clusters.map((cluster) => {
+            const bucketAbsStartMin = cluster.startMin % (24 * 60);
+            const bucketAbsEndMin = cluster.endMin % (24 * 60);
+            const fmt = (m: number) =>
+              `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+            return (
+              <ClusterMarker
+                key={`cluster-${cluster.bucketIdx}`}
+                events={cluster.entries.map((e) => e.event)}
+                pct={cluster.pct}
+                offsetY="0"
+                onSelect={(e) => onSelect?.(e)}
+                bucketIdx={cluster.bucketIdx}
+                departmentId={departmentId}
+                sessionId={sessionId}
+                bucketStartHHMM={fmt(bucketAbsStartMin)}
+                bucketEndHHMM={fmt(bucketAbsEndMin)}
+              />
             );
           })}
         </div>
 
         {/* Legend */}
         <div className="text-muted-foreground/80 mt-4 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px]">
-          {(["booking", "note", "task", "deviation", "checkin", "checkout"] as DayEventType[]).map(
-            (k) => {
-              const meta = TYPE_META[k];
-              const Icon = meta.icon;
-              return (
-                <span key={k} className="inline-flex items-center gap-1.5">
-                  <Marker
-                    shape={meta.shape}
-                    fill={meta.fill}
-                    ring={meta.ring}
-                    iconColor={meta.iconColor}
-                    Icon={Icon}
-                  />
-                  {meta.label}
-                </span>
-              );
-            },
-          )}
+          {EVENT_TYPE_ORDER.map((k) => {
+            const meta = EVENT_TYPE_META[k];
+            const Icon = meta.icon;
+            return (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <Marker
+                  shape={meta.shape}
+                  fill={meta.stripFill}
+                  ring={meta.stripRing}
+                  iconColor={meta.stripIconColor}
+                  Icon={Icon}
+                />
+                {meta.label}
+              </span>
+            );
+          })}
         </div>
       </div>
     </div>

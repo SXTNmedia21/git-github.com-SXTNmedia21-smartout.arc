@@ -293,6 +293,24 @@
       "sign_with_exceptions": "Signer med unntak",
       "sign_session": "Signer økt",
       "sent_to_review": "Sendt til oppgjør"
+    },
+    "procedureDetailTabs": {
+      "overview": "Oversikt",
+      "steps": "Steg",
+      "quiz": "Quiz",
+      "confirmation": "Bekreftelse",
+      "required": "Påkrevd",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "not_found": "Prosedyre ikke funnet.",
+      "no_steps": "Ingen steg definert.",
+      "knowledge_tests_placeholder": "Kunnskapstester vises her. Kobles i neste iterasjon.",
+      "confirmations_placeholder": "Bekreftelser vises her. Kobles i neste iterasjon.",
+      "protocol_label": "Protokoll",
+      "policy_label": "Policy",
+      "steps_count": "Steg",
+      "last_updated": "Sist oppdatert",
+      "training_content_label": "Opplæringsinnhold:"
     }
   },
   "setup": {
@@ -316,7 +334,33 @@
     "brand_season_sub": "Sesonger, budsjett og bemanning på ett sted.",
     "brand_handbook_heading": "Din egen\nhandbok.",
     "brand_handbook_sub": "Klar til bruk fra første dag.",
-    "skip_to_dashboard": "Hopp over og gå til dashboard"
+    "skip_to_dashboard": "Hopp over og gå til dashboard",
+    "value_props": {
+      "governance": {
+        "title": "Retningslinjer",
+        "text": "Reglene dine, automatisk til opplæring"
+      },
+      "schedule": {
+        "title": "Vaktplan",
+        "text": "Riktig person, riktig tid, riktig rolle"
+      },
+      "operations": {
+        "title": "Drift",
+        "text": "Dagen styrer seg selv, fra åpning til stenging"
+      }
+    },
+    "error": {
+      "title": "Kunne ikke laste setup",
+      "body": "Veiviseren klarte ikke å starte. Sjekk internettforbindelsen og prøv igjen. Hvis problemet vedvarer, gå tilbake til dashbordet.",
+      "error_id": "Feil-ID: {digest}",
+      "back_to_dashboard": "Tilbake til dashbord",
+      "retry": "Prøv igjen"
+    },
+    "document_drop": {
+      "drop_here": "Dra og slipp dokumenter her",
+      "or_click": "eller klikk for å velge filer",
+      "hint": "PDF, DOCX, XLSX, CSV, bilder · Maks {max_files} filer, {max_mb} MB per fil"
+    }
   },
   "steps": {
     "welcome": "Velkommen",
@@ -643,6 +687,84 @@
   "nav": {
     "todo": "Å gjøre"
   },
+  "sidebar": {
+    "disabled_tooltip": "Kommer snart",
+    "disabled_badge": "Snart",
+    "group_oversikt": "Oversikt",
+    "group_drift": "Drift",
+    "group_planlegging": "Planlegging",
+    "group_administrasjon": "Administrasjon",
+    "group_hms_compliance": "HMS & Compliance",
+    "group_kommunikasjon": "Kommunikasjon",
+    "group_integrasjoner": "Integrasjoner",
+    "group_ai_botsson": "AI & Botsson",
+    "group_veiledning": "Veiledning",
+    "group_min_tid": "Min Tid",
+    "group_showcase": "Showcase",
+    "item_oversikt": "Oversikt",
+    "item_kanaler": "Kanaler",
+    "item_chat": "Chat",
+    "item_nyheter": "Nyheter",
+    "item_desks": "Desks",
+    "item_ansatte": "Ansatte",
+    "item_vaktplan": "Vaktplan",
+    "item_kalender": "Kalender",
+    "item_vaktbors": "Vaktbørs",
+    "item_rutiner": "Rutiner",
+    "item_forslag": "Forslag",
+    "item_arshjul": "Årshjul",
+    "item_setup_veiviser": "Setup-veiviser",
+    "item_organisasjon": "Organisasjon",
+    "item_lonn": "Lønn",
+    "item_avstemming": "Avstemming",
+    "item_rapporter": "Rapporter",
+    "item_kontrakter": "Kontrakter",
+    "item_kostnader": "Kostnader",
+    "item_fakturering": "Fakturering",
+    "item_nettside": "Nettside",
+    "item_hms_oversikt": "HMS-oversikt",
+    "item_avvik": "Avvik",
+    "item_dokumenter": "Dokumenter",
+    "item_trening": "Trening",
+    "item_drift_sjekk": "Drift-sjekk",
+    "item_styring": "Styring",
+    "item_policies": "Policies",
+    "item_handbok": "Handbok",
+    "item_pos_lightspeed": "POS Lightspeed",
+    "item_mr_botsson": "Mr. Botsson",
+    "item_onboarding_assistent": "Onboarding-assistent",
+    "item_manualer": "Manualer",
+    "item_min_plan": "Min plan",
+    "item_min_lonn": "Min lønn",
+    "item_min_kontrakt": "Min kontrakt",
+    "item_min_cv": "Min CV",
+    "item_min_trening": "Min trening",
+    "item_min_profil": "Min profil",
+    "item_stempelur": "Stempelur",
+    "item_templates": "Templates",
+    "item_analytics": "Analytics",
+    "item_system_intelligence": "System Intelligence",
+    "item_chat_standalone": "Chat",
+    "item_kommunikasjon_root": "Kommunikasjon",
+    "item_oppgaver": "Oppgaver",
+    "item_planlegging": "Planlegging",
+    "item_hms": "HMS",
+    "group_oppgaver": "Oppgaver",
+    "group_vaktplan": "Vaktplan",
+    "group_ansatte": "Ansatte",
+    "group_hms": "HMS",
+    "group_lonn": "Lønn",
+    "group_avstemming": "Avstemming",
+    "group_rapporter": "Rapporter",
+    "group_chat": "Chat",
+    "group_min_plan": "Min plan",
+    "group_min_lonn": "Min lønn",
+    "group_min_kontrakt": "Min kontrakt",
+    "group_min_cv": "Min CV",
+    "group_min_trening": "Min trening",
+    "group_min_profil": "Min profil",
+    "group_stempelur": "Stempelur"
+  },
   "todo_group": {
     "departments": "Avdelinger",
     "staff": "Ansatte",
@@ -723,7 +845,10 @@
       "payroll": "Lønn",
       "schedule": "Vaktplan",
       "framework": "Regelverk",
-      "organization": "Organisasjon"
+      "organization": "Organisasjon",
+      "kontrakter": "Kontrakter",
+      "struktur": "Struktur",
+      "integrasjoner": "Integrasjoner"
     },
     "tabs": {
       "general": "Generelt",
@@ -746,7 +871,14 @@
       "tariff_rates": "Tariffsatser",
       "change_proposals": "Endringsforslag",
       "holidays": "Helligdager",
-      "contract_template_bindings": "Mal-bindinger"
+      "contract_template_bindings": "Mal-bindinger",
+      "struktur_overview": "Oversikt",
+      "avdelinger": "Avdelinger",
+      "lokasjoner": "Lokasjoner",
+      "team": "Team",
+      "pos_integrasjoner": "POS Integrasjoner",
+      "tripletex": "Tripletex",
+      "sendgrid": "SendGrid"
     }
   },
   "settings_hours": {
@@ -957,5 +1089,167 @@
     "toast_approved": "Godkjent",
     "toast_reminder_sent": "Påminnelse sendt",
     "toast_task_completed": "Oppgave fullført"
+  },
+  "schedule": {
+    "absence_approval": {
+      "title": "Fraværssøknader",
+      "reject": "Avslå",
+      "confirm_reject": "Er du sikker på at du vil avslå denne fraværssøknaden?",
+      "cancel": "Avbryt",
+      "days_count": "{count} dager",
+      "type_sick": "Sykdom",
+      "type_vacation": "Ferie",
+      "type_parental": "Foreldrepermisjon",
+      "type_unpaid": "Permisjon uten lønn",
+      "type_military": "Militærtjeneste",
+      "type_training": "Opplæring",
+      "type_welfare": "Velferd"
+    },
+    "tabs": {
+      "aria_label": "Vaktplan-seksjoner",
+      "vaktplan": "Vaktplan",
+      "vaktbors": "Vaktbørs",
+      "ferieplan": "Ferieplan"
+    },
+    "view_mode": {
+      "aria_label": "Visningsmodus",
+      "liste": "Liste",
+      "kalender": "Kalender",
+      "tidslinjer": "Tidslinjer",
+      "tidslinjer_tooltip": "Bygges i SM-6"
+    },
+    "ferieplan": {
+      "loading": "Laster ferieplan…",
+      "empty": "Ingen ferieønsker registrert",
+      "status_pending": "Søkt",
+      "status_approved": "Godkjent",
+      "status_rejected": "Avslått"
+    }
+  },
+  "shell": {
+    "header": {
+      "active_season": "Aktiv sesong:",
+      "season_placeholder": "Vinter 2026",
+      "season_active_badge": "Aktiv",
+      "doc_mode_off": "Tilbake til drift",
+      "doc_mode_on": "Dokumentmodus"
+    },
+    "nav": {
+      "settings": "Innstillinger",
+      "help": "Hjelp",
+      "admin_mode": "Adminmodus",
+      "employee_mode": "Ansattmodus",
+      "botsson": "Mr. Botsson"
+    },
+    "breadcrumb": {
+      "drift": "Drift",
+      "workspace": "Arbeidsrom",
+      "handbook": "Handbok",
+      "doc_mode": "Dokumentmodus"
+    },
+    "segment": {
+      "schedule": "Vaktplan",
+      "people": "Ansatte",
+      "reports": "Rapporter",
+      "operations": "Drift",
+      "hms": "HMS",
+      "year_wheel": "Årshjul",
+      "calendar": "Kalender",
+      "organization": "Organisasjon",
+      "settings": "Innstillinger",
+      "help": "Hjelp",
+      "komm": "Kanaler",
+      "ai": "Mr. Botsson",
+      "onboarding_assistant": "Onboarding-assistent",
+      "my_schedule": "Min vaktplan",
+      "my_training": "Min opplæring",
+      "my_cv": "Min profil",
+      "my_salary": "Min lønn",
+      "overview": "Oversikt"
+    },
+    "schedule": {
+      "layout_daily": "Ukeplan",
+      "layout_monthly": "Måned",
+      "layout_list": "Vaktliste",
+      "layout_grid": "Bemanning",
+      "week": "Uke {week}, {year}",
+      "active_cycle": "Aktiv syklus",
+      "cycle": "Syklus {offset}",
+      "today": "I dag",
+      "month_jan": "Januar",
+      "month_feb": "Februar",
+      "month_mar": "Mars",
+      "month_apr": "April",
+      "month_may": "Mai",
+      "month_jun": "Juni",
+      "month_jul": "Juli",
+      "month_aug": "August",
+      "month_sep": "September",
+      "month_oct": "Oktober",
+      "month_nov": "November",
+      "month_dec": "Desember",
+      "publish": "Publiser ({count})"
+    },
+    "dashboard_tabs": {
+      "overview": "Oversikt",
+      "insight": "Innsikt",
+      "activity": "Aktivitet",
+      "todo": "Å gjøre"
+    },
+    "search": {
+      "placeholder": "Søk i drift..."
+    },
+    "badge": {
+      "requests": "{count} Forespørsler"
+    }
+  },
+  "day": {
+    "control": {
+      "tab_overview": "Oversikt",
+      "tab_timeline": "Dagslinjen",
+      "tab_roster": "Bemanning",
+      "tab_tasks": "Oppgaver",
+      "tab_deviations": "Avvik",
+      "tab_broadcast": "Melding",
+      "aria_tabs": "Dag-informasjon seksjoner",
+      "elapsed_opened": "Åpnet {time}",
+      "elapsed_pending_signoff": "Venter på signering",
+      "elapsed_closed": "Stengt",
+      "elapsed_missed": "Grace overskredet",
+      "no_dept_heading": "Ingen avdeling knyttet",
+      "no_dept_body": "Du har ingen avdeling registrert på profilen din, og arbeidsrommet har ingen avdelinger satt opp. Kontakt admin for å få tildelt en avdeling."
+    }
+  },
+  "people": {
+    "tab_list": "Liste",
+    "tab_roles": "Roller",
+    "tab_contracts": "Kontrakter",
+    "tab_training": "Trening",
+    "filter_invited": "Invitert",
+    "training": {
+      "subtitle": "Beredskap per ansatt",
+      "kpi_ready": "Klar arbeidsstyrke",
+      "kpi_avg": "Snitt beredskap",
+      "kpi_expired": "Forfalt",
+      "kpi_soon": "Forfall <14d",
+      "no_assignments": "Ingen protokoller tildelt ennå.",
+      "expand_row": "Vis protokoller",
+      "collapse_row": "Skjul protokoller",
+      "no_assigned_protocols": "Ingen tildelte protokoller.",
+      "status_expired": "Forfalt",
+      "status_completed": "Fullført",
+      "status_in_progress": "Pågår",
+      "status_not_started": "Ikke startet",
+      "status_waived": "Frafalt",
+      "status_pending": "Venter",
+      "filter_all": "Alle"
+    }
+  },
+  "planning": {
+    "tab_kalender": "Kalender",
+    "tab_arshjul": "Årshjul",
+    "tab_eventer": "Eventer",
+    "tab_bookings": "Bookings",
+    "page_description": "Datoer, sesonger, eventer og bookinger på ett sted"
   }
 }

@@ -1,0 +1,147 @@
+---
+title: Core Structure — Locations and Areas
+status: in_progress
+updated: 2026-05-18
+created: 2026-05-18
+module: core-structure
+tags: [core-structure, location, area, zone, asset, d1, hvor]
+---
+
+# Core Structure — Locations and Areas
+
+> The HVOR axis. Every operational entity in the system (shift, session, day_line, deviation, booking) anchors somewhere on this axis. This doc defines V1 semantic and V2/Phase-2 surfacing plan.
+
+## 1. Term Mapping (V1)
+
+The schema and the product vocabulary diverged historically. ADR-0367 locks the mapping:
+
+| Schema table | Product term (V1) | Notes |
+|---|---|---|
+| `location` | **area** | Operational physical space — bar, restaurant, event-floor, kitchen, storage. Every existing `location` row IS an area. |
+| `zone` | zone | Sub-area shift-assignment unit (bar 1, dish station, service station). Table exists, NOT surfaced V1. |
+| `asset` | asset | Equipment placed at an area or zone (POS, fridge, oven). Table exists, NOT surfaced V1. |
+| (none) | property | Physical site / building / address. Multi-site chain layer. NOT modelled V1; deferred until 2+ stores under one workspace. |
+
+In product UI, copy, and journey docs: use **area**. In schema, code, and ADRs: use **location**. Do not rename either side — the cost of churning 200+ files outweighs the disambiguation gain.
+
+## 2. The `location_type` Enum
+
+Defined in `supabase/migrations/00002_structure_tables.sql:2`:
+
+```sql
+CREATE TYPE location_type AS ENUM ('main', 'outdoor', 'kitchen', 'event', 'storage', 'other');
+```
+
+This is **category metadata**, not hierarchy. It describes what kind of operational space the area is. Adding new values (e.g. `bar`, `lounge`, `terrace`) is allowed via ALTER TYPE migration — no ADR required.
+
+Forbidden interpretations:
+- ❌ `main` does NOT mean "primary location of a multi-site workspace" — V1 has no property concept.
+- ❌ `location_type` does NOT drive a parent-child tree — there is no `parent_location_id`.
+- ❌ Filtering on `location_type='event'` is NOT equivalent to "all event-floors" semantically — admin may classify any area as any type.
+
+Valid uses:
+- Default open/close window heuristics per category at I1 bootstrap (e.g. `storage` opens with `main`, no separate hours).
+- UI iconography hint in admin lists.
+- Reporting groupings ("hvor mye tid brukes på outdoor-områder?").
+
+## 3. Hierarchy (V1)
+
+Flat. Every `location` row sits directly under `workspace`. No `parent_location_id` column.
+
+```
+workspace (1)
+└── location[] (N areas, all peers)
+    ├── zone[] (M per area, schema-only V1)
+    └── asset[] (K per area, schema-only V1)
+```
+
+V2 introduction of property would require:
+1. Migration: ADD COLUMN `location.parent_location_id UUID REFERENCES location(location_id)` nullable, ADD COLUMN `location.location_kind enum('property','area')`.
+2. Backfill: all existing rows → `location_kind='area'`, `parent_location_id=NULL`.
+3. ADR to lock the new model.
+
+Until that ADR exists, **do not** add `parent_location_id` references anywhere.
+
+## 4. RLS
+
+| Operation | Policy |
+|---|---|
+| SELECT | workspace member via `get_workspace_ids_for_user(auth.uid())` |
+| INSERT / UPDATE | admin+ in workspace via `is_admin_in_workspace()` |
+| DELETE | admin+ via gate_action `org.archive_location` (soft-delete recommended — set `is_active=false`) |
+
+Service-role bypass exists for SECURITY DEFINER paths (I1 bootstrap, migration scripts). Never bypass for user-facing operations.
+
+## 5. Zone (Schema-Only V1)
+
+Exists. Table `public.zone`. FK to `location`. Will surface in V2 when shift-assignment becomes zone-grained.
+
+V2 acceptance:
+- `schedule_shift.zone_id` UUID nullable FK to `zone`
+- Shift assignment UI gets optional zone picker per shift
+- `shift_session_day_line` join filter narrows by zone match (if specified)
+
+Today: no UI consumes the `zone` table. Migrations may seed zones for industry templates if useful — they sit dormant until V2.
+
+## 6. Asset (Schema-Only V1)
+
+Exists. Table `public.asset`. FK to `location`. Will surface in Phase 2 for D6 routine attachment.
+
+Phase 2 acceptance:
+- `day_line_item.asset_id` nullable FK → asset (when a task targets specific equipment)
+- Asset list in admin: "POS Bar 1", "Kjøleskap 3"
+- `asset.requires_training` integrates with D2 readiness
+- `asset.requires_routine` flags items that need daily routine checks
+
+Today: no UI consumes the `asset` table beyond what existed before ADR-0367.
+
+## 7. Operating Hours (D1 Source for Day-Line `planned_open`/`planned_close`)
+
+Three tables exist for operating hours; **only** `department_operating_hours` is canonical (per the triple-hours trap in `smartout-cascade-developer` skill):
+
+| Table | Status | Use |
+|---|---|---|
+| `department_operating_hours` | canonical | Resolves to `planned_open` / `planned_close` for `department_session` AND `day_line` |
+| `company_opening_hours` | wizard-only | Onboarding wizard captures; converts to `department_operating_hours` post-finalize |
+| `operating_hours` | LEGACY | Never use. Slated for drop. |
+| `department_hours_override` | canonical | Per-day override on top of `department_operating_hours` |
+
+A `day_line` derives its `planned_open`/`planned_close` from the parent department's operating hours, optionally overridden per-day per-area. V1: location does not have its own operating-hours column. V2 may add `location_operating_hours` if event-areas need independent schedules.
+
+## 8. Mobile Behavior
+
+Mobile is read-only on structure (ADR-0133). Mobile reads `location.name` for shift cards, area labels on day timeline, push payload context. Mobile NEVER creates / updates / archives a location. Authoring is web admin (Bar Pontus, on a desktop).
+
+## 9. Industry Bootstrap (I1)
+
+`packages/ai/src/industry/hospitality.ts` seeds default areas + departments + `department_location` pairs for new hospitality workspaces. Example seed for "restaurant" niche:
+
+```
+locations:
+  - { name: "Restaurant", location_type: "main" }
+  - { name: "Bar",        location_type: "main" }
+  - { name: "Kjøkken",    location_type: "kitchen" }
+  - { name: "Lager",      location_type: "storage" }
+
+departments:
+  - { name: "Service" }
+  - { name: "Bar" }
+  - { name: "Kjøkken" }
+
+department_location pairs:
+  - Service ↔ Restaurant
+  - Bar     ↔ Bar
+  - Bar     ↔ Restaurant (bar staff floats)
+  - Kjøkken ↔ Kjøkken
+  - Kjøkken ↔ Lager
+```
+
+Each vertical (restaurant, hotel, retail) ships its own seed. I1 is the ONLY non-admin path that creates structural rows.
+
+## 10. Cross-References
+
+- **[ADR-0367](../../decisions/0367-day-line-area-anchored-runtime.md)** — authoritative
+- [DEPARTMENTS.md](./DEPARTMENTS.md) — junction details
+- Schema: `supabase/migrations/00002_structure_tables.sql`
+- I1 templates: `supabase/templates/restaurant/`
+- Type defs: `packages/supabase/src/database.types.ts`

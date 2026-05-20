@@ -1,7 +1,7 @@
 ---
 title: Payroll Module — Open Questions
 status: draft
-updated: 2026-05-06
+updated: 2026-05-16
 created: 2026-05-06
 module: payroll
 tags: [payroll, open-questions, decisions-pending]
@@ -333,88 +333,55 @@ If only one: workspace admin must manually create two more SalaryTypes in Triple
 
 ## O25. shift_pay_calculation_event tabel eksisterer ikke (ADR-0251 proposed)
 
-**Status:** BLOCKING — schema-claim fabrikert
-**Blocks:** Phase 1 §10.8 acceptance + ARCHITECTURE.md §3 audit-layer + DYNAMIC-SUPPLEMENTS.md §5
+**Status:** RESOLVED — table shipped in Phase 1
+**Blocks:** ~~Phase 1 §10.8 acceptance + ARCHITECTURE.md §3 audit-layer + DYNAMIC-SUPPLEMENTS.md §5~~
 **Owner:** Pontus (ADR-0251 accept-decision)
 
-**Verified:** `grep "shift_pay_calculation_event" packages/supabase/src/database.types.ts` → **0 hits**.
-
-ADR-0251 status = `proposed` (ikke akseptert). Hele audit-layer-arkitekturen i ARCHITECTURE.md §3 + provenance-emit per supplement-firing i DYNAMIC-SUPPLEMENTS.md §5 + acceptance-test §10.8 forutsetter at tabellen finnes.
-
-**Resolution paths:**
-- a) **Accept ADR-0251** før Day 1 + inkluder migration `<ts>_payroll_phase1_pay_calc_audit.sql` som 6. migration i SORTIE-PHASE-1.md §4
-- b) **Scope-out audit til Phase 1.5** — Phase 1 logger kun provenance JSONB i `payroll.calculation.provenance` / `shift_cost_snapshot.supplements.metadata`. Update ARCHITECTURE.md §3 + DYNAMIC-SUPPLEMENTS.md §5 + acceptance §10.8.
-
-**Recommendation:** Path (a) — ADR-0251 er trolig riktig design (Bokf. §13). Skriv ferdig + accept som del av pre-flight.
+**Resolution:** Path (a) chosen. `public.shift_pay_calculation_event` created in migration `supabase/migrations/20260527100700_payroll_phase1_audit_event.sql`. ADR-0251 promoted from `proposed` to accepted (decision-log). Table has RLS (jwt_read + api_key_read policies), Bokf. §13-compliant INSERT-only audit trail with `rule_id`, `tariff_id`, `amount`, `provenance JSONB`, and `superseded_by_event_id` chain.
 
 ---
 
 ## O26. payroll.timebank_entry schema fundamentalt ikke som TIME-BANKS.md hevder
 
-**Status:** BLOCKING — re-design eller bredde-ALTER kreves
-**Blocks:** Phase 1 time-banks deliverable
+**Status:** RESOLVED — bredde-ALTER shipped in Phase 1
+**Blocks:** ~~Phase 1 time-banks deliverable~~
 **Owner:** Pontus + system-agent-coordinator
 
-**Verified:** `database.types.ts:1532-1583` viser `payroll.timebank_entry` har KOLONNER:
-```
-created_at, created_by, description, effective_date,
-entry_type (enum: accrual|withdrawal|adjustment|expiry|carry_over|payout),
-expiry_date, hours, id, payroll_calculation_id,
-profile_id, schedule_absence_id, workspace_id
-```
-
-**Mangler:** `account_type`, `value_amount`, `value_unit`, `occurred_at`, `metadata`. Tabellen er **kun timer-basert** (`hours numeric`). Ingen `payroll.timebank_account_type` enum eksisterer.
-
-TIME-BANKS.md §1 "Reuse Decision" basert på FEIL premiss — dette er ikke clean reuse, det er en re-design.
-
-**Resolution paths:**
-- a) **Bredde-ALTER:** Add `account_type` enum (`vacation_pay|toil|wellness`) + `value_amount numeric` + `value_unit text CHECK ('hours','NOK','days')`. Backfill eksisterende rows `account_type='toil', value_amount=hours, value_unit='hours'`.
-- b) **Split per kontotype** (cleaner cascade): `payroll.vacation_pay_ledger` (NOK) + behold `payroll.timebank_entry` (hours, TOIL only) + `payroll.absence_quota` (days, wellness via `absence_type='wellness'`). Hver tabell én datatype.
-
-**Recommendation:** Path (b). Cleaner cascade-mønster. TIME-BANKS.md §1 må re-skrives etter beslutning. Estimat +1 dag på Phase 1 schema-arbeid.
+**Resolution:** Path (a) chosen — bredde-ALTER. Migration `supabase/migrations/20260527100300_payroll_phase1_time_banks.sql` adds `account_type TEXT NOT NULL DEFAULT 'toil' CHECK (account_type IN ('vacation_pay', 'toil', 'wellness'))`, `value_amount NUMERIC(12,2)`, and `value_unit TEXT CHECK (value_unit IN ('hours', 'nok', 'days'))` to `payroll.timebank_entry`. Existing rows backfilled: `account_type='toil', value_amount=hours, value_unit='hours'`. A repair migration `20260527101300_payroll_phase1_timebank_backfill_repair.sql` also shipped. Calc-engine uses `value_amount`/`value_unit` (not `amount_nok`) — confirmed in HANDOFF-payroll-phase-1 learning #2.
 
 ---
 
 ## O27. payroll.calculation.provenance kolonne ikke verifisert
 
-**Status:** UNVERIFIED — verify før Day 1
-**Blocks:** Cascade INV-3 (provenance på øverste C3 decision-rad)
+**Status:** RESOLVED — column shipped in Phase 1
+**Blocks:** ~~Cascade INV-3 (provenance på øverste C3 decision-rad)~~
 **Owner:** Pontus eller build-agent verifikasjon
 
-DATA-MODEL.md §2.2 line 127 lister `provenance JSONB` på `payroll.calculation`. Hvis kolonnen mangler, hele provenance-mønsteret bryter på top-nivå.
-
-**Resolution:** `grep -A 30 "      calculation: {" packages/supabase/src/database.types.ts | grep provenance`. Hvis 0 treff: schema-delta `<ts>_payroll_phase1_calc_provenance.sql` må legges til SORTIE-PHASE-1.md §4.
+**Resolution:** Column added in migration `supabase/migrations/20260527100000_payroll_phase1_provenance.sql` — `ADD COLUMN IF NOT EXISTS provenance JSONB NOT NULL DEFAULT '{}'::jsonb` on `payroll.calculation`. Column comment references ADR-0076 snapshot-and-forward provenance pattern.
 
 ---
 
 ## O28. Add-manual-supplement role inkonsistent i 3 docs
 
-**Status:** RESOLVED — pick admin
-**Blocks:** Phase 1 capability authority seed
+**Status:** RESOLVED — `min_role=admin` seeded in Phase 1
+**Blocks:** ~~Phase 1 capability authority seed~~
 **Owner:** Pontus (decision)
 
-**Inkonsistens:**
-- MODULE_PAYROLL.md §5 line 144: `min_role=admin`
-- ARCHITECTURE.md §4.2 line 233: `min_role=admin`
-- SORTIE-PHASE-1.md §8 line 314: `min_role=manager`
+**Decision:** `min_role=admin`. Per-shift adjust som genererer payroll-konsekvens er admin-action.
 
-**Decision:** `min_role=admin`. Per-shift adjust som genererer payroll-konsekvens er admin-action. Workspace-policy kan upgrade manager → admin per workspace senere hvis behov.
-
-**Action:** Update SORTIE-PHASE-1.md §8 line 314 + §4.1 line 139 fra `'manager'` til `'admin'`.
+**Resolution:** Authority seed migration `supabase/migrations/20260527100100_payroll_phase1_authority_seed.sql` sets `add_manual_supplement=confirm/admin` (confirmed in migration comment line 30). Inconsistency in SORTIE-PHASE-1.md was overridden by the seeded authority row.
 
 ---
 
 ## O29. ADR-0250 + ADR-0251 status proposed but build assumes accepted
 
-**Status:** BLOCKING — promote both ADRs eller scope-out
-**Blocks:** Phase 1 (R1) + Phase 5 Skatteetaten flow
+**Status:** RESOLVED — both ADRs settled (differently)
+**Blocks:** ~~Phase 1 (R1) + Phase 5 Skatteetaten flow~~
 **Owner:** Pontus
 
-Cascade Control Gate-regel: "Forward-looking plans are not current truth ... they do not override current code, ADRs, or verified state until landed."
-
-ADR-0250 (Skatteetaten cert + flow) og ADR-0251 (audit-tabel) er begge `proposed`. SORTIE-PHASE-1.md §10.8 + flere docs påberoper begge som hard acceptance.
-
-**Resolution:** Pre-flight blocker kombinert med O25.
+**Resolution:**
+- **ADR-0251** (shift_pay_calculation_event audit): promoted to `accepted`; table shipped (see O25). Build assumption was correct.
+- **ADR-0250** (Skatteetaten cert + flow): marked `deferred` per Pontus 2026-05-08. Smartout does NOT initiate Skatteetaten fetch — out of scope permanently. Phase 5 scope was revised to PII reveal only (no Skatteetaten Edge Function). ADR-0250 retained as historical reference only.
 
 ---
 

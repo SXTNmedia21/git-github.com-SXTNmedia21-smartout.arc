@@ -68,10 +68,10 @@ export function NavItem({
     active
       ? isDark
         ? "border border-border bg-accent font-semibold text-accent-foreground"
-        : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
+        : "border border-[var(--surface-border-strong)/50] bg-[var(--surface-overlay)] font-bold text-[var(--text-strong)] shadow-sm"
       : isDark
         ? "border border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
+        : "border border-transparent text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-strong)]"
   }`;
 
   const inner = (
@@ -84,10 +84,10 @@ export function NavItem({
               : active
                 ? isDark
                   ? "text-accent-foreground"
-                  : "text-[oklch(0.55_0.18_42)]"
+                  : "text-[var(--brand-orange-dark)]"
                 : isDark
                   ? "text-muted-foreground group-hover:text-accent-foreground"
-                  : "text-[oklch(0.55_0.03_50)] group-hover:text-[oklch(0.38_0.05_45)]"
+                  : "text-[var(--text-dim)] group-hover:text-[var(--text-mid)]"
           }`}
         />
         {!isCollapsed && (

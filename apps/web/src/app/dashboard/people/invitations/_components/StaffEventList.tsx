@@ -165,7 +165,7 @@ function EmptyState({ cta }: { cta: ReactNode }) {
       className="ring-border/40 flex flex-col items-center gap-4 rounded-3xl px-8 py-14 text-center ring-1"
       style={{
         background:
-          "linear-gradient(160deg, oklch(0.14 0.02 55 / 0.15), oklch(0.10 0.01 50 / 0.05))",
+          "linear-gradient(160deg, color-mix(in oklch, var(--foreground) 15%, transparent), color-mix(in oklch, var(--foreground) 5%, transparent))",
       }}
     >
       <div className="bg-brand-orange/10 ring-brand-orange/20 rounded-2xl p-4 ring-1">

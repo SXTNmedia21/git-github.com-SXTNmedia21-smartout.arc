@@ -413,7 +413,7 @@ function TicketComposer({
           className="inline-flex items-center gap-1 rounded-[10px] px-2.5 py-2 text-[13px] font-semibold text-white transition-opacity disabled:opacity-50"
           style={{
             background: "var(--brand-orange)",
-            boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+            boxShadow: "var(--shadow-cta-sm)",
           }}
         >
           <Send size={14} />

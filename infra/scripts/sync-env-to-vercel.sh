@@ -184,11 +184,24 @@ smartout-web|shared|SHIFT_MCP_URL|op://smartout_ai_prod/Shift-MCP/url|true
 smartout-web|shared|LIVEKIT_API_KEY|op://smartout_ai_prod/livekit/api-key|true
 smartout-web|shared|LIVEKIT_API_SECRET|op://smartout_ai_prod/livekit/api-secret|true
 smartout-web|shared|LIVEKIT_WEBHOOK_SECRET|op://smartout_ai_prod/livekit/webhook-secret|true
-# ── Supabase — preview (Branch DB from dev vault) ────────────
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
-smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
-smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
-smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
+# ── Supabase — preview ────────────────────────────────────────
+# REMOVED 2026-05-17 per ADR-0360: preview tier no longer maintains a
+# persistent Branch DB. Vercel preview deploys are code-rendering smoke,
+# not data-functional.
+#
+# Vercel-side cleanup: next `./infra/scripts/sync-env-to-vercel.sh` run
+# will DELETE these 4 dead Vercel preview Supabase entries automatically.
+# Mechanism: `nuke_project_env()` deletes all existing Vercel env vars,
+# then re-adds from filtered manifest (`grep -v '^#'`). Commented lines
+# below are filtered out and therefore not re-added → effectively removed.
+#
+# To restore (Option A regret): uncomment + update vault item
+# `op://smartout_ai/Supabase Preview Branch` with provisioned ref +
+# re-run sync. See ADR-0360 §Rules 7 for full restoration steps.
+# smartout-web|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+# smartout-web|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
+# smartout-web|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
+# smartout-web|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
 # ── Supabase — production (from prod vault) ──────────────────
 smartout-web|production|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai_prod/Supabase/url|false
 smartout-web|production|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai_prod/Supabase/anon_key|false
@@ -213,11 +226,13 @@ smartout-landing|shared|STAGE_ENGINE_URL|op://smartout_ai_prod/Stage-Engine/url|
 smartout-landing|shared|STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key|true
 smartout-landing|shared|INTERVJU_MCP_WEBHOOK_SECRET|op://smartout_ai_prod/Intervju-MCP/webhook_secret|true
 smartout-landing|shared|REVALIDATION_SECRET|op://smartout_ai_prod/SmartOut/revalidation_secret|true
-# ── Supabase — preview (Branch DB from dev vault) ────────────
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
-smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
-smartout-landing|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
-smartout-landing|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
+# ── Supabase — preview ────────────────────────────────────────
+# REMOVED 2026-05-17 per ADR-0360 (see smartout-web preview section above
+# for full rationale + restoration path).
+# smartout-landing|preview|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai/Supabase Preview Branch/url|false
+# smartout-landing|preview|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai/Supabase Preview Branch/anon_key|false
+# smartout-landing|preview|SUPABASE_SERVICE_ROLE_KEY|op://smartout_ai/Supabase Preview Branch/service_role_key|true
+# smartout-landing|preview|DATABASE_URL|op://smartout_ai/PostgreSQL preview/connection_string|true
 # ── Supabase — production (from prod vault) ──────────────────
 smartout-landing|production|NEXT_PUBLIC_SUPABASE_URL|op://smartout_ai_prod/Supabase/url|false
 smartout-landing|production|NEXT_PUBLIC_SUPABASE_ANON_KEY|op://smartout_ai_prod/Supabase/anon_key|false

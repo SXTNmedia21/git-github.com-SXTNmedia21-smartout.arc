@@ -64,7 +64,7 @@ function makeBucket(opts: {
 }
 
 const KVELDS_RULE: SupplementRuleInput = {
-  id: "rule-kveldstiilegg-001",
+  id: "rule-kveldstillegg-001",
   workspace_id: null,
   is_active: true,
   supplement_type: "normal",
@@ -182,7 +182,7 @@ describe("evaluateSupplements", () => {
       200,
     );
     expect(fired.length).toBe(1);
-    expect(fired[0]!.rule_id).toBe("rule-kveldstiilegg-001");
+    expect(fired[0]!.rule_id).toBe("rule-kveldstillegg-001");
     expect(fired[0]!.amount_ore).toBeGreaterThan(0n);
     // 42.41 kr/t * 2h = 84.82 NOK = 8482 øre. Rounding: 42.41*100/60 = 70 øre/min * 120 = 8400 øre
     // Note: floor division 4241/60 = 70, so 70 * 120 = 8400 øre = 84.00 NOK
@@ -340,6 +340,83 @@ describe("evaluateSupplements", () => {
     );
     expect(fired.length).toBe(1);
     expect(fired[0]!.provenance.applies_only_if_bound).toBe(true);
+  });
+
+  // ── E2: Holiday supplement gate (ADR-0341 v1.1 §E2) ─────────────────────
+  const HELLIGDAG_RULE: SupplementRuleInput = {
+    id: "rule-helligdag-001",
+    workspace_id: null,
+    is_active: true,
+    supplement_type: "holiday",
+    rate_type: "fixed_per_hour",
+    rate_value: 100.0,
+    tariff_rate_table_id: null,
+    match_predicate: {
+      windows: [], // empty: no time-window restriction, but classification IS the gate
+    },
+    paragraf_ref: "Riksavtalen §6",
+    version_hash: "v2025-006",
+    valid_from: "2025-04-01",
+    valid_until: null,
+  };
+
+  it("fires holiday supplement only on holiday bucket (E2 gate)", () => {
+    // Skjærtorsdag 2026-04-02 08:00-14:00 UTC = holiday bucket
+    const holidayBucket = makeBucket({
+      from: "2026-04-02T08:00:00Z",
+      minutes: 360,
+      weekday: 4, // Thursday
+      classification: "holiday",
+    });
+    const fired = evaluateSupplements(
+      holidayBucket,
+      { ...BASE_SHIFT, shift_date: "2026-04-02", start_time: "2026-04-02T08:00:00Z" },
+      [HELLIGDAG_RULE],
+      [],
+      BASE_SETTINGS,
+      195,
+    );
+    expect(fired.length).toBe(1);
+    expect(fired[0]!.rule_id).toBe("rule-helligdag-001");
+    expect(fired[0]!.supplement_type).toBe("holiday");
+  });
+
+  it("does NOT fire holiday supplement on non-holiday bucket (E2 gate)", () => {
+    // Regular Tuesday 08:00-14:00 — NOT a holiday
+    const normalBucket = makeBucket({
+      from: "2026-04-07T08:00:00Z",
+      minutes: 360,
+      weekday: 2, // Tuesday
+      classification: "day_normal",
+    });
+    const fired = evaluateSupplements(
+      normalBucket,
+      BASE_SHIFT,
+      [HELLIGDAG_RULE],
+      [],
+      BASE_SETTINGS,
+      195,
+    );
+    expect(fired.length).toBe(0);
+  });
+
+  it("does NOT fire holiday supplement on Saturday (weekend_sat) bucket (E2 gate)", () => {
+    // Saturday — week_based helgetillegg should fire, not helligdag
+    const satBucket = makeBucket({
+      from: "2026-04-04T08:00:00Z",
+      minutes: 360,
+      weekday: 6, // Saturday
+      classification: "weekend_sat",
+    });
+    const fired = evaluateSupplements(
+      satBucket,
+      { ...BASE_SHIFT, shift_date: "2026-04-04" },
+      [HELLIGDAG_RULE],
+      [],
+      BASE_SETTINGS,
+      195,
+    );
+    expect(fired.length).toBe(0);
   });
 });
 

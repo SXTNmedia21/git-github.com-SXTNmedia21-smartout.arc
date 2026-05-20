@@ -29,10 +29,18 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("[api/shift-clock/compliance] Edge error:", error);
-      return NextResponse.json({ error: "Compliance check failed" }, { status: 502 });
+      const detail =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "message" in error
+            ? String((error as { message: unknown }).message)
+            : String(error);
+      return NextResponse.json({ error: `Compliance check failed: ${detail}` }, { status: 502 });
     }
     return NextResponse.json(data ?? { ok: true });
-  } catch {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  } catch (err) {
+    console.error("[api/shift-clock/compliance] Route error:", err);
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Route error: ${detail}` }, { status: 400 });
   }
 }

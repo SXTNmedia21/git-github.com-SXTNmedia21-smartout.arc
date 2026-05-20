@@ -46,6 +46,8 @@ import { createStyles, useTheme } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import type { ChannelMessageWithSender } from "@/hooks/queries/use-channel-messages";
 import { ReadReceipt, type ReadReceiptState } from "@/components/chat/ReadReceipt";
+import { TierBadge } from "@/components/news/TierBadge";
+import { EntityLinkCTA } from "@/components/news/EntityLinkCTA";
 
 // ─── Swipe constants — pulled from token scope, no magic numbers elsewhere ───
 const SWIPE_MAX = 64; // max translateX (px)
@@ -304,6 +306,17 @@ function ChannelMessageBubbleInner({
                 <Text style={styles.inlineTimestamp}>{formatTime(message.created_at)}</Text>
                 {isOwnMessage && <ReadReceipt state={effectiveReceiptState} size={11} />}
               </View>
+
+              {/* Announcement V2: tier badge + entity link CTA (below inlineMeta) */}
+              {message.announcement_tier && <TierBadge tier={message.announcement_tier} />}
+              {message.announcement_link_type && message.announcement_link_id && (
+                <EntityLinkCTA
+                  messageId={message.message_id}
+                  announcementKind={message.announcement_kind ?? "general"}
+                  linkType={message.announcement_link_type}
+                  linkId={message.announcement_link_id}
+                />
+              )}
             </View>
           </Pressable>
 

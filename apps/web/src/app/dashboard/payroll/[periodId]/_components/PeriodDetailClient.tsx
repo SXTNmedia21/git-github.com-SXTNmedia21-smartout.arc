@@ -23,7 +23,8 @@ import { nb } from "date-fns/locale";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { usePayrollPeriod } from "../_hooks/use-payroll-period";
 import { usePayrollLines } from "../_hooks/use-payroll-lines";
 import { usePayrollDeviations } from "../_hooks/use-payroll-deviations";
@@ -41,10 +42,13 @@ type Props = {
   periodId: string;
 };
 
+type PeriodTab = "lines" | "deviations" | "export";
+
 export function PeriodDetailClient({ periodId }: Props) {
   const [lockModalOpen, setLockModalOpen] = useState(false);
   const [supplementModalOpen, setSupplementModalOpen] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [activeTab, setActiveTab] = useState<PeriodTab>("lines");
 
   const { data: period, isLoading: isPeriodLoading } = usePayrollPeriod(periodId);
   const {
@@ -169,17 +173,24 @@ export function PeriodDetailClient({ periodId }: Props) {
         </div>
       )}
 
-      <Tabs defaultValue="lines">
-        <TabsList>
-          <TabsTrigger value="lines">Linjer {lines?.length ? `(${lines.length})` : ""}</TabsTrigger>
-          <TabsTrigger value="deviations">
-            Avvik{" "}
-            {deviations?.length
-              ? `(${deviationErrors > 0 ? `${deviationErrors} feil` : deviations.length})`
-              : ""}
-          </TabsTrigger>
-          <TabsTrigger value="export">Eksport</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as PeriodTab)}>
+        <PageTabNav
+          tabs={[
+            {
+              key: "lines" as PeriodTab,
+              label: `Linjer${lines?.length ? ` (${lines.length})` : ""}`,
+            },
+            {
+              key: "deviations" as PeriodTab,
+              label: `Avvik${deviations?.length ? ` (${deviationErrors > 0 ? `${deviationErrors} feil` : deviations.length})` : ""}`,
+            },
+            { key: "export" as PeriodTab, label: "Eksport" },
+          ]}
+          active={activeTab}
+          onChange={(v) => setActiveTab(v as PeriodTab)}
+          className="mb-5"
+          ariaLabel="Periode-seksjoner"
+        />
 
         <TabsContent value="lines" className="mt-4">
           {/* Fix 5: isAdmin + periodStatus + workspaceId forwarded for "Foreslå endring" gate.

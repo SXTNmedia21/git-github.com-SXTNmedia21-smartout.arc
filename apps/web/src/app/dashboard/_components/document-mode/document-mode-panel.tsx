@@ -52,13 +52,11 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
   return (
     <div
       className={`flex w-80 flex-shrink-0 flex-col border-l ${
-        isDark ? "border-border bg-card" : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"
+        isDark ? "border-border bg-card" : "border-[var(--border)] bg-[var(--surface-subtle)]"
       }`}
     >
       {/* Tab bar */}
-      <div
-        className={`flex border-b ${isDark ? "border-border" : "border-[oklch(0.90_0.006_55)]"}`}
-      >
+      <div className={`flex border-b ${isDark ? "border-border" : "border-[var(--border)]"}`}>
         {(Object.keys(TAB_LABELS) as Array<keyof typeof TAB_LABELS>).map((tab) => (
           <button
             key={tab}
@@ -70,7 +68,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
                   : "border-b-2 border-orange-500 text-orange-600"
                 : isDark
                   ? "text-muted-foreground hover:text-foreground"
-                  : "text-[oklch(0.55_0.015_50)] hover:text-[oklch(0.30_0.02_50)]"
+                  : "text-[var(--text-dim)] hover:text-[var(--text-mid)]"
             }`}
           >
             {TAB_LABELS[tab]}
@@ -85,7 +83,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-3 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                 }`}
               >
                 Fyll fra template
@@ -100,7 +98,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-2 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                 }`}
               >
                 Statistikk
@@ -154,14 +152,14 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-2 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                 }`}
               >
                 Skriftstorrelse
               </h3>
               <div className="flex items-center gap-3">
                 <Type
-                  className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}
+                  className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}
                 />
                 <input
                   type="range"
@@ -177,7 +175,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
                 />
                 <span
                   className={`w-8 text-right font-mono text-xs ${
-                    isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
+                    isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
                   }`}
                 >
                   {fontSize}
@@ -208,18 +206,18 @@ function WordCountDisplay({ isDark }: { isDark: boolean }) {
   return (
     <div
       className={`rounded-lg border px-3 py-2 ${
-        isDark ? "border-border bg-card" : "border-[oklch(0.90_0.006_55)] bg-white"
+        isDark ? "border-border bg-card" : "border-[var(--border)] bg-white"
       }`}
     >
       <span
         className={`text-2xl font-bold tabular-nums ${
-          isDark ? "text-foreground" : "text-[oklch(0.25_0.015_45)]"
+          isDark ? "text-foreground" : "text-[var(--text-strong)]"
         }`}
       >
         {count}
       </span>
       <span
-        className={`ml-2 text-xs ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}
+        className={`ml-2 text-xs ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}
       >
         ord
       </span>

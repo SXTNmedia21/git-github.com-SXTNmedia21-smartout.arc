@@ -35,7 +35,7 @@ export function WeekGridEmptyState({
           <button
             type="button"
             onClick={onCreateShiftType}
-            className="inline-flex items-center gap-2 rounded-[10px] bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all hover:shadow-[0_4px_16px_oklch(0.65_0.22_40/0.3)]"
+            className="inline-flex items-center gap-2 rounded-[10px] bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-cta-sm)] transition-[box-shadow] hover:shadow-[var(--shadow-cta-md)]"
           >
             <Sparkles className="h-3.5 w-3.5" />
             Legg til vakttype

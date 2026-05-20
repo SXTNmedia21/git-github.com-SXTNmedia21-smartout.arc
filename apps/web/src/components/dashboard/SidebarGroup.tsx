@@ -15,6 +15,7 @@
  *  - Merge dynamic indicators (e.g. unread counts) over static config indicators
  */
 
+import { useTranslation } from "@smartout/i18n";
 import { NavItem } from "./NavItem";
 import type { NavBadgeVariant } from "./NavBadge";
 import type { SidebarItem, SidebarGroupDef } from "./sidebar-config";
@@ -36,6 +37,8 @@ export function SidebarGroup({
   isCollapsed,
   dynamicIndicators,
 }: SidebarGroupProps) {
+  const { t } = useTranslation("dashboard");
+
   // Filter feature-flag-gated items
   const visibleItems = group.items.filter(
     (item) => !item.featureFlag || FEATURE_FLAGS[item.featureFlag],
@@ -43,33 +46,40 @@ export function SidebarGroup({
 
   if (visibleItems.length === 0) return null;
 
+  const groupLabel = t(group.labelKey);
+  const disabledTooltip = t("sidebar.disabled_tooltip");
+  const disabledBadge = t("sidebar.disabled_badge");
+
   return (
     <div
       className={group.footer ? "border-border mt-3 border-t pt-3" : group.standalone ? "" : "mt-3"}
     >
       {!group.standalone && !isCollapsed && (
         <div
-          data-testid={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`}
+          data-testid={`sidebar-group-${groupLabel.toLowerCase().replace(/\s+/g, "-")}`}
           className="text-muted-foreground mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase"
         >
-          {group.label}
+          {groupLabel}
         </div>
       )}
       {!group.standalone && isCollapsed && <div className="mt-2" />}
       {visibleItems.map((item) => {
         const isActive = computeActive(item, pathname);
         const indicators = dynamicIndicators?.[item.href] ?? item.indicators;
+        const label = t(item.labelKey);
 
         // routeSlug: strip leading /dashboard/ prefix, replace remaining / with -, fall back to href
-        const routeSlug = item.href
-          .replace(/^\/dashboard\/?/, "")
-          .replace(/\//g, "-") || "dashboard";
+        const routeSlug =
+          item.href.replace(/^\/dashboard\/?/, "").replace(/\//g, "-") || "dashboard";
 
         if (item.disabled) {
           return (
             <DisabledNavItem
               key={item.href}
               item={item}
+              label={label}
+              tooltip={disabledTooltip}
+              badge={disabledBadge}
               routeSlug={routeSlug}
               isDark={isDark}
               isCollapsed={isCollapsed}
@@ -82,7 +92,7 @@ export function SidebarGroup({
             key={item.href}
             href={item.href}
             icon={item.icon}
-            label={item.label}
+            label={label}
             active={isActive}
             indicators={indicators as NavBadgeVariant[] | undefined}
             ai={item.ai}
@@ -107,11 +117,17 @@ function computeActive(item: SidebarItem, pathname: string): boolean {
 
 function DisabledNavItem({
   item,
+  label,
+  tooltip,
+  badge,
   routeSlug,
   isDark: _isDark,
   isCollapsed,
 }: {
   item: SidebarItem;
+  label: string;
+  tooltip: string;
+  badge: string;
   routeSlug: string;
   isDark: boolean;
   isCollapsed: boolean;
@@ -122,19 +138,19 @@ function DisabledNavItem({
     <div
       data-testid={`sidebar-disabled-${routeSlug}`}
       data-disabled="true"
-      title="Kommer snart"
+      title={tooltip}
       className={`group flex cursor-not-allowed items-center rounded-xl opacity-50 ${
         isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
       } text-muted-foreground border border-transparent`}
     >
       <div className={`flex items-center ${isCollapsed ? "" : "gap-2.5"}`}>
         <Icon className="h-4 w-4 shrink-0" />
-        {!isCollapsed && (
-          <span className="text-[12px] font-medium tracking-wide">{item.label}</span>
-        )}
+        {!isCollapsed && <span className="text-[12px] font-medium tracking-wide">{label}</span>}
       </div>
       {!isCollapsed && (
-        <span className="text-muted-foreground/70 text-[9px] tracking-wider uppercase">Snart</span>
+        <span className="text-muted-foreground/70 text-[9px] tracking-wider uppercase">
+          {badge}
+        </span>
       )}
     </div>
   );

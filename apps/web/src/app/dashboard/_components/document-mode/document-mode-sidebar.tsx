@@ -18,7 +18,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
     <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
       <div
         className={`mb-3 px-2 text-[10px] font-bold tracking-widest uppercase ${
-          isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"
+          isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
         }`}
       >
         Handbok
@@ -37,7 +37,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                   : "bg-orange-50 text-orange-700"
                 : isDark
                   ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  : "text-[oklch(0.45_0.015_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
+                  : "text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-strong)]"
             }`}
           >
             <span
@@ -48,7 +48,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                     : "bg-orange-100 text-orange-600"
                   : isDark
                     ? "bg-muted text-muted-foreground"
-                    : "bg-[oklch(0.92_0.005_55)] text-[oklch(0.50_0.015_50)]"
+                    : "bg-[var(--surface-overlay)] text-[var(--text-dim)]"
               }`}
             >
               {ch.number}
@@ -63,7 +63,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                         : "text-orange-500"
                       : isDark
                         ? "text-muted-foreground"
-                        : "text-[oklch(0.55_0.015_50)]"
+                        : "text-[var(--text-dim)]"
                   }`}
                 />
                 <span className="truncate font-medium">{ch.title}</span>
@@ -76,7 +76,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                       : "text-orange-600/60"
                     : isDark
                       ? "text-muted-foreground/60"
-                      : "text-[oklch(0.60_0.01_50)]"
+                      : "text-[var(--text-dim)]"
                 }`}
               >
                 {ch.description}

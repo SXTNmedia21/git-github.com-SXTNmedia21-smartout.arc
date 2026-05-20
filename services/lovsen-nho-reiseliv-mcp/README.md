@@ -1,7 +1,7 @@
 ---
 title: "NHO Reiseliv MCP — Riksavtalen stdio server"
 status: in_progress
-updated: 2026-04-29
+updated: 2026-05-17
 created: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [mcp, lovsen, nho-reiseliv, riksavtalen, p1-s1d]
@@ -63,8 +63,10 @@ Supported versions: `2024`, `2025`.
 ## Fixture mode (CI + offline)
 
 ```bash
-LOVSEN_MCP_FIXTURE=1 pytest tests/ -v
+LOVSEN_FIXTURE_MODE=true pytest tests/ -v
 ```
+
+> **ADR-0258 canonical envvar:** `LOVSEN_FIXTURE_MODE=true`. Legacy `LOVSEN_MCP_FIXTURE=1` is still accepted during cutover and will be removed after ADR-0258 cert pass is complete.
 
 4 seed fixtures (2 categories × 2 versions):
 
@@ -84,7 +86,7 @@ Satser in fixtures reflect documented agreement changes between 2024 and 2025.
 cd services/lovsen-nho-reiseliv-mcp
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-LOVSEN_MCP_FIXTURE=1 pytest tests/ -v
+LOVSEN_FIXTURE_MODE=true pytest tests/ -v
 ```
 
 ## Rate limiting + caching

@@ -16,36 +16,37 @@ type MalGhostTagProps = {
 };
 
 // Desaturated color variants — same hues as MalEmployeeTag but at lower chroma
+// Values sourced from CSS tokens (ADR-0366: no OKLCH literals in component files)
 const GHOST_VARIANTS = [
   {
-    bg: "oklch(0.62 0.1 260 / 0.05)",
-    color: "oklch(0.62 0.15 260)",
-    border: "oklch(0.62 0.1 260 / 0.2)",
+    bg: "var(--tag-indigo-bg)",
+    color: "var(--tag-indigo-fg)",
+    border: "var(--tag-indigo-border)",
   },
   {
-    bg: "oklch(0.72 0.08 160 / 0.05)",
-    color: "oklch(0.72 0.12 160)",
-    border: "oklch(0.72 0.08 160 / 0.2)",
+    bg: "var(--tag-teal-bg)",
+    color: "var(--tag-teal-fg)",
+    border: "var(--tag-teal-border)",
   },
   {
-    bg: "oklch(0.55 0.12 300 / 0.05)",
-    color: "oklch(0.55 0.18 300)",
-    border: "oklch(0.55 0.12 300 / 0.2)",
+    bg: "var(--tag-purple-bg)",
+    color: "var(--brand-purple)",
+    border: "var(--tag-purple-border)",
   },
   {
-    bg: "oklch(0.65 0.11 40 / 0.05)",
-    color: "oklch(0.65 0.16 40)",
-    border: "oklch(0.65 0.11 40 / 0.2)",
+    bg: "var(--tag-orange-bg)",
+    color: "var(--tag-orange-fg)",
+    border: "var(--tag-orange-border)",
   },
   {
-    bg: "oklch(0.6 0.11 350 / 0.05)",
-    color: "oklch(0.6 0.16 350)",
-    border: "oklch(0.6 0.11 350 / 0.2)",
+    bg: "var(--tag-rose-bg)",
+    color: "var(--tag-rose-fg)",
+    border: "var(--tag-rose-border)",
   },
   {
-    bg: "oklch(0.7 0.07 200 / 0.05)",
-    color: "oklch(0.7 0.1 200)",
-    border: "oklch(0.7 0.07 200 / 0.2)",
+    bg: "var(--tag-cyan-bg)",
+    color: "var(--tag-cyan-fg)",
+    border: "var(--tag-cyan-border)",
   },
 ] as const;
 

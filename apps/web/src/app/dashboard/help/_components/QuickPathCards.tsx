@@ -37,7 +37,7 @@ const QUICK_PATH_CARDS: QuickPathCard[] = [
   {
     id: "lonn",
     label: "Lønn & timer",
-    description: "Sjekk timeoversikt, tillegg og lønnsslipp.",
+    description: "Sjekk timeoversikt, tillegg og lønnsgrunnlag.",
     href: "#lonn",
     Icon: Coins,
     allowedRoles: ["manager", "admin", "owner"],

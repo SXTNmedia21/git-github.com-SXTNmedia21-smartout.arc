@@ -2,14 +2,16 @@
 title: "Plan — payroll-phase-1"
 feature: payroll-phase-1
 spec: ../modules/payroll/SORTIE-PHASE-1.md
-status: draft
-updated: 2026-05-06
+status: done
+updated: 2026-05-16
 created: 2026-05-06
 module: payroll
 tags: [plan, payroll, phase-1, mvp, calc-engine, manager-review, time-banks, dynamic-supplements, workspace-policies]
 ---
 
 # Plan — payroll-phase-1
+
+> SUPERSEDED — Phase 1 shipped per HANDOFF-payroll-phase-1.md. Remaining acceptance gates tracked in Phase 1 close-out tasks: golden-month expected fixture (G1), W11 Oslo-TZ (G3), W04 boundary (G4), 43-shift fixture vs §10.1 600-shift spec (G5). See docs/modules/payroll/PHASES.md for current state.
 
 > Branch: `feat/payroll-payroll-phase-1` | Worktree: `/home/sxtnl/dev/smartout.ai-payroll-wt-1` | Base: `campaign/payroll` | Module: payroll | Started: 2026-05-06
 

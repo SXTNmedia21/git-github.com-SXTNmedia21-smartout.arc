@@ -22,6 +22,13 @@ import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
 import { useAudienceResolver, type AudienceInput } from "../_hooks/use-audience-resolver";
 import { AudiencePicker } from "./AudiencePicker";
+import {
+  AnnouncementKindPicker,
+  type AnnouncementKind,
+  type AnnouncementTier,
+} from "./AnnouncementKindPicker";
+import { AnnouncementTierPicker } from "./AnnouncementTierPicker";
+import { EntityLinkPicker, type EntityLinkValue } from "./EntityLinkPicker";
 import { PinnedStrip } from "./PinnedStrip";
 import { NewsCardMenu } from "./NewsCardMenu";
 import { KommToolsBridge } from "../_tools/komm-tools-bridge";
@@ -333,6 +340,9 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<AudienceInput>({ kind: "all" });
+  const [announcementKind, setAnnouncementKind] = useState<AnnouncementKind>("general");
+  const [announcementTier, setAnnouncementTier] = useState<AnnouncementTier>("work");
+  const [linkedEntity, setLinkedEntity] = useState<EntityLinkValue>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendAnnouncement = useSendAnnouncement();
 
@@ -372,12 +382,20 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
         visibilityScope: isTargeted ? "targeted_members" : "all_members",
         audienceKind: audience.kind,
         audienceLabel: audienceLabel(),
+        kind: announcementKind,
+        tier: announcementTier,
+        linkedEntityType: linkedEntity?.type,
+        linkedEntityId: linkedEntity?.id,
+        tags: [],
       },
       {
         onSuccess: () => {
           setTitle("");
           setBody("");
           setAudience({ kind: "all" });
+          setAnnouncementKind("general");
+          setAnnouncementTier("work");
+          setLinkedEntity(null);
           onOpenChange(false);
         },
       },
@@ -419,6 +437,35 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
             </label>
             <AudiencePicker value={audience} onChange={setAudience} />
           </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">{t("nyheter.kind.label")}</label>
+            <AnnouncementKindPicker
+              value={announcementKind}
+              onChange={(nextKind, autoTier) => {
+                setAnnouncementKind(nextKind);
+                setAnnouncementTier(autoTier);
+                setLinkedEntity(null);
+              }}
+              profileId={profileId}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">{t("nyheter.tier.label")}</label>
+            <AnnouncementTierPicker
+              value={announcementTier}
+              onChange={setAnnouncementTier}
+              kind={announcementKind}
+              profileId={profileId}
+            />
+          </div>
+
+          <EntityLinkPicker
+            value={linkedEntity}
+            onChange={setLinkedEntity}
+            kind={announcementKind}
+          />
 
           <div className="flex flex-wrap items-center gap-2.5">
             <RecipientCountPill count={recipientCount} />
@@ -512,13 +559,13 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   /* ---- Loading state ---- */
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="mb-6">
-          <div className="bg-muted h-7 w-24 animate-pulse rounded" />
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
+        <div className="mb-5">
+          <div className="bg-muted h-9 w-32 animate-pulse rounded" />
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-muted h-36 animate-pulse rounded-xl" />
+            <div key={i} className="bg-muted h-36 animate-pulse rounded-2xl" />
           ))}
         </div>
       </div>
@@ -528,9 +575,11 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   /* ---- Empty state ---- */
   if (!newsChannel || messages.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
+            {t("nyheter.title")}
+          </h1>
           <div className="flex items-center gap-2">
             {canCompose && newsChannel && (
               <Button size="sm" onClick={() => setComposeOpen(true)}>
@@ -561,10 +610,12 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   return (
     <>
       <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={null} />
-      <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-4 pt-3 md:p-6 md:pt-4">
         {/* Header row */}
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight md:text-4xl">
+            {t("nyheter.title")}
+          </h1>
           <div className="flex items-center gap-2">
             <Select defaultValue="all">
               <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">

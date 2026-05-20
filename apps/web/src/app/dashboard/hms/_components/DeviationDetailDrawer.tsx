@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, User, FileText, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { DeviationRow } from "@smartout/hms";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useUpdateDeviation } from "../_hooks/use-update-deviation";
 
 type Props = {
@@ -17,10 +19,10 @@ type Props = {
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "bg-red-500 text-white",
-  high: "bg-red-500/80 text-white",
-  medium: "bg-yellow-500 text-white",
-  low: "bg-blue-500 text-white",
+  critical: "bg-destructive text-destructive-foreground",
+  high: "bg-destructive/80 text-destructive-foreground",
+  medium: "bg-warning text-warning-foreground",
+  low: "bg-info text-info-foreground",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,6 +43,34 @@ const DOMAIN_LABELS: Record<string, string> = {
 export function DeviationDetailDrawer({ deviation, open, onClose }: Props) {
   const updateDeviation = useUpdateDeviation();
   const [resolutionNotes, setResolutionNotes] = useState("");
+  const { workspaceData, profileId } = useContext(DashboardContext);
+
+  // Emit `deviation viewed` once per open, keyed on deviation id.
+  // L-0177: nonEmpty() throws on empty string — never silent fallback.
+  const viewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !deviation) return;
+    const workspaceId = workspaceData?.workspace_id ?? null;
+    if (!workspaceId || !profileId) return;
+    if (viewedRef.current === deviation.deviationId) return;
+    viewedRef.current = deviation.deviationId;
+    void emit({
+      event: "deviation viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "deviation",
+          entity_id: deviation.deviationId,
+          entity_label: deviation.title,
+        },
+        data: {
+          status: deviation.status,
+          severity: deviation.severity,
+        },
+      },
+    });
+  }, [open, deviation, workspaceData, profileId]);
 
   if (!deviation) return null;
 
@@ -146,10 +176,10 @@ export function DeviationDetailDrawer({ deviation, open, onClose }: Props) {
 
           {/* Resolution info (if resolved) */}
           {isResolved && (
-            <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+            <div className="border-success/30 bg-success/5 rounded-lg border p-3">
               <div className="mb-1 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-green-600">Lukket</span>
+                <CheckCircle2 className="text-success h-4 w-4" />
+                <span className="text-success text-sm font-medium">Lukket</span>
               </div>
               {deviation.resolutionNotes && (
                 <p className="text-foreground mt-1 text-xs">{deviation.resolutionNotes}</p>

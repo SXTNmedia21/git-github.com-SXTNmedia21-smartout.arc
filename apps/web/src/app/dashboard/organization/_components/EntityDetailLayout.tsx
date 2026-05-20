@@ -1,11 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useContext } from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 
 type Breadcrumb = {
   label: string;
@@ -41,6 +43,7 @@ export function EntityDetailLayout({
 }: EntityDetailLayoutProps) {
   const router = useRouter();
   const { isDark } = useContext(DashboardContext);
+  const [activeTab, setActiveTab] = useState<string>(defaultTab ?? tabs[0]?.value ?? "");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
@@ -102,18 +105,14 @@ export function EntityDetailLayout({
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue={defaultTab ?? tabs[0]?.value} className="flex min-h-0 flex-1 flex-col">
-        <TabsList className="border-border bg-muted h-auto justify-start gap-1 rounded-xl border p-1">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground rounded-lg px-4 py-2 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+        <PageTabNav
+          tabs={tabs.map((t) => ({ key: t.value, label: t.label }))}
+          active={activeTab}
+          onChange={(v) => setActiveTab(v)}
+          className="mb-5"
+          ariaLabel="Detalj-seksjoner"
+        />
 
         {tabs.map((tab) => (
           <TabsContent

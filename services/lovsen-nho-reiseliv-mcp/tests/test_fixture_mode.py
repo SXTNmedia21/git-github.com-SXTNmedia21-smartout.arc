@@ -1,8 +1,8 @@
 """
-test_fixture_mode.py — Tests verifying LOVSEN_MCP_FIXTURE=1 contract (ADR-0244).
+test_fixture_mode.py — Tests verifying fixture-mode contract (ADR-0244, ADR-0258).
 
 Key invariants:
-  - LOVSEN_MCP_FIXTURE=1 activates FIXTURE_MODE in the client module
+  - LOVSEN_FIXTURE_MODE=true (canonical per ADR-0258) activates FIXTURE_MODE in the client module
   - fetch_url raises RuntimeError in fixture mode — network guard
   - Missing fixture → FileNotFoundError with path in message
   - Malformed fixture JSON → ValueError with parse error info
@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload():
@@ -31,14 +31,14 @@ def _reload():
 
 @pytest.fixture(autouse=True)
 def fixture_mode_env(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 # ── Fixture mode flag ─────────────────────────────────────────────────────────
 
 
 def test_fixture_mode_is_active():
-    """LOVSEN_MCP_FIXTURE=1 means FIXTURE_MODE is True in the client module."""
+    """LOVSEN_FIXTURE_MODE=true (canonical per ADR-0258) means FIXTURE_MODE is True in the client module."""
     _reload()
     from src.nho_reiseliv_client import FIXTURE_MODE
 

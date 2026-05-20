@@ -22,7 +22,14 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
-import { listOpenOffers, postOpen, claim, approveClaim, cancelOffer } from "./tools.js";
+import {
+  listOpenOffers,
+  postOpen,
+  claim,
+  approveClaim,
+  cancelOffer,
+  overrideMarketplacePipeline,
+} from "./tools.js";
 
 const allTools = [
   listOpenOffers,
@@ -30,10 +37,14 @@ const allTools = [
   claim,
   approveClaim,
   cancelOffer,
+  overrideMarketplacePipeline,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [listOpenOffers] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
+// overrideMarketplacePipeline is autonomous-level (admin only) — omitted from
+// suggestTools. It appears in allTools only; the tier-unlock gate exposes it
+// when the caller's role >= admin (T0.5 seed: min_role=admin, autonomous).
 const suggestTools = [postOpen, claim, approveClaim, cancelOffer] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;

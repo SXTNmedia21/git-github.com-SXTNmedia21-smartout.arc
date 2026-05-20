@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useState, type CSSProperties } from "react";
+import { useTranslation } from "@smartout/i18n";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import {
@@ -22,7 +23,9 @@ import {
   type DepartmentSessionRow,
 } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
+import { useProfileRole } from "@/app/dashboard/komm/_hooks/use-profile-role";
 import { resolveDeptKey } from "./dept-key";
+import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { PhaseBadge } from "@smartout/ui";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { TimelineTab } from "./tabs/TimelineTab";
@@ -37,12 +40,12 @@ import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { OversiktToolsBridge } from "./_tools/oversikt-tools-bridge";
 
 const TAB_DEFS = [
-  { key: "overview", label: "Oversikt", Icon: Home },
-  { key: "timeline", label: "Dagslinjen", Icon: Clock },
-  { key: "roster", label: "Bemanning", Icon: Users },
-  { key: "tasks", label: "Oppgaver", Icon: CheckCircle2 },
-  { key: "deviations", label: "Avvik", Icon: AlertTriangle },
-  { key: "broadcast", label: "Melding", Icon: MessageSquare },
+  { key: "overview", labelKey: "day.control.tab_overview", Icon: Home },
+  { key: "timeline", labelKey: "day.control.tab_timeline", Icon: Clock },
+  { key: "roster", labelKey: "day.control.tab_roster", Icon: Users },
+  { key: "tasks", labelKey: "day.control.tab_tasks", Icon: CheckCircle2 },
+  { key: "deviations", labelKey: "day.control.tab_deviations", Icon: AlertTriangle },
+  { key: "broadcast", labelKey: "day.control.tab_broadcast", Icon: MessageSquare },
 ] as const;
 
 export type TabKey = (typeof TAB_DEFS)[number]["key"];
@@ -76,25 +79,37 @@ function formatDateLabels(iso: string) {
   };
 }
 
-function getElapsedText(phase: UiPhase, session: DepartmentSessionRow | null): string | undefined {
+function getElapsedText(
+  phase: UiPhase,
+  session: DepartmentSessionRow | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string | undefined {
   if (!session) return undefined;
   if (phase === "active" && session.openedAt) {
-    return `Åpnet ${new Date(session.openedAt).toTimeString().slice(0, 5)}`;
+    return t("day.control.elapsed_opened", {
+      time: new Date(session.openedAt).toTimeString().slice(0, 5),
+    });
   }
-  if (phase === "upcoming") return "Starter snart";
-  if (phase === "pending_signoff") return "Venter på signering";
-  if (phase === "closed" || phase === "locked") return "Stengt";
-  if (phase === "missed") return "Grace overskredet";
+  // "upcoming": PhaseBadge owns this state — no duplicate text needed
+  if (phase === "pending_signoff") return t("day.control.elapsed_pending_signoff");
+  if (phase === "closed" || phase === "locked") return t("day.control.elapsed_closed");
+  if (phase === "missed") return t("day.control.elapsed_missed");
   return undefined;
 }
 
 export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey }) {
+  const { t } = useTranslation("dashboard");
   const [tab, setTab] = useState<TabKey>(initialTab);
   const ctx = useContext(DashboardContext);
   const wsCtx = useWorkspaceOptional();
   const profileId = ctx.profileId;
   const workspaceId = wsCtx?.workspace.workspace_id ?? null;
   const reduceMotion = useReducedMotion();
+
+  // Role plumbing: use raw query.data (not .role which defaults to "employee")
+  // so role stays null during loading → SlotPicker gate shows briefly then unblocks.
+  const { data: profileRoleData } = useProfileRole(profileId ?? "");
+  const role: WorkspaceRole | null = (profileRoleData as WorkspaceRole | undefined) ?? null;
 
   const [dateISO, setDateISO] = useState<string>(today());
   const dateLabels = formatDateLabels(dateISO);
@@ -191,7 +206,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             {...fade}
             className="relative z-[1] flex h-full min-h-0 flex-1 items-center justify-center px-8"
           >
-            <NoDepartmentInner />
+            <NoDepartmentInner t={t} />
           </motion.div>
         )}
 
@@ -253,18 +268,22 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                     ·
                   </span>
                   <PhaseBadge phase={phase} />
-                  <span aria-hidden className="opacity-50">
-                    ·
-                  </span>
-                  <span className="font-mono tabular-nums">
-                    {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
-                  </span>
-                  {getElapsedText(phase, session) ? (
+                  {(session.plannedOpen ?? session.plannedClose) ? (
                     <>
                       <span aria-hidden className="opacity-50">
                         ·
                       </span>
-                      <span>{getElapsedText(phase, session)}</span>
+                      <span className="font-mono tabular-nums">
+                        {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
+                      </span>
+                    </>
+                  ) : null}
+                  {getElapsedText(phase, session, t) ? (
+                    <>
+                      <span aria-hidden className="opacity-50">
+                        ·
+                      </span>
+                      <span>{getElapsedText(phase, session, t)}</span>
                     </>
                   ) : null}
                 </div>
@@ -278,15 +297,25 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             {/* Tabs — reports pill row */}
             <div className="mb-5">
               <PageTabNav
-                tabs={TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.Icon }))}
+                tabs={TAB_DEFS.map((tab) => ({
+                  key: tab.key,
+                  label: t(tab.labelKey),
+                  icon: tab.Icon,
+                }))}
                 active={tab}
                 onChange={(k) => setTab(k as TabKey)}
-                ariaLabel="Dag-informasjon seksjoner"
+                ariaLabel={t("day.control.aria_tabs")}
               />
             </div>
 
             {/* Body — spring transition between tabs */}
-            <div id={`tab-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-hidden">
+            <div
+              id={`tab-panel-${tab}`}
+              role="tabpanel"
+              aria-labelledby={`tab-btn-${tab}`}
+              tabIndex={0}
+              className="min-h-0 flex-1 overflow-hidden"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
@@ -313,6 +342,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                       phase={phase}
                       departmentId={currentDept.departmentId}
                       dateISO={dateISO}
+                      role={role}
                     />
                   )}
                   {tab === "roster" && (
@@ -399,13 +429,14 @@ function SkeletonContent() {
   );
 }
 
-function NoDepartmentInner() {
+function NoDepartmentInner({ t }: { t: (key: string) => string }) {
   return (
     <div className="max-w-sm text-center">
-      <h2 className="font-heading text-[22px] tracking-[-0.01em]">Ingen avdeling knyttet</h2>
+      <h2 className="font-heading text-[22px] tracking-[-0.01em]">
+        {t("day.control.no_dept_heading")}
+      </h2>
       <p className="text-muted-foreground mt-2 text-[13px] leading-[1.5]">
-        Du har ingen avdeling registrert på profilen din, og arbeidsrommet har ingen avdelinger satt
-        opp. Kontakt admin for å få tildelt en avdeling.
+        {t("day.control.no_dept_body")}
       </p>
     </div>
   );

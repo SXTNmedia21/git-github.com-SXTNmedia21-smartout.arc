@@ -9,7 +9,9 @@ test.describe("DomainChatOwnership — negative-space (non-owning pages)", () =>
     await expectOrbActive(page);
   });
 
-  test("shift-clock page without active shift keeps Orb active (chat tab not mounted)", async ({ page }) => {
+  test("shift-clock page without active shift keeps Orb active (chat tab not mounted)", async ({
+    page,
+  }) => {
     await loginAsAdmin(page);
     await page.goto("/dashboard/shift-clock");
     // Admin role may redirect away from shift-clock (admin can't clock in — shift-clock

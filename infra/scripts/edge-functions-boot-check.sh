@@ -75,7 +75,7 @@ for fn in "${FUNCS[@]}"; do
       [[ $VERBOSE -eq 1 ]] && printf "  ${G}✓${N} ${D}%-3s${N} %s\n" "$status" "$fn"
       ;;
     503|500)
-      if echo "$body" | grep -qE "BOOT_ERROR|InvalidWorkerCreation|failed to bootstrap|failed to determine entrypoint"; then
+      if echo "$body" | grep -qE "BOOT_ERROR|InvalidWorkerCreation|InvalidWorkerResponse|WORKER_ERROR|failed to bootstrap|failed to determine entrypoint"; then
         FAIL=$((FAIL+1))
         FAIL_NAMES+=("$fn")
         printf "  ${R}✗${N} %-3s BOOT_FAIL  %s\n" "$status" "$fn"

@@ -53,7 +53,7 @@ export function WorkspaceCard({
         "transition-[transform,box-shadow,border-color] duration-200",
         "hover:-translate-y-[1px] hover:shadow-md",
         "focus-visible:ring-brand-orange/40 focus-visible:ring-2 focus-visible:outline-none",
-        active && "border-brand-orange shadow-[0_10px_30px_-12px_oklch(0.65_0.22_40/0.25)]",
+        active && "border-brand-orange shadow-[var(--shadow-cta-sm)]",
       )}
       aria-label={`Velg ${workspaceName}`}
     >

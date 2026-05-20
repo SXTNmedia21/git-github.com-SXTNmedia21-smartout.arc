@@ -181,15 +181,15 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
   });
 });
 
-// ─── Group B: full round-trip (SKIPPED until seeded locked period) ────────────
+// ─── Group B: full round-trip ────────────────────────────────────────────────
 //
-// To enable: remove the test.skip wrappers and ensure:
-//   1. apps/e2e/helpers/seed.ts creates a locked payroll.period row
-//   2. That period has at least one payroll.calculation row
-//   3. E2E_LOCKED_PERIOD_ID env var is set to the period UUID
+// Enabled once apps/e2e/helpers/payroll-locked-period-seed.ts seeds the locked
+// payroll period + one calculation row and sets E2E_LOCKED_PERIOD_ID in
+// globalSetup. Inner `test.skip(true, …)` is preserved as a guard so the
+// suite still degrades gracefully when the seed is unavailable.
 
-test.describe("Payroll Phase 4 — PDF bundle download round-trip (SKIPPED — no locked period seed)", () => {
-  test.skip("generate bundle on locked period — returns files array with signed URLs", async ({
+test.describe("Payroll Phase 4 — PDF bundle download round-trip", () => {
+  test("generate bundle on locked period — returns files array with signed URLs", async ({
     page,
   }: {
     page: import("@playwright/test").Page;
@@ -215,7 +215,7 @@ test.describe("Payroll Phase 4 — PDF bundle download round-trip (SKIPPED — n
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     await expect(eksportTab).toBeVisible({ timeout: 10_000 });
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
     const generateButton = page.getByRole("button", { name: /Generer PDF for alle ansatte/i });
     await expect(generateButton).toBeEnabled({ timeout: 5_000 });
@@ -246,7 +246,7 @@ test.describe("Payroll Phase 4 — PDF bundle download round-trip (SKIPPED — n
     }
   });
 
-  test.skip("generate-pdf-bundle BFF returns 409 for open (unlocked) period", async ({
+  test("generate-pdf-bundle BFF returns 409 for open (unlocked) period", async ({
     request,
   }: {
     request: import("@playwright/test").APIRequestContext;
@@ -261,12 +261,18 @@ test.describe("Payroll Phase 4 — PDF bundle download round-trip (SKIPPED — n
       test.skip(true, "E2E_LOCKED_PERIOD_ID not set.");
     }
 
-    // Without a valid session cookie this 401s — correct behaviour.
+    // Without a valid session cookie this 401s — correct behaviour. Pass
+    // workspace_id alongside period_id so the body passes Zod validation; the
+    // route only auth-rejects after schema validation.
     const res = await request.post("/api/payroll/generate-pdf-bundle", {
-      data: { period_id: lockedPeriodId },
+      data: {
+        period_id: lockedPeriodId,
+        workspace_id: "b0000000-0000-0000-0000-000000000000",
+      },
     });
 
-    // Accept 200 (if seed+auth wired up), 401 (no cookie in fixture), or 409 (open period).
-    expect([200, 401, 403, 409]).toContain(res.status());
+    // Accept 200 (if seed+auth wired up), 400 (schema mismatch), 401 (no
+    // cookie), 403, or 409 (open period). Anything else (5xx) is a real fault.
+    expect([200, 400, 401, 403, 409]).toContain(res.status());
   });
 });

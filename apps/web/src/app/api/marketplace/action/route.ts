@@ -38,6 +38,7 @@ import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
 import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 // ── Capability + action literals (must match capability tools.ts) ────────────
@@ -125,11 +126,44 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── Dispatch action ───────────────────────────────────────────────────────
-  if (action.action === "approve_claim") {
-    return handleApproveClaim(admin, workspaceId, profileId, action.offer_id);
-  } else {
-    return handleCancelOffer(admin, workspaceId, profileId, action.offer_id, action.reason);
+  // Wrap in try/catch so PipelineLockHeldError thrown by the capability layer
+  // surfaces as 409 PIPELINE_LOCK_HELD (ADR-0328 / ADR-0340).
+  try {
+    if (action.action === "approve_claim") {
+      return await handleApproveClaim(admin, workspaceId, profileId, action.offer_id);
+    } else {
+      return await handleCancelOffer(admin, workspaceId, profileId, action.offer_id, action.reason);
+    }
+  } catch (err) {
+    if (err instanceof PipelineLockHeldError || isLockHeldMessage((err as Error)?.message)) {
+      return pipelineLockResponse("marketplace_lifecycle");
+    }
+    throw err;
   }
+}
+
+// ── Pipeline lock helpers (ADR-0328) ─────────────────────────────────────────
+
+/** Returns true for error messages that signal a held pipeline lock. */
+function isLockHeldMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return (
+    msg.includes("PIPELINE_LOCK_HELD") ||
+    msg.includes("pipeline_lock_held") ||
+    msg.includes("Pipeline lock is already held")
+  );
+}
+
+/** Structured 409 response for pipeline lock contention (ADR-0328). */
+function pipelineLockResponse(lockingBlueprintId: string): NextResponse {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "PIPELINE_LOCK_HELD",
+      locking_blueprint_id: lockingBlueprintId,
+    },
+    { status: 409 },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

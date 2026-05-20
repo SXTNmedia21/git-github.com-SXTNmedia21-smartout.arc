@@ -9,9 +9,8 @@
 import React, { useCallback, useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles } from "@/theme";
+import { createStyles, useTheme } from "@/theme";
 import { Card } from "@/components/ui/Card";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { SupplementBadges } from "@/components/payroll/SupplementBadges";
 import { strings } from "@/constants/strings";
@@ -19,6 +18,7 @@ import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
 import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import { useShiftLifecycle } from "@/hooks/useShiftLifecycle";
 import { useIsOnline } from "@/hooks/useIsOnline";
+import { useShiftPipeline, resolvePipelineLabel } from "@/hooks/queries/use-shift-pipeline";
 import { PhaseStrip, PHASE_STRIP_HEIGHT } from "@/components/shift-timeline";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -93,12 +93,36 @@ export function ShiftCard({
   showPhaseStrip = false,
 }: ShiftCardProps) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const isConfirmed = Boolean(shift.confirmed_at);
+
+  // Inline confirmation status — replaces StatusBadge pill (40% reduction principle).
+  // Dot (6px) + caption text. Less visual weight than full pill.
+  const renderStatusInline = (kind: "confirmed" | "needs-confirm") => (
+    <View style={styles.statusInline}>
+      <View
+        style={[
+          styles.statusDot,
+          { backgroundColor: kind === "confirmed" ? colors.success : colors.warning },
+        ]}
+      />
+      <Text
+        style={[
+          styles.statusLabel,
+          { color: kind === "confirmed" ? colors.success : colors.warning },
+        ]}
+      >
+        {kind === "confirmed" ? strings.shift.confirmed : strings.shift.confirm}
+      </Text>
+    </View>
+  );
   const { data: supplementData } = useSupplementRules();
   // Only fetch the lifecycle when the strip is requested — keeps other
   // card usages (swap, roster lists) on the same lightweight footprint.
   const { data: lifecycle } = useShiftLifecycle(showPhaseStrip ? shift.schedule_shift_id : null);
   const isOnline = useIsOnline();
+  const { data: pipelineData } = useShiftPipeline(shift.schedule_shift_id);
+  const pipelineInfo = pipelineData?.pipeline ?? null;
 
   const supplements = useMemo(() => {
     if (!supplementData?.rules || supplementData.rules.length === 0) return [];
@@ -141,7 +165,7 @@ export function ShiftCard({
         >
           <View style={styles.header}>
             <Text style={styles.date}>{formatShiftDate(shift.shift_date)}</Text>
-            <StatusBadge label={strings.shift.confirm} variant="warning" />
+            {renderStatusInline("needs-confirm")}
           </View>
           <Text style={styles.timeRange}>
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
@@ -155,16 +179,19 @@ export function ShiftCard({
               <SupplementBadges supplements={supplements} />
             </View>
           )}
+          {pipelineInfo && (
+            <View style={styles.pipelineLockRow}>
+              <Text style={styles.pipelineLockText}>
+                🔒 {resolvePipelineLabel(pipelineInfo.blueprint_id)}
+              </Text>
+            </View>
+          )}
         </Pressable>
       ) : (
         <>
           <View style={styles.header}>
             <Text style={styles.date}>{formatShiftDate(shift.shift_date)}</Text>
-            {isConfirmed ? (
-              <StatusBadge label={strings.shift.confirmed} variant="success" />
-            ) : (
-              <StatusBadge label={strings.shift.confirm} variant="warning" />
-            )}
+            {renderStatusInline(isConfirmed ? "confirmed" : "needs-confirm")}
           </View>
           <Text style={styles.timeRange}>
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
@@ -176,6 +203,13 @@ export function ShiftCard({
           {supplements.length > 0 && (
             <View style={styles.badgeRow}>
               <SupplementBadges supplements={supplements} />
+            </View>
+          )}
+          {pipelineInfo && (
+            <View style={styles.pipelineLockRow}>
+              <Text style={styles.pipelineLockText}>
+                🔒 {resolvePipelineLabel(pipelineInfo.blueprint_id)}
+              </Text>
             </View>
           )}
         </>
@@ -211,6 +245,20 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.bodyBold,
     color: theme.colors.foreground,
   },
+  statusInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusLabel: {
+    ...theme.typography.caption,
+    fontWeight: theme.fontWeights.semibold,
+  },
   timeRange: {
     ...theme.typography.subheadline,
     color: theme.colors.mutedForeground,
@@ -226,6 +274,15 @@ const useStyles = createStyles((theme) => ({
   },
   badgeRow: {
     marginTop: theme.spacing.xs,
+  },
+  pipelineLockRow: {
+    marginTop: theme.spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pipelineLockText: {
+    ...theme.typography.caption,
+    color: "#f59e0b",
   },
   confirmRow: {
     marginTop: theme.spacing.element,

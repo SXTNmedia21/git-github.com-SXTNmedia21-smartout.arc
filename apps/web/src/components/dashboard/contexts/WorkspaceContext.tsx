@@ -14,7 +14,15 @@
  * previously exposed via DashboardContext (shape preserved for the facade).
  */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type WorkspaceSlice = {
   workspace_id: string;
@@ -54,10 +62,17 @@ export function WorkspaceProvider({
   isSetupMode,
 }: WorkspaceProviderProps) {
   const [activeDepartment, setActiveDepartment] = useState("Alle avdelinger");
-  const [setupDismissed, setSetupDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("setup_dismissed") === "1";
-  });
+  // SSR-safe: start false on both server and first client render, then read
+  // sessionStorage in useEffect. Reading sessionStorage in useState-initializer
+  // diverges SSR (false) from client (actual value) and triggers a hydration
+  // mismatch on the DashboardShell branch that depends on effectiveSetupMode.
+  const [setupDismissed, setSetupDismissed] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("setup_dismissed") === "1") {
+      setSetupDismissed(true);
+    }
+  }, []);
 
   const dismissSetup = useCallback(() => {
     setSetupDismissed(true);

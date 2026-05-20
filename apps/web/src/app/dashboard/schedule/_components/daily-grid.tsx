@@ -16,6 +16,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
 import { GhostShiftCard } from "./ghost-shift-card";
+import type { ScheduleDensity } from "./density-selector";
+import { PulseHeatmap, PulseMiniCard } from "./density-pulse-cell";
 import type { DayColumn } from "./schedule-data";
 import { useScheduleUI } from "./schedule-ui-context";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
@@ -58,6 +60,7 @@ export function GridContent({
   onRejectProposal,
   conflictedShiftIds,
   readinessMap,
+  shiftTimeEntries,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -76,8 +79,10 @@ export function GridContent({
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
   readinessMap?: Map<string, ShiftReadinessEntry>;
+  /** Map shift_id → { punchIn, punchOut } for tooltip display. */
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
 }) {
-  const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
+  const { isDark, scheduleView, scheduleDensity } = useContext(DashboardContext);
   const { active } = useDndContext();
   const { setCreateShiftContext, setAbsencePopover, setSelectedShift, setSelectedEmployee } =
     useScheduleUI();
@@ -250,10 +255,21 @@ export function GridContent({
     setScrollElement(findScrollableParent(rowListRef.current));
   }, [scheduleView, filteredEmployees.length]);
 
-  const estimateRowSize = React.useCallback(
-    () => (scheduleCompactMode ? 56 : 100),
-    [scheduleCompactMode],
-  );
+  const estimateRowSize = React.useCallback(() => {
+    // Pulse row height: 40px when any conflict in row (computed in cell render),
+    // 28px baseline for heatmap-only. Use 40 as pessimistic estimate so the
+    // virtualizer never underestimates (rows without conflicts will self-correct).
+    switch (scheduleDensity) {
+      case "cozy":
+        return 120;
+      case "compact":
+        return 56;
+      case "pulse":
+        return 40; // pessimistic — conflict-row height
+      default:
+        return 100; // "default"
+    }
+  }, [scheduleDensity]);
 
   const rowVirtualizer = useVirtualizer({
     count: scheduleView === "ansatt" ? filteredEmployees.length : 0,
@@ -263,10 +279,10 @@ export function GridContent({
     enabled: scheduleView === "ansatt" && scrollElement !== null,
   });
 
-  // Force virtualizer to recalculate when compact mode toggles
+  // Force virtualizer to recalculate when density changes
   React.useEffect(() => {
     rowVirtualizer.measure();
-  }, [scheduleCompactMode, rowVirtualizer]);
+  }, [scheduleDensity, rowVirtualizer]);
 
   const virtualRows = scheduleView === "ansatt" ? rowVirtualizer.getVirtualItems() : [];
 
@@ -364,6 +380,7 @@ export function GridContent({
                       conflictedShiftIds={conflictedShiftIds}
                       readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
                       missingProtocols={pendingToMissing(readinessMap?.get(employee.id))}
+                      shiftTimeEntries={shiftTimeEntries}
                     />
                   </div>
                 );
@@ -667,7 +684,7 @@ export const GroupHeader = React.memo(function GroupHeader({
   count: number;
   days: DayColumn[];
 }) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark: _isDark } = useContext(DashboardContext);
   return (
     <div className="group/header flex w-full">
       <div
@@ -716,6 +733,7 @@ type SortableEmployeeRowProps = {
   conflictedShiftIds?: Set<string>;
   readinessPercent?: number;
   missingProtocols?: MissingProtocol[];
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -762,6 +780,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   conflictedShiftIds,
   readinessPercent,
   missingProtocols,
+  shiftTimeEntries,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -780,10 +799,14 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
   readinessPercent?: number;
   missingProtocols?: MissingProtocol[];
 }) {
-  const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
+  const { isDark: _isDark, scheduleDensity } = useContext(DashboardContext);
+  // Derive isCompact for the sticky employee panel + legacy props that take a boolean.
+  // "cozy" and "default" both use the normal row height; "compact" and "pulse" compress.
+  const isCompact = scheduleDensity === "compact" || scheduleDensity === "pulse";
   const scheduledHours = employeeStats?.hours ?? 0;
   const shiftCount = employeeStats?.shiftCount ?? 0;
   const contractedHours = 37.5;
@@ -879,12 +902,18 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             }
           };
 
+          // Pulse mode: determine if any shift in this cell has a conflict
+          const cellHasConflict =
+            scheduleDensity === "pulse" && cellShifts.some((s) => conflictedShiftIds?.has(s.id));
+
           return (
             <MatrixCell
               key={day.id}
               isToday={day.isToday}
               id={`cell::${employee.id}::${day.id}`}
               isCompact={isCompact}
+              density={scheduleDensity}
+              cellHasConflict={cellHasConflict}
               dimmed={day.situation === "__dimmed__"}
               enableDroppable={enableDroppable}
               onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
@@ -893,9 +922,33 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                 onAbsencePopover({ employeeId: employee.id, dateId: day.id });
               }}
             >
-              {hasContent ? (
+              {/* Pulse mode — heatmap or conflict-escape mini-cards */}
+              {scheduleDensity === "pulse" ? (
+                cellShifts.length === 0 ? null : cellHasConflict ? ( // Empty heatmap cell — bg-muted/20 applied by MatrixCellBase in pulse+empty state
+                  // Conflict escape — one PulseMiniCard per conflicting shift
+                  <div className="flex h-full w-full flex-col gap-0.5 p-0.5">
+                    {cellShifts.map((shift) => (
+                      <PulseMiniCard
+                        key={shift.id}
+                        shift={{
+                          id: shift.id,
+                          role: shift.role,
+                          startTime: shift.startTime,
+                          endTime: shift.endTime,
+                          indicator: shift.indicator,
+                          hasConflict: conflictedShiftIds?.has(shift.id) ?? false,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  // Heatmap — majority indicator color at 60% opacity
+                  <PulseHeatmap indicators={cellShifts.map((s) => s.indicator)} />
+                )
+              ) : hasContent ? (
+                // Normal tiers (cozy / default / compact)
                 <div
-                  className={`flex h-full w-full flex-col pb-1 ${isCompact ? "gap-0.5" : "gap-1.5"}`}
+                  className={`flex h-full w-full flex-col justify-center pb-1 ${isCompact ? "gap-0.5" : "gap-1"}`}
                 >
                   {cellAbsences.map((absence) => (
                     <AbsenceCard
@@ -919,6 +972,11 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                       isCompact={isCompact}
                       confirmedAt={shift.confirmedAt}
                       hasConflict={conflictedShiftIds?.has(shift.id)}
+                      cellShiftCount={cellShifts.length}
+                      punchInAt={shiftTimeEntries?.get(shift.id)?.punchIn}
+                      punchOutAt={shiftTimeEntries?.get(shift.id)?.punchOut}
+                      employeeName={employee.name}
+                      workHours={shift.workHours}
                       onClick={() => onSelectShift(shift.id)}
                       onTimeChange={
                         onTimeChange
@@ -955,11 +1013,30 @@ export const EmployeeRow = React.memo(function EmployeeRow({
 // ---------------------------------------------------------------------------
 // MatrixCell — single droppable cell in the employee×day grid
 // ---------------------------------------------------------------------------
+
+/** Derives CSS height class for the cell based on density + conflict state. */
+function cellHeightClass(density: ScheduleDensity | undefined, cellHasConflict: boolean): string {
+  switch (density) {
+    case "cozy":
+      return "h-[120px] p-2";
+    case "compact":
+      return "h-[52px] min-h-0 p-1";
+    case "pulse":
+      // 40px for conflict-escape, 28px for heatmap baseline
+      return cellHasConflict ? "h-[40px] min-h-0 p-0.5" : "h-[28px] min-h-0 p-0";
+    default:
+      // "default" + undefined fallback
+      return "h-[100px] p-2";
+  }
+}
+
 function MatrixCell({
   children,
   isToday,
   id,
   isCompact,
+  density,
+  cellHasConflict = false,
   dimmed,
   enableDroppable,
   onAddClick,
@@ -969,6 +1046,8 @@ function MatrixCell({
   isToday?: boolean;
   id?: string;
   isCompact?: boolean;
+  density?: ScheduleDensity;
+  cellHasConflict?: boolean;
   dimmed?: boolean;
   enableDroppable?: boolean;
   onAddClick?: () => void;
@@ -981,6 +1060,8 @@ function MatrixCell({
       <MatrixCellBase
         isToday={isToday}
         isCompact={isCompact}
+        density={density}
+        cellHasConflict={cellHasConflict}
         dimmed={dimmed}
         isOver={false}
         onAddClick={onAddClick}
@@ -996,6 +1077,8 @@ function MatrixCell({
       droppableId={droppableId}
       isToday={isToday}
       isCompact={isCompact}
+      density={density}
+      cellHasConflict={cellHasConflict}
       dimmed={dimmed}
       onAddClick={onAddClick}
       onContextMenu={onContextMenu}
@@ -1010,6 +1093,8 @@ function MatrixCellDroppable({
   children,
   isToday,
   isCompact,
+  density,
+  cellHasConflict,
   dimmed,
   onAddClick,
   onContextMenu,
@@ -1018,6 +1103,8 @@ function MatrixCellDroppable({
   children?: React.ReactNode;
   isToday?: boolean;
   isCompact?: boolean;
+  density?: ScheduleDensity;
+  cellHasConflict?: boolean;
   dimmed?: boolean;
   onAddClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -1028,6 +1115,8 @@ function MatrixCellDroppable({
     <MatrixCellBase
       isToday={isToday}
       isCompact={isCompact}
+      density={density}
+      cellHasConflict={cellHasConflict}
       dimmed={dimmed}
       isOver={isOver}
       containerRef={setNodeRef}
@@ -1043,6 +1132,8 @@ function MatrixCellBase({
   children,
   isToday,
   isCompact,
+  density,
+  cellHasConflict = false,
   dimmed,
   isOver,
   containerRef,
@@ -1052,40 +1143,48 @@ function MatrixCellBase({
   children?: React.ReactNode;
   isToday?: boolean;
   isCompact?: boolean;
+  density?: ScheduleDensity;
+  cellHasConflict?: boolean;
   dimmed?: boolean;
   isOver: boolean;
   containerRef?: (node: HTMLDivElement | null) => void;
   onAddClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark: _isDark } = useContext(DashboardContext);
+  // Pulse mode empty cell gets a subtle muted background
+  const isPulseEmpty = density === "pulse" && !children;
+  const heightPaddingClass = cellHeightClass(density, cellHasConflict);
 
   return (
     <div
       ref={containerRef}
       onContextMenu={onContextMenu}
       style={{ minWidth: "100px" }}
-      className={`border-border bg-background/40 relative flex flex-1 flex-col gap-1 overflow-hidden border-r border-b transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-muted/30 hover:bg-muted/50"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
+      data-testid="schedule-cell"
+      className={`border-border bg-background/40 relative flex flex-1 flex-col gap-1 overflow-hidden border-r border-b transition-colors ${heightPaddingClass} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : isPulseEmpty ? "bg-muted/20" : "group-hover/row:bg-muted/30 hover:bg-muted/50"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>
           {children}
-          {/* Add button — always hover-only in compact, row-hover in normal */}
-          <button
-            onClick={onAddClick}
-            className={`border-border mt-auto flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 transition-all hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 ${isCompact ? "hidden h-5 opacity-0 group-hover/row:block group-hover/row:text-orange-500/30 group-hover/row:opacity-60" : "h-7 opacity-0 group-hover/row:text-orange-500/30 group-hover/row:opacity-60"}`}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+          {/* Add button — always hover-only in compact/pulse, row-hover in normal */}
+          {density !== "pulse" && (
+            <button
+              onClick={onAddClick}
+              className={`border-border mt-auto flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 transition-colors hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 ${isCompact ? "hidden h-5 opacity-0 group-hover/row:block group-hover/row:text-orange-500/30 group-hover/row:opacity-60" : "h-7 opacity-0 group-hover/row:text-orange-500/30 group-hover/row:opacity-60"}`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
         </>
-      ) : (
+      ) : density !== "pulse" ? (
         <button
           onClick={onAddClick}
-          className={`border-border absolute inset-x-2 inset-y-2 flex cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 hover:opacity-100`}
+          className={`border-border absolute inset-x-2 inset-y-2 flex cursor-pointer items-center justify-center rounded-lg border border-dashed bg-transparent text-orange-500/0 opacity-0 transition-colors hover:border-orange-500/30 hover:bg-orange-500/5 hover:text-orange-500/50 hover:opacity-100`}
         >
           <Plus className="h-4 w-4" />
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

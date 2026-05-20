@@ -191,7 +191,7 @@ if [ "$STOP_DOCKER" -eq 1 ]; then
     warn "infra/docker-compose.yml not found — skipping"
   else
     # Must pass both -f flags: single explicit -f bypasses auto-load of override.yml (SMA-302)
-    local stop_flags=(-f "${PROJECT_ROOT}/infra/docker-compose.yml")
+    stop_flags=(-f "${PROJECT_ROOT}/infra/docker-compose.yml")
     [ -f "${PROJECT_ROOT}/infra/docker-compose.override.yml" ] && \
       stop_flags+=(-f "${PROJECT_ROOT}/infra/docker-compose.override.yml")
     run "docker compose ${stop_flags[*]} down"

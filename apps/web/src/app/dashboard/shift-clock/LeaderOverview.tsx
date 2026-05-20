@@ -76,14 +76,14 @@ type EmployeeCard = {
   timeEntryId: string | null;
 };
 
-// ── Avatar color palette — warm, varied, never gray ──────────
+// ── Avatar color palette — warm, varied, never gray (ADR-0366: CSS vars) ──────────
 const AVATAR_COLORS = [
-  "oklch(0.45 0.15 250)", // blue
-  "oklch(0.40 0.15 300)", // purple
-  "oklch(0.45 0.15 160)", // teal
-  "oklch(0.50 0.18 30)", // warm orange
-  "oklch(0.45 0.14 200)", // cyan
-  "oklch(0.42 0.16 340)", // rose
+  "var(--status-trainee)", // blue ~250
+  "var(--brand-purple)", // purple ~300
+  "var(--dept-floor)", // teal ~160 (floor dept hue)
+  "var(--brand-orange-dark)", // warm orange ~30-40
+  "var(--dept-storage)", // cyan ~200
+  "var(--komm-quiz)", // rose ~340
 ];
 
 function avatarColor(profileId: string): string {
@@ -377,9 +377,9 @@ export function LeaderOverview() {
 
         {/* Status summary badges */}
         <div className="flex flex-wrap gap-2">
-          <StatusPill color="oklch(0.65 0.2 145)" label={`${countClocked} på vakt`} />
-          <StatusPill color="oklch(0.65 0.18 40)" label={`${countBreak} på pause`} />
-          <StatusPill color="oklch(0.55 0.005 60)" label={`${countWaiting} venter`} />
+          <StatusPill color="var(--status-active)" label={`${countClocked} på vakt`} />
+          <StatusPill color="var(--brand-orange)" label={`${countBreak} på pause`} />
+          <StatusPill color="var(--muted-foreground)" label={`${countWaiting} venter`} />
         </div>
       </div>
 
@@ -452,10 +452,10 @@ function EmployeeShiftCard({
 
   // Border color reinforces the status at a glance
   const borderColor = isClockedIn
-    ? "oklch(0.65 0.2 145 / 0.4)" // green tint
+    ? "color-mix(in oklch, var(--success) 40%, transparent)" // green tint
     : isOnBreak
-      ? "oklch(0.65 0.18 40 / 0.4)" // orange tint
-      : "oklch(0.91 0.006 55)"; // neutral border from design token
+      ? "color-mix(in oklch, var(--brand-orange) 40%, transparent)" // orange tint
+      : "var(--border)"; // neutral border from design token
 
   return (
     <div
@@ -549,8 +549,8 @@ function StatusBadge({ status }: { status: EmployeeCard["status"] }) {
       <Badge
         className="border-none text-[11px] font-semibold tracking-wide uppercase"
         style={{
-          background: "oklch(0.65 0.2 145 / 0.15)",
-          color: "oklch(0.55 0.2 145)",
+          background: "color-mix(in oklch, var(--success) 15%, transparent)",
+          color: "var(--success)",
         }}
       >
         På vakt
@@ -563,8 +563,8 @@ function StatusBadge({ status }: { status: EmployeeCard["status"] }) {
       <Badge
         className="border-none text-[11px] font-semibold tracking-wide uppercase"
         style={{
-          background: "oklch(0.65 0.18 40 / 0.15)",
-          color: "oklch(0.55 0.18 40)",
+          background: "color-mix(in oklch, var(--brand-orange) 15%, transparent)",
+          color: "var(--brand-orange-dark)",
         }}
       >
         Pause
@@ -577,8 +577,8 @@ function StatusBadge({ status }: { status: EmployeeCard["status"] }) {
     <Badge
       className="border-none text-[11px] font-semibold tracking-wide uppercase"
       style={{
-        background: "oklch(0.55 0.005 60 / 0.15)",
-        color: "oklch(0.55 0.005 60)",
+        background: "color-mix(in oklch, var(--muted-foreground) 15%, transparent)",
+        color: "var(--muted-foreground)",
       }}
     >
       Venter

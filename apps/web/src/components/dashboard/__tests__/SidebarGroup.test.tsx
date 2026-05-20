@@ -51,14 +51,15 @@ const icon = IconStub as unknown as LucideIcon;
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
+// labelKey values use short strings so t() returns them verbatim (key fallback)
 // ---------------------------------------------------------------------------
 
 function makeGroup(overrides: Partial<SidebarGroupDef> = {}): SidebarGroupDef {
   return {
-    label: "TestGroup",
+    labelKey: "TestGroup",
     items: [
-      { label: "Alpha", href: "/dashboard/alpha", icon, status: "live" },
-      { label: "Beta", href: "/dashboard/beta", icon, status: "live" },
+      { labelKey: "Alpha", href: "/dashboard/alpha", icon, status: "live" },
+      { labelKey: "Beta", href: "/dashboard/beta", icon, status: "live" },
     ],
     ...overrides,
   };
@@ -117,9 +118,9 @@ describe("SidebarGroup", () => {
   it("hides item with featureFlag when flag is false", () => {
     const group = makeGroup({
       items: [
-        { label: "Alpha", href: "/dashboard/alpha", icon, status: "live" },
+        { labelKey: "Alpha", href: "/dashboard/alpha", icon, status: "live" },
         {
-          label: "FlaggedItem",
+          labelKey: "FlaggedItem",
           href: "/dashboard/flagged",
           icon,
           status: "live",
@@ -142,7 +143,7 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "FlaggedItem",
+          labelKey: "FlaggedItem",
           href: "/dashboard/flagged",
           icon,
           status: "live",
@@ -170,16 +171,16 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "Ansatte",
+          labelKey: "Ansatte",
           href: "/dashboard/people",
           icon,
           status: "live",
-          compositeActive: ["/dashboard/contracts"],
+          compositeActive: ["/dashboard/people/contracts"],
         },
       ],
     });
     const html = renderToStaticMarkup(
-      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/contracts" />,
+      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/people/contracts" />,
     );
     expect(html).toContain('data-active="true"');
   });
@@ -189,16 +190,16 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "Ansatte",
+          labelKey: "Ansatte",
           href: "/dashboard/people",
           icon,
           status: "live",
-          compositeActive: ["/dashboard/contracts"],
+          compositeActive: ["/dashboard/people/contracts"],
         },
       ],
     });
     const html = renderToStaticMarkup(
-      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/contracts/123" />,
+      <SidebarGroup group={group} {...defaultProps} pathname="/dashboard/people/contracts/123" />,
     );
     expect(html).toContain('data-active="true"');
   });
@@ -208,7 +209,7 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "Oversikt",
+          labelKey: "Oversikt",
           href: "/dashboard",
           icon,
           status: "live",
@@ -233,7 +234,7 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "Rutiner",
+          labelKey: "Rutiner",
           href: "/dashboard/tasks",
           icon,
           status: "not-yet-built",
@@ -253,7 +254,7 @@ describe("SidebarGroup", () => {
     const group = makeGroup({
       items: [
         {
-          label: "Hidden",
+          labelKey: "Hidden",
           href: "/dashboard/hidden",
           icon,
           status: "live",

@@ -19,9 +19,9 @@ const TEMPLATE_CLASSIFICATION: Record<EmailTemplate, EmailClassification> = {
 };
 
 export const ALLOWED_SENDERS = [
-  "noreply@smartout.io",
-  "support@smartout.io",
-  "hei@smartout.io",
+  "noreply@smartout.ai",
+  "support@smartout.ai",
+  "hei@smartout.ai",
 ] as const;
 
 export function classifyEmail(template: EmailTemplate): EmailClassification {

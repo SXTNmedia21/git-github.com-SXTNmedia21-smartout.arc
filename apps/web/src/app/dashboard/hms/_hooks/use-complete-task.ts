@@ -1,12 +1,28 @@
 "use client";
 
-import { useContext } from "react";
+/**
+ * use-complete-task.ts — Thin TanStack mutation wrapper for session_task completion.
+ *
+ * WHY: Previously performed `supabase.from("session_task").update(...)` directly
+ * from the browser anon client with fire-and-forget `void emit()`. This violated:
+ *   - ADR-0099: no gate_action() RPC
+ *   - ADR-0114: client-side DB write
+ *   - ADR-0151: workspace_id + actor resolved client-side
+ *   - ADR-0134: fire-and-forget emit
+ *
+ * NOW: Delegates to `completeTaskAction` Server Action in `_actions/complete-task-action.ts`.
+ * All gate_action, admin-client write, server-resolved IDs, and awaited emit
+ * live in the Server Action (via task.complete capability tool body per ADR-0298).
+ * This hook is a thin TanStack mutation adapter only.
+ *
+ * Sortie 1 of M5 HMS 4-sortie sequence. Council-verified 2026-05-17.
+ * ADR refs: 0099, 0114, 0134, 0151, 0204, 0298.
+ */
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@smartout/supabase/client";
-import { emit, nonEmpty } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useWorkspace } from "@/lib/workspace-context";
+import { completeTaskAction } from "@/app/dashboard/_actions/complete-task-action";
 import { toast } from "sonner";
+
 type CompleteTaskInput = {
   taskId: string;
   sessionId: string;
@@ -14,39 +30,17 @@ type CompleteTaskInput = {
 };
 
 export function useCompleteTask() {
-  const { profileId } = useContext(DashboardContext);
-  const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ taskId, evidence }: CompleteTaskInput) => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("session_task")
-        .update({
-          status: "completed" as const,
-          completed_by: profileId,
-          completed_at: new Date().toISOString(),
-          evidence: (evidence ?? null) as unknown as Record<string, never>, // SAFETY: Supabase join returns union type; runtime shape matches the cast
-        })
-        .eq("id", taskId);
-
-      if (error) throw error;
+    mutationFn: async ({ taskId }: CompleteTaskInput) => {
+      // evidence is not forwarded — task.complete tool body handles evidence
+      // via its own completion payload. Server-side gate + admin write + emit.
+      const result = await completeTaskAction(taskId, "chat");
+      if (!result.ok) throw new Error(result.error);
+      return taskId;
     },
-    onSuccess: (_data, variables) => {
-      void emit({
-        event: "session_task completed",
-        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
-        properties: {
-          entity: {
-            entity_type: "session_task",
-            entity_id: variables.taskId,
-            entity_label: variables.taskId,
-          },
-          data: { task_id: variables.taskId, profile_id: profileId ?? "" },
-        },
-      });
+    onSuccess: (_taskId, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["hms", "session-tasks", variables.sessionId],
       });

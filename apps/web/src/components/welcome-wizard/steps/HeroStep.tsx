@@ -18,7 +18,7 @@ export function HeroStep({ onNext }: Props) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 py-4 text-center">
       {/* Brand mark */}
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[oklch(0.75_0.12_50)] to-[oklch(0.60_0.15_40)] shadow-lg">
+      <div className="from-brand-orange-light to-brand-orange-dark flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg">
         <Sparkles className="h-8 w-8 text-white" strokeWidth={1.5} />
       </div>
 

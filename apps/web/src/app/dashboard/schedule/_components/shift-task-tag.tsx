@@ -20,17 +20,17 @@ export function MalTaskTag({ task, onClick }: MalTaskTagProps) {
     <button
       type="button"
       onClick={onClick}
-      className="hover:text-foreground group inline-flex cursor-pointer items-center gap-[3px] rounded-md px-[7px] py-[2px] transition-all duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:border-[oklch(0.8_0.01_55)]"
+      className="hover:text-foreground group inline-flex cursor-pointer items-center gap-[3px] rounded-md px-[7px] py-[2px] transition-[border-color,background-color] duration-[250ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] hover:border-[var(--border)]"
       style={
         isDone
           ? {
-              border: "1px solid oklch(0.72 0.17 160 / 0.2)",
-              backgroundColor: "oklch(0.72 0.17 160 / 0.04)",
+              border: "1px solid var(--tag-teal-border)",
+              backgroundColor: "var(--tag-teal-bg)",
               color: "#22c55e",
             }
           : {
-              border: "1px solid oklch(0.65 0.22 40 / 0.2)",
-              backgroundColor: "oklch(0.65 0.22 40 / 0.04)",
+              border: "1px solid var(--tag-orange-border)",
+              backgroundColor: "var(--tag-orange-bg)",
               color: "#f97316",
             }
       }
