@@ -109,13 +109,19 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 ## Modules
 
-Most module docs migrated to architecture/ + decisions/. Three remain:
+Flat module docs + folder-based modules (folder = README index + standard doc set):
 
 | id              | File                              | Status |
 | --------------- | --------------------------------- | ------ |
 | MOD_BILLING     | modules/MODULE_BILLING.md         | active |
 | MOD_COMMUNICATION | modules/MODULE_COMMUNICATION.md | active |
 | MOD_YEAR_WHEEL  | modules/MODULE_YEAR_WHEEL_PRD.md  | active |
+| MOD_CONTRACT_COMPONENTS | modules/MODULE_CONTRACT_COMPONENTS.md | active |
+| MOD_CORE_STRUCTURE | modules/core-structure/README.md | active |
+| MOD_DAYTIMELINE | modules/daytimeline/README.md     | active |
+| MOD_ANNOUNCEMENTS | modules/announcments/README.md  | active |
+| MOD_PAYROLL     | modules/payroll/README.md         | active |
+| MOD_TASK_MANAGER | modules/task-manager/README.md   | active |
 
 ## Architecture
 

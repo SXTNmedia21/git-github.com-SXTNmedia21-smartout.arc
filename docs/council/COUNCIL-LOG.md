@@ -2312,3 +2312,15 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Phase-A entry-gate:** Phase A migration sortie may dispatch after spec v1.1→v1.2 + ADR-0367 v1.1 amendment committed. Phase B BLOCKED on Phase A merge to development.
 **Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
 **Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.
+
+## 2026-05-20 — ADR-0379 Role-Mandatory Compliance + Starter Routines into Hospitality Intelligence (I1)
+**Type:** architecture / plan (pre-implementation ADR review)
+**Verdict:** REJECT in current form → SPLIT into ADR-0379a (additive) + ADR-0379b (load-bearing) + remediate
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer (5/5 responded — full council)
+**Prior verdict held?** n/a (first council on task-manager I1 wiring)
+**Key decision:** `profession_training` spine already exists (orphan, `20260421100300:69–80`) → revive it; do NOT build parallel `policy_scope='role'` / `protocol.is_mandatory`. Drop D2+D3. Trigger fires on `profile_position` INSERT (not `profile` — m2m empty at profile-insert). Install `governance.sql` as SECURITY DEFINER RPC before EF call. Rewire `evaluateReadinessGate` to `gate_action` (seeding authority row alone is inert). Backfill governance authority for existing workspaces. Mockup-source hard rule: port task UI from `taskmanager-handoff/`, no redesign.
+**Agent Trust Gate:** FAILED on all 3 promises as drafted (empty-join trigger, inert authority row, uninstalled template RPC) — corrected in revised set.
+**Chair self-reversal:** "fix is primarily schema reconciliation" → REVERSED (dominant risk = feature inert as drafted).
+**Fact-check:** 14/14 briefing claims VERIFIED.
+**ADR created:** ADR-0379 draft (split a/b) — `docs/modules/task-manager/ADR-DRAFT-0379-role-mandatory-compliance-i1.md`; reserve 0379a/0379b vs all branches at accept.
+**Learning created:** schema-orphan-rebuild + authority-seed-inert (sibling L-0083) — captured to steward agent-memory; register in learning log at build close.
