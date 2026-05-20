@@ -9,6 +9,9 @@
  * FAB swipe up layer 1 (80px) = open AddSheet.
  * FAB swipe up layer 2 (160px) = open AddSheet + BotssonSheet stacked.
  *
+ * FabHint renders a first-run tooltip above the FAB to advertise the long-press
+ * AI entry. Auto-dismisses or marks-seen on first long-press / swipe-layer2.
+ *
  * Each tab screen manages its own header.
  */
 
@@ -19,8 +22,10 @@ import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
 import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
+import { FabHint } from "@/components/navigation/FabHint";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
 import { BotssonProvider } from "@/providers/botsson-provider";
+import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
@@ -45,6 +50,7 @@ export default function AppLayout() {
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const addSheetRef = useRef<AddSheetHandle>(null);
+  const markFabHintSeen = useBotssonSettingsStore((s) => s.setHasSeenFabHint);
 
   /** Tap → return to Kalender (daily anchor per ADR-0268). */
   const handleFabTap = useCallback(() => {
@@ -53,8 +59,9 @@ export default function AppLayout() {
 
   /** Long-press → open BotssonSheet directly (discoverable AI entry). */
   const handleFabLongPress = useCallback(() => {
+    markFabHintSeen(true);
     botssonSheetRef.current?.expand();
-  }, []);
+  }, [markFabHintSeen]);
 
   /** Swipe layer 1 (≥80px up) → open AddSheet only. */
   const handleFabSwipeLayer1 = useCallback(() => {
@@ -63,9 +70,10 @@ export default function AppLayout() {
 
   /** Swipe layer 2 (≥160px up) → open AddSheet + BotssonSheet stacked. */
   const handleFabSwipeLayer2 = useCallback(() => {
+    markFabHintSeen(true);
     addSheetRef.current?.open();
     botssonSheetRef.current?.expand();
-  }, []);
+  }, [markFabHintSeen]);
 
   const handleBotssonDismiss = useCallback(() => {
     botssonSheetRef.current?.close();
@@ -124,6 +132,7 @@ export default function AppLayout() {
         {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}
         <AddSheet ref={addSheetRef} selectedDate={new Date()} />
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
+        <FabHint message={strings.botsson.fabHint} />
       </View>
     </BotssonProvider>
   );

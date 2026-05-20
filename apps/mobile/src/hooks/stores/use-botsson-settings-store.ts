@@ -7,6 +7,10 @@
  *   - interactionMode: "push-to-talk" keeps mic silent until held;
  *     "always-on" streams audio continuously (default for voice-friendly environments)
  *
+ * Plus one first-run UX flag:
+ *   - hasSeenFabHint: true after the user has either long-pressed the AI FAB
+ *     once or dismissed the discovery tooltip; suppresses the hint forever
+ *
  * Defaults are intentionally voice-forward: voice on, Norwegian, always-on.
  * These live in user preferences — not workspace policy — so they belong
  * here rather than in sessionContext derivation.
@@ -22,14 +26,17 @@ type BotssonSettingsState = {
   voiceEnabled: boolean;
   language: BotssonLanguage;
   interactionMode: BotssonInteractionMode;
+  hasSeenFabHint: boolean;
   setVoiceEnabled: (enabled: boolean) => void;
   setLanguage: (language: BotssonLanguage) => void;
   setInteractionMode: (mode: BotssonInteractionMode) => void;
+  setHasSeenFabHint: (seen: boolean) => void;
 };
 
 const KEY_VOICE_ENABLED = "cache:botsson:voice-enabled";
 const KEY_LANGUAGE = "cache:botsson:language";
 const KEY_INTERACTION_MODE = "cache:botsson:interaction-mode";
+const KEY_SEEN_FAB_HINT = "cache:botsson:seen-fab-hint";
 
 function loadBoolean(key: string, fallback: boolean): boolean {
   try {
@@ -66,6 +73,7 @@ export const useBotssonSettingsStore = create<BotssonSettingsState>((set) => ({
   voiceEnabled: loadBoolean(KEY_VOICE_ENABLED, true),
   language: loadLanguage(),
   interactionMode: loadInteractionMode(),
+  hasSeenFabHint: loadBoolean(KEY_SEEN_FAB_HINT, false),
 
   setVoiceEnabled: (enabled) => {
     try {
@@ -92,5 +100,14 @@ export const useBotssonSettingsStore = create<BotssonSettingsState>((set) => ({
       // MMKV unavailable
     }
     set({ interactionMode: mode });
+  },
+
+  setHasSeenFabHint: (seen) => {
+    try {
+      storage.set(KEY_SEEN_FAB_HINT, String(seen));
+    } catch {
+      // MMKV unavailable
+    }
+    set({ hasSeenFabHint: seen });
   },
 }));
