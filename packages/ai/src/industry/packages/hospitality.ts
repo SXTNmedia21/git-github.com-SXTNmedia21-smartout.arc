@@ -11,7 +11,7 @@
  * Source authority: docs/modules/payroll/SORTIE-PHASE-1.md §3.
  */
 
-import type { Domain, IndustryPackage } from "@smartout/types";
+import type { Domain, IndustryPackage, RoleCapabilityProfile } from "@smartout/types";
 
 // ========================================
 // Cascade seed data — used for bootstrap seeding and hardcoded fallback
@@ -621,4 +621,81 @@ export const hospitalityPackage: IndustryPackage = {
   },
 
   domains: HOSPITALITY_DOMAINS,
+
+  /**
+   * Role-capability profiles for the restaurant vertical.
+   *
+   * Authored from restaurant-role-capability-baseline.md (ADR-0379a, A2).
+   * Protocol slugs match exact protocol.name values in governance templates.
+   * Used at I1 bootstrap to seed the initial readiness gate configuration.
+   * Additive — no runtime DB-load path (council: bootstrap-only, no K1a read).
+   */
+  roleCapabilityProfiles: [
+    {
+      roleSlug: "skiftleder",
+      positionSlugs: ["Skiftleder"],
+      mandatoryProtocolSlugs: [
+        "Apningsrutiner-protokoll", // governance.sql:325
+        "Stengerutiner-protokoll", // governance.sql:326
+        "Brannvern og evakuering-protokoll", // governance.sql:328
+        "Arbeidsmiljo og HMS-protokoll", // governance.sql:331
+        "Handhygiene-protokoll", // governance.sql:327
+      ],
+      readySignal: "Can run one full shift cycle without policy-critical misses",
+    },
+    {
+      roleSlug: "servitor",
+      positionSlugs: ["Servitør", "Runner", "Vertinne"],
+      mandatoryProtocolSlugs: [
+        "Allergenhandtering-protokoll", // governance.sql:324
+        "Handhygiene-protokoll", // governance.sql:327
+        "Brannvern og evakuering-protokoll", // governance.sql:328
+        // NOTE: "service-safety" gap intentionally deferred — no matching protocol
+        // in current templates. Flagged for council (baseline §5: UNRESOLVED).
+      ],
+      readySignal: "Completes full service sequence with correct allergen handling",
+    },
+    {
+      roleSlug: "kokk",
+      positionSlugs: [
+        "Kokk",
+        "Sous Chef",
+        "Kjøkkenassistent",
+        "Kjøkkensjef",
+        "Gardemanger",
+        "Patissier",
+        "Oppvaskhjelp",
+      ],
+      mandatoryProtocolSlugs: [
+        "Temperaturkontroll-protokoll", // governance.sql:323
+        "Allergenhandtering-protokoll", // governance.sql:324
+        "Handhygiene-protokoll", // governance.sql:327
+        "Varemottak og lagring-protokoll", // governance.sql:330
+        "Temperaturovervaking-protokoll", // mattilsynet.sql:289
+        "Hygiene og renhold-protokoll", // mattilsynet.sql:293
+        "Sporbarhet og avvik-protokoll", // mattilsynet.sql:301
+      ],
+      readySignal: "Executes prep + service tasks with compliant temperature and hygiene behavior",
+    },
+    {
+      roleSlug: "bartender",
+      positionSlugs: ["Bartender", "Barback", "Barsjef"],
+      mandatoryProtocolSlugs: [
+        "Skjenkekontroll-protokoll", // governance.sql:332
+        "Handhygiene-protokoll", // governance.sql:327
+        "Brannvern og evakuering-protokoll", // governance.sql:328
+      ],
+      readySignal: "Handles bar service and age checks without compliance breaches",
+    },
+    {
+      roleSlug: "renhold",
+      positionSlugs: ["Renholder", "Renholdsansvarlig"],
+      mandatoryProtocolSlugs: [
+        "Handhygiene-protokoll", // governance.sql:327
+        "Hygiene og renhold-protokoll", // mattilsynet.sql:293
+        "Arbeidsmiljo og HMS-protokoll", // governance.sql:331
+      ],
+      readySignal: "Completes hygiene controls with verifiable checklist quality",
+    },
+  ] satisfies RoleCapabilityProfile[],
 };
