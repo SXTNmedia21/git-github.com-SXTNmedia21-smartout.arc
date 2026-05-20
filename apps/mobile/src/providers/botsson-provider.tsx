@@ -241,8 +241,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       ...prev,
       { id: `user-${Date.now()}`, role: "user", text, timestamp: Date.now() },
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice.lastUserTranscript]);
+  }, [voice.lastUserTranscript, mode]);
 
   // Append an agent turn when the BFF response arrives.
   useEffect(() => {
@@ -252,8 +251,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       ...prev,
       { id: `agent-${Date.now()}`, role: "agent", text, timestamp: Date.now() },
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice.lastResponse]);
+  }, [voice.lastResponse, mode]);
 
   // Build mobile context for AI agent — passed as session params.
   // ADR-0107: channel is derived from mode, device_type is separate.
