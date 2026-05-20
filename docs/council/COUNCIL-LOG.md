@@ -2312,3 +2312,14 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Phase-A entry-gate:** Phase A migration sortie may dispatch after spec v1.1→v1.2 + ADR-0367 v1.1 amendment committed. Phase B BLOCKED on Phase A merge to development.
 **Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
 **Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.
+
+## 2026-05-20 — Order/invoice system: does it generate reliably on a cron basis?
+**Type:** post-implementation + architecture (cron reliability)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer). frontend-designer + botsson-harness-builder skipped (backend cron, no UI/Botsson axis) — 3 reviewers, NOT degraded.
+**Prior verdict held?** n/a (no prior council on billing cron).
+**Key decision:** Generation logic is cascade/C3-sound (ADR-0118/0119/0120/0125/0384 honored) but has a CORRECTNESS defect (stuck-draft silent under-billing) + cron operational gaps. Chair self-reversed Phase 3 "logic ships as-is" → REVERSED (L-0147 6th precedent): Phase 3 claim "generation logic correct, gaps operational-only" was FALSE; falsifying evidence `generator.ts:257-364` (3 non-transactional writes) × unique index `:150-152` × early-exit `:115`. Verdict tiers: TIER 1 correctness (C1 atomic RPC, C2 void stuck drafts, C3 emit contract) blocks "reliable cron billing"; TIER 2 scope (auto-charge — needs Pontus, manual collection V1 recommended); TIER 3 operational (R1 watchdog, R2 runbook, R3 pg_cron ADR, R4 due_at→pricing_terms). Code-tracers also found: dispatch/charge is MANUAL not cron (`enqueueDispatchesForInvoice` 0 call-sites); intra-engine drift (dunning uses pg_cron, generation uses n8n; spec says "No pg_cron" but cites a pg_cron precedent).
+**Implemented this session:** sortie `feat/billing-cron-correctness` (C1+C2+R1) — runtime-verified, committed `fa3c7807e`. TIER 2/3 remainder deferred to separate sorties.
+**ADR created:** none (pg_cron-vs-n8n ADR deferred to R3 sortie).
+**Learning created:** L-0326 (non-transactional multi-write + uniqueness-on-partial-state = silent skip).
+**Phase 2.5 fact-check:** caught 3 false briefing claims (billable=distinct employees not shifts; unique-index columns vs WHERE-filter; enum order paid-before-overdue) + confirmed the load-bearing one (NO missing-run watchdog).
