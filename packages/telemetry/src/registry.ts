@@ -6251,6 +6251,24 @@ export interface InvoiceOverdueDetected extends BaseEvent {
   };
 }
 
+// Watchdog event: cron detected that a company with contract_status='active'
+// has no non-void recurring invoice for the previous calendar month.
+// Written directly to billing_activity_log by fn_check_billing_run()
+// (SECURITY DEFINER, ADR-0125). entity_id = company_id (no invoice exists yet).
+// feat/billing-cron-correctness R1, 2026-05-20.
+export interface InvoiceGenerationMissing extends BaseEvent {
+  event: "invoice generation_missing";
+  properties: {
+    entity_type: "company";
+    entity_id: string; // company_id
+    data: {
+      company_id: string;
+      period_from: string;
+      period_to: string;
+    };
+  };
+}
+
 export interface InvoiceCreditNoteIssued extends BaseEvent {
   event: "invoice credit_note_issued";
   properties: {
@@ -8901,6 +8919,7 @@ export type SmartoutEvent =
   | InvoiceVoided
   | InvoiceMarkedUncollectible
   | InvoiceOverdueDetected
+  | InvoiceGenerationMissing
   | InvoiceCreditNoteIssued
   | InvoiceBasisDriftDetected
   | UsageSnapshotCreated
@@ -13294,6 +13313,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "invoice overdue_detected": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  // Watchdog: cron-detected missing billing run. Logger + billing_activity_log
+  // only — the audit stream IS the alert. No engine_event (no invoice to spawn
+  // a lifecycle process from). feat/billing-cron-correctness R1.
+  "invoice generation_missing": {
+    destinations: ["logger", "billing_activity_log"],
     category: "billing",
   },
   "invoice credit_note_issued": {
