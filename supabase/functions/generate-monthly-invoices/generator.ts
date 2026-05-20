@@ -371,6 +371,10 @@ async function generateForCompany(
     },
   });
 
+  // Collection boundary (ADR-0385): generation stops at status='issued'. The
+  // cron deliberately does NOT call enqueueDispatchesForInvoice / charge via
+  // Stripe — collection is manual in V1 ("Betal nå" Checkout or manual
+  // dispatch_invoice). Auto-charge from this cron is a future ADR.
   return true;
 }
 
