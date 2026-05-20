@@ -2332,3 +2332,12 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Key decision:** Two blockers closed in remediation sortie. B1 CRITICAL open-redirect — `/api/auth/callback` guarded `next` with bare `startsWith("/")`; `//evil.com` → `new URL` external host on post-exchange redirects (lines 162/179/188); fixed via `validateReturnTo` (already existed + used at login:149). B2 HIGH OTP enumeration — surfacing `signInWithOtp({shouldCreateUser:false})` error leaked account existence (supabase/auth#1547, code `otp_disabled`); now treated as success + generic i18n message. Also i18n raw English errors + dead `typeof window` guard removed. Should-fix (follow-up, not blocking): scrub mis-layered (middleware nuke deletes only `.smartout.ai` variant, steady-state nav still hits orphan — port two-variant delete into `middleware.ts:94`); explicit `config.toml verify_jwt` for send-login-code; magic-link TTL vs "1 time" copy. Refuted: scrub cookie correctness (correct), `email_otp` undefined→SMS (guarded), telemetry skip on recovery short-circuit (correct), agent/Stage-Engine coupling (NONE — header/token/service-role based, never cookie). 4/4 E2E green post-remediation (F2b/F3b/F3c). No chair self-reversal (Phase 3 conditions aligned with reviewers, strengthened by code-reviewer's #1547 evidence on enumeration).
 **ADR created:** none (remediation, no architectural decision).
 **Learning created:** L-0327 (open-redirect `startsWith("/")` insufficiency — use `validateReturnTo`).
+
+## 2026-05-20 — ADR-0379 Signature-as-C4-Authorization (post-implementation)
+**Type:** post-implementation / architecture (governance precedent)
+**Verdict:** REJECT — non-functional as shipped (remediation order against merged PR #434)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a — first council on signature-as-C4. Related: ADR-0099 (gate levels), ADR-0321/0340 (per-stage gate).
+**Key decision:** Cascade non-functional — docuseal webhook raw-inserts engine_event but nothing invokes engine-dispatch → no engine_state, profile never flips. Chair self-reversed Phase 3 HELD → REJECT (≥10th L-0147 precedent). Remediated in feat/contract-activation-remediation (R0 invoke + R1 trainee-guard + R2 fail-loud + R3 ADR text + R4 emit fail-loud + R5 ADR→proposed).
+**ADR created:** none (ADR-0379 reverted accepted→proposed)
+**Learning created:** L-0324 (pgTAP-green ≠ runtime-functional), L-0325 (council coverage-gap voids no-blocker)
