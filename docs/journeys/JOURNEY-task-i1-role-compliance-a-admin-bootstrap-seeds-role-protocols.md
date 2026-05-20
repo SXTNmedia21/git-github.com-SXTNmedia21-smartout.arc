@@ -22,7 +22,7 @@ tags: [journey]
 1. Admin completes onboarding and finalizes the workspace → System runs bootstrap → System reads `hospitalityPackage.roleCapabilityProfiles` → for each role profile, resolves `mandatoryProtocolSlugs` to the workspace's `protocol` rows → writes `profession` + `profession_training(profession_id, protocol_id, is_required=true, workspace_id)` rows → Admin sees a finalized workspace where each role has its mandatory protocols recorded in the spine.
 2. (Idempotency) Admin re-runs / resumes bootstrap → System upserts `profession_training` → no duplicate rows.
 
-**Postcondition:** `profession_training` is populated for the workspace: every hospitality role (bartender, kokk, servitør, skiftleder, renhold) has its `is_required=true` protocol mappings. **No behavior change** — readiness gate / shift publish unaffected (consumed only in 0379b).
+**Postcondition:** `profession_training` is populated for the workspace: every hospitality role (bartender, kokk, servitør, skiftleder, renhold) has its `is_required=true` protocol mappings. **No behavior change** — readiness gate / shift publish unaffected (consumed only in 0387b).
 
 ## Error Paths
 

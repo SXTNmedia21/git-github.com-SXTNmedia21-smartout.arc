@@ -1,5 +1,5 @@
 ---
-title: ADR-DRAFT-0379 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
+title: ADR-DRAFT-0387 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
 status: draft
 updated: 2026-05-20
 created: 2026-05-20
@@ -7,12 +7,12 @@ module: task-manager
 tags: [adr-draft, task-manager, hospitality-intelligence, i1, policy-scope, role-compliance, readiness-gate, council-class]
 ---
 
-# ADR-DRAFT-0379 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
+# ADR-DRAFT-0387 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
 
-> **DRAFT — council-class.** Slot 0379 provisional (highest accepted = 0378; renumber if collision per L:ADR-ID-squatting). Do NOT ship migrations before this is accepted + council-reviewed. Load-bearing: touches auto-assign trigger + readiness + C4 shift gate.
+> ✅ **PROMOTED → [docs/decisions/0387-role-mandatory-compliance-hospitality-intelligence.md](../../decisions/0387-role-mandatory-compliance-hospitality-intelligence.md) is CANONICAL** (accepted 2026-05-21; renumbered from "0379" — collision). This file is the module-level detailed record (full council reasoning + original superseded D1–D6); the docs/decisions ADR is the authority. **0387a shipped** (campaign/daily-operation @ 0dd9528d6); **0387b proposed** (council-gated).
 
 ## Status
-Draft → **council REJECTED in current form (2026-05-20)** → SPLIT into 0379a (additive) + 0379b (load-bearing) → revised decision set below (§Council Outcome) supersedes the original D1–D6.
+Draft → **council REJECTED in current form (2026-05-20)** → SPLIT into 0387a (additive) + 0387b (load-bearing) → revised decision set below (§Council Outcome) supersedes the original D1–D6.
 
 > ⚠️ The original D1–D6 (below) are PRESERVED for traceability but SUPERSEDED. Build the **Council Outcome** decision set, not the original.
 
@@ -113,13 +113,13 @@ Council: system-steward (chair), supervisor, system-agent-coordinator, botsson-h
 - (b) `profession_training.is_required` (role-conditional) **eliminates D4 parallel map + `policy_scope='role'`**; `protocol.is_mandatory` (D3) **DROPPED** — `DEFAULT false` silently un-gates existing workspaces; derive gate-counting from `is_required` via position join.
 - (c) D6-as-seed-only **FALSIFIED** — seeding `engine_authority_config` without rewiring `evaluateReadinessGate` to `callGateAction` is inert.
 
-### ADR-0379a — additive, ship first, ZERO behavior change
+### ADR-0387a — additive, ship first, ZERO behavior change
 - **A1** Revive `profession_training` as the canonical role→protocol spine.
 - **A2** I1 (`hospitalityPackage`, code) seeds `profession`/`profession_training` at bootstrap (authoring source); upgrade `08-role-capability-profiles/restaurant-role-capability-baseline.md` to a slug matrix. Bootstrap-only — no `loadIndustryPackage` K1a runtime read (agent-coord: tariff-only loader, runtime read unneeded).
 - **A3** Add governance read tool `list_mandatory_protocols_for_role(roleSlug)` — names the runtime reader so I1 data is not phantom knowledge (harness R5).
 - **DROP D2** (`policy_scope='role'` — category error) and **DROP D3** (`protocol.is_mandatory` — use `profession_training.is_required`).
 
-### ADR-0379b — load-bearing, after 0379a + conditions met
+### ADR-0387b — load-bearing, after 0387a + conditions met
 - **B1** Auto-assign trigger: fire on **`AFTER INSERT ON profile_position`** (not `profile` — m2m empty at profile-insert; supervisor C1 killer), with explicit **ELSE** guard (closes silent-NULL-drop class). Read `profession_training` for mandatory set.
 - **B2** Install `supabase/templates/restaurant/governance.sql` as a **SECURITY DEFINER RPC** before any EF calls it (it is a showcase file today, not an installed function — supervisor O4). D5 `governance_seed` calls the RPC (ADR-0240-clean), not inline SQL.
 - **B3** **Rewire** `evaluateReadinessGate` (`shift-lifecycle/tools.ts:54`) to `callGateAction('governance.readiness_gate')` + respect level; redefine `ready = missing_mandatory === 0` (drop the `rows.length>0` zero-mandatory trap — agent-coord C3). THEN seed `governance.readiness_gate` at `suggest`.

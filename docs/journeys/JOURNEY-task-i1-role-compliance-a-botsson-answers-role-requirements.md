@@ -20,7 +20,7 @@ tags: [journey]
 ## Happy Path
 
 1. Manager asks Botsson "Hva må en bartender fullføre?" → System classifies intent → calls `governance.list_mandatory_protocols_for_role('bartender')` → resolves role/position → `profession_training` (is_required=true) → returns the mandatory protocol list → Botsson answers with the protocols the bartender role must complete (e.g. Alkoholkontroll, Skjenkekontroll).
-2. Employee asks "Hva mangler jeg for rollen min?" → System resolves the caller's role/position → returns role's mandatory protocols (read-only; cross-reference against the employee's completion is 0379b scope — this journey returns the role requirement set).
+2. Employee asks "Hva mangler jeg for rollen min?" → System resolves the caller's role/position → returns role's mandatory protocols (read-only; cross-reference against the employee's completion is 0387b scope — this journey returns the role requirement set).
 
 **Postcondition:** The caller receives the role's mandatory-protocol set, sourced from the `profession_training` spine. Read-only — no mutation, no gate change.
 

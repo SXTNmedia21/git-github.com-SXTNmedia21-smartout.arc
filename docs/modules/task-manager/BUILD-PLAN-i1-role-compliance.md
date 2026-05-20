@@ -9,19 +9,19 @@ tags: [build-plan, task-manager, hospitality-intelligence, i1, sortie, role-comp
 
 # Build Plan — Role-Compliance + Starter Routines into Hospitality Intelligence
 
-> Executes ADR-DRAFT-0379. **Full wiring.** Gated: ADR-accept → council (load-bearing schema) → `/start-feature` sub-sortie → build in ordered phases. Each phase has falsifiable acceptance + named file targets + dispatch model. Migrations split per the `ALTER TYPE … ADD VALUE` trap.
+> Executes ADR-DRAFT-0387. **Full wiring.** Gated: ADR-accept → council (load-bearing schema) → `/start-feature` sub-sortie → build in ordered phases. Each phase has falsifiable acceptance + named file targets + dispatch model. Migrations split per the `ALTER TYPE … ADD VALUE` trap.
 
 ## ⚠️ Council-revised phasing (2026-05-20 — supersedes P0–P7 below)
 
 Council REJECTED the original plan. The decisive finding: `profession_training` spine already exists (orphan). Revised, split into two ADRs:
 
-**ADR-0379a (additive, zero behavior change) — build first:**
+**ADR-0387a (additive, zero behavior change) — build first:**
 - **RA1** Revive `profession_training` as canonical role→protocol spine (no new map).
 - **RA2** I1 seeds `profession`/`profession_training` at bootstrap (code = authoring source); upgrade role-capability baseline doc to slug matrix.
 - **RA3** Add governance read tool `list_mandatory_protocols_for_role` (names the runtime reader — no phantom knowledge).
 - **DROPPED:** `policy_scope='role'` (D2), `protocol.is_mandatory` (D3) — use `profession_training.is_required`.
 
-**ADR-0379b (load-bearing) — after 0379a + conditions:**
+**ADR-0387b (load-bearing) — after 0387a + conditions:**
 - **RB1** Auto-assign trigger fires on `AFTER INSERT ON profile_position` (NOT `profile` — m2m empty at profile-insert), explicit ELSE guard. Reads `profession_training`. Golden case asserts BOTH directions + existing 4 scopes unbroken.
 - **RB2** Install `governance.sql` as SECURITY DEFINER RPC before EF calls it; `governance_seed` calls RPC (ADR-0240-clean), not inline SQL.
 - **RB3** Rewire `evaluateReadinessGate` → `callGateAction('governance.readiness_gate')` + level; `ready = missing_mandatory===0` (drop `rows.length>0` trap). THEN seed authority row.
@@ -36,7 +36,7 @@ The original P0–P7 below are PRESERVED for reference but the RA*/RB* set above
 ---
 
 ## Pre-flight gates (before any code)
-1. **ADR-0379 accepted** (renumber if collision).
+1. **ADR-0387 accepted** (renumber if collision).
 2. **Council** (`run-council`) on D2 (`policy_scope` enum) + D6 (readiness gate) — load-bearing on auto-assign trigger + scheduling.
 3. **`/start-feature task-i1-role-compliance`** from this campaign → sub-sortie worktree `~/dev/smartout.ai-daily-operation-wt-N`. Commit ADR + this plan into the worktree first (plan-propagation rule).
 4. Supabase Local running; `pnpm --filter @smartout/ai build` (dist for stage-engine subpath imports).
@@ -103,4 +103,4 @@ Extend `ConfirmProcedures` (or new `ConfirmRoutines` step in `apps/web/src/app/o
 - Cross-namespace: governance_seed writes governance tables via owning path (ADR-0240).
 
 ## Closure deliverables (per CLAUDE.md feature gates)
-ADR-0379 accepted + registered · journeys (Flow: wizard-pick-routines, hire→auto-assign, unready-bartender-gate) · handoff · `pnpm turbo typecheck` 0 errors · golden-case tests · E2E for P6 wizard.
+ADR-0387 accepted + registered · journeys (Flow: wizard-pick-routines, hire→auto-assign, unready-bartender-gate) · handoff · `pnpm turbo typecheck` 0 errors · golden-case tests · E2E for P6 wizard.
