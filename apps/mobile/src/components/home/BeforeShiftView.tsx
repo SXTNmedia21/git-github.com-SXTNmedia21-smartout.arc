@@ -261,8 +261,10 @@ export function BeforeShiftView({
               accessibilityRole="button"
               accessibilityLabel="Stemple inn nå"
             >
-              <Text style={[styles.cardButtonText, { color: "#ffffff" }]}>Stemple inn nå</Text>
-              <ChevronRight size={16} color="#ffffff" strokeWidth={1.8} />
+              <Text style={[styles.cardButtonText, { color: theme.colors.primaryForeground }]}>
+                Stemple inn nå
+              </Text>
+              <ChevronRight size={16} color={theme.colors.primaryForeground} strokeWidth={1.8} />
             </Pressable>
           ) : (
             <Pressable

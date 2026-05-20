@@ -448,7 +448,7 @@ const useStyles = createStyles((theme) => ({
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 2,
-    color: "rgba(255,255,255,0.7)",
+    color: withOpacity(theme.colors.primaryForeground, 0.7),
   },
   timerValue: {
     fontFamily: "GeistMono-Regular",
@@ -456,18 +456,18 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "900",
     letterSpacing: -1.5,
     fontVariant: ["tabular-nums"],
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
     marginTop: 4,
   },
   heroCaption: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
+    color: withOpacity(theme.colors.primaryForeground, 0.6),
   },
   progressTrack: {
     marginTop: 6,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.15),
     overflow: "hidden",
   },
   progressFill: { height: "100%", borderRadius: 2 },
@@ -482,20 +482,20 @@ const useStyles = createStyles((theme) => ({
   heroStatDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.12),
   },
   heroStatLabel: {
     fontFamily: "GeistMono-Regular",
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 1.4,
-    color: "rgba(255,255,255,0.55)",
+    color: withOpacity(theme.colors.primaryForeground, 0.55),
   },
   heroStatValue: {
     fontFamily: "GeistMono-Regular",
     fontSize: 18,
     fontWeight: "700",
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 
   heroActions: {
@@ -508,12 +508,12 @@ const useStyles = createStyles((theme) => ({
     height: 56,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    borderColor: withOpacity(theme.colors.primaryForeground, 0.18),
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.08),
     alignItems: "center",
     justifyContent: "center",
   },
-  heroGhostText: { fontSize: 14, fontWeight: "600", color: "#ffffff" },
+  heroGhostText: { fontSize: 14, fontWeight: "600", color: theme.colors.primaryForeground },
   heroPrimaryBtn: {
     flex: 1,
     height: 56,
@@ -521,7 +521,12 @@ const useStyles = createStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  heroPrimaryText: { fontSize: 14, fontWeight: "700", letterSpacing: 0.4, color: "#ffffff" },
+  heroPrimaryText: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    color: theme.colors.primaryForeground,
+  },
 
   // Card primitive
   card: {

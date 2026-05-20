@@ -272,6 +272,30 @@ export function isBotssonContextError(result: BotssonContextResult): result is B
 }
 
 /**
+ * Compute a stable version token for a workforce snapshot.
+ * Shape: `${workspaceId}:${profileId}:${unix_ms}` — deterministic per call, monotonic.
+ * Mobile clients cache this token; on the next turn they send it back so the BFF can
+ * detect drift (workforce data changed on the server) and return a refreshed snapshot.
+ */
+export function computeSnapshotVersion(workspaceId: string, profileId: string): string {
+  return `${workspaceId}:${profileId}:${Date.now()}`;
+}
+
+/**
+ * Compute a short content-hash of a snapshot payload.
+ * Uses Node.js `crypto.createHash` (available in Next.js App Router edge/server).
+ * Truncated to first 16 hex chars — sufficient for drift detection; not a security hash.
+ *
+ * Import `createHash` lazily at call-time so this module stays tree-shakeable when
+ * imported in browser-only paths (where `node:crypto` is unavailable).
+ */
+export function computeSnapshotHash(snapshot: BotssonContextSnapshot): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createHash } = require("node:crypto") as typeof import("crypto");
+  return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex").slice(0, 16);
+}
+
+/**
  * Strip profile_id from UserContext before forwarding to stage-engine.
  * Stage-engine derives profile_id server-side (ADR-0151) — never accepts
  * a body-supplied profile_id. Use when forwarding to /agent/chat.

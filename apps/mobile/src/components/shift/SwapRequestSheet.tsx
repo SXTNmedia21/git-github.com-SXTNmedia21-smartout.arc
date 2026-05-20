@@ -244,7 +244,7 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
               <View style={styles.blockerSection}>
                 {validationResult.blockers.map((b: string, i: number) => (
                   <View key={i} style={styles.validationRow}>
-                    <XCircle size={14} color="#ef4444" strokeWidth={2} />
+                    <XCircle size={14} color={theme.colors.destructive} strokeWidth={2} />
                     <Text style={styles.blockerText}>{formatValidationKey(b)}</Text>
                   </View>
                 ))}
@@ -254,7 +254,7 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
               <View style={styles.warningSection}>
                 {validationResult.warnings.map((w: string, i: number) => (
                   <View key={i} style={styles.validationRow}>
-                    <AlertTriangle size={14} color="#f59e0b" strokeWidth={2} />
+                    <AlertTriangle size={14} color={theme.colors.warning} strokeWidth={2} />
                     <Text style={styles.warningText}>{formatValidationKey(w)}</Text>
                   </View>
                 ))}
@@ -294,10 +294,10 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
             style={({ pressed }) => [styles.submitButton, pressed && styles.submitPressed]}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" size="small" />
+              <ActivityIndicator color={theme.colors.primaryForeground} size="small" />
             ) : (
               <>
-                <Send size={16} color="#ffffff" strokeWidth={2} />
+                <Send size={16} color={theme.colors.primaryForeground} strokeWidth={2} />
                 <Text style={styles.submitText}>Send forespørsel</Text>
               </>
             )}
@@ -448,7 +448,7 @@ const useStyles = createStyles((theme) => ({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.muted,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.foreground, 0.06) : theme.colors.muted,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -491,17 +491,17 @@ const useStyles = createStyles((theme) => ({
   },
   blockerText: {
     ...theme.typography.caption,
-    color: "#ef4444",
+    color: theme.colors.destructive,
     flex: 1,
   },
   warningText: {
     ...theme.typography.caption,
-    color: "#d97706",
+    color: theme.colors.warningForeground,
     flex: 1,
   },
   eligibleText: {
     ...theme.typography.caption,
-    color: "#16a34a",
+    color: theme.colors.success,
   },
 
   /* Reason input */
@@ -548,6 +548,6 @@ const useStyles = createStyles((theme) => ({
   submitText: {
     fontSize: 15,
     fontWeight: "700" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 }));

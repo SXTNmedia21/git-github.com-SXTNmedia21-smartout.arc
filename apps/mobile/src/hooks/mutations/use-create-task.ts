@@ -52,13 +52,24 @@ export function useCreateTask(): UseCreateTaskReturn {
         status: "pending",
       });
 
+      // ADR-0298 Sortie 3: canonical "task created" event (engine_event routed).
+      // Drives downstream D6 workflow triggers (e.g. shift checkout gate).
+      // Replaces deprecated alias "session_task.created" which lacked engine_event
+      // destination (registry: packages/telemetry/src/registry.ts:13132).
       void emit({
-        event: "session_task.created",
+        event: "task created",
         workspace_id: workspaceId,
         actor_id: profileId,
         properties: {
           entity: { entity_type: "session_task", entity_id: taskId },
-          metadata: { source: "mobile" },
+          metadata: {
+            source: "session",
+            actor_kind: "employee",
+            assigned_to_self: payload.assigned_to === profileId,
+            compliance: payload.is_compliance_required,
+            reason: "Opprettet fra mobil",
+            manual: true,
+          },
         },
       });
 
