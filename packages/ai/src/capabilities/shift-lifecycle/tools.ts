@@ -6,7 +6,7 @@
  *   (shift_hour_interpretation) → Derivation (shift_cost_snapshot) →
  *   Decision (shift_approval / daily_reconciliation).
  *
- * Write tools MUST call gate_action (ADR-0099) before mutating.
+ * Write tools MUST call mutateWithGate (ADR-0204/0287) before mutating.
  * Capability names are DOTTED so engine_authority_config can gate per
  * action independently (shift_lifecycle.publish, .approve, .interpret,
  * .settle).
@@ -14,14 +14,39 @@
  * Channels (ADR-0078): publish allows chat + system; approve allows
  * chat only (PII exposure); interpret + settle are system-only (internal
  * or admin-initiated from dashboard only).
+ *
+ * Tool compliance table (verified against bodies below — L-0176):
+ *   publishShift  | shift_lifecycle.publish  | mutateWithGate | shift_lifecycle published + shift published | chat+system | PASS
+ *   approveShift  | shift_lifecycle.approve  | mutateWithGate | shift_lifecycle approved + shift hours_confirmed | chat-only   | PASS
+ *   interpretShift| shift_lifecycle.interpret| callGateAction | shift_lifecycle interpreted | system-only | PASS (read-side RPC, no direct write)
+ *   settleShift   | shift_lifecycle.settle   | callGateAction | shift_lifecycle settled     | system-only | PASS (RPC, no direct write)
+ *   clockInCheck  | shift_lifecycle.publish  | callGateAction | contract.obligation_overdue | chat+system | PASS (read-side RPC, no direct write)
+ *
+ * Identity (ADR-0151): workspace_id and profile_id are ALWAYS server-derived
+ * from AgentToolContext. No tool parameter accepts either field.
+ *
+ * References:
+ *   ADR-0078  — channel guard
+ *   ADR-0099  — unified authority gate (gate_action RPC contract)
+ *   ADR-0101  — four-eyes approval
+ *   ADR-0151  — workspace_id server-derived, never body-supplied
+ *   ADR-0204  — composition orchestrator (Pathway A + B)
+ *   ADR-0287  — mutateWithGate mandatory on mutation capability tools
+ *   L-0176    — docstring claims must match body (verified; body is the source)
+ *   L-0177    — fail-fast on missing workspace_id / profile_id
  */
 
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 import { checkReadiness } from "../governance/tools.js";
 
 type ShiftRow = {
@@ -153,39 +178,62 @@ export const publishShift = defineTool({
       });
     }
 
-    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY_PUBLISH,
-      channel,
-      actionType: "publish_shift",
-      entityId: params.shift_id,
-    });
-
-    if (!gate.allow) {
-      void emit({
-        event: "shift_lifecycle published",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
-        properties: {
-          entity_type: "shift",
-          entity_id: params.shift_id,
-          data: { shift_id: params.shift_id, gate_allowed: false, reason: gate.reason ?? "denied" },
+    // mutateWithGate (ADR-0204/0287): wraps Pathway A (capability authority)
+    // + Pathway B (cascade_gate_write). On blocked path, cascade_gate_write
+    // produces a change_proposal row. exec runs only when both pathways allow.
+    try {
+      await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_PUBLISH,
+        actionType: "publish_shift",
+        channel,
+        targetId: params.shift_id,
+        exec: async (db) => {
+          const { error: updateErr } = await db
+            .from("schedule_shift")
+            .update({
+              status: "published",
+              is_published: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("schedule_shift_id", params.shift_id)
+            .eq("workspace_id", ctx.workspaceId);
+          if (updateErr) throw new Error(updateErr.message);
+          return undefined;
         },
       });
-      return JSON.stringify({ allowed: false, reason: gate.reason ?? "denied" });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        void emit({
+          event: "shift_lifecycle published",
+          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+          properties: {
+            entity_type: "shift",
+            entity_id: params.shift_id,
+            data: {
+              shift_id: params.shift_id,
+              gate_allowed: false,
+              reason: err.message ?? "denied",
+            },
+          },
+        });
+        return JSON.stringify({ allowed: false, reason: err.message ?? "denied" });
+      }
+      if (err instanceof MutateWithGateError) {
+        return JSON.stringify({
+          allowed: false,
+          reason: `gate_error: ${err.code} — ${err.message}`,
+        });
+      }
+      return JSON.stringify({ allowed: false, reason: String(err) });
     }
-
-    const { error: updateErr } = await supabase
-      .from("schedule_shift")
-      .update({ status: "published", is_published: true, updated_at: new Date().toISOString() })
-      .eq("schedule_shift_id", params.shift_id)
-      .eq("workspace_id", ctx.workspaceId);
-
-    if (updateErr) return `Feil ved publisering: ${updateErr.message}`;
 
     void emit({
       event: "shift_lifecycle published",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       properties: {
         entity_type: "shift",
         entity_id: params.shift_id,
@@ -197,8 +245,8 @@ export const publishShift = defineTool({
     // department_session_lifecycle + shift_published_notify_v1.
     void emit({
       event: "shift published",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       properties: {
         entity_type: "shift",
         entity_id: params.shift_id,
@@ -278,61 +326,8 @@ export const approveShift = defineTool({
       });
     }
 
-    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY_APPROVE,
-      channel,
-      actionType: "approve_shift",
-      entityId: params.shift_id,
-    });
-
-    // Four-eyes path (ADR-0101): return a pending response, do NOT mutate.
-    if (!gate.allow && gate.reason === "four_eyes_required") {
-      void emit({
-        event: "shift_lifecycle approved",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
-        properties: {
-          entity_type: "shift",
-          entity_id: params.shift_id,
-          data: {
-            shift_id: params.shift_id,
-            approved_hours: params.approved_hours,
-            four_eyes_pending: true,
-            gate_allowed: false,
-            reason: "four_eyes_required",
-          },
-        },
-      });
-      return JSON.stringify({
-        allowed: false,
-        four_eyes_pending: true,
-        reason: "four_eyes_required",
-        approvers_needed: gate.approversNeeded,
-        approvers_present: gate.approversPresent,
-      });
-    }
-
-    if (!gate.allow) {
-      void emit({
-        event: "shift_lifecycle approved",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
-        properties: {
-          entity_type: "shift",
-          entity_id: params.shift_id,
-          data: {
-            shift_id: params.shift_id,
-            approved_hours: params.approved_hours,
-            four_eyes_pending: false,
-            gate_allowed: false,
-            reason: gate.reason ?? "denied",
-          },
-        },
-      });
-      return JSON.stringify({ allowed: false, reason: gate.reason ?? "denied" });
-    }
-
-    // Find the pending shift_approval row (created by queue_shift_approval in Phase 4).
+    // Find the pending shift_approval row before gating (needed inside exec).
+    // Read-before-gate is safe — we don't write until gate passes.
     const { data: existing, error: findErr } = await supabase
       .from("shift_approval")
       .select("approval_id, status, calculated_hours")
@@ -347,24 +342,94 @@ export const approveShift = defineTool({
       return "Ingen pending shift_approval funnet — kjør interpret_shift først.";
     }
 
-    const { error: updateErr } = await supabase
-      .from("shift_approval")
-      .update({
-        status: "approved",
-        approved_hours: params.approved_hours,
-        approved_by: ctx.profileId,
-        approved_at: new Date().toISOString(),
-        edit_justification: params.edit_justification ?? null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("approval_id", existing.approval_id);
-
-    if (updateErr) return `Feil ved godkjenning: ${updateErr.message}`;
+    // mutateWithGate (ADR-0204/0287): wraps Pathway A (capability authority +
+    // four-eyes per ADR-0101) + Pathway B (cascade_gate_write). On blocked path,
+    // cascade_gate_write produces a change_proposal row. exec runs only when
+    // both pathways allow.
+    try {
+      await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY_APPROVE,
+        actionType: "approve_shift",
+        channel,
+        targetId: params.shift_id,
+        exec: async (db) => {
+          const { error: updateErr } = await db
+            .from("shift_approval")
+            .update({
+              status: "approved",
+              approved_hours: params.approved_hours,
+              approved_by: ctx.profileId,
+              approved_at: new Date().toISOString(),
+              edit_justification: params.edit_justification ?? null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("approval_id", existing.approval_id);
+          if (updateErr) throw new Error(updateErr.message);
+          return undefined;
+        },
+      });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        // Four-eyes path (ADR-0101): return a pending response, do NOT mutate.
+        if (err.fourEyesRequired) {
+          void emit({
+            event: "shift_lifecycle approved",
+            workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+            actor_id: nonEmpty(ctx.profileId, "actor_id"),
+            properties: {
+              entity_type: "shift",
+              entity_id: params.shift_id,
+              data: {
+                shift_id: params.shift_id,
+                approved_hours: params.approved_hours,
+                four_eyes_pending: true,
+                gate_allowed: false,
+                reason: "four_eyes_required",
+              },
+            },
+          });
+          return JSON.stringify({
+            allowed: false,
+            four_eyes_pending: true,
+            reason: "four_eyes_required",
+            approvers_needed: err.approversNeeded,
+            approvers_present: err.approversPresent,
+          });
+        }
+        // General capability deny.
+        void emit({
+          event: "shift_lifecycle approved",
+          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+          properties: {
+            entity_type: "shift",
+            entity_id: params.shift_id,
+            data: {
+              shift_id: params.shift_id,
+              approved_hours: params.approved_hours,
+              four_eyes_pending: false,
+              gate_allowed: false,
+              reason: err.message ?? "denied",
+            },
+          },
+        });
+        return JSON.stringify({ allowed: false, reason: err.message ?? "denied" });
+      }
+      if (err instanceof MutateWithGateError) {
+        return JSON.stringify({
+          allowed: false,
+          reason: `gate_error: ${err.code} — ${err.message}`,
+        });
+      }
+      return JSON.stringify({ allowed: false, reason: String(err) });
+    }
 
     void emit({
       event: "shift_lifecycle approved",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       properties: {
         entity_type: "shift",
         entity_id: params.shift_id,
@@ -380,8 +445,8 @@ export const approveShift = defineTool({
 
     void emit({
       event: "shift hours_confirmed",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       properties: {
         entity_type: "shift",
         entity_id: params.shift_id,

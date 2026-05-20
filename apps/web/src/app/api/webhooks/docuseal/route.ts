@@ -315,22 +315,32 @@ export async function POST(request: NextRequest) {
 
       // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition
       // The engine_event drives profile_status update (trainee → active) via engine_process.
+      // Columns per database.types.ts Insert: event_type, workspace_id, idempotency_key, payload, fired_at.
+      // entity_type + entity_id live in payload (no top-level columns for those).
       if (contract.workspace_id) {
-        void Promise.resolve(
-          admin.from("engine_event").insert({
+        const submissionId = data.submission_id;
+        void admin
+          .from("engine_event")
+          .insert({
             workspace_id: contract.workspace_id,
-            entity_type: "employment_contract",
-            entity_id: contract.contract_id,
-            event_name: "contract.signed",
+            event_type: "contract.signed",
+            idempotency_key: `docuseal:${submissionId}:signed`,
             payload: {
+              entity_type: "employment_contract",
+              entity_id: contract.contract_id,
               signed_at: new Date().toISOString(),
               contract_type: "employee",
-            },
-            created_at: new Date().toISOString(),
-          } as never),
-        ).catch(() => {
-          // engine_event table may not exist yet in all envs — non-blocking
-        });
+              submission_id: submissionId,
+            } as Json,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error("[docuseal] engine_event insert failed", {
+                error,
+                submission_id: submissionId,
+              });
+            }
+          });
       }
     } else {
       // SaaS contracts: update workspace contract status (existing behavior)
