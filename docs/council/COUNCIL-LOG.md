@@ -2312,3 +2312,12 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Phase-A entry-gate:** Phase A migration sortie may dispatch after spec v1.1→v1.2 + ADR-0367 v1.1 amendment committed. Phase B BLOCKED on Phase A merge to development.
 **Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
 **Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.
+
+## 2026-05-20 — ADR-0379 Signature-as-C4-Authorization (post-implementation)
+**Type:** post-implementation / architecture (governance precedent)
+**Verdict:** REJECT — non-functional as shipped (remediation order against merged PR #434)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a — first council on signature-as-C4. Related: ADR-0099 (gate levels), ADR-0321/0340 (per-stage gate).
+**Key decision:** Cascade non-functional — docuseal webhook raw-inserts engine_event but nothing invokes engine-dispatch → no engine_state, profile never flips. Chair self-reversed Phase 3 HELD → REJECT (≥10th L-0147 precedent). Remediated in feat/contract-activation-remediation (R0 invoke + R1 trainee-guard + R2 fail-loud + R3 ADR text + R4 emit fail-loud + R5 ADR→proposed).
+**ADR created:** none (ADR-0379 reverted accepted→proposed)
+**Learning created:** L-0324 (pgTAP-green ≠ runtime-functional), L-0325 (council coverage-gap voids no-blocker)

@@ -889,7 +889,20 @@ async function executeStep(
         if (state.process_id === "employee_activation" && entity === "profile") {
           const emitUrl = Deno.env.get("INTERNAL_EMIT_URL");
           const emitSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-          if (emitUrl && emitSecret && state.workspace_id) {
+          // R4 (ADR-0379 remediation): fail loud if the emit bridge is unconfigured.
+          // A legally-significant autonomous status flip must always leave an audit trace;
+          // a missing INTERNAL_EMIT_URL must not silently drop profile.activated.
+          if (!emitUrl || !emitSecret || !state.workspace_id) {
+            console.error(
+              "[employee_activation] profile.activated NOT emitted — emit bridge unconfigured",
+              {
+                has_url: Boolean(emitUrl),
+                has_secret: Boolean(emitSecret),
+                has_workspace: Boolean(state.workspace_id),
+                profile_id: state.entity_id,
+              },
+            );
+          } else {
             const ctx = state.context as Record<string, unknown>;
             try {
               await fetch(emitUrl, {
