@@ -2355,3 +2355,14 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Key decision:** Cascade non-functional — docuseal webhook raw-inserts engine_event but nothing invokes engine-dispatch → no engine_state, profile never flips. Chair self-reversed Phase 3 HELD → REJECT (≥10th L-0147 precedent). Remediated in feat/contract-activation-remediation (R0 invoke + R1 trainee-guard + R2 fail-loud + R3 ADR text + R4 emit fail-loud + R5 ADR→proposed).
 **ADR created:** none (ADR-0379 reverted accepted→proposed)
 **Learning created:** L-0324 (pgTAP-green ≠ runtime-functional), L-0325 (council coverage-gap voids no-blocker)
+
+## 2026-05-21 — Day-plan (day_line)/location → "Min dag" shift-tasks (5h sortie plan review)
+**Type:** architecture / plan (pre-implementation)
+**Verdict:** APPROVE WITH CONDITIONS
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), botsson-harness-builder, frontend-designer (5/5 responded) + Phase 2.5 fact-check (11/11 VERIFIED)
+**Prior verdict held?** n/a — first council on the shift-tasks/Min-dag surface. Related: ADR-0298, 0317, 0367, 0132/0133.
+**Key decision:** Goal = admin ties task to a location's day_line → employee whose shift operates at that location sees it in Min dag (mobile) → executes there. **Chair self-reversed Q-B (7th L-0147 precedent):** Phase 3 "extend fn_list_my_tasks v3" was FALSE (web uses `resolve_cascade_tasks` not fn_list_my_tasks `use-cascade-tasks.ts:27`; extending ARM1 mutates live mobile consumer + leaks `assigned_to IS NULL` fan-out `v2:96-97`) → REVERSED to **dedicated `fn_list_shift_tasks`, SECURITY DEFINER, no profile_id param (auth.uid())**. Q-A two gates (surface scheduled+clocked_in, execute clocked_in). Q-C single-location attach else NULL. Q-D **A-AUTHOR already shipped** (create_session+add_item accept day_line_id/assignee/scheduled_at) — track deleted. C1 resolver = two-arm OR (assigned_to=me OR day_line∈my-shift). Drop phantom `task.surfaced_on_shift` (read≠mutation). Mobile direct RPC, no new BFF read route.
+**Agent Trust Gate:** PASS — author shipped, complete works, only resolver missing; contract promises only what pipeline keeps.
+**Merge-blockers:** ADR-0317 lockstep guard same sortie; typegen ordering (migration→gen types no op-run→TS→typecheck); e2e second-location-must-not-surface test.
+**ADR created:** none (sortie executes under ADR-0367/0298/0317; no new decision — plan in `docs/modules/task-manager/EXECUTION-PLAN-5h.md`).
+**Learning created:** L-NEW (7th L-0147 self-reversal precedent: "one read surface" ADR-0298 claim doesn't hold when web/mobile consume different RPCs — verify consumers before invoking single-surface invariant) — captured to steward agent-memory.

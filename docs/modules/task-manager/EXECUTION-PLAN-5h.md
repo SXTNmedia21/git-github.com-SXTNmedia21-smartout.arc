@@ -43,13 +43,17 @@ Orchestrator assigns each a task with precise scope + the shared contract; membe
 
 ## Timeline (5h wall-clock)
 
-### T+0:00 – 0:30 — COUNCIL (resolve the 4 forks that block the team)
-Reviewers: system-steward (chair), supervisor, system-agent-coordinator (code-tracer), + frontend-designer (mobile surface). Pre-loaded files + Phase 2.5 fact-check.
-- **Q-A** Shift-at-location state: which `shift_session.status` surfaces the location's tasks in Min dag — `clocked_in` only, or `scheduled`+`clocked_in`? (drives resolver WHERE + when tasks appear).
-- **Q-B** Resolver: new `fn_list_shift_tasks(profile_id)` (resolves shift_session by location → day_lines) vs `fn_list_my_tasks` + param? (recommend dedicated fn — keeps `fn_list_my_tasks` stable).
-- **Q-C** Hook-attach heuristic: single-location session → attach day_line_id; multi-location/ambiguous → NULL (don't guess). Confirm.
-- **Q-D** ADR-0317 lockstep + dual-perspective: confirm the author-side write and the mobile read agree on `assigned_to` + `day_line_id` semantics.
-Gate: verdict committed → contracts locked → build.
+### T+0:00 – 0:30 — COUNCIL ✅ DONE (2026-05-21) — APPROVE WITH CONDITIONS
+5/5 reviewers + 11/11 fact-check VERIFIED. Chair self-reversed Q-B (7th L-0147 precedent). **LOCKED contract:**
+- **Q-A → two gates:** SURFACE on `shift_session.status IN ('scheduled','clocked_in')` (pre-shift prep visible); EXECUTE/complete gated on `clocked_in`. Index `idx_shift_session_employee_active` covers both — free.
+- **Q-B → DEDICATED `fn_list_shift_tasks(p_window_start, p_window_end)`**, **SECURITY DEFINER, NO profile_id param — identity via `auth.uid()`** (ADR-0151). Reason: web uses `resolve_cascade_tasks` not `fn_list_my_tasks` (`use-cascade-tasks.ts:27`); extending ARM1 would mutate the live mobile consumer + leak (`fn_list_my_tasks_v2:96-97` fans `assigned_to IS NULL` to all). Dedicated fn = zero existing-consumer blast radius + own ADR-0317 lockstep pair.
+- **Q-C → confirmed:** hook single-location attach else NULL (write-time/trigger; resolver-agnostic; record provenance).
+- **Q-D → A-AUTHOR ALREADY SHIPPED:** `task.create_session` accepts `day_line_id`+`assignee_profile_id`+`scheduled_at` (`tools.ts:392-470`); `day-line.add_item` delegates (`tools.ts:284-294`); `complete` handles unassigned-on-shift (`tools.ts:806`). **A-AUTHOR track DELETED.**
+- **C1 resolver (two arms OR'd):** (a) `assigned_to ∈ caller_profiles`; (b) `session_task.day_line_id ∈ (caller's shift_session day_lines via shift_session_day_line, status-gated)`. `st.status='pending'` + window + LEFT JOIN session_hook.
+- **Telemetry → DROP `task.surfaced_on_shift`** (read ≠ mutation, L-0176/0177 phantom class). Reuse `task completed` on execute.
+- **Mobile → direct RPC** (`use-my-tasks` pattern), no new BFF read route (ADR-0132 OK for read-only SECURITY DEFINER RPC).
+
+**Merge-blockers:** (1) ADR-0317 lockstep introspection guard ships THIS sortie (extend `sortie-3-task-capability.spec.sql:220-245`); (2) typegen ordering: migration → `npx supabase gen types` (NO `op run`) → TS mirror → typecheck; (3) e2e MUST include a second-location shift that does NOT surface the task (proves isolation).
 
 ### T+0:30 – 0:50 — SETUP
 - `/start-feature task-active-shift-mobile` (sub-sortie of campaign/daily-operation). Declare journeys:
