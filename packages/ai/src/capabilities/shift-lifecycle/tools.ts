@@ -192,7 +192,11 @@ export const publishShift = defineTool({
         exec: async (db) => {
           const { error: updateErr } = await db
             .from("schedule_shift")
-            .update({ status: "published", is_published: true, updated_at: new Date().toISOString() })
+            .update({
+              status: "published",
+              is_published: true,
+              updated_at: new Date().toISOString(),
+            })
             .eq("schedule_shift_id", params.shift_id)
             .eq("workspace_id", ctx.workspaceId);
           if (updateErr) throw new Error(updateErr.message);
@@ -218,7 +222,10 @@ export const publishShift = defineTool({
         return JSON.stringify({ allowed: false, reason: err.message ?? "denied" });
       }
       if (err instanceof MutateWithGateError) {
-        return JSON.stringify({ allowed: false, reason: `gate_error: ${err.code} — ${err.message}` });
+        return JSON.stringify({
+          allowed: false,
+          reason: `gate_error: ${err.code} — ${err.message}`,
+        });
       }
       return JSON.stringify({ allowed: false, reason: String(err) });
     }
@@ -411,7 +418,10 @@ export const approveShift = defineTool({
         return JSON.stringify({ allowed: false, reason: err.message ?? "denied" });
       }
       if (err instanceof MutateWithGateError) {
-        return JSON.stringify({ allowed: false, reason: `gate_error: ${err.code} — ${err.message}` });
+        return JSON.stringify({
+          allowed: false,
+          reason: `gate_error: ${err.code} — ${err.message}`,
+        });
       }
       return JSON.stringify({ allowed: false, reason: String(err) });
     }
