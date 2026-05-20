@@ -23,7 +23,14 @@ import { EXISTING_USER_EMAIL, clearMailbox } from "../../helpers/auth-invitation
 
 const MAILPIT_BASE = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 const WEB_ORIGIN = "http://localhost:3060";
-const SUPABASE_LOCAL_REF = "cibmhhgsrdmpnmcikalu";
+// @supabase/ssr derives the cookie name from the Supabase URL host. Against
+// Supabase Local the host is 127.0.0.1, so the cookie is `sb-127-auth-token`
+// — NOT a project-ref slug. Using the wrong ref here means the seeded stale
+// cookie has a different NAME than the one the callback writes, so no
+// collision occurs and the test passes vacuously. Must match the real local
+// cookie name to actually exercise scrubOrphanAuthCookies. Verified via
+// browser cookie dump 2026-05-20.
+const SUPABASE_LOCAL_REF = "127";
 
 type MailpitMessage = { ID: string; Subject: string };
 
