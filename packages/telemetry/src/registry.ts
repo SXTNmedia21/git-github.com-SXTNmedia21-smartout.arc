@@ -565,6 +565,19 @@ export interface ProfileStatusUpdated extends BaseEvent {
   };
 }
 
+/** Emitted when an employee's profile is activated (trainee→active) via signed contract.
+ * System-initiated (actor=system, ADR-0281). Distinct from ProfileReactivated
+ * (inactive→active manual path). Source: employee_activation engine_process (ADR-0379).
+ */
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface ProfileActivated extends BaseEvent {
+  event: "profile activated";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; submission_id: string };
+  };
+}
+
 export interface ProfileDeactivated extends BaseEvent {
   event: "profile deactivated";
   properties: {
@@ -8788,6 +8801,7 @@ export type SmartoutEvent =
   | ProfileRoleUpdated
   | ProfileDepartmentUpdated
   | ProfileStatusUpdated
+  | ProfileActivated
   | ProfileDeactivated
   | ProfileReactivated
   | ProfileLoginCodeSent
@@ -12905,6 +12919,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "org_structure",
   },
   "profile status updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile activated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
   },
