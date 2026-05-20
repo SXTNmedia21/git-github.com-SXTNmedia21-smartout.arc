@@ -14,7 +14,10 @@
  *   - useAiPrefs() (component-level, thin wrapper with telemetry)
  */
 
-export type { BotssonLanguage, BotssonInteractionMode } from "@/hooks/stores/use-botsson-settings-store";
+export type {
+  BotssonLanguage,
+  BotssonInteractionMode,
+} from "@/hooks/stores/use-botsson-settings-store";
 
 export type AiPrefs = {
   voiceEnabled: boolean;

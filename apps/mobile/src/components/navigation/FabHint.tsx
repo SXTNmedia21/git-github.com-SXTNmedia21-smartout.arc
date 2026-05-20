@@ -53,21 +53,24 @@ export function FabHint({ message }: FabHintProps) {
       reduceMotion ? Math.floor(SHOW_DELAY_MS / 2) : SHOW_DELAY_MS,
     );
 
-    const dismissTimer = setTimeout(() => {
-      if (reduceMotion) {
-        // Skip fade-out — hide immediately and mark seen.
-        opacity.setValue(0);
-        markSeen(true);
-      } else {
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: FADE_OUT_MS,
-          useNativeDriver: true,
-        }).start(() => {
+    const dismissTimer = setTimeout(
+      () => {
+        if (reduceMotion) {
+          // Skip fade-out — hide immediately and mark seen.
+          opacity.setValue(0);
           markSeen(true);
-        });
-      }
-    }, (reduceMotion ? Math.floor(SHOW_DELAY_MS / 2) : SHOW_DELAY_MS) + AUTO_DISMISS_MS);
+        } else {
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: FADE_OUT_MS,
+            useNativeDriver: true,
+          }).start(() => {
+            markSeen(true);
+          });
+        }
+      },
+      (reduceMotion ? Math.floor(SHOW_DELAY_MS / 2) : SHOW_DELAY_MS) + AUTO_DISMISS_MS,
+    );
 
     return () => {
       clearTimeout(showTimer);
