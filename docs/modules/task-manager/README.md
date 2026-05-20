@@ -56,7 +56,15 @@ SETUP: doc-drop · wizard routines · role compliance · admin surface  ──pr
 | 6 | [BLUEPRINT.md](./BLUEPRINT.md) | Phased plan. Phase 1 = location-tasks → shift-tasks view. Falsifiable acceptance per phase. |
 | 7 | [E2E-COVERAGE.md](./E2E-COVERAGE.md) | Web Playwright + mobile + capability units + manual matrix |
 
-Design prototype: [taskmanager-handoff/](./taskmanager-handoff/) — interactive HTML/JSX handoff (library, task-drawer, min-dag, quiz-master, manual-builder).
+### Active sortie docs (day_line → Min dag)
+| Doc | Purpose |
+|-----|---------|
+| [FINDINGS-dayline-shift-tasks.md](./FINDINGS-dayline-shift-tasks.md) | **Dual-perspective + reuse audit.** Pipe ~70% shipped; both gaps EXTEND-EXISTING (mirror `ensure_shift_session` join; reuse `use-shift-session.status`). Anti-duplication source of truth. |
+| [EXECUTION-PLAN-5h.md](./EXECUTION-PLAN-5h.md) | Agent-team orchestration plan (revised post-dual-perspective: A-DATA dropped, A-ANCHOR + status-gate + Min dag mockup port). |
+| [ADR-DRAFT-0387-role-mandatory-compliance-i1.md](./ADR-DRAFT-0387-role-mandatory-compliance-i1.md) | Role-compliance ADR (0387a shipped, 0387b proposed) — adjacent track, different goal. |
+| [BUILD-PLAN-i1-role-compliance.md](./BUILD-PLAN-i1-role-compliance.md) | 0387b phasing. |
+
+Design prototype: [taskmanager-handoff/](./taskmanager-handoff/) — interactive HTML/JSX handoff (library, task-drawer, min-dag, quiz-master, manual-builder). **Mockup-source for all task UI — port, do not redesign.**
 
 ## Cross-references
 
