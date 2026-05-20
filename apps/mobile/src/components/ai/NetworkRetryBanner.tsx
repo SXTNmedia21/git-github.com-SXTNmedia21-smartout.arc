@@ -96,7 +96,7 @@ const useStyles = createStyles((theme) => ({
   },
   actionButton: {
     paddingHorizontal: theme.spacing.tight,
-    paddingVertical: 4,
+    paddingVertical: theme.spacing.xs,
     borderRadius: theme.radius.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,

@@ -13,6 +13,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput } from "react-native";
+import { X, Mic, MicOff } from "lucide-react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -340,7 +341,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
           {/* Header */}
           <View style={styles.header}>
             <Pressable onPress={handleClose} accessibilityLabel="Lukk" accessibilityRole="button">
-              <Text style={styles.closeButton}>✕</Text>
+              <X size={20} color={theme.colors.mutedForeground} />
             </Pressable>
             <Text style={styles.headerTitle}>Botsson</Text>
             {/* Spacer keeps title visually centered */}
@@ -415,7 +416,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
                   onSubmitEditing={handleSendText}
                   editable={!isSendingText}
                   accessibilityLabel="Skriv melding til Botsson"
-                  accessibilityRole="search"
                 />
                 <Pressable
                   onPress={handleSendText}
@@ -448,7 +448,11 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
                   accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.micIcon}>{isMuted ? "🔇" : "🎙"}</Text>
+                  {isMuted ? (
+                    <MicOff size={28} color={theme.colors.foreground} />
+                  ) : (
+                    <Mic size={28} color={theme.colors.foreground} />
+                  )}
                 </Pressable>
               </>
             )}
@@ -484,8 +488,6 @@ const useStyles = createStyles((theme) => ({
     borderBottomColor: theme.colors.border,
   },
   closeButton: {
-    color: theme.colors.mutedForeground,
-    fontSize: 20,
     padding: theme.spacing.tight,
   },
   headerTitle: {
@@ -557,9 +559,6 @@ const useStyles = createStyles((theme) => ({
   },
   micButtonMuted: {
     backgroundColor: theme.colors.muted,
-  },
-  micIcon: {
-    fontSize: 28,
   },
   // P5 — text-mode compose row
   textRow: {

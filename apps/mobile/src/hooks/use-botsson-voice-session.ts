@@ -623,7 +623,7 @@ export function useBotssonVoiceSession(
      */
     const RECONNECT_DELAYS_MS = [500, 1000, 2000] as const;
     const MAX_RECONNECT_ATTEMPTS = RECONNECT_DELAYS_MS.length;
-    const disconnectStartMs = { value: Date.now() };
+    const disconnectStartMs = { value: 0 };
 
     const attemptReconnect = async (): Promise<void> => {
       if (stoppedRef.current) return;
