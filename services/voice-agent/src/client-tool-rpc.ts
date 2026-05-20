@@ -8,9 +8,9 @@
 // follow-up response until the client result arrives or the 10 s timeout fires.
 //
 // Topic protocol (locked in investigation-findings.md):
-//   botsson-tools-register  browser → voice-agent  { type:"tools_register", definitions: ClientToolDefinition[] }
+//   botsson-tools-register  browser → voice-agent  { definitions: ClientToolDefinition[] }
 //   botsson-tool-call       voice-agent → browser  { type:"tool_call", call_id, name, arguments }
-//   botsson-tool-result     browser → voice-agent  { type:"tool_result", call_id, result, is_error? }
+//   botsson-tool-result     browser → voice-agent  { call_id, result }
 //
 // Feature flag: HARNESS_ADAPTER_VOICE=true enables stub building + updateTools.
 // Listeners in agent.ts are installed regardless (cheap, idempotent).

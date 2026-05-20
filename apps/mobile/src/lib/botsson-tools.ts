@@ -160,3 +160,51 @@ export async function executeMobileTool(
   if (!tool) return `Unknown mobile tool: ${toolName}`;
   return tool.handler(params);
 }
+
+/**
+ * Build the ClientToolDefinition array for "botsson-tools-register" registration.
+ *
+ * Shape matches packages/ai/src/harness/types.ts:ClientToolDefinition —
+ * duplicated locally to avoid cross-package dependency (mobile → @smartout/ai).
+ * voice-agent's DataReceived handler validates { definitions: ClientToolDefinition[] }
+ * and uses `temporaryTool.modelToolName` as the key for stub lookup.
+ *
+ * ADR-0078: voice channel tools must not expose PII. These 5 mobile tools
+ * are all navigation/UI action tools — no PII in arguments (phone numbers
+ * in mobile_call_leader are supplied by the server-side employee record, not
+ * typed by the user, and are non-sensitive contact info).
+ */
+export function getToolDefinitionsForRegistration(): Array<{
+  temporaryTool: {
+    modelToolName: string;
+    description: string;
+    dynamicParameters: Array<{
+      name: string;
+      location: string;
+      description: string;
+      required?: boolean;
+      schema:
+        | { type: "string"; enum?: string[] }
+        | { type: "number" }
+        | { type: "boolean" }
+        | { type: "object"; properties?: Record<string, unknown> }
+        | { type: "array"; items?: unknown };
+    }>;
+    client: Record<string, never>;
+  };
+}> {
+  return MOBILE_CLIENT_TOOLS.map((tool) => ({
+    temporaryTool: {
+      modelToolName: tool.name,
+      description: tool.description,
+      dynamicParameters: Object.entries(tool.parameters).map(([paramName, paramDef]) => ({
+        name: paramName,
+        location: "body",
+        description: paramDef.description,
+        required: paramDef.required === true,
+        schema: { type: paramDef.type as "string" | "number" | "boolean" | "object" | "array" },
+      })),
+      client: {} as Record<string, never>,
+    },
+  }));
+}

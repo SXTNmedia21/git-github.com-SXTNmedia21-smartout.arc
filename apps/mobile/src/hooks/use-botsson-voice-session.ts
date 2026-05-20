@@ -46,6 +46,7 @@
  *   - Mixing the two concerns in one hook masked the C1 transcript glue.
  */
 
+import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent } from "livekit-client";
@@ -62,9 +63,18 @@ const KrispNativeNoiseFilter =
         }
       ).KrispNoiseFilter
     : null;
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { supabase } from "@/lib/supabase";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
+import { getProfileContext } from "@/lib/profile-context";
+import {
+  publishBotssonContext,
+  publishBotssonToolsRegister,
+  publishBotssonToolResult,
+} from "@/lib/livekit-data-publish";
+import { executeMobileTool, getToolDefinitionsForRegistration } from "@/lib/botsson-tools";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
+import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android.
 // Same shim pattern as use-livekit-call.ts so we stay mountable under web+jest.
@@ -86,6 +96,17 @@ export type BotssonVoiceStatus =
   | "thinking"
   | "speaking"
   | "error";
+
+/**
+ * D3: Phase of the exponential-backoff reconnect state machine.
+ *   idle     — no reconnect in progress
+ *   retrying — attempt 1–3 in flight
+ *   failed   — all 3 attempts exhausted
+ */
+export type ReconnectPhase = "idle" | "retrying" | "failed";
+
+/** D2: error code emitted when mic permission is denied by the OS. */
+export const MIC_PERMISSION_DENIED_CODE = "MIC_PERMISSION_DENIED" as const;
 
 export type BotssonVoiceError = {
   code: string;
@@ -125,10 +146,33 @@ export type UseBotssonVoiceSessionParams = {
   disabled?: boolean;
   /** Called whenever the orchestrator transitions into `error`. */
   onError?: (error: BotssonVoiceError) => void;
+  /**
+   * D4: Called when the BFF returns 403 with `reason: 'voice_policy_disabled'`
+   * mid-session, indicating the workspace voice policy was revoked. The
+   * provider should tear down the voice session and switch to text mode.
+   *
+   * The `onError` callback also fires with code='VOICE_POLICY_DISABLED' so
+   * callers that only listen to `onError` get the signal too.
+   */
+  onPolicyFlipped?: () => void;
   /** Test seam — replaces expo-speech. Not documented in the public API. */
   speechAdapter?: SpeechAdapter;
   /** Test seam — replaces `new Room()`. Not documented in the public API. */
   roomFactory?: () => Room;
+  /**
+   * ADR-0297: current workforce snapshot held by BotssonProvider.
+   * On `RoomEvent.Connected`, if this is non-null and its version differs
+   * from the last published version, the hook publishes it on the
+   * "botsson-context" data channel so voice-agent's `setSessionContext()`
+   * fires. Deduped by version so reconnects don't re-publish unchanged data.
+   */
+  currentSnapshot?: ResolvedSnapshot | null;
+  /**
+   * Called when the transcript hook surfaces a new snapshot from the BFF.
+   * The hook itself does NOT mutate provider state — it calls back upward so
+   * BotssonProvider can lift the snapshot to canonical context state.
+   */
+  onSnapshot?: (snapshot: ResolvedSnapshot) => void;
 };
 
 export type UseBotssonVoiceSessionResult = {
@@ -136,6 +180,16 @@ export type UseBotssonVoiceSessionResult = {
   error: BotssonVoiceError | null;
   /** True once the LiveKit Room transitions to connected. */
   isConnected: boolean;
+  /**
+   * D3: Current phase of the exponential-backoff reconnect state machine.
+   * 'idle' when no reconnect is in progress (normal session or after explicit stop).
+   * 'retrying' while one of the 3 attempts is in flight.
+   * 'failed' after all 3 attempts are exhausted — parent should render final
+   *   "switch to text" banner.
+   */
+  reconnectPhase: ReconnectPhase;
+  /** D3: Current retry attempt index (1–3). 0 when reconnectPhase is 'idle'. */
+  reconnectAttempt: number;
   /**
    * True when the local participant's mic is enabled. Always false for
    * `listen_only` policy. Flipping via `toggleMic` is a no-op on
@@ -310,8 +364,32 @@ export async function performStart(deps: PerformStartDeps): Promise<PerformStart
         krispProcessor ? { processor: krispProcessor } : undefined,
       );
       micEnabled = true;
-    } catch {
-      // Mic enable failed — keep the session running in effective-mute.
+    } catch (micErr) {
+      // D2: Detect OS-level mic permission denial. `NotAllowedError` is the
+      // standard DOMException name thrown by getUserMedia when the user (or
+      // OS) has denied the microphone permission. React Native / expo-av
+      // surfaces this as a `NotAllowedError` or includes "Permission" in the
+      // message. We re-throw with a distinct code so the caller can show the
+      // MicPermissionDialog instead of a generic error banner.
+      const errMsg = micErr instanceof Error ? micErr.message : "";
+      const isPermissionDenied =
+        (micErr instanceof Error && micErr.name === "NotAllowedError") ||
+        errMsg.toLowerCase().includes("permission") ||
+        errMsg.toLowerCase().includes("denied");
+
+      if (isPermissionDenied) {
+        // Disconnect the room — no audio = no session.
+        try {
+          await room.disconnect();
+        } catch {
+          /* swallow */
+        }
+        throw {
+          code: MIC_PERMISSION_DENIED_CODE,
+          message: "Mikrofontilgang er avvist. Åpne innstillinger for å aktivere.",
+        } satisfies BotssonVoiceError;
+      }
+      // Other mic errors (hardware issue, etc.) — keep session running muted.
       micEnabled = false;
     }
   }
@@ -330,8 +408,11 @@ export function useBotssonVoiceSession(
     asrProvider,
     disabled = false,
     onError,
+    onPolicyFlipped,
     speechAdapter = expoSpeechAdapter,
     roomFactory,
+    currentSnapshot,
+    onSnapshot,
   } = params;
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -345,14 +426,71 @@ export function useBotssonVoiceSession(
   >(null);
   const [lastResponse, setLastResponse] = useState<string>("");
   const [lastUserTranscript, setLastUserTranscript] = useState<string>("");
+  /** D3: Exponential-backoff reconnect phase and attempt counter. */
+  const [reconnectPhase, setReconnectPhase] = useState<ReconnectPhase>("idle");
+  const [reconnectAttempt, setReconnectAttempt] = useState<number>(0);
 
   // Refs keep async handlers stable so React-state churn doesn't re-subscribe.
   const roomRef = useRef<Room | null>(null);
   const speechAdapterRef = useRef(speechAdapter);
   const onErrorRef = useRef(onError);
+  const onPolicyFlippedRef = useRef(onPolicyFlipped);
+  const onSnapshotRef = useRef(onSnapshot);
   const ttsLanguageRef = useRef(ttsLanguage);
   const startingRef = useRef(false);
   const stoppedRef = useRef(false);
+  /**
+   * D3: Exponential-backoff reconnect state machine.
+   * reconnectAttemptsRef tracks in-progress retries so the handler is
+   * idempotent even if RoomEvent.Disconnected fires multiple times during
+   * a single disconnect episode.
+   * reconnectTimerRef holds the active setTimeout so stop() can cancel it.
+   */
+  const reconnectAttemptsRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * ADR-0297: version of the last snapshot we successfully published on the
+   * "botsson-context" data channel. Prevents re-publishing the same version
+   * on reconnects. Empty string = nothing published yet this session.
+   */
+  const lastPublishedVersionRef = useRef<string>("");
+  /**
+   * ADR-0297: stable ref to the current snapshot so the RoomEvent.Connected
+   * handler can read it without being re-registered on every snapshot change.
+   */
+  const currentSnapshotRef = useRef<ResolvedSnapshot | null | undefined>(currentSnapshot);
+  /**
+   * Workspace id ref for use inside RoomEvent handlers (stable, no re-subscribe).
+   */
+  const workspaceIdRef = useRef<string | null>(workspaceId);
+
+  /**
+   * P4 (L-0234): Dedup set for botsson-tool-call events. Prevents double-
+   * execution if voice-agent re-delivers the same call_id on reconnect.
+   * Cleared on explicit stop() so the next session starts with a clean slate.
+   */
+  const seenCallIdsRef = useRef<Set<string>>(new Set());
+
+  /**
+   * Stable snapshot handler ref — used as `onSnapshot` in useVoiceTranscripts.
+   * Reading from roomRef + onSnapshotRef + lastPublishedVersionRef avoids
+   * the exhaustive-deps trap of useCallback with an empty dep array.
+   * The function identity is stable across renders (same ref object).
+   */
+  const onSnapshotStableRef = useRef((snapshot: ResolvedSnapshot) => {
+    // Lift to BotssonProvider so it updates currentSnapshot state.
+    onSnapshotRef.current?.(snapshot);
+    // Also attempt immediate publish if room is already connected.
+    const activeRoom = roomRef.current;
+    if (!activeRoom) return;
+    if (snapshot.version === lastPublishedVersionRef.current) return;
+    void publishSnapshotToRoom(
+      activeRoom,
+      snapshot,
+      workspaceIdRef.current,
+      lastPublishedVersionRef,
+    );
+  });
 
   useEffect(() => {
     roomRef.current = room;
@@ -364,20 +502,49 @@ export function useBotssonVoiceSession(
     onErrorRef.current = onError;
   }, [onError]);
   useEffect(() => {
+    onPolicyFlippedRef.current = onPolicyFlipped;
+  }, [onPolicyFlipped]);
+  useEffect(() => {
+    onSnapshotRef.current = onSnapshot;
+  }, [onSnapshot]);
+  useEffect(() => {
     ttsLanguageRef.current = ttsLanguage;
   }, [ttsLanguage]);
+  useEffect(() => {
+    currentSnapshotRef.current = currentSnapshot;
+  }, [currentSnapshot]);
+  useEffect(() => {
+    workspaceIdRef.current = workspaceId;
+  }, [workspaceId]);
 
   /** Signal error once, route through onError callback, set state. */
   const fail = useCallback((err: BotssonVoiceError) => {
     setError(err);
     setStatus("error");
     onErrorRef.current?.(err);
+    // D4: If the error indicates voice policy was disabled, fire the
+    // dedicated policy-flip callback so the provider can auto-switch to text.
+    // Code 'VOICE_POLICY_DISABLED' is set when getLiveKitToken returns a 403
+    // with reason='voice_policy_disabled' at session start, or when the
+    // reconnect flow gets a 403 from the token edge function.
+    // NOTE: mid-session BFF 403s from the transcript route are not propagated
+    //   here because useVoiceTranscripts does not surface errors to callers
+    //   (architectural gap — documented in P6 report). The provider watches
+    //   voice.error as a fallback for any VOICE_POLICY_DISABLED code.
+    if (err.code === "VOICE_POLICY_DISABLED") {
+      onPolicyFlippedRef.current?.();
+    }
   }, []);
 
   /**
    * Attach `useVoiceTranscripts` to the live Room. Response from BFF
    * triggers `speechAdapter.speak()`. Transcript posted → status
    * transitions to `thinking`; on response → `speaking` → `listening`.
+   *
+   * ADR-0297: `currentSnapshotVersion` lets the BFF skip re-assembly when
+   * the snapshot hasn't changed. `onSnapshot` lifts new snapshots upward
+   * to BotssonProvider, which triggers data-channel publish via the
+   * RoomEvent.Connected effect below.
    */
   useVoiceTranscripts({
     room,
@@ -386,6 +553,7 @@ export function useBotssonVoiceSession(
     channelId,
     initialSessionId,
     asrProvider,
+    currentSnapshotVersion: currentSnapshotRef.current?.version ?? null,
     disabled: disabled || voiceParticipation === "listen_only",
     onTranscript: useCallback((text: string) => {
       // User finished an utterance — capture the text then await the agent.
@@ -413,21 +581,159 @@ export function useBotssonVoiceSession(
       },
       [fail],
     ),
+    // onSnapshot: ref-stable callback — reads latest roomRef + onSnapshotRef
+    // via refs so we avoid useCallback with stale closures. Not a hook call.
+    onSnapshot: onSnapshotStableRef.current,
   });
 
-  /** Track LiveKit Room connection + mic lifecycle events. */
+  /** Track LiveKit Room connection + mic lifecycle events + P4 RPC listener. */
   useEffect(() => {
     if (!room) return;
 
     const handleConnected = () => {
       setIsConnected(true);
+      // ADR-0297: publish botsson-context snapshot on (re)connect.
+      // Guard: skip if no snapshot or same version already published.
+      const snapshot = currentSnapshotRef.current;
+      if (!snapshot) return;
+      if (snapshot.version === lastPublishedVersionRef.current) return;
+      // P4 (L-0234): after snapshot publish, also register mobile tools.
+      // Both publishes are fire-and-forget; errors are telemetry-only.
+      void publishSnapshotToRoom(
+        room,
+        snapshot,
+        workspaceIdRef.current,
+        lastPublishedVersionRef,
+      ).then(() => {
+        void publishToolsToRoom(room, workspaceIdRef.current);
+      });
     };
+    /**
+     * D3: Exponential-backoff reconnect on unexpected disconnect.
+     *
+     * Backoff schedule: attempt 1 → 500ms, attempt 2 → 1000ms, attempt 3 → 2000ms.
+     * After 3 failures the reconnect phase becomes 'failed' and the caller
+     * should render the "switch to text" banner.
+     *
+     * Telemetry: `mobile.voice.disconnect_recovered` on success,
+     * `mobile.voice.disconnect_failed` after all retries exhausted.
+     *
+     * Guard: skipped when stoppedRef is true (explicit stop()) so we don't
+     * re-connect after the user ends the session intentionally.
+     */
+    const RECONNECT_DELAYS_MS = [500, 1000, 2000] as const;
+    const MAX_RECONNECT_ATTEMPTS = RECONNECT_DELAYS_MS.length;
+    const disconnectStartMs = { value: 0 };
+
+    const attemptReconnect = async (): Promise<void> => {
+      if (stoppedRef.current) return;
+
+      const attempt = reconnectAttemptsRef.current + 1;
+      reconnectAttemptsRef.current = attempt;
+      setReconnectAttempt(attempt);
+
+      if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        // All retries exhausted.
+        setReconnectPhase("failed");
+        setStatus("error");
+        const elapsed_ms = Date.now() - disconnectStartMs.value;
+        fail({ code: "RECONNECT_FAILED", message: "Kunne ikke koble til igjen." });
+        // Telemetry: mobile.voice.disconnect_failed
+        try {
+          const { profileId } = await getProfileContext();
+          const wid = workspaceIdRef.current;
+          if (wid) {
+            void emit({
+              event: "mobile.voice.disconnect_failed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: {
+                  workspace_id: wid,
+                  attempts: MAX_RECONNECT_ATTEMPTS,
+                  elapsed_ms,
+                  device_type: "mobile",
+                },
+              },
+            });
+          }
+        } catch {
+          /* profile context unavailable — skip telemetry */
+        }
+        return;
+      }
+
+      setReconnectPhase("retrying");
+      setStatus("connecting");
+
+      const delayMs = RECONNECT_DELAYS_MS[attempt - 1];
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        void (async () => {
+          if (stoppedRef.current) return;
+          try {
+            // Re-use the same room instance — LiveKit Room.connect after
+            // disconnect resets internal state and reconnects.
+            const wid = workspaceIdRef.current;
+            const cid = channelId;
+            if (!wid || !cid) {
+              throw new Error("workspaceId or channelId missing on reconnect");
+            }
+            const token = await import("@smartout/walkie-talkie").then(({ getLiveKitToken }) =>
+              getLiveKitToken(supabase, { channelId: cid, workspaceId: wid, purpose: "ai_voice" }),
+            );
+            await room.connect(token.serverUrl, token.token, { autoSubscribe: true });
+
+            // Reconnected successfully.
+            setIsConnected(true);
+            setStatus("listening");
+            setReconnectPhase("idle");
+            reconnectAttemptsRef.current = 0;
+            setReconnectAttempt(0);
+
+            const recovery_ms = Date.now() - disconnectStartMs.value;
+            // Telemetry: mobile.voice.disconnect_recovered
+            try {
+              const { profileId } = await getProfileContext();
+              if (wid) {
+                void emit({
+                  event: "mobile.voice.disconnect_recovered",
+                  workspace_id: nonEmpty(wid, "workspace_id"),
+                  actor_id: nonEmpty(profileId, "actor_id"),
+                  properties: {
+                    entity: { entity_type: "agent_session", entity_id: room.name },
+                    data: {
+                      workspace_id: wid,
+                      attempt,
+                      recovery_ms,
+                      device_type: "mobile",
+                    },
+                  },
+                });
+              }
+            } catch {
+              /* skip telemetry if profile context unavailable */
+            }
+          } catch {
+            // This attempt failed — schedule next retry (recursive call
+            // advances attempt counter and checks MAX).
+            if (!stoppedRef.current) {
+              void attemptReconnect();
+            }
+          }
+        })();
+      }, delayMs);
+    };
+
     const handleDisconnected = () => {
       setIsConnected(false);
       setIsMuted(false);
-      // Only transition status if we're not deliberately stopping.
+      // Only trigger reconnect if the session wasn't explicitly stopped.
       if (!stoppedRef.current) {
-        setStatus("idle");
+        disconnectStartMs.value = Date.now();
+        reconnectAttemptsRef.current = 0;
+        void attemptReconnect();
       }
     };
     const handleTrackMuted = () => {
@@ -435,16 +741,141 @@ export function useBotssonVoiceSession(
       setIsMuted(!enabled);
     };
 
+    /**
+     * P4 (L-0234): DataReceived handler for botsson-tool-call events.
+     *
+     * Voice-agent publishes { type:"tool_call", call_id, name, arguments }
+     * on topic "botsson-tool-call". Mobile dispatches via executeMobileTool()
+     * and replies with { call_id, result } on "botsson-tool-result".
+     *
+     * Dedup: same call_id on reconnect is dropped silently.
+     * Concurrency: each call executes independently (no serialization needed —
+     *   call_ids are globally unique UUIDs).
+     */
+    const handleDataReceived = (
+      payload: Uint8Array,
+      _participant: unknown,
+      _kind: unknown,
+      topic?: string,
+    ) => {
+      if (topic !== "botsson-tool-call") return;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(new TextDecoder().decode(payload));
+      } catch {
+        console.warn("[useBotssonVoiceSession] botsson-tool-call: invalid JSON");
+        return;
+      }
+
+      // Validate envelope: { type: "tool_call", call_id: string, name: string, arguments: object }
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        typeof (parsed as Record<string, unknown>)["call_id"] !== "string" ||
+        typeof (parsed as Record<string, unknown>)["name"] !== "string" ||
+        typeof (parsed as Record<string, unknown>)["arguments"] !== "object"
+      ) {
+        console.warn("[useBotssonVoiceSession] botsson-tool-call: unexpected shape", parsed);
+        return;
+      }
+
+      const {
+        call_id,
+        name,
+        arguments: args,
+      } = parsed as {
+        call_id: string;
+        name: string;
+        arguments: Record<string, unknown>;
+      };
+
+      // Dedup — drop if same call_id seen before (stale event from prior session).
+      if (seenCallIdsRef.current.has(call_id)) {
+        console.warn(
+          "[useBotssonVoiceSession] botsson-tool-call: duplicate call_id dropped",
+          call_id,
+        );
+        return;
+      }
+      seenCallIdsRef.current.add(call_id);
+
+      const t0 = Date.now();
+
+      // Execute the tool and publish result — all async, no await in handler.
+      void (async () => {
+        let resultStr: string;
+        let toolOk = true;
+        try {
+          resultStr = await executeMobileTool(name, args as Record<string, string>);
+        } catch (e) {
+          toolOk = false;
+          resultStr = e instanceof Error ? e.message : "Tool execution failed";
+        }
+
+        // Always publish result (even on tool error) so voice-agent Promise resolves.
+        const publishRes = await publishBotssonToolResult(room, {
+          call_id,
+          result: resultStr,
+        });
+
+        const latency_ms = Date.now() - t0;
+
+        // Telemetry — swallow if profile context unavailable (L-0177: fail-fast
+        // on empty IDs, but don't abort the RPC path for missing profile context).
+        try {
+          const { profileId } = await getProfileContext();
+          const wid = workspaceIdRef.current;
+          if (!wid) return;
+
+          if (publishRes.ok && toolOk) {
+            void emit({
+              event: "voice.bootstrap.rpc_completed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: { tool: name, call_id, latency_ms, device_type: "mobile" },
+              },
+            });
+          } else {
+            void emit({
+              event: "voice.bootstrap.rpc_failed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: {
+                  tool: name,
+                  call_id,
+                  // Never include raw tool output — may contain PII (ADR-0078).
+                  // Tool name + call_id are sufficient for diagnosability.
+                  reason: publishRes.ok
+                    ? "tool_execution_failed"
+                    : (publishRes.reason ?? "publish failed"),
+                  device_type: "mobile",
+                },
+              },
+            });
+          }
+        } catch {
+          // Profile context unavailable — skip telemetry. RPC already completed.
+        }
+      })();
+    };
+
     room.on(RoomEvent.Connected, handleConnected);
     room.on(RoomEvent.Disconnected, handleDisconnected);
     room.on(RoomEvent.TrackMuted, handleTrackMuted);
     room.on(RoomEvent.TrackUnmuted, handleTrackMuted);
+    room.on(RoomEvent.DataReceived, handleDataReceived);
 
     return () => {
       room.off(RoomEvent.Connected, handleConnected);
       room.off(RoomEvent.Disconnected, handleDisconnected);
       room.off(RoomEvent.TrackMuted, handleTrackMuted);
       room.off(RoomEvent.TrackUnmuted, handleTrackMuted);
+      room.off(RoomEvent.DataReceived, handleDataReceived);
     };
   }, [room]);
 
@@ -500,6 +931,26 @@ export function useBotssonVoiceSession(
     } catch (e) {
       const err = e as BotssonVoiceError;
       if (err && typeof err === "object" && "code" in err) {
+        // D2: Emit mic-permission-denied telemetry before forwarding the error.
+        if (err.code === MIC_PERMISSION_DENIED_CODE) {
+          try {
+            const { profileId } = await getProfileContext();
+            const wid = workspaceId;
+            if (wid) {
+              void emit({
+                event: "mobile.voice.mic_permission_denied",
+                workspace_id: nonEmpty(wid, "workspace_id"),
+                actor_id: nonEmpty(profileId, "actor_id"),
+                properties: {
+                  entity: { entity_type: "agent_session", entity_id: channelId ?? "unknown" },
+                  data: { workspace_id: wid, device_type: "mobile" },
+                },
+              });
+            }
+          } catch {
+            /* getProfileContext unavailable — skip telemetry */
+          }
+        }
         fail(err);
       } else {
         fail({
@@ -515,6 +966,17 @@ export function useBotssonVoiceSession(
   const stop = useCallback(async () => {
     stoppedRef.current = true;
     speechAdapterRef.current.stop();
+    // D3: Cancel any pending reconnect timer so we don't reconnect after explicit stop.
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectAttemptsRef.current = 0;
+    // ADR-0297: reset published version on explicit stop so the next session
+    // always publishes a fresh snapshot (version may be stale by reconnect time).
+    lastPublishedVersionRef.current = "";
+    // P4 (L-0234): clear dedup set so the next session accepts fresh call_ids.
+    seenCallIdsRef.current.clear();
     const activeRoom = roomRef.current;
     if (activeRoom) {
       try {
@@ -535,6 +997,8 @@ export function useBotssonVoiceSession(
     setVoiceParticipation(null);
     setLastUserTranscript("");
     setStatus("idle");
+    setReconnectPhase("idle");
+    setReconnectAttempt(0);
   }, []);
 
   const toggleMic = useCallback(async () => {
@@ -572,8 +1036,144 @@ export function useBotssonVoiceSession(
     voiceParticipation,
     lastResponse,
     lastUserTranscript,
+    reconnectPhase,
+    reconnectAttempt,
     start,
     stop,
     toggleMic,
   };
+}
+
+/**
+ * Internal: publish mobile tool definitions on "botsson-tools-register" so
+ * voice-agent can build stub llm.tool() entries. Emits telemetry on success
+ * or failure via getProfileContext().
+ *
+ * Called immediately after publishSnapshotToRoom succeeds (P4 ordering ensures
+ * voice-agent has user/workspace context when it builds tool stubs).
+ *
+ * Telemetry: ADR-0134 L-0177 — getProfileContext() throws if IDs are missing.
+ * We catch and skip telemetry rather than abort. Voice session health must NOT
+ * depend on telemetry availability.
+ */
+async function publishToolsToRoom(room: Room, workspaceId: string | null): Promise<void> {
+  const definitions = getToolDefinitionsForRegistration();
+  const result = await publishBotssonToolsRegister(room, { definitions });
+
+  try {
+    const { profileId } = await getProfileContext();
+    if (!workspaceId) return; // L-0177 fail-fast
+
+    if (result.ok) {
+      void emit({
+        event: "voice.bootstrap.tool_registered",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: { tool_count: definitions.length, device_type: "mobile" },
+        },
+      });
+    } else {
+      console.warn(
+        `[useBotssonVoiceSession] botsson-tools-register publish failed: ${result.reason}`,
+      );
+      void emit({
+        event: "voice.bootstrap.tool_register_failed",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: { reason: result.reason, device_type: "mobile" },
+        },
+      });
+    }
+  } catch {
+    // getProfileContext() threw — skip telemetry. Session proceeds regardless.
+    if (!result.ok) {
+      console.warn(
+        `[useBotssonVoiceSession] botsson-tools-register publish failed (no telemetry): ${result.reason}`,
+      );
+    }
+  }
+}
+
+/**
+ * Internal: encode the snapshot as a `context_init` message and publish on
+ * the "botsson-context" LiveKit data channel. Updates `lastPublishedVersionRef`
+ * on success. Emits telemetry (success or failure) via getProfileContext().
+ *
+ * This is a module-level function (not a hook) so it can be called both from
+ * the RoomEvent.Connected handler and from the onSnapshot callback — neither
+ * of which is in a React render cycle.
+ *
+ * Telemetry: ADR-0134 L-0177 — getProfileContext() throws if IDs are missing.
+ * We catch that and skip telemetry rather than abort the publish result. Voice
+ * session health is not allowed to depend on telemetry availability.
+ */
+async function publishSnapshotToRoom(
+  room: Room,
+  snapshot: ResolvedSnapshot,
+  workspaceId: string | null,
+  lastPublishedVersionRef: React.MutableRefObject<string>,
+): Promise<void> {
+  // Build the context_init payload the voice-agent expects.
+  const payload = {
+    type: "context_init" as const,
+    user: (snapshot.payload["user"] as Record<string, unknown>) ?? {},
+    workspace: (snapshot.payload["workspace"] as Record<string, unknown>) ?? {},
+    workforce: (snapshot.payload["workforce"] as Record<string, unknown>) ?? undefined,
+  };
+
+  const result = await publishBotssonContext(room, payload);
+
+  if (result.ok) {
+    lastPublishedVersionRef.current = snapshot.version;
+    // Emit telemetry — swallow if profile context is unavailable.
+    try {
+      const { profileId } = await getProfileContext();
+      if (!workspaceId) return; // no workspace = no telemetry (L-0177 — fail-fast on empty IDs)
+      void emit({
+        event: "voice.bootstrap.snapshot_published",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: {
+            version: snapshot.version,
+            payload_bytes: result.payload_bytes,
+            latency_ms: result.latency_ms,
+            device_type: "mobile",
+          },
+        },
+      });
+    } catch {
+      // getProfileContext() threw — skip telemetry. Never abort publish path.
+    }
+  } else {
+    // Publish failed after retry — emit failure telemetry + log.
+    console.warn(`[useBotssonVoiceSession] botsson-context publish failed: ${result.reason}`);
+    try {
+      const { profileId } = await getProfileContext();
+      if (!workspaceId) return;
+      void emit({
+        event: "voice.bootstrap.publish_failed",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: {
+            version: snapshot.version,
+            reason: result.reason,
+            attempts: result.attempts,
+            device_type: "mobile",
+          },
+        },
+      });
+    } catch {
+      // Profile context unavailable — skip telemetry.
+    }
+    // Continue — session proceeds in degraded mode. Voice-agent falls back to
+    // query_smartout tool roundtrip per existing behavior (ADR-0297 §Error-paths).
+  }
 }

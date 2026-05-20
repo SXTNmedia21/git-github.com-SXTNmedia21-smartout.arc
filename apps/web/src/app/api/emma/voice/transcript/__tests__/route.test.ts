@@ -35,6 +35,22 @@ vi.mock("@smartout/telemetry", () => ({
   nonEmpty: (v: string) => v,
 }));
 
+// Snapshot assembler queries 5 tables (workspace, profile, schedule_shift,
+// schedule_absence, department_session). The fake admin client below only
+// stubs profile + channel_ai_policy — assembly would throw "Unexpected
+// from(workspace)". Stub the assembler to return a controlled error result
+// so the route's snapshot-failure branch fires (logs + emits + omits
+// snapshot field) without disturbing the stage-engine proxy that these
+// I1+I4 invariants actually test. The route still emits transcript_in +
+// response_out before reaching the snapshot block (ADR-0297 snapshot
+// assembly is placed AFTER stage-engine proxy).
+vi.mock("@/lib/botsson-context-snapshot", () => ({
+  assembleBotssonContext: vi.fn().mockResolvedValue({ error: "WORKSPACE_NOT_FOUND" }),
+  isBotssonContextError: vi.fn().mockReturnValue(true),
+  computeSnapshotVersion: vi.fn().mockReturnValue("test-version-stub"),
+  computeSnapshotHash: vi.fn().mockReturnValue("test-hash-stub"),
+}));
+
 vi.mock("@/env", () => ({
   env: {
     STAGE_ENGINE_URL: "http://stage-engine.test",

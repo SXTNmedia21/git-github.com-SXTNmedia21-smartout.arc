@@ -1,16 +1,19 @@
 /**
- * BotssonSheet — Bottom sheet (75% height) for voice AI interaction.
+ * BotssonSheet — Bottom sheet (75% height) for voice/text AI interaction.
  *
- * Tap → mic toggles mute/unmute. Shows real-time transcript.
- * Status orb indicates: connecting (pulse), listening (glow),
- * thinking (rotate), speaking (wave).
+ * Voice mode: tap mic to toggle mute/unmute. Status orb shows session state.
+ * Text mode: text input + send button in thumb zone. Same TranscriptPane.
+ *
+ * Mode is controlled by BotssonProvider.mode — the sheet renders the
+ * appropriate control area based on the current mode.
  *
  * Voice session powered by LiveKit (per ADR-0282).
- * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
+ * Text mode POSTs to /api/emma/chat via BotssonProvider.sendTextMessage.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Text, Pressable } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, Pressable, TextInput } from "react-native";
+import { X, Mic, MicOff } from "lucide-react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -18,6 +21,7 @@ import GorhomBottomSheet, {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   withRepeat,
   withTiming,
   withSpring,
@@ -26,6 +30,9 @@ import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 import { useBotsson, type TranscriptEntry, type BotssonIntent } from "@/providers/botsson-provider";
 import { TranscriptPane } from "@/components/ai/TranscriptPane";
+import { ChatErrorBanner } from "@/components/ai/ChatErrorBanner";
+import { MicPermissionDialog } from "@/components/ai/MicPermissionDialog";
+import { NetworkRetryBanner } from "@/components/ai/NetworkRetryBanner";
 
 // TranscriptEntry is defined and exported by botsson-provider — imported above.
 
@@ -64,15 +71,33 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     const theme = useTheme();
     const {
       status,
+      mode,
       isMuted,
-      voiceEnabled,
-      voiceTranscript,
+      voiceStatus,
+      transcript,
       pendingIntent,
       clearIntent,
       startVoiceSession,
+      startTextSession,
       endSession,
       setMicrophoneMuted,
+      sendTextMessage,
+      isSendingText,
+      textError,
+      micPermissionDenied,
+      reconnectPhase,
+      reconnectAttempt,
+      policyFlipped,
     } = useBotsson();
+
+    // Local text input state — controlled input for the text-mode compose field.
+    const [textInput, setTextInput] = useState("");
+
+    /**
+     * D1: Track the last sent message so "Prøv igjen" can re-send it.
+     * Cleared when the message sends successfully.
+     */
+    const lastSentRef = useRef<string>("");
 
     // Snapshot the intent the moment it arrives so the prompt persists for the
     // duration of the sheet session even after clearIntent() fires.
@@ -87,19 +112,50 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       }
     }, [pendingIntent, clearIntent]);
 
-    // Reset captured intent when the sheet closes (endSession resets status to idle).
+    // Reset captured intent + text input when the sheet closes.
     useEffect(() => {
       if (status === "idle") {
         capturedIntentRef.current = null;
+        setTextInput("");
       }
     }, [status]);
 
-    // transcript is the provider-accumulated voice turn history.
-    // When voice is disabled the array stays empty — chat-only path uses it too
-    // (empty state remains until a voice session starts).
-    const transcript = voiceEnabled ? voiceTranscript : [];
+    /**
+     * P5 text-mode send handler.
+     * 1. Trims and guards empty input.
+     * 2. Clears the compose field immediately so the user can type the next message.
+     * 3. Delegates to sendTextMessage() which handles optimistic append + rollback.
+     */
+    const handleSendText = useCallback(async () => {
+      const trimmed = textInput.trim();
+      if (!trimmed || isSendingText) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // D1: Record the message before clearing the input so retry can re-send.
+      lastSentRef.current = trimmed;
+      setTextInput("");
+      await sendTextMessage(trimmed);
+      // D1: On success textError becomes null — banner clears automatically.
+    }, [textInput, isSendingText, sendTextMessage]);
+
+    /**
+     * D1: Retry handler — re-sends the last failed message.
+     * Clears `lastSentRef` only on success (via `textError` watch).
+     */
+    const handleRetry = useCallback(async () => {
+      const last = lastSentRef.current;
+      if (!last || isSendingText) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await sendTextMessage(last);
+    }, [isSendingText, sendTextMessage]);
 
     const snapPoints = useMemo(() => ["75%"], []);
+
+    /**
+     * D5: ADR-0366 — all animations gated by useReducedMotion.
+     * When reduced motion is requested, animated values are set to their final
+     * state immediately (no withRepeat / withTiming transitions).
+     */
+    const reducedMotion = useReducedMotion();
 
     // Status orb animation values
     const orbScale = useSharedValue(1);
@@ -110,59 +166,129 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       opacity: orbOpacity.value,
     }));
 
-    // Drive orb animation from session status — each state has a distinct visual rhythm
+    /**
+     * D5: Drive orb animation from fine-grained `voiceStatus` (6 states) rather
+     * than coarse `status` (3 states). Maps each voice phase to a distinct
+     * visual rhythm so employees can read the AI state at a glance:
+     *
+     *   idle       — dim (0.4 opacity), resting scale 1
+     *   connecting — slow pulse (scale 1→1.15, opacity 0.6→1, 900ms cycle)
+     *   listening  — bright pulse (scale 1→1.1, opacity 0.85→1, 1400ms cycle)
+     *   thinking   — steady bright (opacity 1, scale 1 — "held breath")
+     *   speaking   — faster pulse (scale 1→1.12, opacity 0.9→1, 600ms cycle)
+     *   error      — dim resting (opacity 0.5) — red tint from orbColor
+     *
+     * All animations are skipped (final value set directly) when reducedMotion
+     * is true per ADR-0366.
+     */
     React.useEffect(() => {
-      switch (status) {
+      if (mode !== "voice") {
+        // Text mode — orb is not shown; reset to idle values.
+        orbScale.value = reducedMotion ? 1 : withSpring(1, SPRING_CONFIG);
+        orbOpacity.value = reducedMotion ? 0.6 : withTiming(0.6, { duration: 300 });
+        return;
+      }
+      switch (voiceStatus) {
         case "connecting":
-          // Pulse to signal active connection attempt
-          orbScale.value = withRepeat(withTiming(1.2, { duration: 800 }), -1, true);
-          orbOpacity.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
+          if (reducedMotion) {
+            orbScale.value = 1.15;
+            orbOpacity.value = 0.8;
+          } else {
+            orbScale.value = withRepeat(withTiming(1.15, { duration: 900 }), -1, true);
+            orbOpacity.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
+          }
           break;
-        case "active":
-          // Settle to solid glow when connected
-          orbScale.value = withSpring(1, SPRING_CONFIG);
-          orbOpacity.value = withTiming(1, { duration: 300 });
+        case "listening":
+          if (reducedMotion) {
+            orbScale.value = 1;
+            orbOpacity.value = 1;
+          } else {
+            orbScale.value = withRepeat(withTiming(1.1, { duration: 1400 }), -1, true);
+            orbOpacity.value = withRepeat(withTiming(1, { duration: 1400 }), -1, true);
+          }
+          break;
+        case "thinking":
+          // Steady — "held breath" between user utterance and agent response.
+          orbScale.value = reducedMotion ? 1 : withSpring(1, SPRING_CONFIG);
+          orbOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: 200 });
+          break;
+        case "speaking":
+          // Faster pulse to signal TTS output.
+          if (reducedMotion) {
+            orbScale.value = 1;
+            orbOpacity.value = 1;
+          } else {
+            orbScale.value = withRepeat(withTiming(1.12, { duration: 600 }), -1, true);
+            orbOpacity.value = withRepeat(withTiming(1, { duration: 600 }), -1, true);
+          }
+          break;
+        case "error":
+          // Dim and resting — red tint from orbColor communicates the state.
+          orbScale.value = reducedMotion ? 1 : withSpring(1, SPRING_CONFIG);
+          orbOpacity.value = reducedMotion ? 0.5 : withTiming(0.5, { duration: 300 });
           break;
         default:
-          // Idle/error — dim and resting
-          orbScale.value = withSpring(1, SPRING_CONFIG);
-          orbOpacity.value = withTiming(0.6, { duration: 300 });
+          // idle
+          orbScale.value = reducedMotion ? 1 : withSpring(1, SPRING_CONFIG);
+          orbOpacity.value = reducedMotion ? 0.4 : withTiming(0.4, { duration: 300 });
       }
-    }, [status, orbScale, orbOpacity]);
+    }, [voiceStatus, mode, reducedMotion, orbScale, orbOpacity]);
 
     /** Human-readable status label shown above the orb */
     const statusLabel = useMemo(() => {
-      switch (status) {
+      if (mode === "text") {
+        if (isSendingText) return "Sender...";
+        // TODO(i18n): status_text_ready
+        return "Skriv en melding";
+      }
+      // D5: Use fine-grained voiceStatus for the label.
+      // TODO(i18n): all voice status labels
+      switch (voiceStatus) {
         case "connecting":
           return "Kobler til...";
-        case "active":
+        case "listening":
           return isMuted ? "Mikrofon av" : "Lytter...";
+        case "thinking":
+          return "Tenker...";
+        case "speaking":
+          return "Botsson snakker";
         case "error":
           return "Feil — prøv igjen";
         default:
           return "Klar";
       }
-    }, [status, isMuted]);
+    }, [mode, voiceStatus, isMuted, isSendingText]);
 
     /**
-     * Orb color encodes session state at a glance:
-     * - warning (amber) = connecting
-     * - brandOrange = active and listening
-     * - muted (gray) = muted
-     * - destructive (red) = error
+     * D5: Orb color encodes fine-grained voice state at a glance:
+     *   idle       — muted (dim gray)
+     *   connecting — warning (amber)
+     *   listening  — brandOrange (active attention)
+     *   thinking   — warning (amber — agent processing)
+     *   speaking   — brandOrange (agent TTS output)
+     *   error      — destructive (red)
+     *
+     * Muted mic override: when active but muted, show muted color regardless
+     * of listening/speaking sub-state.
      */
     const orbColor = useMemo(() => {
-      switch (status) {
+      if (status === "error" || voiceStatus === "error") return theme.colors.destructive;
+      if (isMuted && (voiceStatus === "listening" || voiceStatus === "speaking")) {
+        return theme.colors.muted;
+      }
+      switch (voiceStatus) {
         case "connecting":
           return theme.colors.warning;
-        case "active":
-          return isMuted ? theme.colors.muted : theme.colors.brandOrange;
-        case "error":
-          return theme.colors.destructive;
+        case "listening":
+          return theme.colors.brandOrange;
+        case "thinking":
+          return theme.colors.warning;
+        case "speaking":
+          return theme.colors.brandOrange;
         default:
           return theme.colors.muted;
       }
-    }, [status, isMuted, theme]);
+    }, [status, voiceStatus, isMuted, theme]);
 
     const handleMicPress = useCallback(async () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -215,7 +341,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
           {/* Header */}
           <View style={styles.header}>
             <Pressable onPress={handleClose} accessibilityLabel="Lukk" accessibilityRole="button">
-              <Text style={styles.closeButton}>✕</Text>
+              <X size={20} color={theme.colors.mutedForeground} />
             </Pressable>
             <Text style={styles.headerTitle}>Botsson</Text>
             {/* Spacer keeps title visually centered */}
@@ -229,29 +355,107 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             </View>
           ) : null}
 
-          {/* Transcript — scrollable conversation history (extracted to TranscriptPane) */}
+          {/* D2: Mic permission denial dialog — shown when voice start is denied by OS */}
+          {micPermissionDenied ? (
+            <MicPermissionDialog
+              onSwitchToText={() => {
+                startTextSession();
+              }}
+            />
+          ) : null}
+
+          {/* D3: Network reconnect banner — shown during LiveKit exponential backoff */}
+          {reconnectPhase !== "idle" ? (
+            <NetworkRetryBanner
+              phase={reconnectPhase === "retrying" ? "retrying" : "failed"}
+              attempt={reconnectPhase === "retrying" ? reconnectAttempt : undefined}
+              onSwitchToText={() => {
+                startTextSession();
+              }}
+            />
+          ) : null}
+
+          {/* D4: Policy-flip banner — shown when workspace voice policy revoked mid-session */}
+          {policyFlipped ? (
+            <View
+              style={styles.policyBanner}
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              accessibilityLabel="Stemme er deaktivert i denne workspace. Bytter til chat."
+            >
+              <Text style={styles.policyBannerText}>
+                {/* TODO(i18n): voice_policy_disabled_message */}
+                Stemme er deaktivert i denne workspace. Bytter til chat.
+              </Text>
+            </View>
+          ) : null}
+
+          {/* D1: Chat error banner — shown below transcript on text send failure */}
+          {mode === "text" && textError ? (
+            <ChatErrorBanner message={textError} onRetry={handleRetry} />
+          ) : null}
+
+          {/* Transcript — shared for voice and text turns */}
           <TranscriptPane transcripts={transcript} />
 
-          {/* Control area — status orb + mic button in thumb zone */}
+          {/* Control area — mode-conditional: text input OR voice mic */}
           <View style={styles.controlArea}>
             <Text style={styles.statusLabel}>{statusLabel}</Text>
 
-            {/* Animated orb — color + pulse encode session state */}
-            <Animated.View style={[styles.orb, orbStyle, { backgroundColor: orbColor }]} />
+            {mode === "text" ? (
+              /* P5 — Text mode compose row */
+              <View style={styles.textRow}>
+                <TextInput
+                  style={styles.textInput}
+                  value={textInput}
+                  onChangeText={setTextInput}
+                  placeholder="Skriv en melding..."
+                  placeholderTextColor={theme.colors.mutedForeground}
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={handleSendText}
+                  editable={!isSendingText}
+                  accessibilityLabel="Skriv melding til Botsson"
+                />
+                <Pressable
+                  onPress={handleSendText}
+                  disabled={isSendingText || textInput.trim().length === 0}
+                  style={({ pressed }) => [
+                    styles.sendButton,
+                    pressed && styles.sendButtonPressed,
+                    (isSendingText || textInput.trim().length === 0) && styles.sendButtonDisabled,
+                  ]}
+                  accessibilityLabel="Send melding"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.sendIcon}>{isSendingText ? "…" : "↑"}</Text>
+                </Pressable>
+              </View>
+            ) : (
+              /* Voice mode — orb + mic button */
+              <>
+                {/* Animated orb — color + pulse encode session state */}
+                <Animated.View style={[styles.orb, orbStyle, { backgroundColor: orbColor }]} />
 
-            {/* Large mic button — positioned in thumb zone at bottom of sheet */}
-            <Pressable
-              onPress={handleMicPress}
-              style={({ pressed }) => [
-                styles.micButton,
-                pressed && styles.micButtonPressed,
-                isMuted && status === "active" && styles.micButtonMuted,
-              ]}
-              accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
-              accessibilityRole="button"
-            >
-              <Text style={styles.micIcon}>{isMuted ? "🔇" : "🎙"}</Text>
-            </Pressable>
+                {/* Large mic button — positioned in thumb zone at bottom of sheet */}
+                <Pressable
+                  onPress={handleMicPress}
+                  style={({ pressed }) => [
+                    styles.micButton,
+                    pressed && styles.micButtonPressed,
+                    isMuted && status === "active" && styles.micButtonMuted,
+                  ]}
+                  accessibilityLabel={isMuted ? "Slå på mikrofon" : "Slå av mikrofon"}
+                  accessibilityRole="button"
+                >
+                  {isMuted ? (
+                    <MicOff size={28} color={theme.colors.foreground} />
+                  ) : (
+                    <Mic size={28} color={theme.colors.foreground} />
+                  )}
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </GorhomBottomSheet>
@@ -284,8 +488,6 @@ const useStyles = createStyles((theme) => ({
     borderBottomColor: theme.colors.border,
   },
   closeButton: {
-    color: theme.colors.mutedForeground,
-    fontSize: 20,
     padding: theme.spacing.tight,
   },
   headerTitle: {
@@ -308,6 +510,21 @@ const useStyles = createStyles((theme) => ({
   },
   intentBannerText: {
     ...theme.typography.body,
+    color: theme.colors.foreground,
+  },
+  // D4: Policy-flip banner — uses warning (amber) to indicate workspace policy change.
+  policyBanner: {
+    marginHorizontal: theme.spacing.card,
+    marginTop: theme.spacing.tight,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.tight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.secondary,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.warning,
+  },
+  policyBannerText: {
+    ...theme.typography.caption,
     color: theme.colors.foreground,
   },
   controlArea: {
@@ -343,7 +560,44 @@ const useStyles = createStyles((theme) => ({
   micButtonMuted: {
     backgroundColor: theme.colors.muted,
   },
-  micIcon: {
-    fontSize: 28,
+  // P5 — text-mode compose row
+  textRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.tight,
+    paddingHorizontal: theme.spacing.card,
+    width: "100%",
+  },
+  textInput: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.foreground,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.tight,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minHeight: 44,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.brandOrange,
+    alignItems: "center",
+    justifyContent: "center",
+    ...theme.shadows.sm,
+  },
+  sendButtonPressed: {
+    opacity: 0.8,
+  },
+  sendButtonDisabled: {
+    backgroundColor: theme.colors.muted,
+  },
+  sendIcon: {
+    ...theme.typography.headline,
+    color: theme.colors.background,
+    fontSize: 20,
   },
 }));

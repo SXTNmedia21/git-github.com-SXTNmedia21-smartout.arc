@@ -81,6 +81,53 @@ jest.mock("@/lib/supabase", () => ({ supabase: {} }), { virtual: true });
 
 jest.mock("@smartout/walkie-talkie", () => ({ getLiveKitToken: jest.fn() }), { virtual: true });
 
+// `@smartout/telemetry` dist is ESM; ts-jest's CJS-only transform chokes on
+// `export *`. The pure orchestrators we test don't actually fire telemetry
+// (that's in the React effect path); stub the names the source imports.
+jest.mock(
+  "@smartout/telemetry",
+  () => ({
+    emit: jest.fn(async () => {}),
+    nonEmpty: (v: string) => v,
+  }),
+  { virtual: true },
+);
+
+// `@/lib/profile-context` is touched indirectly through the source file's
+// import graph; the pure orchestrators don't read it but the import chain
+// loads it. Stub to keep jest-node happy.
+jest.mock(
+  "@/lib/profile-context",
+  () => ({
+    getProfileContext: jest.fn(async () => ({ workspaceId: "ws-1", profileId: "p-1" })),
+  }),
+  { virtual: true },
+);
+
+// `livekit-data-publish` is imported for `publishBotssonContext` /
+// `publishBotssonToolsRegister` / `publishBotssonToolResult`; the pure
+// orchestrators don't invoke them but the file-level import loads the module.
+jest.mock(
+  "@/lib/livekit-data-publish",
+  () => ({
+    publishBotssonContext: jest.fn(async () => ({ ok: true })),
+    publishBotssonToolsRegister: jest.fn(async () => ({ ok: true })),
+    publishBotssonToolResult: jest.fn(async () => ({ ok: true })),
+  }),
+  { virtual: true },
+);
+
+// `@/lib/botsson-tools` provides `getToolDefinitionsForRegistration` +
+// `executeMobileTool`; pure orchestrators don't call them.
+jest.mock(
+  "@/lib/botsson-tools",
+  () => ({
+    getToolDefinitionsForRegistration: jest.fn(() => []),
+    executeMobileTool: jest.fn(async () => ""),
+  }),
+  { virtual: true },
+);
+
 // `useVoiceTranscripts` touches `@/lib/profile-context` → supabase auth;
 // the pure orchestrators we test do NOT call this hook, but the file-level
 // import chain loads it. Stub to a no-op.
@@ -143,7 +190,10 @@ function makeRoom(opts: { connectThrows?: boolean; micThrows?: boolean } = {}) {
   const disconnect = jest.fn(async () => {});
   const setMicrophoneEnabled = opts.micThrows
     ? jest.fn(async () => {
-        throw new Error("permission denied");
+        // P6: permission-denied errors now throw MIC_PERMISSION_DENIED so
+        // MicPermissionDialog can render. Use a non-permission error here
+        // (hardware-class) to exercise the legacy mute-fallback path.
+        throw new Error("audio hardware unavailable");
       })
     : jest.fn(async () => {});
   return {
