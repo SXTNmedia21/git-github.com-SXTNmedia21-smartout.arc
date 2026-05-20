@@ -12,7 +12,11 @@ import { Plus, X, Sparkles } from "lucide-react";
 import type { WizardStepProps } from "@smartout/ui";
 import type { OnboardingConfirmState } from "../types-v2";
 
-export function ConfirmPositions({ state, updateState }: WizardStepProps<OnboardingConfirmState>) {
+export function ConfirmPositions({
+  state,
+  updateState,
+  t,
+}: WizardStepProps<OnboardingConfirmState>) {
   const [openPopover, setOpenPopover] = useState<string | null>(null);
   const [customInput, setCustomInput] = useState<string | null>(null);
   const [customName, setCustomName] = useState("");
@@ -96,13 +100,13 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="font-heading text-foreground text-2xl font-bold">Stillinger</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Hvilke stillinger opererer dere med per avdeling?
-        </p>
+        <h2 className="font-heading text-foreground text-2xl font-bold">
+          {t("confirm.positions_title")}
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">{t("confirm.positions_description")}</p>
         <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
-          {totalSelected} stillinger valgt
+          {t("positions.selectedCount", { count: totalSelected })}
         </p>
       </div>
 
@@ -140,7 +144,9 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
                 ))}
 
                 {selected.length === 0 && (
-                  <p className="text-muted-foreground/60 text-xs italic">Ingen stillinger valgt</p>
+                  <p className="text-muted-foreground/60 text-xs italic">
+                    {t("positions.noneSelected")}
+                  </p>
                 )}
 
                 {/* Add more positions */}
@@ -151,7 +157,7 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
                     className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 py-1 text-xs transition-colors"
                   >
                     <Plus className="size-3.5" />
-                    Legg til stilling
+                    {t("positions.addPosition")}
                   </button>
 
                   {openPopover === dept.id && (
@@ -182,7 +188,7 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
                                 setCustomName("");
                               }
                             }}
-                            placeholder="Stillingstittel"
+                            placeholder={t("confirm.positions_custom_placeholder")}
                             className="border-border bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded border px-2 py-1 text-xs focus-visible:outline-none"
                             autoFocus
                           />
@@ -201,7 +207,7 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
                           className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs"
                         >
                           <Plus className="size-3" />
-                          Egendefinert...
+                          {t("confirm.positions_custom")}
                         </button>
                       )}
                     </div>
@@ -213,9 +219,7 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
         })}
 
         {selectedDepts.length === 0 && (
-          <p className="text-muted-foreground text-sm italic">
-            Velg avdelinger først for å definere stillinger.
-          </p>
+          <p className="text-muted-foreground text-sm italic">{t("positions.noDepartments")}</p>
         )}
       </div>
     </div>
