@@ -37,6 +37,9 @@ export const strings = {
     leader: "Leder",
     dayInfo: "Daginfo",
     position: "Posisjon",
+    // P0-C gate: useShiftChat send path throws Zod at enqueue (channel_id missing).
+    // Banner replaces the input row until mobile-shift-chat-bff-migration ships.
+    chatUnavailableBanner: "Skiftchat oppdateres for øyeblikket — kommer tilbake i neste versjon.",
   },
   tasks: {
     title: "Oppgaver",
@@ -126,6 +129,7 @@ export const strings = {
     greetingBeforeShift: "Hei! Du har vakt snart. Hva trenger du?",
     greetingDuringShift: "Hei! Du er p\u00e5 vakt. Hva trenger du hjelp med?",
     greetingAfterShift: "Vakt avsluttet. Trenger du hjelp med noe?",
+    fabHint: "Hold inne for \u00e5 snakke med Botsson",
   },
   common: {
     send: "Send",

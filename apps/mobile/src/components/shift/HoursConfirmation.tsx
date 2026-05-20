@@ -13,7 +13,7 @@ import { View, Text, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Button, Input } from "@/components/ui";
-import { createStyles } from "@/theme";
+import { createStyles, withOpacity } from "@/theme";
 import { strings } from "@/constants/strings";
 import { useConfirmHours, type ConfirmHoursPayload } from "@/hooks/mutations/use-confirm-hours";
 
@@ -265,7 +265,7 @@ const useStyles = createStyles((theme) => ({
 
   /* Handoff warning */
   handoffWarning: {
-    backgroundColor: theme.colors.warning + "1A",
+    backgroundColor: withOpacity(theme.colors.warning, 0.1),
     borderRadius: theme.radius.md,
     padding: theme.spacing.element,
     alignItems: "center",
