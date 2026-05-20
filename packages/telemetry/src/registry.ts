@@ -5070,6 +5070,44 @@ export interface VoiceBootstrapSnapshotAssemblyFailed extends BaseEvent {
   };
 }
 
+// ─── Voice Bootstrap Publish Events (ADR-0297, P3 mobile-voice-runtime-wire) ─────────────────────
+// Emitted by the mobile app when publishing the botsson-context data-channel message.
+// snapshot_published — posthog + logger + activity_trail. Data-transfer audit.
+// publish_failed    — posthog + logger + activity_trail. Error audit for degraded sessions.
+export interface VoiceBootstrapSnapshotPublished extends BaseEvent {
+  event: "voice.bootstrap.snapshot_published";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Stable version token that was published: `${workspaceId}:${profileId}:${unix_ms}` */
+      version: string;
+      /** Serialised payload size in bytes */
+      payload_bytes: number;
+      /** Time (ms) from RoomEvent.Connected to successful publish */
+      latency_ms: number;
+      /** Always 'mobile' — disambiguates from future web publish path */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapPublishFailed extends BaseEvent {
+  event: "voice.bootstrap.publish_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Snapshot version we attempted to publish */
+      version: string;
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Number of attempts made (1 or 2) */
+      attempts: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe) ─────────
 // Emitted by the mobile app UI layer (not BFF) for interaction funnel analytics.
 // fab.long_press — posthog + logger. Non-auditable interaction signal.
@@ -9025,6 +9063,9 @@ export type SmartoutEvent =
   | VoiceBootstrapSnapshotSent
   | VoiceBootstrapSnapshotRefreshed
   | VoiceBootstrapSnapshotAssemblyFailed
+  // ─── Voice Bootstrap Publish (ADR-0297, P3 mobile-voice-runtime-wire 2026-05-20) ──
+  | VoiceBootstrapSnapshotPublished
+  | VoiceBootstrapPublishFailed
   // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
   | MobileFabLongPress
   | MobileAiPrefsChanged
@@ -14650,6 +14691,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "voice.bootstrap.snapshot_assembly_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Voice Bootstrap Publish (ADR-0297, P3 mobile-voice-runtime-wire 2026-05-20) ──
+  // snapshot_published: posthog (mobile bootstrap funnel adoption) + logger + activity_trail
+  //   (data-channel publish is a data-transfer event that must be auditable).
+  //   No engine_event — informational, not workflow-driving.
+  // publish_failed: posthog + logger + activity_trail (error audit for degraded sessions).
+  //   No engine_event — not a state-machine input.
+  "voice.bootstrap.snapshot_published": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.publish_failed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

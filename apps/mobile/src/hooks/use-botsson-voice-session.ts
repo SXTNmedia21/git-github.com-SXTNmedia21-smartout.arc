@@ -46,6 +46,7 @@
  *   - Mixing the two concerns in one hook masked the C1 transcript glue.
  */
 
+import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent } from "livekit-client";
@@ -62,9 +63,13 @@ const KrispNativeNoiseFilter =
         }
       ).KrispNoiseFilter
     : null;
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { supabase } from "@/lib/supabase";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
+import { getProfileContext } from "@/lib/profile-context";
+import { publishBotssonContext } from "@/lib/livekit-data-publish";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
+import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android.
 // Same shim pattern as use-livekit-call.ts so we stay mountable under web+jest.
@@ -129,6 +134,20 @@ export type UseBotssonVoiceSessionParams = {
   speechAdapter?: SpeechAdapter;
   /** Test seam — replaces `new Room()`. Not documented in the public API. */
   roomFactory?: () => Room;
+  /**
+   * ADR-0297: current workforce snapshot held by BotssonProvider.
+   * On `RoomEvent.Connected`, if this is non-null and its version differs
+   * from the last published version, the hook publishes it on the
+   * "botsson-context" data channel so voice-agent's `setSessionContext()`
+   * fires. Deduped by version so reconnects don't re-publish unchanged data.
+   */
+  currentSnapshot?: ResolvedSnapshot | null;
+  /**
+   * Called when the transcript hook surfaces a new snapshot from the BFF.
+   * The hook itself does NOT mutate provider state — it calls back upward so
+   * BotssonProvider can lift the snapshot to canonical context state.
+   */
+  onSnapshot?: (snapshot: ResolvedSnapshot) => void;
 };
 
 export type UseBotssonVoiceSessionResult = {
@@ -332,6 +351,8 @@ export function useBotssonVoiceSession(
     onError,
     speechAdapter = expoSpeechAdapter,
     roomFactory,
+    currentSnapshot,
+    onSnapshot,
   } = params;
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -350,9 +371,46 @@ export function useBotssonVoiceSession(
   const roomRef = useRef<Room | null>(null);
   const speechAdapterRef = useRef(speechAdapter);
   const onErrorRef = useRef(onError);
+  const onSnapshotRef = useRef(onSnapshot);
   const ttsLanguageRef = useRef(ttsLanguage);
   const startingRef = useRef(false);
   const stoppedRef = useRef(false);
+  /**
+   * ADR-0297: version of the last snapshot we successfully published on the
+   * "botsson-context" data channel. Prevents re-publishing the same version
+   * on reconnects. Empty string = nothing published yet this session.
+   */
+  const lastPublishedVersionRef = useRef<string>("");
+  /**
+   * ADR-0297: stable ref to the current snapshot so the RoomEvent.Connected
+   * handler can read it without being re-registered on every snapshot change.
+   */
+  const currentSnapshotRef = useRef<ResolvedSnapshot | null | undefined>(currentSnapshot);
+  /**
+   * Workspace id ref for use inside RoomEvent handlers (stable, no re-subscribe).
+   */
+  const workspaceIdRef = useRef<string | null>(workspaceId);
+
+  /**
+   * Stable snapshot handler ref — used as `onSnapshot` in useVoiceTranscripts.
+   * Reading from roomRef + onSnapshotRef + lastPublishedVersionRef avoids
+   * the exhaustive-deps trap of useCallback with an empty dep array.
+   * The function identity is stable across renders (same ref object).
+   */
+  const onSnapshotStableRef = useRef((snapshot: ResolvedSnapshot) => {
+    // Lift to BotssonProvider so it updates currentSnapshot state.
+    onSnapshotRef.current?.(snapshot);
+    // Also attempt immediate publish if room is already connected.
+    const activeRoom = roomRef.current;
+    if (!activeRoom) return;
+    if (snapshot.version === lastPublishedVersionRef.current) return;
+    void publishSnapshotToRoom(
+      activeRoom,
+      snapshot,
+      workspaceIdRef.current,
+      lastPublishedVersionRef,
+    );
+  });
 
   useEffect(() => {
     roomRef.current = room;
@@ -364,8 +422,17 @@ export function useBotssonVoiceSession(
     onErrorRef.current = onError;
   }, [onError]);
   useEffect(() => {
+    onSnapshotRef.current = onSnapshot;
+  }, [onSnapshot]);
+  useEffect(() => {
     ttsLanguageRef.current = ttsLanguage;
   }, [ttsLanguage]);
+  useEffect(() => {
+    currentSnapshotRef.current = currentSnapshot;
+  }, [currentSnapshot]);
+  useEffect(() => {
+    workspaceIdRef.current = workspaceId;
+  }, [workspaceId]);
 
   /** Signal error once, route through onError callback, set state. */
   const fail = useCallback((err: BotssonVoiceError) => {
@@ -378,6 +445,11 @@ export function useBotssonVoiceSession(
    * Attach `useVoiceTranscripts` to the live Room. Response from BFF
    * triggers `speechAdapter.speak()`. Transcript posted → status
    * transitions to `thinking`; on response → `speaking` → `listening`.
+   *
+   * ADR-0297: `currentSnapshotVersion` lets the BFF skip re-assembly when
+   * the snapshot hasn't changed. `onSnapshot` lifts new snapshots upward
+   * to BotssonProvider, which triggers data-channel publish via the
+   * RoomEvent.Connected effect below.
    */
   useVoiceTranscripts({
     room,
@@ -386,6 +458,7 @@ export function useBotssonVoiceSession(
     channelId,
     initialSessionId,
     asrProvider,
+    currentSnapshotVersion: currentSnapshotRef.current?.version ?? null,
     disabled: disabled || voiceParticipation === "listen_only",
     onTranscript: useCallback((text: string) => {
       // User finished an utterance — capture the text then await the agent.
@@ -413,6 +486,9 @@ export function useBotssonVoiceSession(
       },
       [fail],
     ),
+    // onSnapshot: ref-stable callback — reads latest roomRef + onSnapshotRef
+    // via refs so we avoid useCallback with stale closures. Not a hook call.
+    onSnapshot: onSnapshotStableRef.current,
   });
 
   /** Track LiveKit Room connection + mic lifecycle events. */
@@ -421,6 +497,12 @@ export function useBotssonVoiceSession(
 
     const handleConnected = () => {
       setIsConnected(true);
+      // ADR-0297: publish botsson-context snapshot on (re)connect.
+      // Guard: skip if no snapshot or same version already published.
+      const snapshot = currentSnapshotRef.current;
+      if (!snapshot) return;
+      if (snapshot.version === lastPublishedVersionRef.current) return;
+      void publishSnapshotToRoom(room, snapshot, workspaceIdRef.current, lastPublishedVersionRef);
     };
     const handleDisconnected = () => {
       setIsConnected(false);
@@ -515,6 +597,9 @@ export function useBotssonVoiceSession(
   const stop = useCallback(async () => {
     stoppedRef.current = true;
     speechAdapterRef.current.stop();
+    // ADR-0297: reset published version on explicit stop so the next session
+    // always publishes a fresh snapshot (version may be stale by reconnect time).
+    lastPublishedVersionRef.current = "";
     const activeRoom = roomRef.current;
     if (activeRoom) {
       try {
@@ -576,4 +661,84 @@ export function useBotssonVoiceSession(
     stop,
     toggleMic,
   };
+}
+
+/**
+ * Internal: encode the snapshot as a `context_init` message and publish on
+ * the "botsson-context" LiveKit data channel. Updates `lastPublishedVersionRef`
+ * on success. Emits telemetry (success or failure) via getProfileContext().
+ *
+ * This is a module-level function (not a hook) so it can be called both from
+ * the RoomEvent.Connected handler and from the onSnapshot callback — neither
+ * of which is in a React render cycle.
+ *
+ * Telemetry: ADR-0134 L-0177 — getProfileContext() throws if IDs are missing.
+ * We catch that and skip telemetry rather than abort the publish result. Voice
+ * session health is not allowed to depend on telemetry availability.
+ */
+async function publishSnapshotToRoom(
+  room: Room,
+  snapshot: ResolvedSnapshot,
+  workspaceId: string | null,
+  lastPublishedVersionRef: React.MutableRefObject<string>,
+): Promise<void> {
+  // Build the context_init payload the voice-agent expects.
+  const payload = {
+    type: "context_init" as const,
+    user: (snapshot.payload["user"] as Record<string, unknown>) ?? {},
+    workspace: (snapshot.payload["workspace"] as Record<string, unknown>) ?? {},
+    workforce: (snapshot.payload["workforce"] as Record<string, unknown>) ?? undefined,
+  };
+
+  const result = await publishBotssonContext(room, payload);
+
+  if (result.ok) {
+    lastPublishedVersionRef.current = snapshot.version;
+    // Emit telemetry — swallow if profile context is unavailable.
+    try {
+      const { profileId } = await getProfileContext();
+      if (!workspaceId) return; // no workspace = no telemetry (L-0177 — fail-fast on empty IDs)
+      void emit({
+        event: "voice.bootstrap.snapshot_published",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: {
+            version: snapshot.version,
+            payload_bytes: result.payload_bytes,
+            latency_ms: result.latency_ms,
+            device_type: "mobile",
+          },
+        },
+      });
+    } catch {
+      // getProfileContext() threw — skip telemetry. Never abort publish path.
+    }
+  } else {
+    // Publish failed after retry — emit failure telemetry + log.
+    console.warn(`[useBotssonVoiceSession] botsson-context publish failed: ${result.reason}`);
+    try {
+      const { profileId } = await getProfileContext();
+      if (!workspaceId) return;
+      void emit({
+        event: "voice.bootstrap.publish_failed",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: {
+            version: snapshot.version,
+            reason: result.reason,
+            attempts: result.attempts,
+            device_type: "mobile",
+          },
+        },
+      });
+    } catch {
+      // Profile context unavailable — skip telemetry.
+    }
+    // Continue — session proceeds in degraded mode. Voice-agent falls back to
+    // query_smartout tool roundtrip per existing behavior (ADR-0297 §Error-paths).
+  }
 }

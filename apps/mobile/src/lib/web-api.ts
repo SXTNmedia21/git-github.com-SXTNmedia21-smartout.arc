@@ -50,6 +50,15 @@ export function getEmmaVoiceTranscriptUrl(): string {
   return `${getWebApiUrl()}/api/emma/voice/transcript`;
 }
 
+/**
+ * Absolute URL for fetching a size-guard-overflowed workforce snapshot by version.
+ * Used when BFF returns `payload_url` instead of inline `payload` (ADR-0297 §size-guard).
+ * The version token is URL-encoded by the caller (already encoded by the BFF).
+ */
+export function getEmmaVoiceSnapshotUrl(encodedVersion: string): string {
+  return `${getWebApiUrl()}/api/emma/voice/snapshot/${encodedVersion}`;
+}
+
 /** Absolute URL for the guided-journey BFF start endpoint (ADR-0132). */
 export function getJourneyGuidedStartUrl(): string {
   return `${getWebApiUrl()}/api/journey/guided/start`;

@@ -29,6 +29,7 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useBotssonVoiceSession } from "@/hooks/use-botsson-voice-session";
 import type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
+import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 import type {
   BotssonLanguage,
@@ -177,6 +178,13 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
+  /**
+   * ADR-0297: canonical snapshot state. Set when the BFF returns a new or
+   * refreshed snapshot. Cleared on endSession(). Passed to voice session hook
+   * so it can publish on data channel at session start and on snapshot refresh.
+   * Dedup is by version — if incoming version matches stored, skip.
+   */
+  const [currentSnapshot, setCurrentSnapshot] = useState<ResolvedSnapshot | null>(null);
 
   // AI settings — user preferences persisted via MMKV.
   const {
@@ -221,11 +229,25 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setError(err.message);
   }, []);
 
+  /**
+   * ADR-0297: lift snapshot from transcript hook to provider context.
+   * Dedup by version — if the incoming version matches what we already hold,
+   * skip the state update (prevents unnecessary re-renders + re-publishes).
+   */
+  const handleSnapshot = useCallback((snapshot: ResolvedSnapshot) => {
+    setCurrentSnapshot((prev) => {
+      if (prev?.version === snapshot.version) return prev;
+      return snapshot;
+    });
+  }, []);
+
   const voice = useBotssonVoiceSession({
     workspaceId,
     channelId: botssonChannelId,
     disabled: mode !== "voice",
     onError: handleVoiceError,
+    currentSnapshot,
+    onSnapshot: handleSnapshot,
   });
 
   // Accumulated voice transcript for the current session.
@@ -349,6 +371,9 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setMode(null);
     setError(null);
     setVoiceTranscript([]);
+    // ADR-0297: clear snapshot on session end so the next session always
+    // gets a fresh cold-start snapshot from the BFF.
+    setCurrentSnapshot(null);
   }, [voice]);
 
   /**
