@@ -2,8 +2,11 @@
  * SwapStatusBadge — Colored pill showing the swap request status.
  *
  * Maps swap status strings to semantic colors:
- * pending_recipient → amber, pending_manager → blue,
- * approved → green, rejected → red, cancelled → gray.
+ * pending_recipient → amber (warning), pending_manager → blue (info),
+ * approved → green (success), rejected → red (destructive), cancelled → gray (muted).
+ *
+ * All colors come from Nordic Split design tokens via theme.colors.*
+ * No hex literals — audit-B HIGH fix (2026-05-20).
  */
 
 import React from "react";
@@ -22,10 +25,9 @@ type SwapStatusBadgeProps = {
   status: SwapStatus;
 };
 
-const STATUS_CONFIG: Record<
-  SwapStatus,
-  { label: string; colorKey: "amber" | "blue" | "green" | "red" | "gray" }
-> = {
+type ColorKey = "amber" | "blue" | "green" | "red" | "gray";
+
+const STATUS_CONFIG: Record<SwapStatus, { label: string; colorKey: ColorKey }> = {
   pending_recipient: { label: "Venter på svar", colorKey: "amber" },
   pending_manager: { label: "Venter på leder", colorKey: "blue" },
   approved: { label: "Godkjent", colorKey: "green" },
@@ -34,18 +36,45 @@ const STATUS_CONFIG: Record<
   executed: { label: "Utført", colorKey: "green" },
 };
 
-const COLOR_MAP = {
-  amber: { bg: "rgba(245, 158, 11, 0.12)", dot: "#f59e0b", text: "#d97706" },
-  blue: { bg: "rgba(59, 130, 246, 0.12)", dot: "#3b82f6", text: "#2563eb" },
-  green: { bg: "rgba(34, 197, 94, 0.12)", dot: "#22c55e", text: "#16a34a" },
-  red: { bg: "rgba(239, 68, 68, 0.12)", dot: "#ef4444", text: "#dc2626" },
-  gray: { bg: "rgba(156, 163, 175, 0.12)", dot: "#9ca3af", text: "#6b7280" },
-};
-
 export function SwapStatusBadge({ status }: SwapStatusBadgeProps) {
+  const theme = useTheme();
   const styles = useStyles();
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.cancelled;
-  const colors = COLOR_MAP[config.colorKey];
+
+  // Map colorKey to Nordic Split semantic tokens — no hex literals.
+  // warning/info/success/destructive come from nativeTheme.light|dark.
+  // Gray ("cancelled") uses muted tokens (no dedicated neutral status token).
+  const colorTokens: Record<ColorKey, { bg: string; dot: string; text: string }> = {
+    amber: {
+      bg: withOpacity(theme.colors.warning, 0.12),
+      dot: theme.colors.warning,
+      text: theme.colors.warningForeground,
+    },
+    blue: {
+      bg: withOpacity(theme.colors.info, 0.12),
+      dot: theme.colors.info,
+      text: theme.colors.infoForeground,
+    },
+    green: {
+      bg: withOpacity(theme.colors.success, 0.12),
+      dot: theme.colors.success,
+      text: theme.colors.successForeground,
+    },
+    red: {
+      bg: withOpacity(theme.colors.destructive, 0.12),
+      dot: theme.colors.destructive,
+      text: theme.colors.destructiveForeground,
+    },
+    // "cancelled" has no dedicated swap-status token — muted is the closest neutral.
+    // TODO(nordic-split): introduce dedicated token if cancelled state becomes prominent.
+    gray: {
+      bg: withOpacity(theme.colors.mutedForeground, 0.12),
+      dot: theme.colors.mutedForeground,
+      text: theme.colors.mutedForeground,
+    },
+  };
+
+  const colors = colorTokens[config.colorKey];
 
   return (
     <View style={[styles.badge, { backgroundColor: colors.bg }]}>

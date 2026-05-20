@@ -14,7 +14,7 @@ import { View, Text, Pressable, TextInput, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Button, Input } from "@/components/ui";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { strings } from "@/constants/strings";
 import { useLogHaccp, type HACCPPayload } from "@/hooks/mutations/use-log-haccp";
 import type { SessionTask } from "./TaskModal";
@@ -225,11 +225,11 @@ const useStyles = createStyles((theme) => ({
   },
   toggleActive: {
     borderColor: theme.colors.success,
-    backgroundColor: theme.colors.success + "1A",
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
   },
   toggleDanger: {
     borderColor: theme.colors.destructive,
-    backgroundColor: theme.colors.destructive + "1A",
+    backgroundColor: withOpacity(theme.colors.destructive, 0.1),
   },
   toggleText: {
     ...theme.typography.bodyBold,

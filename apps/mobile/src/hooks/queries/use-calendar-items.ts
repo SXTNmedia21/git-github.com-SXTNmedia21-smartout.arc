@@ -47,25 +47,6 @@ type UseCalendarItemsResult = {
   counts: Record<FilterValue, number>;
 };
 
-/** Dept constant list for mapping from FeedItem subtitle strings. */
-const DEPT_LIST: Department[] = ["kjokken", "sal", "bar", "event"];
-
-/**
- * Attempt to extract a dept from FeedItem.subtitle text.
- * FeedItem.subtitle for shifts contains strings like "Kjøkkenskift · Sone B"
- * or the role substring. We default to "kjokken" when no match is found.
- */
-function extractDept(subtitle: string | undefined): Department {
-  if (!subtitle) return "kjokken";
-  const lower = subtitle.toLowerCase();
-  if (lower.includes("sal") || lower.includes("floor")) return "sal";
-  if (lower.includes("bar")) return "bar";
-  if (lower.includes("event")) return "event";
-  if (lower.includes("kjøkken") || lower.includes("kjokken") || lower.includes("kitchen"))
-    return "kjokken";
-  return "kjokken";
-}
-
 /**
  * Map a FeedItemType → CalendarItem type.
  * "overdue" and "team" FeedItem types don't map 1:1; overdue → deviation,
@@ -159,7 +140,21 @@ export function useCalendarItems({
 
     return feed.data.map((fi, idx) => {
       const type = mapType(fi.type);
-      const dept = extractDept(fi.subtitle);
+      // Read dept from FeedItem.dept which is populated from department.slug in the DB.
+      // Fall back to "kjokken" only when dept is absent (non-shift items or null position).
+      // Fail-loud per L-0177: warn when a shift item has no dept so operators can diagnose.
+      let dept: Department;
+      if (fi.dept) {
+        dept = fi.dept;
+      } else {
+        if (fi.type === "shift" || fi.type === "team") {
+          console.warn(
+            `[useCalendarItems] FeedItem id="${fi.id}" type="${fi.type}" has no dept — ` +
+              "falling back to kjokken. Shift may have a null position_id.",
+          );
+        }
+        dept = "kjokken";
+      }
       const status = mapStatus(fi.type, fi.done);
 
       // Day-of-month in workspace timezone (not device tz) per ADR-0134 / F-09.

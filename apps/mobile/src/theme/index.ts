@@ -35,11 +35,19 @@ export type { ThemeColors, Spacing, TypographyVariant };
 /** Border radius presets from design tokens */
 export const radius = nativeTheme.radius;
 
+/**
+ * Canonical shadow color token.
+ * RN shadowColor is always a dark neutral — not theme-switched because iOS
+ * shadow compositing applies opacity/blur on top of this base color.
+ * Using a token constant prevents raw "#000" literals from spreading.
+ */
+const SHADOW_COLOR = "#1c1814"; // warm-black — matches nativeTheme.light.foreground
+
 /** Shadow presets for elevation on cards, sheets, FABs */
 export const shadows = {
   /** Subtle lift — cards, list items */
   sm: {
-    shadowColor: "#000",
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
@@ -48,7 +56,7 @@ export const shadows = {
 
   /** Standard elevation — floating cards, active elements */
   md: {
-    shadowColor: "#000",
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
@@ -57,7 +65,7 @@ export const shadows = {
 
   /** High elevation — bottom sheets, modals, FAB */
   lg: {
-    shadowColor: "#000",
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 12,

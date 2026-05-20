@@ -10,6 +10,15 @@
  *
  * Message sending follows the same optimistic pattern as useSendMessage:
  * client-side UUID, optimistic cache prepend, then enqueue("send_message").
+ *
+ * KNOWN LIMITATION (deferred to `mobile-shift-chat-bff-migration` post-release):
+ *   This hook reads `chat_conversation`/`chat_message` (legacy schema) but
+ *   the sync handler writes `channel_message` (new ADR-0132 schema). The two
+ *   are NOT the same table. `sendMessageSchema` now requires `channel_id`
+ *   strictly, so offline send from this hook throws a Zod error at enqueue
+ *   (loud failure instead of silent message loss). Optimistic update is
+ *   rolled back below. Full migration moves shift chat to channel/channel_message
+ *   via a dedicated BFF route.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -235,16 +244,34 @@ export function useShiftChat(shiftId: string): ShiftChatActions {
         return old ? [optimistic, ...old] : [optimistic];
       });
 
-      await enqueue("send_message", {
-        id: messageId,
-        conversation_id: conversationId,
-        content,
-        sender_id: senderProfileId,
-        reply_to_id: null,
-        is_system: false,
-        attachments: [],
-        reactions: [],
-      });
+      try {
+        // sendMessageSchema requires `channel_id` (uuid). useShiftChat reads
+        // chat_conversation, which has no channel_id — enqueue WILL throw
+        // until the chat→channel migration ships. We catch + rollback the
+        // optimistic prepend so the UI does not leave a permanent pending
+        // bubble. Trade silent-loss for loud-fail (audit 2026-05-19 P0-C).
+        await enqueue("send_message", {
+          id: messageId,
+          conversation_id: conversationId,
+          content,
+          sender_id: senderProfileId,
+          reply_to_id: null,
+          is_system: false,
+          attachments: [],
+          reactions: [],
+        });
+      } catch (err) {
+        queryClient.setQueryData<ShiftChatMessage[]>(shiftChatKey(shiftId), (old) =>
+          old ? old.filter((m) => m.id !== messageId) : [],
+        );
+        console.warn(
+          "[useShiftChat] send rejected at enqueue — shift chat pending " +
+            "channel/channel_message migration (sendMessageSchema requires " +
+            "channel_id). See mobile-shift-chat-bff-migration follow-up sortie.",
+          err,
+        );
+        throw err;
+      }
     },
     [conversationId, shiftId, queryClient],
   );

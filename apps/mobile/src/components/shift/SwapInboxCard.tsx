@@ -99,10 +99,10 @@ export function SwapInboxCard({
               style={({ pressed }) => [styles.acceptBtn, pressed && styles.btnPressed]}
             >
               {loadingAction === "accept" ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={theme.colors.primaryForeground} />
               ) : (
                 <>
-                  <Check size={14} color="#ffffff" strokeWidth={2.5} />
+                  <Check size={14} color={theme.colors.primaryForeground} strokeWidth={2.5} />
                   <Text style={styles.acceptText}>Godta</Text>
                 </>
               )}
@@ -201,7 +201,7 @@ const useStyles = createStyles((theme) => ({
   acceptText: {
     fontSize: 13,
     fontWeight: "600" as const,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
   rejectBtn: {
     flexDirection: "row" as const,

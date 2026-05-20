@@ -29,8 +29,14 @@ const DEPT_LABELS: Record<Department, string> = {
   sal: "Sal",
   bar: "Bar",
   event: "Event",
+  // English DB-slug equivalents — see Department union in types.ts.
+  kitchen: "Kjøkken",
+  service: "Service",
+  operations: "Drift",
 };
 
+// Filter chip list — Norwegian labels canonical. English DB slugs are accepted
+// in the type but not shown as separate filters (would duplicate Kjøkken/Sal).
 const DEPTS: Department[] = ["kjokken", "sal", "bar", "event"];
 
 export type ScopeKind = "me" | "all" | "dept" | "person";

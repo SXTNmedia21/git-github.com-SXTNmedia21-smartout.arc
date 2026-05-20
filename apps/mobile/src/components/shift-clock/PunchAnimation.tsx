@@ -31,38 +31,28 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Check } from "lucide-react-native";
 
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles, withOpacity, useTheme } from "@/theme";
 
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                 */
 /* -------------------------------------------------------------------------- */
 
-/** Button gradient approximation: center → mid → edge colors */
-const BUTTON_COLORS = {
-  center: "#ff8c42",
-  mid: "#e85c0d",
-  edge: "#c43e00",
-} as const;
-
-/** Glow ring colors — used for the breathing outer ring */
-const GLOW_COLORS = {
-  primary: "#e85c0d",
-  secondary: "#ff8c42",
-  tertiary: "#d44a00",
-} as const;
-
-const SUCCESS_GREEN = "#00b894";
-
-/** Confetti palette from the HTML reference */
+/**
+ * Confetti palette — purely decorative animation particles.
+ * Most slots have no direct semantic token; kept as hex for celebratory variety.
+ * TODO(nordic-split): slots 2 (#ffd93d warm-yellow) + 4 (#5b9bd5 periwinkle) +
+ *   6 (#ff6b6b coral-red) have no current token equivalent — defer to
+ *   design-tokens expansion sortie.
+ */
 const CONFETTI_COLORS = [
-  "#e85c0d",
-  "#ff8c42",
-  "#ffd93d",
-  "#00b894",
-  "#5b9bd5",
-  "#b57edc",
-  "#ff6b6b",
-  "#6bcb77",
+  "#f97316", // brandOrange
+  "#fb923c", // brandOrange lighter tint (decorative)
+  "#ffd93d", // TODO(nordic-split): no warning-yellow token yet
+  "#54b05a", // success (light palette value, static OK for confetti)
+  "#5b9bd5", // TODO(nordic-split): no periwinkle token yet
+  "#8b5cf6", // brandPurple
+  "#ff6b6b", // TODO(nordic-split): no danger-red token yet
+  "#67bb6b", // success (dark palette value, static OK for confetti)
 ];
 
 /** Scan step verification labels (Norwegian) */
@@ -268,6 +258,7 @@ function ScanStep({
   isDone: boolean;
   isActive: boolean;
 }) {
+  const { colors } = useTheme();
   const pulseOpacity = useSharedValue(1);
 
   useEffect(() => {
@@ -289,7 +280,12 @@ function ScanStep({
     opacity: pulseOpacity.value,
   }));
 
-  const stepColor = isDone ? SUCCESS_GREEN : isActive ? GLOW_COLORS.primary : "#555";
+  // Semantic mapping: done → success, active → brand action, idle → muted neutral
+  const stepColor = isDone
+    ? colors.success
+    : isActive
+      ? colors.brandOrange
+      : colors.mutedForeground;
 
   return (
     <View style={scanStyles.step}>
@@ -298,13 +294,13 @@ function ScanStep({
           scanStyles.stepIcon,
           {
             borderColor: stepColor,
-            backgroundColor: isDone ? SUCCESS_GREEN : "transparent",
+            backgroundColor: isDone ? colors.success : "transparent",
           },
           iconAnimStyle,
         ]}
       >
         {isDone ? (
-          <Check size={10} color="#ffffff" strokeWidth={3} />
+          <Check size={10} color={colors.primaryForeground} strokeWidth={3} />
         ) : (
           <Text style={[scanStyles.stepNumber, { color: stepColor }]}>{index + 1}</Text>
         )}
@@ -326,6 +322,7 @@ export function PunchAnimation({
   countdown,
 }: PunchAnimationProps) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const [phase, setPhase] = useState<Phase>("idle");
   const [activeStep, setActiveStep] = useState(-1);
   const [doneSteps, setDoneSteps] = useState<boolean[]>([false, false, false, false]);
@@ -619,7 +616,7 @@ export function PunchAnimation({
               accessibilityRole="button"
               accessibilityLabel="Stemple inn"
             >
-              <FingerprintSvg color="#ffffff" size={64} />
+              <FingerprintSvg color={colors.primaryForeground} size={64} />
               <Text style={styles.punchLabel}>Stemple inn</Text>
             </Pressable>
           </Animated.View>
@@ -642,7 +639,7 @@ export function PunchAnimation({
 
           {/* Pulsing fingerprint in center */}
           <Animated.View style={scanFpStyle}>
-            <FingerprintSvg color={GLOW_COLORS.primary} size={72} />
+            <FingerprintSvg color={colors.brandOrange} size={72} />
           </Animated.View>
         </View>
 
@@ -679,7 +676,7 @@ export function PunchAnimation({
       >
         {/* Green checkmark circle with bounce */}
         <Animated.View style={[styles.successCircle, successCircleStyle]}>
-          <Check size={56} color="#ffffff" strokeWidth={2.5} />
+          <Check size={56} color={colors.primaryForeground} strokeWidth={2.5} />
         </Animated.View>
 
         {/* Success text — fades in with delay */}
@@ -770,7 +767,7 @@ const useStyles = createStyles((theme) => ({
   shiftTime: {
     fontSize: 32,
     fontWeight: "700" as const,
-    color: "#f5f0eb",
+    color: theme.colors.foreground,
     marginTop: 6,
   },
   shiftBadges: {
@@ -823,7 +820,7 @@ const useStyles = createStyles((theme) => ({
     borderTopRightRadius: 108,
     borderWidth: 4,
     borderBottomWidth: 0,
-    borderColor: GLOW_COLORS.primary,
+    borderColor: theme.colors.brandOrange,
   },
   glowRingRight: {
     position: "absolute" as const,
@@ -835,7 +832,8 @@ const useStyles = createStyles((theme) => ({
     borderBottomRightRadius: 108,
     borderWidth: 4,
     borderLeftWidth: 0,
-    borderColor: GLOW_COLORS.secondary,
+    // Lighter tint of brandOrange for the conic-gradient approximation
+    borderColor: withOpacity(theme.colors.brandOrange, 0.7),
   },
   glowRingBottom: {
     position: "absolute" as const,
@@ -847,7 +845,8 @@ const useStyles = createStyles((theme) => ({
     borderBottomRightRadius: 108,
     borderWidth: 4,
     borderTopWidth: 0,
-    borderColor: GLOW_COLORS.tertiary,
+    // Darker tint of brandOrange for the conic-gradient approximation
+    borderColor: withOpacity(theme.colors.brandOrange, 0.85),
   },
   glowRingLeft: {
     position: "absolute" as const,
@@ -859,18 +858,18 @@ const useStyles = createStyles((theme) => ({
     borderBottomLeftRadius: 108,
     borderWidth: 4,
     borderRightWidth: 0,
-    borderColor: GLOW_COLORS.primary,
+    borderColor: theme.colors.brandOrange,
   },
 
   punchButton: {
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: BUTTON_COLORS.mid,
+    backgroundColor: theme.colors.brandOrange,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     // Approximate the radial gradient: shadow gives depth
-    shadowColor: "#e85c0d",
+    shadowColor: theme.colors.brandOrange,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 32,
@@ -915,8 +914,8 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 100,
     borderWidth: 3,
     borderColor: "transparent",
-    borderTopColor: GLOW_COLORS.primary,
-    borderRightColor: GLOW_COLORS.secondary,
+    borderTopColor: theme.colors.brandOrange,
+    borderRightColor: withOpacity(theme.colors.brandOrange, 0.7),
   },
 
   scanText: {
@@ -942,10 +941,10 @@ const useStyles = createStyles((theme) => ({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: SUCCESS_GREEN,
+    backgroundColor: theme.colors.success,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    shadowColor: SUCCESS_GREEN,
+    shadowColor: theme.colors.success,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 60,
@@ -955,13 +954,13 @@ const useStyles = createStyles((theme) => ({
   successText: {
     fontSize: 24,
     fontWeight: "700" as const,
-    color: "#f5f0eb",
+    color: theme.colors.foreground,
     marginTop: 24,
   },
 
   successSub: {
     fontSize: 14,
-    color: SUCCESS_GREEN,
+    color: theme.colors.success,
     marginTop: 8,
   },
 
@@ -970,8 +969,11 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: 24,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#ffd93d",
-    shadowColor: "#ffd93d",
+    // TODO(nordic-split): warm-yellow celebration badge has no token yet;
+    // using warning color as closest semantic approximation until a
+    // "celebration" token is added to design-tokens.
+    backgroundColor: theme.colors.warning,
+    shadowColor: theme.colors.warning,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -981,7 +983,7 @@ const useStyles = createStyles((theme) => ({
   pointsText: {
     fontSize: 18,
     fontWeight: "700" as const,
-    color: "#1a1a0a",
+    color: theme.colors.warningForeground,
   },
 
   infoColor: {

@@ -222,7 +222,7 @@ export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringSh
               pressed && styles.actionPressed,
             ]}
           >
-            <Phone size={24} color="#ffffff" strokeWidth={1.5} />
+            <Phone size={24} color={theme.colors.primaryForeground} strokeWidth={1.5} />
             <Text style={styles.actionLabelPrimary}>Ring leder</Text>
           </Pressable>
           <Pressable
@@ -311,7 +311,7 @@ const useStyles = createStyles((theme) => ({
     fontSize: 13,
     fontWeight: "700",
     letterSpacing: 0.8,
-    color: "#ffffff",
+    color: theme.colors.primaryForeground,
   },
 
   liveCard: {
@@ -321,7 +321,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.lg,
     padding: theme.spacing.page,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: withOpacity(theme.colors.primaryForeground, 0.2),
     marginBottom: theme.spacing.page,
     position: "relative",
     overflow: "hidden",
@@ -418,7 +418,11 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "500",
     color: theme.colors.foreground,
   },
-  actionLabelPrimary: { ...theme.typography.subheadline, fontWeight: "500", color: "#ffffff" },
+  actionLabelPrimary: {
+    ...theme.typography.subheadline,
+    fontWeight: "500",
+    color: theme.colors.primaryForeground,
+  },
   actionLabelMuted: {
     ...theme.typography.subheadline,
     fontWeight: "500",

@@ -147,6 +147,12 @@ export type UseBotssonVoiceSessionResult = {
   /** Last final agent response text. Empty string until the first turn. */
   lastResponse: string;
   /**
+   * Last final user utterance text delivered by the ASR pipeline.
+   * Empty string until the first turn. Updated before `status` transitions
+   * to `thinking` so subscribers can capture it synchronously.
+   */
+  lastUserTranscript: string;
+  /**
    * Mint token, create Room, connect, wire transcripts. Resolves once the
    * Room is connected (even if TTS hasn't spoken yet). Rejects on failure.
    */
@@ -338,6 +344,7 @@ export function useBotssonVoiceSession(
     "listen_only" | "interactive" | null
   >(null);
   const [lastResponse, setLastResponse] = useState<string>("");
+  const [lastUserTranscript, setLastUserTranscript] = useState<string>("");
 
   // Refs keep async handlers stable so React-state churn doesn't re-subscribe.
   const roomRef = useRef<Room | null>(null);
@@ -380,8 +387,11 @@ export function useBotssonVoiceSession(
     initialSessionId,
     asrProvider,
     disabled: disabled || voiceParticipation === "listen_only",
-    onTranscript: useCallback(() => {
-      // User finished an utterance — we're awaiting the agent.
+    onTranscript: useCallback((text: string) => {
+      // User finished an utterance — capture the text then await the agent.
+      if (text && text.trim().length > 0) {
+        setLastUserTranscript(text.trim());
+      }
       setStatus((prev) => (prev === "speaking" || prev === "listening" ? "thinking" : prev));
     }, []),
     onResponse: useCallback(
@@ -523,6 +533,7 @@ export function useBotssonVoiceSession(
     setIsConnected(false);
     setIsMuted(false);
     setVoiceParticipation(null);
+    setLastUserTranscript("");
     setStatus("idle");
   }, []);
 
@@ -560,6 +571,7 @@ export function useBotssonVoiceSession(
     isMuted,
     voiceParticipation,
     lastResponse,
+    lastUserTranscript,
     start,
     stop,
     toggleMic,
