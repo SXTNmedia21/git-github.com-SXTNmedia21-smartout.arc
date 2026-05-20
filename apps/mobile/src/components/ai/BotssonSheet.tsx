@@ -9,7 +9,7 @@
  * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
@@ -24,14 +24,9 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
-import { useBotsson } from "@/providers/botsson-provider";
+import { useBotsson, type TranscriptEntry } from "@/providers/botsson-provider";
 
-type TranscriptEntry = {
-  id: string;
-  role: "agent" | "user";
-  text: string;
-  timestamp: number;
-};
+// TranscriptEntry is defined and exported by botsson-provider — imported above.
 
 type BotssonSheetProps = {
   /** Called when the sheet is dismissed */
@@ -48,11 +43,31 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
   function BotssonSheet({ onDismiss }, ref) {
     const styles = useStyles();
     const theme = useTheme();
-    const { status, isMuted, startVoiceSession, endSession, setMicrophoneMuted } = useBotsson();
+    const {
+      status,
+      isMuted,
+      voiceEnabled,
+      voiceTranscript,
+      startVoiceSession,
+      endSession,
+      setMicrophoneMuted,
+    } = useBotsson();
     const scrollRef = useRef<ScrollView>(null);
 
-    // Transcript is local state for now — LiveKit integration will populate it
-    const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+    // transcript is the provider-accumulated voice turn history.
+    // When voice is disabled the array stays empty — chat-only path uses it too
+    // (empty state remains until a voice session starts).
+    const transcript = voiceEnabled ? voiceTranscript : [];
+
+    // Auto-scroll to bottom whenever a new transcript entry arrives.
+    useEffect(() => {
+      if (transcript.length === 0) return;
+      // Small timeout lets the ScrollView finish layout before we scroll.
+      const timer = setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+      return () => clearTimeout(timer);
+    }, [transcript.length]);
 
     const snapPoints = useMemo(() => ["75%"], []);
 

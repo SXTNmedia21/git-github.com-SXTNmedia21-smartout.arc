@@ -48,6 +48,17 @@ export type {
   BotssonInteractionMode,
 } from "@/hooks/stores/use-botsson-settings-store";
 
+/**
+ * A single turn in a voice or text transcript. Role follows the AI convention:
+ * `user` = the person speaking/typing, `agent` = Botsson's response.
+ */
+export type TranscriptEntry = {
+  id: string;
+  role: "agent" | "user";
+  text: string;
+  timestamp: number;
+};
+
 /** Minimal voice session interface — matches UltravoxVoiceSession from @smartout/agent-sdk */
 type VoiceSession = {
   muteMic(): void;
@@ -111,6 +122,13 @@ type BotssonContextValue = {
    * Updated on every BFF response arrival (also spoken via Expo Speech TTS).
    */
   lastVoiceResponse: string;
+  /**
+   * Accumulated conversation transcript for the current voice session.
+   * Alternates user → agent turns in chronological order. Reset when a new
+   * session starts (`startVoiceSession`) or the session ends (`endSession`).
+   * Empty array when no session has been started or in text/chat mode.
+   */
+  voiceTranscript: TranscriptEntry[];
   sessionContext: BotssonSessionContext;
   /** Intent to consume when the next session starts (one-shot). */
   pendingIntent: BotssonIntent | null;
@@ -210,6 +228,33 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     onError: handleVoiceError,
   });
 
+  // Accumulated voice transcript for the current session.
+  const [voiceTranscript, setVoiceTranscript] = useState<TranscriptEntry[]>([]);
+
+  // Append a user turn when a new ASR utterance arrives.
+  // Guard against duplicate appends: only fire when the text actually changes
+  // and is non-empty (the hook resets to "" on stop, which we skip).
+  useEffect(() => {
+    const text = voice.lastUserTranscript;
+    if (!text || mode !== "voice") return;
+    setVoiceTranscript((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, role: "user", text, timestamp: Date.now() },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.lastUserTranscript]);
+
+  // Append an agent turn when the BFF response arrives.
+  useEffect(() => {
+    const text = voice.lastResponse;
+    if (!text || mode !== "voice") return;
+    setVoiceTranscript((prev) => [
+      ...prev,
+      { id: `agent-${Date.now()}`, role: "agent", text, timestamp: Date.now() },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.lastResponse]);
+
   // Build mobile context for AI agent — passed as session params.
   // ADR-0107: channel is derived from mode, device_type is separate.
   const sessionContext = useMemo<BotssonSessionContext>(
@@ -280,6 +325,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const startVoiceSession = useCallback(async () => {
     setError(null);
+    setVoiceTranscript([]);
     setMode("voice");
     setStatus("connecting");
     try {
@@ -304,6 +350,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setStatus("idle");
     setMode(null);
     setError(null);
+    setVoiceTranscript([]);
   }, [voice]);
 
   /**
@@ -339,6 +386,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       isMuted: voice.isMuted,
       voiceStatus: voice.status,
       lastVoiceResponse: voice.lastResponse,
+      voiceTranscript,
       sessionContext,
       pendingIntent,
       startVoiceSession,
@@ -362,6 +410,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       voice.isMuted,
       voice.status,
       voice.lastResponse,
+      voiceTranscript,
       sessionContext,
       pendingIntent,
       startVoiceSession,

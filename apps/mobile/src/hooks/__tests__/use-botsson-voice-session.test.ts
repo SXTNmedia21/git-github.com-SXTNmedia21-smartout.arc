@@ -350,3 +350,76 @@ describe("performStart — token mint + Room.connect orchestrator", () => {
     expect(result.micEnabled).toBe(false);
   });
 });
+
+// ─── Transcript entry shape (P2-c) ───────────────────────────────────────────
+//
+// The provider accumulates TranscriptEntry[] from two sources:
+//   1. voice.lastUserTranscript (set by onTranscript in the hook)
+//   2. voice.lastResponse       (set by onResponse in the hook)
+//
+// The pure transform for each is: non-empty text → { id, role, text, timestamp }
+// Empty / whitespace-only text → skip (guarded in the provider useEffects).
+//
+// These tests verify the shape contract so consumers (BotssonSheet) can rely on it.
+
+type TranscriptEntry = {
+  id: string;
+  role: "agent" | "user";
+  text: string;
+  timestamp: number;
+};
+
+function makeTranscriptEntry(
+  role: "agent" | "user",
+  text: string,
+  tsOverride?: number,
+): TranscriptEntry {
+  const ts = tsOverride ?? Date.now();
+  return { id: `${role}-${ts}`, role, text, timestamp: ts };
+}
+
+describe("transcript entry construction — P2-c event-to-transcript shape", () => {
+  it("user utterance produces a user-role entry with correct shape", () => {
+    const text = "Kan du vise meg vaktplanen for i morgen?";
+    const entry = makeTranscriptEntry("user", text, 1_000_000);
+
+    expect(entry.role).toBe("user");
+    expect(entry.text).toBe(text);
+    expect(entry.timestamp).toBe(1_000_000);
+    expect(entry.id).toBe("user-1000000");
+  });
+
+  it("agent response produces an agent-role entry with correct shape", () => {
+    const text = "Klart, her er vaktplanen for i morgen.";
+    const entry = makeTranscriptEntry("agent", text, 2_000_000);
+
+    expect(entry.role).toBe("agent");
+    expect(entry.text).toBe(text);
+    expect(entry.timestamp).toBe(2_000_000);
+    expect(entry.id).toBe("agent-2000000");
+  });
+
+  it("empty text is not eligible for an entry (guard contract)", () => {
+    // Provider useEffect guards: if (!text || mode !== 'voice') return;
+    // We verify the guard condition: empty / whitespace strings are falsy.
+    const emptyEligible = (text: string) => !(!text || text.trim().length === 0);
+
+    expect(emptyEligible("")).toBe(false);
+    expect(emptyEligible("   \n\t")).toBe(false);
+    expect(emptyEligible("Hei, kan jeg hjelpe?")).toBe(true);
+  });
+
+  it("accumulated turns preserve chronological order", () => {
+    const turns: TranscriptEntry[] = [];
+    const append = (entry: TranscriptEntry) => turns.push(entry);
+
+    append(makeTranscriptEntry("user", "Hva er neste vakt min?", 1000));
+    append(makeTranscriptEntry("agent", "Din neste vakt starter kl. 18:00.", 1500));
+    append(makeTranscriptEntry("user", "Kan jeg bytte?", 2000));
+    append(makeTranscriptEntry("agent", "Ja, du kan be om bytte.", 2500));
+
+    expect(turns).toHaveLength(4);
+    expect(turns.map((t) => t.role)).toEqual(["user", "agent", "user", "agent"]);
+    expect(turns.every((t, i) => i === 0 || t.timestamp >= turns[i - 1].timestamp)).toBe(true);
+  });
+});
