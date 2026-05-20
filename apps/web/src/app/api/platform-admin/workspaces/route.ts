@@ -202,6 +202,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2b. Auto-grant the godmode creator an `admin` profile + company_member
+    // membership so they can access the freshly created workspace at
+    // {slug}.smartout.ai/dashboard without needing a separate invite step.
+    // The `owner` role is reserved for the real customer who is invited
+    // separately. Failure is logged but does not roll back workspace creation;
+    // operator can manually grant later if this insert fails.
+    {
+      const { data: identity } = await admin
+        .from("user_identity")
+        .select("first_name, last_name, email")
+        .eq("user_id", adminId)
+        .maybeSingle();
+
+      const displayName = identity
+        ? `${identity.first_name ?? ""} ${identity.last_name ?? ""}`.trim() ||
+          identity.email ||
+          "Super Admin"
+        : "Super Admin";
+
+      // profile_code is a 6-char random tag (NOT NULL on the table). Matches
+      // the pattern used by activate_workspace RPCs (substring(md5(random()) 1,6)).
+      const profileCode = Math.random().toString(36).slice(2, 8);
+
+      const { error: profileErr } = await admin.from("profile").insert({
+        workspace_id: workspace.workspace_id,
+        user_id: adminId,
+        company_id: companyId,
+        profile_code: profileCode,
+        role: "admin",
+        status: "active",
+        display_name: displayName,
+      });
+
+      if (profileErr) {
+        console.error("[platform-admin/workspaces] auto-grant profile failed:", profileErr.message);
+      }
+
+      // company_member may already exist if godmode previously administered
+      // another workspace under the same company. Upsert keeps it idempotent.
+      const { error: memberErr } = await admin
+        .from("company_member")
+        .upsert(
+          { company_id: companyId, user_id: adminId, role: "admin" },
+          { onConflict: "user_id,company_id", ignoreDuplicates: true },
+        );
+
+      if (memberErr) {
+        console.error(
+          "[platform-admin/workspaces] auto-grant company_member failed:",
+          memberErr.message,
+        );
+      }
+    }
+
     // 3. Update company subscription if provided
     if (d.subscription_plan || d.subscription_status) {
       const updates: Record<string, unknown> = {};

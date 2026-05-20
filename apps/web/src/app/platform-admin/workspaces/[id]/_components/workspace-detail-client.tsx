@@ -122,7 +122,11 @@ export function WorkspaceDetailClient({
           onCompanyChange={setCurrentCompany}
         />
 
-        <ChampionsTab profiles={profiles} onOpenCompose={openCompose} />
+        <ChampionsTab
+          profiles={profiles}
+          onOpenCompose={openCompose}
+          workspaceId={currentWorkspace.workspaceId}
+        />
 
         <IntelligenceTab
           intelligence={intelligence}
