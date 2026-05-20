@@ -127,10 +127,10 @@ New migrations (forward-only):
   GIN index on `audience`; partial B-tree on `notify_at WHERE
   delivered_at IS NULL`; CHECK enforces audience non-empty when
   `notify_at IS NOT NULL`
-- `20260616100601_note_fanout_scheduler_cron.sql` — pg_cron job
+- `20260616100600_note_fanout_scheduler_cron.sql` — pg_cron job
   `note-fanout-scheduler` at `*/5 * * * *` invoking Edge Function via
   `net.http_post` with `WATCHDOG_CRON_SECRET` bearer
-- `20260616100701_seed_comm_note_fanout_cross_dept_authority.sql` —
+- `20260616100700_seed_comm_note_fanout_cross_dept_authority.sql` —
   two-part seed (ADR-0192): Part A inserts
   `capability_default_registry` for `comm.note_fanout_cross_dept`;
   Part B backfills `engine_authority_config` for all existing
