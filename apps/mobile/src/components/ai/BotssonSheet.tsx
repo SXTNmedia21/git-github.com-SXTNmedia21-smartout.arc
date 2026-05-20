@@ -68,7 +68,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       status,
       mode,
       isMuted,
-      voiceEnabled,
       transcript,
       pendingIntent,
       clearIntent,

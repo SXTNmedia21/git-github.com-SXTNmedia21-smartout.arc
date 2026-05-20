@@ -28,6 +28,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { randomUUID } from "expo-crypto";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
@@ -440,7 +441,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
       // Optimistic user entry — appended BEFORE the network call so the
       // user sees their message within one render cycle.
-      const optimisticId = `user-text-opt-${Date.now()}`;
+      // UUID prevents same-millisecond id collision if two messages fire back-to-back.
+      const optimisticId = `user-text-opt-${randomUUID()}`;
       const optimisticEntry: TranscriptEntry = {
         id: optimisticId,
         role: "user",
@@ -461,7 +463,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
       return true;
     },
-    [workspaceId, emmaChat],
+    [workspaceId, emmaChat.send],
   );
 
   const endSession = useCallback(() => {
