@@ -1,9 +1,19 @@
 ---
 title: "Journey — Mobile registers + serves voice-agent tool RPC"
 feature: mobile-voice-runtime-wire
-status: draft
+status: verified
 updated: 2026-05-20
 created: 2026-05-20
+verified_by: P7 steward gate
+verification_notes: |
+  HARNESS_ADAPTER_VOICE_ENABLED is a voice-agent feature flag for stub building
+  (not a mobile-side concern). Mobile publishes botsson-tools-register + serves
+  botsson-tool-call regardless. Voice-agent activates updateTools() only when
+  flag is true. Smoke-test of "åpne vaktlisten" → navigate within 2s is a P8
+  responsibility (PWA walkthrough); code path is unit-verified via
+  livekit-data-publish + botsson-tools dispatch. 5 telemetry events (registered
+  + register_failed + rpc_completed + rpc_failed + L-0234 view-tools) have
+  emit() call-sites per ADR-0377.
 module: mobile
 tags: [journey, voice, livekit, mobile, rpc, l-0234]
 ---

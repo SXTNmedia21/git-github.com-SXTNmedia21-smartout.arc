@@ -1,9 +1,18 @@
 ---
 title: "Journey — Mobile text chat wired to /api/emma/chat"
 feature: mobile-voice-runtime-wire
-status: draft
+status: verified
 updated: 2026-05-20
 created: 2026-05-20
+verified_by: P7 steward gate
+verification_notes: |
+  ADR-0078 channel-pin verified — BFF `/api/emma/chat/route.ts:165` cross-checks
+  body.workspaceId against profile via `.eq("workspace_id", body.workspaceId)`,
+  producing explicit 403 on mismatch (NOT silent fallback — distinct from L-0177
+  pattern). Three telemetry events (message_sent + response_received + error)
+  have emit() call-sites in `use-emma-chat.ts` per ADR-0377. ADR-0107 channel
+  derivation enforced via `deriveBotssonChannel(mode)`. Optimistic UI rollback
+  pattern verified in `botsson-provider.tsx:307+`.
 module: mobile
 tags: [journey, chat, mobile, bff, adr-0078, adr-0132]
 ---

@@ -1,9 +1,11 @@
 ---
 title: "Journey — Mobile publishes botsson-context on LiveKit data channel"
 feature: mobile-voice-runtime-wire
-status: draft
+status: verified
 updated: 2026-05-20
 created: 2026-05-20
+proof: docs/proofs/P3-context-publish-proof.md
+verified_by: P7 steward gate
 module: mobile
 tags: [journey, voice, livekit, mobile, adr-0297]
 ---

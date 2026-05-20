@@ -1,9 +1,33 @@
 ---
 title: "Journey — Production UX polish for mobile AI surface"
 feature: mobile-voice-runtime-wire
-status: draft
+status: verified-with-deferred-gaps
 updated: 2026-05-20
 created: 2026-05-20
+verified_by: P7 steward gate
+verification_notes: |
+  Sub-journey 1 (mic-denied) verified: MicPermissionDialog renders + telemetry
+  emits.
+  Sub-journey 2 (network failure) verified: NetworkRetryBanner + 3-retry
+  backoff + disconnect_recovered/disconnect_failed telemetry wired.
+  Sub-journey 3 (voice policy flip) PARTIAL: start-path detection verified
+  (policyFlipped → text fallback + mobile.voice.policy_flipped emit). Mid-session
+  detection NOT IN SCOPE — `use-voice-transcripts.ts:252-269` handles 403 by
+  clearing session + surfacing error, but provider does not subscribe to that
+  error to flip mode. DEFERRED to follow-up sortie (P6 commit dd62300e2 notes
+  "outside allow-list"). Degraded mode: 403 surfaces as error in transcript
+  pane (non-blocking).
+  Sub-journey 4 (Orb states) verified: 4-state STOPS Record + StatusLabel
+  entries, useReducedMotion gating present.
+  Sub-journey 5 (settings) verified: canonical store `use-botsson-settings-store.ts`.
+  Multi-banner priority: render order set (mic → network → policy → chat-error)
+  but no priority logic for concurrent banners. Acceptable for V1 (states are
+  mutually-improbable); tracked as polish backlog.
+  ADR-0366 compliance: zero new OKLCH/hex/rgba literals in P6 banners; pre-existing
+  Orb rgba documented via header (React Native limitation).
+deferred:
+  - mid-session BFF 403 → policy_flipped propagation via use-voice-transcripts onError
+  - multi-banner priority logic when 2+ states concurrent
 module: mobile
 tags: [journey, ux, mobile, polish, adr-0366]
 ---
