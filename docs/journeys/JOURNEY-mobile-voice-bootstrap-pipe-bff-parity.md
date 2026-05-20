@@ -1,6 +1,7 @@
 ---
 title: "Journey — BFF voice route returns workforce snapshot for caching"
-status: draft
+feature: mobile-voice-bootstrap-pipe
+status: verified
 updated: 2026-05-20
 created: 2026-05-20
 module: mobile
