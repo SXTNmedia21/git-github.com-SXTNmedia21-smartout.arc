@@ -18,7 +18,7 @@ export type GenerationResult = {
 
 type CompanyRow = {
   company_id: string;
-  workspace: Array<{ workspace_id: string }> | null;
+  workspace: Array<{ workspace_id: string; contract_status: string | null }> | null;
 };
 
 export async function generateMonthlyInvoicesForAllCompanies(
@@ -41,7 +41,7 @@ export async function generateMonthlyInvoicesForAllCompanies(
 
   const { data: companies, error } = await supabase
     .from("company")
-    .select("company_id, workspace(workspace_id)")
+    .select("company_id, workspace(workspace_id, contract_status)")
     .eq("is_active", true);
 
   if (error) {
@@ -142,6 +142,21 @@ async function generateForCompany(
   if (workspaces.length === 0) {
     console.log(
       `[generator] skip company ${company.company_id}: no workspaces`,
+    );
+    return false;
+  }
+
+  // Billing-gate: only invoice companies with a SIGNED contract. Signing a
+  // SaaS contract sets workspace.contract_status='active' (docuseal webhook).
+  // company.is_active defaults true, so it gates nothing on its own — the
+  // contract_status gate is the real one. Start date is enforced separately
+  // by the pricing_terms.effective_from <= periodTo filter above.
+  const hasSignedContract = (company.workspace ?? []).some(
+    (w) => w.contract_status === "active",
+  );
+  if (!hasSignedContract) {
+    console.log(
+      `[generator] skip company ${company.company_id}: no signed contract (no workspace with contract_status='active')`,
     );
     return false;
   }

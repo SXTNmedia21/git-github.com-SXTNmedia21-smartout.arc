@@ -335,7 +335,7 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="freeUsers">Inkluderte brukere (gratis)</Label>
+                  <Label htmlFor="freeUsers">Inkluderte ansatte i månedslisens (standard 10)</Label>
                   <Input
                     id="freeUsers"
                     type="number"
@@ -348,7 +348,9 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="overagePricePerUser">Pris per bruker over inkluderte</Label>
+                  <Label htmlFor="overagePricePerUser">
+                    Pris per aktiv ansatt på vaktliste (over inkluderte)
+                  </Label>
                   <Input
                     id="overagePricePerUser"
                     type="number"
@@ -483,13 +485,15 @@ export function ContractTab({
                   </div>
 
                   <div>
-                    <dt className="text-muted-foreground text-xs">Inkluderte brukere</dt>
+                    <dt className="text-muted-foreground text-xs">
+                      Inkluderte ansatte (månedslisens)
+                    </dt>
                     <dd className="mt-0.5 text-sm font-medium">{pricingTerms?.freeUsers ?? 10}</dd>
                   </div>
 
                   <div>
                     <dt className="text-muted-foreground text-xs">
-                      Pris per bruker over inkluderte
+                      Pris per aktiv ansatt på vaktliste
                     </dt>
                     <dd className="mt-0.5 text-sm font-medium">
                       {pricingTerms?.overagePricePerUser != null
