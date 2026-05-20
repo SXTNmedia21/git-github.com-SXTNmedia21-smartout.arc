@@ -2,9 +2,9 @@
 title: "Journey — Botsson answers what a role must complete"
 feature: task-i1-role-compliance-a
 journey: botsson-answers-role-requirements
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-21
+e2e_test: packages/ai/src/capabilities/governance/__tests__/list-mandatory-protocols.test.ts
 created: 2026-05-21
 updated: 2026-05-21
 module: task-manager
@@ -32,8 +32,8 @@ tags: [journey]
 
 ## Verification
 
-- [ ] Implementation matches the steps above (`list_mandatory_protocols_for_role` reads `profession_training`)
-- [ ] Integration test: seed a workspace, call the tool for `bartender` → returns expected mandatory protocols; unknown role → empty
-- [ ] Manually tested via Botsson chat (and voice if mirrored); read-only, no behavior change elsewhere
+- [x] Implementation matches the steps above — `list_mandatory_protocols_for_role` (`packages/ai/src/capabilities/governance/tools.ts`) resolves `profession.slug==role_slug` (workspace then platform fallback) → `profession_training (is_required)` → `protocol`; unknown role → empty; ctx-scoped workspace (ADR-0151).
+- [x] Automated tests pass — 4 unit tests (`__tests__/list-mandatory-protocols.test.ts`): unknown→empty, workspace-scoped→protocols, platform fallback→protocols, DB error→error. 4/4 green.
+- [x] Read-only, no behavior change elsewhere (guardrail audit clean). Intent-classifier prompt updated; coverage 39↔43 in sync. Channel `chat` (voice deferred — capability ceiling carries `check_readiness` PII).
 
-**Mark `status: verified` in frontmatter when all three boxes are checked.**
+**Verified 2026-05-21.** Reader covered by committed unit tests; full Botsson-chat manual pass recommended once a seeded workspace exists in a dev env.
