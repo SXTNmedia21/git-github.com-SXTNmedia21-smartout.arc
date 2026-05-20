@@ -271,6 +271,11 @@ export function ContractTab({
                 {contractStatus.replace(/_/g, " ")}
               </Badge>
             </div>
+            {contractStatus !== "active" && (
+              <p className="text-muted-foreground mt-2 text-xs">
+                Faktureres ikke — kontrakt ikke signert
+              </p>
+            )}
           </CardContent>
         </Card>
 
