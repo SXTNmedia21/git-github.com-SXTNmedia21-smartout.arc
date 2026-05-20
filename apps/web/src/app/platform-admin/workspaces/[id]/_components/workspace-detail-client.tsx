@@ -55,6 +55,7 @@ type Props = {
   };
   contracts: ContractRow[];
   pricingTerms: PricingTermsData | null;
+  signatory: { profileId: string; displayName: string; email: string } | null;
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -68,6 +69,7 @@ export function WorkspaceDetailClient({
   intelligence,
   contracts,
   pricingTerms,
+  signatory,
 }: Props) {
   // Shared compose state — opened by both ChampionsTab (per-user) and CommunicationTab (audience).
   const [composeOpen, setComposeOpen] = useState(false);
@@ -155,6 +157,7 @@ export function WorkspaceDetailClient({
           trialDaysLeft={trialDaysLeft}
           contracts={contracts}
           pricingTerms={pricingTerms}
+          signatory={signatory}
         />
 
         <NotesTab initialNotes={notes} workspaceId={currentWorkspace.workspaceId} />

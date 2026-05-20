@@ -35,7 +35,10 @@ export type PricingTermsData = {
   companyId: string;
   workspaceId: string | null;
   monthlyCost: number | null;
+  /** @deprecated Use freeUsers + overagePricePerUser per ADR-0121. Kept for backward compat. */
   pricePerEmployee: number;
+  freeUsers: number;
+  overagePricePerUser: number | null;
   billingInterval: string;
   currency: string;
   discountPercent: number | null;
@@ -66,6 +69,7 @@ type ContractTabProps = {
   trialDaysLeft: number | null;
   contracts: ContractRow[];
   pricingTerms: PricingTermsData | null;
+  signatory: { profileId: string; displayName: string; email: string } | null;
 };
 
 // Contract status badge colors — distinct from the generic StatusBadge map.
@@ -81,7 +85,8 @@ const contractStatusColor: Record<string, string> = {
 
 type PricingFormState = {
   monthlyCost: string;
-  pricePerEmployee: string;
+  freeUsers: string;
+  overagePricePerUser: string;
   billingInterval: string;
   currency: string;
   discountPercent: string;
@@ -94,9 +99,14 @@ type PricingFormState = {
 };
 
 function toFormState(terms: PricingTermsData | null): PricingFormState {
+  // overage_price_per_user is the ADR-0121 field. Fall back to the legacy
+  // pricePerEmployee value for old rows that haven't been migrated.
+  const overage =
+    terms?.overagePricePerUser != null ? terms.overagePricePerUser : (terms?.pricePerEmployee ?? 0);
   return {
     monthlyCost: terms?.monthlyCost?.toString() ?? "",
-    pricePerEmployee: terms?.pricePerEmployee?.toString() ?? "",
+    freeUsers: (terms?.freeUsers ?? 10).toString(),
+    overagePricePerUser: overage ? overage.toString() : "",
     billingInterval: terms?.billingInterval ?? "monthly",
     currency: terms?.currency ?? "NOK",
     discountPercent: terms?.discountPercent?.toString() ?? "",
@@ -124,6 +134,7 @@ export function ContractTab({
   trialDaysLeft,
   contracts,
   pricingTerms: initialPricingTerms,
+  signatory,
 }: ContractTabProps) {
   // Build pre-filled "Ny kontrakt" URL with all known data
   const newContractParams = new URLSearchParams();
@@ -148,11 +159,16 @@ export function ContractTab({
   async function handleSavePricing() {
     setIsSaving(true);
     try {
+      // ADR-0121: send free_users + overage_price_per_user. Backend syncs
+      // legacy price_per_employee = overage during transition.
+      const overage = parseFloat(formState.overagePricePerUser) || 0;
       const payload = {
         workspace_id: workspaceId,
         company_id: companyId,
         monthly_cost: formState.monthlyCost ? parseFloat(formState.monthlyCost) : null,
-        price_per_employee: parseFloat(formState.pricePerEmployee) || 0,
+        free_users: parseInt(formState.freeUsers, 10) || 0,
+        overage_price_per_user: overage,
+        price_per_employee: overage,
         billing_interval: formState.billingInterval,
         currency: formState.currency,
         discount_percent: formState.discountPercent ? parseFloat(formState.discountPercent) : null,
@@ -203,6 +219,30 @@ export function ContractTab({
 
   return (
     <TabsContent value="avtaler" className="mt-4 space-y-6">
+      {/* ── Signatory (prokura) ───────────────────────────────────────────── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-muted-foreground text-xs uppercase">Signatar (prokura)</p>
+              {signatory ? (
+                <div className="mt-1.5">
+                  <p className="text-base font-medium">{signatory.displayName}</p>
+                  <p className="text-muted-foreground text-sm">{signatory.email}</p>
+                </div>
+              ) : (
+                <p className="mt-1.5 text-sm text-amber-500">
+                  Ingen signatar satt — invitér owner først (Champions-fanen).
+                </p>
+              )}
+            </div>
+            <Badge variant={signatory ? "default" : "outline"} className="text-xs">
+              {signatory ? "Klar for kontrakt" : "Mangler"}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ── Section 1: Status row ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Abonnement */}
@@ -295,13 +335,26 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="pricePerEmployee">Pris per ekstra ansatt</Label>
+                  <Label htmlFor="freeUsers">Inkluderte brukere (gratis)</Label>
                   <Input
-                    id="pricePerEmployee"
+                    id="freeUsers"
                     type="number"
                     min="0"
-                    value={formState.pricePerEmployee}
-                    onChange={(e) => setField("pricePerEmployee", e.target.value)}
+                    step="1"
+                    value={formState.freeUsers}
+                    onChange={(e) => setField("freeUsers", e.target.value)}
+                    placeholder="10"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="overagePricePerUser">Pris per bruker over inkluderte</Label>
+                  <Input
+                    id="overagePricePerUser"
+                    type="number"
+                    min="0"
+                    value={formState.overagePricePerUser}
+                    onChange={(e) => setField("overagePricePerUser", e.target.value)}
                     placeholder="0"
                   />
                 </div>
@@ -430,9 +483,18 @@ export function ContractTab({
                   </div>
 
                   <div>
-                    <dt className="text-muted-foreground text-xs">Pris per ekstra ansatt</dt>
+                    <dt className="text-muted-foreground text-xs">Inkluderte brukere</dt>
+                    <dd className="mt-0.5 text-sm font-medium">{pricingTerms?.freeUsers ?? 10}</dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      Pris per bruker over inkluderte
+                    </dt>
                     <dd className="mt-0.5 text-sm font-medium">
-                      {`${pricingTerms?.pricePerEmployee.toLocaleString("no-NO")} ${pricingTerms?.currency}`}
+                      {pricingTerms?.overagePricePerUser != null
+                        ? `${pricingTerms.overagePricePerUser.toLocaleString("no-NO")} ${pricingTerms.currency}`
+                        : `${pricingTerms?.pricePerEmployee.toLocaleString("no-NO") ?? "0"} ${pricingTerms?.currency ?? "NOK"}`}
                     </dd>
                   </div>
 

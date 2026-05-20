@@ -179,6 +179,40 @@ export async function contractRoutes(app: FastifyInstance) {
     }
 
     try {
+      // Resolve signatory (prokura) for the workspace. If the workspace has a
+      // signatory_profile_id, use that profile's email + display_name as the
+      // canonical recipient — overrides any stale contract.recipient_*. Falls
+      // back to contract.recipient_* for legacy workspaces with no signatory
+      // set. See migration 20260520163330_workspace_signatory_profile.sql.
+      let signatoryName: string | null = null;
+      let signatoryEmail: string | null = null;
+      if (contract.workspace_id) {
+        const { data: ws } = await supabase
+          .from("workspace")
+          .select("signatory_profile_id")
+          .eq("workspace_id", contract.workspace_id)
+          .single();
+
+        if (ws?.signatory_profile_id) {
+          const { data: sigProfile } = await supabase
+            .from("profile")
+            .select("display_name, user_identity:user_id(email)")
+            .eq("profile_id", ws.signatory_profile_id)
+            .single();
+
+          if (sigProfile?.display_name) {
+            signatoryName = sigProfile.display_name;
+          }
+          const ui = sigProfile?.user_identity as { email?: string } | null;
+          if (ui?.email) {
+            signatoryEmail = ui.email;
+          }
+        }
+      }
+
+      const effectiveRecipientName = signatoryName ?? contract.recipient_name ?? "";
+      const effectiveRecipientEmail = signatoryEmail ?? contract.recipient_email ?? "";
+
       // Resolve placeholders if still unresolved (e.g. contract created by Next.js route
       // which stores raw template HTML without running resolvePlaceholders)
       let contractHtml = contract.resolved_html ?? "";
@@ -223,11 +257,11 @@ export async function contractRoutes(app: FastifyInstance) {
 
         const overrides: Record<string, string> = {
           contract_number: contract.contract_number ?? "",
-          recipient_name: contract.recipient_name ?? "",
-          recipient_email: contract.recipient_email ?? "",
-          kunde_navn: contract.recipient_name ?? company?.name ?? "",
+          recipient_name: effectiveRecipientName,
+          recipient_email: effectiveRecipientEmail,
+          kunde_navn: effectiveRecipientName || company?.name || "",
           kunde_org: company?.org_number ?? "",
-          kunde_epost: contract.recipient_email ?? company?.email ?? "",
+          kunde_epost: effectiveRecipientEmail || company?.email || "",
           arbeidssted_navn: workspace?.name ?? "",
           arbeidssted_adresse: [workspace?.address_line_1, workspace?.postal_code, workspace?.city]
             .filter(Boolean)
@@ -372,10 +406,14 @@ export async function contractRoutes(app: FastifyInstance) {
 
       // Fallback to config values if sender/recipient not set on contract
       const senderEmail = contract.sender_email || config.SMARTOUT_CONTACT_EMAIL;
-      const recipientEmail = contract.recipient_email;
+      // Prefer the workspace signatory (prokura) over the cached
+      // contract.recipient_email — see effectiveRecipientEmail above.
+      const recipientEmail = effectiveRecipientEmail || null;
 
       if (!recipientEmail) {
-        return reply.status(400).send({ error: "Contract is missing recipient_email" });
+        return reply
+          .status(400)
+          .send({ error: "Contract is missing recipient_email (no signatory + no recipient)" });
       }
 
       // Generate signing token before submission so we can use it in the redirect URL
