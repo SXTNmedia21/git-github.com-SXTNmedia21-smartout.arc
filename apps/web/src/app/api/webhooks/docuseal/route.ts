@@ -335,11 +335,11 @@ export async function POST(request: NextRequest) {
           })
           .then(({ error }) => {
             if (error) {
-              console.error("[docuseal] engine_event insert failed", { error, submission_id: submissionId });
+              console.error("[docuseal] engine_event insert failed", {
+                error,
+                submission_id: submissionId,
+              });
             }
-          })
-          .catch((err: unknown) => {
-            console.error("[docuseal] engine_event insert failed", { err, submission_id: submissionId });
           });
       }
     } else {
