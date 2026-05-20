@@ -17,8 +17,11 @@ const STALE_TIME_MS = 5 * 60 * 1000;
 /**
  * Walks the team → leader → phone chain for a given profile.
  * Returns the leader's phone string, or null if any step is missing.
+ *
+ * Exported for use as a `LeaderPhoneResolver` factory in `botsson-tools.ts`
+ * (ADR-0378 R7: phone resolved locally, never on the voice wire).
  */
-async function fetchLeaderPhone(profileId: string): Promise<string | null> {
+export async function fetchLeaderPhone(profileId: string): Promise<string | null> {
   // Step 1: Find the team this profile belongs to
   const { data: membership, error: memberError } = await supabase
     .from("team_member")

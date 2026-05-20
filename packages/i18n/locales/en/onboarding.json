@@ -189,6 +189,19 @@
     "positions_custom": "Custom...",
     "positions_custom_placeholder": "Position title",
     "positions_leader": "Leader",
+    "add_button": "Add",
+    "proposal_badge": "Suggestion",
+    "recommended_badge": "Recommended",
+    "custom_badge": "Custom",
+    "departments_selected_count": "{selected} of {total} selected",
+    "departments_name_placeholder": "Department name",
+    "departments_add_custom": "Add custom department",
+    "procedures_selected_count": "{selected} of {total} selected",
+    "procedures_name_placeholder": "Procedure name",
+    "procedures_add_custom": "Add custom procedure",
+    "procedures_deselect_warning": "is recommended for your industry. Are you sure?",
+    "procedures_deselect_confirm": "Yes, remove",
+    "procedures_deselect_cancel": "Keep",
     "fields": {
       "filledCount": "{filled} of {total} fields filled",
       "name": { "label": "Business Name", "placeholder": "Solsiden Restaurant" },
@@ -235,6 +248,12 @@
     "submitting": "Linking tariff...",
     "submitAndContinue": "Link tariff and continue",
     "continue": "Continue"
+  },
+  "positions": {
+    "selectedCount": "{count} positions selected",
+    "noneSelected": "No positions selected",
+    "addPosition": "Add position",
+    "noDepartments": "Select departments first to define positions."
   },
   "roles": {
     "selectedCount": "{count} roles selected",

@@ -84,7 +84,10 @@ export function ConfirmProcedures({
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.procedures_description")}</p>
         <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
-          {selectedCount} valgt av {procedures.length} forslag
+          {t("confirm.procedures_selected_count", {
+            selected: selectedCount,
+            total: procedures.length,
+          })}
         </p>
       </div>
 
@@ -116,19 +119,19 @@ export function ConfirmProcedures({
               <span className="text-sm">{proc.name}</span>
               {proc.recommended && (
                 <span className="rounded bg-[var(--success)]/10 px-1.5 py-0.5 text-[10px] text-[var(--success)]">
-                  Anbefalt
+                  {t("confirm.recommended_badge")}
                 </span>
               )}
               {proc.isCustom && (
                 <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
-                  Egendefinert
+                  {t("confirm.custom_badge")}
                 </span>
               )}
             </span>
 
             {!proc.selected && !proc.recommended && (
               <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
-                Forslag
+                {t("confirm.proposal_badge")}
               </span>
             )}
           </button>
@@ -140,7 +143,7 @@ export function ConfirmProcedures({
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-[var(--warning)]" />
             <div className="flex flex-col gap-2">
               <p className="text-xs text-[var(--warning)]">
-                <strong>{pendingProc.name}</strong> er anbefalt for din bransje. Sikker?
+                <strong>{pendingProc.name}</strong> {t("confirm.procedures_deselect_warning")}
               </p>
               <div className="flex gap-2">
                 <button
@@ -148,14 +151,14 @@ export function ConfirmProcedures({
                   onClick={confirmDeselect}
                   className="bg-muted text-muted-foreground hover:bg-accent rounded-md px-2.5 py-1 text-xs"
                 >
-                  Ja, fjern
+                  {t("confirm.procedures_deselect_confirm")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPendingDeselect(null)}
                   className="text-muted-foreground hover:text-foreground rounded-md px-2.5 py-1 text-xs"
                 >
-                  Behold
+                  {t("confirm.procedures_deselect_cancel")}
                 </button>
               </div>
             </div>
@@ -176,7 +179,7 @@ export function ConfirmProcedures({
                   setCustomName("");
                 }
               }}
-              placeholder="Prosedyrenavn"
+              placeholder={t("confirm.procedures_name_placeholder")}
               className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
               autoFocus
             />
@@ -185,7 +188,7 @@ export function ConfirmProcedures({
               onClick={addCustomProcedure}
               className="rounded-lg bg-[var(--brand-orange)]/10 px-3 py-2.5 text-sm text-[var(--brand-orange)] transition-colors hover:bg-[var(--brand-orange)]/20"
             >
-              Legg til
+              {t("confirm.add_button")}
             </button>
             <button
               type="button"
@@ -205,7 +208,7 @@ export function ConfirmProcedures({
             className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
           >
             <Plus className="size-3.5" />
-            Legg til egen prosedyre
+            {t("confirm.procedures_add_custom")}
           </button>
         )}
       </div>
