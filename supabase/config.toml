@@ -484,6 +484,11 @@ verify_jwt = false
 [functions.emma-task-trigger]
 verify_jwt = false
 
+# F-EF-07 (audit 2026-05-15 slice 03): JWT verification happens inside the
+# function body via an anon-key Supabase client validating the bearer token.
+# Browser-invocable from the onboarding Storage-upload review path. CORS open
+# to allowed origins via _shared/cors.ts. verify_jwt = false here only because
+# the in-body anon-client auth path covers the same surface.
 [functions.analyze-setup-documents]
 verify_jwt = false
 
@@ -527,6 +532,11 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.daily-session-replenish]
+verify_jwt = false
+
+# ADR-0305: POS sale-event ingestion cron (every 5 min). Cron-only auth
+# via WATCHDOG_CRON_SECRET bearer token — same pattern as daily-session-replenish.
+[functions.pos-sync]
 verify_jwt = false
 
 [functions.generate-monthly-invoices]
@@ -602,4 +612,36 @@ verify_jwt = false
 # transitions to 'locked'. Inserts notification_outbox rows per affected
 # profile. Auth: service-role key or WATCHDOG_CRON_SECRET bearer token.
 [functions.payroll-period-locked-handler]
+verify_jwt = false
+
+# ADR-0332 — 5-min pg_cron fanout for targeted session_note rows.
+# Resolves audience JSONB → profile_ids[], emits notification_outbox + activity_trail.
+# Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET bearer token.
+[functions.note-fanout-scheduler]
+verify_jwt = false
+
+# ADR-0372 — Hourly pg_cron birthday auto-publish pipe.
+# Filters workspaces in 06:00-07:00 local window, calls fn_birthday_cohort_for_workspace,
+# publishes celebration announcement via publish_announcement_atomic. GDPR-safe: DOB never
+# leaves the DB function boundary. Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET.
+[functions.publish-birthday-celebrations]
+verify_jwt = false
+
+# F-03-EF-CRON — ops intelligence cron functions. All five use bearer-token auth
+# (WATCHDOG_CRON_SECRET / CRON_SECRET) and are invoked by pg_cron / DB triggers.
+# No user JWT involved. verify_jwt = false required or Supabase rejects with 401
+# before the handler runs. ADR-0077.
+[functions.ops-day-brief]
+verify_jwt = false
+
+[functions.ops-learn]
+verify_jwt = false
+
+[functions.ops-monitor]
+verify_jwt = false
+
+[functions.ops-predict]
+verify_jwt = false
+
+[functions.ops-triage]
 verify_jwt = false

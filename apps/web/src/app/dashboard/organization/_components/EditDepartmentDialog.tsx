@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
 import type { DepartmentRow, ProfileRow } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
 import { ICON_COMPONENTS } from "./constants";
+import { updateDepartmentAction } from "@/app/dashboard/_actions/update-department-action";
 
 type EditDepartmentDialogProps = {
   department: DepartmentRow;
@@ -52,21 +52,23 @@ export function EditDepartmentDialog({
     }
 
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("department")
-      .update({
-        name: name.trim(),
-        slug: toSlug(name),
-        description: description.trim() || null,
-        color: selectedColor,
-        icon: selectedIcon,
-        manager_profile_id: managerProfileId,
-      })
-      .eq("department_id", department.department_id);
 
-    if (error) {
-      toast.error(error.message);
+    // Server Action path — gated (organization.update_department), workspace-scoped
+    // server-side, and emits "department updated" telemetry (council B2 fix).
+    // Replaces the former browser-direct supabase.from("department").update() which
+    // had no gate, no emit, and no workspace_id pin (ADR-0099, ADR-0134, L-0177).
+    const result = await updateDepartmentAction({
+      departmentId: department.department_id,
+      name: name.trim(),
+      slug: toSlug(name),
+      description: description.trim() || null,
+      color: selectedColor,
+      icon: selectedIcon,
+      managerProfileId: managerProfileId,
+    });
+
+    if (!result.ok) {
+      toast.error(result.error);
     } else {
       toast.success(`Department "${name.trim()}" updated`);
       onOpenChange(false);

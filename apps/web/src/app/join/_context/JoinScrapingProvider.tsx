@@ -148,13 +148,41 @@ export function JoinScrapingProvider({ children }: JoinScrapingProviderProps) {
           return res.json();
         })
         .then((data) => {
+          // Merge LLM classifications from /generate into the intelligence
+          // object so Step5 can read cuisine/price/type/menu without losing
+          // them on the prefetch path (mirror useWorkspaceIntelligence.callApi).
+          const mergedIntelligence = data.intelligence
+            ? { ...(data.intelligence as Record<string, unknown>) }
+            : undefined;
+          if (mergedIntelligence && data.content) {
+            if (data.content.menu_description)
+              mergedIntelligence.menu_description = data.content.menu_description;
+            if (data.content.restaurant_type)
+              mergedIntelligence.llm_restaurant_type = data.content.restaurant_type;
+            if (data.content.cuisine_types?.length)
+              mergedIntelligence.llm_cuisine_types = data.content.cuisine_types;
+            if (data.content.price_category)
+              mergedIntelligence.llm_price_category = data.content.price_category;
+          }
+
           if (data.content?.about_us || data.content?.our_history || data.content?.our_concept) {
             setPrefetchedContent({
               about_us: data.content.about_us ?? "",
               our_history: data.content.our_history ?? "",
               our_concept: data.content.our_concept ?? "",
               menu_description: data.content.menu_description ?? "",
-              intelligence: data.intelligence ?? undefined,
+              intelligence: mergedIntelligence,
+            });
+            setPrefetchStatus("done");
+          } else if (mergedIntelligence) {
+            // Even when long-form copy is missing, surface the enriched +
+            // classified intelligence so Step5 can pre-populate menu fields.
+            setPrefetchedContent({
+              about_us: "",
+              our_history: "",
+              our_concept: "",
+              menu_description: data.content?.menu_description ?? "",
+              intelligence: mergedIntelligence,
             });
             setPrefetchStatus("done");
           } else {

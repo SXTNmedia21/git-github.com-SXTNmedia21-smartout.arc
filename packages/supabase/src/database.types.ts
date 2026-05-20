@@ -1618,6 +1618,42 @@ export type Database = {
           },
         ]
       }
+      tariff_snapshot: {
+        Row: {
+          created_at: string
+          derivation_version: string
+          derived_at: string
+          id: string
+          incomplete_supplements: Json
+          rates_persisted_count: number
+          rules_persisted_count: number
+          source_paragraph_refs: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          derivation_version: string
+          derived_at?: string
+          id?: string
+          incomplete_supplements?: Json
+          rates_persisted_count?: number
+          rules_persisted_count?: number
+          source_paragraph_refs?: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          derivation_version?: string
+          derived_at?: string
+          id?: string
+          incomplete_supplements?: Json
+          rates_persisted_count?: number
+          rules_persisted_count?: number
+          source_paragraph_refs?: Json
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       timebank_entry: {
         Row: {
           account_type: string
@@ -1727,6 +1763,8 @@ export type Database = {
       }
       workspace_settings: {
         Row: {
+          active_binding_id: string | null
+          active_union_id: string | null
           adhoc_default_department_id: string | null
           adhoc_default_position_id: string | null
           created_at: string
@@ -1763,6 +1801,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          active_binding_id?: string | null
+          active_union_id?: string | null
           adhoc_default_department_id?: string | null
           adhoc_default_position_id?: string | null
           created_at?: string
@@ -1799,6 +1839,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          active_binding_id?: string | null
+          active_union_id?: string | null
           adhoc_default_department_id?: string | null
           adhoc_default_position_id?: string | null
           created_at?: string
@@ -2442,6 +2484,70 @@ export type Database = {
           },
           {
             foreignKeyName: "agent_session_whisper_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      announcement_meta: {
+        Row: {
+          created_at: string
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id: string | null
+          linked_entity_type:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id: string
+          tags: string[]
+          tier: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id?: string | null
+          linked_entity_type?:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id: string
+          tags?: string[]
+          tier?: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: Database["public"]["Enums"]["announcement_kind"]
+          linked_entity_id?: string | null
+          linked_entity_type?:
+            | Database["public"]["Enums"]["announcement_link_type"]
+            | null
+          message_id?: string
+          tags?: string[]
+          tier?: Database["public"]["Enums"]["announcement_tier"]
+          tier_overridden?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_meta_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcement_meta_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "announcement_meta_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -3196,6 +3302,68 @@ export type Database = {
           requires_four_eyes?: boolean
         }
         Relationships: []
+      }
+      celebration_publication: {
+        Row: {
+          celebration_date: string
+          celebration_kind: string
+          created_at: string
+          id: string
+          message_id: string | null
+          profile_id: string
+          published_at: string
+          workspace_id: string
+        }
+        Insert: {
+          celebration_date: string
+          celebration_kind: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          profile_id: string
+          published_at?: string
+          workspace_id: string
+        }
+        Update: {
+          celebration_date?: string
+          celebration_kind?: string
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          profile_id?: string
+          published_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_publication_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "celebration_publication_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
       }
       change_proposal: {
         Row: {
@@ -6605,6 +6773,110 @@ export type Database = {
           },
         ]
       }
+      day_line: {
+        Row: {
+          business_date: string
+          cancelled_at: string | null
+          created_at: string
+          created_by: string | null
+          day_line_id: string
+          department_id: string
+          department_session_id: string
+          is_backfilled: boolean
+          location_id: string
+          notes: string | null
+          planned_close: string
+          planned_open: string
+          source_template_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          business_date: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_line_id?: string
+          department_id: string
+          department_session_id: string
+          is_backfilled?: boolean
+          location_id: string
+          notes?: string | null
+          planned_close: string
+          planned_open: string
+          source_template_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          business_date?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_line_id?: string
+          department_id?: string
+          department_session_id?: string
+          is_backfilled?: boolean
+          location_id?: string
+          notes?: string | null
+          planned_close?: string
+          planned_open?: string
+          source_template_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_line_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "day_line_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "day_line_department_session_id_fkey"
+            columns: ["department_session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "day_line_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "day_line_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "timeline_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_line_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "day_line_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       department: {
         Row: {
           classification_confidence: string | null
@@ -6772,6 +7044,66 @@ export type Database = {
           },
           {
             foreignKeyName: "department_hours_override_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      department_location: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string
+          location_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          location_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          location_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_location_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "department_location_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "department_location_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "department_location_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "department_location_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -7070,6 +7402,7 @@ export type Database = {
           blocks_day_approval: boolean
           cost_impact: number | null
           created_at: string
+          day_line_id: string | null
           department_id: string | null
           description: string | null
           deviation_id: string
@@ -7098,6 +7431,7 @@ export type Database = {
           blocks_day_approval?: boolean
           cost_impact?: number | null
           created_at?: string
+          day_line_id?: string | null
           department_id?: string | null
           description?: string | null
           deviation_id?: string
@@ -7126,6 +7460,7 @@ export type Database = {
           blocks_day_approval?: boolean
           cost_impact?: number | null
           created_at?: string
+          day_line_id?: string | null
           department_id?: string | null
           description?: string | null
           deviation_id?: string
@@ -7150,6 +7485,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deviation_day_line_id_fkey"
+            columns: ["day_line_id"]
+            isOneToOne: false
+            referencedRelation: "day_line"
+            referencedColumns: ["day_line_id"]
+          },
           {
             foreignKeyName: "deviation_department_id_fkey"
             columns: ["department_id"]
@@ -8363,6 +8705,60 @@ export type Database = {
           },
           {
             foreignKeyName: "engine_authority_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      engine_authority_pipeline: {
+        Row: {
+          action_type: string
+          capability: string
+          created_at: string
+          escalation_action: string | null
+          id: string
+          max_wait_minutes: number | null
+          required_role: string
+          stage_index: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          capability: string
+          created_at?: string
+          escalation_action?: string | null
+          id?: string
+          max_wait_minutes?: number | null
+          required_role: string
+          stage_index: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          capability?: string
+          created_at?: string
+          escalation_action?: string | null
+          id?: string
+          max_wait_minutes?: number | null
+          required_role?: string
+          stage_index?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_authority_pipeline_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "engine_authority_pipeline_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -14918,6 +15314,7 @@ export type Database = {
       }
       profile: {
         Row: {
+          active_push_topic: string | null
           address_line_1: string | null
           address_line_2: string | null
           authority_level: Database["public"]["Enums"]["authority_level"] | null
@@ -14966,6 +15363,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          active_push_topic?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           authority_level?:
@@ -15016,6 +15414,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          active_push_topic?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           authority_level?:
@@ -15883,6 +16282,7 @@ export type Database = {
           booking_time: string
           contact_person: string | null
           created_at: string
+          day_line_id: string | null
           guest_count: number
           is_vip: boolean
           location: string | null
@@ -15899,6 +16299,7 @@ export type Database = {
           booking_time: string
           contact_person?: string | null
           created_at?: string
+          day_line_id?: string | null
           guest_count?: number
           is_vip?: boolean
           location?: string | null
@@ -15915,6 +16316,7 @@ export type Database = {
           booking_time?: string
           contact_person?: string | null
           created_at?: string
+          day_line_id?: string | null
           guest_count?: number
           is_vip?: boolean
           location?: string | null
@@ -15928,6 +16330,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_day_booking_day_line_id_fkey"
+            columns: ["day_line_id"]
+            isOneToOne: false
+            referencedRelation: "day_line"
+            referencedColumns: ["day_line_id"]
+          },
           {
             foreignKeyName: "schedule_day_booking_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -16213,6 +16622,7 @@ export type Database = {
           is_published: boolean
           location_id: string | null
           notes: string | null
+          pipeline_lock_state_id: string | null
           position_id: string | null
           role: string
           schedule_shift_id: string
@@ -16250,6 +16660,7 @@ export type Database = {
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
+          pipeline_lock_state_id?: string | null
           position_id?: string | null
           role: string
           schedule_shift_id?: string
@@ -16287,6 +16698,7 @@ export type Database = {
           is_published?: boolean
           location_id?: string | null
           notes?: string | null
+          pipeline_lock_state_id?: string | null
           position_id?: string | null
           role?: string
           schedule_shift_id?: string
@@ -16344,6 +16756,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "location"
             referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_pipeline_lock_state_id_fkey"
+            columns: ["pipeline_lock_state_id"]
+            isOneToOne: false
+            referencedRelation: "engine_state"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "schedule_shift_position_id_fkey"
@@ -17291,30 +17710,42 @@ export type Database = {
       }
       session_note: {
         Row: {
+          audience: Json | null
           content: string
           created_at: string
           created_by: string
+          deleted_at: string | null
+          delivered_at: string | null
           department_session_id: string
           id: string
           note_type: Database["public"]["Enums"]["session_note_type"]
+          notify_at: string | null
           workspace_id: string
         }
         Insert: {
+          audience?: Json | null
           content: string
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           department_session_id: string
           id?: string
           note_type?: Database["public"]["Enums"]["session_note_type"]
+          notify_at?: string | null
           workspace_id: string
         }
         Update: {
+          audience?: Json | null
           content?: string
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
           department_session_id?: string
           id?: string
           note_type?: Database["public"]["Enums"]["session_note_type"]
+          notify_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -17354,11 +17785,13 @@ export type Database = {
           completed_at: string | null
           completed_by: string | null
           created_at: string
+          day_line_id: string | null
           department_session_id: string
           description: string | null
           evidence: Json | null
           id: string
           is_compliance_required: boolean
+          scheduled_at: string | null
           session_hook_id: string | null
           status: Database["public"]["Enums"]["session_task_status"]
           title: string
@@ -17370,11 +17803,13 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          day_line_id?: string | null
           department_session_id: string
           description?: string | null
           evidence?: Json | null
           id?: string
           is_compliance_required?: boolean
+          scheduled_at?: string | null
           session_hook_id?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title: string
@@ -17386,11 +17821,13 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          day_line_id?: string | null
           department_session_id?: string
           description?: string | null
           evidence?: Json | null
           id?: string
           is_compliance_required?: boolean
+          scheduled_at?: string | null
           session_hook_id?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title?: string
@@ -17411,6 +17848,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "session_task_day_line_id_fkey"
+            columns: ["day_line_id"]
+            isOneToOne: false
+            referencedRelation: "day_line"
+            referencedColumns: ["day_line_id"]
           },
           {
             foreignKeyName: "session_task_department_session_id_fkey"
@@ -18182,6 +18626,7 @@ export type Database = {
           subtotal: number
           superseded_at: string | null
           superseded_by_event_id: string | null
+          tariff_binding_id: string | null
           tariff_rate_table_id: string | null
           workspace_id: string
         }
@@ -18206,6 +18651,7 @@ export type Database = {
           subtotal?: number
           superseded_at?: string | null
           superseded_by_event_id?: string | null
+          tariff_binding_id?: string | null
           tariff_rate_table_id?: string | null
           workspace_id: string
         }
@@ -18230,6 +18676,7 @@ export type Database = {
           subtotal?: number
           superseded_at?: string | null
           superseded_by_event_id?: string | null
+          tariff_binding_id?: string | null
           tariff_rate_table_id?: string | null
           workspace_id?: string
         }
@@ -18284,6 +18731,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shift_pay_calculation_event_tariff_binding_id_fkey"
+            columns: ["tariff_binding_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_union_binding"
+            referencedColumns: ["workspace_union_binding_id"]
+          },
+          {
             foreignKeyName: "shift_pay_calculation_event_tariff_rate_table_id_fkey"
             columns: ["tariff_rate_table_id"]
             isOneToOne: false
@@ -18303,6 +18757,151 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      shift_session: {
+        Row: {
+          business_date: string
+          clocked_in_at: string | null
+          clocked_out_at: string | null
+          created_at: string
+          department_id: string
+          department_session_id: string
+          employee_id: string
+          location_id: string
+          push_topic: string | null
+          schedule_shift_id: string
+          shift_session_id: string
+          status: Database["public"]["Enums"]["shift_session_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          business_date: string
+          clocked_in_at?: string | null
+          clocked_out_at?: string | null
+          created_at?: string
+          department_id: string
+          department_session_id: string
+          employee_id: string
+          location_id: string
+          push_topic?: string | null
+          schedule_shift_id: string
+          shift_session_id?: string
+          status?: Database["public"]["Enums"]["shift_session_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          business_date?: string
+          clocked_in_at?: string | null
+          clocked_out_at?: string | null
+          created_at?: string
+          department_id?: string
+          department_session_id?: string
+          employee_id?: string
+          location_id?: string
+          push_topic?: string | null
+          schedule_shift_id?: string
+          shift_session_id?: string
+          status?: Database["public"]["Enums"]["shift_session_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_session_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "shift_session_department_session_id_fkey"
+            columns: ["department_session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "shift_session_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shift_session_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "shift_session_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: true
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "shift_session_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: true
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_session_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: true
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_session_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "shift_session_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      shift_session_day_line: {
+        Row: {
+          day_line_id: string
+          shift_session_id: string
+        }
+        Insert: {
+          day_line_id: string
+          shift_session_id: string
+        }
+        Update: {
+          day_line_id?: string
+          shift_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_session_day_line_day_line_id_fkey"
+            columns: ["day_line_id"]
+            isOneToOne: false
+            referencedRelation: "day_line"
+            referencedColumns: ["day_line_id"]
+          },
+          {
+            foreignKeyName: "shift_session_day_line_shift_session_id_fkey"
+            columns: ["shift_session_id"]
+            isOneToOne: false
+            referencedRelation: "shift_session"
+            referencedColumns: ["shift_session_id"]
           },
         ]
       }
@@ -18447,6 +19046,7 @@ export type Database = {
           match_predicate: Json
           name: string
           paragraf_ref: string | null
+          provenance: Json
           rate_type: string
           rate_value: number
           supplement_type: string
@@ -18464,6 +19064,7 @@ export type Database = {
           match_predicate?: Json
           name: string
           paragraf_ref?: string | null
+          provenance?: Json
           rate_type?: string
           rate_value?: number
           supplement_type: string
@@ -18481,6 +19082,7 @@ export type Database = {
           match_predicate?: Json
           name?: string
           paragraf_ref?: string | null
+          provenance?: Json
           rate_type?: string
           rate_value?: number
           supplement_type?: string
@@ -19120,6 +19722,70 @@ export type Database = {
           },
         ]
       }
+      timeline_template: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_archived: boolean
+          items_json: Json
+          name: string
+          notes: string | null
+          scope_id: string
+          scope_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_archived?: boolean
+          items_json: Json
+          name: string
+          notes?: string | null
+          scope_id: string
+          scope_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_archived?: boolean
+          items_json?: Json
+          name?: string
+          notes?: string | null
+          scope_id?: string
+          scope_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_template_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "timeline_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "timeline_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       tip_adjustment_log: {
         Row: {
           changed_at: string
@@ -19665,6 +20331,61 @@ export type Database = {
         }
         Relationships: []
       }
+      user_view_preference: {
+        Row: {
+          created_at: string
+          preference_key: string
+          preference_value: string
+          profile_id: string
+          surface: string
+          updated_at: string
+          user_view_preference_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          preference_key: string
+          preference_value: string
+          profile_id: string
+          surface: string
+          updated_at?: string
+          user_view_preference_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          preference_key?: string
+          preference_value?: string
+          profile_id?: string
+          surface?: string
+          updated_at?: string
+          user_view_preference_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_view_preference_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "user_view_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_view_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       waste_log: {
         Row: {
           category: Database["public"]["Enums"]["waste_category"]
@@ -20189,6 +20910,52 @@ export type Database = {
             foreignKeyName: "workspace_budget_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      workspace_celebration_config: {
+        Row: {
+          auto_celebrate_birthdays: boolean
+          created_at: string
+          target_channel_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_celebrate_birthdays?: boolean
+          created_at?: string
+          target_channel_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_celebrate_birthdays?: boolean
+          created_at?: string
+          target_channel_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_celebration_config_target_channel_id_fkey"
+            columns: ["target_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_celebration_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_celebration_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
           },
@@ -20740,6 +21507,76 @@ export type Database = {
           },
         ]
       }
+      workspace_union_binding: {
+        Row: {
+          amendment_classifier: string
+          bound_at: string
+          created_at: string
+          created_by: string | null
+          derivation_snapshot_id: string | null
+          effective_from: string
+          effective_to: string | null
+          law_version: string
+          official_effective_date: string
+          union_id: string
+          updated_at: string
+          workspace_id: string
+          workspace_union_binding_id: string
+        }
+        Insert: {
+          amendment_classifier: string
+          bound_at?: string
+          created_at?: string
+          created_by?: string | null
+          derivation_snapshot_id?: string | null
+          effective_from: string
+          effective_to?: string | null
+          law_version: string
+          official_effective_date: string
+          union_id: string
+          updated_at?: string
+          workspace_id: string
+          workspace_union_binding_id?: string
+        }
+        Update: {
+          amendment_classifier?: string
+          bound_at?: string
+          created_at?: string
+          created_by?: string | null
+          derivation_snapshot_id?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          law_version?: string
+          official_effective_date?: string
+          union_id?: string
+          updated_at?: string
+          workspace_id?: string
+          workspace_union_binding_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_union_binding_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workspace_union_binding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_union_binding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       zone: {
         Row: {
           capacity: number | null
@@ -21166,6 +22003,22 @@ export type Database = {
         Args: { p_actor_profile_id: string }
         Returns: undefined
       }
+      bind_workspace_union_atomic: {
+        Args: {
+          p_amendment_classifier: string
+          p_created_by: string
+          p_derivation_snapshot_id?: string
+          p_effective_from: string
+          p_law_version: string
+          p_official_effective_date: string
+          p_union_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          effective_from: string
+          workspace_union_binding_id: string
+        }[]
+      }
       bootstrap_botsson_channel: {
         Args: { p_workspace_id: string }
         Returns: string
@@ -21385,6 +22238,13 @@ export type Database = {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
       }
+      fn_birthday_cohort_for_workspace: {
+        Args: { p_today: string; p_workspace_id: string }
+        Returns: {
+          display_name: string
+          profile_id: string
+        }[]
+      }
       fn_list_my_tasks: {
         Args: { p_window_end?: string; p_window_start?: string }
         Returns: {
@@ -21421,6 +22281,19 @@ export type Database = {
         Args: { p_token: string; p_vendor: string; p_workspace_id: string }
         Returns: string
       }
+      fn_publish_announcement_notifications: {
+        Args: {
+          p_channel_id: string
+          p_content: string
+          p_message_id: string
+          p_sender_id: string
+          p_target_profile_ids: string[]
+          p_tier: Database["public"]["Enums"]["announcement_tier"]
+          p_visibility_scope: Database["public"]["Enums"]["channel_message_visibility"]
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       gate_action: {
         Args: {
           p_action_type: string
@@ -21440,6 +22313,11 @@ export type Database = {
       get_channel_messages: {
         Args: { p_channel_id: string; p_cursor?: string; p_limit?: number }
         Returns: {
+          announcement_kind: Database["public"]["Enums"]["announcement_kind"]
+          announcement_link_id: string
+          announcement_link_type: Database["public"]["Enums"]["announcement_link_type"]
+          announcement_tags: string[]
+          announcement_tier: Database["public"]["Enums"]["announcement_tier"]
           attachments: Json
           channel_id: string
           client_message_id: string
@@ -21572,10 +22450,18 @@ export type Database = {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      is_admin_or_manager_in_workspace: {
+        Args: { uid: string; wid: string }
+        Returns: boolean
+      }
       is_email_verified: { Args: { user_uuid: string }; Returns: boolean }
       is_employee_blocked: {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      is_manager_in_workspace: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: boolean
       }
       is_participant_in_conversation: {
         Args: { conv_id: string }
@@ -21633,6 +22519,27 @@ export type Database = {
           p_company_name: string
           p_intelligence_data?: Json
           p_user_id: string
+        }
+        Returns: string
+      }
+      publish_announcement_atomic: {
+        Args: {
+          p_actor_profile_id: string
+          p_celebration_date?: string
+          p_celebration_kind?: string
+          p_channel_id: string
+          p_client_message_id?: string
+          p_content: string
+          p_kind?: Database["public"]["Enums"]["announcement_kind"]
+          p_linked_entity_id?: string
+          p_linked_entity_type?: Database["public"]["Enums"]["announcement_link_type"]
+          p_system_data?: Json
+          p_tags?: string[]
+          p_target_profile_ids?: string[]
+          p_tier?: Database["public"]["Enums"]["announcement_tier"]
+          p_tier_overridden?: boolean
+          p_visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+          p_workspace_id: string
         }
         Returns: string
       }
@@ -21751,6 +22658,25 @@ export type Database = {
         | "rejected"
         | "expired"
       anchor_type: "fixed" | "open" | "close"
+      announcement_kind:
+        | "general"
+        | "new_menu"
+        | "new_hire"
+        | "staff_event"
+        | "schedule_change"
+        | "policy_update"
+        | "external"
+        | "celebration"
+        | "system_message"
+      announcement_link_type:
+        | "staff_event"
+        | "schedule_shift"
+        | "policy"
+        | "protocol"
+        | "profile"
+        | "menu_document"
+        | "external_url"
+      announcement_tier: "social" | "work" | "external"
       api_key_type: "workspace" | "service"
       api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
@@ -21954,7 +22880,15 @@ export type Database = {
         | "four_eyes"
       external_provider: "tripletex" | "planday" | "visma"
       field_classification: "material" | "admin" | "derived" | "system"
-      framework_rule_type: "gate" | "constraint" | "advisory" | "commercial"
+      framework_rule_type:
+        | "gate"
+        | "constraint"
+        | "advisory"
+        | "commercial"
+        | "aml_daily_max_hours"
+        | "aml_weekly_max_hours"
+        | "aml_weekly_min_hours_floor"
+        | "tariff_min_rest_hours"
       framework_trigger_mode:
         | "state_change"
         | "time_based"
@@ -22200,7 +23134,7 @@ export type Database = {
         | "scheduled"
         | "pre_close"
         | "close"
-      session_note_type: "handoff" | "closing" | "general"
+      session_note_type: "handoff" | "closing" | "general" | "targeted"
       session_task_status:
         | "pending"
         | "available"
@@ -22222,6 +23156,11 @@ export type Database = {
         | "supporting"
         | "rush_hour"
         | "sub_supply"
+      shift_session_status:
+        | "scheduled"
+        | "clocked_in"
+        | "clocked_out"
+        | "cancelled"
       shift_status:
         | "created"
         | "assigned"
@@ -23368,6 +24307,27 @@ export const Constants = {
         "expired",
       ],
       anchor_type: ["fixed", "open", "close"],
+      announcement_kind: [
+        "general",
+        "new_menu",
+        "new_hire",
+        "staff_event",
+        "schedule_change",
+        "policy_update",
+        "external",
+        "celebration",
+        "system_message",
+      ],
+      announcement_link_type: [
+        "staff_event",
+        "schedule_shift",
+        "policy",
+        "protocol",
+        "profile",
+        "menu_document",
+        "external_url",
+      ],
+      announcement_tier: ["social", "work", "external"],
       api_key_type: ["workspace", "service"],
       api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
@@ -23593,7 +24553,16 @@ export const Constants = {
       ],
       external_provider: ["tripletex", "planday", "visma"],
       field_classification: ["material", "admin", "derived", "system"],
-      framework_rule_type: ["gate", "constraint", "advisory", "commercial"],
+      framework_rule_type: [
+        "gate",
+        "constraint",
+        "advisory",
+        "commercial",
+        "aml_daily_max_hours",
+        "aml_weekly_max_hours",
+        "aml_weekly_min_hours_floor",
+        "tariff_min_rest_hours",
+      ],
       framework_trigger_mode: [
         "state_change",
         "time_based",
@@ -23868,7 +24837,7 @@ export const Constants = {
         "pre_close",
         "close",
       ],
-      session_note_type: ["handoff", "closing", "general"],
+      session_note_type: ["handoff", "closing", "general", "targeted"],
       session_task_status: [
         "pending",
         "available",
@@ -23892,6 +24861,12 @@ export const Constants = {
         "supporting",
         "rush_hour",
         "sub_supply",
+      ],
+      shift_session_status: [
+        "scheduled",
+        "clocked_in",
+        "clocked_out",
+        "cancelled",
       ],
       shift_status: [
         "created",

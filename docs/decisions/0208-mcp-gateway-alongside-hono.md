@@ -1,7 +1,7 @@
 ---
 title: "MCP-gateway alongside Hono stage-engine (dual transport, not replacement)"
 id: ADR-0208
-status: Accepted
+status: accepted
 layer: decision
 module: stage-engine
 created: 2026-04-24

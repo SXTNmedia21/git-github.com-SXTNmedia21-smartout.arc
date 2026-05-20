@@ -27,6 +27,7 @@ type TurnPhase =
   | "classifier_input"
   | "classifier_output"
   | "authority_load"
+  | "authority_filtered"
   | "context_collect"
   | "prompt_built"
   | "llm_request"

@@ -17,6 +17,7 @@ import {
   useSessionDeviations,
   useSubmitReconciliation,
 } from "../_hooks/useCloseOut";
+import { CloseToolsBridge } from "../_tools/close-tools-bridge";
 
 type StepId = "checklist" | "images" | "review" | "submit";
 
@@ -112,8 +113,31 @@ export function CloseOutFlow() {
     });
   }
 
+  // ── Botsson harness bridge ──────────────────────────────────
+  // Mount only when a department is selected — prevents tools returning
+  // stale state before session data arrives.
+  const departmentName = departments?.find((d) => d.department_id === departmentId)?.name ?? null;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 pb-24">
+      {/* Botsson harness — mounts when department is selected */}
+      {departmentId && (
+        <CloseToolsBridge
+          currentStep={currentStep}
+          checklistComplete={checklistComplete}
+          imagesReady={imagesReady}
+          deviationsHandled={deviationsHandled}
+          allGatesPass={allGatesPass}
+          departmentName={departmentName}
+          departmentId={departmentId}
+          sessionId={session?.department_session_id ?? null}
+          reconciliationId={reconciliation?.reconciliation_id ?? null}
+          isSubmitting={submitMutation.isPending}
+          isSubmitted={submitMutation.isSuccess}
+          onSubmit={handleSubmit}
+        />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight">Dagsstenging</h1>

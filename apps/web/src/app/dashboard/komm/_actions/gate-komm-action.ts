@@ -46,6 +46,8 @@ export async function gateKommAction(args: {
     return { allow: false, reason: "Ikke autentisert" };
   }
 
+  // @authority-gate-ungated — forwarder: capability is passed through from caller.
+  // Each komm capability (e.g. helpdesk_query) is seeded independently in migrations.
   const result: GateResult = await gateAction({
     workspaceId: profile.workspaceId,
     capability: args.capability,

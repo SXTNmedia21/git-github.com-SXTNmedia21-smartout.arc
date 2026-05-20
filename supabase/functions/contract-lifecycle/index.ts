@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
             priority: 1,
             title: "Påminnelse: Signer kontrakt",
             body: "Du har en kontrakt som venter på signering",
-            action_url: "/dashboard/contracts",
+            action_url: "/dashboard/people/contracts",
             metadata: {
               event_key: "contract.reminder_due",
               icon_type: "contract",

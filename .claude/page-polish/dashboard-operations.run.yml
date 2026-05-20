@@ -1,0 +1,127 @@
+# Page Polish Run — dashboard/operations
+# Phase 7 (harness bridge) completed. 5 Botsson tools registered.
+# Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/operations
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/operations
+  components_count: 5  # page + loading + 2 _components + 1 _hooks + 2 _tools
+
+architecture:
+  entry: apps/web/src/app/dashboard/operations/page.tsx (client component, ~560 lines)
+  components:
+    - DepartmentBreakdown.tsx  # per-dept staff capacity, toggled from stress card
+    - DeviationDialog.tsx      # mutation: creates deviation row + emits telemetry
+  hooks:
+    - use-operations-data.ts   # 9 parallel Supabase queries, 60s refetch
+  tools:
+    - use-operations-tools.ts  # 5 read tools
+    - operations-tools-bridge.tsx  # bridge: useRegisterTools("operations", tools)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+datapoints:
+  - { name: department_session,     source_table: department_session,         hook: useOperationsData }
+  - { name: session_task,           source_table: session_task,               hook: useOperationsData }
+  - { name: schedule_shift,         source_table: schedule_shift,             hook: useOperationsData }
+  - { name: deviation,              source_table: deviation,                  hook: useOperationsData }
+  - { name: daily_reconciliation,   source_table: daily_reconciliation,       hook: useOperationsData }
+  - { name: workspace_budget,       source_table: workspace_budget,           hook: useOperationsData }
+  - { name: haccp_log,              source_table: haccp_log,                  hook: useOperationsData }
+  - { name: shift_cost_snapshot,    source_table: shift_cost_snapshot,        hook: useOperationsData }
+  - { name: payroll_workspace_settings, source_table: payroll.workspace_settings, hook: useOperationsData }
+  - { name: department_breakdown,   source_table: schedule_shift,             hook: DepartmentBreakdown (inline query) }
+
+server_actions: []  # No Server Actions — all reads via Supabase client, one mutation via useMutation
+
+mutations:
+  - { component: DeviationDialog, mutation: createDeviationMutation, emits: true, event: "deviation reported" }
+
+page_knowledge:
+  header: Drift
+  description: Sanntidsoversikt over dagens operasjonelle status — oppgaver, bemanning, avvik, temperatur og omsetning mot lønnskostnad.
+  empty_copy: Ingen aktive sesjoner eller vakter registrert for i dag. Sjekk at vaktplan og sesjonsmaler er satt opp for avdelingene.
+  error_copy: Klarte ikke laste driftsdata. Sjekk nettilkobling og last siden på nytt.
+
+adr_0238_check:
+  owns_chat_surface: false
+  domain_chat_endpoint: null
+  botsson_mode: normal_interactive
+  reason: No in-page chat surface found. BotssonShell renders in normal interactive mode.
+
+telemetry_audit:
+  - { component: DeviationDialog, event: "deviation reported", emit_in: onSuccess, workspace_id: from_props, actor_id: from_props }
+  # useOperationsData is read-only — no mutations, no emit() required.
+
+design:
+  zinc_hits: 0
+  motion_token_hits: 2  # DepartmentBreakdown.tsx uses raw stiffness/damping (existing debt — not introduced here)
+  hardcoded_color_hits: 1  # orange-500 in DepartmentBreakdown.tsx (existing debt — not introduced here)
+  emoji_hits: 0
+  note: |
+    DepartmentBreakdown.tsx lines 98-100 use raw spring values (stiffness: 30,
+    damping: 24, mass: 2.5) and orange-500 — existing debt, not introduced by this
+    polish run. Phase 4 (full UI pass) deferred for a dedicated sortie.
+
+# Phase 7 — Harness tools
+harness_tools_current:
+  count: 5
+  registered_at: apps/web/src/app/dashboard/operations/_tools/operations-tools-bridge.tsx
+  page_key: operations
+  read:
+    - key: getOperationsOverview
+      desc: "Live KPI summary for today — task %, stress, staff, deviations, HACCP, cleaning, labor-cost flag. Call first on any drift question."
+    - key: getStressBreakdown
+      desc: "Per-department staff capacity — present vs expected + capacityPct per dept. Use when manager asks which dept is most understaffed."
+    - key: getActiveDeviations
+      desc: "Open/acknowledged deviations with severity breakdown (critical/high/medium/low). Use when manager asks about operational risk."
+    - key: getTaskStatus
+      desc: "Session task progress — done/overdue/in-progress/upcoming counts. Use when manager asks if the shift is on schedule."
+    - key: getHourlyChart
+      desc: "Hourly revenue vs labor cost for today's chart window. Use when manager asks about cost efficiency or revenue-to-cost ratio."
+  write_propose: []  # No write tools — DeviationDialog is user-driven; Botsson directs user to the button
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — requires browser session
+  no_skeleton_flash: true              # loading.tsx returns null-compatible skeleton; page has internal loading state
+  motion_tokens_used: false            # existing raw springs in DepartmentBreakdown — deferred to Phase 4 sortie
+  telemetry_emit_per_mutation: true    # DeviationDialog emits on onSuccess
+  page_knowledge_written: true
+  page_knowledge_db_synced: false
+  harness_tools_registered: true       # 5 tools live
+  retest_improved: false               # blocked — requires browser session
+
+notes: |
+  Operations page is a "use client" component — all data fetching via TanStack
+  Query (useOperationsData). 9 Supabase queries run in parallel (Promise.all).
+  Refetch every 3 min (60s staleTime). No Server Actions.
+
+  Harness bridge mounted at line 117 of page.tsx (inside outer div, before header).
+  deptMetrics passed as [] — DepartmentBreakdown owns its own query; bridge tool
+  reflects this via "Klikk på stresskort-panelet" message when breakdown not loaded.
+
+  ADR-0238: No in-page chat surface. owns_chat_surface = false. BotssonShell
+  renders in normal interactive mode. No DomainChatOwnership declaration needed.
+
+  Phase 4 design debt (existing, not introduced):
+  - DepartmentBreakdown.tsx: raw stiffness/damping springs + orange-500 hardcoded.
+  These predate this polish run and are tracked for a dedicated design sortie.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
+    motion_tokens_used: deferred to Phase 4 design sortie (DepartmentBreakdown.tsx)

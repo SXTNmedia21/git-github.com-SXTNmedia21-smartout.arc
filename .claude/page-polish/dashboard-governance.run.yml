@@ -1,0 +1,170 @@
+# Page Polish Run — dashboard/governance
+# Phase 7 (harness bridge) shipped. Phases 1-3 (Lighthouse) deferred — requires browser session.
+# Governance surface lives under /dashboard/hms (HMS umbrella). Bridge mounted in governance/page.tsx.
+
+route: /dashboard/governance
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T10:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/governance
+  components_count: 19  # 5 _actions + 9 _components + 3 _hooks + loading.tsx + page.tsx + 2 _tools (new)
+
+architecture:
+  entry: apps/web/src/app/dashboard/governance/page.tsx (85 lines, client redirect shell + bridge mount)
+  redirect_target: /dashboard/hms  (HMS umbrella — HmsSubNav renders 6 sub-tabs)
+  real_surface: apps/web/src/app/dashboard/hms/
+  hms_tabs:
+    - { id: oversikt,    href: /dashboard/hms,              label: Oversikt,    component: OversiktDashboard (admin) | OversiktEmployee }
+    - { id: drift,       href: /dashboard/hms/drift,        label: Drift,       component: DriftInsightStrip + DriftSessionTable + DriftTaskList }
+    - { id: training,    href: /dashboard/hms/training,     label: Opplæring,   component: CompetenceMatrix + GovernanceOverview + OverdueAlerts }
+    - { id: documents,   href: /dashboard/hms/documents,    label: Dokumenter,  component: DocumentBrowser + DocumentViewer }
+    - { id: deviations,  href: /dashboard/hms/deviations,   label: Avvik,       component: DeviationKanban + DeviationListView + DeviationForm }
+    - { id: governance,  href: /dashboard/hms/governance,   label: Governance,  component: GovernanceOverview + MaintenanceProcedureForm }
+  cascade_dimensions:
+    - D3: policy → protocol → procedure / knowledge_test / confirmation (framework rules layer)
+    - C4: deviation, engine_authority_config (governance + permission layer)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+# Step 4 — Speed test (baseline — deferred)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+bottlenecks:
+  - { type: redirect_shell, file: governance/page.tsx, line: 63, fix: "page is a client-side router.replace to /dashboard/hms — no rendering cost" }
+
+# Step 5 — Datapoint mapping
+datapoints:
+  - { name: protocols,        source_table: protocol + protocol_assignment, hook: useGovernanceFiltered("all") → useGovernanceOverview, type: query }
+  - { name: openDeviations,   source_table: deviation,                     hook: useDeviations({ status: [open,acknowledged,escalated] }), type: query }
+  - { name: readinessScore,   source_table: protocol_assignment,           hook: useReadinessScore (employee variant), type: query }
+  - { name: departmentSessions, source_table: department_session,          hook: useDepartmentSessions (drift tab), type: query }
+  - { name: overdueTaskCount, source_table: session_task,                  hook: useDriftInsights, type: query }
+  - { name: upcomingReviews,  source_table: protocol_assignment,           hook: inline in OversiktDashboard, type: query }
+
+# Step 6 — Server Actions (ADR-0151 compliance audit)
+server_actions:
+  - file: _actions/update-policy-action.ts
+    pattern: gateAction + resolveCurrentProfile (server-side)
+    workspace_id_source: resolveCurrentProfile() — JWT-derived, not body
+    emit: governance.content_updated (after DB write, awaited)
+    adr_0151_compliant: true
+
+  - file: _actions/update-protocol-action.ts
+    pattern: gateAction + resolveCurrentProfile (server-side)
+    workspace_id_source: resolveCurrentProfile() — JWT-derived, not body
+    emit: governance.content_updated (after DB write, awaited)
+    adr_0151_compliant: true
+
+  - file: apps/web/src/app/dashboard/_actions/report-deviation-action.ts
+    pattern: used via useCreateDeviation hook
+    workspace_id_source: server-side per ADR-0114
+    emit: server-side + awaited (ADR-0114 closure)
+    adr_0151_compliant: true
+
+# Step 7 — Page Knowledge
+page_knowledge:
+  header: Governance
+  description: Oversikt over D3-regelrammeverk — politikker, protokoller, opplæring og C4-avvik for arbeidsplassen.
+  empty_copy: Ingen aktive protokoller. Opprett en policy og tildel protokoller til ansatte under HMS → Governance.
+  error_copy: Klarte ikke laste governance-data. Sjekk nettverkstilkoblingen og last siden på nytt.
+
+# Step 8 — Harness tools
+harness_tools_current:
+  count: 8
+  registered_at: apps/web/src/app/dashboard/governance/_tools/governance-tools-bridge.tsx
+  page_key: governance
+  read:
+    - key: getGovernanceState
+      desc: "Get current governance dashboard state — overall readiness %, total protocols, overdue count, open deviations, blocking deviations, active tab. Call first on any open-ended governance question."
+    - key: listProtocols
+      desc: "List all active D3-layer protocols with completion %, assignment counts, and policy type. Optional filter by policy_type or sort."
+    - key: getProtocolDetail
+      desc: "Get detailed status breakdown (completed/in_progress/not_started/expired/waived) for a single D3-layer protocol."
+    - key: listOverdueItems
+      desc: "List D3-layer protocols with expired assignments or completion below threshold (default 80%). Use for compliance gap analysis."
+    - key: listOpenDeviations
+      desc: "List open C4-layer deviations. Optional blocking_only flag to surface only those that block day-approval."
+  write_propose:
+    - key: proposeAssignProtocol
+      desc: "Navigate to the governance sub-tab and open the assign-protocol sheet for a protocol. User selects employees and confirms. NEVER assigns directly."
+    - key: proposeCreateDeviation
+      desc: "Navigate to the deviations tab so manager can create a new C4-layer deviation via DeviationForm."
+  navigation:
+    - key: switchGovernanceTab
+      desc: "Navigate to a specific HMS sub-tab: oversikt | drift | training | documents | deviations | governance."
+
+harness_tools_proposed: N/A — shipped above
+
+# Step 9 — Design pass
+design:
+  zinc_hits: 0       # governance/_tools files have no UI (return null / pure logic)
+  motion_token_hits: 0   # bridge returns null, no animation code
+  hardcoded_color_hits: 0
+  notes: "Bridge file governance-tools-bridge.tsx returns null — no visual output. Nordic Split N/A for this deliverable."
+
+# ADR-0238 check
+adr_0238:
+  owns_chat_surface: false
+  evidence: "No DomainChatOwnership declared, no mission-prefixed POST to /api/botsson/chat or /api/emma/chat in governance route. BotssonShell operates in normal interactive mode."
+  owns_chat_surface_recommendation: false
+
+# Step 10 — Re-test
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null  # baseline_blocker — requires browser session
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false        # baseline_blocker — requires dev server + browser session
+  no_skeleton_flash: true                    # loading.tsx skeleton present; redirect shell has no DOM flash
+  motion_tokens_used: false                  # bridge files have no animation — N/A (not a blocker)
+  telemetry_emit_per_mutation: true          # server actions emit governance.content_updated (awaited). Client TanStack mutations use "button clicked" trackingId — TODO(plan-phase-2) comments present for proper event names.
+  page_knowledge_written: true
+  page_knowledge_db_synced: false            # page_knowledge table insert not performed (out of scope)
+  harness_tools_registered: true             # 8 tools registered via useRegisterTools("governance", ...)
+  retest_improved: false                     # baseline_blocker — same blocker as lighthouse
+
+notes: |
+  Architecture note: /dashboard/governance is a redirect shell — the real governance
+  surface lives under /dashboard/hms. The bridge is mounted in governance/page.tsx
+  (client component) which sources data from useGovernanceFiltered + useDeviations
+  (same hooks as OversiktDashboard — TanStack cache shared, no extra fetches).
+
+  Cascade vocabulary in tool descriptions:
+    - D3 (Rules & Constraints): listProtocols, getProtocolDetail, listOverdueItems reference
+      policy → protocol → procedure / knowledge_test / confirmation chain.
+    - C4 (Policy & Governance): listOpenDeviations, proposeCreateDeviation reference
+      C4-layer deviation and day-approval gate.
+    - getGovernanceState surfaces both D3 (protocol count) and C4 (deviation count + blocking).
+
+  Telemetry audit:
+    - updatePolicyAction: emits governance.content_updated (awaited, server-side) ✓
+    - updateProtocolAction: emits governance.content_updated (awaited, server-side) ✓
+    - reportDeviationAction: emits server-side per ADR-0114 closure ✓
+    - useAssignProtocol / useBulkAssignProtocol / useWaiveAssignment / useRevokeAssignment:
+      emit "button clicked" with trackingId. TODO comments note proper event names
+      pending plan-phase-2 registration in registry.ts.
+    - useCreatePolicy / useCreateProtocol / useCreateProcedure / useCreateKnowledgeTest
+      / useCreateConfirmation: emit "button clicked" with trackingId.
+      TODO comments note proper event names pending plan-phase-2.
+
+  ADR-0151 compliance:
+    - Both server actions derive workspace_id via resolveCurrentProfile() (JWT path).
+    - Bridge tools do NOT pass workspace_id in body — confirmed.
+    - reportDeviationAction workspace_id resolved server-side per ADR-0114.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
+    motion_tokens_used: bridge files return null — no animation surface; not a real blocker.

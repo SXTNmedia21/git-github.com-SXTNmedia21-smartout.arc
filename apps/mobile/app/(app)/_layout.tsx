@@ -5,35 +5,65 @@
  *   Kalender · Vakter · ⊕ FAB · Chat · Min Tid
  *
  * FAB tap = return to Kalender (start anchor per ADR-0268).
+ * FAB long-press = open BotssonSheet directly (AI discoverability — 2026-05-20).
  * FAB swipe up layer 1 (80px) = open AddSheet.
  * FAB swipe up layer 2 (160px) = open AddSheet + BotssonSheet stacked.
+ *
+ * FabHint renders a first-run tooltip above the FAB to advertise the long-press
+ * AI entry. Auto-dismisses or marks-seen on first long-press / swipe-layer2.
  *
  * Each tab screen manages its own header.
  */
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
 import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
+import { FabHint } from "@/components/navigation/FabHint";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
-import { BotssonProvider } from "@/providers/botsson-provider";
+import { BotssonProvider, useBotsson } from "@/providers/botsson-provider";
+import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 
-// Canonical Expo Router initial route declaration — more reliable than the
-// initialRouteName prop on <Tabs> when the target screen has href: null.
-// Ensures /(app) always resolves to (calendar) as the daily anchor tab.
-// (home) is kept in the config with href:null so Expo Router doesn't 404 on
-// the existing folder; it is not shown in the tab bar.
+// Initial route = (home) — 3-screen pager (Pre/On/Post shift).
+// Supersedes the ADR-0268 anchor decision (was (calendar)).
+// Calendar remains accessible via its tab; no longer the landing screen.
 export const unstable_settings = {
-  initialRouteName: "(calendar)",
+  initialRouteName: "(home)",
 };
+
+/**
+ * IntentSheetController — listens for pendingIntent inside BotssonProvider
+ * and auto-expands the sheet. Must live inside BotssonProvider so it can
+ * call useBotsson(). The ref is forwarded from AppLayout.
+ *
+ * Separation of concerns: AppLayout owns the ref; this component bridges
+ * the provider state to the imperative sheet API without coupling AppLayout
+ * to the provider's internal state.
+ */
+function IntentSheetController({
+  sheetRef,
+}: {
+  sheetRef: React.RefObject<GorhomBottomSheet | null>;
+}) {
+  const { pendingIntent } = useBotsson();
+  useEffect(() => {
+    if (pendingIntent) {
+      // Expand the sheet so the intent banner is visible immediately.
+      sheetRef.current?.expand();
+    }
+  }, [pendingIntent, sheetRef]);
+  return null;
+}
 
 export default function AppLayout() {
   const styles = useStyles();
@@ -44,11 +74,38 @@ export default function AppLayout() {
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const addSheetRef = useRef<AddSheetHandle>(null);
+  const markFabHintSeen = useBotssonSettingsStore((s) => s.setHasSeenFabHint);
 
-  /** Tap → return to Kalender (daily anchor per ADR-0268). */
+  /** Tap → return to Home (3-screen pager). Supersedes ADR-0268 anchor target. */
   const handleFabTap = useCallback(() => {
-    router.replace("/(app)/(calendar)");
+    router.replace("/(app)/(home)");
   }, [router]);
+
+  /** Long-press → open BotssonSheet directly (discoverable AI entry). */
+  const handleFabLongPress = useCallback(() => {
+    markFabHintSeen(true);
+    botssonSheetRef.current?.expand();
+    // Emit: mobile.fab.long_press (ADR-0134 — non-null IDs required).
+    void (async () => {
+      try {
+        const { profileId, workspaceId } = await getProfileContext();
+        void emit({
+          event: "mobile.fab.long_press",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { device_type: "mobile" } },
+        });
+        void emit({
+          event: "mobile.botsson_sheet.opened",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { source: "fab_long_press", device_type: "mobile" } },
+        });
+      } catch {
+        // Profile unavailable — skip telemetry; UX must not be blocked.
+      }
+    })();
+  }, [markFabHintSeen]);
 
   /** Swipe layer 1 (≥80px up) → open AddSheet only. */
   const handleFabSwipeLayer1 = useCallback(() => {
@@ -57,9 +114,24 @@ export default function AppLayout() {
 
   /** Swipe layer 2 (≥160px up) → open AddSheet + BotssonSheet stacked. */
   const handleFabSwipeLayer2 = useCallback(() => {
+    markFabHintSeen(true);
     addSheetRef.current?.open();
     botssonSheetRef.current?.expand();
-  }, []);
+    // Emit: mobile.botsson_sheet.opened (source = fab_swipe_layer_2).
+    void (async () => {
+      try {
+        const { profileId, workspaceId } = await getProfileContext();
+        void emit({
+          event: "mobile.botsson_sheet.opened",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { source: "fab_swipe_layer_2", device_type: "mobile" } },
+        });
+      } catch {
+        // Profile unavailable — skip telemetry; UX must not be blocked.
+      }
+    })();
+  }, [markFabHintSeen]);
 
   const handleBotssonDismiss = useCallback(() => {
     botssonSheetRef.current?.close();
@@ -73,33 +145,41 @@ export default function AppLayout() {
         centerFab={
           <AIFab
             onTap={handleFabTap}
+            onLongPress={handleFabLongPress}
             onSwipeLayer1={handleFabSwipeLayer1}
             onSwipeLayer2={handleFabSwipeLayer2}
           />
         }
       />
     ),
-    [handleFabTap, handleFabSwipeLayer1, handleFabSwipeLayer2, unreadNotificationCount],
+    [
+      handleFabTap,
+      handleFabLongPress,
+      handleFabSwipeLayer1,
+      handleFabSwipeLayer2,
+      unreadNotificationCount,
+    ],
   );
 
   return (
     <BotssonProvider>
+      {/* Watches pendingIntent and auto-expands the sheet on openWithIntent calls */}
+      <IntentSheetController sheetRef={botssonSheetRef} />
       <View style={styles.container}>
         <Tabs
           screenOptions={{ headerShown: false }}
-          initialRouteName="(calendar)"
+          initialRouteName="(home)"
           tabBar={renderTabBar}
         >
-          {/* ── 5-tab canonical layout per ADR-0268 ─────────────────────── */}
-          <Tabs.Screen name="(calendar)" options={{ title: strings.tabs.kalender }} />
+          {/* ── Tab bar layout: Home · Vakter · FAB · Chat · Min Tid ────── */}
+          <Tabs.Screen name="(home)" options={{ title: "Hjem" }} />
           <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.vakter }} />
           {/* FAB slot: center button in TabBar — no navigable route */}
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
           <Tabs.Screen name="(me)" options={{ title: strings.tabs.minTid }} />
 
-          {/* ── Hidden legacy folders — DO NOT remove, folders still exist ─ */}
-          {/* Expo Router shows 404 if a folder exists but no Tabs.Screen entry */}
-          <Tabs.Screen name="(home)" options={{ href: null }} />
+          {/* ── Hidden — Calendar still reachable but not in tab bar ────── */}
+          <Tabs.Screen name="(calendar)" options={{ href: null }} />
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />
@@ -111,6 +191,7 @@ export default function AppLayout() {
         {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}
         <AddSheet ref={addSheetRef} selectedDate={new Date()} />
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
+        <FabHint message={strings.botsson.fabHint} />
       </View>
     </BotssonProvider>
   );

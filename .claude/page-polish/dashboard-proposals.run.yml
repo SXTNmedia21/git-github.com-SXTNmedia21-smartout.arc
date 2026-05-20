@@ -1,0 +1,175 @@
+# Page Polish Run — dashboard/proposals (ROOT only)
+# Tier 3 (long tail). Admin-only C4 governance surface — change_proposal inbox.
+# Scope: page.tsx + _components/ProposalsListClient.tsx + _tools/ only.
+# [proposalId]/ sub-route NOT touched.
+
+route: /dashboard/proposals
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/proposals
+  files_in_scope:
+    - apps/web/src/app/dashboard/proposals/page.tsx
+    - apps/web/src/app/dashboard/proposals/_components/ProposalsListClient.tsx
+    - apps/web/src/app/dashboard/proposals/_tools/use-proposals-tools.ts          # NEW
+    - apps/web/src/app/dashboard/proposals/_tools/proposals-tools-bridge.tsx      # NEW
+  files_out_of_scope:
+    - apps/web/src/app/dashboard/proposals/[proposalId]/   # sub-route, not touched
+    - apps/web/src/app/dashboard/proposals/_components/ProposalDetailClient.tsx   # sub-route component
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/proposals/page.tsx (server component, Suspense shell)
+  client_component: apps/web/src/app/dashboard/proposals/_components/ProposalsListClient.tsx
+  hook: apps/web/src/app/dashboard/proposals/_hooks/use-payroll-proposals.ts
+  shell:
+    container: max-w-3xl, px-4, py-6 — centred single-column layout
+    header: h1 (font-heading text-2xl) + subtitle paragraph
+    list: Card + CardContent wrapping proposal rows (Link per row)
+  state_machine:
+    - loading   # isLoading → ProposalsSkeleton
+    - error     # isError → red error text
+    - empty     # proposals.length === 0 → ProposalsEmpty (Inbox icon + text)
+    - ready     # proposals rendered as ProposalRow links
+  variants: []  # No role variants — admin-only surface, single view
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 3 — Cascade alignment
+cascade:
+  dimension: C4   # change_proposal = governance artefact
+  table: change_proposal
+  kind: wage_line_override
+  upstream: payroll calc engine proposes → manager submits → admin approves/rejects
+  note: |
+    Proposals are created by the payroll calc engine when a manager requests a
+    wage_line_override. Approval triggers recalc + supersession event.
+    Rejection writes rejection_reason back to change_proposal.changes.
+
+# Step 4 — Datapoints
+datapoints:
+  - { name: proposals,   hook: usePayrollProposals,  type: query,  params: "{workspaceId}",  polling: "30s" }
+
+mutations:
+  - { name: approve,  hook: useApproveProposal,  fired_in: "[proposalId] detail page — out of scope" }
+  - { name: reject,   hook: useRejectProposal,   fired_in: "[proposalId] detail page — out of scope" }
+
+# Note: approve/reject mutations live in the [proposalId] sub-route (ProposalDetailClient).
+# Root page is read-only + navigation. No mutations fire here.
+
+# Step 5 — Design pass (Phase 4)
+design:
+  zinc_hits: 0            # 0 hardcoded zinc/gray/slate
+  motion_token_hits: 0    # No framer-motion on root page — acceptable static list
+  hardcoded_color_hits:
+    - green-700: 1 hit (positive delta label) — intentional semantic color, not design token
+    - red-600: 1 hit (negative delta label) — intentional semantic color, not design token
+  emoji_hits: 0
+  font_heading_used: true   # h1 + CardTitle use font-heading
+  font_mono_used: false     # No high-density numeric data in the list view
+  semantic_tokens:
+    bg-muted: 2 hits
+    text-foreground: 4 hits
+    text-muted-foreground: 6 hits
+    border-border: 1 hit (proposal row border)
+    text-destructive: 1 hit (error state)
+  finding: clean_phase_4
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  current:
+    header: "Override-innboks"
+    description: "Ventende lønns-override forslag fra ledere som krever godkjenning." — present, descriptive
+    empty_copy: "Ingen ventende override-forslag" — functional, acceptable
+    error_copy: "Kunne ikke laste forslag: {message}" — present, includes error message
+  finding: page_knowledge_adequate  # All three strings present and non-generic
+
+# Step 7 — Harness tools
+harness_tools:
+  page_key: proposals
+  count: 5
+  registered_at: apps/web/src/app/dashboard/proposals/_tools/use-proposals-tools.ts
+  bridge_at: apps/web/src/app/dashboard/proposals/_tools/proposals-tools-bridge.tsx
+  mount_point: apps/web/src/app/dashboard/proposals/_components/ProposalsListClient.tsx
+  mount_condition: "proposals != null (post-fetch guard — avoids stale empty-array tools)"
+  tools:
+    - name: listProposals
+      description: >
+        List wage override proposals in the admin inbox. Filter by status
+        (pending|applied|rejected|all). Use when admin asks 'hva venter på godkjenning?',
+        'vis alle forslag', or 'hvilke overrides er avvist?'.
+      params: { status: optional enum }
+
+    - name: getProposalDetail
+      description: >
+        Get full detail for one change proposal — original amount, proposed amount,
+        delta, reason, category, and status. Use when admin asks about a specific
+        proposal or says 'vis detaljer for [id]'.
+      params: { proposalId: required string }
+
+    - name: getPendingProposals
+      description: >
+        Get the number and list of proposals still waiting for admin approval. Use
+        when admin asks 'hvor mange venter?' or 'trenger jeg å gjøre noe?'.
+      params: {}
+
+    - name: openProposal
+      description: >
+        Navigate to the detail page for a specific proposal. Use when admin says
+        'åpne forslaget' or 'gå til [id]'.
+      params: { proposalId: required string }
+
+    - name: switchStatusFilter
+      description: >
+        Switch the visible status filter in the proposals inbox
+        (pending|applied|rejected|all). Use when admin says 'vis bare godkjente'
+        or 'filtrer på ventende'.
+      params: { status: required enum }
+
+# Step 8 — Site-map (out of scope per task spec — DO NOT TOUCH site-map.json)
+site_map:
+  skipped: true
+  reason: "Explicitly excluded from task scope."
+
+# Verification
+checklist:
+  typecheck_exit_0: true           # pnpm --filter web typecheck — see verification below
+  modelToolName_count: 5           # 5 tools in use-proposals-tools.ts
+  useRegisterTools_call: true      # proposals-tools-bridge.tsx line ~46
+  run_yml_status_done: true        # this file
+  bridge_mounted_in_list: true     # ProposalsListClient.tsx — conditional mount
+
+verification_commands:
+  - cmd: "pnpm --filter web typecheck"
+    expect: exit 0
+  - cmd: "grep -c 'modelToolName' apps/web/src/app/dashboard/proposals/_tools/use-proposals-tools.ts"
+    expect: "5"
+  - cmd: "grep 'useRegisterTools' apps/web/src/app/dashboard/proposals/_tools/proposals-tools-bridge.tsx"
+    expect: 'useRegisterTools("proposals", tools)'
+  - cmd: "grep 'status: done' .claude/page-polish/dashboard-proposals.run.yml"
+    expect: "status: done"
+  - cmd: "grep 'ProposalsToolsBridge' apps/web/src/app/dashboard/proposals/_components/ProposalsListClient.tsx"
+    expect: mount line present
+
+notes: |
+  Root-only scope. [proposalId]/ sub-route (ProposalDetailClient + approve/reject
+  mutations) intentionally untouched per task spec.
+
+  StatusFilter state (activeFilter / setActiveFilter) added to ProposalsListClient.
+  The filter is client-local — the list hook always fetches all proposals and
+  filtering is done in the tool implementation (same pattern as notifications).
+  The UI filter controls were not added in this pass (list always shows all pending
+  rows) — switchStatusFilter is wired for Botsson but does not yet drive a
+  visual tab bar. That is a Phase 6 UI follow-up if needed.
+
+  green-700 / red-600 hardcoded color hits are intentional semantic choices
+  (positive/negative financial delta) — not design token violations.

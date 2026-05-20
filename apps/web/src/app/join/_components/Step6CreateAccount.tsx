@@ -70,10 +70,9 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
 
     try {
       const supabase = createClient();
-      let accessToken: string | undefined;
 
       if (mode === "signin") {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -82,9 +81,8 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
           setLoading(false);
           return;
         }
-        accessToken = data.session?.access_token;
       } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -98,31 +96,24 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
         if (signUpError) {
           // User was created between our check and now — try signin
           if (signUpError.message.includes("already registered")) {
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword(
-              { email, password },
-            );
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
             if (signInError) {
               setError("Feil passord for eksisterende konto.");
               setLoading(false);
               return;
             }
-            accessToken = signInData.session?.access_token;
           } else {
             setError(signUpError.message);
             setLoading(false);
             return;
           }
-        } else {
-          accessToken = data.session?.access_token;
         }
       }
 
-      // Pass token via state — server action can't read cookies in the
-      // same request cycle after signup/signin.
-      if (accessToken) {
-        updateState({ _accessToken: accessToken } as Partial<JoinState>);
-      }
-
+      // Cookies are written by Supabase client; wizard-definition.onComplete syncs session before the action POST.
       await next();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Noe gikk galt. Prøv igjen.");

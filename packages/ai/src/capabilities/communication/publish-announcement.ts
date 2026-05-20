@@ -24,12 +24,12 @@
  */
 
 import { z } from "zod";
-import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { callGateAction } from "./gate.js";
 import { isAiAllowedInChannel } from "./policy.js";
 import { resolveAudience, type AudienceInput } from "./audience-resolver.js";
+import { emitAnnouncementPublished } from "./emit-announcement-events.js";
 
 export const publishAnnouncement = defineTool({
   name: "publish_announcement",
@@ -37,44 +37,119 @@ export const publishAnnouncement = defineTool({
     "Compose and publish a workspace announcement on behalf of the manager. " +
     "Two-call pattern: first call with confirm=false (default) returns a draft + " +
     "audience preview for human confirmation; second call with confirm=true publishes " +
-    "the announcement via INSERT. Voice channel is rejected. Audience resolution is " +
-    "server-side; raw profile IDs are never returned to the agent.",
+    "the announcement via RPC (publish_announcement_atomic). Voice channel is rejected. " +
+    "Audience resolution is server-side; raw profile IDs are never returned to the agent. " +
+    "V2: accepts kind (7 agent-valid values: general|new_menu|new_hire|staff_event|" +
+    "schedule_change|policy_update|external), " +
+    "tier (social|work|external), optional tags, and optional entity-link pair (type+id). " +
+    "NOTE: celebration and system_message are service-role-only — the RPC rejects JWT callers " +
+    "for those kinds (ADR-0372 §Agent Impact). Agents must NOT use them. " +
+    "Choose kind by intent: general as default (was workspace_news — use general). " +
+    "Choose tier by urgency: external for urgent (emails sent), " +
+    "work for standard, social for low-key community.",
   capability: "communication",
-  schema: z.object({
-    channel_id: z.string().uuid().describe("The news channel ID for this workspace"),
-    title: z.string().min(1).max(120).describe("Announcement title (first line)"),
-    body: z.string().min(1).max(1600).describe("Announcement body text"),
-    audience_kind: z
-      .enum(["all", "on_duty", "department", "role", "individuals"])
-      .describe(
-        "Audience targeting kind. " +
-          "'all' = all active workspace members. " +
-          "'on_duty' = members currently clocked in. " +
-          "'department' = supply department_ids. " +
-          "'role' = supply roles. " +
-          "'individuals' = supply profile_ids.",
-      ),
-    department_ids: z
-      .array(z.string().uuid())
-      .optional()
-      .describe("Required when audience_kind='department'"),
-    roles: z
-      .array(z.enum(["admin", "manager", "employee", "owner"]))
-      .optional()
-      .describe("Required when audience_kind='role'"),
-    profile_ids: z
-      .array(z.string().uuid())
-      .optional()
-      .describe("Required when audience_kind='individuals'"),
-    confirm: z
-      .boolean()
-      .default(false)
-      .describe(
-        "False (default): resolve audience + return draft for human confirmation. No INSERT. " +
-          "True: publish after human approval. Two-call pattern protects against " +
-          "agent auto-publishing workspace-wide content without explicit consent.",
-      ),
-  }),
+  schema: z
+    .object({
+      channel_id: z.string().uuid().describe("The news channel ID for this workspace"),
+      title: z.string().min(1).max(120).describe("Announcement title (first line)"),
+      body: z.string().min(1).max(1600).describe("Announcement body text"),
+      audience_kind: z
+        .enum(["all", "on_duty", "department", "role", "individuals"])
+        .describe(
+          "Audience targeting kind. " +
+            "'all' = all active workspace members. " +
+            "'on_duty' = members currently clocked in. " +
+            "'department' = supply department_ids. " +
+            "'role' = supply roles. " +
+            "'individuals' = supply profile_ids.",
+        ),
+      department_ids: z
+        .array(z.string().uuid())
+        .optional()
+        .describe("Required when audience_kind='department'"),
+      roles: z
+        .array(z.enum(["admin", "manager", "employee", "owner"]))
+        .optional()
+        .describe("Required when audience_kind='role'"),
+      profile_ids: z
+        .array(z.string().uuid())
+        .optional()
+        .describe("Required when audience_kind='individuals'"),
+      kind: z
+        .enum([
+          "general",
+          "new_menu",
+          "new_hire",
+          "staff_event",
+          "schedule_change",
+          "policy_update",
+          "external",
+        ])
+        .optional()
+        .describe(
+          "Announcement classification — 7 agent-valid values from DB enum announcement_kind. " +
+            "general: default news/updates (maps former workspace_news). " +
+            "new_menu: menu updates. new_hire: new employee announcement. " +
+            "staff_event: personaltreff/gathering. schedule_change: shift/schedule updates. " +
+            "policy_update: policy or rule changes. external: URL/external resource link (maps former external_link). " +
+            "EXCLUDED (service-role only, RPC rejects JWT): celebration (ADR-0372 cron-auto), system_message. " +
+            "Defaults to 'general' when omitted.",
+        ),
+      tier: z
+        .enum(["social", "work", "external"])
+        .optional()
+        .describe(
+          "Notification routing tier per V2 spec §11. Defaults server-side to 'work' when omitted. " +
+            "social: low priority, community mode + push/in_app. " +
+            "work: standard priority, work mode + push/in_app (default). " +
+            "external: elevated priority + email channel.",
+        ),
+      tags: z
+        .array(z.string().min(1).max(30))
+        .max(8)
+        .optional()
+        .describe("Free-form tags for grouping/filtering. Max 8 tags, 30 chars each."),
+      linked_entity_type: z
+        .enum([
+          "staff_event",
+          "schedule_shift",
+          "policy",
+          "protocol",
+          "profile",
+          "menu_document",
+          "external_url",
+        ])
+        .optional()
+        .describe(
+          "Polymorphic entity-link discriminator anchored to DB enum announcement_link_type " +
+            "(CHECK constraint in 20260620140200_announcement_meta_table.sql:23-30). " +
+            "Must pair with linked_entity_id. Valid values and their paired kind: " +
+            "staff_event→staff_event kind, schedule_shift→staff_event/general, " +
+            "policy→system_message, protocol→system_message, profile→celebration/staff_event, " +
+            "menu_document→general, external_url→external kind.",
+        ),
+      linked_entity_id: z
+        .string()
+        .uuid()
+        .optional()
+        .describe("Polymorphic entity-link target id. Must pair with linked_entity_type."),
+      confirm: z
+        .boolean()
+        .default(false)
+        .describe(
+          "False (default): resolve audience + return draft for human confirmation. No RPC call. " +
+            "True: publish after human approval. Two-call pattern protects against " +
+            "agent auto-publishing workspace-wide content without explicit consent.",
+        ),
+    })
+    .refine(
+      (data) =>
+        (data.linked_entity_type === undefined && data.linked_entity_id === undefined) ||
+        (data.linked_entity_type !== undefined && data.linked_entity_id !== undefined),
+      {
+        message: "linked_entity_type and linked_entity_id must both be provided or both omitted",
+      },
+    ),
   execute: async (params, ctx: AgentToolContext) => {
     // Council B3: voice reject as FIRST statement — MUST precede gate call.
     // gate_action's channel_allowed only activates with p_engine_process_id;
@@ -90,7 +165,7 @@ export const publishAnnouncement = defineTool({
     // on missing seed (ADR-0189 + L-0066 default-deny).
     const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
       capability: "communication",
-      actionType: "publish_announcement",
+      actionType: "publish_announcement_atomic",
       channel: ctx.channel ?? "chat",
       entityId: undefined,
     });
@@ -157,51 +232,49 @@ export const publishAnnouncement = defineTool({
       });
     }
 
-    // Phase: published — INSERT after human approval (confirm=true)
+    // Phase: published — RPC publish_announcement_atomic (atomic per ADR-0369)
     const isTargeted = audience.kind !== "all";
     const content = `${params.title}\n${params.body}`;
+    const clientMessageId = crypto.randomUUID();
 
-    const { data, error } = await supabase
-      .from("channel_message")
-      .insert({
-        channel_id: params.channel_id,
-        workspace_id: ctx.workspaceId,
-        sender_id: ctx.profileId,
-        content,
-        message_type: "announcement",
-        visibility_scope: isTargeted ? "targeted_members" : "all_members",
-        target_profile_ids: isTargeted ? resolved.profileIds : null,
-        system_data: {
-          audience_kind: audience.kind,
-          audience_label: resolved.label,
-        },
-      })
-      .select("id, content, created_at")
-      .single();
+    const { data: messageId, error } = await supabase.rpc("publish_announcement_atomic", {
+      p_workspace_id: ctx.workspaceId,
+      p_actor_profile_id: ctx.profileId,
+      p_channel_id: params.channel_id,
+      p_content: content,
+      p_visibility_scope: isTargeted ? "targeted_members" : "all_members",
+      p_target_profile_ids: isTargeted ? resolved.profileIds : [],
+      p_system_data: { audience_kind: audience.kind, audience_label: resolved.label },
+      p_kind: params.kind ?? "general",
+      p_tier: params.tier ?? "work",
+      p_tags: params.tags ?? [],
+      p_linked_entity_type: params.linked_entity_type ?? null,
+      p_linked_entity_id: params.linked_entity_id ?? null,
+      p_client_message_id: clientMessageId,
+    });
 
     if (error) {
       return `Error publishing announcement: ${error.message}`;
     }
+    const data = { id: messageId as string };
 
-    // Telemetry via existing channel.message.sent event (extended by Wave A b95742cef)
-    await emit({
-      event: "channel.message.sent",
-      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
-      actor_id: nonEmpty(ctx.profileId, "actor_id"),
-      entity: {
-        entity_type: "channel_message",
-        entity_id: data.id,
-      },
-      properties: {
-        channel_id: params.channel_id,
-        origin_type: "agent",
-        message_type: "announcement",
-        visibility_scope: isTargeted ? "targeted_members" : "all_members",
-        target_profile_count: resolved.count,
-        audience_kind: audience.kind,
-        notification_priority: 1,
-        notification_mode: "work",
-      },
+    // Telemetry: channel.message.sent (V2 extended) via shared helper (spec §9.b, Track F).
+    // emitAnnouncementPublished wires all announcement-specific properties including
+    // V2 kind/tier/link/tag fields registered in Track F per ADR-0358.
+    await emitAnnouncementPublished({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      message_id: data.id,
+      channel_id: params.channel_id,
+      origin_type: "agent",
+      audience_kind: audience.kind,
+      visibility_scope: isTargeted ? "targeted_members" : "all_members",
+      target_profile_count: resolved.count,
+      kind: params.kind ?? "general",
+      tier: params.tier ?? "work",
+      tag_count: (params.tags ?? []).length,
+      has_entity_link: !!(params.linked_entity_type && params.linked_entity_id),
+      link_type: params.linked_entity_type,
     });
 
     // PII boundary (Council B5): NEVER return raw target_profile_ids

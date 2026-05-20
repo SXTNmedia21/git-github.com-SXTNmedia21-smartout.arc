@@ -19,19 +19,19 @@ const POLICY_TYPE_CONFIG: Record<PolicyType, BadgeConfig> = {
   },
   haccp: {
     label: "HACCP",
-    className: "bg-emerald-500/10 text-emerald-500 ring-emerald-500/20 ring-1",
+    className: "bg-success/10 text-success ring-success/20 ring-1",
   },
   hr: {
     label: "HR",
-    className: "bg-blue-400/10 text-blue-400 ring-blue-400/20 ring-1",
+    className: "bg-info/10 text-info ring-info/20 ring-1",
   },
   safety: {
     label: "Sikkerhet",
-    className: "bg-amber-400/10 text-amber-400 ring-amber-400/20 ring-1",
+    className: "bg-warning/10 text-warning ring-warning/20 ring-1",
   },
   access: {
     label: "Tilgang",
-    className: "bg-violet-400/10 text-violet-400 ring-violet-400/20 ring-1",
+    className: "bg-primary/10 text-primary ring-primary/20 ring-1",
   },
   payroll: {
     label: "Lønn",

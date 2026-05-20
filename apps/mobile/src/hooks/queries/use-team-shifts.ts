@@ -51,15 +51,16 @@ function dayOfMonth(dateStr: string): number {
   return parseInt(dateStr.slice(8, 10), 10);
 }
 
-/** Map a DB department name to our Department union slug. */
-function toDeptSlug(name: string | null | undefined): Department {
-  const n = (name ?? "").toLowerCase();
-  if (n.includes("kjøkken") || n.includes("kjokken") || n.includes("kitchen")) return "kjokken";
-  if (n.includes("sal") || n.includes("floor") || n.includes("service")) return "sal";
-  if (n.includes("bar")) return "bar";
-  if (n.includes("event")) return "event";
-  return "kjokken"; // safe fallback
-}
+/** Valid Department slugs (mirrors the union in types.ts). */
+const KNOWN_DEPT_SLUGS = new Set<Department>([
+  "kjokken",
+  "sal",
+  "bar",
+  "event",
+  "kitchen",
+  "operations",
+  "service",
+]);
 
 export type ShiftWithProfile = {
   /** schedule_shift PK */
@@ -100,18 +101,21 @@ type UseTeamShiftsParams = {
   myProfileId: string | null;
 };
 
-/** Supabase join shape for profile rows */
+/** Supabase join shape for profile rows.
+ *  profile has ONLY display_name (CLAUDE.md trap, no first_name/last_name/color
+ *  columns) — derive firstName/lastName client-side via split, color falls
+ *  back to department-derived color.
+ */
 type ProfileRow = {
   profile_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_color: string | null;
+  display_name: string | null;
 };
 
 /** Supabase join shape for position → department */
 type PositionRow = {
   department: {
     id: string;
+    slug: string;
     name: string;
     color: string | null;
   } | null;
@@ -145,15 +149,31 @@ async function fetchTeamShifts(
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
-    const { data: prof, error: profErr } = await supabase
+    // Try active profile first, fall back to ANY profile for this user.
+    // .maybeSingle() returns null instead of throwing PGRST116 on zero rows —
+    // critical for seed data where is_active may not be set.
+    const { data: activeProf, error: activeErr } = await supabase
       .from("profile")
       .select("profile_id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1)
-      .single();
-    if (profErr || !prof) throw profErr ?? new Error("Profile not found");
-    resolvedProfileId = prof.profile_id;
+      .maybeSingle();
+    if (activeErr) throw activeErr;
+    if (activeProf) {
+      resolvedProfileId = activeProf.profile_id;
+    } else {
+      // Fallback: any profile (covers seed users w/o is_active=true)
+      const { data: anyProf, error: anyErr } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      if (anyErr) throw anyErr;
+      if (!anyProf) throw new Error("Profile not found");
+      resolvedProfileId = anyProf.profile_id;
+    }
   }
 
   // Compute Sunday from Monday (weekStart + 6 days)
@@ -176,13 +196,12 @@ async function fetchTeamShifts(
       employee_id,
       profile:employee_id (
         profile_id,
-        first_name,
-        last_name,
-        avatar_color
+        display_name
       ),
       position:position_id (
         department:department_id (
           id,
+          slug,
           name,
           color
         )
@@ -202,8 +221,10 @@ async function fetchTeamShifts(
 
   const mapped: ShiftWithProfile[] = rows.map((row) => {
     const prof = row.profile;
-    const firstName = prof?.first_name ?? "";
-    const lastName = prof?.last_name ?? "";
+    // profile has only display_name (CLAUDE.md trap) — split for parts.
+    const parts = (prof?.display_name ?? "").trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] ?? "";
+    const lastName = parts.length > 1 ? parts[parts.length - 1]! : "";
     const ownerName =
       firstName && lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName || "Ukjent";
     const ownerInitials =
@@ -213,12 +234,27 @@ async function fetchTeamShifts(
           ? firstName.slice(0, 2).toUpperCase()
           : "??";
 
-    // Dept resolved via position → department (canonical per ADR-0266 §Implementation contract)
+    // Dept resolved via position → department (canonical per ADR-0266 §Implementation contract).
+    // Read department.slug directly from DB — no substring heuristic (dropped 2026-05-18).
     const dept = row.position?.department;
-    const deptSlug = toDeptSlug(dept?.name);
+    const rawSlug = dept?.slug;
+    let deptSlug: Department = "kjokken"; // conservative fallback for null position
+    if (rawSlug) {
+      if (KNOWN_DEPT_SLUGS.has(rawSlug as Department)) {
+        deptSlug = rawSlug as Department;
+      } else {
+        // Fail-loud per L-0177 pattern: slug exists in DB but is not in the union.
+        // Operator must add it to the Department union and design-token palette.
+        console.warn(
+          `[useTeamShifts] Unknown department.slug "${rawSlug}" — falling back to "kjokken". ` +
+            "Add to Department union in types.ts and color token in native.ts.",
+        );
+      }
+    }
     // Prefer DB-stored color; fall back to design-token constant
     const deptColor = dept?.color ?? deptColorFor(deptSlug);
-    const ownerColor = prof?.avatar_color ?? deptColor;
+    // No per-profile color column — always fall back to dept color.
+    const ownerColor = deptColor;
 
     return {
       id: row.schedule_shift_id,

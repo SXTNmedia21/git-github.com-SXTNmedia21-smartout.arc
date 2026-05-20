@@ -101,8 +101,13 @@ export default function Verify() {
     setIsLoading(true);
     setError(null);
 
+    // Universal Link target — per ADR-0021 amendment + SMARTOUT_AUTH_DEEPLINK_ARCHITECTURE.md §3.3.
+    // Supabase Cloud Redirect URLs whitelist is `app.smartout.ai/**` only;
+    // `smartout://` scheme is NOT a valid Cloud redirectTo and would be rejected.
+    // The web bridge at /m/update-password attempts the scheme-URL relay if the
+    // OS missed the Universal-Link intent (desktop, no app installed).
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmed, {
-      redirectTo: "smartout://auth/callback",
+      redirectTo: "https://app.smartout.ai/m/update-password",
     });
 
     setIsLoading(false);
@@ -169,13 +174,17 @@ export default function Verify() {
     setError(null);
     setGoogleLoading(true);
 
+    // Universal Link target on mobile — Apple/Android intercept and route to
+    // the native `(auth)/callback.tsx` screen when the app is installed; the
+    // web bridge at /m/auth/callback handles the fallback (no-app case).
+    // Web path is unchanged — same-host callback for the Expo-on-web variant.
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo:
           Platform.OS === "web"
             ? `${window.location.origin}/api/auth/callback`
-            : "smartout://auth/callback",
+            : "https://app.smartout.ai/m/auth/callback",
       },
     });
 

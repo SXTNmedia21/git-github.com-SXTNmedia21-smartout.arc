@@ -68,7 +68,7 @@ ${v.ctaUrl ? `<p style="margin:24px 0;"><a href="${v.ctaUrl}" style="display:inl
 <p style="margin:0 0 16px;">Hei {{recipientName}},</p>
 <p style="margin:0 0 16px;">Proveperioden for <strong>{{companyName}}</strong> utloper om <strong>{{daysLeft}}</strong> dager.</p>
 <p style="margin:0 0 16px;">Oppgrader na for a beholde tilgang til alle funksjoner.</p>
-<p style="margin:24px 0;"><a href="${v.upgradeUrl ?? "https://smartout.io/pricing"}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Oppgrader na</a></p>`,
+<p style="margin:24px 0;"><a href="${v.upgradeUrl ?? "https://smartout.ai/pricing"}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Oppgrader na</a></p>`,
   },
 
   "payment-reminder": {
@@ -79,7 +79,7 @@ ${v.ctaUrl ? `<p style="margin:24px 0;"><a href="${v.ctaUrl}" style="display:inl
 <p style="margin:0 0 16px;">Vi har ikke mottatt betaling for <strong>{{companyName}}</strong>.</p>
 <p style="margin:0 0 16px;">Betalingsfrist: <strong>{{dueDate}}</strong></p>
 <p style="margin:0 0 16px;">Belop: <strong>{{amount}}</strong></p>
-<p style="margin:24px 0;"><a href="${v.paymentUrl ?? "https://smartout.io/billing"}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Betal na</a></p>`,
+<p style="margin:24px 0;"><a href="${v.paymentUrl ?? "https://smartout.ai/billing"}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Betal na</a></p>`,
   },
 
   "contract-reminder": {

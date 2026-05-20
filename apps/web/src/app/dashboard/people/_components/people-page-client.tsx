@@ -3,16 +3,18 @@
 import { useState, useContext, useCallback, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Users, Star, ShieldCheck } from "lucide-react";
-import { KpiAccentTile } from "@smartout/ui";
+import { KpiAccentTile, cn } from "@smartout/ui";
 import { PeopleDataTable } from "./people-data-table";
+import { PeopleVoiceToolsBridge } from "./people-voice-tools-bridge";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { fetchWorkspacePeople } from "@smartout/utils";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import type { Employee, Department, ProfileRole } from "./types";
 
-type MetricFilter = "all" | "active" | "readiness";
+type MetricFilter = "all" | "active" | "readiness" | "invites";
 
 export type PeoplePageInitialData = {
   employees: Employee[];
@@ -132,6 +134,9 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
+      {/* Botsson tool registration — read-only people tools for voice queries */}
+      <PeopleVoiceToolsBridge employees={employees} departments={departments} />
+
       {/* Page header — H1 + subtitle (Reports-style) */}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
@@ -158,13 +163,8 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
         </div>
       </div>
 
-      {/* Page tab nav — same pill-row as Oversikt */}
-      <PageTabNav
-        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
-        active={pathname ?? "/dashboard/people"}
-        onChange={(href) => router.push(href)}
-        ariaLabel="Ansatte-seksjoner"
-      />
+      {/* Page tab nav published to shell breadcrumb via usePageTabs */}
+      <PeopleTabsPublisher pathname={pathname ?? "/dashboard/people"} router={router} />
 
       {/* KPI strip — compact KpiAccentTile */}
       <div
@@ -207,6 +207,26 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
         />
       </div>
 
+      {/* Invitert filter chip — shown only when pending invitations exist */}
+      {invitations.length > 0 && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Status-filter">
+          <button
+            type="button"
+            onClick={() => setActiveFilter((prev) => (prev === "invites" ? "all" : "invites"))}
+            data-active={activeFilter === "invites" ? "true" : "false"}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              activeFilter === "invites"
+                ? "border-foreground/20 bg-foreground text-background"
+                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted",
+            )}
+          >
+            Invitert
+            <span className="ml-1.5 font-mono tabular-nums opacity-70">{invitations.length}</span>
+          </button>
+        </div>
+      )}
+
       {/* Data Table */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         <PeopleDataTable
@@ -222,4 +242,26 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
       </div>
     </div>
   );
+}
+
+function PeopleTabsPublisher({
+  pathname,
+  router,
+}: {
+  pathname: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const tabsNode = useMemo(
+    () => (
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        active={pathname}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
+    ),
+    [pathname, router],
+  );
+  usePageTabs(tabsNode);
+  return null;
 }

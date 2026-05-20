@@ -156,6 +156,28 @@ smartout_v3/
 
 ---
 
+## Task Ontology (ADR-0298)
+
+Five sources, one read surface, one capability:
+
+| Source       | Table               | Cascade Role        | Actor                             |
+| ------------ | ------------------- | ------------------- | --------------------------------- |
+| `session`    | `session_task`      | D6 Production       | cron + manager + agent            |
+| `day_ad_hoc` | `schedule_day_task` | D6 Production       | manager                           |
+| `personal`   | `personal_task`     | C2 Agent-Utility    | user via agent                    |
+| `emma`       | `emma_task`         | C2 Agent-Utility    | Botsson auto                      |
+| `runtime`    | `engine_state_step` | C2 Workflow Runtime | engine-dispatch (NEVER user-task) |
+
+- **Read:** `fn_list_my_tasks` RPC unions 4 sources (engine_state_step excluded per R2).
+- **Write:** `task` capability — 6 tools (`list_mine`, `create_personal`, `create_session`, `create_day_ad_hoc`, `complete`, `cancel_personal`).
+- **Channel:** chat + voice for `list_mine` + `complete`. Chat-only V1 on `create_*` + `cancel_personal` (R6, PII risk).
+- **Voice surface:** `services/voice-agent/src/tools-task.ts` mirrors capability (6 typed thin tools).
+- **BFF route (mobile):** `/api/mobile/tasks/[id]/complete` (POST) + `/api/mobile/tasks/personal` (POST).
+- **Server Action (web):** `addTaskAction` + `completeSessionTaskAction` (delegate to task tools).
+- Do NOT use `operations.complete_task` — superseded by `task.complete` (Sortie 5b 2026-05-13).
+
+---
+
 ## Cascade Core Model
 
 **Cascade model:** See `smartout-cascade-developer` skill (auto-triggered on cascade/scheduling work). Spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`. Canonical model: **I1 + 6D + 4C + K1a/K1b**. "Confident != Authorized" — C1 determines belief, C4 determines permission.
@@ -169,7 +191,7 @@ smartout_v3/
 ## Modules & ADRs
 
 > 23 module docs (modules 1-15, 17-20, 4.5, plus MODULE*0_ROADMAP, MODULE_AGENT_SDK, MODULE_BOTSSON). Load `docs/modules/MODULE*\*.md`BEFORE implementing.
-**163 ADRs** in`docs/decisions/`as of 2026-04-20 (latest ADR-0164; gap at 0159 — reserved slot after mid-session renumber in 2026-04-19 kanaler-som-helpdesk council). 12 still`proposed`. Read before making changes in the same area.
+**371 ADRs** in`docs/decisions/`as of 2026-05-18 (latest ADR-0371; gap at 0159 — reserved slot after mid-session renumber in 2026-04-19 kanaler-som-helpdesk council; gap at 0368 — reserved). Notable recent: ADR-0366 (Nordic Split OKLCH literal ban), ADR-0367 (Day Line Area-Anchored Runtime + Core-Structure Clarification — tri-layer D6 model: `department_session`→`day_line`→`shift_session`), ADR-0369/0370/0371 (announcement atomicity + capability boundary + schema contract). Read before making changes in the same area.
 Full lists: `docs/INDEX.md`| Council-verified deltas + forward plan:`docs/STATE-SUMMARY.md`
 
 **ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.

@@ -31,5 +31,5 @@ where = ["src"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "fixture_mode: marks tests that require LOVSEN_MCP_FIXTURE=1",
+    "fixture_mode: marks tests that require LOVSEN_FIXTURE_MODE=true (canonical per ADR-0258)",
 ]

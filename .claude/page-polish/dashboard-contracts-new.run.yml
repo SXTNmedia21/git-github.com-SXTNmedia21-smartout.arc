@@ -1,0 +1,43 @@
+# Page Polish Run — /dashboard/contracts/new (deprecated redirect)
+
+route: /dashboard/contracts/new
+status: done
+verified: true
+started_at: 2026-05-14T18:30:00+02:00
+verified_at: 2026-05-14T18:30:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/contracts/new
+  components_count: 1 # page.tsx (redirect shell)
+
+architecture:
+  entry: apps/web/src/app/dashboard/contracts/new/page.tsx
+  pattern: deprecated client-side redirect
+  redirects_to: /dashboard/contracts?open=compose
+  forwards_query_param: profileId
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 0
+  scope: n/a
+  notes: |
+    No tools registered. Surface is a thin redirect that exists only so
+    bookmarks and `Lag kontrakt` links don't 404 after the Phase 2 hub
+    redesign. The composition flow now lives as a drawer on the hub
+    (/dashboard/contracts?open=compose) — tools belong to that surface
+    (already registered under `contracts` scope).
+
+checklist:
+  no_skeleton_flash: true
+  page_knowledge_written: true
+  harness_tools_registered: false # n/a — redirect shell
+
+notes: |
+  Deprecated route. Returns null while redirecting. Site-map entry
+  documents the redirect so Botsson knows where to send the user if
+  they ask about /dashboard/contracts/new directly.
+  access: manager + admin + owner. ADR-0238 owns_chat_surface=false.

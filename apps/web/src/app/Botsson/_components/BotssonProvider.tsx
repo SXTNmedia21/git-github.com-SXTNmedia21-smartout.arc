@@ -176,6 +176,20 @@ type BotssonContextValue = {
   startNewChat: () => void;
   /** Action: load existing session by id, set URL ?session=<id> via router.replace. */
   loadSession: (id: string) => void;
+  /**
+   * ADR-0238 — Domain chat ownership. True when at least one surface has declared
+   * ownership via <DomainChatOwnership> or useDeclareDomainChatOwnership().
+   * BotssonShell reads this to suppress Orb to passive mode.
+   */
+  isDomainChatOwned: boolean;
+  /** Reasons currently holding domain chat ownership (one per mounted declarant). */
+  domainChatOwners: ReadonlySet<string>;
+  /**
+   * Declare that this surface owns the domain chat. Returns a cleanup function
+   * that revokes the declaration when called. Safe to call from multiple surfaces
+   * simultaneously — tracked via a counter per reason string.
+   */
+  declareDomainChatOwnership: (reason: string) => () => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -332,6 +346,39 @@ export function BotssonProvider({
       /* quota */
     }
   }, []);
+  /* ━━━ ADR-0238 — Domain chat ownership ━━━ */
+  // Multiple surfaces can concurrently declare ownership (e.g. nested routes).
+  // We track a counter per reason string so that each mount/unmount pair is
+  // symmetric — the Orb stays passive until ALL declarants have unmounted.
+  const [domainOwnerCount, setDomainOwnerCount] = useState<Map<string, number>>(() => new Map());
+
+  const declareDomainChatOwnership = useCallback((reason: string): (() => void) => {
+    setDomainOwnerCount((prev) => {
+      const next = new Map(prev);
+      next.set(reason, (next.get(reason) ?? 0) + 1);
+      return next;
+    });
+    return () => {
+      setDomainOwnerCount((prev) => {
+        const next = new Map(prev);
+        const count = next.get(reason) ?? 0;
+        if (count <= 1) {
+          next.delete(reason);
+        } else {
+          next.set(reason, count - 1);
+        }
+        return next;
+      });
+    };
+  }, []);
+
+  const domainChatOwners = useMemo<ReadonlySet<string>>(
+    () => new Set(domainOwnerCount.keys()),
+    [domainOwnerCount],
+  );
+
+  const isDomainChatOwned = domainChatOwners.size > 0;
+
   const [customPrompt, setCustomPromptState] = useState(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("emma-custom-prompt") ?? "";
@@ -879,7 +926,7 @@ export function BotssonProvider({
 
   /**
    * Listen for `botsson:open` window events dispatched from elsewhere in the dashboard
-   * (e.g. the "Lag kontrakt med Botsson" button on /dashboard/contracts). The event
+   * (e.g. the "Lag kontrakt med Botsson" button on /dashboard/people/contracts). The event
    * carries an optional view type and prime context that we forward as the next view's
    * props. The admin-chat view reads `props.primeContext` on mount.
    *
@@ -1060,6 +1107,9 @@ export function BotssonProvider({
       setCurrentSessionId,
       startNewChat,
       loadSession,
+      isDomainChatOwned,
+      domainChatOwners,
+      declareDomainChatOwnership,
     }),
     [
       state,
@@ -1115,6 +1165,9 @@ export function BotssonProvider({
       setCurrentSessionId,
       startNewChat,
       loadSession,
+      isDomainChatOwned,
+      domainChatOwners,
+      declareDomainChatOwnership,
     ],
   );
 

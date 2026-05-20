@@ -1,8 +1,9 @@
 """
-test_fixture_mode.py — Tests verifying LOVSEN_MCP_FIXTURE=1 contract (ADR-0244).
+test_fixture_mode.py — Tests verifying LOVSEN_FIXTURE_MODE=true contract (ADR-0258).
 
 Key invariants:
-- Env var switches the client to fixture-only mode
+- Canonical envvar LOVSEN_FIXTURE_MODE=true switches client to fixture-only mode
+- Legacy envvar LOVSEN_MCP_FIXTURE=1 still activates fixture mode (backwards-compat)
 - Missing fixture → FileNotFoundError (CI-safe: never falls back to network)
 - Malformed fixture JSON → ValueError (fail fast)
 - Hash mismatch in fixture → ValueError with "fixture corruption detected"
@@ -20,7 +21,7 @@ import tempfile
 import pytest
 from pathlib import Path
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload_client():
@@ -31,7 +32,7 @@ def _reload_client():
 
 @pytest.fixture(autouse=True)
 def fixture_mode_env(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 # ── Fixture mode active ───────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ def fixture_mode_env(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fixture_mode_is_active():
-    """LOVSEN_MCP_FIXTURE=1 means FIXTURE_MODE is True in the client module."""
+    """LOVSEN_FIXTURE_MODE=true means FIXTURE_MODE is True in the client module."""
     _reload_client()
     from src.lovdata_client import FIXTURE_MODE
 
@@ -52,7 +53,7 @@ async def test_http_get_raises_in_fixture_mode():
     _reload_client()
     from src.lovdata_client import http_get
 
-    with pytest.raises(RuntimeError, match="LOVSEN_MCP_FIXTURE=1 is active"):
+    with pytest.raises(RuntimeError, match="LOVSEN_FIXTURE_MODE=true is active"):
         await http_get("https://lovdata.no/test")
 
 

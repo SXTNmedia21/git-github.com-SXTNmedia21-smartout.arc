@@ -14,7 +14,7 @@ Tests:
   6. No silent fallback: unsupported version → clear error, not closest match
   7. Both tools (fetch_riksavtalen + lookup_tariff_supplement) honour version-routing
 
-All tests run with LOVSEN_MCP_FIXTURE=1 (zero network).
+All tests run with LOVSEN_FIXTURE_MODE=true (canonical per ADR-0258; zero network).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ import sys
 
 import pytest
 
-os.environ["LOVSEN_MCP_FIXTURE"] = "1"
+os.environ["LOVSEN_FIXTURE_MODE"] = "true"
 
 
 def _reload():
@@ -35,7 +35,7 @@ def _reload():
 
 @pytest.fixture(autouse=True)
 def fixture_mode(monkeypatch):
-    monkeypatch.setenv("LOVSEN_MCP_FIXTURE", "1")
+    monkeypatch.setenv("LOVSEN_FIXTURE_MODE", "true")
 
 
 # ── Hash isolation: 2024 ≠ 2025 ──────────────────────────────────────────────

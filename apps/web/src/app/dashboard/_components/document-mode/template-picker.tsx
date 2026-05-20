@@ -701,7 +701,7 @@ export function TemplatePicker({
 
   if (templates.length === 0) {
     return (
-      <p className={`text-xs ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}>
+      <p className={`text-xs ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}>
         Ingen maler tilgjengelig for dette kapittelet.
       </p>
     );
@@ -709,7 +709,7 @@ export function TemplatePicker({
 
   return (
     <div className="space-y-2">
-      <p className={`text-xs ${isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"}`}>
+      <p className={`text-xs ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}>
         Velg en mal for <span className="font-semibold">{chapter?.title}</span>:
       </p>
       {templates.map((t) => (
@@ -719,25 +719,25 @@ export function TemplatePicker({
             className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all ${
               isDark
                 ? "border-border bg-card text-foreground hover:bg-accent hover:border-orange-500/30"
-                : "border-[oklch(0.88_0.01_50)] bg-white text-[oklch(0.25_0.015_45)] hover:border-orange-300 hover:bg-orange-50/50"
+                : "border-[var(--surface-border-strong)] bg-white text-[var(--text-strong)] hover:border-orange-300 hover:bg-orange-50/50"
             }`}
           >
             <FileText
-              className={`h-4 w-4 flex-shrink-0 ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}
+              className={`h-4 w-4 flex-shrink-0 ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}
             />
             <span className="flex-1 font-medium">{t.label}</span>
             <ChevronRight
               className={`h-3.5 w-3.5 transition-transform ${expanded === t.id ? "rotate-90" : ""} ${
-                isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"
+                isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"
               }`}
             />
           </button>
           {expanded === t.id && (
             <div
-              className={`rounded-lg border p-3 ${isDark ? "border-border bg-card/50" : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"}`}
+              className={`rounded-lg border p-3 ${isDark ? "border-border bg-card/50" : "border-[var(--border)] bg-[var(--surface-subtle)]"}`}
             >
               <p
-                className={`mb-2 text-xs ${isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"}`}
+                className={`mb-2 text-xs ${isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}`}
               >
                 Malen inneholder {t.content.content?.length ?? 0} blokker med overskrifter og
                 plassholdertekst.

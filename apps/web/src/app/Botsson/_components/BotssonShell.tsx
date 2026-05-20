@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, MicOff } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
+import { useDomainChatOwnership } from "./DomainChatOwnership";
 import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
@@ -87,6 +88,9 @@ export function BotssonShell() {
     setVoiceCallStatus,
     pushVoiceActivity,
   } = useBotsson();
+  // ADR-0238 — suppress Orb to passive mode when a domain chat surface owns the UI.
+  const { isOwned: isDomainChatOwned, reason: domainChatReason } = useDomainChatOwnership();
+
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [stickySide, setStickySide] = useState<DockedSide>("right");
@@ -438,6 +442,16 @@ export function BotssonShell() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isArena, isSticky, isImmersive, goSticky, collapse, expand]);
 
+  /* ━━━ Sidebar orb button → expand ━━━ */
+  useEffect(() => {
+    function handleOpen() {
+      if (!isOrb && !isSticky) return; // already expanded
+      expand();
+    }
+    window.addEventListener("botsson:open" as keyof WindowEventMap, handleOpen);
+    return () => window.removeEventListener("botsson:open" as keyof WindowEventMap, handleOpen);
+  }, [isOrb, isSticky, expand]);
+
   if (!mounted) return null;
 
   /* ━━━ Sticky retract transform ━━━ */
@@ -530,7 +544,7 @@ export function BotssonShell() {
         isOrb
           ? isNotification
             ? "from-card via-card bg-gradient-to-br to-black shadow-[0_0_20px_4px_rgba(255,140,50,0.25),0_0_40px_8px_rgba(255,140,50,0.1)] hover:scale-110 active:scale-95"
-            : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-95"
+            : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-[var(--shadow-cta-sm)] shadow-lg hover:scale-110 hover:shadow-[var(--shadow-cta-md)] active:scale-95"
           : isSticky
             ? [
                 "border-border/20 border backdrop-blur-xl",
@@ -598,11 +612,37 @@ export function BotssonShell() {
         </div>
       )}
 
-      {/* Orb */}
+      {/* Orb — ADR-0238: passive mode when a domain chat surface owns the UI */}
       {isOrb && (
-        <div className="relative h-full w-full" {...dragHandleProps}>
+        <div
+          data-testid="botsson-orb"
+          className="relative h-full w-full"
+          // Passive mode: no drag, no click interaction. Full mode: drag + click to expand.
+          {...(isDomainChatOwned ? {} : dragHandleProps)}
+          style={
+            isDomainChatOwned
+              ? {
+                  transform: "scale(0.7)",
+                  opacity: 0.5,
+                  // Smooth transition into/out of passive mode
+                  transition: "transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease",
+                  // Block pointer events — Orb is purely decorative when passive
+                  pointerEvents: "none",
+                }
+              : {
+                  transition: "transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease",
+                }
+          }
+          // Tooltip indicates why the Orb is passive — helpful for debugging
+          title={
+            isDomainChatOwned
+              ? `Botsson watching — ${domainChatReason ?? "domain chat"} owns chat`
+              : undefined
+          }
+          aria-hidden={isDomainChatOwned ? true : undefined}
+        >
           <BotssonOrb />
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !isDomainChatOwned && (
             <div
               className="bg-brand-orange absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[8px] font-bold text-white shadow-sm"
               style={{ width: 16, height: 16 }}
@@ -611,9 +651,8 @@ export function BotssonShell() {
             </div>
           )}
 
-          {/* Mic button — Botsson/LiveKit only (ADR-0282 R1.1). Floats below Orb,
-              visible on hover or when active. Pointer-events isolated. */}
-          {workspaceId && (
+          {/* Mic button — hidden in passive mode (ADR-0238 + ADR-0282 R1.1) */}
+          {workspaceId && !isDomainChatOwned && (
             <button
               type="button"
               aria-label={voiceActive ? "Avslutt Botsson-samtale" : "Start Botsson-samtale"}
@@ -629,7 +668,7 @@ export function BotssonShell() {
                 "transition-all duration-200",
                 "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
                 voiceActive
-                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_oklch(0.65_0.22_40/0.35)]"
+                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_var(--brand-orange)/35%]"
                   : "bg-background/70 text-muted-foreground hover:text-foreground border-border/40 border opacity-0 backdrop-blur-sm group-hover:opacity-100 hover:opacity-100",
               ].join(" ")}
               style={{ width: 28, height: 28 }}

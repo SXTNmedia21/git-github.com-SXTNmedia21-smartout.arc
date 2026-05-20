@@ -29,7 +29,7 @@ const EmployeeProfileCard = dynamic(
 );
 const ContractSendDrawer = dynamic(
   () =>
-    import("../../contracts/_components/contract-send-drawer").then((m) => ({
+    import("../contracts/_components/contract-send-drawer").then((m) => ({
       default: m.ContractSendDrawer,
     })),
   { ssr: false },
@@ -775,8 +775,12 @@ export function PeopleDataTable({
         ) : filteredEmployees.length === 0 ? (
           <div className="text-muted-foreground flex h-full flex-col items-center justify-center p-8">
             <SearchX className="text-muted-foreground mb-4 h-12 w-12" />
-            <p className="text-muted-foreground font-medium">No employees found</p>
-            <p className="mt-1 text-sm">Try adjusting your search criteria</p>
+            <p className="text-foreground font-medium">Ingen ansatte funnet</p>
+            <p className="mt-1 text-sm">
+              {searchTerm || selectedDept !== "All"
+                ? "Prøv et annet søkeord eller fjern filteret."
+                : "Inviter første ansatt ved å klikke «Invite» ovenfor."}
+            </p>
           </div>
         ) : (
           <table className="w-full border-collapse text-left">

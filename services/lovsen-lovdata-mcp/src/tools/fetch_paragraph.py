@@ -2,7 +2,7 @@
 fetch_paragraph.py — MCP tool: fetch a specific paragraph from Lovdata.no.
 
 Returns ADR-0242-compliant Citation JSON.
-In LOVSEN_MCP_FIXTURE=1 mode reads from src/fixtures/ — zero network calls.
+In LOVSEN_FIXTURE_MODE=true mode reads from src/fixtures/ — zero network calls.
 In live mode: rate-limited via lovdata_client (1 req/sec, ADR-0244).
 """
 

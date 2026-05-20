@@ -1,0 +1,94 @@
+---
+route: /dashboard/organization/locations/[id]
+module: Organization
+tier: 3
+access:
+  - owner
+  - admin
+polished_at: "2026-05-14"
+status: done
+verified: true
+verified_at: "2026-05-14T00:00:00+02:00"
+
+scope: organization-locations
+
+tools:
+  - name: getLocationDetail
+    description: >
+      Get full detail for the currently-open D1 location — name, type, address, capacity,
+      active status, zone count, and asset count. Call first when the user asks anything
+      about this location.
+  - name: listLocationZones
+    description: >
+      List all zones in the currently-open location — name, capacity, color, active status.
+      Use when the user asks about sones, spatial sub-areas, or zone capacity.
+  - name: listLocationAssets
+    description: >
+      List all assets in the currently-open location — name, type, training and routine
+      requirements, active status. Use when the user asks about equipment or inventory.
+  - name: getLocationSummary
+    description: >
+      Get a concise operational summary — total zone capacity, training-required asset count,
+      routine-required asset count, active vs. inactive breakdowns.
+
+phases:
+  - id: 1
+    name: speed-test-baseline
+    status: skipped
+    note: Sub-route detail page; baseline deferred to parent /organization polish run.
+
+  - id: 2
+    name: fix-bottlenecks
+    status: done
+    note: Loading guard already in place. Bridge mounts after location resolves — no duplicate state.
+
+  - id: 3
+    name: re-test-admin-upgrade
+    status: skipped
+    note: Owner/admin-only route; single role branch.
+
+  - id: 4
+    name: ui-ux-polish
+    status: done
+    note: >
+      Existing page uses semantic tokens (bg-card, border-border, text-foreground,
+      text-muted-foreground, bg-muted). No hardcoded zinc/gray/slate beyond one
+      inline style for zone dot color (zone.color dynamic value — intentional, noted
+      in comment as "Nordic Split Phase 2.5 candidate").
+
+  - id: 5
+    name: telemetry-registry
+    status: done
+    note: >
+      No mutations in the read tools. Toggle mutations (toggleZoneActive,
+      toggleAssetActive, toggleLocActive) are side-effect-only UI actions on the page;
+      no Botsson write tools exposed. Telemetry for writes is the page's concern,
+      not the tool bridge.
+
+  - id: 6
+    name: page-instructions
+    status: done
+    note: >
+      Page uses EntityDetailLayout with breadcrumbs + location name heading.
+      Tool descriptions written for LLM decision criteria (not API docs).
+
+  - id: 7
+    name: harness-tool-expectations
+    status: done
+    files:
+      - apps/web/src/app/dashboard/organization/locations/_tools/use-locations-tools.ts
+      - apps/web/src/app/dashboard/organization/locations/_tools/locations-tools-bridge.tsx
+      - apps/web/src/app/dashboard/organization/locations/[id]/page.tsx
+
+  - id: 8
+    name: site-map-registration
+    status: skipped
+    note: >
+      Excluded from this task per brief — DO NOT touch site-map.json.
+      Register in the parent /organization polish run or dedicated site-map sortie.
+
+adr_compliance:
+  - id: ADR-0151
+    note: workspace_id auth-derived from DashboardContext in page; not passed into tools.
+  - id: ADR-0238
+    note: No domain chat surface on this page; Orb runs in interactive mode.

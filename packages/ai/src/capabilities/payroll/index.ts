@@ -51,6 +51,10 @@ import {
   exportPeriod,
   // Phase 4 T3.2 tools:
   viewLonnsgrunnlag,
+  // Phase 7f tariff delegation tools (ADR-0356):
+  setupWorkspaceTariffTool,
+  changeWorkspaceTariffTool,
+  addSupplementOverrideTool,
 } from "./tools.js";
 
 const readOnlyTools = [
@@ -74,6 +78,10 @@ const suggestTools = [
   deleteManualSupplement,
   overrideCalculationLine,
   exportPeriod,
+  // Phase 7f tariff delegation tools (ADR-0356 — admin-level writes, confirm authority)
+  setupWorkspaceTariffTool,
+  changeWorkspaceTariffTool,
+  addSupplementOverrideTool,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray<

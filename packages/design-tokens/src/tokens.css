@@ -48,6 +48,8 @@
     --brand-orange: oklch(0.65 0.22 40);
     --brand-orange-light: oklch(0.75 0.18 40);
     --brand-orange-dark: oklch(0.55 0.22 40);
+    /* brand-orange-warm — warmer hue shift for headline accent text (e.g. "klar fra dag en") */
+    --brand-orange-warm: oklch(0.78 0.16 45);
     --brand-purple: oklch(0.55 0.25 300);
     --brand-purple-light: oklch(0.65 0.2 300);
     --brand-purple-dark: oklch(0.45 0.25 300);
@@ -91,6 +93,11 @@
     --priority-high: oklch(0.65 0.22 40);
     --priority-normal: oklch(0.6 0.15 250);
     --priority-low: oklch(0.55 0 0);
+
+    /* Tidslinjen phase tinting — D6 session phase bands */
+    --color-phase-prep: oklch(0.95 0.04 60);
+    --color-phase-service: oklch(0.97 0.02 80);
+    --color-phase-winddown: oklch(0.93 0.05 30);
 
     /* Komm — Communication semantic colors */
     --komm-announcement: oklch(0.75 0.12 55);
@@ -139,6 +146,105 @@
     --glow-warm: oklch(0.45 0.18 40);
     --glow-deep: oklch(0.35 0.14 35);
 
+    /* PunchButton — shift-clock surface tokens (embedded CSS template in PunchButton.tsx, ADR-0366) */
+    --punch-bg: oklch(0.13 0.005 60);
+    --punch-fg: oklch(0.9 0.01 60);
+    --punch-fg-mid: oklch(0.7 0.02 60);
+    --punch-fg-bright: oklch(0.95 0.01 60);
+    --punch-fg-dim: oklch(0.55 0.01 60);
+    --punch-fg-muted: oklch(0.4 0.005 60);
+    --punch-border: oklch(0.25 0.005 60);
+
+    /* Document Mode — Light (ADR-0366: OKLCH declared here in @layer base :root) */
+    --doc-bg: oklch(0.98 0.003 55);
+    --doc-fg: oklch(0.2 0.01 50);
+    --doc-heading: oklch(0.25 0.02 45);
+    --doc-sidebar-bg: oklch(0.96 0.004 55);
+    --doc-panel-bg: oklch(0.97 0.003 55);
+    --doc-border: oklch(0.9 0.006 55);
+    /* Document Mode — blockquote fallback accent */
+    --doc-accent-fallback: oklch(0.7 0.15 55);
+    /* Document Mode — mark highlight */
+    --doc-mark-bg: oklch(0.88 0.12 85 / 0.4);
+
+    /* Schedule Tag Colors — dept-hue inline style values for shift/ghost/employee tags */
+    /* Used in style={{ bg, color, border }} objects in schedule components (ADR-0366) */
+    /* indigo/blue hue 260 */
+    --tag-indigo-bg: color-mix(in oklch, oklch(0.62 0.15 260) 7%, transparent);
+    --tag-indigo-fg: oklch(0.62 0.15 260);
+    --tag-indigo-border: color-mix(in oklch, oklch(0.62 0.15 260) 20%, transparent);
+    --tag-indigo-avatar: color-mix(in oklch, oklch(0.62 0.15 260) 14%, transparent);
+    /* teal hue 160 */
+    --tag-teal-bg: color-mix(in oklch, oklch(0.72 0.12 160) 7%, transparent);
+    --tag-teal-fg: oklch(0.72 0.12 160);
+    --tag-teal-border: color-mix(in oklch, oklch(0.72 0.12 160) 20%, transparent);
+    --tag-teal-avatar: color-mix(in oklch, oklch(0.72 0.12 160) 14%, transparent);
+    /* purple hue 300 */
+    --tag-purple-bg: color-mix(in oklch, var(--brand-purple) 7%, transparent);
+    --tag-purple-fg: var(--brand-purple);
+    --tag-purple-border: color-mix(in oklch, var(--brand-purple) 20%, transparent);
+    --tag-purple-avatar: color-mix(in oklch, var(--brand-purple) 14%, transparent);
+    /* orange hue 40 */
+    --tag-orange-bg: color-mix(in oklch, var(--brand-orange) 7%, transparent);
+    --tag-orange-fg: oklch(0.65 0.16 40);
+    --tag-orange-border: color-mix(in oklch, var(--brand-orange) 20%, transparent);
+    --tag-orange-avatar: color-mix(in oklch, var(--brand-orange) 14%, transparent);
+    /* rose hue 350 */
+    --tag-rose-bg: color-mix(in oklch, oklch(0.6 0.16 350) 7%, transparent);
+    --tag-rose-fg: oklch(0.6 0.16 350);
+    --tag-rose-border: color-mix(in oklch, oklch(0.6 0.16 350) 20%, transparent);
+    --tag-rose-avatar: color-mix(in oklch, oklch(0.6 0.16 350) 14%, transparent);
+    /* cyan hue 200 */
+    --tag-cyan-bg: color-mix(in oklch, oklch(0.7 0.1 200) 7%, transparent);
+    --tag-cyan-fg: oklch(0.7 0.1 200);
+    --tag-cyan-border: color-mix(in oklch, oklch(0.7 0.1 200) 20%, transparent);
+    --tag-cyan-avatar: color-mix(in oklch, oklch(0.7 0.1 200) 14%, transparent);
+
+    /* Slot-Icon Tints — tinted bg/border/fg for slot-type icon chips in SlotPicker (ADR-0366) */
+    /* Each triplet: bg (light tint), border (mid), fg (dark) — warm hue family */
+    --slot-blue-bg: oklch(0.9 0.04 250);
+    --slot-blue-border: oklch(0.8 0.08 250);
+    --slot-blue-fg: oklch(0.3 0.14 250);
+    --slot-green-bg: oklch(0.9 0.04 145);
+    --slot-green-border: oklch(0.78 0.1 145);
+    --slot-green-fg: oklch(0.28 0.14 145);
+    --slot-amber-bg: oklch(0.9 0.04 55);
+    --slot-amber-border: oklch(0.8 0.08 55);
+    --slot-amber-fg: oklch(0.3 0.1 55);
+    --slot-red-bg: oklch(0.9 0.04 25);
+    --slot-red-border: oklch(0.78 0.1 25);
+    --slot-red-fg: oklch(0.32 0.14 25);
+    --slot-purple-bg: oklch(0.9 0.04 310);
+    --slot-purple-border: oklch(0.78 0.1 310);
+    --slot-purple-fg: oklch(0.3 0.14 310);
+    --slot-neutral-bg: oklch(0.92 0.01 58);
+    --slot-neutral-border: oklch(0.84 0.01 58);
+    --slot-neutral-fg: oklch(0.4 0.02 55);
+
+    /* Neutral Surface Layers — fine-grained depth for light mode (ADR-0366) */
+    --surface-base: oklch(0.99 0.004 60);
+    --surface-subtle: oklch(0.975 0.003 55);
+    --surface-raised: oklch(0.955 0.005 55);
+    --surface-overlay: oklch(0.928 0.005 55);
+    --surface-border-strong: oklch(0.905 0.007 54);
+
+    /* Neutral Text Layers — named steps between foreground and muted-foreground */
+    --text-strong: oklch(0.25 0.015 48);
+    --text-mid: oklch(0.4 0.01 52);
+    --text-dim: oklch(0.5 0.015 52);
+
+    /* Brand Glow — warm amber for box-shadow contexts */
+    --brand-glow-warm: oklch(0.78 0.18 55);
+    /* LighthouseAvatar — static fallback avatar gradient (warm neutral) */
+    --avatar-fallback-gradient: linear-gradient(135deg, oklch(0.72 0.08 50), oklch(0.55 0.12 35));
+
+    /* CTA Shadow tokens — brand-orange box-shadows for primary action buttons */
+    --shadow-cta-sm: 0 2px 12px oklch(0.65 0.22 40 / 0.25);
+    --shadow-cta-md: 0 4px 20px oklch(0.65 0.22 40 / 0.35);
+    --shadow-cta-lg: 0 8px 24px -8px oklch(0.78 0.18 55 / 0.55);
+    --shadow-cta-lg-hover: 0 12px 32px -8px oklch(0.78 0.18 55 / 0.65);
+    --shadow-cta-glow: 0 0 24px oklch(0.65 0.22 40 / 0.28);
+
     /* Workspace Accent — SSR default (brand-orange neighbourhood).
        Runtime components (InvitationContextHeader, WorkspaceCard) override
        this with workspaceAccentOklch(slug) via inline style or root style var. */
@@ -148,6 +254,10 @@
     --scrollbar-thumb: oklch(0.78 0 0);
     --scrollbar-thumb-hover: oklch(0.65 0 0);
     --scrollbar-track: transparent;
+    /* Scroll overlay thumb — semi-transparent mid-gray for minimal scrollbars */
+    --scrollbar-overlay-thumb: oklch(0.5 0 0 / 0.2);
+    /* Skeleton shimmer — warm gleam mid-stop for sk-bone::after */
+    --skeleton-shimmer: oklch(0.88 0.012 50 / 0.38);
   }
 
   .dark {
@@ -224,6 +334,14 @@
     --scrollbar-thumb: oklch(0.35 0 0);
     --scrollbar-thumb-hover: oklch(0.45 0 0);
     --scrollbar-track: transparent;
+
+    /* Document Mode — Dark (ADR-0366) */
+    --doc-bg: oklch(0.12 0.005 55);
+    --doc-fg: oklch(0.88 0.01 50);
+    --doc-heading: oklch(0.92 0.005 50);
+    --doc-sidebar-bg: oklch(0.08 0.003 55);
+    --doc-panel-bg: oklch(0.1 0.003 55);
+    --doc-border: oklch(0.22 0.006 55);
 
     /* Sidebar — Dark (warm) */
     --sidebar: oklch(0.16 0.02 50);

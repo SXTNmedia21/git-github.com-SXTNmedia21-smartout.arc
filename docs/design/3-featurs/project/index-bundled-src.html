@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Gap Closure — World-Best-WFM</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <template id="__bundler_thumbnail" data-bg-color="oklch(0.985 0.008 78)">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="oklch(0.985 0.008 78)"/>
+      <!-- 3 stacked artboards -->
+      <g transform="translate(120 140)">
+        <rect width="960" height="160" rx="20" fill="oklch(0.995 0.005 80)" stroke="oklch(0.89 0.014 72)" stroke-width="2"/>
+        <circle cx="80" cy="80" r="36" fill="oklch(0.62 0.155 42)"/>
+        <rect x="150" y="56" width="260" height="22" rx="4" fill="oklch(0.21 0.018 60)"/>
+        <rect x="150" y="92" width="380" height="14" rx="4" fill="oklch(0.58 0.016 65)"/>
+        <rect x="780" y="62" width="140" height="40" rx="10" fill="oklch(0.62 0.155 42)"/>
+      </g>
+      <g transform="translate(120 340)">
+        <rect width="960" height="160" rx="20" fill="oklch(0.995 0.005 80)" stroke="oklch(0.89 0.014 72)" stroke-width="2"/>
+        <rect x="36" y="44" width="60" height="72" rx="8" fill="oklch(0.92 0.045 50)"/>
+        <text x="66" y="92" font-family="serif" font-size="34" fill="oklch(0.32 0.110 40)" text-anchor="middle">L</text>
+        <rect x="130" y="56" width="220" height="22" rx="4" fill="oklch(0.21 0.018 60)"/>
+        <rect x="130" y="92" width="320" height="14" rx="4" fill="oklch(0.58 0.016 65)"/>
+        <rect x="780" y="62" width="140" height="40" rx="10" fill="oklch(0.92 0.045 50)" stroke="oklch(0.62 0.155 42)" stroke-width="1.5"/>
+      </g>
+      <g transform="translate(120 540)">
+        <rect width="960" height="120" rx="20" fill="oklch(0.995 0.005 80)" stroke="oklch(0.89 0.014 72)" stroke-width="2"/>
+        <rect x="36" y="40" width="200" height="40" rx="6" fill="oklch(0.945 0.014 76)"/>
+        <rect x="260" y="40" width="660" height="14" rx="4" fill="oklch(0.21 0.018 60)"/>
+        <rect x="260" y="66" width="500" height="10" rx="3" fill="oklch(0.58 0.016 65)"/>
+      </g>
+      <!-- Wordmark -->
+      <text x="600" y="80" font-family="serif" font-size="36" font-style="italic" fill="oklch(0.21 0.018 60)" text-anchor="middle">Three surfaces · UI gap closure</text>
+    </svg>
+  </template>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="shell.jsx"></script>
+  <script type="text/babel" src="marketplace.jsx"></script>
+  <script type="text/babel" src="pos-accounts.jsx"></script>
+  <script type="text/babel" src="manuals.jsx"></script>
+
+  <script type="text/babel">
+    const { useEffect } = React;
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "palette": "warm",
+      "density": "comfortable",
+      "showOrbs": true
+    }/*EDITMODE-END*/;
+
+    const PALETTES = {
+      warm: { // default — terracotta + cream
+        primary: "oklch(0.62 0.155 42)",
+        primarySoft: "oklch(0.92 0.045 50)",
+        primaryInk: "oklch(0.32 0.110 40)",
+        bg: "oklch(0.985 0.008 78)",
+        bgSoft: "oklch(0.965 0.012 75)",
+      },
+      forest: { // Nordic dusk
+        primary: "oklch(0.50 0.115 165)",
+        primarySoft: "oklch(0.93 0.035 165)",
+        primaryInk: "oklch(0.30 0.080 165)",
+        bg: "oklch(0.985 0.006 165)",
+        bgSoft: "oklch(0.965 0.010 165)",
+      },
+      ink: { // Mono editorial
+        primary: "oklch(0.30 0.025 60)",
+        primarySoft: "oklch(0.93 0.010 60)",
+        primaryInk: "oklch(0.20 0.020 60)",
+        bg: "oklch(0.985 0.004 60)",
+        bgSoft: "oklch(0.960 0.006 60)",
+      },
+    };
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+      useEffect(() => {
+        const p = PALETTES[tweaks.palette] || PALETTES.warm;
+        const r = document.documentElement.style;
+        r.setProperty("--primary", p.primary);
+        r.setProperty("--primary-soft", p.primarySoft);
+        r.setProperty("--primary-ink", p.primaryInk);
+        r.setProperty("--background", p.bg);
+        r.setProperty("--background-soft", p.bgSoft);
+      }, [tweaks.palette]);
+
+      useEffect(() => {
+        document.documentElement.style.setProperty("--r-lg", tweaks.density === "compact" ? "10px" : "14px");
+      }, [tweaks.density]);
+
+      useEffect(() => {
+        document.querySelectorAll(".orb-bg").forEach(el => {
+          el.style.display = tweaks.showOrbs ? "" : "none";
+        });
+      }, [tweaks.showOrbs]);
+
+      return (
+        <>
+          <DesignCanvas title="3 Features — UI Gap Closure" subtitle="Nordic Split · Compose verb · chat-confirmed mutations">
+            <DCSection id="surfaces" title="Three surfaces" subtitle="Each is the missing web piece called out in the spec — interactive, not static.">
+              <DCArtboard id="marketplace" label="01 · Vaktbørs (manager)" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="01 Vaktbørs">
+                  <MarketplacePage />
+                </div>
+              </DCArtboard>
+
+              <DCArtboard id="pos" label="02 · POS-integrasjoner (admin)" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="02 POS">
+                  <PosAccountsPage />
+                </div>
+              </DCArtboard>
+
+              <DCArtboard id="manuals" label="03 · Onboarding-manualer" width={1440} height={920}>
+                <div style={{ width: "100%", height: "100%", overflow: "hidden" }} data-screen-label="03 Manuals">
+                  <ManualsPage />
+                </div>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Visual">
+              <TweakRadio
+                label="Palette"
+                value={tweaks.palette}
+                onChange={(v) => setTweak("palette", v)}
+                options={[
+                  { value: "warm",   label: "Warm" },
+                  { value: "forest", label: "Forest" },
+                  { value: "ink",    label: "Ink" },
+                ]}
+              />
+              <TweakRadio
+                label="Density"
+                value={tweaks.density}
+                onChange={(v) => setTweak("density", v)}
+                options={[
+                  { value: "compact",     label: "Tight" },
+                  { value: "comfortable", label: "Roomy" },
+                ]}
+              />
+              <TweakToggle
+                label="Ambient orbs"
+                value={tweaks.showOrbs}
+                onChange={(v) => setTweak("showOrbs", v)}
+              />
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

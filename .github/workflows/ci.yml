@@ -70,7 +70,11 @@ jobs:
       - name: Format check (changed files only)
         run: |
           set -euo pipefail
-          FILES=$(git diff --name-only --diff-filter=ACMR \
+          # core.quotepath=false → emit UTF-8 paths raw (no C-octal escapes)
+          # so xargs passes correct bytes to prettier (L-format-check-quotepath-fix).
+          # Without it, git escapes non-ASCII (§, å) and xargs passes literal
+          # backslash-octal strings, prettier fails ENOENT, xargs exits 123.
+          FILES=$(git -c core.quotepath=false diff --name-only --diff-filter=ACMR \
             "${{ steps.base.outputs.ref }}"...HEAD \
             -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
           if [ -z "$FILES" ]; then
@@ -246,7 +250,12 @@ jobs:
           fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned 2026-05-20 — `latest` resolved to a CLI revision that flags
+          # Supabase platform baseline migrations (00001-00013) as orphans,
+          # producing false-positive "Remote migration versions not found in
+          # local migrations directory" failures on every main push.
+          # CLI 2.100.1 correctly filters platform baselines via supabase REST.
+          version: 2.100.1
       - name: Detect changed Edge Functions
         id: detect
         run: |
@@ -311,7 +320,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned 2026-05-20 — `latest` resolved to a CLI revision that flags
+          # Supabase platform baseline migrations (00001-00013) as orphans,
+          # producing false-positive "Remote migration versions not found in
+          # local migrations directory" failures on every main push.
+          # CLI 2.100.1 correctly filters platform baselines via supabase REST.
+          version: 2.100.1
       - name: Link, repair ghost migration, push pending migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -379,3 +393,87 @@ jobs:
           fi
           echo "✅ migrations in sync"
 
+  # ── Migration coherence check (feat/ci-migration-coherence-check) ─
+  # On main push: run supabase db diff --linked after db-push and compare
+  # the captured diff against the committed baseline. Catches NEW drift
+  # (ghost migrations, manual prod DDL) while tolerating known migra-tool
+  # cosmetic noise (pg_get_functiondef format differs from migration source).
+  #
+  # See:
+  #   docs/plans/PLAN-ci-migration-coherence-check.md
+  #   docs/decisions/0361-ci-migration-coherence-check.md
+  #   docs/learnings/0302-ghost-migration-from-reconciliation.md
+  #   supabase/migration-coherence-baseline.sql (the allowed-cosmetic baseline)
+  migration-coherence:
+    name: Migration Coherence
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [db-push]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          # Pinned 2026-05-20 — `latest` resolved to a CLI revision that flags
+          # Supabase platform baseline migrations (00001-00013) as orphans,
+          # producing false-positive "Remote migration versions not found in
+          # local migrations directory" failures on every main push.
+          # CLI 2.100.1 correctly filters platform baselines via supabase REST.
+          version: 2.100.1
+      - name: Compare local migrations vs prod schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+        run: |
+          set -e
+          BASELINE=supabase/migration-coherence-baseline.sql
+          if [ ! -f "$BASELINE" ]; then
+            echo "::error::Baseline file $BASELINE missing — required by ADR-0361"
+            echo "Regenerate via: supabase db diff --linked --schema public,payroll,websites,timesheet | sed -n '<start>,<end>p' > $BASELINE"
+            exit 1
+          fi
+
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+          # Capture raw diff + strip CLI chatter to get pure SQL content.
+          # Boundary markers: "Finished supabase db diff" (start) — end of file.
+          RAW=$(supabase db diff --linked --schema public,payroll,websites,timesheet 2>&1)
+
+          # Extract everything AFTER the "Finished supabase db diff" line, which
+          # marks the boundary between shadow-DB setup chatter and actual diff SQL.
+          # Also strip trailing "Found drop statements ..." advisory block.
+          CURRENT=$(echo "$RAW" \
+            | awk '/^Finished supabase db diff/{found=1; next} found' \
+            | awk '/^Found drop statements/{exit} {print}')
+
+          # Compare current diff to committed baseline.
+          # -B: ignore differences that are blank-line-only (handles awk
+          #     extraction whitespace variance between local-capture and
+          #     GitHub-runner-capture).
+          # -w: ignore all whitespace (further guards against migra format jitter).
+          DELTA=$(diff -uBw "$BASELINE" <(echo "$CURRENT") || true)
+
+          if [ -n "$DELTA" ]; then
+            echo "::error::Migration coherence failed — diff vs baseline non-empty"
+            echo "==================== DELTA vs BASELINE ===================="
+            echo "$DELTA"
+            echo "==========================================================="
+            echo ""
+            echo "Likely causes:"
+            echo "  - Ghost migration (recorded but DDL not applied)"
+            echo "  - Manual prod DDL touch (SQL Editor, supabase migration repair, etc.)"
+            echo "  - Out-of-order migration push"
+            echo "  - Function/view definition drift outside known migra-cosmetic class"
+            echo ""
+            echo "Recovery (if real drift):"
+            echo "  1. Write forward-only migration aligning prod → local source of truth"
+            echo "  2. Push via dev → preview → main pipeline"
+            echo "  3. Re-run job; baseline should now reabsorb to clean state"
+            echo ""
+            echo "If intentional schema change updated cosmetic baseline:"
+            echo "  1. Regenerate baseline: supabase db diff --linked > /tmp/raw && extract diff section"
+            echo "  2. Commit updated $BASELINE"
+            echo "  3. PR + merge"
+            exit 1
+          fi
+          echo "✓ Prod schema diff matches committed baseline (known cosmetic only)"

@@ -24,14 +24,17 @@ function formatDate(dateStr: string): string {
 
 function statusBadge(status: DepartmentSessionRow["status"], t: (key: string) => string) {
   const styles: Record<string, { bg: string; labelKey: string }> = {
-    upcoming: { bg: "bg-blue-500/15 text-blue-600", labelKey: "hms.session_table.status_upcoming" },
-    active: { bg: "bg-green-500/15 text-green-600", labelKey: "hms.session_table.status_active" },
+    upcoming: { bg: "bg-info/15 text-info", labelKey: "hms.session_table.status_upcoming" },
+    active: { bg: "bg-success/15 text-success", labelKey: "hms.session_table.status_active" },
     pending_signoff: {
-      bg: "bg-yellow-500/15 text-yellow-600",
+      bg: "bg-warning/15 text-warning",
       labelKey: "hms.session_table.status_pending",
     },
     closed: { bg: "bg-muted text-muted-foreground", labelKey: "hms.session_table.status_closed" },
-    missed: { bg: "bg-red-500/15 text-red-600", labelKey: "hms.session_table.status_missed" },
+    missed: {
+      bg: "bg-destructive/15 text-destructive",
+      labelKey: "hms.session_table.status_missed",
+    },
   };
   const s = styles[status] ?? styles.upcoming!;
   return <Badge className={`${s!.bg} text-[10px] hover:${s!.bg}`}>{t(s!.labelKey)}</Badge>;
@@ -116,7 +119,7 @@ export function DriftSessionTable() {
                       <div className="flex items-center justify-center gap-2">
                         <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
                           <div
-                            className="h-full rounded-full bg-green-500"
+                            className="bg-success h-full rounded-full"
                             style={{
                               width: `${session.tasksTotal > 0 ? (session.tasksCompleted / session.tasksTotal) * 100 : 0}%`,
                             }}

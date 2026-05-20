@@ -151,6 +151,14 @@ export function selectTools(
     //                  sortie (packages/ai/src/capabilities/outreach/). Until
     //                  then this falls through to []. Remove this entry when
     //                  the registry entry lands.
+    //   - day-line  → TRANSITIONAL (ADR-0367, BT0-FOUNDATION 2026-05-18):
+    //                  enum value pre-registered ahead of BT1+BT2 capability
+    //                  sorties. Falls through to [] until capability registers
+    //                  at packages/ai/src/capabilities/day-line/.
+    //   - routine   → TRANSITIONAL (ADR-0367): as day-line above.
+    //                  Capability registers at packages/ai/src/capabilities/routine/.
+    //   - org       → TRANSITIONAL (ADR-0367): as day-line above.
+    //                  Capability registers at packages/ai/src/capabilities/org/.
     //
     // `memory` is now a real capability as of Phase A3 (2026-04-22) —
     // `save_memory` tool, chat-only, gated via gate_action. Retrieval is

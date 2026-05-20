@@ -643,6 +643,87 @@ describe("W04 — 4-week rolling OT cap", () => {
     });
     expect(deviations.filter((d) => d.check_id === "W04").length).toBe(0);
   });
+
+  it("does NOT fire W04 when 4-week OT totals exactly 24h (boundary — under 25h cap)", () => {
+    // 4 weeks × 5 shifts × 552 min (9.2h) = 46h/week → OT = 6h/week → 4 weeks = 24h OT
+    // 24h < 25h cap — must NOT fire W04.
+    function makeWeekShifts46(weekStartDate: string): InterpretedShift[] {
+      return [0, 1, 2, 3, 4].map((d) => {
+        const base = new Date(weekStartDate + "T06:00:00Z");
+        base.setUTCDate(base.getUTCDate() + d);
+        const iso = base.toISOString().slice(0, 10);
+        return makeShift({
+          shift_id: `sh-w04-under-${weekStartDate}-d${d}`,
+          profile_id: "prof-w04-under",
+          effective_start: `${iso}T06:00:00Z`,
+          effective_end: `${iso}T15:12:00Z`,
+          worked_minutes: 552, // 9.2h × 5 = 46h/week → 6h OT/week
+        });
+      });
+    }
+
+    const shifts = [
+      ...makeWeekShifts46("2026-04-06"),
+      ...makeWeekShifts46("2026-04-13"),
+      ...makeWeekShifts46("2026-04-20"),
+      ...makeWeekShifts46("2026-04-27"),
+    ];
+
+    const profileMapW04 = new Map<string, PayrollProfile>([["prof-w04-under", PROFILE]]);
+    const deviations = runDeviationChecks({
+      aggregated: [],
+      shifts,
+      workspaceSettings: SETTINGS,
+      framework: FRAMEWORK,
+      profilesByProfileId: profileMapW04,
+      tariffRates: [],
+      periodStartDate: "2026-04-06",
+      evaluationYear: 2026,
+    });
+    expect(deviations.filter((d) => d.check_id === "W04").length).toBe(0);
+  });
+
+  it("fires W04 once when 4-week OT totals 26h (boundary — over 25h cap)", () => {
+    // 4 weeks × 5 shifts × 558 min (9.3h) = 46.5h/week → OT = 6.5h/week → 4 weeks = 26h OT
+    // 26h > 25h cap — W04 must fire exactly once.
+    function makeWeekShifts465(weekStartDate: string): InterpretedShift[] {
+      return [0, 1, 2, 3, 4].map((d) => {
+        const base = new Date(weekStartDate + "T06:00:00Z");
+        base.setUTCDate(base.getUTCDate() + d);
+        const iso = base.toISOString().slice(0, 10);
+        return makeShift({
+          shift_id: `sh-w04-over-${weekStartDate}-d${d}`,
+          profile_id: "prof-w04-over",
+          effective_start: `${iso}T06:00:00Z`,
+          effective_end: `${iso}T15:18:00Z`,
+          worked_minutes: 558, // 9.3h × 5 = 46.5h/week → 6.5h OT/week
+        });
+      });
+    }
+
+    const shifts = [
+      ...makeWeekShifts465("2026-04-06"),
+      ...makeWeekShifts465("2026-04-13"),
+      ...makeWeekShifts465("2026-04-20"),
+      ...makeWeekShifts465("2026-04-27"),
+    ];
+
+    const profileMapW04 = new Map<string, PayrollProfile>([["prof-w04-over", PROFILE]]);
+    const deviations = runDeviationChecks({
+      aggregated: [],
+      shifts,
+      workspaceSettings: SETTINGS,
+      framework: FRAMEWORK,
+      profilesByProfileId: profileMapW04,
+      tariffRates: [],
+      periodStartDate: "2026-04-06",
+      evaluationYear: 2026,
+    });
+    const w04 = deviations.filter((d) => d.check_id === "W04");
+    expect(w04.length).toBe(1);
+    expect(w04[0]!.severity).toBe("info");
+    expect((w04[0]!.details as { ot_hours: number }).ot_hours).toBeGreaterThan(25);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

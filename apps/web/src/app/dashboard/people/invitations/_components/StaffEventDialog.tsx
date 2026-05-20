@@ -10,11 +10,12 @@
  *         lokasjon (optional), deltakere multi-select with search.
  *
  * Submit calls createStaffEvent server action.
- * Spring physics: stiffness 35, damping 22, mass 2.2 (motionTokens.spring).
+ * Spring physics: motionTokens.spring — imported from @smartout/design-tokens.
  */
 
 import { useState, useCallback, useMemo, type ChangeEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -253,7 +254,7 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
           }}
           style={{
             background:
-              "radial-gradient(circle at 50% 30%, oklch(0.18 0.04 55 / 0.55), oklch(0.08 0.02 50 / 0.78))",
+              "radial-gradient(circle at 50% 30%, color-mix(in oklch, var(--panel) 55%, transparent), color-mix(in oklch, var(--panel-deep) 78%, transparent))",
             backdropFilter: "blur(8px)",
           }}
         >
@@ -262,7 +263,7 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 35, damping: 22, mass: 2.2 }}
+            transition={{ type: "spring", ...motionTokens.spring }}
             className="bg-background/80 ring-border/60 relative flex w-full max-w-lg flex-col overflow-hidden rounded-3xl shadow-[0_32px_120px_-24px_rgba(0,0,0,0.55)] ring-1 backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -272,14 +273,15 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
               className="pointer-events-none absolute inset-0 rounded-3xl"
               style={{
                 background:
-                  "linear-gradient(135deg, oklch(1 0 0 / 0.10) 0%, oklch(1 0 0 / 0.02) 35%, transparent 60%)",
+                  "linear-gradient(135deg, white / 10% 0%, white / 2% 35%, transparent 60%)",
               }}
             />
             <div
               aria-hidden
               className="pointer-events-none absolute -top-32 -right-24 h-64 w-64 rounded-full opacity-40 blur-3xl"
               style={{
-                background: "radial-gradient(circle, oklch(0.78 0.18 55 / 0.45), transparent 70%)",
+                background:
+                  "radial-gradient(circle, color-mix(in oklch, var(--brand-glow-warm) 45%, transparent), transparent 70%)",
               }}
             />
 
@@ -305,7 +307,7 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
                         onClick={() => setEventType(value)}
                         className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                           eventType === value
-                            ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_24px_-4px_oklch(0.78_0.18_55_/_0.35)] ring-1"
+                            ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_24px_-4px_var(--brand-glow-warm)/35%] ring-1"
                             : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border border"
                         }`}
                       >
@@ -534,7 +536,7 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
                     type="button"
                     onClick={handleSubmit}
                     disabled={!canSubmit}
-                    className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[0_8px_24px_-8px_oklch(0.78_0.18_55_/_0.55)] ring-1 transition-all hover:scale-[1.02] hover:shadow-[0_12px_32px_-8px_oklch(0.78_0.18_55_/_0.65)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                    className="bg-brand-orange hover:bg-brand-orange/90 ring-brand-orange/30 text-primary-foreground flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-[var(--shadow-cta-lg)] ring-1 transition-[transform,box-shadow] hover:scale-[1.02] hover:shadow-[var(--shadow-cta-lg-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

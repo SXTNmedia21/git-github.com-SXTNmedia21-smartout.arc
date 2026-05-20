@@ -1,0 +1,86 @@
+{
+  "run_id": "2026-05-18-adr-contract-validation-02",
+  "date": "2026-05-18",
+  "mode": "full",
+  "baseline": "2026-05-13-adr-contract-validation",
+  "slices_planned": 14,
+  "slices_delivered": 12,
+  "slices_missing": ["03-edge-functions", "14-missions-e2e"],
+  "verdict": "YELLOW",
+  "safe_to_promote": true,
+  "totals": {
+    "critical": 0,
+    "high": 5,
+    "medium": 7,
+    "low": 11,
+    "info": 8,
+    "deduplicated": 31
+  },
+  "delta_vs_baseline": {
+    "new_critical": 0,
+    "new_high": 4,
+    "new_medium": 7,
+    "new_low": 11,
+    "regressed": 0,
+    "closed_from_baseline": 7,
+    "closed_today_628041add": 5,
+    "unchanged_open": 2
+  },
+  "closed_during_run": [
+    {"id": "F-07-SD-1", "slice": "07", "severity": "low", "commit": "628041add", "what": "SECURITY DEFINER + search_path on 2 functions"},
+    {"id": "F-14-ATR-1", "slice": "14", "severity": "medium", "commit": "628041add", "what": "attach-routine-trigger testid static"},
+    {"id": "F-02-PROFILE-1", "slice": "02", "severity": "low", "commit": "628041add", "what": "Profile lookup workspace_id filter on emma+botsson chat BFF"},
+    {"id": "F-08-JR-1", "slice": "08", "severity": "medium", "commit": "628041add", "what": "5 journey doc e2e path pointers"},
+    {"id": "LOW-5", "slice": "07", "severity": "low", "commit": "cd80b3a26", "what": "TaskCreated.metadata description + scheduled_at registered"}
+  ],
+  "baseline_critical_status": {
+    "F-DB-09": "closed",
+    "F-OB-10-01": "closed",
+    "F-CL-11": "closed",
+    "F-EF-03": "closed_not_reverified_slice_03_missing"
+  },
+  "open_high_findings": [
+    {"id": "F-11-OKLCH-COMP", "adr": "0366", "scope": "~50 files, ~283 occurrences", "axis": "design-tokens"},
+    {"id": "F-11-OKLCH-GLOBAL", "adr": "0366", "scope": "globals.css ~18 occurrences", "axis": "design-tokens"},
+    {"id": "F-12-I18N-SURFACES", "adr": "CLAUDE.md", "scope": "DashboardShell + WebDayControl + Login", "axis": "i18n"},
+    {"id": "F-10-I18N-WIZARD-1", "adr": "CLAUDE.md", "scope": "ConfirmBusiness.tsx 18 strings", "axis": "i18n"},
+    {"id": "F-10-I18N-WIZARD-2", "adr": "CLAUDE.md", "scope": "TariffSection + ConfirmRoles no useTranslation", "axis": "i18n"}
+  ],
+  "open_medium_findings": [
+    {"id": "M-001", "adr": "0151", "file": "packages/ai/src/capabilities/billing-query/tools.ts:249-279"},
+    {"id": "M-002", "adr": "0204", "file": "packages/ai/src/capabilities/payroll/tools.ts:1104-1118,1186"},
+    {"id": "M-003", "adr": "0204", "file": "packages/ai/src/capabilities/shift-lifecycle/tools.ts:350-362,177"},
+    {"id": "M-004", "adr": "0173+0240", "file": "packages/ai/src/capabilities/timeline-template/tools.ts:318-346"},
+    {"id": "F-04-OKLCH-DAY", "adr": "0366", "scope": "9 day-component files"},
+    {"id": "F-09-02", "adr": "0304", "scope": "ADR-0321 superseded with 14 live refs"},
+    {"id": "F-12-FM-MODULE", "adr": "CLAUDE.md-frontmatter", "scope": "~2800 docs missing module field"},
+    {"id": "F-12-FM-NONE", "adr": "CLAUDE.md-frontmatter", "scope": "108 docs with no frontmatter"}
+  ],
+  "themes": {
+    "rls_hardening": {"c": 0, "h": 0, "m": 0, "l": 2, "trend": "stable - new tables follow ADR-0299 pattern"},
+    "capability_gate_coverage": {"c": 0, "h": 0, "m": 3, "l": 3, "trend": "stable - payroll convention now classified"},
+    "voice_pii_channel_boundary": {"c": 0, "h": 0, "m": 0, "l": 1, "trend": "stable - FP-001 confirmed not a violation"},
+    "edge_function_auth": {"c": 0, "h": 0, "m": 0, "l": 0, "trend": "not_reverified_slice_03_missing"},
+    "d6_mutation_governance": {"c": 0, "h": 0, "m": 0, "l": 1, "trend": "improved - cascade boundary PASS"},
+    "mobile_telemetry_boundary": {"c": 0, "h": 0, "m": 0, "l": 0, "trend": "improved - L-0083 ESLint holding"},
+    "payroll_phase_sync": {"c": 0, "h": 0, "m": 0, "l": 0, "trend": "closed - F-CL-12+13+17 verified"},
+    "webhook_integrity": {"c": 0, "h": 0, "m": 0, "l": 1, "trend": "stable - 4 webhooks PASS, deprecated contract-service emit gap"},
+    "missions_e2e": {"c": 0, "h": 0, "m": 0, "l": 0, "trend": "not_audited_slice_14_missing"},
+    "journeys_adr_drift": {"c": 0, "h": 0, "m": 1, "l": 2, "trend": "improving - 5 day-line journeys clean per ADR-0367"},
+    "stage_engine_bff": {"c": 0, "h": 0, "m": 0, "l": 2, "trend": "stable - G9 closed, primeContext fixed"},
+    "performance_design": {"c": 0, "h": 2, "m": 1, "l": 0, "trend": "worsening - ADR-0366 unenforced"},
+    "i18n_frontmatter": {"c": 0, "h": 3, "m": 2, "l": 2, "trend": "worsening - 90% of NO-containing files have no i18n"}
+  },
+  "recommended_sorties": [
+    {"rank": 1, "title": "ADR-0366 OKLCH token migration Phase 1", "effort": "M", "adr": "0366"},
+    {"rank": 2, "title": "Onboarding wizard i18n migration", "effort": "M", "adr": "CLAUDE.md-i18n"},
+    {"rank": 3, "title": "Capability gate-then-direct to mutateWithGate + ADR-0204 amendment", "effort": "L", "adr": "0204"},
+    {"rank": 4, "title": "DashboardShell + Login + WebDayControl i18n migration", "effort": "L", "adr": "CLAUDE.md-i18n"},
+    {"rank": 5, "title": "ADR registry hygiene sweep (0322, 0321, module field, future dates)", "effort": "S", "adr": "0304"}
+  ],
+  "cross_cutting_patterns": [
+    "Enforcement-less ADRs accumulate violations geometrically (ADR-0366 OKLCH, CLAUDE.md i18n)",
+    "Mid-audit pattern reclassification (gate-then-direct payroll convention) is convergence, not regression",
+    "Slice coverage discipline fragile under in-flight pressure (03 + 14 absent this cycle)"
+  ]
+}

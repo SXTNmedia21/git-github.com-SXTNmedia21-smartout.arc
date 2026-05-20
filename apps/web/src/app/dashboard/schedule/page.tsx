@@ -113,10 +113,12 @@ import {
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useShiftConflicts } from "./_hooks/useShiftConflicts";
+import { useShiftTimeEntries } from "./_hooks/use-shift-time-entries";
 import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
 import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
 import { toast } from "sonner";
+import { useTranslation } from "@smartout/i18n";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -235,11 +237,13 @@ function SchedulePageContent() {
     setScheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
-    scheduleCompactMode,
+    scheduleDensity,
     setScheduleView,
     setWeeklyPeriodCount,
     profileId,
   } = useContext(DashboardContext);
+  const { t: tRaw } = useTranslation("dashboard");
+  const tSchedule = (key: string) => tRaw(`schedule.${key}`);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
@@ -248,6 +252,7 @@ function SchedulePageContent() {
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
   const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
   const [highlightedDayId, setHighlightedDayId] = useState<string | null>(null);
+  // View-mode: tidslinjer stub — SM-6 ships the Gantt component
   const [loadSecondaryData, setLoadSecondaryData] = useState(false);
   const [sendMessageDialog, setSendMessageDialog] = useState<{
     open: boolean;
@@ -547,6 +552,7 @@ function SchedulePageContent() {
       shifts.map((s) => ({
         shiftId: s.id,
         employeeId: s.employeeId,
+        dateId: s.dateId,
         startTime: s.startTime,
         endTime: s.endTime,
       })),
@@ -557,6 +563,15 @@ function SchedulePageContent() {
     () => new Set(conflicts.flatMap((c) => [c.shiftIdA, c.shiftIdB])),
     [conflicts],
   );
+
+  // Punch-in / punch-out timestamps for tooltip display.
+  // Limited to shifts visually relevant (active or completed) to keep query small.
+  const shiftIdsForTimeEntries = useMemo(
+    () => shifts.filter((s) => s.status === "active" || s.status === "completed").map((s) => s.id),
+    [shifts],
+  );
+  const timeEntriesQuery = useShiftTimeEntries(shiftIdsForTimeEntries);
+  const shiftTimeEntries = timeEntriesQuery.data ?? new Map();
 
   const templates = templatesQuery.data ?? [];
   const openShifts = openShiftsQuery.data ?? [];
@@ -606,8 +621,8 @@ function SchedulePageContent() {
       });
     }
 
-    // When compact, employees with shifts float to top
-    if (scheduleCompactMode) {
+    // When compact or pulse density, employees with shifts float to top
+    if (scheduleDensity === "compact" || scheduleDensity === "pulse") {
       sorted.sort((a, b) => {
         const aHas = employeesWithShifts.has(a.id) ? 0 : 1;
         const bHas = employeesWithShifts.has(b.id) ? 0 : 1;
@@ -616,7 +631,7 @@ function SchedulePageContent() {
     }
 
     return sorted;
-  }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
+  }, [employees, employeeOrder, scheduleDensity, employeesWithShifts]);
 
   // ── Department-based employee filtering ──────────────────
   const { activeDepartment, setActiveDepartment } = useContext(DashboardContext);
@@ -1058,7 +1073,7 @@ function SchedulePageContent() {
             stateKey flips once (loading → ready) so there is at most one transition.
             Outer shell (rounded container + ambient orb) stays mounted across both states,
             matching the pattern in apps/web/src/components/day/WebDayControl.tsx. */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {stateKey === "loading" ? (
             <motion.div key="loading" {...contentFade} className="flex h-full flex-1">
               <ScheduleLoadingSkeleton isDark={isDark} />
@@ -1134,6 +1149,7 @@ function SchedulePageContent() {
                                 onTimeChange={handleGridShiftTimeChange}
                                 conflictedShiftIds={conflictedShiftIds}
                                 readinessMap={readinessMap}
+                                shiftTimeEntries={shiftTimeEntries}
                               />
                             )}
                             {scheduleLayout === "weekly" && (

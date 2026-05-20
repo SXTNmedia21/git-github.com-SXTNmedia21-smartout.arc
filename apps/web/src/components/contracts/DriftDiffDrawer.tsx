@@ -172,7 +172,7 @@ export function DriftDiffDrawer({
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "linear-gradient(135deg, oklch(0.82 0.14 55 / 0.25) 0%, transparent 40%, transparent 60%, oklch(0.82 0.14 55 / 0.10) 100%)",
+              "linear-gradient(135deg, color-mix(in oklch, var(--brand-glow-warm) 25%, transparent) 0%, transparent 40%, transparent 60%, color-mix(in oklch, var(--brand-glow-warm) 10%, transparent) 100%)",
             mask: "linear-gradient(black 0 0) content-box, linear-gradient(black 0 0)",
             maskComposite: "exclude",
             padding: 1,

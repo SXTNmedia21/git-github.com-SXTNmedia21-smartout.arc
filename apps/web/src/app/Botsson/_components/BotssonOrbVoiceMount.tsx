@@ -46,6 +46,7 @@ async function loadKrisp(): Promise<KrispModule | null> {
 }
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
+import { useRegisteredTools } from "./tool-registry";
 
 export type VoiceCallStatus = "idle" | "connecting" | "listening" | "thinking" | "speaking";
 
@@ -93,7 +94,11 @@ export type ScheduleViewChangePayload =
   | { action: "set_period"; weeks: number }
   | { action: "set_filter"; filter: string }
   | { action: "switch_layout"; layout: string }
-  | { action: "focus_day"; dateId: string; openPlanner: boolean };
+  | { action: "focus_day"; dateId: string; openPlanner: boolean }
+  // 2026-05-15: 4-tier density control (plan §5 + E5).
+  // Bridge in schedule-voice-tools-bridge.tsx routes to the shared UI setter
+  // (same path as button click) — single source of truth (L-0233).
+  | { action: "set_density"; density: "cozy" | "default" | "compact" | "pulse" };
 
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */
@@ -196,6 +201,22 @@ export function BotssonOrbVoiceMount({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isConnectedRef = useRef(false);
+
+  // Registered page-scope tools from the dynamic tool registry.
+  // On session connect, these definitions are published over the LiveKit data
+  // channel (topic="botsson-tools-register") so voice-agent can build RPC stubs
+  // and call agent.updateTools() — the ADR-0327 Phase 4 client-tool handshake.
+  //
+  // useRegisteredTools() is stable when no tools are registered (returns EMPTY_TOOLKIT),
+  // so it won't cause spurious renders. The ref below keeps the latest snapshot
+  // available inside the async connect() closure without creating stale captures.
+  const registeredTools = useRegisteredTools();
+  const registeredToolsRef = useRef(registeredTools.definitions);
+  const implementationsRef = useRef(registeredTools.implementations);
+  useEffect(() => {
+    registeredToolsRef.current = registeredTools.definitions;
+    implementationsRef.current = registeredTools.implementations;
+  }, [registeredTools.definitions, registeredTools.implementations]);
 
   // Pathname / searchParams watched in a separate effect that publishes
   // context_route whenever the user navigates (e.g. /dashboard/people →
@@ -335,6 +356,63 @@ export function BotssonOrbVoiceMount({
         }
       });
 
+      // ADR-0327 Phase 4 client-tool RPC roundtrip.
+      // voice-agent publishes botsson-tool-call when LLM invokes one of the
+      // stubs we registered via botsson-tools-register. We look up the
+      // implementation from the dynamic tool registry, execute it locally,
+      // and publish the result back on botsson-tool-result so voice-agent
+      // can resolve the pending promise and feed the result to the LLM.
+      //
+      // Live smoke 2026-05-15 surfaced this gap: definitions were shipped
+      // but no handler existed — every client-tool invocation timed out
+      // after 10s. Without this handler Botsson can't use any page-scope
+      // tools over voice.
+      const encoder = new TextEncoder();
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, _participant, _kind, topic) => {
+        if (topic !== "botsson-tool-call") return;
+
+        let callId = "";
+        const respond = (result: string, isError: boolean): void => {
+          if (!callId) return;
+          try {
+            const out = encoder.encode(
+              JSON.stringify({ type: "tool_result", call_id: callId, result, is_error: isError }),
+            );
+            void room.localParticipant.publishData(out, {
+              topic: "botsson-tool-result",
+              reliable: true,
+            });
+          } catch (err) {
+            console.warn("[BotssonOrbVoiceMount] tool-result publish failed:", err);
+          }
+        };
+
+        void (async () => {
+          try {
+            const msg = JSON.parse(decoder.decode(payload)) as {
+              call_id: string;
+              name: string;
+              arguments: Record<string, unknown>;
+            };
+            callId = msg.call_id;
+            const impl = implementationsRef.current[msg.name];
+            if (!impl) {
+              respond(`Client tool '${msg.name}' not registered in this session.`, true);
+              return;
+            }
+            try {
+              const result = await impl(msg.arguments);
+              respond(typeof result === "string" ? result : JSON.stringify(result), false);
+            } catch (err) {
+              respond(err instanceof Error ? err.message : String(err), true);
+            }
+          } catch (err) {
+            console.warn("[BotssonOrbVoiceMount] tool-call decode failed:", err);
+            if (callId) respond("Tool call message could not be parsed.", true);
+          }
+        })();
+      });
+
       // Infer status from active speakers list
       room.on(RoomEvent.ActiveSpeakersChanged, () => {
         const speakers = room.activeSpeakers;
@@ -420,6 +498,40 @@ export function BotssonOrbVoiceMount({
           room,
           buildRouteMessage(pathnameRef.current, searchParamsRef.current),
         );
+
+        // Publish registered page-scope tool definitions to voice-agent.
+        //
+        // ADR-0327 Phase 4 client-tool handshake (topic="botsson-tools-register"):
+        // After the room connects and the mic is active, we ship the current set
+        // of ClientToolDefinitions (from the dynamic tool registry) so voice-agent
+        // can build RPC stubs and call agent.updateTools(). Voice-agent then owns
+        // the browser-side execution roundtrip (botsson-tool-call → browser →
+        // botsson-tool-result → voice-agent) per the investigation protocol.
+        //
+        // Only published when there are tools to register (empty array is a no-op
+        // on the voice-agent side but wastes a data-channel message).
+        //
+        // Re-registration on tool-set changes is handled by a separate useEffect
+        // (below) that watches registeredTools.definitions and re-publishes when
+        // the user navigates to a page with a different tool surface.
+        //
+        // Timing: fires AFTER mic setup + context_init so voice-agent has user
+        // context (workspace_id, role) before it decides which stubs to honour.
+        const toolDefs = registeredToolsRef.current;
+        if (toolDefs.length > 0) {
+          try {
+            const payload = new TextEncoder().encode(
+              JSON.stringify({ type: "tools_register", definitions: toolDefs }),
+            );
+            void room.localParticipant.publishData(payload, {
+              topic: "botsson-tools-register",
+              reliable: true,
+            });
+          } catch (err) {
+            // Non-fatal — voice session continues, just without client tools.
+            console.warn("[BotssonOrbVoiceMount] tools-register publish failed:", err);
+          }
+        }
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "Connection failed";
@@ -462,6 +574,38 @@ export function BotssonOrbVoiceMount({
     if (!room || !isConnectedRef.current) return;
     publishContextPayload(room, buildRouteMessage(pathname, searchParams));
   }, [pathname, searchParams]);
+
+  // Re-publish tool definitions when the registered tool surface changes
+  // (e.g. user navigates from /schedule to /people — different page-scope tools).
+  //
+  // ADR-0327 Phase 4: voice-agent calls agent.updateTools() each time it receives
+  // a botsson-tools-register message, so re-publishing on tool-set change keeps
+  // the voice LLM's tool surface in sync with the current page.
+  //
+  // Only fires when the session is live (isConnectedRef.current) — at mount time
+  // the initial publish happens inside the async connect() flow above (after mic
+  // setup and context_init, so voice-agent has user context before stubs arrive).
+  //
+  // The dependency is registeredTools.definitions which is stable (same array
+  // reference) when no tools are registered or when the definition set is
+  // unchanged, so this effect does not fire on unrelated re-renders.
+  useEffect(() => {
+    const room = roomRef.current;
+    if (!room || !isConnectedRef.current) return;
+    const toolDefs = registeredTools.definitions;
+    if (toolDefs.length === 0) return;
+    try {
+      const payload = new TextEncoder().encode(
+        JSON.stringify({ type: "tools_register", definitions: toolDefs }),
+      );
+      void room.localParticipant.publishData(payload, {
+        topic: "botsson-tools-register",
+        reliable: true,
+      });
+    } catch (err) {
+      console.warn("[BotssonOrbVoiceMount] tools-register re-publish failed:", err);
+    }
+  }, [registeredTools.definitions]);
 
   return (
     // Hidden audio element — Botsson's voice plays through this

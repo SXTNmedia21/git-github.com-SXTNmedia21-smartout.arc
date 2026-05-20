@@ -50,6 +50,15 @@ export function getEmmaVoiceTranscriptUrl(): string {
   return `${getWebApiUrl()}/api/emma/voice/transcript`;
 }
 
+/**
+ * Absolute URL for fetching a size-guard-overflowed workforce snapshot by version.
+ * Used when BFF returns `payload_url` instead of inline `payload` (ADR-0297 §size-guard).
+ * The version token is URL-encoded by the caller (already encoded by the BFF).
+ */
+export function getEmmaVoiceSnapshotUrl(encodedVersion: string): string {
+  return `${getWebApiUrl()}/api/emma/voice/snapshot/${encodedVersion}`;
+}
+
 /** Absolute URL for the guided-journey BFF start endpoint (ADR-0132). */
 export function getJourneyGuidedStartUrl(): string {
   return `${getWebApiUrl()}/api/journey/guided/start`;
@@ -144,6 +153,19 @@ export function getBookingCreateUrl(): string {
 }
 
 /**
+ * Shift Marketplace BFF endpoints (ADR-0132 / ADR-0306).
+ * Mobile never writes directly to schedule_shift_offer — the BFF re-derives
+ * identity server-side (ADR-0151) and runs gate_action + emit() (ADR-0099,
+ * ADR-0134). Claim is chat-only per ADR-0288; mobile surface = chat channel.
+ */
+export function getMarketplaceOpenOffersUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/marketplace/open-offers`;
+}
+export function getMarketplaceClaimUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/marketplace/claim`;
+}
+
+/**
  * Lønnsgrunnlag signed-URL BFF endpoint (Wave B / Phase 4, ADR-0133).
  * Employee GETs a signed URL for their own PDF lønnsgrunnlag.
  * BFF re-derives identity server-side (ADR-0151), verifies employee owns
@@ -156,4 +178,22 @@ export function getBookingCreateUrl(): string {
  */
 export function getLonnsgrunnlagUrlEndpoint(eventId: string, profileId: string): string {
   return `${getWebApiUrl()}/api/payroll/lonnsgrunnlag-url?lonnsgrunnlagId=${encodeURIComponent(eventId)}&profileId=${encodeURIComponent(profileId)}`;
+}
+
+/**
+ * Scheduler BFF endpoints (ADR-0133 — Accept/Reject are Approve verbs, mobile-allowed).
+ * ADR-0309 — atomic bundle accept/reject. Mobile never writes change_proposal directly.
+ * ADR-0151 — workspace_id + profile_id re-derived server-side from Bearer token.
+ */
+export function getSchedulerProposalsUrl(workspaceId?: string): string {
+  const base = `${getWebApiUrl()}/api/scheduler/proposals?status=pending`;
+  return workspaceId ? `${base}&workspace_id=${encodeURIComponent(workspaceId)}` : base;
+}
+
+export function getSchedulerAcceptBundleUrl(): string {
+  return `${getWebApiUrl()}/api/scheduler/accept-bundle`;
+}
+
+export function getSchedulerRejectBundleUrl(): string {
+  return `${getWebApiUrl()}/api/scheduler/reject-bundle`;
 }

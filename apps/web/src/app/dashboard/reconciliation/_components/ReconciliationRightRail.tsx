@@ -77,7 +77,7 @@ export function ReconciliationRightRail({
       {/* Live KPI glance */}
       <section
         aria-labelledby="rail-kpi-heading"
-        className="border-border bg-card rounded-xl border p-4"
+        className="border-border bg-card rounded-2xl border p-5 shadow-sm"
       >
         <h3
           id="rail-kpi-heading"
@@ -110,7 +110,7 @@ export function ReconciliationRightRail({
       {/* Unresolved deviations */}
       <section
         aria-labelledby="rail-deviations-heading"
-        className="border-border bg-card rounded-xl border p-4"
+        className="border-border bg-card rounded-2xl border p-5 shadow-sm"
       >
         <div className="flex items-center gap-2">
           {openDeviationCount > 0 ? (
@@ -145,7 +145,7 @@ export function ReconciliationRightRail({
       {/* Shift-leader + close-day */}
       <section
         aria-labelledby="rail-leader-heading"
-        className="border-border bg-card rounded-xl border p-4"
+        className="border-border bg-card rounded-2xl border p-5 shadow-sm"
       >
         <h3
           id="rail-leader-heading"

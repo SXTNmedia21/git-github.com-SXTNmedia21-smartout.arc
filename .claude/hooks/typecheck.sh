@@ -26,6 +26,14 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty')
 # and will self-report. Blocking the parent on intermediate state is noise.
 [[ "$file_path" =~ \.claude/worktrees/ ]] && exit 0
 
+# TEMP 2026-05-14: skip parallel-builder load on any sub-sortie wt-N worktree.
+# 3 sonnet builders writing concurrently = 3 parallel `pnpm --filter web typecheck`
+# competing for CPU/IO → SIGTERM at hook timeout. Builders run final typecheck
+# verification themselves before reporting done. Revert this line at sortie close.
+# Extended 2026-05-18 to cover campaign-prefixed sub-sortie naming
+# (smartout.ai-<campaign>-wt-N/) in addition to legacy smartout.ai-wt-N/.
+[[ "$file_path" =~ -wt-[0-9]+/ ]] && exit 0
+
 # Skip test files — they often touch WIP state during sortie work; CI catches
 # the final state. Only production TS under src/ (non-__tests__) triggers.
 [[ "$file_path" =~ /__tests__/ ]] && exit 0

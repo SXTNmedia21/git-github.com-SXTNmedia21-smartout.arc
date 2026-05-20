@@ -1,16 +1,13 @@
 "use client";
 
 import React from "react";
-import {
-  AlertCircle,
-  Circle,
-  Clock,
-  ListTodo,
-  MapPin,
-  PlayCircle,
-  CheckCircle2,
-  ThumbsUp,
-} from "lucide-react";
+import { Clock, ListTodo } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DensityStrip, type ScheduleDensityTier } from "./density-strip";
+import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
+import { SHIFT_INDICATOR_STYLES, type ShiftIndicator } from "./shift-indicator-styles";
+export { SHIFT_INDICATOR_STYLES } from "./shift-indicator-styles";
 
 type OpenShiftCardViewProps = {
   isDark: boolean;
@@ -41,7 +38,6 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 });
 
 type ShiftStatus = "draft" | "published" | "active" | "completed";
-type ShiftIndicator = "blue" | "emerald" | "purple" | "orange";
 
 type ShiftCardViewProps = {
   isDark: boolean;
@@ -53,6 +49,24 @@ type ShiftCardViewProps = {
   zone?: string;
   isCompact?: boolean;
   confirmedAt?: string;
+  /** When true, the DensityStrip rail switches to bg-destructive (C2 conflict signal). */
+  hasConflict?: boolean;
+  /** Density tier used to determine strip width. Defaults to "default". */
+  tier?: ScheduleDensityTier;
+  /** Raw start time (HH:mm) — used by compact DensityStrip + formatTimeShort. */
+  startTime?: string;
+  /** Raw end time (HH:mm) — used by compact DensityStrip + formatTimeShort. */
+  endTime?: string;
+  /** Number of shifts in the same cell — when >1 the default tier renders denser. */
+  cellShiftCount?: number;
+  /** Punch-in timestamp (ISO) — shown in tooltip when shift is active/completed. */
+  punchInAt?: string | null;
+  /** Punch-out timestamp (ISO) — shown in tooltip when shift is clocked-out. */
+  punchOutAt?: string | null;
+  /** Employee name — shown in tooltip header. Null/empty when open shift. */
+  employeeName?: string;
+  /** Total scheduled hours for this shift — shown alongside time in tooltip. */
+  workHours?: number;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -62,13 +76,6 @@ const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
   active:
     "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)] dark:bg-emerald-500/5",
   completed: "border-border/50 bg-muted/30 opacity-60 dark:bg-transparent",
-};
-
-const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
-  blue: "bg-blue-400/40",
-  emerald: "bg-emerald-400/40",
-  purple: "bg-purple-400/40",
-  orange: "bg-orange-400/40",
 };
 
 function normalizeShiftStatus(status: string): ShiftStatus {
@@ -83,6 +90,20 @@ function normalizeShiftStatus(status: string): ShiftStatus {
   return "published";
 }
 
+function formatWorkHours(h: number): string {
+  if (Number.isInteger(h)) return `${h} t`;
+  return `${h.toFixed(1).replace(".", ",")} t`;
+}
+
+function formatPunchTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
 function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   if (
     indicator === "blue" ||
@@ -95,21 +116,6 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status, confirmedAt }: { status: ShiftStatus; confirmedAt?: string }) {
-  if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
-  if (status === "completed") return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
-  if (status === "active") {
-    return confirmedAt ? (
-      <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />
-    ) : (
-      <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />
-    );
-  }
-  // published: show confirmation status
-  if (confirmedAt) return <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />;
-  return <Clock className="text-muted-foreground h-3.5 w-3.5" />;
-}
-
 export const ShiftCardView = React.memo(function ShiftCardView({
   isDark: _isDark,
   isDragging,
@@ -120,18 +126,37 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   zone,
   isCompact,
   confirmedAt,
+  hasConflict = false,
+  tier,
+  startTime,
+  endTime,
+  cellShiftCount = 1,
+  punchInAt,
+  punchOutAt,
+  employeeName,
+  workHours,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
   const isPublishedOrLater = normalizedStatus === "published" || normalizedStatus === "active";
 
+  // Derive effective tier — isCompact + tier from parent. Compact density → "compact" strip width.
+  const effectiveTier: ScheduleDensityTier = tier ?? (isCompact ? "compact" : "default");
+
+  // Compact time display — use formatTimeShort when startTime/endTime available
+  const compactTime = startTime && endTime ? formatTimeShort(startTime, endTime) : time;
+  const fullTime = startTime && endTime ? formatTimeFull(startTime, endTime) : time;
+
   if (isCompact) {
     return (
       <div
         className={`group hover:bg-muted relative flex cursor-grab items-center gap-2 rounded-md border px-2 py-1 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-hidden will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+        data-testid="schedule-shift-card"
       >
-        <div
-          className={`absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
+        <DensityStrip
+          indicator={normalizedIndicator}
+          hasConflict={hasConflict}
+          tier={effectiveTier}
         />
         <span className="text-foreground truncate pl-1 text-[11px] leading-tight font-semibold">
           {role}
@@ -143,43 +168,115 @@ export const ShiftCardView = React.memo(function ShiftCardView({
               title={confirmedAt ? "Bekreftet" : "Venter på bekreftelse"}
             />
           )}
-          <span className="text-muted-foreground text-[10px] font-medium">{time}</span>
+          <span className="text-muted-foreground text-[10px] font-medium" title={fullTime}>
+            {compactTime}
+          </span>
         </div>
       </div>
     );
   }
 
+  // Status dot color — replaces former ShiftStatusIcon 5x5 box.
+  // draft = amber/dashed (card bg already signals), published+unconfirmed = amber,
+  // published+confirmed = emerald, active = emerald, completed = muted.
+  const statusDotClass =
+    normalizedStatus === "completed"
+      ? "bg-muted-foreground/30"
+      : normalizedStatus === "active"
+        ? "bg-emerald-400"
+        : confirmedAt
+          ? "bg-emerald-400"
+          : "bg-amber-400";
+  const statusLabel =
+    normalizedStatus === "draft"
+      ? "Utkast"
+      : normalizedStatus === "completed"
+        ? "Fullført"
+        : normalizedStatus === "active"
+          ? "Pågående"
+          : confirmedAt
+            ? "Bekreftet"
+            : "Venter på bekreftelse";
+
+  // When 2+ shifts share a cell, drop the optional zone row + tighten padding.
+  // This keeps both cards visible in a 100px row without clipping.
+  const isDense = cellShiftCount > 1;
+  const showZoneRow = !isDense && Boolean(zone);
+
   return (
-    <div
-      className={`group hover:bg-muted relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing xl:p-3 ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-hidden will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
-    >
-      <div
-        className={`absolute top-2.5 bottom-2.5 left-0 w-1 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
-      />
+    <TooltipProvider delayDuration={400}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "group hover:bg-muted relative flex cursor-grab flex-col justify-center gap-0.5 rounded-lg border transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing",
+              isDense ? "px-2 py-1" : "px-2.5 py-1.5",
+              SHIFT_STATUS_STYLES[normalizedStatus],
+              "overflow-hidden will-change-transform",
+              isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100",
+            )}
+            data-testid="schedule-shift-card"
+          >
+            <DensityStrip
+              indicator={normalizedIndicator}
+              hasConflict={hasConflict}
+              tier={effectiveTier}
+            />
 
-      <div className="relative z-10 flex w-full items-start justify-between">
-        <div className="min-w-0 pr-2">
-          <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 block truncate text-sm leading-tight font-semibold transition-colors">
-            {role}
-          </span>
-          {zone ? (
-            <div className="text-muted-foreground mt-1 flex items-center gap-1 text-[11px] whitespace-nowrap">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">{zone}</span>
+            <div className="relative z-10 flex items-baseline gap-2 pl-1.5">
+              <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 min-w-0 flex-1 truncate text-sm leading-tight font-semibold transition-colors">
+                {role}
+              </span>
+              <span className="text-muted-foreground shrink-0 text-[11px] font-medium tabular-nums">
+                {compactTime}
+              </span>
+              <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDotClass)} />
             </div>
-          ) : null}
-        </div>
 
-        <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <ShiftStatusIcon status={normalizedStatus} confirmedAt={confirmedAt} />
-        </div>
-      </div>
-
-      <div className="text-muted-foreground relative z-10 mt-auto flex items-center gap-1.5 text-xs font-medium">
-        <Clock className="text-muted-foreground h-3.5 w-3.5" />
-        {time}
-      </div>
-    </div>
+            {showZoneRow ? (
+              <span className="text-muted-foreground line-clamp-1 truncate pl-1.5 text-[11px] leading-tight">
+                {zone}
+              </span>
+            ) : null}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-xs">
+          <div className="flex flex-col gap-1">
+            <div className="text-sm font-bold">{role}</div>
+            {employeeName ? (
+              <div className="text-[11px] opacity-80">{employeeName}</div>
+            ) : (
+              <div className="text-[11px] italic opacity-70">Åpen vakt</div>
+            )}
+            <div className="flex items-center gap-2 text-[11px] tabular-nums opacity-80">
+              <span>{fullTime}</span>
+              {typeof workHours === "number" && workHours > 0 ? (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span>{formatWorkHours(workHours)}</span>
+                </>
+              ) : null}
+            </div>
+            {zone ? <div className="text-[11px] opacity-80">{zone}</div> : null}
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
+              <span>{statusLabel}</span>
+            </div>
+            {punchInAt ? (
+              <div className="border-primary-foreground/15 mt-1 border-t pt-1 text-[11px] tabular-nums opacity-80">
+                <div>Stempla inn {formatPunchTime(punchInAt)}</div>
+                {punchOutAt ? <div>Stempla ut {formatPunchTime(punchOutAt)}</div> : null}
+              </div>
+            ) : null}
+            {hasConflict ? (
+              <div className="text-destructive-foreground bg-destructive/90 -mx-3 mt-1.5 -mb-1.5 px-3 py-1 text-[10px] font-bold">
+                ⚠ Overlappende vakt samme dag
+              </div>
+            ) : null}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 });
 

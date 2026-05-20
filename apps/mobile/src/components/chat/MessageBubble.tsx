@@ -1,28 +1,57 @@
 /**
- * MessageBubble — Chat bubble matching the prototype (Nordic Split).
- *
- * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:383-447
+ * MessageBubble — Chat bubble matching Nordic Split design (WhatsApp-style layout).
  *
  * Variants:
- *   own     — right-aligned, `linear-gradient(135°, #f97316 → #ea6b10)` fill,
- *             corners 16/16/4/16, white text, subtle orange shadow.
- *   other   — left-aligned with 28pt avatar, `bg-muted`, corners 16/16/16/4,
- *             sender name micro-label above the bubble.
+ *   own     — right-aligned, `colors.warnSoft` surface (warm cream, WhatsApp own-bubble feel),
+ *             corners 16/16/4/16, `colors.foreground` text,
+ *             timestamp + ReadReceipt inline bottom-right inside the bubble.
+ *   other   — left-aligned with 28pt avatar, `colors.muted` surface,
+ *             corners 16/16/16/4, sender name micro-label above bubble,
+ *             timestamp inline bottom-right inside bubble (no receipt).
  *   system  — centered pill: muted bg + border, italic 11.5 muted text.
  *
  * Reactions render as card-bg pills below the bubble (emoji + mono count).
- * Timestamp sits below the bubble in Geist-Mono 9.5 upper muted.
  * Attachments render above the text bubble; clean separation from layout.
+ *
+ * Swipe-to-reply (Phase 2 T1):
+ *   Horizontal pan via Gesture.Pan() + GestureDetector (react-native-gesture-handler v2).
+ *   translateX shared value capped at SWIPE_MAX (64px), direction-aware.
+ *   Threshold SWIPE_THRESHOLD (48px) → haptic + onSwipeReply (once per gesture).
+ *   Reply icon fades in proportionally behind the bubble on the opposite side.
+ *   Spring back to 0 on release via motion.springSnappy from @smartout/design-tokens.
+ *   Gesture state lives entirely in shared values — no React re-render during swipe.
+ *
+ * Long-press scale-spring (Phase 2 T3):
+ *   Gesture.LongPress() composed with pan via Gesture.Simultaneous so both can recognize.
+ *   On long-press start: scale 1.0 → 1.05 via springSnappy.
+ *   On long-press end/cancel: scale returns to 1.0 via springSnappy.
+ *   Existing onLongPress callback (haptic + show ReactionBar) is preserved — called via runOnJS.
+ *   Scale lives in a shared value — never triggers React re-render.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, Pressable, Image, type ViewStyle, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Play, Clock } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { createStyles, useTheme, withOpacity } from "@/theme";
+import { Play, CornerUpLeft } from "lucide-react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+  Extrapolation,
+  runOnJS,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { nativeTheme } from "@smartout/design-tokens/native";
+import { createStyles, useTheme } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import type { MessageWithSender, MessageAttachment } from "@/hooks/queries/use-messages";
+import { ReadReceipt, type ReadReceiptState } from "./ReadReceipt";
+
+// ─── Swipe constants — pulled from token scope, no magic numbers elsewhere ───
+const SWIPE_MAX = 64; // max translateX (px)
+const SWIPE_THRESHOLD = 48; // px to trigger reply
+const { springSnappy } = nativeTheme.motion;
 
 type MessageBubbleProps = {
   message: MessageWithSender;
@@ -30,6 +59,7 @@ type MessageBubbleProps = {
   isPending: boolean;
   onLongPress: () => void;
   onSwipeReply: () => void;
+  readReceiptState?: ReadReceiptState;
   style?: ViewStyle;
 };
 
@@ -46,6 +76,7 @@ function formatTime(isoString: string): string {
 
 /** Renders an image/video thumbnail above the text bubble. */
 function AttachmentThumb({ attachment }: { attachment: MessageAttachment }) {
+  const theme = useTheme();
   const isVideo =
     attachment.file_type === "video" || (attachment.mime_type?.startsWith("video") ?? false);
 
@@ -66,30 +97,145 @@ function AttachmentThumb({ attachment }: { attachment: MessageAttachment }) {
             bottom: 0,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.3)",
+            // Dark scrim over video thumbnail — use token, never raw rgba.
+            backgroundColor: theme.colors.scrim,
           }}
         >
-          <Play size={24} color="#ffffff" fill="#ffffff" strokeWidth={0} />
+          {/* Play icon on dark scrim always needs maximum-contrast color */}
+          <Play
+            size={24}
+            color={theme.colors.primaryForeground}
+            fill={theme.colors.primaryForeground}
+            strokeWidth={0}
+          />
         </View>
       )}
     </View>
   );
 }
 
-export function MessageBubble({
+/**
+ * MessageBubbleInner — internal implementation wrapped in React.memo below.
+ * Separated so the outer memo compares only the stable props listed in are-equal.
+ */
+function MessageBubbleInner({
   message,
   isOwnMessage,
   isPending,
   onLongPress,
+  onSwipeReply,
+  readReceiptState: receiptProp,
   style,
 }: MessageBubbleProps) {
   const styles = useStyles();
   const theme = useTheme();
 
+  // ── Swipe shared values (gesture thread — never trigger React render) ──────
+  const translateX = useSharedValue(0);
+  // Boolean shared value: 1 = fired this gesture, 0 = not fired yet.
+  const hasFired = useSharedValue(0);
+  // isOwnMessage as shared value — avoids closing over the JS prop in the worklet,
+  // which would force the native gesture recognizer to tear down and rebuild every
+  // render (since the worklet captures a new closure reference each time).
+  const isOwnSV = useSharedValue(isOwnMessage ? 1 : 0);
+  useEffect(() => {
+    isOwnSV.value = isOwnMessage ? 1 : 0;
+  }, [isOwnMessage, isOwnSV]);
+
+  // ── Long-press scale shared value (gesture thread — never triggers React render) ──
+  const scale = useSharedValue(1);
+
+  // JS-thread callback — haptic + show ReactionBar. Called from both Pressable and gesture worklet.
   const handleLongPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onLongPress();
   }, [onLongPress]);
+
+  // Stable ref so the worklet closure captures a stable identity.
+  const onSwipeReplyRef = useRef(onSwipeReply);
+  onSwipeReplyRef.current = onSwipeReply;
+
+  // Wrapper called from gesture worklet via runOnJS.
+  const fireReply = useCallback(() => {
+    Haptics.selectionAsync();
+    onSwipeReplyRef.current();
+  }, []);
+
+  /**
+   * Long-press gesture (T3) — drives scale spring only.
+   * `minDuration` 300ms matches Pressable `delayLongPress` so scale animates in sync.
+   * onLongPress callback (haptic + ReactionBar) fires via the Pressable handlers below —
+   * Gesture.LongPress only owns the scale animation to avoid double-firing the callback.
+   */
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(300)
+    .onStart(() => {
+      "worklet";
+      scale.value = withSpring(1.05, springSnappy);
+    })
+    .onFinalize(() => {
+      "worklet";
+      // Reset scale on release or cancel.
+      scale.value = withSpring(1, springSnappy);
+    });
+
+  /**
+   * Pan gesture — horizontal-only (activeOffsetX guards FlatList scroll).
+   * Direction: own messages drag right (+X), other messages drag left (-X).
+   * Wrong-direction drag is clamped to 0 so no translate occurs.
+   */
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((e) => {
+      "worklet";
+      const raw = e.translationX;
+      // Direction gate: own → positive X only, other → negative X only.
+      // Use isOwnSV (shared value) instead of closing over the JS prop so the
+      // native gesture recognizer is not rebuilt on every render.
+      const directedRaw = isOwnSV.value === 1 ? Math.max(0, raw) : Math.min(0, raw);
+      // Clamp to max travel distance (absolute value bounded by SWIPE_MAX).
+      const clamped =
+        isOwnSV.value === 1 ? Math.min(directedRaw, SWIPE_MAX) : Math.max(directedRaw, -SWIPE_MAX);
+      translateX.value = clamped;
+
+      // Fire reply once when threshold crossed.
+      const absTravel = Math.abs(clamped);
+      if (absTravel >= SWIPE_THRESHOLD && hasFired.value === 0) {
+        hasFired.value = 1;
+        runOnJS(fireReply)();
+      }
+    })
+    .onEnd(() => {
+      "worklet";
+      translateX.value = withSpring(0, springSnappy);
+      hasFired.value = 0;
+    });
+
+  /**
+   * Compose pan + long-press simultaneously so both gestures can recognize
+   * without one cancelling the other (long-press is stationary, pan is horizontal).
+   */
+  const composedGesture = Gesture.Simultaneous(panGesture, longPressGesture);
+
+  // ── Animated styles ───────────────────────────────────────────────────────
+  const bubbleAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }, { scale: scale.value }],
+  }));
+
+  /**
+   * Reply icon fades in proportionally to drag distance.
+   * Positioned on the OPPOSITE side from drag direction:
+   *   own (drags right) → icon left of bubble
+   *   other (drags left) → icon right of bubble
+   */
+  const replyIconAnimStyle = useAnimatedStyle(() => {
+    const absTravel = Math.abs(translateX.value);
+    const opacity = interpolate(absTravel, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP);
+    return { opacity };
+  });
+
+  // Derive effective receipt state: pending flag takes precedence over prop.
+  const effectiveReceiptState: ReadReceiptState = isPending ? "pending" : (receiptProp ?? "sent");
 
   // System message — centered pill.
   if (message.is_system) {
@@ -116,7 +262,7 @@ export function MessageBubble({
     return acc;
   }, {});
 
-  const bubbleTextColor = isOwnMessage ? "#ffffff" : theme.colors.foreground;
+  const bubbleTextColor = theme.colors.foreground;
 
   const bubbleCorners = isOwnMessage
     ? {
@@ -132,115 +278,139 @@ export function MessageBubble({
         borderBottomLeftRadius: 4,
       };
 
+  // Own bubble uses warnSoft (warm cream) for WhatsApp-style visual separation.
+  // secondary === muted in both light/dark, making own+other indistinguishable — T8 fix.
+  const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
+
   return (
-    <View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
-      {/* Avatar — other messages only */}
-      {!isOwnMessage && (
-        <View style={styles.avatarSlot}>
-          <Avatar
-            name={message.senderName}
-            imageUrl={message.senderAvatarUrl}
-            size="sm"
-            style={styles.avatar}
-          />
-        </View>
-      )}
-
-      <View style={[styles.column, isOwnMessage && styles.columnOwn]}>
-        {/* Sender label — other messages only */}
-        {!isOwnMessage && message.senderName && (
-          <Text style={styles.senderName}>{message.senderName}</Text>
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
+        {/* Reply icon — shown on the side opposite to drag direction */}
+        {isOwnMessage ? (
+          // Own: drags right → icon on LEFT of bubble row
+          <Animated.View style={[styles.replyIcon, styles.replyIconLeft, replyIconAnimStyle]}>
+            <CornerUpLeft size={20} color={theme.colors.mutedForeground} />
+          </Animated.View>
+        ) : (
+          // Other: drags left → icon on RIGHT of bubble row
+          <Animated.View style={[styles.replyIcon, styles.replyIconRight, replyIconAnimStyle]}>
+            <CornerUpLeft size={20} color={theme.colors.mutedForeground} />
+          </Animated.View>
         )}
 
-        {/* Attachments above the text bubble */}
-        {attachmentList.length > 0 && (
-          <Pressable onLongPress={handleLongPress} delayLongPress={300} style={styles.attachments}>
-            {attachmentList.map((att) => (
-              <AttachmentThumb key={att.id} attachment={att} />
-            ))}
-          </Pressable>
+        {/* Avatar — other messages only */}
+        {!isOwnMessage && (
+          <View style={styles.avatarSlot}>
+            <Avatar
+              name={message.senderName}
+              imageUrl={message.senderAvatarUrl}
+              size="sm"
+              style={styles.avatar}
+            />
+          </View>
         )}
 
-        {/* Text bubble */}
-        {(message.content.trim().length > 0 ||
-          (!isOwnMessage && message.reply_to_id) ||
-          (isOwnMessage && attachmentList.length === 0)) && (
-          <Pressable
-            onLongPress={handleLongPress}
-            delayLongPress={300}
-            accessibilityLabel={`${message.senderName}: ${message.content}`}
-          >
-            {isOwnMessage ? (
-              <LinearGradient
-                colors={["#f97316", "#ea6b10"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.bubble, bubbleCorners, styles.bubbleOwnShadow]}
-              >
-                {message.reply_to_id && message.reply_to_content && (
+        <Animated.View style={[styles.column, isOwnMessage && styles.columnOwn, bubbleAnimStyle]}>
+          {/* Sender label — other messages only */}
+          {!isOwnMessage && message.senderName && (
+            <Text style={styles.senderName}>{message.senderName}</Text>
+          )}
+
+          {/* Attachments above the text bubble */}
+          {attachmentList.length > 0 && (
+            <Pressable
+              onLongPress={handleLongPress}
+              delayLongPress={300}
+              style={styles.attachments}
+            >
+              {attachmentList.map((att) => (
+                <AttachmentThumb key={att.id} attachment={att} />
+              ))}
+            </Pressable>
+          )}
+
+          {/* Text bubble */}
+          {(message.content.trim().length > 0 ||
+            (!isOwnMessage && message.reply_to_id) ||
+            (isOwnMessage && attachmentList.length === 0)) && (
+            <Pressable
+              onLongPress={handleLongPress}
+              delayLongPress={300}
+              accessibilityLabel={`${message.senderName}: ${message.content}`}
+            >
+              <View style={[styles.bubble, bubbleCorners, { backgroundColor: bubbleBg }]}>
+                {/* Reply indicator — own */}
+                {isOwnMessage && message.reply_to_id && message.reply_to_content && (
                   <View style={styles.replyIndicatorOwn}>
                     <Text style={[styles.replyText, styles.replyTextOwn]} numberOfLines={1}>
                       {message.reply_to_content}
                     </Text>
                   </View>
                 )}
-                {message.content.trim().length > 0 && (
-                  <Text style={[styles.content, { color: bubbleTextColor }]}>
-                    {message.content}
-                  </Text>
-                )}
-              </LinearGradient>
-            ) : (
-              <View style={[styles.bubble, bubbleCorners, { backgroundColor: theme.colors.muted }]}>
-                {message.reply_to_id && message.reply_to_content && (
+                {/* Reply indicator — other */}
+                {!isOwnMessage && message.reply_to_id && message.reply_to_content && (
                   <View style={styles.replyIndicator}>
                     <Text style={styles.replyText} numberOfLines={1}>
                       {message.reply_to_content}
                     </Text>
                   </View>
                 )}
+
+                {/* Message text */}
                 {message.content.trim().length > 0 && (
                   <Text style={[styles.content, { color: bubbleTextColor }]}>
                     {message.content}
                   </Text>
                 )}
-              </View>
-            )}
-          </Pressable>
-        )}
 
-        {/* Reactions pill row */}
-        {Object.keys(groupedReactions).length > 0 && (
-          <View
-            style={[
-              styles.reactionsRow,
-              isOwnMessage ? styles.reactionsRowOwn : styles.reactionsRowOther,
-            ]}
-          >
-            {Object.entries(groupedReactions).map(([emoji, count]) => (
-              <View key={emoji} style={styles.reactionPill}>
-                <Text style={styles.reactionEmoji}>{emoji}</Text>
-                <Text style={styles.reactionCount}>{count}</Text>
+                {/* Inline meta: time + receipt (own) / time only (other) — bottom-right */}
+                <View style={styles.inlineMeta}>
+                  <Text style={styles.inlineTimestamp}>{formatTime(message.created_at)}</Text>
+                  {isOwnMessage && <ReadReceipt state={effectiveReceiptState} size={11} />}
+                </View>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* Timestamp row — mono uppercase below the bubble */}
-        <View style={[styles.metaRow, isOwnMessage && styles.metaRowOwn]}>
-          {isPending && (
-            <Clock
-              size={10}
-              color={withOpacity(theme.colors.mutedForeground, 0.8)}
-              strokeWidth={1.8}
-            />
+            </Pressable>
           )}
-          <Text style={styles.timestamp}>{formatTime(message.created_at)}</Text>
-        </View>
-      </View>
-    </View>
+
+          {/* Reactions pill row */}
+          {Object.keys(groupedReactions).length > 0 && (
+            <View
+              style={[
+                styles.reactionsRow,
+                isOwnMessage ? styles.reactionsRowOwn : styles.reactionsRowOther,
+              ]}
+            >
+              {Object.entries(groupedReactions).map(([emoji, count]) => (
+                <View key={emoji} style={styles.reactionPill}>
+                  <Text style={styles.reactionEmoji}>{emoji}</Text>
+                  <Text style={styles.reactionCount}>{count}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Animated.View>
+      </Animated.View>
+    </GestureDetector>
   );
 }
+
+/**
+ * MessageBubble — memoized to prevent re-render during gesture (shared values
+ * handle all animation state). Re-renders only when content, receipt state,
+ * or reaction count changes.
+ */
+export const MessageBubble = React.memo(MessageBubbleInner, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.readReceiptState === next.readReceiptState &&
+    prev.isPending === next.isPending &&
+    prev.isOwnMessage === next.isOwnMessage &&
+    Array.isArray(prev.message.reactions) &&
+    Array.isArray(next.message.reactions) &&
+    prev.message.reactions.length === next.message.reactions.length
+  );
+});
 
 const useStyles = createStyles((theme) => ({
   row: {
@@ -283,19 +453,32 @@ const useStyles = createStyles((theme) => ({
   },
   bubble: {
     paddingHorizontal: 13,
-    paddingVertical: 8,
-  },
-  bubbleOwnShadow: {
-    shadowColor: theme.colors.brandOrange,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 1,
+    paddingTop: 8,
+    paddingBottom: 6,
   },
   content: {
     fontSize: 14.5,
     lineHeight: 21,
+    marginBottom: 4,
   },
+
+  /* Inline meta row — time + receipt bottom-right inside bubble */
+  inlineMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 3,
+    marginTop: 2,
+  },
+  inlineTimestamp: {
+    fontFamily: MONO_FAMILY,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: theme.colors.mutedForeground,
+  },
+
+  /* Reply indicators */
   replyIndicator: {
     borderLeftWidth: 2,
     borderLeftColor: theme.colors.brandOrange,
@@ -304,7 +487,7 @@ const useStyles = createStyles((theme) => ({
   },
   replyIndicatorOwn: {
     borderLeftWidth: 2,
-    borderLeftColor: "rgba(255,255,255,0.8)",
+    borderLeftColor: theme.colors.border,
     paddingLeft: 8,
     marginBottom: 6,
   },
@@ -313,7 +496,23 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.mutedForeground,
   },
   replyTextOwn: {
-    color: "rgba(255,255,255,0.85)",
+    color: theme.colors.mutedForeground,
+  },
+
+  /* Reply icon — rendered behind the bubble during swipe */
+  replyIcon: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 32,
+  },
+  replyIconLeft: {
+    left: -36,
+  },
+  replyIconRight: {
+    right: -36,
   },
 
   /* Reactions — card pills below bubble */
@@ -347,25 +546,6 @@ const useStyles = createStyles((theme) => ({
   reactionCount: {
     fontFamily: MONO_FAMILY,
     fontSize: 10,
-    color: theme.colors.mutedForeground,
-  },
-
-  /* Timestamp below bubble */
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 3,
-    paddingHorizontal: 2,
-  },
-  metaRowOwn: {
-    justifyContent: "flex-end",
-  },
-  timestamp: {
-    fontFamily: MONO_FAMILY,
-    fontSize: 9.5,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
     color: theme.colors.mutedForeground,
   },
 

@@ -12,19 +12,13 @@ import { useDayBudget } from "@/app/dashboard/_hooks/use-day-budget";
 import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
 import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import {
-  useDayTimelineEvents,
-  type DayEvent,
-} from "@/app/dashboard/_hooks/use-day-timeline-events";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
-import {
   useEntityDrawerOptional,
   type EntityType,
 } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { useTranslation } from "@smartout/i18n";
 import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
-import { DayActivityLog } from "@/components/day/DayActivityLog";
 import { MustDoCard, type MustDoItem } from "@/components/day/MustDoCard";
-import { KpiAccentTile, DeviationCard, type DayDeviation } from "@smartout/ui";
+import { KpiAccentTile } from "@smartout/ui";
 
 const DASH = "—";
 const NOK = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
@@ -33,15 +27,6 @@ function formatNok(n: number): string {
 }
 
 type OverviewNavKey = "overview" | "timeline" | "roster" | "tasks" | "deviations" | "broadcast";
-
-const TYPE_TO_TAB: Record<DayEvent["type"], OverviewNavKey> = {
-  booking: "timeline",
-  note: "timeline",
-  task: "tasks",
-  deviation: "deviations",
-  checkin: "roster",
-  checkout: "roster",
-};
 
 export function OverviewTab({
   session,
@@ -57,7 +42,6 @@ export function OverviewTab({
   onNavigate?: (tab: OverviewNavKey) => void;
 }) {
   void phase;
-  const wsCtx = useWorkspaceOptional();
   const router = useRouter();
   const drawer = useEntityDrawerOptional();
   const { t } = useTranslation("dashboard");
@@ -68,12 +52,6 @@ export function OverviewTab({
   const shiftStats = useShiftDayStats(dateISO);
   const budget = useDayBudget(departmentId, dateISO);
   const cascadeTasks = useCascadeTasks();
-  const timelineEvents = useDayTimelineEvents({
-    workspaceId: wsCtx?.workspace.workspace_id ?? null,
-    departmentId,
-    sessionId: session.sessionId,
-    dateISO,
-  });
 
   const rosterStats = useMemo(() => {
     if (shiftStats.data) return shiftStats.data;
@@ -151,43 +129,8 @@ export function OverviewTab({
     return out;
   }, [cascadeTasks.data, t, router, drawer]);
 
-  const sidebarDeviations: DayDeviation[] = useMemo(
-    () =>
-      (openDevs.data ?? []).slice(0, 4).map((d) => ({
-        id: d.deviationId,
-        severity: d.severity,
-        status: d.status,
-        type: d.domain ?? "Avvik",
-        title: d.title,
-        desc: d.description ?? "",
-        reporter: d.reporterName ?? "—",
-        time: d.createdAt ? new Date(d.createdAt).toTimeString().slice(0, 5) : "",
-        photos: Array.isArray(d.attachments) ? d.attachments.length : 0,
-        assignedTo: null,
-      })),
-    [openDevs.data],
-  );
-
-  function handleActivityClick(e: DayEvent) {
-    if (drawer) {
-      if (e.type === "checkin" || e.type === "checkout") {
-        drawer.openDrawer("shift", e.refId);
-        return;
-      }
-      if (e.type === "task") {
-        drawer.openDrawer("cascade_task", e.refId);
-        return;
-      }
-      if (e.type === "deviation") {
-        drawer.openDrawer("deviation", e.refId);
-        return;
-      }
-    }
-    onNavigate?.(TYPE_TO_TAB[e.type]);
-  }
-
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-5 overflow-hidden lg:grid-cols-[1fr_340px]">
+    <div className="h-full min-h-0 overflow-hidden">
       <div className="flex min-h-0 flex-col gap-5 overflow-hidden">
         {/* KPI Strip */}
         <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -260,50 +203,11 @@ export function OverviewTab({
           />
         </div>
 
-        {/* 2-col under KPI: ActivityLog | MustDoCard. Cards fill remaining
-            height; inner lists scroll internally. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
-          <DayActivityLog events={timelineEvents.data ?? []} onSelect={handleActivityClick} />
+        {/* Må gjøre nå — full width below KPI strip (Aktivitetslogg + right sidebar removed). */}
+        <div className="min-h-0 flex-1">
           <MustDoCard items={mustDoItems} />
         </div>
       </div>
-
-      {/* Right sidebar — avvik list + siste meldinger */}
-      <aside className="scrollbar-thin grid content-start gap-3.5 overflow-y-auto pr-1">
-        <div className="text-muted-foreground text-[10px] font-bold tracking-[0.14em] uppercase">
-          Aktive avvik
-        </div>
-        {sidebarDeviations.length > 0 ? (
-          sidebarDeviations.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => drawer?.openDrawer("deviation", d.id)}
-              className="focus-visible:ring-ring rounded-2xl text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              <DeviationCard deviation={d} variant="compact" />
-            </button>
-          ))
-        ) : (
-          <div className="bg-card border-border text-muted-foreground rounded-2xl border p-4 text-[12px] shadow-sm">
-            Ingen åpne avvik akkurat nå.
-          </div>
-        )}
-        <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-4 shadow-sm">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-blue-500/10 blur-3xl"
-          />
-          <div className="relative z-10">
-            <div className="text-muted-foreground mb-2.5 text-[11px] font-bold tracking-[0.14em] uppercase">
-              Siste meldinger
-            </div>
-            <div className="text-muted-foreground text-[12px]">
-              Wires til komm &ldquo;news&rdquo;-kanal i PR 3.
-            </div>
-          </div>
-        </div>
-      </aside>
     </div>
   );
 }

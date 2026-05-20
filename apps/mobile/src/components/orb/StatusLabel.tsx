@@ -18,6 +18,8 @@ const LABEL: Record<OrbStatus, string> = {
   waiting: "VENTER",
   active: "AKTIV",
   complete: "LØST",
+  // D5: error status — distinct label for the helpdesk orb error state.
+  error: "FEIL",
 };
 
 export interface StatusLabelProps {

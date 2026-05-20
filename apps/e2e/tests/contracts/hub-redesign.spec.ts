@@ -2,7 +2,7 @@
  * Phase E2E — Journey 1: Contract Hub (single-pane, shipped architecture)
  *
  * Covers JOURNEY-contract-hub-redesign post-Phase-2 reality:
- *   - `/dashboard/contracts` renders a single-pane hub: PageTabNav (Ansatte-modul
+ *   - `/dashboard/people/contracts` renders a single-pane hub: PageTabNav (Ansatte-modul
  *     nav) + KontrakterTab only. The 3-tab layout (Kontrakter | Maler | Bindinger)
  *     has been removed from the hub.
  *   - Maler moved to `/dashboard/settings#contract-templates`.
@@ -31,7 +31,7 @@ const SEED_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 
 test.describe("contracts hub — single-pane + bucket sub-tabs + chip + telemetry", () => {
   test.beforeEach(async ({ page }) => {
-    // Suppress the setup-wizard redirect so /dashboard/contracts is reachable.
+    // Suppress the setup-wizard redirect so /dashboard/people/contracts is reachable.
     await page.addInitScript(() => {
       try {
         sessionStorage.setItem("setup_dismissed", "1");
@@ -49,7 +49,7 @@ test.describe("contracts hub — single-pane + bucket sub-tabs + chip + telemetr
     const since = telemetryTimestamp();
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts");
+    await page.goto("/dashboard/people/contracts");
     await page.waitForLoadState("domcontentloaded");
 
     // ── hub_viewed emits on mount ────────────────────────────────────────
@@ -105,7 +105,7 @@ test.describe("contracts hub — single-pane + bucket sub-tabs + chip + telemetr
     test.setTimeout(60_000);
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts");
+    await page.goto("/dashboard/people/contracts");
     await page.waitForLoadState("domcontentloaded");
 
     // Install a listener before clicking so we can capture the event detail.

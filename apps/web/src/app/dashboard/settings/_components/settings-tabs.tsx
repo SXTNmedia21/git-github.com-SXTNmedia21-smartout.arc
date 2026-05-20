@@ -20,6 +20,11 @@ import {
   GitBranch,
   FileSignature,
   Link2,
+  LayoutGrid,
+  MapPin,
+  Network,
+  Plug,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
@@ -31,7 +36,9 @@ import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
 
 const MalerTab = lazy(() =>
-  import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+  import("@/app/dashboard/people/contracts/_components/MalerTab").then((m) => ({
+    default: m.MalerTab,
+  })),
 );
 
 const ContractTemplateBindingsSettings = lazy(() =>
@@ -91,6 +98,15 @@ const FinancialCloseSettings = lazy(() =>
 const ShiftLockPolicySettings = lazy(() =>
   import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
 );
+
+const StrukturPanel = lazy(() =>
+  import("./struktur-panel").then((m) => ({ default: m.StrukturPanel })),
+);
+
+const IntegrasjonerPanel = lazy(() =>
+  import("./integrasjoner-panel").then((m) => ({ default: m.IntegrasjonerPanel })),
+);
+
 type Tab = { id: string; labelKey: string; icon: LucideIcon };
 type Section = { id: string; titleKey: string; tabs: Tab[] };
 
@@ -138,8 +154,10 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "organization",
-    titleKey: "settings_page.sections.organization",
+    // Renamed from "organization" — this section holds contract/holiday config,
+    // not D1-envelope structure. The "Struktur" section below hosts org structure.
+    id: "kontrakter",
+    titleKey: "settings_page.sections.kontrakter",
     tabs: [
       { id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays },
       {
@@ -154,10 +172,66 @@ const SECTIONS: Section[] = [
       },
     ],
   },
+  {
+    id: "struktur",
+    titleKey: "settings_page.sections.struktur",
+    tabs: [
+      {
+        id: "struktur-overview",
+        labelKey: "settings_page.tabs.struktur_overview",
+        icon: LayoutGrid,
+      },
+      { id: "avdelinger", labelKey: "settings_page.tabs.avdelinger", icon: Building2 },
+      { id: "lokasjoner", labelKey: "settings_page.tabs.lokasjoner", icon: MapPin },
+      { id: "team", labelKey: "settings_page.tabs.team", icon: Network },
+    ],
+  },
+  {
+    id: "integrasjoner",
+    titleKey: "settings_page.sections.integrasjoner",
+    tabs: [
+      { id: "pos", labelKey: "settings_page.tabs.pos_integrasjoner", icon: Plug },
+      { id: "tripletex", labelKey: "settings_page.tabs.tripletex", icon: Link2 },
+      { id: "sendgrid", labelKey: "settings_page.tabs.sendgrid", icon: Mail },
+    ],
+  },
 ];
 
 const ALL_TABS = SECTIONS.flatMap((s) => s.tabs);
-type TabId = (typeof ALL_TABS)[number]["id"];
+
+// Explicit union — derived type resolves to `string` due to Tab.id: string.
+// Keep this list in sync with SECTIONS above.
+export type TabId =
+  | "general"
+  | "hours"
+  | "kpis"
+  | "notifications"
+  | "teams"
+  | "security"
+  | "financial-close"
+  | "payroll-general"
+  | "salary-codes"
+  | "employee-groups"
+  | "supplements"
+  | "meal-rules"
+  | "shift-types"
+  | "break-rules"
+  | "working-time"
+  | "framework-rules"
+  | "tariff-rates"
+  | "change-proposals"
+  | "holidays"
+  | "contract-templates"
+  | "contract-template-bindings"
+  // SM-9: Struktur section
+  | "struktur-overview"
+  | "avdelinger"
+  | "lokasjoner"
+  | "team"
+  // SM-9: Integrasjoner section
+  | "pos"
+  | "tripletex"
+  | "sendgrid";
 
 function TabPlaceholder({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   const { t } = useTranslation("dashboard");
@@ -304,6 +378,35 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
           <ContractTemplateBindingsSettings />
         </Suspense>
       );
+    // SM-9: Struktur — all four sub-tabs map to StrukturPanel with an initialTab hint
+    case "struktur-overview":
+    case "avdelinger":
+    case "lokasjoner":
+    case "team":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <StrukturPanel
+            initialTab={
+              tabId === "struktur-overview"
+                ? "overview"
+                : tabId === "avdelinger"
+                  ? "departments"
+                  : tabId === "lokasjoner"
+                    ? "locations"
+                    : "teams"
+            }
+          />
+        </Suspense>
+      );
+    // SM-9: Integrasjoner — sub-tabs map to IntegrasjonerPanel with initialTab hint
+    case "pos":
+    case "tripletex":
+    case "sendgrid":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <IntegrasjonerPanel initialTab={tabId} />
+        </Suspense>
+      );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;
@@ -330,17 +433,32 @@ function ContractTemplatesPanel() {
   );
 }
 
-export function SettingsTabs() {
+type SettingsTabsProps = {
+  /** Controlled active tab. When provided the parent owns the state. */
+  activeTab?: TabId;
+  /** Called when the user clicks a tab. Required when activeTab is controlled. */
+  onTabChange?: (id: TabId) => void;
+};
+
+export function SettingsTabs({ activeTab: controlledTab, onTabChange }: SettingsTabsProps = {}) {
   const { t } = useTranslation("dashboard");
-  const [activeTab, setActiveTab] = useState<TabId>("hours");
+  // Internal state — only used when the parent does not control the tab.
+  const [internalTab, setInternalTab] = useState<TabId>("hours");
   // Fetch auth user id for notification preferences (keyed by user_id, not profile_id)
   const [userId, setUserId] = useState<string | undefined>();
+
+  // Resolved active tab: prefer controlled value from parent.
+  const activeTab: TabId = controlledTab ?? internalTab;
 
   useEffect(() => {
     // Check hash on mount
     const hash = window.location.hash.replace("#", "") as TabId;
     if (hash && ALL_TABS.some((t) => t.id === hash)) {
-      setActiveTab(hash);
+      if (onTabChange) {
+        onTabChange(hash);
+      } else {
+        setInternalTab(hash);
+      }
     }
 
     createClient()
@@ -348,11 +466,16 @@ export function SettingsTabs() {
       .then(({ data }) => {
         if (data.user) setUserId(data.user.id);
       });
+    // onTabChange intentionally omitted: hash-read fires once on mount only
   }, []);
 
   const handleTabChange = (id: TabId) => {
-    setActiveTab(id);
     window.location.hash = id;
+    if (onTabChange) {
+      onTabChange(id);
+    } else {
+      setInternalTab(id);
+    }
   };
 
   return (
@@ -371,7 +494,7 @@ export function SettingsTabs() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => handleTabChange(tab.id)}
+                    onClick={() => handleTabChange(tab.id as TabId)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                       isActive

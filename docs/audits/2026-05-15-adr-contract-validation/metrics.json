@@ -1,0 +1,104 @@
+{
+  "date": "2026-05-15",
+  "mode": "full",
+  "run_id": "2026-05-15-adr-contract-validation",
+  "baseline": "2026-05-13-adr-contract-validation",
+  "totals": {
+    "critical": 0,
+    "high": 20,
+    "medium": 35,
+    "low": 28,
+    "total": 83
+  },
+  "delta": {
+    "new_critical": 0,
+    "new_high": 9,
+    "new_medium": 12,
+    "new_low": 15,
+    "regressed": 0,
+    "closed": 17,
+    "unchanged_open": 15
+  },
+  "by_theme": {
+    "capability_tool_ordering": {"critical": 0, "high": 3, "medium": 3, "low": 1, "worst": "packages/ai/src/capabilities/journey/tools.ts:196,239,461-503,684-704"},
+    "schedule_cascade_voice_hooks": {"critical": 0, "high": 3, "medium": 2, "low": 1, "worst": "apps/web/src/app/dashboard/schedule/_hooks/use-schedule-voice-tools.ts:854-882"},
+    "browser_to_edge_function": {"critical": 0, "high": 1, "medium": 0, "low": 0, "worst": "apps/web/src/app/onboarding/wizard-definition.ts:292"},
+    "auth_perimeter_unauth_ef": {"critical": 0, "high": 1, "medium": 1, "low": 1, "worst": "supabase/functions/identify-company/index.ts"},
+    "stage_engine_bff_gate_emit": {"critical": 0, "high": 1, "medium": 4, "low": 3, "worst": "apps/web/src/app/api/emma/memory/route.ts:74"},
+    "mobile_boundary_telemetry": {"critical": 0, "high": 2, "medium": 4, "low": 0, "worst": "apps/mobile/src/hooks/mutations/use-recon-wizard.ts:200-248"},
+    "rls_with_check_governance": {"critical": 0, "high": 0, "medium": 3, "low": 1, "worst": "engine_authority_config.admin_manage_authority"},
+    "webhook_idempotency": {"critical": 0, "high": 1, "medium": 2, "low": 3, "worst": "apps/web/src/app/api/webhooks/docuseal/route.ts:96"},
+    "missions_e2e_persona_coverage": {"critical": 0, "high": 3, "medium": 2, "low": 3, "worst": "packages/ai/src/missions/registry.ts (mr-botsson primary)"},
+    "contracts_payroll_lovsen": {"critical": 0, "high": 0, "medium": 2, "low": 2, "worst": "packages/ai/src/capabilities/payroll/tools.ts:1559,2534"},
+    "journey_portal_seed": {"critical": 0, "high": 1, "medium": 0, "low": 1, "worst": "supabase/seed.sql:400+"},
+    "adr_drift_hygiene": {"critical": 0, "high": 0, "medium": 6, "low": 8, "worst": "docs/decisions/0260-cabinet-grotesk-font.md (17d proposed, 0 hits)"},
+    "performance_design": {"critical": 0, "high": 2, "medium": 1, "low": 2, "worst": "apps/landing/next.config.ts:32,89"},
+    "i18n_frontmatter": {"critical": 0, "high": 2, "medium": 5, "low": 2, "worst": "450/569 dashboard files miss @smartout/i18n + 35 hardcoded NO toasts"}
+  },
+  "closed_from_baseline": [
+    "F-DB-09",
+    "F-DB-10",
+    "F-DB-11",
+    "F-DB-12",
+    "F-OB-10-01",
+    "F-OB-10-04",
+    "F-CL-11",
+    "F-CL-13",
+    "F-EF-03",
+    "F-EF-04",
+    "F-WH-04",
+    "F-CT-01",
+    "SE-02-01",
+    "F-SC-04-13",
+    "F-SC-04-15",
+    "F-MO-01",
+    "F-MO-03",
+    "F-MO-04"
+  ],
+  "coverage": {
+    "slices_run": [
+      "capability-tools",
+      "stage-engine-bff",
+      "edge-functions",
+      "schedule-cascade",
+      "mobile-surface",
+      "contracts-payroll-lovsen",
+      "db-rls-telemetry",
+      "journeys",
+      "adr-coverage-gaps",
+      "onboarding-wizard",
+      "performance-design",
+      "i18n-frontmatter",
+      "webhook-integration",
+      "missions-e2e"
+    ],
+    "slices_skipped": [],
+    "files_uncovered": []
+  },
+  "specialist_effectiveness": {
+    "capability-tools": {"findings": 7, "false_positives_filtered": 1},
+    "stage-engine-bff": {"findings": 9, "false_positives_filtered": 1},
+    "edge-functions": {"findings": 4, "false_positives_filtered": 2},
+    "schedule-cascade": {"findings": 8, "false_positives_filtered": 2},
+    "mobile-surface": {"findings": 6, "false_positives_filtered": 0},
+    "contracts-payroll-lovsen": {"findings": 4, "false_positives_filtered": 2},
+    "db-rls-telemetry": {"findings": 6, "false_positives_filtered": 0},
+    "journeys": {"findings": 2, "false_positives_filtered": 0},
+    "adr-coverage-gaps": {"findings": 13, "false_positives_filtered": 0},
+    "onboarding-wizard": {"findings": 4, "false_positives_filtered": 0},
+    "performance-design": {"findings": 5, "false_positives_filtered": 1},
+    "i18n-frontmatter": {"findings": 6, "false_positives_filtered": 0},
+    "webhook-integration": {"findings": 6, "false_positives_filtered": 0},
+    "missions-e2e": {"findings": 8, "false_positives_filtered": 0}
+  },
+  "perimeter_gaps_identified": [
+    "ADR-0287 gate-action-coverage.ts walks only packages/ai/src/capabilities/; misses apps/web/src/app/dashboard/schedule/_hooks/** + apps/web/src/app/api/**/route.ts + voice tools. 40 mutation sites OUTSIDE enforcement.",
+    "ADR-0299 sister-table sweep mandate (ADR-0303) needs CI allow-list extension to engine_sessions, engine_inbox, 14 governance content tables, engine_authority_config, 3 D4 planning tables."
+  ],
+  "sla_check": {
+    "critical_open_over_7d": [],
+    "high_open_over_30d": [],
+    "medium_open_over_90d": [],
+    "note": "No SLA breaches. All 9 new HIGH findings logged 2026-05-15. Persisted HIGHs (F-MO-05, F-MO-06, F-CL-12, F-SC-04-09, F-JR-NEW-02, F-ME-01, F-ME-07, F-EF-02a, F-OB-10-06) all under 30-day SLA window."
+  }
+}

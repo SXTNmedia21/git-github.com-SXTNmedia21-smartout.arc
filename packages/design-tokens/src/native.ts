@@ -39,6 +39,9 @@ export const nativeTheme = {
     calendarTaskAccent: "#f0b14a", // task / priority chip selected — warm amber
     calendarBookingAccent: "#6aa6ef", // booking accent — periwinkle blue
     calendarEvidenceTaken: "#2dd4a5", // evidence-slot success / taken indicator
+    // Media overlay scrim — dark semi-transparent layer over video/image thumbnails.
+    // Use for play-button overlays and similar dark scrims on media surfaces.
+    scrim: "rgba(0, 0, 0, 0.3)",
   },
   dark: {
     background: "#151210", // oklch(0.12 0.015 50) — warm dark
@@ -74,6 +77,8 @@ export const nativeTheme = {
     calendarTaskAccent: "#e8a23a", // slightly deeper amber for dark bg
     calendarBookingAccent: "#7bb8f5", // brighter periwinkle for dark bg
     calendarEvidenceTaken: "#34ddb0", // brighter teal for dark bg
+    // Media overlay scrim — same value as light; scrim is always dark regardless of theme.
+    scrim: "rgba(0, 0, 0, 0.3)",
   },
   panel: {
     surface: "#1a1510", // oklch(0.18 0.03 50)
@@ -91,6 +96,12 @@ export const nativeTheme = {
     // Hex values sourced from handoff; match English keys above exactly.
     kjokken: "#ee560c", // = kitchen
     sal: "#00ab93", // = floor
+    // Extended 2026-05-18 — DB slug audit (SELECT DISTINCT slug FROM department)
+    // found slugs not previously in the union: kitchen (= kjokken), service (≈ sal/floor),
+    // operations. Colors derived from Nordic Split muted palette as sensible defaults;
+    // workspace admins may override via department.color in the DB.
+    service: "#00ab93", // ≈ sal/floor — same teal; service staff → floor color
+    operations: "#7a756e", // neutral warm-gray (nativeTheme.light.mutedForeground)
   },
   status: {
     trainee: "#2784d5",
@@ -120,12 +131,22 @@ export const nativeTheme = {
     springAmbient: { stiffness: 35, damping: 22, mass: 2.2 },
     /** Reactive spring — touch feedback and phase transitions. */
     springReactive: { stiffness: 180, damping: 20, mass: 1 },
+    /** Snappy spring — swipe-to-reply return and short-range gesture feedback. */
+    springSnappy: { stiffness: 45, damping: 24, mass: 2 },
     /** Full orb drift-loop period (ms). */
     orbDriftMs: 40_000,
     /** Migration duration when active phase changes (ms). */
     orbMigrationMs: 800,
     /** Phase-to-phase visual transition duration (ms). */
     phaseTransitionMs: 450,
+    /**
+     * Fade-in/out durations — mirrors web tokens.ts `motion.enterMs` / `motion.exitMs`.
+     * Use with Reanimated FadeIn.duration(nativeTheme.motion.enterMs) etc.
+     */
+    /** Element enter fade duration (ms) — typing indicator, tooltips. */
+    enterMs: 500,
+    /** Element exit fade duration (ms) — typing indicator, tooltips. */
+    exitMs: 250,
     /**
      * Calendar redesign motion tokens — handoff §"Keep simple" note.
      * "Sheet slide opp 200ms ease-out. Chevron rotate 150ms."

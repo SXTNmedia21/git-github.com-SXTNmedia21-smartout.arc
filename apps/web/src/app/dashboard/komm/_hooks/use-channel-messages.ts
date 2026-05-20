@@ -25,7 +25,11 @@ export function useChannelMessages(channelId: string | null) {
         p_limit: PAGE_SIZE,
       });
       if (error) throw error;
-      return (data ?? []) as MessageWithSender[];
+      // RPC returns reactions as Json (Json[]) but MessageWithSender expects ReactionEntry[].
+      // The runtime shape is compatible (each item has emoji+profile_id); cast via unknown
+      // to satisfy TypeScript while avoiding a full runtime transform. Pre-existing DB type
+      // mismatch — tracked as G-reactions-json-mismatch; fix here unblocks typecheck.
+      return (data ?? []) as unknown as MessageWithSender[];
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.length < PAGE_SIZE) return undefined;

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 type ShiftSlot = {
   shiftId: string;
   employeeId: string | null;
+  dateId: string;
   startTime: string;
   endTime: string;
 };
@@ -32,12 +33,17 @@ export function useShiftConflicts(shifts: ShiftSlot[]): ConflictWarning[] {
         const b = assigned[j]!;
 
         if (a.employeeId !== b.employeeId) continue;
+        // Conflict requires SAME DAY — different dates with same times is not an overlap.
+        if (a.dateId !== b.dateId) continue;
 
-        // Parse time strings (HH:mm format) for comparison
+        // Parse time strings (HH:mm format) for comparison.
+        // Cross-midnight handling: if endTime <= startTime, treat as next-day (+24h).
         const aStart = parseTime(a.startTime);
-        const aEnd = parseTime(a.endTime);
+        const aEndRaw = parseTime(a.endTime);
+        const aEnd = aEndRaw <= aStart ? aEndRaw + 1440 : aEndRaw;
         const bStart = parseTime(b.startTime);
-        const bEnd = parseTime(b.endTime);
+        const bEndRaw = parseTime(b.endTime);
+        const bEnd = bEndRaw <= bStart ? bEndRaw + 1440 : bEndRaw;
 
         const overlaps = aStart < bEnd && bStart < aEnd;
         if (overlaps) {

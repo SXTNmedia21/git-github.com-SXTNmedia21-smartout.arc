@@ -4,7 +4,7 @@
  * /dashboard/people/[id] — Employee detail page.
  *
  * Wave 5 WS0: ContractDispatchDrawer wired to "Lag kontrakt" action button
- * instead of navigating away to /dashboard/contracts. URL sync:
+ * instead of navigating away to /dashboard/people/contracts. URL sync:
  * /dashboard/people/[id]?compose=open opens drawer on mount.
  * profile_id comes from URL context; workspaceId derived server-side (ADR-0151).
  */

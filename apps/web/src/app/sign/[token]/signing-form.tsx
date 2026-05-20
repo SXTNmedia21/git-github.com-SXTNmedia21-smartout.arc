@@ -25,7 +25,7 @@ export function SigningForm({
       <DocusealForm
         src={docusealEmbedUrl}
         email={recipientEmail}
-        logo="https://smartout.io/logo.png"
+        logo="https://smartout.ai/logo.png"
         backgroundColor="#f9fafb"
         withDecline={true}
         withDownloadButton={true}

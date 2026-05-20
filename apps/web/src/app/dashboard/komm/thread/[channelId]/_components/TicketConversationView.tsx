@@ -37,6 +37,7 @@ import { LighthouseAvatar } from "@/components/helpdesk-orb";
 import type { OrbStatus } from "@/components/helpdesk-orb";
 import { useTranslation } from "@smartout/i18n";
 import type { TicketHeaderProfile } from "./TicketHeader";
+import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
 
 const SYSTEM_TYPES = new Set<MessageWithSender["message_type"]>([
   "system",
@@ -98,6 +99,8 @@ export function TicketConversationView({
   return (
     <>
       <KommToolsBridge profileId={profileId} surface="chat" activeChannelId={ticket.channel_id} />
+      {/* ADR-0238: /dashboard/komm/thread owns the ticket conversation surface — Orb suppresses to passive. */}
+      <DomainChatOwnership reason="komm-thread" />
       <div className="bg-background flex h-full flex-col">
         <TicketHeader
           status={displayStatus}
@@ -410,7 +413,7 @@ function TicketComposer({
           className="inline-flex items-center gap-1 rounded-[10px] px-2.5 py-2 text-[13px] font-semibold text-white transition-opacity disabled:opacity-50"
           style={{
             background: "var(--brand-orange)",
-            boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+            boxShadow: "var(--shadow-cta-sm)",
           }}
         >
           <Send size={14} />

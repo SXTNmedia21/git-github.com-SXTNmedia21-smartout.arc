@@ -1,30 +1,25 @@
 /**
- * DuringShiftView v2 — "På vakt" home content when clocked in (M4 redesign).
+ * DuringShiftView v2 — phase "PÅGÅR" handoff layout.
  *
- * Nordic Split gradient-hero redesign per CAMPAIGN-daily-operation.md §M4
- * + Frontend Council 1 motion-spec §M4.
+ * Mirrors docs/design/day-handoff/source/day/mobile-day.jsx →
+ * `MobileHomeDuring`. Anna-perspective:
+ *  1. Phase pill "PÅGÅR" + greeting + shift-time caption
+ *  2. Dark gradient hero card (radial-glow orange overlay):
+ *     KLOKKET INN label · 52pt mono live-timer · progress bar
+ *     · 3-col Tjent/Pause/Tillegg · Ta pause / Klokk ut
+ *  3. NESTE OPPGAVE card (next task + dark "Se alle oppgaver" button)
+ *  4. PÅ VAKT NÅ colleague rows
+ *  5. 2-col quick actions (Rapportér avvik / Meld til leder)
  *
- * Hero:
- *   - Radial-gradient using `--hero-warm-deep` token (9ebef7a6).
- *   - Breathe animation: scale 1 → 1.04 → 1, 8s ease-in-out infinite alternate.
- *   - useReducedMotion() gate: parks scale at 1 when reduced motion is on.
- *   - Low-power gate: useLowPower() (placeholder — expo-battery wiring TODO)
- *     also parks scale at 1 + suppresses the loop.
- *   - Live-timer: `GeistMono-*` tabular-nums 52pt, NO tick animation.
- *     Typography alone carries the tempo.
+ * Feature-flag: EXPO_PUBLIC_DURING_SHIFT_V2=true enables this component.
  *
- * Earnings/pause/tillegg grid + noise-overlay + a11y (aria-labels,
- * focus-ring via pressed states, ≥56pt touch targets) follow Nordic Split
- * glassmorphism + AAA-for-gloves guidance.
- *
- * Feature flag:
- *   EXPO_PUBLIC_DURING_SHIFT_V2=true enables this component. Default (unset
- *   or any non-"true") renders the legacy DuringShiftView.tsx.
+ * Real-data wiring: useShiftPhase (timer/shift), useMyTasks (oppgave-count),
+ * useShiftColleagues, useDutyLeader (leader-phone).
  *
  * ADR references: ADR-0133 (mobile executes), ADR-0158 (dual-platform ui).
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, Linking, StyleSheet } from "react-native";
 import Animated, {
   Easing,
@@ -37,65 +32,68 @@ import Animated, {
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { UtensilsCrossed, Phone, MessageCircle, AlertTriangle, Coffee } from "lucide-react-native";
+import { AlertTriangle, MessageCircle } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { nativeTheme } from "@smartout/design-tokens/native";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
+import { Avatar } from "@/components/common/Avatar";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-/** @deprecated Use MyTaskRow from use-my-tasks for new code */
-type SessionTask = MyTaskRow;
 
 type DuringShiftViewProps = {
   shift: ScheduleShift | null;
   timeEntry: TimeEntry;
-  tasks?: SessionTask[];
-  onPunchOut?: () => void;
-  punchingOut?: boolean;
+  tasks?: MyTaskRow[];
   leaderPhone?: string | null;
 };
 
-/**
- * Battery-saver probe. Placeholder: returns false by default.
- *
- * TODO (M4-polish): wire `expo-battery` → `Battery.getPowerStateAsync()` +
- * `Battery.lowPowerModeChanged` listener. Dependency not installed yet;
- * adding here would expand M4 scope. The hook is already consumed so
- * future swap is a no-op for callers. See handoff "Known debt".
- */
-function useLowPower(): boolean {
-  const [low, _setLow] = useState(false);
-  useEffect(() => {
-    // Placeholder — no-op until expo-battery lands.
-    return () => {};
-  }, []);
-  return low;
+const HOURLY_RATE_FALLBACK = 220;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function clockHM(time: string): string {
+  return time.slice(0, 5);
 }
 
 function formatTimer(punchIn: string): string {
   const diff = Math.max(0, Date.now() - new Date(punchIn).getTime());
   const s = Math.floor(diff / 1000);
-  const h = Math.floor(s / 3600)
-    .toString()
-    .padStart(2, "0");
-  const m = Math.floor((s % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const sec = (s % 60).toString().padStart(2, "0");
-  return `${h}:${m}:${sec}`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${pad2(h)}:${pad2(m)}:${pad2(sec)}`;
 }
 
-/** Estimate earnings so far (base rate × elapsed hours). */
+function hoursElapsed(punchIn: string): number {
+  return Math.max(0, (Date.now() - new Date(punchIn).getTime()) / 3_600_000);
+}
+
 function estimateEarnings(hourlyRate: number, punchIn: string): string {
-  const hours = (Date.now() - new Date(punchIn).getTime()) / 3_600_000;
-  const kr = Math.max(0, hours * hourlyRate);
+  const kr = hoursElapsed(punchIn) * hourlyRate;
   return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
     maximumFractionDigits: 0,
   }).format(kr);
+}
+
+function clockFromIso(iso: string): string {
+  const d = new Date(iso);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Battery-saver probe placeholder (expo-battery wiring TODO). */
+function useLowPower(): boolean {
+  const [low] = useState(false);
+  return low;
 }
 
 export function DuringShiftViewV2({
@@ -108,6 +106,12 @@ export function DuringShiftViewV2({
   const theme = useTheme();
   const router = useRouter();
 
+  const { data: profile } = useMyProfile();
+  const { data: colleagues } = useShiftColleagues(
+    shift?.shift_date ?? null,
+    profile?.profile_id ?? null,
+  );
+
   const [timer, setTimer] = useState(() => formatTimer(timeEntry.punch_in));
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
@@ -116,35 +120,51 @@ export function DuringShiftViewV2({
     return () => clearInterval(timerRef.current);
   }, [timeEntry.punch_in]);
 
-  // Breathe animation — scale the hero gradient slowly.
+  // Hero breathe animation (slow scale 1 → 1.04 → 1).
   const reduceMotion = useReducedMotion();
   const lowPower = useLowPower();
   const shouldAnimate = !reduceMotion && !lowPower;
-
   const breathScale = useSharedValue(1);
   useEffect(() => {
     if (!shouldAnimate) {
       breathScale.value = 1;
       return;
     }
-    // 8s ease-in-out infinite alternate (1 → 1.04 → 1).
     breathScale.value = withRepeat(
       withTiming(1.04, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
     );
   }, [shouldAnimate, breathScale]);
-
   const breathStyle = useAnimatedStyle(() => ({
     transform: [{ scale: breathScale.value }],
   }));
 
-  const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
-  const criticalCount = activeTasks.filter((t) => t.compliance || t.status === "overdue").length;
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
+  const startedAt = clockFromIso(timeEntry.punch_in);
+  const elapsedH = hoursElapsed(timeEntry.punch_in);
+  const totalH = shift?.work_hours ?? 8;
+  const progressPct = Math.min(100, (elapsedH / totalH) * 100);
+  const earnings = estimateEarnings(HOURLY_RATE_FALLBACK, timeEntry.punch_in);
 
-  // Hourly rate fallback (220 kr/t) — live rate wiring is an M4-polish follow-up.
-  void shift;
-  const earnings = estimateEarnings(220, timeEntry.punch_in);
+  const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
+  const nextTask = activeTasks[0];
+
+  const onCall = colleagues ?? [];
+
+  const dark = nativeTheme.dark.heroWarmDeep;
+  const greetingShiftCaption = useMemo(() => {
+    if (!shift) return null;
+    return (
+      <>
+        Din vakt{" "}
+        <Text style={styles.greetingTime}>
+          {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
+        </Text>
+        {shift.zone ? ` · ${shift.zone}` : ""}
+      </>
+    );
+  }, [shift, styles.greetingTime]);
 
   return (
     <ScrollView
@@ -152,51 +172,44 @@ export function DuringShiftViewV2({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Radial-gradient hero with live timer. */}
+      {/* Phase header */}
+      <View style={styles.header}>
+        <View style={styles.phasePill}>
+          <View style={[styles.phaseDot, { backgroundColor: theme.colors.success }]} />
+          <Text style={[styles.phaseLabel, { color: theme.colors.success }]}>PÅGÅR</Text>
+        </View>
+        <Text style={styles.greeting}>God dag{firstName ? `, ${firstName}` : ""}</Text>
+        {greetingShiftCaption ? (
+          <Text style={styles.greetingCaption}>{greetingShiftCaption}</Text>
+        ) : null}
+      </View>
+
+      {/* Dark hero card with live timer */}
       <View style={styles.heroShell}>
-        <Animated.View
-          style={[StyleSheet.absoluteFillObject, breathStyle]}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
+        <Animated.View style={[StyleSheet.absoluteFillObject, breathStyle]}>
           <LinearGradient
-            colors={[
-              theme.isDark ? theme.colors.background : theme.colors.card,
-              nativeTheme[theme.isDark ? "dark" : "light"].heroWarmDeep,
-            ]}
-            // Approximates a radial glow via a diagonal linear gradient — RN
-            // has no native radial-gradient; this reads as warm depth.
+            colors={[theme.colors.foreground, dark]}
             start={{ x: 0.1, y: 0.05 }}
             end={{ x: 0.95, y: 1 }}
-            style={styles.heroGradient}
+            style={StyleSheet.absoluteFillObject}
           />
         </Animated.View>
-
-        {/* Noise-overlay per Nordic Split §glassmorphism. Soft alpha on a
-            warm tint keeps the hero from reading flat. */}
-        <View
-          style={[
-            StyleSheet.absoluteFillObject,
-            styles.noise,
-            {
-              backgroundColor: theme.isDark
-                ? withOpacity("#000000", 0.1)
-                : withOpacity("#ffffff", 0.05),
-            },
-          ]}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-
-        {/* Dept stripe — accent bar indicating department colour. */}
-        <View
-          style={[styles.deptStripe, { backgroundColor: theme.colors.brandOrange }]}
-          accessibilityRole="image"
-          accessibilityLabel="Avdelingsindikator"
-        />
+        {/* Primary radial glow (top-right) — focal warm anchor */}
+        <View pointerEvents="none" style={styles.heroGlowWrap}>
+          <View style={[styles.heroGlow, { backgroundColor: theme.colors.brandOrange }]} />
+        </View>
+        {/* Secondary glow (bottom-left) — asymmetric depth */}
+        <View pointerEvents="none" style={styles.heroGlowSecondary}>
+          <View
+            style={[styles.heroGlow, { backgroundColor: theme.colors.brandOrange, opacity: 0.35 }]}
+          />
+        </View>
 
         <View style={styles.heroInner}>
-          <Text style={styles.heroEyebrow}>PÅ VAKT</Text>
+          <View style={styles.heroLabelRow}>
+            <View style={[styles.phaseDot, { backgroundColor: theme.colors.success }]} />
+            <Text style={styles.heroEyebrow}>KLOKKET INN</Text>
+          </View>
           <Text
             style={styles.timerValue}
             accessibilityRole="timer"
@@ -204,367 +217,387 @@ export function DuringShiftViewV2({
           >
             {timer}
           </Text>
-          <Text style={styles.heroCaption}>Vakt startet kl. {formatClock(timeEntry.punch_in)}</Text>
-        </View>
-      </View>
-
-      {/* Earnings / pause / tillegg grid. */}
-      <View style={styles.statsGrid}>
-        <StatTile label="Tjent så langt" value={earnings} accent="brand" />
-        <StatTile label="Pause" value="0 min" accent="muted" />
-        <StatTile label="Tillegg" value="—" hint="Beregnes ved oppgjør" accent="muted" />
-      </View>
-
-      {/* Clock-out CTA — ≥56pt (hansker), focus-ring via pressed state. */}
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          router.push("/(app)/(home)/punch-clock");
-        }}
-        style={({ pressed }) => [styles.clockOutCta, pressed && styles.clockOutCtaPressed]}
-        accessibilityRole="button"
-        accessibilityLabel="Stemple ut"
-      >
-        <Text style={styles.clockOutLabel}>STEMPLE UT</Text>
-      </Pressable>
-
-      {/* Live update panel. */}
-      <View
-        style={[
-          styles.liveCard,
-          {
-            backgroundColor: theme.isDark
-              ? withOpacity(theme.colors.card, 0.4)
-              : withOpacity(theme.colors.muted, 0.4),
-          },
-        ]}
-      >
-        <View style={styles.livePulse}>
-          <View style={[styles.livePulseInner, { backgroundColor: theme.colors.brandOrange }]} />
-        </View>
-        <Text style={styles.liveLabel}>NÅ SKJER DET</Text>
-        <View style={styles.liveRow}>
-          <UtensilsCrossed size={28} color={theme.colors.brandOrange} strokeWidth={1.3} />
-          <Text style={styles.liveText}>
-            VIP-middag om <Text style={styles.liveAccent}>15 min</Text>
+          <Text style={styles.heroCaption}>
+            Inn {startedAt} · {elapsedH.toFixed(1)}t av {totalH}t
           </Text>
+
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${progressPct}%`, backgroundColor: theme.colors.brandOrange },
+              ]}
+            />
+          </View>
+
+          <View style={styles.heroStats}>
+            <HeroStat label="TJENT" value={`${earnings} kr`} />
+            <View style={styles.heroStatDivider} />
+            <HeroStat label="PAUSE" value="0 min" />
+            <View style={styles.heroStatDivider} />
+            <HeroStat label="TILLEGG" value="—" />
+          </View>
+
+          <View style={styles.heroActions}>
+            <Pressable
+              onPress={() => Haptics.selectionAsync()}
+              style={({ pressed }) => [styles.heroGhostBtn, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Ta pause"
+            >
+              <Text style={styles.heroGhostText}>Ta pause</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                router.push("/(app)/(home)/punch-clock");
+              }}
+              style={({ pressed }) => [
+                styles.heroPrimaryBtn,
+                { backgroundColor: theme.colors.brandOrange },
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Klokk ut"
+            >
+              <Text style={styles.heroPrimaryText}>Klokk ut</Text>
+            </Pressable>
+          </View>
         </View>
-        {criticalCount > 0 ? (
-          <Text style={[styles.liveMeta, { color: theme.colors.destructive }]}>
-            {criticalCount} kritisk{criticalCount === 1 ? "" : "e"} oppgave
-            {criticalCount === 1 ? "" : "r"} venter
-          </Text>
-        ) : null}
       </View>
 
-      {/* Quick actions — 2×2. */}
-      <View style={styles.actionsGrid}>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            if (leaderPhone) Linking.openURL(`tel:${leaderPhone}`);
-          }}
-          style={({ pressed }) => [
-            styles.actionCard,
-            styles.actionCardPrimary,
-            pressed && styles.actionPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Ring leder"
-        >
-          <Phone size={24} color="#ffffff" strokeWidth={1.5} />
-          <Text style={styles.actionLabelPrimary}>Ring leder</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.push("/(app)/(chat)");
-          }}
-          style={({ pressed }) => [styles.actionCard, pressed && styles.actionPressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Åpne chat"
-        >
-          <MessageCircle size={24} color={theme.colors.brandOrange} strokeWidth={1.5} />
-          <Text style={styles.actionLabel}>Åpne chat</Text>
-        </Pressable>
+      {/* Neste oppgave */}
+      {nextTask ? (
+        <View style={styles.card}>
+          <View style={styles.taskHeaderRow}>
+            <Text style={styles.cardEyebrow}>NESTE OPPGAVE</Text>
+            {nextTask.due_at ? (
+              <Text style={[styles.taskClock, { color: theme.colors.brandOrange }]}>
+                kl {clockFromIso(nextTask.due_at)}
+              </Text>
+            ) : null}
+          </View>
+          <Text style={styles.taskTitle}>{nextTask.title}</Text>
+          {nextTask.description ? (
+            <Text style={styles.taskDesc}>{nextTask.description}</Text>
+          ) : null}
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              // Pin date to today (so the operations weekly strip lands on the
+              // active shift's date) + filter to "tasks" so only the task feed
+              // surfaces — shifts/bookings/notes hidden by default.
+              const today = shift?.shift_date ?? toIsoDate(new Date());
+              router.push(`/(app)/(home)/operations?date=${today}&filter=tasks`);
+            }}
+            style={({ pressed }) => [
+              styles.taskCta,
+              { backgroundColor: theme.colors.foreground },
+              pressed && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Se alle oppgaver (${activeTasks.length})`}
+          >
+            <Text style={[styles.taskCtaText, { color: theme.colors.background }]}>
+              Se alle oppgaver ({activeTasks.length})
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* På vakt nå */}
+      {onCall.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardEyebrow}>PÅ VAKT NÅ</Text>
+          <View style={styles.teamList}>
+            {onCall.slice(0, 5).map((c) => (
+              <View key={c.profileId} style={styles.teamRow}>
+                <View style={styles.teamAvatar}>
+                  <Avatar name={`${c.firstName} ${c.lastName}`} imageUrl={c.avatarUrl} size="md" />
+                </View>
+                <View style={styles.teamInfo}>
+                  <Text style={styles.teamName}>
+                    {c.firstName} {c.lastName}
+                  </Text>
+                  <Text style={styles.teamMeta}>{c.role}</Text>
+                </View>
+                <View style={[styles.teamDot, { backgroundColor: theme.colors.success }]} />
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {/* Quick actions 2-col */}
+      <View style={styles.quickGrid}>
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
             router.push("/(app)/(home)/deviation");
           }}
-          style={({ pressed }) => [styles.actionCard, pressed && styles.actionPressed]}
+          style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel="Rapporter avvik"
+          accessibilityLabel="Rapportér avvik"
         >
-          <AlertTriangle size={24} color={theme.colors.destructive} strokeWidth={1.5} />
-          <Text style={styles.actionLabel}>Rapporter avvik</Text>
+          <AlertTriangle size={18} color={theme.colors.destructive} strokeWidth={1.6} />
+          <Text style={styles.quickTitle}>Rapportér avvik</Text>
+          <Text style={styles.quickMeta}>Hygiene, temp, HMS</Text>
         </Pressable>
         <Pressable
-          onPress={() => Haptics.selectionAsync()}
-          style={({ pressed }) => [
-            styles.actionCard,
-            styles.actionCardMuted,
-            pressed && styles.actionPressed,
-          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (leaderPhone) Linking.openURL(`tel:${leaderPhone}`);
+            else router.push("/(app)/(chat)");
+          }}
+          style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel="Ta pause"
+          accessibilityLabel={leaderPhone ? "Ring leder" : "Meld til leder"}
         >
-          <Coffee size={24} color={theme.colors.mutedForeground} strokeWidth={1.5} />
-          <Text style={styles.actionLabelMuted}>Ta pause</Text>
+          <MessageCircle size={18} color={theme.colors.info} strokeWidth={1.6} />
+          <Text style={styles.quickTitle}>{leaderPhone ? "Ring leder" : "Meld til leder"}</Text>
+          <Text style={styles.quickMeta}>Vaktansvarlig</Text>
         </Pressable>
       </View>
     </ScrollView>
   );
 }
 
-function StatTile({
-  label,
-  value,
-  hint,
-  accent,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  accent: "brand" | "muted";
-}) {
+function HeroStat({ label, value }: { label: string; value: string }) {
   const styles = useStyles();
-  const theme = useTheme();
   return (
-    <View
-      style={[
-        styles.statTile,
-        {
-          backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.card,
-          borderColor: withOpacity(theme.colors.border, 0.15),
-        },
-      ]}
-    >
-      <Text style={[styles.statLabel, { color: theme.colors.mutedForeground }]}>
-        {label.toUpperCase()}
-      </Text>
-      <Text
-        style={[
-          styles.statValue,
-          {
-            color: accent === "brand" ? theme.colors.brandOrange : theme.colors.foreground,
-          },
-        ]}
-      >
-        {value}
-      </Text>
-      {hint ? (
-        <Text style={[styles.statHint, { color: theme.colors.mutedForeground }]} numberOfLines={1}>
-          {hint}
-        </Text>
-      ) : null}
+    <View style={styles.heroStat}>
+      <Text style={styles.heroStatLabel}>{label}</Text>
+      <Text style={styles.heroStatValue}>{value}</Text>
     </View>
   );
-}
-
-function formatClock(iso: string): string {
-  const d = new Date(iso);
-  const hh = d.getHours().toString().padStart(2, "0");
-  const mm = d.getMinutes().toString().padStart(2, "0");
-  return `${hh}:${mm}`;
 }
 
 const useStyles = createStyles((theme) => ({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: theme.spacing.section,
-    paddingTop: theme.spacing.element,
-    paddingBottom: theme.spacing.xl + 40,
-    gap: theme.spacing.page,
-  },
-
-  // Hero gradient shell — clips the animated gradient layer.
-  heroShell: {
-    position: "relative",
-    borderRadius: theme.radius.xl,
-    overflow: "hidden",
-    minHeight: 220,
-    justifyContent: "flex-end",
-  },
-  heroGradient: {
-    flex: 1,
-  },
-  noise: {
-    opacity: 0.6,
-  },
-  deptStripe: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-  },
-  heroInner: {
-    paddingVertical: theme.spacing.section,
-    paddingHorizontal: theme.spacing.section,
+    paddingHorizontal: 0,
+    paddingTop: theme.spacing.tight,
+    paddingBottom: theme.spacing.lg,
     gap: theme.spacing.element,
   },
+
+  header: {
+    paddingHorizontal: theme.spacing.xs,
+    paddingTop: theme.spacing.tight,
+    gap: 6,
+  },
+  phasePill: { flexDirection: "row", alignItems: "center", gap: 6 },
+  phaseDot: { width: 5, height: 5, borderRadius: 9999 },
+  phaseLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 2 },
+  greeting: {
+    fontFamily: "InstrumentSerif-Regular",
+    fontSize: 32,
+    letterSpacing: -0.5,
+    color: theme.colors.foreground,
+    lineHeight: 36,
+  },
+  greetingCaption: { fontSize: 13, color: theme.colors.mutedForeground },
+  greetingTime: {
+    fontFamily: "GeistMono-Regular",
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+
+  // Hero
+  heroShell: {
+    borderRadius: 20,
+    overflow: "hidden",
+    position: "relative",
+    ...theme.shadows.lg,
+  },
+  heroGlowWrap: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 9999,
+    overflow: "hidden",
+    opacity: 0.35,
+  },
+  heroGlowSecondary: {
+    position: "absolute",
+    bottom: -60,
+    left: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 9999,
+    overflow: "hidden",
+    opacity: 0.2,
+  },
+  heroGlow: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 9999,
+    opacity: 0.55,
+  },
+  heroInner: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 6,
+    position: "relative",
+  },
+  heroLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   heroEyebrow: {
-    fontSize: 11,
+    fontFamily: "GeistMono-Regular",
+    fontSize: 10,
     fontWeight: "600",
     letterSpacing: 2,
-    color: theme.colors.mutedForeground,
+    color: withOpacity(theme.colors.primaryForeground, 0.7),
   },
   timerValue: {
     fontFamily: "GeistMono-Regular",
     fontSize: 52,
-    fontWeight: "700",
+    fontWeight: "900",
     letterSpacing: -1.5,
-    // Tabular numerals — each digit occupies the same width so the timer
-    // doesn't jitter as seconds roll. Typography carries tempo — no tick
-    // animation.
     fontVariant: ["tabular-nums"],
-    color: theme.colors.brandOrange,
+    color: theme.colors.primaryForeground,
+    marginTop: 4,
   },
   heroCaption: {
-    fontSize: 13,
-    color: theme.colors.mutedForeground,
+    fontSize: 12,
+    color: withOpacity(theme.colors.primaryForeground, 0.6),
   },
+  progressTrack: {
+    marginTop: 6,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.15),
+    overflow: "hidden",
+  },
+  progressFill: { height: "100%", borderRadius: 2 },
 
-  statsGrid: {
+  heroStats: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.element,
+    alignItems: "center",
+    marginTop: 14,
+    gap: 12,
   },
-  statTile: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    minWidth: 100,
-    padding: theme.spacing.card,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    gap: 6,
+  heroStat: { flex: 1, gap: 3 },
+  heroStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.12),
   },
-  statLabel: {
+  heroStatLabel: {
     fontFamily: "GeistMono-Regular",
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 1.4,
+    color: withOpacity(theme.colors.primaryForeground, 0.55),
   },
-  statValue: {
+  heroStatValue: {
     fontFamily: "GeistMono-Regular",
-    fontSize: 22,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  statHint: {
-    fontSize: 11,
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.primaryForeground,
   },
 
-  clockOutCta: {
-    alignSelf: "center",
-    minWidth: 200,
-    minHeight: 64,
-    paddingHorizontal: theme.spacing.section,
-    paddingVertical: theme.spacing.element,
-    borderRadius: 32,
+  heroActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  heroGhostBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.primaryForeground, 0.18),
+    backgroundColor: withOpacity(theme.colors.primaryForeground, 0.08),
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.brandOrange,
-    ...theme.shadows.lg,
   },
-  clockOutCtaPressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.9,
+  heroGhostText: { fontSize: 14, fontWeight: "600", color: theme.colors.primaryForeground },
+  heroPrimaryBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  clockOutLabel: {
+  heroPrimaryText: {
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 1,
-    color: "#ffffff",
+    letterSpacing: 0.4,
+    color: theme.colors.primaryForeground,
   },
 
-  liveCard: {
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.card,
+  // Card primitive
+  card: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.2),
-    gap: theme.spacing.element,
-    overflow: "hidden",
-    position: "relative",
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    gap: 6,
   },
-  livePulse: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-  },
-  livePulseInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  liveLabel: {
+  cardEyebrow: {
     fontFamily: "GeistMono-Regular",
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 2,
     color: theme.colors.mutedForeground,
   },
-  liveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.element,
-  },
-  liveText: {
-    ...theme.typography.title,
-    color: theme.colors.foreground,
-    flex: 1,
-    lineHeight: 28,
-  },
-  liveAccent: {
-    fontStyle: "italic",
-    color: theme.colors.brandOrange,
-  },
-  liveMeta: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
 
-  actionsGrid: {
+  // Task card
+  taskHeaderRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
-    rowGap: theme.spacing.element,
+    alignItems: "center",
+    marginBottom: 4,
   },
-  actionCard: {
-    width: "48.5%",
-    minHeight: 104,
+  taskClock: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  taskTitle: { fontSize: 15, fontWeight: "600", color: theme.colors.foreground },
+  taskDesc: { fontSize: 12, color: theme.colors.mutedForeground, marginTop: 4, lineHeight: 16 },
+  taskCta: {
+    marginTop: 12,
+    height: 42,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    padding: theme.spacing.section,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.4) : theme.colors.background,
-    borderRadius: theme.radius.lg,
+  },
+  taskCtaText: { fontSize: 13, fontWeight: "600" },
+
+  // Team list
+  teamList: { gap: 8, marginTop: 4 },
+  teamRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  teamAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.secondary,
+  },
+  teamInfo: { flex: 1 },
+  teamName: { fontSize: 13, fontWeight: "500", color: theme.colors.foreground },
+  teamMeta: { fontSize: 11, color: theme.colors.mutedForeground, marginTop: 1 },
+  teamDot: { width: 6, height: 6, borderRadius: 9999 },
+
+  // Quick actions
+  quickGrid: { flexDirection: "row", gap: 10 },
+  quickCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: theme.colors.background,
     borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.15),
-    ...theme.shadows.sm,
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    gap: 6,
   },
-  actionCardPrimary: {
-    backgroundColor: theme.colors.brandOrange,
-    borderColor: "transparent",
-  },
-  actionCardMuted: {
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.muted, 0.3) : theme.colors.muted,
-  },
-  actionPressed: { transform: [{ scale: 0.95 }] },
-  actionLabel: {
-    ...theme.typography.subheadline,
-    fontWeight: "500",
-    color: theme.colors.foreground,
-  },
-  actionLabelPrimary: {
-    ...theme.typography.subheadline,
-    fontWeight: "500",
-    color: "#ffffff",
-  },
-  actionLabelMuted: {
-    ...theme.typography.subheadline,
-    fontWeight: "500",
-    color: theme.colors.mutedForeground,
-  },
+  quickTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.foreground, marginTop: 4 },
+  quickMeta: { fontSize: 11, color: theme.colors.mutedForeground },
+
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 }));

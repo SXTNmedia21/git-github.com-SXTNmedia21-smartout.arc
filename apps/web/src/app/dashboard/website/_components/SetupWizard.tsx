@@ -17,6 +17,8 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createWebsiteFromTemplate } from "../_actions/website-actions";
 import TemplateGallery from "./TemplateGallery";
+import { WebsiteSetupToolsBridge } from "../setup/_tools/website-setup-tools-bridge";
+import { getAllTemplates } from "@smartout/website";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -146,7 +148,11 @@ export default function SetupWizard() {
       toast.success("Nettside opprettet!");
       router.push("/dashboard/website");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Kunne ikke opprette nettside");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Nettsiden kunne ikke opprettes. Sjekk at workspace er aktiv og prøv igjen.",
+      );
     } finally {
       setIsCreating(false);
     }
@@ -156,6 +162,13 @@ export default function SetupWizard() {
 
   return (
     <div>
+      <WebsiteSetupToolsBridge
+        currentStep={step}
+        templateSelected={templateKey !== null}
+        templateKey={templateKey}
+        hasName={name.trim().length > 0}
+        availableTemplates={getAllTemplates().map((t) => ({ key: t.key, name: t.name }))}
+      />
       <StepProgress currentStep={step} />
 
       {/* Step 1: Template gallery */}

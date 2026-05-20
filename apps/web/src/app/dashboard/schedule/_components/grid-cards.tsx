@@ -46,6 +46,11 @@ export function ShiftCard({
   isCompact,
   confirmedAt,
   hasConflict,
+  cellShiftCount,
+  punchInAt,
+  punchOutAt,
+  employeeName,
+  workHours,
 }: {
   role: string;
   time: string;
@@ -62,6 +67,12 @@ export function ShiftCard({
   isCompact?: boolean;
   confirmedAt?: string;
   hasConflict?: boolean;
+  /** Number of shifts in same cell — triggers dense default-tier layout when >1. */
+  cellShiftCount?: number;
+  punchInAt?: string | null;
+  punchOutAt?: string | null;
+  employeeName?: string;
+  workHours?: number;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -197,6 +208,14 @@ export function ShiftCard({
         zone={zone}
         isCompact={isCompact}
         confirmedAt={confirmedAt}
+        hasConflict={hasConflict}
+        startTime={startTime}
+        endTime={endTime}
+        cellShiftCount={cellShiftCount}
+        punchInAt={punchInAt}
+        punchOutAt={punchOutAt}
+        employeeName={employeeName}
+        workHours={workHours}
       />
     </div>
   );

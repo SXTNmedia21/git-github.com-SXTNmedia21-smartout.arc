@@ -6,6 +6,10 @@
     "retry": "Prøv igjen",
     "loading_profile": "Laster profil..."
   },
+  "tab_kanaler": "Kanaler",
+  "tab_skranke": "Skranke",
+  "tab_nyheter": "Nyheter",
+  "tab_varsler": "Varsler",
   "tabs": {
     "overview": "Oversikt",
     "channels": "Kanaler",
@@ -197,7 +201,69 @@
     "pinned_strip_header": "Festet",
     "pinned_label": "Festet",
     "card_menu_label": "Mer",
-    "delete": "Slett"
+    "delete": "Slett",
+    "kind": {
+      "label": "Type",
+      "placeholder": "Velg type",
+      "group_general": "Generelt",
+      "group_people": "Mennesker",
+      "group_operations": "Drift",
+      "group_documents": "Dokumenter",
+      "group_external": "Eksternt",
+      "general": "Generell",
+      "new_menu": "Ny meny",
+      "new_hire": "Ny ansatt",
+      "staff_event": "Personaltreff",
+      "schedule_change": "Vaktendring",
+      "policy_update": "Policy-endring",
+      "external": "Ekstern",
+      "celebration": "Feiring",
+      "system_message": "Systemmelding",
+      "helper": {
+        "general": "Informasjon til alle",
+        "new_menu": "Ny meny lansert",
+        "new_hire": "Hils på ny kollega",
+        "staff_event": "Arrangement for ansatte",
+        "schedule_change": "Endring i vaktplan",
+        "policy_update": "Oppdatert policy",
+        "external": "Ekstern lenke eller info",
+        "celebration": "Feiring og merkedager",
+        "system_message": "Systemvarsel"
+      }
+    },
+    "tier": {
+      "label": "Prioritet",
+      "social": "Sosial",
+      "work": "Arbeid",
+      "external": "Ekstern",
+      "social_helper": "Lav prioritet · push + in-app",
+      "work_helper": "Standard · push + in-app",
+      "external_helper": "Høy prioritet · push + in-app + e-post"
+    },
+    "link": {
+      "label": "Koble til (valgfritt)",
+      "choose_type": "Velg type",
+      "no_link": "Ingen kobling",
+      "search_placeholder": "Søk...",
+      "external_url_placeholder": "https://...",
+      "choose_entity": "Velg...",
+      "loading": "Laster...",
+      "no_results": "Ingen resultater",
+      "clear": "Fjern kobling",
+      "group_events": "Hendelser",
+      "group_documents": "Dokumenter",
+      "group_people": "Mennesker",
+      "group_external": "Eksternt",
+      "type": {
+        "staff_event": "Personaltreff",
+        "schedule_shift": "Skift",
+        "policy": "Policy",
+        "protocol": "Protokoll",
+        "profile": "Profil",
+        "menu_document": "Menydokument",
+        "external_url": "Ekstern URL"
+      }
+    }
   },
   "time": {
     "just_now": "Akkurat nå",
@@ -269,5 +335,31 @@
     "empty_activity": "Ingen aktivitet registrert ennå",
     "coming_soon": "Kommer snart",
     "call_coming_soon": "Ringefunksjon kommer snart"
+  },
+  "tier": {
+    "social": "Sosialt",
+    "work": "Jobb",
+    "external": "Eksternt"
+  },
+  "link": {
+    "cta": {
+      "staff_event": "Åpne hendelse",
+      "schedule_shift": "Åpne skift",
+      "policy": "Se policy",
+      "protocol": "Se protokoll",
+      "profile": "Vis profil",
+      "menu_document": "Åpne dokument",
+      "external_url": "Åpne lenke"
+    },
+    "disabled": {
+      "web_only": "Åpne på web for å se dette"
+    },
+    "opened": "Lenke åpnet"
+  },
+  "celebration": {
+    "birthday": {
+      "title": "Gratulerer med dagen, {{name}}!",
+      "body": "I dag har {{name}} bursdag. Ta deg tid til å hilse."
+    }
   }
 }

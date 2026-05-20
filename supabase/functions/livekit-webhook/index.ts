@@ -48,6 +48,15 @@ Deno.serve(async (req: Request) => {
     return new Response("ok");
   }
 
+  // F-WH-07: UUID format validation prevents corrupt workspace_id from leaking into
+  // channel_call_participant + engine_event rows. A malformed room like "foo:bar"
+  // has both parts non-empty but neither is a UUID.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(workspaceId) || !UUID_RE.test(channelId)) {
+    console.error("[livekit-webhook] Non-UUID room parts:", { workspaceId, channelId });
+    return new Response("ok");
+  }
+
   switch (event.event) {
     case "participant_joined": {
       const identity = event.participant?.identity;

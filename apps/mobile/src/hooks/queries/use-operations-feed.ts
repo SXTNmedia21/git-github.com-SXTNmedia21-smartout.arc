@@ -8,11 +8,12 @@
  */
 
 import { useMemo } from "react";
-import { useMyShifts } from "./use-my-shifts";
+import { useMyShiftsWithDept } from "./use-my-shifts";
 import { useMyTasks } from "./use-my-tasks";
 import { useDayInfo } from "./use-day-info";
 import { useShiftColleagues } from "./use-shift-colleagues";
 import { useMyProfile } from "./use-my-profile";
+import type { Department } from "@/components/calendar/types";
 
 /* ── FeedItem — the shape the Operations UI renders ── */
 
@@ -25,6 +26,12 @@ export type FeedItem = {
   subtitle: string;
   time?: string;
   done?: boolean;
+  /**
+   * Department slug read from `department.slug` in the DB (shift items only).
+   * Undefined for non-shift items (tasks, bookings, deviations, notes).
+   * Consumers should fall back to a default when undefined or null.
+   */
+  dept?: Department;
 };
 
 /**
@@ -64,8 +71,34 @@ function isDateMatch(dateStr: string, target: Date): boolean {
  *
  * @param selectedDate - The date selected in the week strip calendar
  */
+/** Valid Department slugs — mirrors types.ts union (kept in sync manually). */
+const KNOWN_DEPT_SLUGS = new Set<Department>([
+  "kjokken",
+  "sal",
+  "bar",
+  "event",
+  "kitchen",
+  "operations",
+  "service",
+]);
+
+/**
+ * Resolve a raw DB slug to a typed Department, with fail-loud warning for unknowns.
+ * Returns undefined (not a fallback) so the caller can apply its own fallback.
+ */
+function toDepartment(raw: string | null | undefined): Department | undefined {
+  if (!raw) return undefined;
+  if (KNOWN_DEPT_SLUGS.has(raw as Department)) return raw as Department;
+  // Fail-loud per L-0177: slug exists in DB but not in union. Operator must extend union.
+  console.warn(
+    `[useOperationsFeed] Unknown department.slug "${raw}" — omitting dept from FeedItem. ` +
+      "Add to Department union in types.ts and color token in native.ts.",
+  );
+  return undefined;
+}
+
 export function useOperationsFeed(selectedDate: Date) {
-  const shiftsQuery = useMyShifts();
+  const shiftsQuery = useMyShiftsWithDept();
   const tasksQuery = useMyTasks();
   const dayInfoQuery = useDayInfo();
   const profileQuery = useMyProfile();
@@ -106,6 +139,8 @@ export function useOperationsFeed(selectedDate: Date) {
         title: `${shift.role}${shift.zone ? ` — ${shift.zone}` : ""}`,
         subtitle: `${shift.day_category === "evening" ? "Kveldsskift" : shift.day_category === "weekend" ? "Helgeskift" : "Dagskift"}${shift.zone ? ` · ${shift.zone}` : ""}`,
         time: formatTimeRange(shift.start_time, shift.end_time),
+        // Read dept from DB column — no substring heuristic (dropped 2026-05-18).
+        dept: toDepartment(shift.deptSlug),
       });
     }
 

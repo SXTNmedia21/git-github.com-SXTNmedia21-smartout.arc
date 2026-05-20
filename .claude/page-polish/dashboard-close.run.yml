@@ -1,0 +1,167 @@
+# Page Polish Run — dashboard/close
+# Tier 3 (long tail). End-of-day close workflow — 4-step wizard.
+# Phase 7 (harness tools) shipped this sortie.
+# Phases 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/close
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/close
+  components_count: 7  # page.tsx + loading.tsx + 4 _components + 1 _hooks
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/close/page.tsx (20 lines, Server Component)
+  loading_fallback: apps/web/src/app/dashboard/close/loading.tsx
+  shell:
+    container: max-w-2xl, p-4 — single-column wizard layout
+    header: h1 "Dagsstenging" + p "Fullfør alle trinn for å stenge dagen"
+    steps: 4-step wizard — Sjekkliste → Oppgjørsbilder → Gjennomgang → Send inn
+    step_indicator: rounded-full pills (primary for active, emerald for past, muted for future)
+  state_machine:
+    - loading         # Suspense → loading.tsx
+    - no_department   # department selector shown, flow blocked
+    - step_checklist  # ChecklistSection mounted
+    - step_images     # ImageUpload mounted (requires reconciliation)
+    - step_review     # GatekeeperStatus + critical deviations list
+    - step_submit     # Submit card + Button
+    - submitted       # CheckCircle2 success state
+  variants: []        # No isAdminMode — single role (manager/admin expected)
+  client_root: CloseOutFlow (uses DashboardContext for profileId + workspaceId)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 3 — Datapoints
+datapoints:
+  - { name: departments,      hook: useQuery (inline),       type: query,    params: "{workspaceId}" }
+  - { name: session,          hook: useDepartmentSession,    type: query,    params: "{departmentId}" }
+  - { name: reconciliation,   hook: useReconciliation,       type: query,    params: "{sessionId}" }
+  - { name: deviations,       hook: useSessionDeviations,    type: query,    params: "{sessionId}" }
+
+server_actions: []
+mutations:
+  - { name: submitReconciliation, hook: useSubmitReconciliation, fired_in: "handleSubmit (Send inn button + proposeSubmitClose tool)" }
+  - { name: uploadSettlementImage, hook: useUploadSettlementImage, fired_in: "ImageUpload component" }
+
+create_entry_points: []  # No standalone create — submission is through existing reconciliation
+
+# Step 4 — Design pass (Phase 4)
+design:
+  zinc_hits: 0          # Uses semantic tokens throughout
+  motion_token_hits: 0  # No raw spring/damping — step transitions via Tailwind transition-colors
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: false  # h1 uses font-bold not font-heading — deferred to next pass
+  font_mono_used: false
+  semantic_tokens:
+    bg-primary: 1 hit (active step pill)
+    text-primary-foreground: 1 hit
+    bg-muted: 2 hits (inactive step pill + fallback)
+    text-muted-foreground: 4 hits
+    border-input: 1 hit (department select)
+    bg-background: 1 hit (department select)
+    text-foreground: 1 hit
+    border-destructive: 1 hit (GatekeeperStatus blocked)
+    text-destructive: 2 hits (GatekeeperStatus XCircle)
+  notable:
+    - emerald-500 used for success states (step past + submit success + gatekeeper all-met)
+    - emerald is intentional semantic (success/approved) — not a lint violation
+    - amber-500 used for "high" severity deviation dot (GatekeeperStatus)
+  finding: acceptable_phase_4  # No violations; emerald/amber are intentional semantic uses
+
+# Step 5 — Telemetry
+telemetry:
+  emit_confirmed:
+    - event: "reconciliation submitted"
+      location: useCloseOut.ts:165-173 (useSubmitReconciliation onSuccess)
+      workspace_id: nonEmpty(workspace.workspace_id)
+      actor_id: nonEmpty(profileId)
+  missing_emit:
+    - hook: useUploadSettlementImage
+      location: useCloseOut.ts:115-118 (onSuccess)
+      finding: onSuccess only invalidates queries — no emit() call
+      action_required: |
+        Add emit({ event: "settlement image uploaded", workspace_id, actor_id, properties: { reconciliation_id } })
+        after confirming registry entry in packages/telemetry/src/registry.ts.
+  registry_entries_to_add:
+    - "settlement image uploaded"   # missing
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  current:
+    header: "Dagsstenging"
+    description: "Fullfør alle trinn for å stenge dagen" — generic (says WHAT, not FOR WHOM/WHY)
+    empty_copy: N/A — page always shows workflow (department required as gate)
+    error_copy: MISSING — relies on Next.js error boundary
+  finding: acceptable_for_harness_sortie  # Page describes itself adequately; deeper copy is Phase 6 work
+
+# Step 7 — Harness tools
+harness_tools:
+  count: 4
+  page_key: close
+  registered_in: apps/web/src/app/dashboard/close/_tools/close-tools-bridge.tsx
+  hook: apps/web/src/app/dashboard/close/_tools/use-close-tools.ts
+  mount_condition: departmentId non-null (prevents stale state before data arrives)
+  tools:
+    - modelToolName: getCloseStatus
+      type: read
+      description: "Get the current end-of-day close workflow status — active step, gate conditions, selected department and session. Use when user asks 'hva gjenstår?' or 'er dagsstenging ferdig?'."
+    - modelToolName: listCloseSteps
+      type: read
+      description: "List the four close workflow steps (Sjekkliste, Oppgjørsbilder, Gjennomgang, Send inn) with their completion status. Use when user asks 'hvilke trinn er igjen?' or wants a progress overview."
+    - modelToolName: getBlockers
+      type: read
+      description: "Return the outstanding gate conditions blocking submission. Use when user asks 'hva stopper innsending?' or 'hva mangler for å sende inn?'."
+    - modelToolName: proposeSubmitClose
+      type: write
+      description: "Submit the end-of-day close for the current department. Only call when user explicitly asks to send in (e.g. 'send inn dagsstenging', 'fullfør stenging'). Fails gracefully if gates are not met."
+      authority: "Delegates to useSubmitReconciliation — resolves workspace_id + actor_id server-side. No C4 gate bypass."
+  adrs_verified:
+    - ADR-0238: "No in-page chat surface on /dashboard/close — Orb interactive, no DomainChatOwnership needed."
+    - ADR-0151: "proposeSubmitClose delegates to useSubmitReconciliation; workspace_id and actor_id resolved from DashboardContext (pre-authed), not from tool params."
+
+# Step 8 — Site-map
+site_map:
+  status: deferred  # Coordinator handles site-map.json — DO NOT touch in this sortie
+
+# Speed test (DEFERRED — requires browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false         # deferred
+  no_skeleton_flash: null                     # deferred — needs browser
+  motion_tokens_used: true                    # no raw spring/damping
+  telemetry_emit_per_mutation: false          # useUploadSettlementImage missing emit (noted above)
+  page_knowledge_written: false               # description is generic — deferred to Phase 6 sortie
+  harness_tools_registered: true             # 4 tools — use-close-tools.ts + bridge
+  harness_tools_typecheck: true              # verified pnpm --filter web typecheck exit 0
+  retest_improved: false                      # deferred
+
+# Notes
+notes: |
+  Close is a D6 surface (production close = end of department_session). The
+  GatekeeperStatus component maps directly to cascade gate conditions:
+    - checklist   → session_task completion
+    - images      → settlement_image OCR validation
+    - deviations  → deviation.status != open (high/critical)
+    - all gates   → daily_reconciliation ready for settlement
+
+  Next sortie order:
+  1. Add "settlement image uploaded" to telemetry registry.
+  2. Add emit() to useUploadSettlementImage onSuccess.
+  3. Phase 6: strengthen page description + add error.tsx.
+  4. Phase 1: Lighthouse run (LCP/CLS/TTI cold + warm).
+  5. Phase 8: site-map.json entry (coordinator sortie).

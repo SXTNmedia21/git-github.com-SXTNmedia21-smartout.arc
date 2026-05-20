@@ -1,30 +1,17 @@
-"use client";
+// Permanent redirect — /dashboard/contracts/new → /dashboard/people/contracts?open=compose
+// Mirrors the existing in-route redirect that new/ already performed.
+// Installed as part of SM-2-followup-contracts route migration.
+// DO NOT REMOVE until all notification action_urls and external links are confirmed updated.
+import { redirect } from "next/navigation";
 
-/**
- * /dashboard/contracts/new — deprecated route, retained as a thin redirect
- * so bookmarks don't 404 after the Phase 2 hub redesign.
- *
- * The composition flow now lives as a drawer on the hub at
- * `/dashboard/contracts?open=compose`. Any `profileId` query param is
- * forwarded so `Lag kontrakt` links from an employee profile continue to
- * prefill the recipient.
- */
-
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-
-export default function NewContractRedirectPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set("open", "compose");
-    const profileId = searchParams.get("profileId");
-    if (profileId) params.set("profileId", profileId);
-    router.replace(`/dashboard/contracts?${params.toString()}`);
-  }, [router, searchParams]);
-
-  // Minimal surface — users land here for a frame or two before the redirect.
-  return null;
+export default function ContractsNewRedirect({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const profileId = typeof searchParams.profileId === "string" ? searchParams.profileId : undefined;
+  const qs = profileId
+    ? new URLSearchParams({ open: "compose", profileId }).toString()
+    : "open=compose";
+  redirect(`/dashboard/people/contracts?${qs}`);
 }

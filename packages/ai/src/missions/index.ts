@@ -1,4 +1,4 @@
-export type { MissionId, AgentMission, UltravoxVoice, MissionManifestEntry } from "./types";
+export type { MissionId, AgentMission, VoiceId, MissionManifestEntry } from "./types";
 export { MissionIdSchema } from "./types";
 export {
   MISSIONS,

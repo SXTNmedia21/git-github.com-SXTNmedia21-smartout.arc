@@ -8,6 +8,7 @@ import { OverviewTab } from "./_components/overview-tab";
 import { DepartmentsTab } from "./_components/departments-tab";
 import { LocationsTab } from "./_components/locations-tab";
 import { TeamsTab } from "./_components/teams-tab";
+import { OrganizationToolsBridge } from "./_tools/organization-tools-bridge";
 import type {
   OrgTab,
   CompanyRow,
@@ -252,6 +253,24 @@ export default function OrganizationPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
+      {/* Botsson harness bridge — registers page-scoped tools on mount, unregisters on unmount */}
+      <OrganizationToolsBridge
+        departments={departments}
+        locations={locations}
+        teams={teams}
+        profileCount={profileCount}
+        company={company}
+        workspace={workspace}
+        positionCounts={positionCounts}
+        zoneCounts={zoneCounts}
+        assetCounts={assetCounts}
+        memberCounts={memberCounts}
+        entityPolicyCounts={entityPolicyCounts}
+        policyCountsByScope={policyCountsByScope}
+        setupChecklist={setupChecklist}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

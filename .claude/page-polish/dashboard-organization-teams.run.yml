@@ -1,0 +1,155 @@
+# Page Polish Run — /dashboard/organization/teams (teams list view)
+
+route: /dashboard/organization/teams
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T10:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/organization/teams
+  components_count: 4
+    # teams/page.tsx                         ← new — owns data-fetch + bridge mount
+    # teams/_tools/use-teams-tools.ts        ← new — 4 tools (2 read, 2 write-propose)
+    # teams/_tools/teams-tools-bridge.tsx    ← new — useRegisterTools("organization-teams")
+    # _components/teams-tab.tsx              ← existing — UI (untouched)
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/organization/teams/page.tsx
+  hooks: []
+  data_source: "Supabase direct (createClient) — team + department + profile + team_member + policy"
+  cascade_dimensions:
+    - D1  # department (structural anchor for teams)
+    - D2  # team (membership overlay — seasonal or permanent)
+  state: live (real data from Supabase local)
+  notes: |
+    page.tsx owns the data fetch: 5 parallel queries (teams, depts, profiles,
+    team_members, team-scoped policies). TeamSummary[] derived via useMemo
+    and passed to TeamsToolsBridge. TeamsTab receives raw TeamRow[] + CountMaps
+    (unchanged — existing component contract).
+    proposeCreateTeam dispatches CustomEvent "botsson:open-create-team-dialog";
+    page.tsx has a listener but openDialogRef hookup to TeamsTab is a Phase-2
+    enhancement (TeamsTab currently owns dialog state internally).
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 4 — Datapoints
+datapoints:
+  - teams: TeamRow[] (fetched from team table, workspace-scoped)
+  - departments: DepartmentRow[] (for dept-name resolution)
+  - profiles: ProfileRow[] (for leader-name resolution)
+  - memberCounts: CountMap (team_member count per team_id)
+  - policyCounts: CountMap (team-scoped policy count per team_id)
+  - teamSummaries: TeamSummary[] (derived — fed to bridge only)
+server_actions: []
+write_operations:
+  - create team (via TeamsTab + handleCreate — Supabase insert)
+  - toggle active/inactive (via TeamsTab + toggleActive — Supabase update)
+
+# Step 5 — Design
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  font_heading_used: true   # TeamsTab h2 uses font-bold; page.tsx delegates to TeamsTab
+  notes: |
+    New page.tsx is a thin orchestration shell — no new styling.
+    TeamsTab carries existing Nordic Split tokens (bg-card, border-border,
+    text-foreground, text-muted-foreground, bg-muted). Hardcoded isDark color
+    branches in TeamsTab marked "Nordic Split: Phase 2.5 candidate" — not
+    touched here (separate motion-token-sweep scope).
+
+# Step 6 — Page knowledge
+page_knowledge:
+  header: Teams
+  description: Grupper ansatte i team for vaktplanlegging, oppgavetildeling og governance-scoping. Team er et D2-ressursoverlegg på avdelinger.
+  empty_copy: Ingen team enda — teams samler ansatte på tvers av vakter og sesonger. Klikk "Add Team" for å opprette ditt første team.
+  error_copy: Kunne ikke laste team — kontrollér tilkoblingen og prøv å laste siden på nytt.
+
+# Step 7 — Harness tools — SHIPPED
+harness_tools:
+  count: 4
+  scope: organization-teams
+  bridge_files:
+    - apps/web/src/app/dashboard/organization/teams/_tools/use-teams-tools.ts
+    - apps/web/src/app/dashboard/organization/teams/_tools/teams-tools-bridge.tsx
+  registered_tools:
+    - key: listTeams
+      type: read
+      note: all teams with member count, type, leader flag, department link
+      params: [active_only (optional, bool), department_id (optional, string)]
+    - key: getTeamDetail
+      type: read
+      note: single team by name (substring) or id, includes leader name + detail URL
+      params: [teamName (optional), teamId (optional)]
+    - key: proposeCreateTeam
+      type: write-propose
+      note: dispatches CustomEvent "botsson:open-create-team-dialog" — no direct DB write
+      params: []
+    - key: proposeAssignLeader
+      type: write-propose
+      note: dispatches CustomEvent "botsson:navigate" to team detail /members tab; leader is a team attribute (not a role) per cascade rules
+      params: [teamName (optional), teamId (optional)]
+
+# Step 8 — Speed test (DEFERRED)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  baseline_blocker: "dev server not running — coordinator follow-up"
+
+# Step 9 — Re-test (DEFERRED)
+retest:
+  cold: { lcp_ms: null, cls: null }
+  warm: { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 10 — Telemetry
+telemetry:
+  emit_in_route: 0
+  mutations_count: 2
+  notes: |
+    create + toggle-active mutations live in TeamsTab (existing component).
+    No emit() in TeamsTab currently — pre-existing debt, out of scope for
+    this harness-bridge sortie. Tracked as separate telemetry backfill item.
+    Tools use dataRef pattern; no mutations in bridge or tool hook.
+
+# Step 11 — Verification checklist
+checklist:
+  typecheck_pass: true
+  files_exist:
+    - apps/web/src/app/dashboard/organization/teams/page.tsx
+    - apps/web/src/app/dashboard/organization/teams/_tools/use-teams-tools.ts
+    - apps/web/src/app/dashboard/organization/teams/_tools/teams-tools-bridge.tsx
+    - .claude/page-polish/dashboard-organization-teams.run.yml
+  site_map_touched: false    # per task constraints — DO NOT touch site-map.json
+  no_hardcoded_colors: true
+  motion_tokens_used: true   # N/A — no new animations in bridge/hook
+  telemetry_emit_per_mutation: false  # pre-existing TeamsTab debt — not in scope
+  page_knowledge_written: true
+  harness_tools_registered: true
+  adr_0151_compliant: true   # workspace_id auth-derived from DashboardContext
+  adr_0238_compliant: true   # no domain chat surface, Orb interactive mode
+
+# Notes
+notes: |
+  Harness bridge shipped 2026-05-14.
+  Tools use dataRef pattern — definitions stable (useMemo [], []), implementations
+  read live dataRef on every invocation.
+  4 tools: 2 read + 2 write-propose (CustomEvent dispatch, no direct DB writes).
+  proposeAssignLeader dispatches "botsson:navigate" with {url, tab:"members"} detail.
+  proposeCreateTeam dispatches "botsson:open-create-team-dialog" — page.tsx has
+  a listener, but openDialogRef → TeamsTab hookup is Phase-2 enhancement pending
+  TeamsTab exposing an imperative handle (currently dialog state is internal).
+  leader_profile_id is a team attribute, NOT a role — tools and descriptions
+  reflect this per cascade D2 rules.
+  access: owner, admin (per task constraint).
+  Parallel agents: /organization/departments and /organization/locations touch
+  different files — no conflicts.

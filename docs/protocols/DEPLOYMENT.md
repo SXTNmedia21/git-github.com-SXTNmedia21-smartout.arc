@@ -1,10 +1,11 @@
 ---
 title: "Deployment Topology"
 status: canonical
-updated: 2026-05-04
+updated: 2026-05-17
 created: 2026-03-29
 module: cross-cutting
 tags: [deployment, ci, vercel, supabase, docker]
+amended_by: [ADR-0360]
 ---
 
 # Deployment Topology
@@ -12,6 +13,8 @@ tags: [deployment, ci, vercel, supabase, docker]
 > **For step-by-step procedures**, use the `deploying` skill (auto-triggered on
 > deploy-related work). This document is the static topology reference — what runs
 > where, what env vars come from where, and what triggers what.
+>
+> **AMENDED 2026-05-17 by [ADR-0360](../decisions/0360-preview-tier-without-persistent-branch-db.md)** — preview tier no longer maintains a persistent Supabase Branch DB. References to "preview Branch DB", "Branch DBs per long-lived branch", or `cibmhhgsrdmpnmcikalu` for preview are SUPERSEDED. Preview tier = Vercel-only smoke. Edge Function + RLS pre-main testing routes through CI `workflow_dispatch` (adjacent sortie) or post-merge prod smoke. Production tier unchanged (`yljaglomadbhyqpcigff` remains load-bearing). Restoration path: see ADR-0360 §Rules 7.
 
 ---
 

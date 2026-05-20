@@ -37,6 +37,8 @@ export async function callGateAction(
   actorProfileId: string,
   args: GateActionArgs,
 ): Promise<GateActionResult> {
+  // @authority-gate-ungated — thunk-wrapper. Callers pass a static `args.capability`
+  // literal (e.g. "task"). Each delegated capability is seeded independently.
   const { data, error } = await supabaseAdmin.rpc("gate_action", {
     p_workspace_id: workspaceId,
     p_capability: args.capability,

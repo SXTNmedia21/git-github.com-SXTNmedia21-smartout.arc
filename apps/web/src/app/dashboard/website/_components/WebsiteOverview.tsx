@@ -17,6 +17,7 @@ import { useWebsite } from "../_hooks/use-website";
 import { usePages } from "../_hooks/use-pages";
 import { publishWebsite } from "../_actions/publish-actions";
 import { createPreviewToken } from "../_actions/preview-actions";
+import { WebsiteToolsBridge } from "../_tools/website-tools-bridge";
 
 export default function WebsiteOverview() {
   const router = useRouter();
@@ -39,16 +40,15 @@ export default function WebsiteOverview() {
   if (!website) {
     return (
       <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
-        <div className="mb-6">
-          <h1 className="text-foreground mb-2 text-3xl font-extrabold tracking-tight">Nettside</h1>
-          <p className="text-muted-foreground text-sm">
-            Du har ingen nettside ennå. Kom i gang med en mal.
-          </p>
-        </div>
-
-        <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16">
-          <Globe className="text-muted-foreground mb-4 h-12 w-12" />
-          <p className="text-foreground mb-6 text-base font-medium">Ingen nettside opprettet</p>
+        <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+          <Globe className="text-muted-foreground size-12" />
+          <div className="space-y-1">
+            <h2 className="font-heading text-2xl">Ingen nettside ennå</h2>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              Velg en mal fra vår galleri eller start fra tom side.
+            </p>
+          </div>
+          {/* PRESERVE existing "Opprett nettside" button — keep as-is below */}
           <Button asChild>
             <Link href="/dashboard/website/setup">Opprett nettside</Link>
           </Button>
@@ -101,6 +101,7 @@ export default function WebsiteOverview() {
 
   return (
     <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
+      <WebsiteToolsBridge website={website} pages={pages} isLoading={false} />
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -112,6 +113,9 @@ export default function WebsiteOverview() {
               {isPublished ? "Publisert" : "Kladd"}
             </Badge>
           </div>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Håndter dine nettsider — publiser endringer, forhåndsvis, og administrer sider.
+          </p>
           {website.site_slug && (
             <a
               href={`https://${domainUrl}`}
@@ -171,8 +175,21 @@ export default function WebsiteOverview() {
 
         <div className="border-border divide-border divide-y rounded-xl border">
           {pages.length === 0 ? (
-            <div className="text-muted-foreground px-5 py-8 text-center text-sm">
-              Ingen sider ennå
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <FileText className="text-muted-foreground size-8" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Ingen sider opprettet</p>
+                <p className="text-muted-foreground text-xs">
+                  Lag din første side for å legge til innhold.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/dashboard/website/pages/new")}
+              >
+                + Legg til side
+              </Button>
             </div>
           ) : (
             pages.map((page) => (

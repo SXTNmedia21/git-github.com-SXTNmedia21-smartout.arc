@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frame 1 — Scope Filter Row + SavedTimelinesDropdown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Nordic Split CSS variable definitions (light + dark) ── */
+    :root {
+      --background:          oklch(0.99 0.004 60);
+      --foreground:          oklch(0.12 0.02 55);
+      --card:                oklch(0.97 0.006 58);
+      --card-foreground:     oklch(0.12 0.02 55);
+      --popover:             oklch(0.99 0.004 60);
+      --popover-foreground:  oklch(0.12 0.02 55);
+      --primary:             oklch(0.52 0.18 40);
+      --primary-foreground:  oklch(0.99 0.004 60);
+      --secondary:           oklch(0.94 0.01 58);
+      --secondary-foreground:oklch(0.22 0.02 55);
+      --muted:               oklch(0.94 0.008 58);
+      --muted-foreground:    oklch(0.52 0.02 55);
+      --accent:              oklch(0.93 0.015 55);
+      --accent-foreground:   oklch(0.22 0.02 55);
+      --destructive:         oklch(0.55 0.2 25);
+      --destructive-foreground: oklch(0.99 0 0);
+      --border:              oklch(0.88 0.01 58);
+      --input:               oklch(0.88 0.01 58);
+      --ring:                oklch(0.52 0.18 40);
+      --warning:             oklch(0.78 0.16 65);
+      --warning-foreground:  oklch(0.25 0.06 55);
+      --success:             oklch(0.58 0.18 145);
+      --success-foreground:  oklch(0.99 0 0);
+      --radius:              6px;
+    }
+
+    .dark-theme {
+      --background:          oklch(0.13 0.01 250);
+      --foreground:          oklch(0.94 0.008 58);
+      --card:                oklch(0.17 0.012 250);
+      --card-foreground:     oklch(0.94 0.008 58);
+      --popover:             oklch(0.16 0.012 250);
+      --popover-foreground:  oklch(0.94 0.008 58);
+      --primary:             oklch(0.68 0.18 45);
+      --primary-foreground:  oklch(0.13 0.01 250);
+      --secondary:           oklch(0.22 0.015 250);
+      --secondary-foreground:oklch(0.82 0.01 58);
+      --muted:               oklch(0.22 0.015 250);
+      --muted-foreground:    oklch(0.58 0.018 58);
+      --accent:              oklch(0.25 0.02 250);
+      --accent-foreground:   oklch(0.88 0.01 58);
+      --destructive:         oklch(0.62 0.2 25);
+      --destructive-foreground: oklch(0.13 0.01 250);
+      --border:              oklch(0.28 0.015 250);
+      --input:               oklch(0.28 0.015 250);
+      --ring:                oklch(0.68 0.18 45);
+      --warning:             oklch(0.72 0.16 65);
+      --warning-foreground:  oklch(0.13 0.01 250);
+      --success:             oklch(0.62 0.18 145);
+      --success-foreground:  oklch(0.13 0.01 250);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Geist Sans', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: oklch(0.92 0.01 58);
+      padding: 24px;
+    }
+
+    .section-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* ── Frame wrapper ── */
+    .frame {
+      width: 1280px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--background);
+      margin-bottom: 40px;
+    }
+
+    /* ── Shared utility ── */
+    .font-heading { font-family: 'Instrument Serif', Georgia, serif; }
+    .font-mono    { font-family: 'Geist Mono', monospace; }
+    .text-xs      { font-size: 11px; }
+    .text-sm      { font-size: 13px; }
+
+    /* ── TopBar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    /* Date navigator */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .date-nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--background);
+      color: var(--muted-foreground);
+      cursor: pointer;
+    }
+    .date-nav-btn:hover { background: var(--muted); }
+    .date-nav-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--foreground);
+      padding: 0 8px;
+      white-space: nowrap;
+    }
+
+    /* Scope filter pill — segmented */
+    .scope-pill-group {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--background);
+      overflow: hidden;
+      height: 32px;
+    }
+    .scope-seg {
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      border-right: 1px solid var(--border);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s, color 0.1s;
+    }
+    .scope-seg:last-child { border-right: none; }
+    .scope-seg.active {
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-weight: 600;
+    }
+    .scope-seg:hover:not(.active) { background: var(--muted); color: var(--foreground); }
+
+    /* Spacer */
+    .spacer { flex: 1; }
+
+    /* Saved timelines dropdown trigger */
+    .dropdown-trigger {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .dropdown-trigger:hover { background: var(--muted); }
+
+    /* ── Timeline strip ── */
+    .timeline-area {
+      padding: 12px 16px;
+      background: var(--background);
+    }
+    .timeline-strip {
+      position: relative;
+      height: 56px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--card);
+      overflow: hidden;
+    }
+    .timeline-hours {
+      display: flex;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .timeline-hour {
+      flex: 1;
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      color: var(--muted-foreground);
+      padding-left: 3px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    .timeline-events-row {
+      position: absolute;
+      top: 20px; bottom: 0; left: 0; right: 0;
+      padding: 3px 4px;
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+    /* Shift event (red) */
+    .evt-shift {
+      position: absolute;
+      left: 10%;
+      width: 14%;
+      top: 22px; bottom: 3px;
+      border-radius: 3px;
+      background: oklch(0.88 0.06 25);
+      border: 1px solid oklch(0.72 0.14 25);
+      display: flex; align-items: center; padding-left: 4px;
+      font-size: 9px; font-weight: 500;
+      color: oklch(0.35 0.14 25);
+      overflow: hidden;
+    }
+    /* Hook event (blue) */
+    .evt-hook {
+      position: absolute;
+      left: 30%;
+      width: 6%;
+      top: 22px; bottom: 3px;
+      border-radius: 3px;
+      background: oklch(0.88 0.06 250);
+      border: 1px solid oklch(0.65 0.14 250);
+      display: flex; align-items: center; padding-left: 3px;
+      font-size: 9px; font-weight: 500;
+      color: oklch(0.30 0.14 250);
+      overflow: hidden;
+    }
+    /* Task event (green) */
+    .evt-task {
+      position: absolute;
+      left: 55%;
+      width: 10%;
+      top: 22px; bottom: 3px;
+      border-radius: 3px;
+      background: oklch(0.88 0.06 145);
+      border: 1px solid oklch(0.62 0.14 145);
+      display: flex; align-items: center; padding-left: 3px;
+      font-size: 9px; font-weight: 500;
+      color: oklch(0.30 0.14 145);
+      overflow: hidden;
+    }
+
+    /* ── Split panel for dropdown closed/open states ── */
+    .split-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+    .split-col {
+      padding: 16px;
+    }
+    .split-col:first-child {
+      border-right: 1px solid var(--border);
+    }
+    .split-col-title {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-foreground);
+      margin-bottom: 8px;
+    }
+
+    /* Dropdown panel (open state) */
+    .dd-panel {
+      width: 320px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius));
+      background: var(--popover);
+      box-shadow: 0 4px 16px oklch(0 0 0 / 0.10);
+      overflow: hidden;
+    }
+    .dd-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dd-header-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+    .dd-save-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border: 1px solid var(--primary);
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* Template row */
+    .tpl-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .tpl-row:last-child { border-bottom: none; }
+    .tpl-row:hover { background: var(--muted); }
+    .tpl-info { flex: 1; min-width: 0; }
+    .tpl-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tpl-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .scope-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+      background: var(--muted);
+      color: var(--muted-foreground);
+      border: 1px solid var(--border);
+    }
+    .scope-chip.team {
+      background: oklch(0.90 0.04 250);
+      color: oklch(0.35 0.14 250);
+      border-color: oklch(0.80 0.08 250);
+    }
+    .scope-chip.dept {
+      background: oklch(0.90 0.04 145);
+      color: oklch(0.30 0.14 145);
+      border-color: oklch(0.78 0.10 145);
+    }
+    .scope-chip.loc {
+      background: oklch(0.90 0.04 55);
+      color: oklch(0.30 0.10 55);
+      border-color: oklch(0.82 0.08 55);
+    }
+    .tpl-count {
+      font-size: 11px;
+      color: var(--muted-foreground);
+    }
+
+    .tpl-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tpl-apply-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tpl-apply-btn:hover { background: var(--muted); }
+    .tpl-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+    }
+    .tpl-menu-btn:hover { background: var(--muted); color: var(--foreground); }
+
+    /* Location warning notice */
+    .loc-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: calc(var(--radius) - 2px);
+      background: oklch(0.96 0.03 65);
+      border: 1px solid oklch(0.82 0.08 65);
+      color: oklch(0.35 0.10 55);
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 8px;
+    }
+    .dark-theme .loc-warning {
+      background: oklch(0.22 0.04 65);
+      border-color: oklch(0.38 0.10 65);
+      color: oklch(0.78 0.10 65);
+    }
+
+    /* ── Location scope inset ── */
+    .loc-inset {
+      border-top: 1px solid var(--border);
+      padding: 16px;
+      background: var(--card);
+    }
+    .inset-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-foreground);
+      margin-bottom: 10px;
+    }
+    .topbar-loc {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--background);
+    }
+
+    /* SVG icons */
+    svg { vertical-align: middle; display: inline-block; }
+  </style>
+</head>
+<body>
+
+<p class="section-label">Frame 1 — TopBar: Scope Filter + SavedTimelinesDropdown — Light Theme</p>
+
+<!-- ═══════════════════════════════════════════════════════════ LIGHT FRAME -->
+<div class="frame">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+
+    <!-- Date Navigator -->
+    <div class="date-nav">
+      <button class="date-nav-btn" aria-label="Forrige dag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="date-nav-label font-mono">Lør. 16. mai 2026</span>
+      <button class="date-nav-btn" aria-label="Neste dag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Scope Filter Pill — segmented, "Team: Servitørteam Lørdag" active -->
+    <div class="scope-pill-group" role="group" aria-label="Scope-filter">
+      <button class="scope-seg" aria-pressed="false">Avd</button>
+      <button class="scope-seg active" aria-pressed="true" aria-label="Team: Servitørteam Lørdag">
+        <!-- Lucide Users icon -->
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;" aria-hidden="true">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Team: Servitørteam Lørdag
+        <button aria-label="Nullstill filter" style="margin-left:6px;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;color:inherit;opacity:0.7;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </button>
+      <button class="scope-seg" aria-pressed="false">Lok</button>
+      <button class="scope-seg" aria-pressed="false">Vakt</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <!-- Saved Timelines Dropdown trigger -->
+    <button class="dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      Lagrede tidslinjer
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left:2px;">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- TIMELINE STRIP -->
+  <div class="timeline-area">
+    <div class="timeline-strip" role="region" aria-label="24-timers tidslinje">
+      <div class="timeline-hours" aria-hidden="true">
+        <div class="timeline-hour">06:00</div>
+        <div class="timeline-hour">08:00</div>
+        <div class="timeline-hour">10:00</div>
+        <div class="timeline-hour">12:00</div>
+        <div class="timeline-hour">14:00</div>
+        <div class="timeline-hour">16:00</div>
+        <div class="timeline-hour">18:00</div>
+        <div class="timeline-hour">20:00</div>
+        <div class="timeline-hour">22:00</div>
+        <div class="timeline-hour">00:00</div>
+        <div class="timeline-hour">02:00</div>
+      </div>
+      <!-- Events -->
+      <div class="evt-shift" title="Vakt: Servitørteam 10:00–18:00">Vakt</div>
+      <div class="evt-hook" title="Hook: Åpning kl 14:00">Hook</div>
+      <div class="evt-task" title="Oppgave: Bord-oppsett kl 16:30">Oppg</div>
+    </div>
+  </div>
+
+  <!-- SPLIT PANEL: Closed state left, Open state right -->
+  <div class="split-panel">
+
+    <!-- LEFT: Dropdown CLOSED -->
+    <div class="split-col">
+      <p class="split-col-title">Dropdown — lukket tilstand</p>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="dropdown-trigger" aria-haspopup="listbox" aria-expanded="false" style="pointer-events:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Lagrede tidslinjer (3)
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <span style="font-size:11px;color:var(--muted-foreground);">← klikk åpner panelet til høyre</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Dropdown OPEN -->
+    <div class="split-col">
+      <p class="split-col-title">Dropdown — åpen tilstand</p>
+      <div class="dd-panel" role="listbox" aria-label="Lagrede tidslinjer">
+
+        <!-- Header -->
+        <div class="dd-header">
+          <span class="dd-header-title">Lagrede tidslinjer</span>
+          <button class="dd-save-btn" aria-label="Lagre tidslinje">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Lagre tidslinje
+          </button>
+        </div>
+
+        <!-- Template row 1 -->
+        <div class="tpl-row" role="option" aria-label="Lørdag middag – Servitørteam">
+          <div class="tpl-info">
+            <div class="tpl-name">Lørdag middag – Servitørteam</div>
+            <div class="tpl-meta">
+              <span class="scope-chip team">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                </svg>
+                Team
+              </span>
+              <span class="tpl-count">5 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" aria-label="Bruk på 17. mai">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" aria-label="Flere valg" aria-haspopup="menu">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Template row 2 -->
+        <div class="tpl-row" role="option" aria-label="Julebuffet – Kjøkken">
+          <div class="tpl-info">
+            <div class="tpl-name">Julebuffet – Kjøkken</div>
+            <div class="tpl-meta">
+              <span class="scope-chip dept">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                Avdeling
+              </span>
+              <span class="tpl-count">5 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" aria-label="Bruk på 17. mai">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" aria-label="Flere valg" aria-haspopup="menu">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Template row 3 -->
+        <div class="tpl-row" role="option" aria-label="Åpningsvakt Sentrum">
+          <div class="tpl-info">
+            <div class="tpl-name">Åpningsvakt Sentrum</div>
+            <div class="tpl-meta">
+              <span class="scope-chip loc">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                Lokasjon
+              </span>
+              <span class="tpl-count">3 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" aria-label="Bruk på 17. mai">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" aria-label="Flere valg" aria-haspopup="menu">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /.dd-panel -->
+    </div><!-- /.split-col right -->
+
+  </div><!-- /.split-panel -->
+
+  <!-- LOCATION SCOPE INSET — warning notice -->
+  <div class="loc-inset">
+    <p class="inset-label">Variant: Lokasjons-scope (Sentrum) — advarselsmerknad</p>
+    <div class="topbar-loc">
+      <!-- Date nav compact -->
+      <span class="date-nav-label font-mono" style="font-size:12px;">Lør. 16. mai 2026</span>
+
+      <!-- Scope pill — Lokasjon active -->
+      <div class="scope-pill-group" role="group" aria-label="Scope-filter">
+        <button class="scope-seg" aria-pressed="false">Avd</button>
+        <button class="scope-seg" aria-pressed="false">Team</button>
+        <button class="scope-seg active" aria-pressed="true">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px;" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          Lok: Sentrum
+          <button aria-label="Nullstill filter" style="margin-left:5px;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;color:inherit;opacity:0.7;">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </button>
+        <button class="scope-seg" aria-pressed="false">Vakt</button>
+      </div>
+
+      <!-- Warning notice inline -->
+      <div class="loc-warning" role="alert" aria-live="polite" style="flex:1;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Lokasjonsfilter viser kun vakter — hooks/oppgaver/notater er ikke lokasjons-merket.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.frame light -->
+
+
+<!-- ═══════════════════════════════════════════════════════════ DARK FRAME -->
+<p class="section-label" style="margin-top:32px;">Frame 1 — Samme view — Dark Theme</p>
+
+<div class="frame dark-theme" style="background:var(--background);">
+
+  <!-- TOP BAR -->
+  <div class="topbar" style="background:var(--card);border-color:var(--border);">
+    <div class="date-nav">
+      <button class="date-nav-btn" style="background:var(--background);border-color:var(--border);color:var(--muted-foreground);" aria-label="Forrige dag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="date-nav-label font-mono" style="color:var(--foreground);">Lør. 16. mai 2026</span>
+      <button class="date-nav-btn" style="background:var(--background);border-color:var(--border);color:var(--muted-foreground);" aria-label="Neste dag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="scope-pill-group" style="background:var(--background);border-color:var(--border);" role="group" aria-label="Scope-filter">
+      <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Avd</button>
+      <button class="scope-seg active" style="background:var(--primary);color:var(--primary-foreground);" aria-pressed="true">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;" aria-hidden="true">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Team: Servitørteam Lørdag
+        <button aria-label="Nullstill filter" style="margin-left:6px;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;color:inherit;opacity:0.7;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </button>
+      <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Lok</button>
+      <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Vakt</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <button class="dropdown-trigger" style="background:var(--background);border-color:var(--border);color:var(--foreground);" aria-haspopup="listbox" aria-expanded="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      Lagrede tidslinjer
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left:2px;">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- TIMELINE STRIP dark -->
+  <div class="timeline-area" style="background:var(--background);">
+    <div class="timeline-strip" style="background:var(--card);border-color:var(--border);" role="region" aria-label="24-timers tidslinje">
+      <div class="timeline-hours" style="border-color:var(--border);" aria-hidden="true">
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">06:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">08:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">10:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">12:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">14:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">16:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">18:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">20:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">22:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">00:00</div>
+        <div class="timeline-hour" style="color:var(--muted-foreground);border-color:var(--border);">02:00</div>
+      </div>
+      <div class="evt-shift" style="background:oklch(0.25 0.06 25);border-color:oklch(0.45 0.14 25);color:oklch(0.82 0.10 25);">Vakt</div>
+      <div class="evt-hook" style="background:oklch(0.22 0.06 250);border-color:oklch(0.42 0.14 250);color:oklch(0.78 0.10 250);">Hook</div>
+      <div class="evt-task" style="background:oklch(0.22 0.06 145);border-color:oklch(0.42 0.14 145);color:oklch(0.78 0.10 145);">Oppg</div>
+    </div>
+  </div>
+
+  <!-- SPLIT PANEL dark -->
+  <div class="split-panel" style="border-color:var(--border);">
+    <div class="split-col" style="border-color:var(--border);">
+      <p class="split-col-title" style="color:var(--muted-foreground);">Dropdown — lukket tilstand</p>
+      <button class="dropdown-trigger" style="background:var(--background);border-color:var(--border);color:var(--foreground);pointer-events:none;" aria-haspopup="listbox" aria-expanded="false">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Lagrede tidslinjer (3)
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+
+    <div class="split-col">
+      <p class="split-col-title" style="color:var(--muted-foreground);">Dropdown — åpen tilstand</p>
+      <div class="dd-panel" style="background:var(--popover);border-color:var(--border);box-shadow:0 4px 20px oklch(0 0 0/0.4);" role="listbox" aria-label="Lagrede tidslinjer">
+        <div class="dd-header" style="border-color:var(--border);">
+          <span class="dd-header-title" style="color:var(--foreground);">Lagrede tidslinjer</span>
+          <button class="dd-save-btn" style="border-color:var(--primary);color:var(--primary);" aria-label="Lagre tidslinje">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Lagre tidslinje
+          </button>
+        </div>
+        <!-- Row 1 -->
+        <div class="tpl-row" style="border-color:var(--border);" role="option">
+          <div class="tpl-info">
+            <div class="tpl-name" style="color:var(--foreground);">Lørdag middag – Servitørteam</div>
+            <div class="tpl-meta">
+              <span class="scope-chip team" style="background:oklch(0.22 0.05 250);color:oklch(0.72 0.12 250);border-color:oklch(0.35 0.10 250);">Team</span>
+              <span class="tpl-count" style="color:var(--muted-foreground);">5 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" style="background:var(--background);border-color:var(--border);color:var(--foreground);">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" style="border-color:var(--border);color:var(--muted-foreground);" aria-label="Flere valg">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Row 2 -->
+        <div class="tpl-row" style="border-color:var(--border);" role="option">
+          <div class="tpl-info">
+            <div class="tpl-name" style="color:var(--foreground);">Julebuffet – Kjøkken</div>
+            <div class="tpl-meta">
+              <span class="scope-chip dept" style="background:oklch(0.20 0.05 145);color:oklch(0.70 0.12 145);border-color:oklch(0.32 0.10 145);">Avdeling</span>
+              <span class="tpl-count" style="color:var(--muted-foreground);">5 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" style="background:var(--background);border-color:var(--border);color:var(--foreground);">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" style="border-color:var(--border);color:var(--muted-foreground);" aria-label="Flere valg">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Row 3 -->
+        <div class="tpl-row" style="border-color:var(--border);" role="option">
+          <div class="tpl-info">
+            <div class="tpl-name" style="color:var(--foreground);">Åpningsvakt Sentrum</div>
+            <div class="tpl-meta">
+              <span class="scope-chip loc" style="background:oklch(0.22 0.04 55);color:oklch(0.72 0.10 55);border-color:oklch(0.36 0.08 55);">Lokasjon</span>
+              <span class="tpl-count" style="color:var(--muted-foreground);">3 elementer</span>
+            </div>
+          </div>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" style="background:var(--background);border-color:var(--border);color:var(--foreground);">Bruk på 17. mai</button>
+            <button class="tpl-menu-btn" style="border-color:var(--border);color:var(--muted-foreground);" aria-label="Flere valg">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOCATION SCOPE INSET dark -->
+  <div class="loc-inset" style="background:var(--card);border-color:var(--border);">
+    <p class="inset-label" style="color:var(--muted-foreground);">Variant: Lokasjons-scope — advarselsmerknad</p>
+    <div class="topbar-loc" style="background:var(--background);border-color:var(--border);">
+      <span class="date-nav-label font-mono" style="font-size:12px;color:var(--foreground);">Lør. 16. mai 2026</span>
+      <div class="scope-pill-group" style="background:var(--background);border-color:var(--border);" role="group" aria-label="Scope-filter">
+        <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Avd</button>
+        <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Team</button>
+        <button class="scope-seg active" style="background:var(--primary);color:var(--primary-foreground);" aria-pressed="true">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:3px;" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          Lok: Sentrum
+        </button>
+        <button class="scope-seg" style="color:var(--muted-foreground);border-color:var(--border);" aria-pressed="false">Vakt</button>
+      </div>
+      <div class="loc-warning" role="alert" aria-live="polite" style="flex:1;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Lokasjonsfilter viser kun vakter — hooks/oppgaver/notater er ikke lokasjons-merket.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.frame dark -->
+
+</body>
+</html>

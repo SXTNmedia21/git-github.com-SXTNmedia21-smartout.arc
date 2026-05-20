@@ -65,15 +65,21 @@ const reportDeviationSchema = z
   .catchall(z.unknown());
 
 // ── public.channel_message ──────────────────────────────────────────────────
-// NOTE: column is `sender_id` per database.types.ts. Some legacy callers
-// (useShiftChat.ts) pass `conversation_id` instead of `channel_id` — those
-// targets the DEPRECATED chat_message system per ADR-0132 and will fail at
-// sync. Schema requires only `sender_id` so the legacy callers continue to
-// work until the chat_message → channel_message migration completes.
+// Target table is `channel_message` (handler at action-map.ts:102). Required
+// columns per database.types.ts: `channel_id`, `sender_id`. Legacy callers
+// pass `conversation_id` (chat_message field) — this schema now rejects them
+// at enqueue, converting silent message loss into a loud Zod throw at the
+// call site. ADR-0132 + L-silent-message-loss (audit 2026-05-19).
+//
+// Known broken: useShiftChat (apps/mobile/src/hooks/shift-clock/useShiftChat.ts)
+// reads chat_conversation/chat_message and has no channel_id available — its
+// enqueue() will throw. Full migration deferred to follow-up sortie
+// `mobile-shift-chat-bff-migration`.
 
 const sendMessageSchema = z
   .object({
     sender_id: uuid,
+    channel_id: uuid,
   })
   .catchall(z.unknown());
 
@@ -82,9 +88,15 @@ const sendMessageSchema = z
 // L-0177: strict() rejects unknown keys at enqueue. Forgeable fields
 // (status, completed_by, completed_at, evidence) removed — server forces
 // these values; client must not supply them (ADR-0151 / ADR-0134).
+//
+// `source` is REQUIRED per ADR-0298 R3 (Sortie 3). BFF dispatches the
+// completion to the correct task-source handler (session_task, personal_task,
+// schedule_day_task, emma_task). Legacy empty-body PATCH path (session_task
+// only) is no longer used by the sync handler.
 const completeTaskSchema = z
   .object({
     id: uuid,
+    source: z.enum(["session", "personal", "day_ad_hoc", "emma"]),
   })
   .strict();
 

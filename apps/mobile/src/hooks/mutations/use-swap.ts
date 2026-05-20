@@ -12,6 +12,11 @@
  * profile_id, or actor_id. The server binds identity to the authenticated
  * Supabase session.
  *
+ * ADR-0328: 409 PIPELINE_LOCK_HELD responses surface as a discriminated
+ * Alert.alert message so employees understand why the action was blocked
+ * without seeing a raw error code. Alert is used (not toast) to match the
+ * existing mobile feedback pattern.
+ *
  * Follows the useCallback pattern used by existing mobile mutation hooks
  * (e.g. use-create-shift.ts) rather than useMutation.
  *
@@ -23,10 +28,44 @@
  */
 
 import { useCallback, useState } from "react";
+import { Alert } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 
 import { supabase } from "@/lib/supabase";
 import { getProfileContext } from "@/lib/profile-context";
+
+// ── Pipeline lock error envelope (ADR-0328) ──────────────────────────────────
+
+const PipelineLockEnvelopeSchema = z.object({
+  ok: z.literal(false),
+  error: z.literal("PIPELINE_LOCK_HELD"),
+  locking_blueprint_id: z.string().optional(),
+});
+
+class PipelineLockError extends Error {
+  public readonly lockingBlueprintId: string | undefined;
+  constructor(lockingBlueprintId?: string) {
+    super("PIPELINE_LOCK_HELD");
+    this.name = "PipelineLockError";
+    this.lockingBlueprintId = lockingBlueprintId;
+  }
+}
+
+/** Norwegian Alert.alert copy discriminated by locking blueprint (ADR-0328). */
+function showPipelineLockAlert(lockingBlueprintId: string | undefined): void {
+  let message: string;
+
+  if (lockingBlueprintId === "marketplace_lifecycle") {
+    message = "Vakten er låst av et åpent vakttilbud — venter på godkjenning";
+  } else if (lockingBlueprintId === "shift_swap_lifecycle") {
+    message = "Det finnes allerede en åpen flyt på denne vakten";
+  } else {
+    message = "Vakten er allerede i en aktiv flyt";
+  }
+
+  Alert.alert("", message);
+}
 import {
   getShiftSwapCancelUrl,
   getShiftSwapInitiateUrl,
@@ -37,6 +76,9 @@ import { emit } from "@smartout/telemetry";
 // ── Shared Bearer fetch helper ─────────────────────────────────────────────
 // Identity fields are NEVER part of the body (ADR-0176 Invariant 3). The
 // BFF re-derives workspace_id + profile_id from the authenticated session.
+//
+// On 409 PIPELINE_LOCK_HELD: throws PipelineLockError so callers can show
+// a discriminated Norwegian Alert (ADR-0328).
 
 async function bffPost<TBody extends Record<string, unknown>>(
   url: string,
@@ -56,6 +98,20 @@ async function bffPost<TBody extends Record<string, unknown>>(
     },
     body: JSON.stringify(body),
   });
+
+  if (res.status === 409) {
+    let envelope: unknown;
+    try {
+      envelope = await res.json();
+    } catch {
+      envelope = {};
+    }
+    const parsed = PipelineLockEnvelopeSchema.safeParse(envelope);
+    if (parsed.success) {
+      throw new PipelineLockError(parsed.data.locking_blueprint_id);
+    }
+    throw new Error(`BFF 409`);
+  }
 
   if (!res.ok) {
     let msg = `BFF ${res.status}`;
@@ -124,6 +180,12 @@ export function useInitiateSwap(): UseInitiateSwapReturn {
             },
           },
         });
+      } catch (err) {
+        if (err instanceof PipelineLockError) {
+          showPipelineLockAlert(err.lockingBlueprintId);
+          return;
+        }
+        throw err;
       } finally {
         setIsSubmitting(false);
       }
@@ -191,6 +253,12 @@ export function useRespondToSwap(): UseRespondToSwapReturn {
             },
           });
         }
+      } catch (err) {
+        if (err instanceof PipelineLockError) {
+          showPipelineLockAlert(err.lockingBlueprintId);
+          return;
+        }
+        throw err;
       } finally {
         setIsSubmitting(false);
       }
@@ -241,6 +309,12 @@ export function useCancelSwap(): UseCancelSwapReturn {
             data: { swap_id: payload.engine_state_id },
           },
         });
+      } catch (err) {
+        if (err instanceof PipelineLockError) {
+          showPipelineLockAlert(err.lockingBlueprintId);
+          return;
+        }
+        throw err;
       } finally {
         setIsSubmitting(false);
       }

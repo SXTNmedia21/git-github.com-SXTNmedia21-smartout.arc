@@ -169,14 +169,12 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
   return (
     <div className="flex h-full flex-col gap-4">
       {/* Header: title + counters + export */}
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.18em] uppercase">
-            Avstemming
-          </p>
-          <h1 className="font-heading text-foreground text-3xl tracking-[-0.02em]">
+      <header className="mb-5 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
             Dagens oppgjør
           </h1>
+          <p className="text-muted-foreground mt-1 text-sm">Avstemming</p>
         </div>
         <div className="flex items-center gap-2">
           <CounterTile label="Venter oppgjør" value={counters.venter} tone="warning" />
@@ -258,7 +256,7 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
       </div>
 
       {/* List */}
-      <div className="border-border bg-card flex-1 overflow-hidden rounded-xl border">
+      <div className="border-border bg-card flex-1 overflow-hidden rounded-2xl border shadow-sm">
         <div
           role="row"
           className="text-muted-foreground border-border bg-muted/30 grid grid-cols-[28px_120px_1fr_140px_140px_140px_40px] gap-3 border-b px-5 py-2.5 text-[10px] font-semibold tracking-[0.14em] uppercase"
@@ -388,7 +386,7 @@ function CounterTile({
         : "text-muted-foreground";
 
   return (
-    <div className="border-border bg-card min-w-[120px] rounded-lg border px-3 py-2">
+    <div className="border-border bg-card min-w-[120px] rounded-2xl border px-3 py-2 shadow-sm">
       <p className="text-muted-foreground text-[9px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </p>

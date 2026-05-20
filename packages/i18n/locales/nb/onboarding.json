@@ -180,13 +180,27 @@
     "locations_description": "Bekreft dine lokasjoner og soner.",
     "procedures_title": "Rutiner",
     "procedures_description": "Velg hvilke rutiner som skal aktiveres.",
+    "tariff_title": "Tariff",
+    "tariff_description": "Koble arbeidsplassen til en tariffavtale (valgfritt).",
     "summary_title": "Oppsummering",
     "summary_description": "Alt klart. Bekreft for å fullføre oppsettet.",
     "finalize": "Fullfør oppsett",
     "positions_add": "Legg til",
     "positions_custom": "Egendefinert...",
     "positions_custom_placeholder": "Stillingstittel",
-    "positions_leader": "Leder"
+    "positions_leader": "Leder",
+    "fields": {
+      "filledCount": "{filled} av {total} felt utfylt",
+      "name": { "label": "Bedriftsnavn", "placeholder": "Restaurant Solsiden" },
+      "legalName": { "label": "Juridisk navn", "placeholder": "Solsiden AS" },
+      "orgNumber": { "label": "Organisasjonsnummer", "placeholder": "123 456 789" },
+      "email": { "label": "E-post", "placeholder": "post@bedrift.no" },
+      "phone": { "label": "Telefon", "placeholder": "+47 12 34 56 78" },
+      "website": { "label": "Nettside", "placeholder": "www.bedrift.no" },
+      "address": { "label": "Adresse", "placeholder": "Storgata 1" },
+      "city": { "label": "By", "placeholder": "Oslo" },
+      "industry": { "label": "Bransje", "placeholder": "Restaurant" }
+    }
   },
   "drawers": {
     "editDepartment": "Rediger avdeling",
@@ -204,5 +218,69 @@
     "done": "Ferdig",
     "remove": "Fjern",
     "crossDept": "Tverravdelende team"
+  },
+  "tariff": {
+    "title": "Tariffavtale",
+    "subtitle": "Er arbeidsplassen din dekket av NHO Reiseliv-tariff (Riksavtalen)?",
+    "memberYes": "Ja, vi er medlemmer",
+    "memberNo": "Nei, ikke relevant for oss",
+    "whichAgreement": "Hvilken overenskomst gjelder?",
+    "lawVersionLabel": "Tariffversjon",
+    "lawVersionPlaceholder": "Velg tariffversjon...",
+    "successTitle": "Tariff koblet til",
+    "successDetail": "{union} · {version}-satser · gjelder fra {date}",
+    "softGuide": "Bransjenorm brukes som default — du kan justere supplement-regler manuelt under Innstillinger → Lønn etter at oppsettet er fullført.",
+    "errorUnexpected": "Uventet svar fra serveren. Prøv igjen.",
+    "errorNetwork": "Nettverksfeil. Sjekk tilkoblingen og prøv igjen.",
+    "submitting": "Kobler til tariff...",
+    "submitAndContinue": "Koble til tariff og fortsett",
+    "continue": "Fortsett"
+  },
+  "roles": {
+    "selectedCount": "{count} roller valgt",
+    "required": "Påkrevd",
+    "addMore": "Legg til flere roller",
+    "custom": "Egendefinert...",
+    "customPlaceholder": "Rollenavn",
+    "dagligLeder": {
+      "name": "Daglig leder",
+      "description": "Overordnet ansvar for daglig drift"
+    },
+    "restaurantsjef": {
+      "name": "Restaurantsjef",
+      "description": "Leder for restaurant og sal"
+    },
+    "kjokkensjef": {
+      "name": "Kjøkkensjef",
+      "description": "Leder for kjøkken og matlaging"
+    },
+    "barsjef": {
+      "name": "Barsjef",
+      "description": "Ansvarlig for bar og drikke"
+    },
+    "skiftleder": {
+      "name": "Skiftleder",
+      "description": "Leder for enkeltvakter"
+    },
+    "verneombud": {
+      "name": "Verneombud",
+      "description": "Lovpålagt HMS-rolle — påkrevd ved 10+ ansatte"
+    },
+    "brannvernleder": {
+      "name": "Brannvernleder",
+      "description": "Ansvarlig for brannsikkerhet og evakuering"
+    },
+    "tillitsvalgt": {
+      "name": "Tillitsvalgt",
+      "description": "Representerer de ansatte overfor ledelsen"
+    },
+    "vaktmester": {
+      "name": "Vaktmester",
+      "description": "Ansvarlig for bygning og vedlikehold"
+    },
+    "fagansvarlig": {
+      "name": "Fagansvarlig",
+      "description": "Ansvarlig for faglig utvikling og opplæring"
+    }
   }
 }

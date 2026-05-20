@@ -15,10 +15,12 @@
  *   Classifications and rates come entirely from DB rule + tariff rows.
  *
  * MATCH PREDICATE EVALUATION:
+ *   0. supplement_type='holiday': rule fires ONLY when bucket.classification='holiday'.
+ *      Empty windows[] is not a wildcard for holiday rules — classification IS the gate.
  *   1. windows[]: If windows is absent or empty → no time-window restriction.
  *      If windows present and non-empty → bucket must overlap at least one window.
  *   2. night_worker_category: If present → shift.night_worker_category must match.
- *   3. Both conditions must hold (AND semantics).
+ *   3. All conditions must hold (AND semantics).
  *
  * WINDOW OVERLAP: A bucket overlaps a window if the bucket's time range
  * intersects the window's time range (on the bucket's weekday).
@@ -267,6 +269,14 @@ export function evaluateSupplements(
     const bucketDate = bucket.from.slice(0, 10); // "YYYY-MM-DD"
     if (rule.valid_from !== null && bucketDate < rule.valid_from) continue;
     if (rule.valid_until !== null && bucketDate > rule.valid_until) continue;
+
+    // ── Holiday classification gate ──────────────────────────────────────
+    // Rules with supplement_type='holiday' must only fire on holiday buckets.
+    // An empty windows[] means "no time-window restriction" — but for holiday
+    // supplements the bucket classification itself IS the gate (ADR-0341 v1.1 §E2).
+    // Without this guard, helligdagstillegg would fire on every non-holiday bucket
+    // that lacks a time-window filter.
+    if (rule.supplement_type === "holiday" && bucket.classification !== "holiday") continue;
 
     const predicate = rule.match_predicate;
 

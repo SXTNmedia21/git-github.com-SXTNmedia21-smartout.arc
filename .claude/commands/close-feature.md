@@ -193,3 +193,32 @@ If any step failed, surface it — do not pretend everything is fine.
 - NEVER run close-feature on a `campaign/*` branch — campaigns do not close
 - If typecheck fails, fix it. Never `--no-verify`.
 - All commits use conventional format
+
+## Pipeline Trap Runbook (post-2026-05-14 Council)
+
+Three deterministic traps surface during close-feature.sh. Recognize signatures, apply fix.
+
+### Trap A — Sync commit message rejected by commitlint
+- **Signature:** `❌ found 1 problems, 0 warnings — type must be one of [feat, fix, docs, ...]`
+- **Status:** FIXED in script v8 (2026-05-14). If you still see this, you're on stale script.
+- **Manual fix if needed:** `git commit -m "chore(<campaign>): sync development into campaign"`
+
+### Trap B — Pre-push typecheck fails on stale dist / missing pnpm symlinks
+- **Signature:** `error TS2307: Cannot find module '@smartout/telemetry'` during pre-push hook
+- **Auto-fixed by Gate 0 in script v8.** If you still see this:
+  - `pnpm install` from worktree root (populates symlinks)
+  - `pnpm --filter @smartout/telemetry build` (rebuilds dist)
+  - `pnpm --filter @smartout/ai build` (if subpath imports fail)
+
+### Trap C — `git push | tail` masks husky exit code
+- **Signature:** Background task reports "exit code 0", but `git ls-remote` shows remote tip unchanged.
+- **Anti-pattern:** `git push origin <branch> | tail -10` returns `tail`'s exit code (0), not `git push`'s.
+- **Fix:** `git push origin <branch>; echo "EXIT: $?"` OR `git push origin <branch> 2>&1 | tee /tmp/push.out; cat /tmp/push.out`
+- **Verification:** Always confirm with `git ls-remote origin refs/heads/<branch>` matching local SHA.
+
+### Verification ritual after any close-feature operation
+```
+LOCAL=$(git -C <worktree> rev-parse HEAD)
+REMOTE=$(git ls-remote origin refs/heads/<branch> | awk '{print $1}')
+[ "$LOCAL" = "$REMOTE" ] && echo "✅ in-sync" || echo "❌ DESYNC: local=$LOCAL remote=$REMOTE"
+```

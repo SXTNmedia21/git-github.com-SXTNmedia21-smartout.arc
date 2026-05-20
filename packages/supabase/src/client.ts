@@ -1,5 +1,10 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
+import { assertRootDomain } from "./_assert-root-domain";
+
+// Assert at module load so any cold-start in production fails fast if the env
+// var is missing — prevents silent cookie-domain drift (ADR-0363).
+assertRootDomain();
 
 declare const window: { location: { hostname: string } } | undefined;
 

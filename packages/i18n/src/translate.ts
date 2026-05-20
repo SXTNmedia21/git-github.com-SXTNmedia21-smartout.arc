@@ -35,7 +35,7 @@ import enBilling from "../locales/en/billing.json";
 import enHelpdesk from "../locales/en/helpdesk.json";
 import enYearWheel from "../locales/en/year-wheel.json";
 
-type MessageValue = string | Record<string, string | Record<string, string>>;
+type MessageValue = string | { [key: string]: MessageValue };
 type Messages = Record<string, MessageValue>;
 
 const localeModules: Record<string, Record<string, Messages>> = {
@@ -89,34 +89,24 @@ export function createTranslator(locale: SupportedLocale, namespace: string) {
   const fallbackMessages = locale !== "nb" ? (localeModules["nb"]?.[namespace] ?? {}) : {};
 
   /**
-   * Resolves a dot-separated key (up to 3 levels deep) against a messages object.
-   * Examples: "title", "hms.sessions_label", "hms.drift_insights.sessions_label"
+   * Resolves a dot-separated key of arbitrary depth against a messages object.
+   * Direct key (no descent) is attempted first to allow flat keys with dots.
+   * Examples: "title", "hms.sessions_label", "setup.value_props.governance.title"
    */
   function resolve(msgs: Messages, key: string): string | undefined {
     const direct = msgs[key];
     if (typeof direct === "string") return direct;
 
     const parts = key.split(".");
-    if (parts.length === 2) {
-      const nested = msgs[parts[0]!];
-      if (typeof nested === "object" && nested !== null) {
-        const val = nested[parts[1]!];
-        if (typeof val === "string") return val;
-      }
-    }
+    if (parts.length < 2) return undefined;
 
-    if (parts.length === 3) {
-      const top = msgs[parts[0]!];
-      if (typeof top === "object" && top !== null) {
-        const mid = top[parts[1]!];
-        if (typeof mid === "object" && mid !== null) {
-          const val = mid[parts[2]!];
-          if (typeof val === "string") return val;
-        }
-      }
+    let cursor: MessageValue | undefined = msgs;
+    for (const part of parts) {
+      if (typeof cursor !== "object" || cursor === null) return undefined;
+      cursor = (cursor as Record<string, MessageValue>)[part];
+      if (cursor === undefined) return undefined;
     }
-
-    return undefined;
+    return typeof cursor === "string" ? cursor : undefined;
   }
 
   return function t(key: string, params?: Record<string, string | number>): string {

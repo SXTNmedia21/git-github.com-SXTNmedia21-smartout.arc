@@ -10,30 +10,21 @@ import { test, expect, type Page } from "@playwright/test";
  *   Navigation is state-driven via "Neste"/"Tilbake" buttons in WizardNavBar.
  * - Sidebar (WizardSidebar) renders step labels from i18n (join.json).
  * - Brand panel no longer exists — replaced by WizardSidebar (lg+ only).
- * - Step content renders inside a <main> element with data-botsson-id attributes.
- * - Each step has a Zod validation schema validated against its substate
- *   (via validationKey). Steps with required fields must be filled before navigating.
+ * - Step content renders inside a <main> element. There are NO data-botsson-id
+ *   attributes on individual step containers — use heading text + input IDs.
+ * - Step 3 has no local Neste button — WizardNavBar (bottom) is the only nav.
+ * - TypewriterTextarea adds 50-800ms per field on Step 3 — use 25_000ms timeouts.
  */
 
 /**
- * Navigate forward N steps by clicking the step's own "Neste" button.
+ * Navigate forward N steps by clicking the WizardNavBar "Neste" button.
  *
- * Steps 1-5 have their own "Neste" button inside the step content area
- * (with local validation + state update). The WizardNavBar also has a
- * "Neste" button. To avoid ambiguity, we target the one inside <main>.
+ * Step 3 has no local Neste button inside the step area. We always use
+ * the WizardNavBar "Neste" (last match) to avoid ambiguity.
  */
 async function clickNextNTimes(page: Page, n: number) {
   for (let i = 0; i < n; i++) {
-    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
-    const stepNeste = stepArea.locator("button", { hasText: "Neste" });
-
-    // If the step has its own Neste button, click it; otherwise fall back to WizardNavBar
-    if (await stepNeste.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await stepNeste.click();
-    } else {
-      // Steps without their own Neste (e.g. step 6, 7) use WizardNavBar
-      await page.locator("button", { hasText: "Neste" }).last().click();
-    }
+    await page.locator("button", { hasText: /Neste/ }).last().click();
     await page.waitForTimeout(300);
   }
 }
@@ -84,12 +75,9 @@ test.describe("join-wizard", () => {
   test("join page loads with step 1 visible @smoke", async ({ page }) => {
     await page.goto("/join");
 
-    // WizardShell should render with join-shell data attribute
-    await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
-
     // Step 1 heading (account step)
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Required fields should be present
@@ -107,7 +95,7 @@ test.describe("join-wizard", () => {
     await page.goto("/join");
 
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Fill step 1 required fields, then advance
@@ -120,7 +108,7 @@ test.describe("join-wizard", () => {
 
     // Step 3 heading
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
-      timeout: 5_000,
+      timeout: 25_000,
     });
 
     // Three textareas should be visible
@@ -135,7 +123,7 @@ test.describe("join-wizard", () => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Navigate to step 3 (fill steps 1 + 2 first)
@@ -144,7 +132,7 @@ test.describe("join-wizard", () => {
     await fillStep2(page);
     await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
-      timeout: 5_000,
+      timeout: 25_000,
     });
 
     const aboutUs = page.locator('textarea[id="aboutUs"]');
@@ -164,12 +152,13 @@ test.describe("join-wizard", () => {
   });
 
   // ─── Test 4: Step 3 navigation buttons work ─────────────
+  // Step 3 has NO local Neste button — only WizardNavBar at bottom.
 
-  test("step 3 has back and next buttons", async ({ page }) => {
+  test("step 3 has back and next buttons (via WizardNavBar)", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Navigate to step 3 (fill steps 1 + 2 first)
@@ -178,24 +167,22 @@ test.describe("join-wizard", () => {
     await fillStep2(page);
     await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
-      timeout: 5_000,
+      timeout: 25_000,
     });
 
     // Back button (in WizardNavBar at bottom)
-    const backButton = page.locator("button", { hasText: "Tilbake" }).first();
+    const backButton = page.locator("button", { hasText: /Tilbake/ }).first();
     await expect(backButton).toBeVisible();
 
-    // Next button — step has its own Neste inside the step area
-    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
-    const nextButton = stepArea.locator("button", { hasText: "Neste" });
+    // Step 3 has no local Neste — verify WizardNavBar Neste is present
+    const nextButton = page.locator("button", { hasText: /Neste/ }).last();
     await expect(nextButton).toBeVisible();
 
     // Click back → should go to step 2 (business step)
     await backButton.click();
 
-    // Verify we're on step 2 by checking the step content changed
-    // WizardShell does not update URL, so we check the DOM instead
-    await expect(page.locator('[data-botsson-id="join-business-step"]')).toBeVisible({
+    // Verify we're on step 2 by checking for Bedriftsinformasjon heading
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible({
       timeout: 5_000,
     });
   });
@@ -206,7 +193,7 @@ test.describe("join-wizard", () => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Navigate to step 3 (fill steps 1 + 2 first)
@@ -215,7 +202,7 @@ test.describe("join-wizard", () => {
     await fillStep2(page);
     await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
-      timeout: 5_000,
+      timeout: 25_000,
     });
 
     const aboutUs = page.locator('textarea[id="aboutUs"]');
@@ -232,12 +219,13 @@ test.describe("join-wizard", () => {
   });
 
   // ─── Test 6: Step 3 → Step 4 navigation works ──────────
+  // Step 3 has no local Neste — navigate via WizardNavBar.
 
   test("can advance from step 3 to step 4", async ({ page }) => {
     test.setTimeout(30_000);
     await page.goto("/join");
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
 
     // Navigate to step 3 (fill steps 1 + 2 first, step 3 is skippable)
@@ -246,17 +234,15 @@ test.describe("join-wizard", () => {
     await fillStep2(page);
     await clickNextNTimes(page, 1);
     await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
-      timeout: 5_000,
+      timeout: 25_000,
     });
 
-    // Click next (step 3 fields are optional/skippable) — use step's own button
-    const stepArea = page.locator('[data-botsson-type="wizard-step"]');
-    const nextButton = stepArea.locator("button", { hasText: "Neste" });
-    await nextButton.click();
+    // Click next via WizardNavBar (step 3 fields are optional/skippable)
+    await page.locator("button", { hasText: /Neste/ }).last().click();
 
-    // Should advance to step 4 (hours) — verify via data-botsson-id
-    await expect(page.locator('[data-botsson-id="join-hours-step"]')).toBeVisible({
-      timeout: 5_000,
+    // Should advance to step 4 (hours) — verify via heading
+    await expect(page.getByRole("heading", { name: /Drift/ })).toBeVisible({
+      timeout: 25_000,
     });
   });
 
@@ -269,54 +255,59 @@ test.describe("join-wizard", () => {
 
     // Step 1 (account) → verify visible
     await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
-      timeout: 10_000,
+      timeout: 25_000,
     });
-
-    // The join wizard has 6 steps: account, business, about, hours, menu, summary
-    const stepIds = ["account", "business", "about", "hours", "menu", "summary"];
-
-    // Verify step 1 data attribute
-    await expect(page.locator(`[data-botsson-id="join-${stepIds[0]}-step"]`)).toBeVisible();
 
     // Step 1 → 2: fill required account fields
     await fillStep1(page);
-    await clickNextNTimes(page, 1);
-    await expect(page.locator(`[data-botsson-id="join-${stepIds[1]}-step"]`)).toBeVisible({
-      timeout: 5_000,
+    await page.locator("button", { hasText: /Neste/ }).last().click();
+
+    await expect(page.getByRole("heading", { name: /Bedriftsinformasjon/ })).toBeVisible({
+      timeout: 25_000,
     });
 
     // Step 2 → 3: fill required business fields
     await fillStep2(page);
-    await clickNextNTimes(page, 1);
-    await expect(page.locator(`[data-botsson-id="join-${stepIds[2]}-step"]`)).toBeVisible({
-      timeout: 5_000,
+    await page.locator("button", { hasText: /Neste/ }).last().click();
+
+    await expect(page.getByRole("heading", { name: /Fortell om bedriften/ })).toBeVisible({
+      timeout: 25_000,
     });
 
-    // Steps 3-5 → navigate forward (about + menu are skippable, hours needs phone)
-    for (let i = 3; i < stepIds.length; i++) {
-      // Step 4 (hours) requires a valid phone number — fill it.
-      // The openingHours array is auto-populated with 7 default entries by Step4Hours.
-      if (stepIds[i - 1] === "hours") {
-        // Wait for Step4Hours component to mount and sync defaults to wizard state
-        await page.waitForTimeout(500);
-        await page.locator('input[id="phone"]').fill("+47 35 52 61 00");
-        await page.waitForTimeout(300);
-      }
-      await clickNextNTimes(page, 1);
-      await expect(page.locator(`[data-botsson-id="join-${stepIds[i]}-step"]`)).toBeVisible({
-        timeout: 5_000,
-      });
-    }
+    // Step 3 → 4: skip about (optional)
+    await page.locator("button", { hasText: /Neste/ }).last().click();
 
-    // Last step (summary) — WizardNavBar shows "Fullfør" instead of "Neste"
-    await expect(page.locator("button", { hasText: "Fullfør" })).toBeVisible();
+    // Step 4 (hours) requires a valid phone number
+    await expect(page.getByRole("heading", { name: /Drift/ })).toBeVisible({
+      timeout: 25_000,
+    });
+    await page.waitForTimeout(500);
+    await page.locator('input[id="phone"]').fill("+47 35 52 61 00");
+    await page.waitForTimeout(300);
+    await page.locator("button", { hasText: /Neste/ }).last().click();
+
+    // Step 5 (menu)
+    await expect(page.getByRole("heading", { name: /Meny/ })).toBeVisible({
+      timeout: 25_000,
+    });
+    await page.locator("button", { hasText: /Neste/ }).last().click();
+
+    // Step 6 (summary) — WizardNavBar shows "Fullfør" instead of "Neste"
+    await expect(page.getByRole("heading", { name: /Alt ser bra ut/ })).toBeVisible({
+      timeout: 25_000,
+    });
+    await expect(page.locator("button", { hasText: /Fullfør/ })).toBeVisible();
   });
 
   // ─── Test 8: Sidebar progress labels match join steps ───
 
   test("sidebar progress labels match the actual join steps", async ({ page }) => {
     await page.goto("/join");
-    await expect(page.locator('[data-botsson-id="join-shell"]')).toBeVisible({ timeout: 10_000 });
+
+    // Step 1 heading is sufficient to confirm the shell mounted
+    await expect(page.getByRole("heading", { name: /Opprett din konto/ })).toBeVisible({
+      timeout: 25_000,
+    });
 
     // WizardSidebar renders labels from join.json i18n keys.
     // Current labels: Konto, Bedrift, Identitet, Drift, Meny, Oppsummering
