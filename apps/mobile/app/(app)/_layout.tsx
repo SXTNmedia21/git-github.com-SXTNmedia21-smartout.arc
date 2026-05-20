@@ -5,6 +5,7 @@
  *   Kalender · Vakter · ⊕ FAB · Chat · Min Tid
  *
  * FAB tap = return to Kalender (start anchor per ADR-0268).
+ * FAB long-press = open BotssonSheet directly (AI discoverability — 2026-05-20).
  * FAB swipe up layer 1 (80px) = open AddSheet.
  * FAB swipe up layer 2 (160px) = open AddSheet + BotssonSheet stacked.
  *
@@ -50,6 +51,11 @@ export default function AppLayout() {
     router.replace("/(app)/(calendar)");
   }, [router]);
 
+  /** Long-press → open BotssonSheet directly (discoverable AI entry). */
+  const handleFabLongPress = useCallback(() => {
+    botssonSheetRef.current?.expand();
+  }, []);
+
   /** Swipe layer 1 (≥80px up) → open AddSheet only. */
   const handleFabSwipeLayer1 = useCallback(() => {
     addSheetRef.current?.open();
@@ -73,13 +79,20 @@ export default function AppLayout() {
         centerFab={
           <AIFab
             onTap={handleFabTap}
+            onLongPress={handleFabLongPress}
             onSwipeLayer1={handleFabSwipeLayer1}
             onSwipeLayer2={handleFabSwipeLayer2}
           />
         }
       />
     ),
-    [handleFabTap, handleFabSwipeLayer1, handleFabSwipeLayer2, unreadNotificationCount],
+    [
+      handleFabTap,
+      handleFabLongPress,
+      handleFabSwipeLayer1,
+      handleFabSwipeLayer2,
+      unreadNotificationCount,
+    ],
   );
 
   return (
