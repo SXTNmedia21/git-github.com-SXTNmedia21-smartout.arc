@@ -38,6 +38,7 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 | Current system state (architecture, gaps) | `docs/STATE.md` (trust hierarchy at top of file — top sections are live, cascade sections may lag) |
 | Botsson Arena + Stage Engine wiring status | **`docs/architecture/BOTSSON-SYSTEM-MAP.md`** — end-to-end pipe diagram, 🟢/🟡/🔴 per component. Read before any AI-harness work. |
 | **Forward plan — what's next, blocking issues** | `docs/STATE-SUMMARY.md` (rewritten 2026-04-20 post-verification council; P0/P1/P2 priority sections) |
+| **Page-polish status — which routes are productionized, LCP, harness tools, design debt** | `docs/polish/POLISH-INDEX.md` (GENERATED — `pnpm --filter web polish:index`; coverage rollup + per-route + Tier 0 elements). Rollup also surfaced in `docs/DASHBOARD.md` § Polish Coverage. |
 | Database tables, routes, packages | `docs/reference/` |
 | Module business logic | `docs/modules/` |
 | Architecture decisions (ADRs) | `docs/decisions/` — code-review material, always in repo. **163 ADRs as of 2026-04-20, gap at 0159 (reserved).** |
