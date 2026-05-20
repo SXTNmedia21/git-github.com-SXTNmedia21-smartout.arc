@@ -1,7 +1,8 @@
 ---
 title: JOURNEY — ui-shell dept-slug
-status: in_progress
-updated: 2026-05-18
+status: verified
+feature: dept-slug
+updated: 2026-05-20
 created: 2026-05-18
 module: mobile-schedule
 tags: [mobile, journey]
