@@ -25,9 +25,15 @@ import {
   Moon,
   Clock,
   Radio,
+  Mic,
+  Languages,
+  Hand,
+  Zap,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { LucideIcon } from "lucide-react-native";
+import { useBotsson } from "@/providers/botsson-provider";
+import type { BotssonLanguage, BotssonInteractionMode } from "@/providers/botsson-provider";
 
 /* ── Types ── */
 
@@ -216,6 +222,190 @@ const useStatusStyles = createStyles((theme) => ({
   },
 }));
 
+/* ── Segmented Picker ── */
+
+type SegmentOption<T extends string> = {
+  key: T;
+  label: string;
+  icon: LucideIcon;
+};
+
+type SegmentedPickerProps<T extends string> = {
+  options: SegmentOption<T>[];
+  value: T;
+  onSelect: (value: T) => void;
+  accessibilityLabel: string;
+};
+
+function SegmentedPicker<T extends string>({
+  options,
+  value,
+  onSelect,
+  accessibilityLabel,
+}: SegmentedPickerProps<T>) {
+  const styles = useSegmentedStyles();
+  const theme = useTheme();
+
+  return (
+    <View
+      style={styles.container}
+      accessibilityRole="radiogroup"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {options.map((opt, idx) => {
+        const isActive = value === opt.key;
+        const isFirst = idx === 0;
+        const isLast = idx === options.length - 1;
+        const Icon = opt.icon;
+        return (
+          <Pressable
+            key={opt.key}
+            onPress={() => {
+              Haptics.selectionAsync();
+              onSelect(opt.key);
+            }}
+            style={[
+              styles.segment,
+              isFirst && styles.segmentFirst,
+              isLast && styles.segmentLast,
+              isActive && styles.segmentActive,
+            ]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={opt.label}
+          >
+            <Icon
+              size={15}
+              color={
+                isActive ? theme.colors.brandOrange : withOpacity(theme.colors.mutedForeground, 0.6)
+              }
+              strokeWidth={1.6}
+            />
+            <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const useSegmentedStyles = createStyles((theme) => ({
+  container: {
+    flexDirection: "row",
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.12),
+    overflow: "hidden",
+    backgroundColor: withOpacity(theme.colors.muted, 0.3),
+  },
+  segment: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.tight,
+  },
+  segmentFirst: {
+    borderRightWidth: 1,
+    borderRightColor: withOpacity(theme.colors.border, 0.12),
+  },
+  segmentLast: {},
+  segmentActive: {
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.08),
+  },
+  segmentLabel: {
+    ...theme.typography.caption,
+    fontWeight: theme.fontWeights.medium,
+    color: theme.colors.mutedForeground,
+  },
+  segmentLabelActive: {
+    color: theme.colors.brandOrange,
+    fontWeight: theme.fontWeights.semibold,
+  },
+}));
+
+/* ── PickerRow ── */
+
+type PickerRowProps<T extends string> = {
+  icon: LucideIcon;
+  label: string;
+  description?: string;
+  options: SegmentOption<T>[];
+  value: T;
+  onSelect: (value: T) => void;
+  accessibilityLabel: string;
+};
+
+function PickerRow<T extends string>({
+  icon: Icon,
+  label,
+  description,
+  options,
+  value,
+  onSelect,
+  accessibilityLabel,
+}: PickerRowProps<T>) {
+  const styles = usePickerRowStyles();
+  const theme = useTheme();
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowHeader}>
+        <Icon size={20} color={withOpacity(theme.colors.mutedForeground, 0.5)} strokeWidth={1.6} />
+        <View style={styles.rowHeaderText}>
+          <Text style={styles.rowLabel}>{label}</Text>
+          {description && <Text style={styles.rowDescription}>{description}</Text>}
+        </View>
+      </View>
+      <SegmentedPicker
+        options={options}
+        value={value}
+        onSelect={onSelect}
+        accessibilityLabel={accessibilityLabel}
+      />
+    </View>
+  );
+}
+
+const usePickerRowStyles = createStyles((theme) => ({
+  row: {
+    gap: theme.spacing.tight,
+    paddingVertical: 16,
+  },
+  rowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
+  rowHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
+    ...theme.typography.body,
+    fontWeight: theme.fontWeights.medium,
+    color: theme.colors.foreground,
+  },
+  rowDescription: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+  },
+}));
+
+const LANGUAGE_OPTIONS: SegmentOption<BotssonLanguage>[] = [
+  { key: "nb", label: "Norsk", icon: Languages },
+  { key: "en", label: "English", icon: Languages },
+];
+
+const INTERACTION_MODE_OPTIONS: SegmentOption<BotssonInteractionMode>[] = [
+  { key: "push-to-talk", label: "Hold inne", icon: Hand },
+  { key: "always-on", label: "Alltid på", icon: Zap },
+];
+
 /* ── Main Screen ── */
 
 export default function ChatSettingsScreen() {
@@ -228,6 +418,16 @@ export default function ChatSettingsScreen() {
   const [voiceCalls, setVoiceCalls] = useState(true);
   const [walkieMode, setWalkieMode] = useState(false);
   const [status, setStatus] = useState("online");
+
+  // AI settings — sourced from BotssonProvider (MMKV-persisted).
+  const {
+    voiceEnabled,
+    language,
+    interactionMode,
+    setVoiceEnabled,
+    setLanguage,
+    setInteractionMode,
+  } = useBotsson();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -311,6 +511,43 @@ export default function ChatSettingsScreen() {
           <Text style={styles.sectionTitle}>Tilgjengelighet</Text>
           <View style={styles.sectionCard}>
             <StatusSelector selected={status} onSelect={setStatus} />
+          </View>
+        </Animated.View>
+
+        {/* AI section */}
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(400).springify()}
+          style={styles.section}
+        >
+          <Text style={styles.sectionTitle}>AI</Text>
+          <View style={styles.sectionCard}>
+            <ToggleRow
+              icon={Mic}
+              label="Stemme"
+              description="Aktiver talesamtaler med Botsson"
+              value={voiceEnabled}
+              onValueChange={setVoiceEnabled}
+            />
+            <View style={styles.divider} />
+            <PickerRow
+              icon={Languages}
+              label="Språk"
+              description="Språk AI-agenten svarer på"
+              options={LANGUAGE_OPTIONS}
+              value={language}
+              onSelect={setLanguage}
+              accessibilityLabel="Velg AI-språk"
+            />
+            <View style={styles.divider} />
+            <PickerRow
+              icon={Hand}
+              label="Mikrofon-modus"
+              description="Hold inne: hold for å snakke. Alltid på: kontinuerlig lytting."
+              options={INTERACTION_MODE_OPTIONS}
+              value={interactionMode}
+              onSelect={setInteractionMode}
+              accessibilityLabel="Velg mikrofon-modus"
+            />
           </View>
         </Animated.View>
       </ScrollView>

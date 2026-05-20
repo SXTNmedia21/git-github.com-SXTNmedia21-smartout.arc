@@ -29,6 +29,11 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useBotssonVoiceSession } from "@/hooks/use-botsson-voice-session";
 import type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
+import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
+import type {
+  BotssonLanguage,
+  BotssonInteractionMode,
+} from "@/hooks/stores/use-botsson-settings-store";
 import {
   deriveBotssonChannel,
   type BotssonDeviceType,
@@ -38,6 +43,10 @@ import {
 
 export { deriveBotssonChannel } from "./botsson-channel";
 export type { BotssonMode, BotssonSessionChannel, BotssonDeviceType } from "./botsson-channel";
+export type {
+  BotssonLanguage,
+  BotssonInteractionMode,
+} from "@/hooks/stores/use-botsson-settings-store";
 
 /** Minimal voice session interface — matches UltravoxVoiceSession from @smartout/agent-sdk */
 type VoiceSession = {
@@ -130,6 +139,13 @@ type BotssonContextValue = {
   clearIntent: () => void;
   /** Error message if status is "error" */
   error: string | null;
+  /** User-configurable AI preferences — persisted via MMKV. */
+  voiceEnabled: boolean;
+  language: BotssonLanguage;
+  interactionMode: BotssonInteractionMode;
+  setVoiceEnabled: (enabled: boolean) => void;
+  setLanguage: (language: BotssonLanguage) => void;
+  setInteractionMode: (mode: BotssonInteractionMode) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -143,6 +159,16 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
+
+  // AI settings — user preferences persisted via MMKV.
+  const {
+    voiceEnabled,
+    language,
+    interactionMode,
+    setVoiceEnabled,
+    setLanguage,
+    setInteractionMode,
+  } = useBotssonSettingsStore();
 
   // Holds the legacy Ultravox session handle (web/SDK path). Kept for
   // backwards compatibility while C1.b mobile voice runs via the new hook.
@@ -191,10 +217,11 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       channel: deriveBotssonChannel(mode),
       device_type: "mobile",
       shift_phase: phase ?? "no_shift",
-      language: "nb",
+      // Sourced from user preference — previously hardcoded "nb" (P2-b).
+      language,
       pending_tasks_count: tasks?.length ?? 0,
     }),
-    [mode, phase, tasks],
+    [mode, phase, tasks, language],
   );
 
   /**
@@ -321,6 +348,13 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      // AI settings — user preferences from the MMKV-backed store.
+      voiceEnabled,
+      language,
+      interactionMode,
+      setVoiceEnabled,
+      setLanguage,
+      setInteractionMode,
     }),
     [
       status,
@@ -337,6 +371,12 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      voiceEnabled,
+      language,
+      interactionMode,
+      setVoiceEnabled,
+      setLanguage,
+      setInteractionMode,
     ],
   );
 
