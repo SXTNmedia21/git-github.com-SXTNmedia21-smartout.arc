@@ -20,9 +20,14 @@
 --   level                    = 'autonomous'
 --     → gate_action() returns allow=true without any role check.
 --     → Correct for system-only processes (signature = authorization).
---   min_role                 = 'system'
---     → _role_rank('system') = 4. Any actor ≥ system passes. Since actor is
---       always NULL for this process, the role check is never triggered.
+--   min_role                 = 'owner'
+--     → Functionally moot: level='autonomous' makes gate_action() skip the
+--       role check entirely, and actor is always NULL for this system process.
+--       Value must satisfy capability_default_registry's CHECK constraint, which
+--       allows ONLY (employee|manager|admin|owner) — NOT 'system'. (engine_
+--       authority_config's CHECK was relaxed to include 'system' in 20260516110000,
+--       but capability_default_registry's was not — 20260518000000.) Use 'owner'
+--       (highest) in both tables for a constraint-valid, uniform default.
 --   requires_four_eyes       = false
 --     → Single-actor authorization is sufficient. The legal signature serves
 --       as the two-party confirmation (employer + employee both sign via DocuSeal).
@@ -72,7 +77,7 @@ INSERT INTO public.capability_default_registry (
 VALUES (
   'employee_activation',
   'autonomous',
-  'system',
+  'owner',
   false,
   0,
   'ADR-0379. System-only process: contract.signed → profile.status trainee→active. '
@@ -98,7 +103,7 @@ SELECT
   w.workspace_id,
   'employee_activation',
   'autonomous',
-  'system',
+  'owner',
   false,
   0,
   COALESCE(
