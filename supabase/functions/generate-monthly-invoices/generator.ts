@@ -254,37 +254,11 @@ async function generateForCompany(
     new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   ); // net 14
 
-  const { data: invoice, error: invErr } = await supabase
-    .from("invoice")
-    .insert({
-      company_id: company.company_id,
-      invoice_type: "recurring",
-      status: "draft",
-      period_from: periodFrom,
-      period_to: periodTo,
-      amount_excl_vat,
-      vat_rate,
-      vat_amount,
-      amount_incl_vat,
-      currency: "NOK",
-      due_at,
-      // ADR-0121 Phase 1.5: snapshot the exact pricing_terms row that
-      // governed this invoice. get_invoice_basis() prefers this FK over
-      // date-range fallback (protects audit against retroactive edits).
-      pricing_terms_id: pt.pricing_terms_id,
-    })
-    .select("invoice_id")
-    .single();
-
-  if (invErr || !invoice) {
-    throw new Error(
-      `invoice insert: ${invErr?.message ?? "no row returned"}`,
-    );
-  }
-
-  const lineItems: Array<Record<string, unknown>> = [
+  // Build line items array to pass to the atomic RPC. The invoice_id is
+  // assigned inside the function, so we omit it here — the RPC joins it
+  // to every row in its loop.
+  const lineItems = [
     {
-      invoice_id: invoice.invoice_id,
       line_type: "base_plan",
       description: `Månedlig abonnement ${periodFrom} – ${periodTo}`,
       quantity: 1,
@@ -293,13 +267,13 @@ async function generateForCompany(
       vat_rate,
       vat_amount: toMoney(base_plan_amount * 0.25),
       amount_incl_vat: toMoney(base_plan_amount * 1.25),
+      usage_snapshot_id: null,
     },
     ...snapshots
       .filter((s) => s.billable_users > 0)
       .map((s) => {
         const line_excl = toMoney(s.billable_users * overage_unit_price);
         return {
-          invoice_id: invoice.invoice_id,
           line_type: "user_overage",
           description: `Ekstra brukere over ${pt.free_users ?? 0}: ${s.billable_users}`,
           quantity: s.billable_users,
@@ -313,13 +287,39 @@ async function generateForCompany(
       }),
   ];
 
-  const { error: liErr } = await supabase
-    .from("invoice_line_item")
-    .insert(lineItems);
-  if (liErr) throw new Error(`line_item insert: ${liErr.message}`);
+  // C1 — atomic RPC: INSERT draft + INSERT line_items + UPDATE→issued in
+  // one server-side transaction. Eliminates the partial-write window that
+  // previously left header-only draft invoices (feat/billing-cron-correctness).
+  // ADR-0121 Phase 1.5: pricing_terms_id snapshot passed through to RPC so
+  // get_invoice_basis() audits are protected against retroactive edits.
+  const { data: rpcResult, error: rpcErr } = await supabase
+    .rpc("fn_generate_company_invoice", {
+      p_company_id: company.company_id,
+      p_period_from: periodFrom,
+      p_period_to: periodTo,
+      p_pricing_terms_id: pt.pricing_terms_id,
+      p_amount_excl_vat: amount_excl_vat,
+      p_vat_rate: vat_rate,
+      p_vat_amount: vat_amount,
+      p_amount_incl_vat: amount_incl_vat,
+      p_currency: "NOK",
+      p_due_at: due_at,
+      p_line_items: lineItems,
+    });
 
-  // Emit usage snapshots + invoice_generated BEFORE the issued
-  // transition, so the timeline reads chronologically.
+  if (rpcErr || !rpcResult || rpcResult.length === 0) {
+    throw new Error(
+      `fn_generate_company_invoice rpc: ${rpcErr?.message ?? "no row returned"}`,
+    );
+  }
+
+  const invoiceId: string = rpcResult[0].invoice_id;
+  const invoiceNumber: number = rpcResult[0].invoice_number ?? 0;
+
+  // Emit usage snapshots + invoice_generated BEFORE invoice_issued, so
+  // the timeline reads chronologically. All emits run after the RPC
+  // returns — telemetry failure never aborts generation (emitViaEndpoint
+  // catches and logs internally).
   for (const s of snapshots) {
     await emitViaEndpoint({
       event: "usage_snapshot created",
@@ -344,7 +344,7 @@ async function generateForCompany(
     workspace_id: null,
     properties: {
       entity_type: "invoice",
-      entity_id: invoice.invoice_id,
+      entity_id: invoiceId,
       data: {
         company_id: company.company_id,
         amount_incl_vat,
@@ -355,31 +355,16 @@ async function generateForCompany(
     },
   });
 
-  // Transition to issued → fires assign_invoice_number trigger.
-  const { error: issueErr } = await supabase
-    .from("invoice")
-    .update({ status: "issued" })
-    .eq("invoice_id", invoice.invoice_id);
-
-  if (issueErr) throw new Error(`issue transition: ${issueErr.message}`);
-
-  // Fetch the now-assigned invoice_number for the emit payload.
-  const { data: issued } = await supabase
-    .from("invoice")
-    .select("invoice_number")
-    .eq("invoice_id", invoice.invoice_id)
-    .single();
-
   await emitViaEndpoint({
     event: "invoice issued",
     actor_id: null,
     workspace_id: null,
     properties: {
       entity_type: "invoice",
-      entity_id: invoice.invoice_id,
+      entity_id: invoiceId,
       data: {
         company_id: company.company_id,
-        invoice_number: issued?.invoice_number ?? 0,
+        invoice_number: invoiceNumber,
         amount_incl_vat,
         source: "cron",
       },
