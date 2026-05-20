@@ -129,6 +129,7 @@ export const strings = {
     greetingBeforeShift: "Hei! Du har vakt snart. Hva trenger du?",
     greetingDuringShift: "Hei! Du er p\u00e5 vakt. Hva trenger du hjelp med?",
     greetingAfterShift: "Vakt avsluttet. Trenger du hjelp med noe?",
+    fabHint: "Hold inne for \u00e5 snakke med Botsson",
   },
   common: {
     send: "Send",
