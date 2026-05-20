@@ -2,6 +2,7 @@ import { createClient } from "@smartout/supabase/server";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { validateReturnTo } from "@/lib/safe-redirect";
 
 /**
  * Scrub orphan Supabase auth-token cookies before exchanging a fresh code.
@@ -103,8 +104,11 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const rawNext = searchParams.get("next") ?? "/dashboard";
   const continueSlug = searchParams.get("continue");
-  // Prevent open redirect — only allow relative paths
-  const next = rawNext.startsWith("/") ? rawNext : "/dashboard";
+  // Prevent open redirect. A bare `startsWith("/")` check is insufficient:
+  // `//evil.com` and `/\evil.com` pass it but `new URL(next, origin)` resolves
+  // them to an external host (protocol-relative authority). validateReturnTo
+  // rejects `//`, `://`, and backslash — the same guard /login already uses.
+  const next = validateReturnTo(rawNext) ?? "/dashboard";
 
   if (code) {
     // Clear orphan token cookies (see scrubOrphanAuthCookies). MUST run

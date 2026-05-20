@@ -178,19 +178,25 @@ export function OtpVerificationForm({
     // Mirror the login page's send-OTP options. The magic link in the same
     // email needs `emailRedirectTo=/api/auth/callback` to actually log the
     // user in (PKCE code exchange), otherwise clicking it does nothing.
+    // (handleResend is a click handler in a client component — window is
+    // always defined here, no SSR guard needed.)
     const { error: resendError } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/api/auth/callback?next=/dashboard`
-            : undefined,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
       },
     });
 
-    if (resendError) {
-      setError(resendError.message);
+    // Enumeration safety (supabase/auth#1547): with shouldCreateUser:false,
+    // GoTrue returns "Signups not allowed for otp" (otp_disabled) for unknown
+    // emails. Treat as success — never surface it (would leak existence).
+    // Genuine send failures show a generic i18n message, not the raw string.
+    const isEnumerationSignal =
+      resendError?.code === "otp_disabled" ||
+      /signups not allowed/i.test(resendError?.message ?? "");
+    if (resendError && !isEnumerationSignal) {
+      setError(t("login.error.otp_send"));
       return;
     }
 
