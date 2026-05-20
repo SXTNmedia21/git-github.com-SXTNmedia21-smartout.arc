@@ -72,7 +72,8 @@ import {
   publishBotssonToolsRegister,
   publishBotssonToolResult,
 } from "@/lib/livekit-data-publish";
-import { executeMobileTool, getToolDefinitionsForRegistration } from "@/lib/botsson-tools";
+import { createMobileClientTools, type MobileToolBundle } from "@/lib/botsson-tools";
+import { fetchLeaderPhone } from "@/hooks/queries/use-leader-phone";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
 import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 
@@ -472,6 +473,14 @@ export function useBotssonVoiceSession(
   const seenCallIdsRef = useRef<Set<string>>(new Set());
 
   /**
+   * Session-scoped tool bundle (ADR-0378 R7).
+   * Set by publishToolsToRoom after profile_id is resolved, so the bundle's
+   * phoneResolver always has a concrete profileId — never a legacy no-op.
+   * handleDataReceived reads from this ref to dispatch incoming tool calls.
+   */
+  const toolBundleRef = useRef<MobileToolBundle | null>(null);
+
+  /**
    * Stable snapshot handler ref — used as `onSnapshot` in useVoiceTranscripts.
    * Reading from roomRef + onSnapshotRef + lastPublishedVersionRef avoids
    * the exhaustive-deps trap of useCallback with an empty dep array.
@@ -605,7 +614,7 @@ export function useBotssonVoiceSession(
         workspaceIdRef.current,
         lastPublishedVersionRef,
       ).then(() => {
-        void publishToolsToRoom(room, workspaceIdRef.current);
+        void publishToolsToRoom(room, workspaceIdRef.current, toolBundleRef);
       });
     };
     /**
@@ -807,7 +816,15 @@ export function useBotssonVoiceSession(
         let resultStr: string;
         let toolOk = true;
         try {
-          resultStr = await executeMobileTool(name, args as Record<string, string>);
+          // Use session bundle if available (ADR-0378 R7: phoneResolver injected).
+          // Fall back to error string if bundle not yet initialised (rare timing edge).
+          const bundle = toolBundleRef.current;
+          if (!bundle) {
+            resultStr = "Tool bundle not initialised — session context not yet published.";
+            toolOk = false;
+          } else {
+            resultStr = await bundle.executeTool(name, args as Record<string, string>);
+          }
         } catch (e) {
           toolOk = false;
           resultStr = e instanceof Error ? e.message : "Tool execution failed";
@@ -1056,19 +1073,39 @@ export function useBotssonVoiceSession(
  * We catch and skip telemetry rather than abort. Voice session health must NOT
  * depend on telemetry availability.
  */
-async function publishToolsToRoom(room: Room, workspaceId: string | null): Promise<void> {
-  const definitions = getToolDefinitionsForRegistration();
+async function publishToolsToRoom(
+  room: Room,
+  workspaceId: string | null,
+  bundleRef: { current: MobileToolBundle | null },
+): Promise<void> {
+  // Build the session bundle first so profileId is available for the resolver.
+  // ADR-0378 R7: phoneResolver injects profileId at creation time — the wire
+  // never carries the phone number, only the bundle resolves it locally.
+  let sessionProfileId: string | null = null;
+  try {
+    const ctx = await getProfileContext();
+    sessionProfileId = ctx.profileId;
+  } catch {
+    // getProfileContext() threw — build bundle with no-op resolver.
+    // mobile_call_leader will return "no phone" gracefully.
+  }
+
+  const capturedProfileId = sessionProfileId;
+  const bundle = createMobileClientTools({
+    phoneResolver: capturedProfileId ? () => fetchLeaderPhone(capturedProfileId) : async () => null,
+  });
+  bundleRef.current = bundle;
+
+  const definitions = bundle.getDefinitionsForRegistration();
   const result = await publishBotssonToolsRegister(room, { definitions });
 
-  try {
-    const { profileId } = await getProfileContext();
-    if (!workspaceId) return; // L-0177 fail-fast
-
+  // Telemetry — requires profileId + workspaceId. Skip gracefully if missing.
+  if (capturedProfileId && workspaceId) {
     if (result.ok) {
       void emit({
         event: "voice.bootstrap.tool_registered",
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
+        actor_id: nonEmpty(capturedProfileId, "actor_id"),
         properties: {
           entity: { entity_type: "agent_session", entity_id: room.name },
           data: { tool_count: definitions.length, device_type: "mobile" },
@@ -1081,20 +1118,17 @@ async function publishToolsToRoom(room: Room, workspaceId: string | null): Promi
       void emit({
         event: "voice.bootstrap.tool_register_failed",
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
+        actor_id: nonEmpty(capturedProfileId, "actor_id"),
         properties: {
           entity: { entity_type: "agent_session", entity_id: room.name },
           data: { reason: result.reason, device_type: "mobile" },
         },
       });
     }
-  } catch {
-    // getProfileContext() threw — skip telemetry. Session proceeds regardless.
-    if (!result.ok) {
-      console.warn(
-        `[useBotssonVoiceSession] botsson-tools-register publish failed (no telemetry): ${result.reason}`,
-      );
-    }
+  } else if (!result.ok) {
+    console.warn(
+      `[useBotssonVoiceSession] botsson-tools-register publish failed (no telemetry): ${result.reason}`,
+    );
   }
 }
 

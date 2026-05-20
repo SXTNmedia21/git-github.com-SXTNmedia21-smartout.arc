@@ -235,19 +235,34 @@ function LoginContent() {
     }
   }
 
-  // Sends an OTP to the given email. Never reveals whether the email exists in the system.
+  // Sends an OTP to the given email. Default Supabase email template carries
+  // both a 6-digit code AND a magic link. The magic link path needs the same
+  // `/api/auth/callback?next=` redirect the password-reset flow uses — without
+  // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
+  // so the click is silently lost. Code-typing path is unaffected.
+  //
+  // Errors from rate-limits, network failures, or missing SMTP are surfaced
+  // so the user does not stare at a digit input that will never accept
+  // anything. We still hide email-existence (`shouldCreateUser: false` is the
+  // enumeration guard); user-existence is conveyed via the verify step, not
+  // the send step.
   async function handleSendOtp() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
-    // shouldCreateUser: false — OTP login only works for existing accounts.
-    // We don't await for a specific error to avoid leaking email existence.
-    await supabase.auth.signInWithOtp({
+    const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
+      },
     });
-    setOtpSent(true);
     setLoading(false);
+    if (otpError) {
+      setError(otpError.message);
+      return;
+    }
+    setOtpSent(true);
   }
 
   function handleOtpVerified() {

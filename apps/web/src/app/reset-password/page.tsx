@@ -51,10 +51,12 @@ export default function ResetPasswordPage() {
     setMessage(null);
 
     const supabase = createClient();
-    // redirectTo points at /update-password — the dedicated route that handles
-    // Supabase's #access_token recovery hash. See commit 76d93688.
+    // redirectTo points at the PKCE callback so the `?code=` exchange happens
+    // server-side; callback then forwards to /update-password with a live
+    // session cookie. Direct redirect to /update-password breaks under PKCE
+    // (the page only inspects `#access_token`, never the `?code=` query).
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
     });
 
     setIsLoading(false);

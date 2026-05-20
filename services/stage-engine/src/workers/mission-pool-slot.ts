@@ -2,6 +2,13 @@
 // mission-pool-slot.ts
 // Phase 0 (Crown) — Arena Harness Migration · ADR-0151
 //
+// Telemetry: this worker emits journey.* events (run_started, step_reached,
+// completed, run_failed) directly. This is explicitly permitted by the
+// ADR-0248 Amendment 2026-05-20 (Phase 0 pg-notify execution workers carve-out).
+// The carve-out is time-bounded: when Phase A4b B5 journey lifecycle handlers
+// ship in campaign/botsson-arena, these direct emits MUST be removed and
+// replaced by routing through the B5 handler path.
+//
 // Single mission-pool slot. LISTENs on Postgres NOTIFY channel
 // 'mission_dispatch'. Per notification:
 //   1. Parse payload {engine_state_id, mission_id, workspace_id}

@@ -172,12 +172,27 @@ export function OtpVerificationForm({
     setResendCountdown(60);
     setDigits(Array(6).fill(""));
     setError(null);
+    setAttempts(0);
     startTimeRef.current = Date.now();
 
-    await supabase.auth.signInWithOtp({
+    // Mirror the login page's send-OTP options. The magic link in the same
+    // email needs `emailRedirectTo=/api/auth/callback` to actually log the
+    // user in (PKCE code exchange), otherwise clicking it does nothing.
+    const { error: resendError } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/api/auth/callback?next=/dashboard`
+            : undefined,
+      },
     });
+
+    if (resendError) {
+      setError(resendError.message);
+      return;
+    }
 
     emit({
       event: "auth otp_sent",

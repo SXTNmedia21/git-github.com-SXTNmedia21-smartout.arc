@@ -189,6 +189,19 @@
     "positions_custom": "Egendefinert...",
     "positions_custom_placeholder": "Stillingstittel",
     "positions_leader": "Leder",
+    "add_button": "Legg til",
+    "proposal_badge": "Forslag",
+    "recommended_badge": "Anbefalt",
+    "custom_badge": "Egendefinert",
+    "departments_selected_count": "{selected} valgt av {total} forslag",
+    "departments_name_placeholder": "Avdelingsnavn",
+    "departments_add_custom": "Legg til egen avdeling",
+    "procedures_selected_count": "{selected} valgt av {total} forslag",
+    "procedures_name_placeholder": "Prosedyrenavn",
+    "procedures_add_custom": "Legg til egen prosedyre",
+    "procedures_deselect_warning": "er anbefalt for din bransje. Sikker?",
+    "procedures_deselect_confirm": "Ja, fjern",
+    "procedures_deselect_cancel": "Behold",
     "fields": {
       "filledCount": "{filled} av {total} felt utfylt",
       "name": { "label": "Bedriftsnavn", "placeholder": "Restaurant Solsiden" },
@@ -235,6 +248,12 @@
     "submitting": "Kobler til tariff...",
     "submitAndContinue": "Koble til tariff og fortsett",
     "continue": "Fortsett"
+  },
+  "positions": {
+    "selectedCount": "{count} stillinger valgt",
+    "noneSelected": "Ingen stillinger valgt",
+    "addPosition": "Legg til stilling",
+    "noDepartments": "Velg avdelinger først for å definere stillinger."
   },
   "roles": {
     "selectedCount": "{count} roller valgt",

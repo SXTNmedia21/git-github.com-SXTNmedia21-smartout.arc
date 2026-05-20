@@ -75,6 +75,17 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Password-recovery short-circuit: when the caller asked to land on
+        // /update-password, honour it before the profile / signup_progress
+        // routing kicks in. Without this, an existing user clicking a recovery
+        // link would be bounced to /join?step=1 (no profile path) or
+        // /dashboard (profile path) — never reaching the update form. The
+        // session cookie is already set above so /update-password sees the
+        // user and renders the form.
+        if (next === "/update-password" || next.startsWith("/update-password?")) {
+          return NextResponse.redirect(new URL(next, origin));
+        }
+
         // Emit signup completed event
         try {
           await emit({

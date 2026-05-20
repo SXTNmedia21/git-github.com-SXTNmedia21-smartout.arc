@@ -122,6 +122,35 @@ export function IntelligenceTab({ intelligence, workspaceId, intelligenceData }:
         </Card>
       </div>
 
+      {/* DocumentDrop — same UX as /dashboard/setup. Drop PDF/DOCX/XLSX,
+          analyze via /api/platform-admin/workspaces/analyze-documents, files
+          land in `workspace-documents/{workspaceId}/` and feed the
+          workspace_doc_chunk + engine_memory tables. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4" /> Drop documents
+          </CardTitle>
+          <CardDescription>
+            Slipp dokumenter (PDF, DOCX, XLSX, bilde) — analyseres og oppdaterer workspace
+            intelligence.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DocumentDrop
+            bucket="workspace-documents"
+            pathPrefix={workspaceId}
+            workspaceId={workspaceId}
+            existingFiles={intelligence.files.map((f) => ({
+              name: f.name,
+              size: f.size,
+              createdAt: f.createdAt,
+            }))}
+            enableAnalysis
+          />
+        </CardContent>
+      </Card>
+
       {/* Intelligence Data gathered from Brreg, web scraping, Google Places */}
       {Object.keys(intelligenceData).length > 0 && (
         <Card>
