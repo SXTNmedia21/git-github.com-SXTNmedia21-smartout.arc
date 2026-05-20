@@ -29,6 +29,11 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useBotssonVoiceSession } from "@/hooks/use-botsson-voice-session";
 import type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
+import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
+import type {
+  BotssonLanguage,
+  BotssonInteractionMode,
+} from "@/hooks/stores/use-botsson-settings-store";
 import {
   deriveBotssonChannel,
   type BotssonDeviceType,
@@ -38,6 +43,21 @@ import {
 
 export { deriveBotssonChannel } from "./botsson-channel";
 export type { BotssonMode, BotssonSessionChannel, BotssonDeviceType } from "./botsson-channel";
+export type {
+  BotssonLanguage,
+  BotssonInteractionMode,
+} from "@/hooks/stores/use-botsson-settings-store";
+
+/**
+ * A single turn in a voice or text transcript. Role follows the AI convention:
+ * `user` = the person speaking/typing, `agent` = Botsson's response.
+ */
+export type TranscriptEntry = {
+  id: string;
+  role: "agent" | "user";
+  text: string;
+  timestamp: number;
+};
 
 /** Minimal voice session interface — matches UltravoxVoiceSession from @smartout/agent-sdk */
 type VoiceSession = {
@@ -102,6 +122,13 @@ type BotssonContextValue = {
    * Updated on every BFF response arrival (also spoken via Expo Speech TTS).
    */
   lastVoiceResponse: string;
+  /**
+   * Accumulated conversation transcript for the current voice session.
+   * Alternates user → agent turns in chronological order. Reset when a new
+   * session starts (`startVoiceSession`) or the session ends (`endSession`).
+   * Empty array when no session has been started or in text/chat mode.
+   */
+  voiceTranscript: TranscriptEntry[];
   sessionContext: BotssonSessionContext;
   /** Intent to consume when the next session starts (one-shot). */
   pendingIntent: BotssonIntent | null;
@@ -130,6 +157,13 @@ type BotssonContextValue = {
   clearIntent: () => void;
   /** Error message if status is "error" */
   error: string | null;
+  /** User-configurable AI preferences — persisted via MMKV. */
+  voiceEnabled: boolean;
+  language: BotssonLanguage;
+  interactionMode: BotssonInteractionMode;
+  setVoiceEnabled: (enabled: boolean) => void;
+  setLanguage: (language: BotssonLanguage) => void;
+  setInteractionMode: (mode: BotssonInteractionMode) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -143,6 +177,16 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
+
+  // AI settings — user preferences persisted via MMKV.
+  const {
+    voiceEnabled,
+    language,
+    interactionMode,
+    setVoiceEnabled,
+    setLanguage,
+    setInteractionMode,
+  } = useBotssonSettingsStore();
 
   // Holds the legacy Ultravox session handle (web/SDK path). Kept for
   // backwards compatibility while C1.b mobile voice runs via the new hook.
@@ -184,6 +228,31 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     onError: handleVoiceError,
   });
 
+  // Accumulated voice transcript for the current session.
+  const [voiceTranscript, setVoiceTranscript] = useState<TranscriptEntry[]>([]);
+
+  // Append a user turn when a new ASR utterance arrives.
+  // Guard against duplicate appends: only fire when the text actually changes
+  // and is non-empty (the hook resets to "" on stop, which we skip).
+  useEffect(() => {
+    const text = voice.lastUserTranscript;
+    if (!text || mode !== "voice") return;
+    setVoiceTranscript((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, role: "user", text, timestamp: Date.now() },
+    ]);
+  }, [voice.lastUserTranscript, mode]);
+
+  // Append an agent turn when the BFF response arrives.
+  useEffect(() => {
+    const text = voice.lastResponse;
+    if (!text || mode !== "voice") return;
+    setVoiceTranscript((prev) => [
+      ...prev,
+      { id: `agent-${Date.now()}`, role: "agent", text, timestamp: Date.now() },
+    ]);
+  }, [voice.lastResponse, mode]);
+
   // Build mobile context for AI agent — passed as session params.
   // ADR-0107: channel is derived from mode, device_type is separate.
   const sessionContext = useMemo<BotssonSessionContext>(
@@ -191,10 +260,11 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       channel: deriveBotssonChannel(mode),
       device_type: "mobile",
       shift_phase: phase ?? "no_shift",
-      language: "nb",
+      // Sourced from user preference — previously hardcoded "nb" (P2-b).
+      language,
       pending_tasks_count: tasks?.length ?? 0,
     }),
-    [mode, phase, tasks],
+    [mode, phase, tasks, language],
   );
 
   /**
@@ -253,6 +323,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const startVoiceSession = useCallback(async () => {
     setError(null);
+    setVoiceTranscript([]);
     setMode("voice");
     setStatus("connecting");
     try {
@@ -277,6 +348,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setStatus("idle");
     setMode(null);
     setError(null);
+    setVoiceTranscript([]);
   }, [voice]);
 
   /**
@@ -312,6 +384,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       isMuted: voice.isMuted,
       voiceStatus: voice.status,
       lastVoiceResponse: voice.lastResponse,
+      voiceTranscript,
       sessionContext,
       pendingIntent,
       startVoiceSession,
@@ -321,6 +394,13 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      // AI settings — user preferences from the MMKV-backed store.
+      voiceEnabled,
+      language,
+      interactionMode,
+      setVoiceEnabled,
+      setLanguage,
+      setInteractionMode,
     }),
     [
       status,
@@ -328,6 +408,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       voice.isMuted,
       voice.status,
       voice.lastResponse,
+      voiceTranscript,
       sessionContext,
       pendingIntent,
       startVoiceSession,
@@ -337,6 +418,12 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      voiceEnabled,
+      language,
+      interactionMode,
+      setVoiceEnabled,
+      setLanguage,
+      setInteractionMode,
     ],
   );
 

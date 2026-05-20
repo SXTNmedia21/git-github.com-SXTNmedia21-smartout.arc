@@ -80,15 +80,85 @@ function makePolicyQueryMock(voicePolicy: "disabled" | "listen_only" | "interact
 }
 
 /**
+ * Chainable mock for botsson-context-snapshot queries. Supports the full
+ * supabase-js chain surface used by assembleBotssonContext (workspace, season,
+ * workspace_framework_binding, planning_cycle, schedule_shift, schedule_absence,
+ * department_session, plus the second profile query that returns an employees
+ * array). Every chain method returns the proxy itself; the terminal call is
+ * either `.maybeSingle()` or awaiting the chain directly (which resolves via
+ * `.then`). Both yield `{ data, error: null }`.
+ *
+ * Returning null/empty for these tables triggers the graceful-degrade path in
+ * assembleBotssonContext only when workspace is null (route emits
+ * `voice.bootstrap.snapshot_assembly_failed` and continues). Callers that need
+ * workspace to resolve as found pass `workspace: { workspace_id, name, language }`.
+ */
+function makeChainableMock<T>(data: T) {
+  const chain: Record<string, unknown> = {};
+  const noop = () => chain;
+  chain.select = noop;
+  chain.eq = noop;
+  chain.gte = noop;
+  chain.lte = noop;
+  chain.in = noop;
+  chain.order = noop;
+  chain.limit = noop;
+  chain.maybeSingle = () => Promise.resolve({ data, error: null });
+  chain.then = (resolve: (v: { data: T; error: null }) => unknown) =>
+    Promise.resolve(resolve({ data, error: null }));
+  return chain as {
+    select: (...args: unknown[]) => typeof chain;
+    eq: (...args: unknown[]) => typeof chain;
+    [k: string]: unknown;
+  };
+}
+
+/**
  * Build an admin client where `from('profile')` returns the profile and
- * `from('channel_ai_policy')` returns the supplied voice policy (or null).
+ * `from('channel_ai_policy')` returns the supplied voice policy. Other tables
+ * (added by `assembleBotssonContext`) are served by a chainable mock that
+ * resolves to non-erroring empty data so the route's snapshot-assembly path
+ * exits cleanly.
  */
 function makeAdminClient(opts: { voicePolicy: "disabled" | "listen_only" | "interactive" | null }) {
   const profileQ = makeProfileQueryMock();
   const policyQ = makePolicyQueryMock(opts.voicePolicy);
+  // Workspace must resolve as found, otherwise assembleBotssonContext returns
+  // WORKSPACE_NOT_FOUND and the snapshot-assembly path still works — but we
+  // want positive coverage of the happy path.
+  const workspaceData = { workspace_id: WORKSPACE_ID, name: "Test Workspace", language: "nb" };
+  // The route makes two `from("profile")` calls:
+  //   1) assembleBotssonContext line 54: `.select().eq().eq().maybeSingle()`
+  //      → PROFILE_ROW (single)
+  //   2) assembleBotssonContext line 122: `.select().eq().eq().order().limit()`
+  //      (awaited) → [] (empty employees array)
+  // First call uses the existing profile mock (which terminates at maybeSingle).
+  // Subsequent calls return an empty-array chainable.
+  let profileCalls = 0;
   const from = vi.fn((table: string) => {
-    if (table === "profile") return { select: profileQ.select };
+    if (table === "profile") {
+      profileCalls += 1;
+      if (profileCalls === 1) return { select: profileQ.select };
+      return makeChainableMock([]);
+    }
     if (table === "channel_ai_policy") return { select: policyQ.select };
+    if (table === "workspace") return makeChainableMock(workspaceData);
+    // season, workspace_framework_binding, planning_cycle → null (no active cycle)
+    // schedule_shift, schedule_absence, department_session → [] (empty)
+    if (
+      table === "season" ||
+      table === "workspace_framework_binding" ||
+      table === "planning_cycle"
+    ) {
+      return makeChainableMock(null);
+    }
+    if (
+      table === "schedule_shift" ||
+      table === "schedule_absence" ||
+      table === "department_session"
+    ) {
+      return makeChainableMock([]);
+    }
     throw new Error(`Unexpected from(${table})`);
   });
   return {

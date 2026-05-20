@@ -86,10 +86,28 @@ probe_agent_chat_authed() {
   payload=$(cat <<'EOF'
 {
   "message": "canary ping — ignore",
-  "mission": "mr-botsson",
-  "user_context": {"profile_id":"00000000-0000-0000-0000-000000000000","display_name":"canary","role":"admin"},
-  "workspace_context": {"workspace_id":"00000000-0000-0000-0000-000000000000","name":"canary"},
-  "route_context": {"page":"/","entity":null}
+  "user_context": {
+    "role": "admin",
+    "status": "active",
+    "department_id": null,
+    "display_name": "canary",
+    "language": "no"
+  },
+  "workspace_context": {
+    "workspace_id": "00000000-0000-0000-0000-000000000000",
+    "name": "canary",
+    "niche": null,
+    "active_season_id": null,
+    "active_framework_id": null,
+    "planning_cycle_id": null
+  },
+  "route_context": {
+    "path": "/",
+    "query": {},
+    "entity_type": null,
+    "entity_id": null,
+    "entity_label": null
+  }
 }
 EOF
 )

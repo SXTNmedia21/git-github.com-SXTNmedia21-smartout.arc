@@ -9,8 +9,8 @@
  * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { View, Text, Pressable } from "react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -24,14 +24,10 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
-import { useBotsson } from "@/providers/botsson-provider";
+import { useBotsson, type TranscriptEntry, type BotssonIntent } from "@/providers/botsson-provider";
+import { TranscriptPane } from "@/components/ai/TranscriptPane";
 
-type TranscriptEntry = {
-  id: string;
-  role: "agent" | "user";
-  text: string;
-  timestamp: number;
-};
+// TranscriptEntry is defined and exported by botsson-provider — imported above.
 
 type BotssonSheetProps = {
   /** Called when the sheet is dismissed */
@@ -41,6 +37,24 @@ type BotssonSheetProps = {
 /** Nordic Split spring physics — stiffness 35, damping 22, mass 2.2 */
 const SPRING_CONFIG = { stiffness: 35, damping: 22, mass: 2.2 } as const;
 
+/**
+ * Derive a human-readable opening prompt from the pending intent.
+ * This text is shown as a contextual banner so the employee immediately
+ * understands why Botsson opened and what they can discuss.
+ *
+ * Intentionally plain Norwegian — fits the "Ren og Varm" voice.
+ */
+function intentPrompt(intent: BotssonIntent): string {
+  switch (intent.kind) {
+    case "deviation":
+      return "Du har en avvik på denne vakten. Vil du at Botsson skal forklare hva som skjedde?";
+    case "help":
+      return "Hva trenger du hjelp med på denne vakten?";
+    default:
+      return "Botsson er klar til å hjelpe.";
+  }
+}
+
 const MIC_SIZE = 64;
 const ORB_SIZE = 80;
 
@@ -48,11 +62,42 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
   function BotssonSheet({ onDismiss }, ref) {
     const styles = useStyles();
     const theme = useTheme();
-    const { status, isMuted, startVoiceSession, endSession, setMicrophoneMuted } = useBotsson();
-    const scrollRef = useRef<ScrollView>(null);
+    const {
+      status,
+      isMuted,
+      voiceEnabled,
+      voiceTranscript,
+      pendingIntent,
+      clearIntent,
+      startVoiceSession,
+      endSession,
+      setMicrophoneMuted,
+    } = useBotsson();
 
-    // Transcript is local state for now — LiveKit integration will populate it
-    const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+    // Snapshot the intent the moment it arrives so the prompt persists for the
+    // duration of the sheet session even after clearIntent() fires.
+    const capturedIntentRef = useRef<BotssonIntent | null>(null);
+
+    // Consume pendingIntent on mount / when it changes. Clears it so it fires
+    // only once — the "one-shot" contract documented on clearIntent.
+    useEffect(() => {
+      if (pendingIntent) {
+        capturedIntentRef.current = pendingIntent;
+        clearIntent();
+      }
+    }, [pendingIntent, clearIntent]);
+
+    // Reset captured intent when the sheet closes (endSession resets status to idle).
+    useEffect(() => {
+      if (status === "idle") {
+        capturedIntentRef.current = null;
+      }
+    }, [status]);
+
+    // transcript is the provider-accumulated voice turn history.
+    // When voice is disabled the array stays empty — chat-only path uses it too
+    // (empty state remains until a voice session starts).
+    const transcript = voiceEnabled ? voiceTranscript : [];
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -177,31 +222,15 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             <View style={styles.headerSpacer} />
           </View>
 
-          {/* Transcript — scrollable conversation history */}
-          <ScrollView
-            ref={scrollRef}
-            style={styles.transcript}
-            contentContainerStyle={styles.transcriptContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {transcript.length === 0 && (
-              <Text style={styles.emptyText}>Trykk på mikrofonen for å starte en samtale</Text>
-            )}
-            {transcript.map((entry) => (
-              <View
-                key={entry.id}
-                style={[
-                  styles.transcriptEntry,
-                  entry.role === "user" ? styles.userEntry : styles.agentEntry,
-                ]}
-              >
-                <Text style={styles.transcriptRole}>
-                  {entry.role === "agent" ? "Botsson" : "Du"}
-                </Text>
-                <Text style={styles.transcriptText}>{entry.text}</Text>
-              </View>
-            ))}
-          </ScrollView>
+          {/* Intent banner — shown when sheet opened via openWithIntent */}
+          {capturedIntentRef.current ? (
+            <View style={styles.intentBanner}>
+              <Text style={styles.intentBannerText}>{intentPrompt(capturedIntentRef.current)}</Text>
+            </View>
+          ) : null}
+
+          {/* Transcript — scrollable conversation history (extracted to TranscriptPane) */}
+          <TranscriptPane transcripts={transcript} />
 
           {/* Control area — status orb + mic button in thumb zone */}
           <View style={styles.controlArea}>
@@ -267,43 +296,19 @@ const useStyles = createStyles((theme) => ({
   headerSpacer: {
     width: 36,
   },
-  transcript: {
-    flex: 1,
-  },
-  transcriptContent: {
-    paddingHorizontal: theme.spacing.card,
-    paddingVertical: theme.spacing.element,
-    gap: theme.spacing.element,
-  },
-  emptyText: {
-    ...theme.typography.body,
-    color: theme.colors.mutedForeground,
-    textAlign: "center",
-    marginTop: theme.spacing.section,
-  },
-  transcriptEntry: {
-    gap: 2,
-  },
-  userEntry: {
-    alignItems: "flex-end",
-  },
-  agentEntry: {
-    alignItems: "flex-start",
-  },
-  transcriptRole: {
-    ...theme.typography.caption,
-    color: theme.colors.mutedForeground,
-    fontWeight: theme.fontWeights.medium,
-  },
-  transcriptText: {
-    ...theme.typography.body,
-    color: theme.colors.foreground,
-    backgroundColor: theme.colors.secondary,
+  intentBanner: {
+    marginHorizontal: theme.spacing.card,
+    marginTop: theme.spacing.element,
     paddingHorizontal: theme.spacing.element,
     paddingVertical: theme.spacing.tight,
-    borderRadius: theme.radius.lg,
-    maxWidth: "85%",
-    overflow: "hidden",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.secondary,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.brandOrange,
+  },
+  intentBannerText: {
+    ...theme.typography.body,
+    color: theme.colors.foreground,
   },
   controlArea: {
     alignItems: "center",

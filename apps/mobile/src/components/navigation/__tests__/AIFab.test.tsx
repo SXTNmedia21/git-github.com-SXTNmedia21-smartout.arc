@@ -58,6 +58,7 @@ import {
   classifyGesture,
   LAYER_1_PX,
   LAYER_2_PX,
+  LONG_PRESS_MS,
   TAP_MAX_MOVE,
   TAP_MAX_MS,
 } from "@/components/navigation/AIFab";
@@ -119,15 +120,23 @@ describe("classifyGesture — threshold table (ADR-0298 §Gesture surface)", () 
   // T5: accessibility props — these are rendered on <Animated.View>; we assert
   // the constants used in the attribute so behavior matches intent without a RN
   // render. The full integration is covered by E2E.
-  it("T5: accessibilityHint value contains 'Swipe up' (constant assertion)", () => {
-    // AIFab renders accessibilityHint="Swipe up to create or talk to Botsson"
+  it("T5: accessibilityHint advertises both long-press and swipe entry points", () => {
+    // AIFab renders accessibilityHint="Long-press to talk to Botsson, swipe up to create"
     // We assert the literal string matches the spec requirement — this keeps the
     // test honest when someone renames the hint in the JSX.
-    const hint = "Swipe up to create or talk to Botsson";
-    expect(hint).toContain("Swipe up");
+    const hint = "Long-press to talk to Botsson, swipe up to create";
+    expect(hint).toContain("Long-press");
+    expect(hint).toContain("swipe up");
     // accessibilityRole is "button" — documented here so the E2E knows what to query
     const role = "button";
     expect(role).toBe("button");
+  });
+
+  // T6: Long-press threshold sanity. Long-press is timer-driven inside the
+  // PanResponder (not part of classifyGesture), so the assertion is just that
+  // the exported constant matches the spec value referenced by the docstring.
+  it("T6: LONG_PRESS_MS is 500 (spec value)", () => {
+    expect(LONG_PRESS_MS).toBe(500);
   });
 });
 

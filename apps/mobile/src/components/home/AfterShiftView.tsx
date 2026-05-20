@@ -464,5 +464,10 @@ const useStyles = createStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  workflowPrimaryText: { fontSize: 15, fontWeight: "700", letterSpacing: 0.4, color: "#ffffff" },
+  workflowPrimaryText: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    color: theme.colors.primaryForeground,
+  },
 }));

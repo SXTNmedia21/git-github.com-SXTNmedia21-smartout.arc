@@ -101,20 +101,28 @@ export const actionMap: ActionMap = {
 
   send_message: (p) => assertOk(supabase.from("channel_message").insert(p as never)),
 
-  // BFF-wrapped per ADR-0298 R3 (Sortie 1). Identity from JWT (ADR-0151).
+  // BFF-wrapped per ADR-0298 R3 (Sortie 3 — source-dispatched POST).
+  // Identity from JWT (ADR-0151). `source` discriminator REQUIRED to route to
+  // the correct task-source handler (session_task / personal_task /
+  // schedule_day_task / emma_task). Legacy empty-body PATCH path (session
+  // only) is deprecated and never invoked from this handler.
   complete_task: async (p) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) throw new Error("No session — cannot complete task via BFF");
-    const { id } = p as { id: string };
+    const { id, source } = p as {
+      id: string;
+      source: "session" | "personal" | "day_ad_hoc" | "emma";
+    };
     if (!id) throw new Error("complete_task: missing task id");
+    if (!source) throw new Error("complete_task: missing source discriminator (ADR-0298 R3)");
     const url = `${getWebApiUrl()}/api/mobile/tasks/${id}/complete`;
     const res = await fetch(url, {
-      method: "PATCH",
+      method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ source }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");

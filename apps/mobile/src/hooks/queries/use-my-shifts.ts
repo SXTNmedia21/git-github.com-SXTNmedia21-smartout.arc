@@ -2,6 +2,11 @@
  * Fetches the authenticated employee's shifts for the next 7 days.
  * Uses MMKV placeholderData when the cache module is available (graceful fallback if not).
  * Queries schedule_shift WHERE employee_id = current profile, ordered by date + start_time.
+ *
+ * Two exported hooks:
+ *  - useMyShifts()         → raw ScheduleShift[] (used by shift-phase, clockout, etc.)
+ *  - useMyShiftsWithDept() → ShiftWithDept[] that includes department.slug from the DB.
+ *    Used by useOperationsFeed so it can populate FeedItem.dept without substring heuristics.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +15,16 @@ import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
+
+/**
+ * Shift row augmented with the department slug read directly from the DB.
+ * The slug is nullable because position_id on schedule_shift is nullable by design
+ * (ADR-0266 §Implementation contract). Consumers must handle null → fallback.
+ */
+export type ShiftWithDept = ScheduleShift & {
+  /** department.slug from position → department join. Null when shift has no position. */
+  deptSlug: string | null;
+};
 
 /** Cache key for MMKV persistence */
 const CACHE_KEY = "cache:my-shifts";
@@ -109,4 +124,89 @@ export function useMyShifts() {
   });
 
   return query;
+}
+
+// ─── Extended variant: shifts + department.slug ───────────────────────────────
+
+/** Raw shape returned by the dept-join query before client mapping. */
+type RawShiftWithDeptRow = ScheduleShift & {
+  position: {
+    department: {
+      slug: string;
+    } | null;
+  } | null;
+};
+
+async function fetchMyShiftsWithDept(selectedProfileId: string | null): Promise<ShiftWithDept[]> {
+  let profileId = selectedProfileId;
+
+  if (!profileId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+
+    if (profileError) throw profileError;
+    profileId = profile.profile_id;
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+
+  const { data, error } = await supabase
+    .from("schedule_shift")
+    .select(
+      `
+      *,
+      position:position_id (
+        department:department_id (
+          slug
+        )
+      )
+    `,
+    )
+    .eq("employee_id", profileId)
+    .eq("is_published", true)
+    .gte("shift_date", today!)
+    .lte("shift_date", sevenDaysFromNow!)
+    .order("shift_date", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as RawShiftWithDeptRow[];
+
+  return rows.map((row) => ({
+    ...row,
+    deptSlug: row.position?.department?.slug ?? null,
+  }));
+}
+
+/**
+ * Hook: same as useMyShifts but each row is augmented with `deptSlug` read from
+ * `position → department.slug` in the DB. Used by useOperationsFeed to populate
+ * FeedItem.dept without substring heuristics (dropped 2026-05-18).
+ *
+ * No MMKV caching here — this variant is only used for the operations feed which
+ * already has its own staleness guarantees.
+ */
+export function useMyShiftsWithDept() {
+  const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
+
+  return useQuery<ShiftWithDept[]>({
+    queryKey: ["my-shifts-with-dept", selectedProfileId],
+    queryFn: () => fetchMyShiftsWithDept(selectedProfileId),
+    staleTime: STALE_TIME_MS,
+    retry: 1,
+  });
 }
