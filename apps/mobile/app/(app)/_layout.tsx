@@ -15,7 +15,7 @@
  * Each tab screen manages its own header.
  */
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
@@ -24,7 +24,7 @@ import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
 import { FabHint } from "@/components/navigation/FabHint";
 import { BotssonSheet } from "@/components/ai/BotssonSheet";
-import { BotssonProvider } from "@/providers/botsson-provider";
+import { BotssonProvider, useBotsson } from "@/providers/botsson-provider";
 import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
@@ -40,6 +40,30 @@ import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
 export const unstable_settings = {
   initialRouteName: "(calendar)",
 };
+
+/**
+ * IntentSheetController — listens for pendingIntent inside BotssonProvider
+ * and auto-expands the sheet. Must live inside BotssonProvider so it can
+ * call useBotsson(). The ref is forwarded from AppLayout.
+ *
+ * Separation of concerns: AppLayout owns the ref; this component bridges
+ * the provider state to the imperative sheet API without coupling AppLayout
+ * to the provider's internal state.
+ */
+function IntentSheetController({
+  sheetRef,
+}: {
+  sheetRef: React.RefObject<GorhomBottomSheet | null>;
+}) {
+  const { pendingIntent } = useBotsson();
+  useEffect(() => {
+    if (pendingIntent) {
+      // Expand the sheet so the intent banner is visible immediately.
+      sheetRef.current?.expand();
+    }
+  }, [pendingIntent, sheetRef]);
+  return null;
+}
 
 export default function AppLayout() {
   const styles = useStyles();
@@ -105,6 +129,8 @@ export default function AppLayout() {
 
   return (
     <BotssonProvider>
+      {/* Watches pendingIntent and auto-expands the sheet on openWithIntent calls */}
+      <IntentSheetController sheetRef={botssonSheetRef} />
       <View style={styles.container}>
         <Tabs
           screenOptions={{ headerShown: false }}

@@ -24,7 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
-import { useBotsson, type TranscriptEntry } from "@/providers/botsson-provider";
+import { useBotsson, type TranscriptEntry, type BotssonIntent } from "@/providers/botsson-provider";
 
 // TranscriptEntry is defined and exported by botsson-provider — imported above.
 
@@ -35,6 +35,24 @@ type BotssonSheetProps = {
 
 /** Nordic Split spring physics — stiffness 35, damping 22, mass 2.2 */
 const SPRING_CONFIG = { stiffness: 35, damping: 22, mass: 2.2 } as const;
+
+/**
+ * Derive a human-readable opening prompt from the pending intent.
+ * This text is shown as a contextual banner so the employee immediately
+ * understands why Botsson opened and what they can discuss.
+ *
+ * Intentionally plain Norwegian — fits the "Ren og Varm" voice.
+ */
+function intentPrompt(intent: BotssonIntent): string {
+  switch (intent.kind) {
+    case "deviation":
+      return "Du har en avvik på denne vakten. Vil du at Botsson skal forklare hva som skjedde?";
+    case "help":
+      return "Hva trenger du hjelp med på denne vakten?";
+    default:
+      return "Botsson er klar til å hjelpe.";
+  }
+}
 
 const MIC_SIZE = 64;
 const ORB_SIZE = 80;
@@ -48,11 +66,33 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       isMuted,
       voiceEnabled,
       voiceTranscript,
+      pendingIntent,
+      clearIntent,
       startVoiceSession,
       endSession,
       setMicrophoneMuted,
     } = useBotsson();
     const scrollRef = useRef<ScrollView>(null);
+
+    // Snapshot the intent the moment it arrives so the prompt persists for the
+    // duration of the sheet session even after clearIntent() fires.
+    const capturedIntentRef = useRef<BotssonIntent | null>(null);
+
+    // Consume pendingIntent on mount / when it changes. Clears it so it fires
+    // only once — the "one-shot" contract documented on clearIntent.
+    useEffect(() => {
+      if (pendingIntent) {
+        capturedIntentRef.current = pendingIntent;
+        clearIntent();
+      }
+    }, [pendingIntent, clearIntent]);
+
+    // Reset captured intent when the sheet closes (endSession resets status to idle).
+    useEffect(() => {
+      if (status === "idle") {
+        capturedIntentRef.current = null;
+      }
+    }, [status]);
 
     // transcript is the provider-accumulated voice turn history.
     // When voice is disabled the array stays empty — chat-only path uses it too
@@ -192,6 +232,13 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             <View style={styles.headerSpacer} />
           </View>
 
+          {/* Intent banner — shown when sheet opened via openWithIntent */}
+          {capturedIntentRef.current ? (
+            <View style={styles.intentBanner}>
+              <Text style={styles.intentBannerText}>{intentPrompt(capturedIntentRef.current)}</Text>
+            </View>
+          ) : null}
+
           {/* Transcript — scrollable conversation history */}
           <ScrollView
             ref={scrollRef}
@@ -281,6 +328,20 @@ const useStyles = createStyles((theme) => ({
   // Matches the close button's effective width to keep the title centered
   headerSpacer: {
     width: 36,
+  },
+  intentBanner: {
+    marginHorizontal: theme.spacing.card,
+    marginTop: theme.spacing.element,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.tight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.secondary,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.brandOrange,
+  },
+  intentBannerText: {
+    ...theme.typography.body,
+    color: theme.colors.foreground,
   },
   transcript: {
     flex: 1,
