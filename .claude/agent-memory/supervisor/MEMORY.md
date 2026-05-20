@@ -1,5 +1,8 @@
 # Supervisor Agent Memory
 
+## Task-Manager / Governance
+- [Auto-assign trigger + policy_scope + template traps](task_manager_governance_review.md) — verified 2026-05-20. Trigger fires AFTER INSERT on profile (profile_position empty); CASE has no ELSE (silent NULL = regression class); template_restaurant_* NOT installed by any migration (dev-showcase only); scope_ref_id is uuid (can't hold profile_role).
+
 ## Module Docs Location
 - CLAUDE.md references "23 module docs" in `docs/modules/` but most have been moved to `docs/architecture/modules/`. Only `MODULE_YEAR_WHEEL_PRD.md` is in `docs/modules/` currently. 3 remain in `docs/architecture/modules/` (BOTSSON, 0_ROADMAP, AGENT_SDK).
 - MODULE_ naming convention is established but inconsistent in location.
