@@ -11,6 +11,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { Animated, Text, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { createStyles } from "@/theme";
 import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 
@@ -28,34 +29,51 @@ export function FabHint({ message }: FabHintProps) {
   const styles = useStyles();
   const hasSeen = useBotssonSettingsStore((s) => s.hasSeenFabHint);
   const markSeen = useBotssonSettingsStore((s) => s.setHasSeenFabHint);
+  const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (hasSeen) return;
 
-    const showTimer = setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: FADE_IN_MS,
-        useNativeDriver: true,
-      }).start();
-    }, SHOW_DELAY_MS);
+    const showTimer = setTimeout(
+      () => {
+        if (reduceMotion) {
+          // Skip animation — set opacity immediately so the hint is still visible.
+          opacity.setValue(1);
+        } else {
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: FADE_IN_MS,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+      // When reduce-motion is on, cut the leading delay in half — no visual
+      // pop-in to disguise, so there is less reason to delay.
+      reduceMotion ? Math.floor(SHOW_DELAY_MS / 2) : SHOW_DELAY_MS,
+    );
 
     const dismissTimer = setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: FADE_OUT_MS,
-        useNativeDriver: true,
-      }).start(() => {
+      if (reduceMotion) {
+        // Skip fade-out — hide immediately and mark seen.
+        opacity.setValue(0);
         markSeen(true);
-      });
-    }, SHOW_DELAY_MS + AUTO_DISMISS_MS);
+      } else {
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: FADE_OUT_MS,
+          useNativeDriver: true,
+        }).start(() => {
+          markSeen(true);
+        });
+      }
+    }, (reduceMotion ? Math.floor(SHOW_DELAY_MS / 2) : SHOW_DELAY_MS) + AUTO_DISMISS_MS);
 
     return () => {
       clearTimeout(showTimer);
       clearTimeout(dismissTimer);
     };
-  }, [hasSeen, markSeen, opacity]);
+  }, [hasSeen, markSeen, opacity, reduceMotion]);
 
   if (hasSeen) return null;
 
