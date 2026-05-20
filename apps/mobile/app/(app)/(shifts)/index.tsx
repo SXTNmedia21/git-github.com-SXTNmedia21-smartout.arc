@@ -121,6 +121,10 @@ const DEPT_LABELS: Record<Department, string> = {
   sal: "Sal",
   bar: "Bar",
   event: "Event",
+  // English DB-slug equivalents — see Department union in calendar/types.ts.
+  kitchen: "Kjøkken",
+  service: "Service",
+  operations: "Drift",
 };
 
 /* ── ScopeSummary card ────────────────────────────────────────────────────── */

@@ -9,7 +9,16 @@
  * fetch data directly.
  */
 
-export type Department = "kjokken" | "sal" | "bar" | "event";
+/**
+ * Authoritative Department slug union. Values must match `department.slug` DB column.
+ * Extended 2026-05-18 after `SELECT DISTINCT slug FROM department` audit returned:
+ * bar, kitchen, operations, service — plus pre-existing kjokken, sal, event aliases.
+ *
+ * Norwegian aliases (kjokken, sal) and English originals (kitchen, service) coexist
+ * because legacy seed data uses Norwegian slugs while newer workspaces may use English.
+ * deptColorFor() in use-team-shifts and native.ts department palette cover all values.
+ */
+export type Department = "kjokken" | "sal" | "bar" | "event" | "kitchen" | "operations" | "service";
 
 export type CalendarItem = {
   id: string;
