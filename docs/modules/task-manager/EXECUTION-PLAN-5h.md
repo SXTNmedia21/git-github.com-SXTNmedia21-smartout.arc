@@ -10,9 +10,9 @@ tags: [execution-plan, agent-team, orchestrator, task-manager, shift-tasks, mobi
 # 5h Agent-Team Orchestration
 
 ## DEDICATED GOAL (north star — every agent serves this)
-> **Admin adds a task → the assigned user executes it on mobile while their shift is active.**
+> **The day-plan (day_line) function.** Admin ties a task to a **location** (the day_line). When an employee's shift operates **at that location**, the task appears in their **"Min dag"** / shift-tasks and they execute it there.
 
-One vertical, end-to-end. Author (web/admin) → anchor (day_line + window) → surface (mobile, only when shift active) → execute (mobile complete). Everything outside this goal is OUT.
+One vertical, end-to-end. Author (web/admin) ties task to a **location's day_line** → employee's `shift_session` is **at that location** → task surfaces in **Min dag** (mobile) → execute (complete). The anchor is **location** (`day_line.location_id`), not a generic "active shift". Everything outside this goal is OUT.
 
 ## The orchestrator
 **Opus lead.** Owns the goal. Does NOT write code. Decomposes into narrow tracks, dispatches the team, reviews every output against the goal, resolves cross-track contracts, escalates design forks to council, drives to a verified end-to-end demo. Single success test: *a task an admin types in the web shows on the right phone during an active shift and can be ticked off there.*
@@ -20,10 +20,10 @@ One vertical, end-to-end. Author (web/admin) → anchor (day_line + window) → 
 ## The agent team (roster)
 | Agent | Model | Narrow responsibility | Owns files |
 |-------|-------|----------------------|-----------|
-| **A-DATA** | sonnet (db) | Active-shift task resolver: expose `day_line_id`/`scheduled_at`/`location_id` in `fn_list_my_tasks` + new `fn_list_active_shift_tasks(profile_id)` resolving the employee's ACTIVE `shift_session` → day_lines → session_task in window | migrations, `fn_list_my_tasks` + `list_mine` TS mirror |
-| **A-AUTHOR** | sonnet (web) | Admin authoring: add-task writes `session_task` with `day_line_id` + `assigned_to` + `scheduled_at`/window; AddTaskDialog defaults area+window | `add-day-line-item-action`, `add-task-action`, AddTaskDialog |
-| **A-ANCHOR** | sonnet (edge) | Hook/cron tasks get `day_line_id` (single-area attach per council) so they're reachable by the resolver | `session-hook-executor`, `engine-dispatch assign_task` |
-| **A-MOBILE** | sonnet (mobile) | Mobile shift view: when `shift_session` active, show its tasks via resolver; execute → BFF complete; gate execution on active shift. Port TaskKort/feed from `taskmanager-handoff/` (mockup-source rule) | `apps/mobile/.../task/*`, `use-my-tasks`, shift screen |
+| **A-DATA** | sonnet (db) | Location-anchored shift resolver: expose `day_line_id`/`scheduled_at`/`location_id` in `fn_list_my_tasks` + new `fn_list_shift_tasks(profile_id)` resolving the employee's shift_session **by location** → day_lines at that location → session_task in window | migrations, `fn_list_my_tasks` + `list_mine` TS mirror |
+| **A-AUTHOR** | sonnet (web) | Admin authoring: add-task to a **location's day_line** writes `session_task` with `day_line_id` + `assigned_to` + `scheduled_at`/window; AddTaskDialog/day-line strip default area+window | `add-day-line-item-action`, `add-task-action`, AddTaskDialog, DayLineStrip |
+| **A-ANCHOR** | sonnet (edge) | Hook/cron tasks get `day_line_id` (single-location attach per council) so they're reachable by the resolver | `session-hook-executor`, `engine-dispatch assign_task` |
+| **A-MOBILE** | sonnet (mobile) | **"Min dag"** view: show the employee's tasks for the location(s) their shift operates on; execute → BFF complete; gate on shift-at-location. Port TaskKort/sections/day-meter from `taskmanager-handoff/components/min-dag.jsx` (mockup-source rule) | `apps/mobile/.../task/*`, `use-my-tasks`, Min dag screen |
 | **A-TELE** | sonnet | Telemetry (`task.surfaced_on_shift`/reuse `task completed`) registered (emit-wiring, ADR-0377) + golden e2e test for the vertical | registry, e2e/test |
 | **R-GUARD** | opus (supervisor) | Guardrail + scope: zero behavior change outside the goal; ADR-0317 lockstep on `fn_list_my_tasks` | review-only |
 | **R-CONTRACT** | opus (agent-coord) | Code-trace the payload both directions: web author → DB → resolver → mobile → BFF complete. Dual-perspective (admin author + employee execute) | review-only |
@@ -31,10 +31,13 @@ One vertical, end-to-end. Author (web/admin) → anchor (day_line + window) → 
 Orchestrator assigns each a task with precise scope + the shared contract; members do not cross file boundaries; orchestrator merges.
 
 ## Shared contracts (locked by orchestrator + council)
-- **Active shift** = `shift_session.status IN ('scheduled','clocked_in')` for the employee on the business date (council Q-A confirms exact set; recommend `clocked_in` to show during the shift, `scheduled` for pre-shift prep — decide).
-- **Task→shift reachability** = `session_task.day_line_id → day_line → shift_session_day_line → shift_session(employee, active)`. (0387a/ADR-0367 schema already there; A-DATA + A-ANCHOR make it resolve.)
+- **Location anchor** = `session_task.day_line_id → day_line.location_id`. A task "tied to a location" = a task on that location's day_line. Admin authors against a day_line (which is `(department_session, location)`).
+- **Shift-at-location** = the employee has a `shift_session` whose `location_id` matches the day_line's location, linked via `shift_session_day_line`. Resolver keys on **location match**, not just shift existence.
+- **Task→shift reachability** = `session_task.day_line_id → day_line(location) → shift_session_day_line → shift_session(employee, location, status)`. (ADR-0367 schema already there; A-DATA + A-ANCHOR make it resolve.)
+- **Shift state** = council Q-A decides which `shift_session.status` shows tasks (`clocked_in` during shift; maybe `scheduled` for pre-shift prep).
+- **Surface = "Min dag"** = the employee day view (prototype `taskmanager-handoff/components/min-dag.jsx` — TaskKort, sections, day-meter). Mobile primary; web Min dag parity later.
 - **Resolver shape** = same normalized columns as `fn_list_my_tasks` + `day_line_id`/`location_id`/`scheduled_at`. ADR-0317 lockstep: SQL + `list_mine` TS move together.
-- **Execute** = mobile → `/api/mobile/tasks/[id]/complete` → `task.complete{source:'session'}` (exists; A-MOBILE wires the active-shift surface to it).
+- **Execute** = mobile → `/api/mobile/tasks/[id]/complete` → `task.complete{source:'session'}` (exists; A-MOBILE wires the Min dag surface to it).
 
 ---
 
@@ -42,17 +45,17 @@ Orchestrator assigns each a task with precise scope + the shared contract; membe
 
 ### T+0:00 – 0:30 — COUNCIL (resolve the 4 forks that block the team)
 Reviewers: system-steward (chair), supervisor, system-agent-coordinator (code-tracer), + frontend-designer (mobile surface). Pre-loaded files + Phase 2.5 fact-check.
-- **Q-A** Active-shift definition: `clocked_in` only, or `scheduled`+`clocked_in`? (drives resolver WHERE + when tasks appear).
-- **Q-B** Resolver: new `fn_list_active_shift_tasks(profile_id)` vs `fn_list_my_tasks` + `p_shift_session_id` param? (recommend dedicated fn — keeps `fn_list_my_tasks` stable).
-- **Q-C** Hook-attach heuristic: single-area session → attach day_line_id; multi-area/ambiguous → NULL (don't guess). Confirm.
+- **Q-A** Shift-at-location state: which `shift_session.status` surfaces the location's tasks in Min dag — `clocked_in` only, or `scheduled`+`clocked_in`? (drives resolver WHERE + when tasks appear).
+- **Q-B** Resolver: new `fn_list_shift_tasks(profile_id)` (resolves shift_session by location → day_lines) vs `fn_list_my_tasks` + param? (recommend dedicated fn — keeps `fn_list_my_tasks` stable).
+- **Q-C** Hook-attach heuristic: single-location session → attach day_line_id; multi-location/ambiguous → NULL (don't guess). Confirm.
 - **Q-D** ADR-0317 lockstep + dual-perspective: confirm the author-side write and the mobile read agree on `assigned_to` + `day_line_id` semantics.
 Gate: verdict committed → contracts locked → build.
 
 ### T+0:30 – 0:50 — SETUP
 - `/start-feature task-active-shift-mobile` (sub-sortie of campaign/daily-operation). Declare journeys:
-  1. `admin-adds-task-to-shift` — admin authors a task on a location/day_line for an employee + window.
-  2. `employee-executes-on-mobile-active-shift` — task shows on mobile only when shift active; employee completes it.
-  3. `task-hidden-when-shift-inactive` — same task not shown/executable when shift not active (error/edge path).
+  1. `admin-ties-task-to-location` — admin authors a task on a location's day_line (the day-plan) for an employee + window.
+  2. `employee-sees-location-tasks-in-min-dag` — when the employee's shift operates at that location, the task shows in Min dag (mobile); employee completes it there.
+  3. `tasks-scoped-to-shift-location` — task for location A does NOT show for an employee whose shift is at location B (location scoping, edge path).
 - Preflight worktree: `pnpm install`, `pnpm --filter @smartout/ai build`, Supabase Local up, commit spec+plan+journeys.
 
 ### T+0:50 – 2:45 — WAVE 1 (parallel, 5 build agents)
