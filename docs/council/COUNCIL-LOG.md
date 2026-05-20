@@ -2324,3 +2324,34 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Fact-check:** 14/14 briefing claims VERIFIED.
 **ADR created:** ADR-0379 draft (split a/b) — `docs/modules/task-manager/ADR-DRAFT-0379-role-mandatory-compliance-i1.md`; reserve 0379a/0379b vs all branches at accept.
 **Learning created:** schema-orphan-rebuild + authority-seed-inert (sibling L-0083) — captured to steward agent-memory; register in learning log at build close.
+
+> ⚠️ ADR-id collision: `development` already uses ADR-0379 for "Signature-as-C4-Authorization" (entry below). This council's ADR-0379 (role-mandatory-compliance) is still a DRAFT in `docs/modules/task-manager/`; it MUST renumber (0379a/0379b → next free slot) before promotion to `docs/decisions/`.
+
+## 2026-05-20 — Order/invoice system: does it generate reliably on a cron basis?
+**Type:** post-implementation + architecture (cron reliability)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer). frontend-designer + botsson-harness-builder skipped (backend cron, no UI/Botsson axis) — 3 reviewers, NOT degraded.
+**Prior verdict held?** n/a (no prior council on billing cron).
+**Key decision:** Generation logic is cascade/C3-sound (ADR-0118/0119/0120/0125/0384 honored) but has a CORRECTNESS defect (stuck-draft silent under-billing) + cron operational gaps. Chair self-reversed Phase 3 "logic ships as-is" → REVERSED (L-0147 6th precedent): Phase 3 claim "generation logic correct, gaps operational-only" was FALSE; falsifying evidence `generator.ts:257-364` (3 non-transactional writes) × unique index `:150-152` × early-exit `:115`. Verdict tiers: TIER 1 correctness (C1 atomic RPC, C2 void stuck drafts, C3 emit contract) blocks "reliable cron billing"; TIER 2 scope (auto-charge — needs Pontus, manual collection V1 recommended); TIER 3 operational (R1 watchdog, R2 runbook, R3 pg_cron ADR, R4 due_at→pricing_terms). Code-tracers also found: dispatch/charge is MANUAL not cron (`enqueueDispatchesForInvoice` 0 call-sites); intra-engine drift (dunning uses pg_cron, generation uses n8n; spec says "No pg_cron" but cites a pg_cron precedent).
+**Implemented this session:** sortie `feat/billing-cron-correctness` (C1+C2+R1) — runtime-verified, committed `fa3c7807e`. TIER 2/3 remainder deferred to separate sorties.
+**ADR created:** none (pg_cron-vs-n8n ADR deferred to R3 sortie).
+**Learning created:** L-0326 (non-transactional multi-write + uniqueness-on-partial-state = silent skip).
+**Phase 2.5 fact-check:** caught 3 false briefing claims (billable=distinct employees not shifts; unique-index columns vs WHERE-filter; enum order paid-before-overdue) + confirmed the load-bearing one (NO missing-run watchdog).
+
+## 2026-05-21 — Auth-fix stack post-implementation (PKCE callback, OTP delivery, orphan-cookie scrub, admin login-code)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — net-positive fix (closes confirmed prod breakage), stays on development; 2 ship-blockers MUST close before preview/main. Remediation shipped same session (commit `c60839c72`).
+**Agents consulted:** system-steward (chair, opus), supervisor (opus), system-agent-coordinator (opus, code-tracer), feature-dev:code-reviewer (sonnet). 4/4 responded — NOT degraded. Phase 2.5 fact-check (haiku) 8/8 VERIFIED.
+**Prior verdict held?** n/a — first council on the auth/PKCE/cookie surface.
+**Key decision:** Two blockers closed in remediation sortie. B1 CRITICAL open-redirect — `/api/auth/callback` guarded `next` with bare `startsWith("/")`; `//evil.com` → `new URL` external host on post-exchange redirects (lines 162/179/188); fixed via `validateReturnTo` (already existed + used at login:149). B2 HIGH OTP enumeration — surfacing `signInWithOtp({shouldCreateUser:false})` error leaked account existence (supabase/auth#1547, code `otp_disabled`); now treated as success + generic i18n message. Also i18n raw English errors + dead `typeof window` guard removed. Should-fix (follow-up, not blocking): scrub mis-layered (middleware nuke deletes only `.smartout.ai` variant, steady-state nav still hits orphan — port two-variant delete into `middleware.ts:94`); explicit `config.toml verify_jwt` for send-login-code; magic-link TTL vs "1 time" copy. Refuted: scrub cookie correctness (correct), `email_otp` undefined→SMS (guarded), telemetry skip on recovery short-circuit (correct), agent/Stage-Engine coupling (NONE — header/token/service-role based, never cookie). 4/4 E2E green post-remediation (F2b/F3b/F3c). No chair self-reversal (Phase 3 conditions aligned with reviewers, strengthened by code-reviewer's #1547 evidence on enumeration).
+**ADR created:** none (remediation, no architectural decision).
+**Learning created:** L-0327 (open-redirect `startsWith("/")` insufficiency — use `validateReturnTo`).
+
+## 2026-05-20 — ADR-0379 Signature-as-C4-Authorization (post-implementation)
+**Type:** post-implementation / architecture (governance precedent)
+**Verdict:** REJECT — non-functional as shipped (remediation order against merged PR #434)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a — first council on signature-as-C4. Related: ADR-0099 (gate levels), ADR-0321/0340 (per-stage gate).
+**Key decision:** Cascade non-functional — docuseal webhook raw-inserts engine_event but nothing invokes engine-dispatch → no engine_state, profile never flips. Chair self-reversed Phase 3 HELD → REJECT (≥10th L-0147 precedent). Remediated in feat/contract-activation-remediation (R0 invoke + R1 trainee-guard + R2 fail-loud + R3 ADR text + R4 emit fail-loud + R5 ADR→proposed).
+**ADR created:** none (ADR-0379 reverted accepted→proposed)
+**Learning created:** L-0324 (pgTAP-green ≠ runtime-functional), L-0325 (council coverage-gap voids no-blocker)

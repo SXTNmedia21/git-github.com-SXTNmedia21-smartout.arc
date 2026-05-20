@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rimraf .next .turbo node_modules/.cache",
-    "site-map:validate": "tsx scripts/validate-site-map.ts"
+    "site-map:validate": "tsx scripts/validate-site-map.ts",
+    "polish:index": "tsx scripts/build-polish-index.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

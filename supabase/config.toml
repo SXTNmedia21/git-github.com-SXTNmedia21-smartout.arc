@@ -645,3 +645,11 @@ verify_jwt = false
 
 [functions.ops-triage]
 verify_jwt = false
+
+# Wave 5 WS2H — tariff-amendment-sweep. Detects workspace_framework_binding
+# framework_version changes and creates contract_amendment proposal rows for
+# affected employment_contracts. Auth via CRON_SECRET bearer token. No user JWT.
+# verify_jwt = false required or Supabase gateway rejects with 401 before handler.
+# ADR-0077. Cron schedule (when activated): daily at 04:00 UTC.
+[functions.tariff-amendment-sweep]
+verify_jwt = false

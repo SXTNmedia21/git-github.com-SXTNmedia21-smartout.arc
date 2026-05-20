@@ -15,8 +15,9 @@
  *   2. Call gate_action via callGateAction BEFORE any DB read/write (ADR-0099 / L-0066).
  *   3. Emit via @smartout/telemetry with NonEmptyString actor_id + workspace_id (ADR-0193).
  *
- * Mutation tools wrap ALL persistence calls in callGateAction; if gate denies, no write
- * occurs (ADR-0204 pattern — gated mutations, never direct .from().insert/update without gate).
+ * Mutation tools (update_payroll_profile, set_pension_scheme) route ALL persistence calls
+ * through mutateWithGate() (ADR-0204 / ADR-0287). No direct .from().update() outside the
+ * exec callback. Gate denial short-circuits before the exec callback runs.
  *
  * view_personal_number + view_bank_account perform full PII reveal with audit-emit per
  * ADR-0077 (Phase 5, 2026-05-08). They SELECT from the profile table (personal_number +
@@ -31,6 +32,11 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 import {
   generateCsv,
   generateFilename,
@@ -66,7 +72,7 @@ function assertChatChannel(
 export const updatePayrollProfile = defineTool({
   name: "update_payroll_profile",
   description:
-    "Update an employee's payroll profile (base salary, payroll system ID, payment method, tax-card fields). Admin only. Chat channel only. Requires confirmation before write. Tax-card fields (tax_card_type, tax_percentage, tax_table_number, tax_card_year) are writable here — used for manual entry when Tripletex sync (Phase 7) is unavailable. Mutations are gated via callGateAction (ADR-0099); on gate pass, .update() is called directly on employee_payroll_profile — no separate gatedMutation wrapper (gate-then-update is the established payroll convention).",
+    "Update an employee's payroll profile (base salary, payroll system ID, payment method, tax-card fields). Admin only. Chat channel only. Requires confirmation before write. Tax-card fields (tax_card_type, tax_percentage, tax_table_number, tax_card_year) are writable here — used for manual entry when Tripletex sync (Phase 7) is unavailable. Mutation routed through mutateWithGate() (ADR-0204 / ADR-0287); gate denial prevents write.",
   capability: CAPABILITY,
   schema: z
     .object({
@@ -143,22 +149,10 @@ export const updatePayrollProfile = defineTool({
       return JSON.stringify({ ok: false, reason: "channel_forbidden", detail: channelCheck.msg });
     }
 
-    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY,
-      channel,
-      actionType: "update_payroll_profile",
-      entityId: params.profile_id,
-    });
-
-    if (!gate.allow) {
-      return JSON.stringify({
-        ok: false,
-        reason: "authority_denied",
-        detail: gate.reason ?? "denied",
-      });
-    }
-
-    // Verify target profile belongs to caller's workspace (ADR-0151 forgery defence).
+    // Verify target profile belongs to caller's workspace BEFORE gating (ADR-0151 forgery
+    // defence). Fail fast on row-not-found — no silent fallback to JWT-default workspace
+    // (L-0177 anti-pattern). This check runs before the gate so we don't leak gate
+    // evaluation rows for cross-workspace attempts.
     const { data: targetProfile, error: profileErr } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
       .select("id, workspace_id")
@@ -197,22 +191,6 @@ export const updatePayrollProfile = defineTool({
     if (params.tax_card_year !== undefined) updates.tax_card_year = params.tax_card_year;
     if (taxFieldsTouched) updates.tax_card_fetched_at = new Date().toISOString();
 
-    const { data: updated, error: updateErr } = await ctx.supabaseAdmin
-      .from("employee_payroll_profile")
-      .update(updates)
-      .eq("profile_id", params.profile_id)
-      .eq("workspace_id", ctx.workspaceId)
-      .select("id")
-      .single();
-
-    if (updateErr || !updated) {
-      return JSON.stringify({
-        ok: false,
-        reason: "update_failed",
-        detail: updateErr?.message ?? "no row returned",
-      });
-    }
-
     // fields_changed: all param keys that were explicitly provided (undefined = not provided).
     const taxSchemaKeys = [
       "tax_card_type",
@@ -231,25 +209,61 @@ export const updatePayrollProfile = defineTool({
       (k) => params[k as keyof typeof params] !== undefined,
     );
 
-    void emit({
-      event: "payroll.update_payroll_profile",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
-      properties: {
-        entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
-        data: {
-          target_profile_id: params.profile_id,
-          fields_updated: Object.keys(updates).filter(
-            (k) => k !== "updated_at" && k !== "tax_card_fetched_at",
-          ),
-          gate_evaluation_id: gate.gateEvaluationId ?? null,
-          fields_changed: fieldsChanged,
-          tax_fields_touched: taxFieldsTouched,
-        },
-      },
-    });
+    try {
+      const { result, gateEvaluationId } = await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY,
+        actionType: "update_payroll_profile",
+        channel,
+        targetId: params.profile_id,
+        exec: async (db) => {
+          const { data: updated, error: updateErr } = await db
+            .from("employee_payroll_profile")
+            .update(updates)
+            .eq("profile_id", params.profile_id)
+            .eq("workspace_id", ctx.workspaceId)
+            .select("id")
+            .single();
 
-    return JSON.stringify({ ok: true, payroll_profile_id: updated.id });
+          if (updateErr || !updated) {
+            throw new Error(updateErr?.message ?? "no row returned");
+          }
+          return { payroll_profile_id: updated.id };
+        },
+      });
+
+      void emit({
+        event: "payroll.update_payroll_profile",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            fields_updated: Object.keys(updates).filter(
+              (k) => k !== "updated_at" && k !== "tax_card_fetched_at",
+            ),
+            gate_evaluation_id: gateEvaluationId ?? null,
+            fields_changed: fieldsChanged,
+            tax_fields_touched: taxFieldsTouched,
+          },
+        },
+      });
+
+      return JSON.stringify({ ok: true, payroll_profile_id: result.payroll_profile_id });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({ ok: false, reason: "authority_denied", detail: err.message });
+      }
+      if (err instanceof MutateWithGateError) {
+        if (err.code === "execute_failed") {
+          return JSON.stringify({ ok: false, reason: "update_failed", detail: err.message });
+        }
+        return JSON.stringify({ ok: false, reason: "gate_error", detail: err.code });
+      }
+      return JSON.stringify({ ok: false, reason: "unknown", detail: String(err) });
+    }
   },
 });
 
@@ -340,22 +354,9 @@ export const setPensionScheme = defineTool({
       return JSON.stringify({ ok: false, reason: "channel_forbidden", detail: channelCheck.msg });
     }
 
-    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY,
-      channel,
-      actionType: "set_pension_scheme",
-      entityId: params.profile_id,
-    });
-
-    if (!gate.allow) {
-      return JSON.stringify({
-        ok: false,
-        reason: "authority_denied",
-        detail: gate.reason ?? "denied",
-      });
-    }
-
-    // Verify target payroll profile belongs to workspace (ADR-0151).
+    // Verify target payroll profile belongs to workspace before gating (ADR-0151 forgery
+    // defence). Fail fast on row-not-found — no silent fallback to JWT-default workspace
+    // (L-0177 anti-pattern).
     const { data: existing, error: existErr } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
       .select("id, workspace_id")
@@ -367,40 +368,60 @@ export const setPensionScheme = defineTool({
       return JSON.stringify({ ok: false, reason: "not_found" });
     }
 
-    const { data: updated, error: updateErr } = await ctx.supabaseAdmin
-      .from("employee_payroll_profile")
-      .update({
-        pension_scheme_id: params.pension_scheme_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("profile_id", params.profile_id)
-      .eq("workspace_id", ctx.workspaceId)
-      .select("id")
-      .single();
+    try {
+      const { result, gateEvaluationId } = await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY,
+        actionType: "set_pension_scheme",
+        channel,
+        targetId: params.profile_id,
+        exec: async (db) => {
+          const { data: updated, error: updateErr } = await db
+            .from("employee_payroll_profile")
+            .update({
+              pension_scheme_id: params.pension_scheme_id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("profile_id", params.profile_id)
+            .eq("workspace_id", ctx.workspaceId)
+            .select("id")
+            .single();
 
-    if (updateErr || !updated) {
-      return JSON.stringify({
-        ok: false,
-        reason: "update_failed",
-        detail: updateErr?.message ?? "no row returned",
-      });
-    }
-
-    void emit({
-      event: "payroll.set_pension_scheme",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
-      properties: {
-        entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
-        data: {
-          target_profile_id: params.profile_id,
-          pension_scheme_id: params.pension_scheme_id,
-          gate_evaluation_id: gate.gateEvaluationId ?? null,
+          if (updateErr || !updated) {
+            throw new Error(updateErr?.message ?? "no row returned");
+          }
+          return { payroll_profile_id: updated.id };
         },
-      },
-    });
+      });
 
-    return JSON.stringify({ ok: true, payroll_profile_id: updated.id });
+      void emit({
+        event: "payroll.set_pension_scheme",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            pension_scheme_id: params.pension_scheme_id,
+            gate_evaluation_id: gateEvaluationId ?? null,
+          },
+        },
+      });
+
+      return JSON.stringify({ ok: true, payroll_profile_id: result.payroll_profile_id });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({ ok: false, reason: "authority_denied", detail: err.message });
+      }
+      if (err instanceof MutateWithGateError) {
+        if (err.code === "execute_failed") {
+          return JSON.stringify({ ok: false, reason: "update_failed", detail: err.message });
+        }
+        return JSON.stringify({ ok: false, reason: "gate_error", detail: err.code });
+      }
+      return JSON.stringify({ ok: false, reason: "unknown", detail: String(err) });
+    }
   },
 });
 

@@ -40,7 +40,10 @@ type Company = {
 
 type DefaultPricing = {
   monthly_cost?: number;
+  /** @deprecated Use free_users + overage_price_per_user per ADR-0121. Kept for legacy template defaults. */
   price_per_employee?: number;
+  free_users?: number;
+  overage_price_per_user?: number;
   billing_interval?: string;
   onboarding_package?: string;
   onboarding_cost?: number;
@@ -120,9 +123,12 @@ const INITIAL_FORM = {
   phone: "",
   is_active: true,
 
-  // Subscription pricing (Stripe-aligned)
+  // Subscription pricing (ADR-0121 model: monthly_cost + free_users + overage)
   billing_interval: "month" as "month" | "year",
-  price_per_employee: "", // Recurring per-unit price (per seat/month or /year)
+  /** @deprecated kept for backward compat of template defaults. Use free_users + overage_price_per_user. */
+  price_per_employee: "",
+  free_users: "10", // Included users in monthly_cost (default 10 per ADR-0121)
+  overage_price_per_user: "", // Per-user charge above free_users
   monthly_cost: "", // Recurring flat-rate price (base fee)
   trial_period_days: "", // Stripe: trial_period_days on subscription
 
@@ -350,10 +356,16 @@ export default function NewWorkspacePage() {
       const dp = template?.default_pricing;
       if (!dp) return;
 
+      // Template default-pricing → form. ADR-0121: template's
+      // `overage_price_per_user` wins; fall back to legacy
+      // `price_per_employee` if template hasn't been updated yet.
+      const overageFromTemplate = dp.overage_price_per_user ?? dp.price_per_employee;
       setForm((prev) => ({
         ...prev,
         monthly_cost: dp.monthly_cost?.toString() ?? prev.monthly_cost,
         price_per_employee: dp.price_per_employee?.toString() ?? prev.price_per_employee,
+        free_users: dp.free_users?.toString() ?? prev.free_users,
+        overage_price_per_user: overageFromTemplate?.toString() ?? prev.overage_price_per_user,
         billing_interval: (dp.billing_interval as "month" | "year") ?? prev.billing_interval,
         onboarding_package: dp.onboarding_package ?? prev.onboarding_package,
         onboarding_cost: dp.onboarding_cost?.toString() ?? prev.onboarding_cost,
@@ -405,9 +417,17 @@ export default function NewWorkspacePage() {
     try {
       const payload = {
         ...form,
-        price_per_employee: form.price_per_employee
-          ? parseFloat(form.price_per_employee)
+        // ADR-0121: send free_users + overage_price_per_user. Backend syncs
+        // legacy price_per_employee = overage during transition.
+        free_users: form.free_users ? parseInt(form.free_users, 10) : undefined,
+        overage_price_per_user: form.overage_price_per_user
+          ? parseFloat(form.overage_price_per_user)
           : undefined,
+        price_per_employee: form.overage_price_per_user
+          ? parseFloat(form.overage_price_per_user)
+          : form.price_per_employee
+            ? parseFloat(form.price_per_employee)
+            : undefined,
         monthly_cost: form.monthly_cost ? parseFloat(form.monthly_cost) : undefined,
         onboarding_cost:
           form.has_onboarding && form.onboarding_cost
@@ -902,22 +922,40 @@ export default function NewWorkspacePage() {
                 </Select>
               </div>
 
-              {/* Per-seat price (Stripe: price with per_unit billing_scheme) */}
+              {/* ADR-0121: Inkluderte ansatte i månedslisens */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Pris per ansatt ({form.currency}/
+                  Inkluderte ansatte i månedslisens (standard 10)
+                </label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={form.free_users}
+                  onChange={set("free_users")}
+                  placeholder="10"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Antall aktive ansatte inkludert i månedsavgiften. Standard 10.
+                </p>
+              </div>
+
+              {/* ADR-0121: Pris per aktiv ansatt på vaktliste over inkluderte */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Pris per aktiv ansatt på vaktliste ({form.currency}/
                   {form.billing_interval === "month" ? "mnd" : "år"})
                 </label>
                 <Input
                   type="number"
                   step="1"
                   min="0"
-                  value={form.price_per_employee}
-                  onChange={set("price_per_employee")}
+                  value={form.overage_price_per_user}
+                  onChange={set("overage_price_per_user")}
                   placeholder="149"
                 />
                 <p className="text-muted-foreground text-xs">
-                  Stripe: recurring per-unit price (quantity = antall ansatte)
+                  Faktureres per aktive ansatt på vaktlisten over den inkluderte grensen.
                 </p>
               </div>
 
