@@ -14,6 +14,25 @@ tags: [execution-plan, agent-team, orchestrator, task-manager, shift-tasks, mobi
 
 One vertical, end-to-end. Author (web/admin) ties task to a **location's day_line** → employee's `shift_session` is **at that location** → task surfaces in **Min dag** (mobile) → execute (complete). The anchor is **location** (`day_line.location_id`), not a generic "active shift". Everything outside this goal is OUT.
 
+## ⚠️ REVISED 2026-05-21 (dual-perspective verification) — scope cut, pipe ~70% already shipped
+Grep of both sides found the **receiver pipe largely built**, overturning the council's Q-B:
+- ✅ **Author (web):** `task.create_session`/`day-line.add_item` accept `day_line_id`+assignee+scheduled_at — SHIPPED.
+- ✅ **Resolve shift→day_lines→tasks (mobile, client-side):** `use-shift-session.ts` (joins `shift_session_day_line→day_line→location`) + `useDayLineItems` (fetch `session_task` by day_line_id + ADR-0367 §M2 leak-filter + ADR-0134 telemetry) → wired into `HomeShiftCard`/`DuringShiftView.v2`. **The dedicated `fn_list_shift_tasks` resolver is REDUNDANT → A-DATA DROPPED.**
+- ✅ **Execute (mobile):** `use-complete-calendar-task` + `TaskModal` + BFF `/api/mobile/tasks/[id]/complete` → `task.complete`. SHIPPED.
+
+**REAL remaining gaps (the actual build):**
+1. **A-ANCHOR (must):** `session-hook-executor` + `engine-dispatch assign_task` set `day_line_id` (single-location else NULL). Without this, cron/hook tasks have NULL day_line_id → `useDayLineItems` never finds them → only manually-authored day_line tasks appear. **This is the core gap.**
+2. **Status-gate (verify/small):** confirm `HomeShiftCard`/`DuringShiftView` only surface tasks when `shift_session.status ∈ scheduled/clocked_in` (`use-shift-session` returns status but does not filter — caller must). Add gate if missing.
+3. **Full "Min dag" surface (UI sortie, mockup-ported):** the prototype's full Min dag (3 sections Må løses nå/I dag/Fullført, day-meter, filter chips) is NOT built — mobile has the shift-card, not the full forside. Optional upgrade.
+4. **Web receiver parity:** none today (TasksTab is manager/session-scoped). Out (mobile-primary, ADR-0133).
+
+## MOCKUP SOURCE — CONFIRMED (Pontus directive, port not redesign)
+The Min dag / mobile-day UI is **ported from the design-folder mockups**, NOT redesigned:
+- **`docs/modules/task-manager/taskmanager-handoff/components/min-dag.jsx`** + `Task Manager.html` — canonical Min dag (TaskKort 10-element, sections, day-meter, filter chips, Botsson-nudge).
+- **`docs/design/day-handoff/source/day/mobile-day.jsx`** + `docs/design/day-handoff/source/components/primitives.jsx` — mobile-day surface primitives.
+- **`docs/design/design_handoff_calendar/source/shiftlist.jsx`** — shift-list reference.
+A-MOBILE pulls components/layout/interaction from these; adapts hex → `@smartout/design-tokens` `native.ts` (ADR-0366, no literals) + RN adaptation (SectionList, Reanimated, a11y per frontend review). Existing `HomeShiftCard`/`DuringShiftView` must align to these mockups, not diverge.
+
 ## The orchestrator
 **Opus lead.** Owns the goal. Does NOT write code. Decomposes into narrow tracks, dispatches the team, reviews every output against the goal, resolves cross-track contracts, escalates design forks to council, drives to a verified end-to-end demo. Single success test: *a task an admin types in the web shows on the right phone during an active shift and can be ticked off there.*
 
