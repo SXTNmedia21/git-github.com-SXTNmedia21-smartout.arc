@@ -67,6 +67,48 @@ function pickChannelsForBatchRow(row: BatchInviteRow, skipDispatch: boolean) {
   return ["link"] as const;
 }
 
+// Bump the draft contract for this workspace so the freshly invited owner
+// receives the contract instead of whoever was named at workspace-create
+// time. Best-effort: never fails the invite if the contract update fails —
+// the workspace might not have a draft, or it might already be signed.
+// Caller filters on role === "owner" + non-empty email.
+async function bumpDraftContractRecipient(
+  client: import("@supabase/supabase-js").SupabaseClient,
+  workspaceId: string,
+  firstName: string,
+  lastName: string,
+  email: string,
+) {
+  try {
+    const { data: contracts, error } = await client
+      .from("contract")
+      .select("contract_id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "draft")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error || !contracts || contracts.length === 0) return;
+    const firstContract = contracts[0];
+    if (!firstContract) return;
+
+    const contractId = firstContract.contract_id as string;
+    const { error: updateErr } = await client
+      .from("contract")
+      .update({
+        recipient_name: `${firstName} ${lastName}`.trim(),
+        recipient_email: email,
+      })
+      .eq("contract_id", contractId);
+
+    if (updateErr) {
+      console.warn("[api/admin/invite] bumpDraftContractRecipient failed:", updateErr.message);
+    }
+  } catch (err) {
+    console.warn("[api/admin/invite] bumpDraftContractRecipient exception:", err);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: unknown = await req.json();
@@ -112,6 +154,43 @@ export async function POST(req: NextRequest) {
           };
         }
 
+        // Owner-role gate: only one pending owner-invite per workspace.
+        // Counts requested owner-rows (single = 0 or 1, batch = 0..N).
+        const ownerRowCount = isBatch
+          ? (parsed.data as z.infer<typeof BatchPayloadSchema>).invites.filter(
+              (r) => r.role === "owner",
+            ).length
+          : (parsed.data as SingleInviteInput).role === "owner"
+            ? 1
+            : 0;
+
+        if (ownerRowCount > 1) {
+          return {
+            ok: false as const,
+            error: "Cannot send more than one owner-invite at a time",
+            code: "owner_invite_pending",
+          };
+        }
+
+        if (ownerRowCount === 1) {
+          const { data: existingOwner } = await client
+            .from("invitation")
+            .select("invitation_id")
+            .eq("workspace_id", workspaceId)
+            .eq("role", "owner")
+            .eq("status", "pending")
+            .limit(1)
+            .maybeSingle();
+
+          if (existingOwner) {
+            return {
+              ok: false as const,
+              error: "Pending owner-invite already exists for this workspace",
+              code: "owner_invite_pending",
+            };
+          }
+        }
+
         if (isBatch) {
           const batchData = parsed.data as z.infer<typeof BatchPayloadSchema>;
           const invitations: InvitationResult[] = [];
@@ -132,12 +211,30 @@ export async function POST(req: NextRequest) {
             };
             const r = await createInvitation(singleInput, profile.profile_id, client);
             invitations.push(r);
+            if (row.role === "owner" && row.email) {
+              await bumpDraftContractRecipient(
+                client,
+                workspaceId,
+                row.first_name,
+                row.last_name,
+                row.email,
+              );
+            }
           }
           return { ok: true as const, data: { invitations } };
         }
 
         const single = parsed.data as SingleInviteInput;
         const r = await createInvitation(single, profile.profile_id, client);
+        if (single.role === "owner" && single.email) {
+          await bumpDraftContractRecipient(
+            client,
+            workspaceId,
+            single.first_name,
+            single.last_name,
+            single.email,
+          );
+        }
         return { ok: true as const, data: r };
       },
     );
