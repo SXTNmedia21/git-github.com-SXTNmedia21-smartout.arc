@@ -149,6 +149,7 @@ const INITIAL_FORM = {
   effective_from: todayISO(),
   effective_until: "",
   pricing_notes: "",
+  payment_terms_days: "14",
 
   // Contract
   template_id: "",
@@ -451,6 +452,9 @@ export default function NewWorkspacePage() {
             ? parseInt(form.discount_duration_months, 10)
             : undefined,
         discount_label: form.has_discount ? form.discount_label : undefined,
+        payment_terms_days: form.payment_terms_days
+          ? parseInt(form.payment_terms_days, 10)
+          : undefined,
         template_id: form.template_id || undefined,
         workspace_slug: form.workspace_slug || undefined,
         effective_until: form.effective_until || undefined,
@@ -1023,6 +1027,22 @@ export default function NewWorkspacePage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Betalingsfrist (invoice payment term) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Betalingsfrist (dager)</label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={form.payment_terms_days}
+                  onChange={set("payment_terms_days")}
+                  placeholder="14"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Antall dager fra fakturadato til forfallsdato. Standard 14.
+                </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">

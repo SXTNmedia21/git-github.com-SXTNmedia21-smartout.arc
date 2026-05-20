@@ -57,6 +57,7 @@ const CreateWorkspaceSchema = z.object({
   effective_from: z.string().optional().or(z.literal("")),
   effective_until: z.string().optional().or(z.literal("")),
   pricing_notes: z.string().optional().or(z.literal("")),
+  payment_terms_days: z.number().int().positive().optional(),
 
   // Contract template
   template_id: z.string().uuid().optional().or(z.literal("")),
@@ -299,6 +300,7 @@ export async function POST(request: NextRequest) {
       effective_from: d.effective_from || new Date().toISOString().split("T")[0]!,
       effective_until: d.effective_until || null,
       notes: d.pricing_notes || null,
+      payment_terms_days: d.payment_terms_days ?? 14,
       created_by: adminId,
     });
 
