@@ -1,8 +1,9 @@
 ---
 schema_version: "2.0.0"
 journey_id: "contract-signed-to-active-cascade"
-status: idea
+status: done
 created: 2026-05-20
+updated: 2026-06-21
 author: pontus
 ---
 
