@@ -5108,6 +5108,72 @@ export interface VoiceBootstrapPublishFailed extends BaseEvent {
   };
 }
 
+// ─── Voice Bootstrap RPC Events (P4 mobile-voice-runtime-wire, L-0234 closure) ──────────────────
+// Emitted by the mobile app during tool-register and RPC round-trips.
+// tool_registered      — posthog + logger + activity_trail. Confirms client-tool pipe is live.
+// tool_register_failed — posthog + logger + activity_trail. Error audit for degraded sessions.
+// rpc_completed        — posthog (latency funnel) + logger + activity_trail (AI-action audit).
+// rpc_failed           — posthog + logger + activity_trail. Error audit.
+export interface VoiceBootstrapToolRegistered extends BaseEvent {
+  event: "voice.bootstrap.tool_registered";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Number of tools registered in this batch (5 for mobile MVP) */
+      tool_count: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapToolRegisterFailed extends BaseEvent {
+  event: "voice.bootstrap.tool_register_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapRpcCompleted extends BaseEvent {
+  event: "voice.bootstrap.rpc_completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Tool name that was invoked (e.g. "mobile_navigate_to") */
+      tool: string;
+      /** Correlation ID from voice-agent — links call to result in logs */
+      call_id: string;
+      /** Round-trip latency from DataReceived to result publish (ms) */
+      latency_ms: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapRpcFailed extends BaseEvent {
+  event: "voice.bootstrap.rpc_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Tool name that was invoked (unknown if tool name unresolvable) */
+      tool: string;
+      /** Correlation ID from voice-agent */
+      call_id: string;
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe) ─────────
 // Emitted by the mobile app UI layer (not BFF) for interaction funnel analytics.
 // fab.long_press — posthog + logger. Non-auditable interaction signal.
@@ -9066,6 +9132,11 @@ export type SmartoutEvent =
   // ─── Voice Bootstrap Publish (ADR-0297, P3 mobile-voice-runtime-wire 2026-05-20) ──
   | VoiceBootstrapSnapshotPublished
   | VoiceBootstrapPublishFailed
+  // ─── Voice Bootstrap RPC (P4 mobile-voice-runtime-wire 2026-05-20, L-0234) ──
+  | VoiceBootstrapToolRegistered
+  | VoiceBootstrapToolRegisterFailed
+  | VoiceBootstrapRpcCompleted
+  | VoiceBootstrapRpcFailed
   // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
   | MobileFabLongPress
   | MobileAiPrefsChanged
@@ -14706,6 +14777,29 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "voice.bootstrap.publish_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Voice Bootstrap RPC (P4 mobile-voice-runtime-wire 2026-05-20, L-0234) ──
+  // tool_registered: posthog (adoption funnel) + logger + activity_trail (pipe-live audit).
+  // tool_register_failed: posthog + logger + activity_trail (error audit).
+  // rpc_completed: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+  // rpc_failed: posthog + logger + activity_trail (error audit).
+  // None route to engine_event — tool-call round-trips are not workflow state inputs.
+  "voice.bootstrap.tool_registered": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.tool_register_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.rpc_completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.rpc_failed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

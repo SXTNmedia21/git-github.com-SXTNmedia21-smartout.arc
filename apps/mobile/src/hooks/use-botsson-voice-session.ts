@@ -67,7 +67,12 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { supabase } from "@/lib/supabase";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { getProfileContext } from "@/lib/profile-context";
-import { publishBotssonContext } from "@/lib/livekit-data-publish";
+import {
+  publishBotssonContext,
+  publishBotssonToolsRegister,
+  publishBotssonToolResult,
+} from "@/lib/livekit-data-publish";
+import { executeMobileTool, getToolDefinitionsForRegistration } from "@/lib/botsson-tools";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
 import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 
@@ -392,6 +397,13 @@ export function useBotssonVoiceSession(
   const workspaceIdRef = useRef<string | null>(workspaceId);
 
   /**
+   * P4 (L-0234): Dedup set for botsson-tool-call events. Prevents double-
+   * execution if voice-agent re-delivers the same call_id on reconnect.
+   * Cleared on explicit stop() so the next session starts with a clean slate.
+   */
+  const seenCallIdsRef = useRef<Set<string>>(new Set());
+
+  /**
    * Stable snapshot handler ref — used as `onSnapshot` in useVoiceTranscripts.
    * Reading from roomRef + onSnapshotRef + lastPublishedVersionRef avoids
    * the exhaustive-deps trap of useCallback with an empty dep array.
@@ -491,7 +503,7 @@ export function useBotssonVoiceSession(
     onSnapshot: onSnapshotStableRef.current,
   });
 
-  /** Track LiveKit Room connection + mic lifecycle events. */
+  /** Track LiveKit Room connection + mic lifecycle events + P4 RPC listener. */
   useEffect(() => {
     if (!room) return;
 
@@ -502,7 +514,16 @@ export function useBotssonVoiceSession(
       const snapshot = currentSnapshotRef.current;
       if (!snapshot) return;
       if (snapshot.version === lastPublishedVersionRef.current) return;
-      void publishSnapshotToRoom(room, snapshot, workspaceIdRef.current, lastPublishedVersionRef);
+      // P4 (L-0234): after snapshot publish, also register mobile tools.
+      // Both publishes are fire-and-forget; errors are telemetry-only.
+      void publishSnapshotToRoom(
+        room,
+        snapshot,
+        workspaceIdRef.current,
+        lastPublishedVersionRef,
+      ).then(() => {
+        void publishToolsToRoom(room, workspaceIdRef.current);
+      });
     };
     const handleDisconnected = () => {
       setIsConnected(false);
@@ -517,16 +538,137 @@ export function useBotssonVoiceSession(
       setIsMuted(!enabled);
     };
 
+    /**
+     * P4 (L-0234): DataReceived handler for botsson-tool-call events.
+     *
+     * Voice-agent publishes { type:"tool_call", call_id, name, arguments }
+     * on topic "botsson-tool-call". Mobile dispatches via executeMobileTool()
+     * and replies with { call_id, result } on "botsson-tool-result".
+     *
+     * Dedup: same call_id on reconnect is dropped silently.
+     * Concurrency: each call executes independently (no serialization needed —
+     *   call_ids are globally unique UUIDs).
+     */
+    const handleDataReceived = (
+      payload: Uint8Array,
+      _participant: unknown,
+      _kind: unknown,
+      topic?: string,
+    ) => {
+      if (topic !== "botsson-tool-call") return;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(new TextDecoder().decode(payload));
+      } catch {
+        console.warn("[useBotssonVoiceSession] botsson-tool-call: invalid JSON");
+        return;
+      }
+
+      // Validate envelope: { type: "tool_call", call_id: string, name: string, arguments: object }
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        typeof (parsed as Record<string, unknown>)["call_id"] !== "string" ||
+        typeof (parsed as Record<string, unknown>)["name"] !== "string" ||
+        typeof (parsed as Record<string, unknown>)["arguments"] !== "object"
+      ) {
+        console.warn("[useBotssonVoiceSession] botsson-tool-call: unexpected shape", parsed);
+        return;
+      }
+
+      const {
+        call_id,
+        name,
+        arguments: args,
+      } = parsed as {
+        call_id: string;
+        name: string;
+        arguments: Record<string, unknown>;
+      };
+
+      // Dedup — drop if same call_id seen before (stale event from prior session).
+      if (seenCallIdsRef.current.has(call_id)) {
+        console.warn(
+          "[useBotssonVoiceSession] botsson-tool-call: duplicate call_id dropped",
+          call_id,
+        );
+        return;
+      }
+      seenCallIdsRef.current.add(call_id);
+
+      const t0 = Date.now();
+
+      // Execute the tool and publish result — all async, no await in handler.
+      void (async () => {
+        let resultStr: string;
+        let toolOk = true;
+        try {
+          resultStr = await executeMobileTool(name, args as Record<string, string>);
+        } catch (e) {
+          toolOk = false;
+          resultStr = e instanceof Error ? e.message : "Tool execution failed";
+        }
+
+        // Always publish result (even on tool error) so voice-agent Promise resolves.
+        const publishRes = await publishBotssonToolResult(room, {
+          call_id,
+          result: resultStr,
+        });
+
+        const latency_ms = Date.now() - t0;
+
+        // Telemetry — swallow if profile context unavailable (L-0177: fail-fast
+        // on empty IDs, but don't abort the RPC path for missing profile context).
+        try {
+          const { profileId } = await getProfileContext();
+          const wid = workspaceIdRef.current;
+          if (!wid) return;
+
+          if (publishRes.ok && toolOk) {
+            void emit({
+              event: "voice.bootstrap.rpc_completed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: { tool: name, call_id, latency_ms, device_type: "mobile" },
+              },
+            });
+          } else {
+            void emit({
+              event: "voice.bootstrap.rpc_failed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: {
+                  tool: name,
+                  call_id,
+                  reason: publishRes.ok ? resultStr : (publishRes.reason ?? "publish failed"),
+                  device_type: "mobile",
+                },
+              },
+            });
+          }
+        } catch {
+          // Profile context unavailable — skip telemetry. RPC already completed.
+        }
+      })();
+    };
+
     room.on(RoomEvent.Connected, handleConnected);
     room.on(RoomEvent.Disconnected, handleDisconnected);
     room.on(RoomEvent.TrackMuted, handleTrackMuted);
     room.on(RoomEvent.TrackUnmuted, handleTrackMuted);
+    room.on(RoomEvent.DataReceived, handleDataReceived);
 
     return () => {
       room.off(RoomEvent.Connected, handleConnected);
       room.off(RoomEvent.Disconnected, handleDisconnected);
       room.off(RoomEvent.TrackMuted, handleTrackMuted);
       room.off(RoomEvent.TrackUnmuted, handleTrackMuted);
+      room.off(RoomEvent.DataReceived, handleDataReceived);
     };
   }, [room]);
 
@@ -600,6 +742,8 @@ export function useBotssonVoiceSession(
     // ADR-0297: reset published version on explicit stop so the next session
     // always publishes a fresh snapshot (version may be stale by reconnect time).
     lastPublishedVersionRef.current = "";
+    // P4 (L-0234): clear dedup set so the next session accepts fresh call_ids.
+    seenCallIdsRef.current.clear();
     const activeRoom = roomRef.current;
     if (activeRoom) {
       try {
@@ -661,6 +805,60 @@ export function useBotssonVoiceSession(
     stop,
     toggleMic,
   };
+}
+
+/**
+ * Internal: publish mobile tool definitions on "botsson-tools-register" so
+ * voice-agent can build stub llm.tool() entries. Emits telemetry on success
+ * or failure via getProfileContext().
+ *
+ * Called immediately after publishSnapshotToRoom succeeds (P4 ordering ensures
+ * voice-agent has user/workspace context when it builds tool stubs).
+ *
+ * Telemetry: ADR-0134 L-0177 — getProfileContext() throws if IDs are missing.
+ * We catch and skip telemetry rather than abort. Voice session health must NOT
+ * depend on telemetry availability.
+ */
+async function publishToolsToRoom(room: Room, workspaceId: string | null): Promise<void> {
+  const definitions = getToolDefinitionsForRegistration();
+  const result = await publishBotssonToolsRegister(room, { definitions });
+
+  try {
+    const { profileId } = await getProfileContext();
+    if (!workspaceId) return; // L-0177 fail-fast
+
+    if (result.ok) {
+      void emit({
+        event: "voice.bootstrap.tool_registered",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: { tool_count: definitions.length, device_type: "mobile" },
+        },
+      });
+    } else {
+      console.warn(
+        `[useBotssonVoiceSession] botsson-tools-register publish failed: ${result.reason}`,
+      );
+      void emit({
+        event: "voice.bootstrap.tool_register_failed",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "agent_session", entity_id: room.name },
+          data: { reason: result.reason, device_type: "mobile" },
+        },
+      });
+    }
+  } catch {
+    // getProfileContext() threw — skip telemetry. Session proceeds regardless.
+    if (!result.ok) {
+      console.warn(
+        `[useBotssonVoiceSession] botsson-tools-register publish failed (no telemetry): ${result.reason}`,
+      );
+    }
+  }
 }
 
 /**
