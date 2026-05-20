@@ -48,6 +48,14 @@
 - `packages/ai/src/tools/channels.ts` has orphaned tools (search_knowledge) not in any capability
 - 20+ hardcoded Norwegian strings in hooks despite `komm.json` existing
 
+## Billing / Invoice Cron (verified 2026-05-20)
+- [Full review](billing_cron_review.md) — cron-pattern split, stuck-draft trap, no watchdog, phantom telemetry
+- generate-monthly-invoices uses external n8n; dunning (same billing engine) uses pg_cron+engine_event. Inconsistency = Fase-1 drift. House style = pg_cron+engine_event.
+- Stuck-draft bug: per-company insert→lineitems→issue is NON-transactional. Die mid-sequence → re-fire early-exits on the draft row → company permanently skipped with header-only invoice. Fix = wrap in SECURITY DEFINER RPC.
+- Zero billing missing-run watchdog (ops-monitor has no billing refs). n8n silent fail = undetected.
+- `invoice sent` + `invoice voided` registry events have NO emit-sites (phantom per ADR-0358).
+- Runbook `docs/runbooks/billing-monthly-cron-n8n.md` (cited index.ts:4) does not exist.
+
 ## Review Patterns
 - When reviewing year-wheel agent output: always check for hardcoded colors, isDark prop usage, spring constants, and Norwegian strings.
 - When reviewing cascade agent output: verify D1↔D4 bridge exists (season activation → department_operating_hours).
