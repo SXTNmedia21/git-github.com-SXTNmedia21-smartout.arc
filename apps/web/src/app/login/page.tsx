@@ -241,11 +241,13 @@ function LoginContent() {
   // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
   // so the click is silently lost. Code-typing path is unaffected.
   //
-  // Errors from rate-limits, network failures, or missing SMTP are surfaced
-  // so the user does not stare at a digit input that will never accept
-  // anything. We still hide email-existence (`shouldCreateUser: false` is the
-  // enumeration guard); user-existence is conveyed via the verify step, not
-  // the send step.
+  // Enumeration safety: with `shouldCreateUser: false`, GoTrue returns
+  // "Signups not allowed for otp" (code `otp_disabled`) for emails that don't
+  // exist (supabase/auth#1547). Surfacing that message would leak account
+  // existence, so we treat it as success and advance to the digit screen
+  // exactly as for a real user. Only genuine send failures (rate-limit, SMTP,
+  // network) reach the UI, and they show a generic i18n message — never the
+  // raw English Supabase string.
   async function handleSendOtp() {
     setError(null);
     setLoading(true);
@@ -258,8 +260,10 @@ function LoginContent() {
       },
     });
     setLoading(false);
-    if (otpError) {
-      setError(otpError.message);
+    const isEnumerationSignal =
+      otpError?.code === "otp_disabled" || /signups not allowed/i.test(otpError?.message ?? "");
+    if (otpError && !isEnumerationSignal) {
+      setError(t("login.error.otp_send"));
       return;
     }
     setOtpSent(true);

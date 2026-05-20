@@ -20,6 +20,7 @@ type Props = {
   hasPartialAccess: boolean;
   workspaceId: string;
   userId: string;
+  contractStatus: string | null;
 };
 
 function formatNok(amount: number): string {
@@ -48,6 +49,7 @@ export async function BillingConfigSection({
   hasPartialAccess,
   workspaceId,
   userId,
+  contractStatus,
 }: Props) {
   // RLS denied — emit section_failed and render placeholder.
   if (pricingTerms === null && hasPartialAccess) {
@@ -94,6 +96,11 @@ export async function BillingConfigSection({
         <CardTitle className="text-base">Fakturaoppsett</CardTitle>
       </CardHeader>
       <CardContent>
+        {contractStatus !== "active" && (
+          <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
+            Faktureres ikke — kontrakt ikke signert
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <p className="text-muted-foreground text-xs tracking-wide uppercase">
@@ -104,13 +111,17 @@ export async function BillingConfigSection({
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">Per ansatt</p>
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
+              Pris per aktiv ansatt på vaktliste
+            </p>
             <p className="mt-1 font-mono text-sm font-medium">
               {formatNok(pricingTerms.price_per_employee)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">Gratis brukere</p>
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
+              Inkluderte ansatte (standard 10)
+            </p>
             <p className="mt-1 font-mono text-sm font-medium">{pricingTerms.free_users}</p>
           </div>
           <div>

@@ -20589,6 +20589,7 @@ export type Database = {
           postal_code: string | null
           setup_guide_completed: boolean
           short_description: string | null
+          signatory_profile_id: string | null
           slogan: string | null
           slug: string
           source: string
@@ -20645,6 +20646,7 @@ export type Database = {
           postal_code?: string | null
           setup_guide_completed?: boolean
           short_description?: string | null
+          signatory_profile_id?: string | null
           slogan?: string | null
           slug: string
           source?: string
@@ -20701,6 +20703,7 @@ export type Database = {
           postal_code?: string | null
           setup_guide_completed?: boolean
           short_description?: string | null
+          signatory_profile_id?: string | null
           slogan?: string | null
           slug?: string
           source?: string

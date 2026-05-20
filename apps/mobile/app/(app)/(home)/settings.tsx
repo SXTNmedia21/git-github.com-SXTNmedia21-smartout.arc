@@ -288,6 +288,24 @@ export default function SettingsScreen() {
               strokeWidth={1.5}
             />
           </Pressable>
+          <View style={s.divider} />
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push("/(app)/(me)/change-password");
+            }}
+            style={({ pressed }) => [s.row, pressed && s.rowPressed]}
+          >
+            <View style={s.rowLeft}>
+              <Shield size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
+              <Text style={s.rowLabel}>Bytt passord</Text>
+            </View>
+            <ChevronRight
+              size={18}
+              color={withOpacity(theme.colors.mutedForeground, 0.3)}
+              strokeWidth={1.5}
+            />
+          </Pressable>
         </View>
 
         {/* Workspace */}

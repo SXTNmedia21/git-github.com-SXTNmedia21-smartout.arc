@@ -1,0 +1,75 @@
+{
+  "date": "2026-05-20",
+  "mode": "full",
+  "run_id": "2026-05-20-adr-contract-validation-02",
+  "baseline_run_id": "2026-05-20-adr-contract-validation",
+  "post_pr": 432,
+  "totals": {
+    "critical": 0,
+    "high": 4,
+    "medium": 17,
+    "low": 20,
+    "info": 10,
+    "tracked_deduped": 51
+  },
+  "delta": {
+    "new_critical": 0,
+    "new_high_genuine": 0,
+    "new_high_baseline_upgrades": 2,
+    "regressed": 1,
+    "closed_high": 6,
+    "closed_total_estimated": 35,
+    "unchanged_open": 5
+  },
+  "by_theme": {
+    "capability_adr_0204": {"critical": 0, "high": 2, "medium": 3, "low": 1, "info": 2, "worst": "shift-lifecycle/tools.ts + payroll/tools.ts"},
+    "webhook_cascade": {"critical": 0, "high": 1, "medium": 1, "low": 2, "info": 0, "worst": "docuseal/route.ts:320"},
+    "i18n_adoption": {"critical": 0, "high": 1, "medium": 4, "low": 2, "info": 1, "worst": "90 .tsx files remaining (was 376)"},
+    "enforcement_less_adrs": {"critical": 0, "high": 0, "medium": 3, "low": 1, "info": 0, "worst": "ADR-0366 + ADR-0377 + ADR-0328"},
+    "cascade_portability_0156": {"critical": 0, "high": 0, "medium": 1, "low": 1, "info": 0, "worst": "useDayTimelineScope spread (F-04-03 aggravated)"},
+    "telemetry_orphan_or_missing_emit": {"critical": 0, "high": 0, "medium": 1, "low": 3, "info": 1, "worst": "shift_session.bound + celebration.skipped_*"},
+    "adr_registry_hygiene": {"critical": 0, "high": 1, "medium": 1, "low": 4, "info": 3, "worst": "ADR-0322 gap (F-09-01)"},
+    "oklch_residue_0366": {"critical": 0, "high": 0, "medium": 1, "low": 0, "info": 0, "worst": "apps/landing globals.css + free-forever"},
+    "ef_auth_perimeter": {"critical": 0, "high": 0, "medium": 1, "low": 1, "info": 5, "worst": "3 browser-callable EFs inline wildcard CORS"},
+    "mobile_surface": {"critical": 0, "high": 0, "medium": 1, "low": 1, "info": 1, "worst": "ContentCreator.tsx defence-in-depth gap"},
+    "lovsen_confidence_0257": {"critical": 0, "high": 0, "medium": 1, "low": 2, "info": 0, "worst": "cite_law bare string"},
+    "performance_budgets_0019": {"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 0, "worst": "perf-budgets CI absent"}
+  },
+  "coverage": {
+    "slices_run": [
+      "capability-tools",
+      "stage-engine-bff",
+      "edge-functions",
+      "schedule-cascade",
+      "mobile-surface",
+      "contracts-payroll-lovsen",
+      "db-rls-telemetry",
+      "journeys",
+      "adr-coverage-gaps",
+      "onboarding-wizard",
+      "performance-design",
+      "i18n-frontmatter",
+      "webhook-integration",
+      "missions-e2e"
+    ],
+    "slices_skipped": [],
+    "files_uncovered": []
+  },
+  "specialist_effectiveness": {
+    "capability-tools": {"findings": 7, "false_positives_filtered": 2},
+    "stage-engine-bff": {"findings": 10, "false_positives_filtered": 0},
+    "edge-functions": {"findings": 2, "false_positives_filtered": 0},
+    "schedule-cascade": {"findings": 8, "false_positives_filtered": 2},
+    "mobile-surface": {"findings": 3, "false_positives_filtered": 1},
+    "contracts-payroll-lovsen": {"findings": 4, "false_positives_filtered": 2},
+    "db-rls-telemetry": {"findings": 4, "false_positives_filtered": 0},
+    "journeys": {"findings": 4, "false_positives_filtered": 0},
+    "adr-coverage-gaps": {"findings": 11, "false_positives_filtered": 0},
+    "onboarding-wizard": {"findings": 5, "false_positives_filtered": 0},
+    "performance-design": {"findings": 3, "false_positives_filtered": 0},
+    "i18n-frontmatter": {"findings": 6, "false_positives_filtered": 0},
+    "webhook-integration": {"findings": 4, "false_positives_filtered": 0},
+    "missions-e2e": {"findings": 4, "false_positives_filtered": 0}
+  },
+  "headline": "F-01 i18n corpus 376->90 (-286 files via PR #431 H3/H4 sweep). 6 of 7 baseline HIGHs closed via PR #432. 4 active HIGHs = 2 baseline-upgrades (WH-01, CT-01+CT-02) + 1 persistence (F-09-01 trivial). Verdict YELLOW SAFE-TO-PROMOTE."
+}
