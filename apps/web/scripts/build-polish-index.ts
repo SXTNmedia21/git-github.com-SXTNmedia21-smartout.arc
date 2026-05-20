@@ -164,7 +164,13 @@ for (const f of readdirSync(POLISH_DIR)) {
   if (!f.endsWith(".run.yml") || f.startsWith("_template")) continue;
   const data = readYaml(join(POLISH_DIR, f));
   if (!data) continue;
-  const route = (data.route as string) ?? `/${f.replace(/\.run\.yml$/, "")}`;
+  // Some worksheets annotate the route value (e.g.
+  // "/dashboard (variant=oversikt|...)"). Take the first whitespace-delimited
+  // token as the canonical path so it matches the site-map key — otherwise the
+  // annotated string becomes its own row AND a phantom unverified site-map row
+  // appears for the real path (overview double-counted + mislabelled).
+  const rawRoute = (data.route as string) ?? `/${f.replace(/\.run\.yml$/, "")}`;
+  const route = String(rawRoute).trim().split(/\s+/)[0] ?? rawRoute;
   const locate = (data.locate as Record<string, unknown>) ?? {};
   const retest = (data.retest as Record<string, unknown>) ?? {};
   const speed = (data.speed_test as Record<string, unknown>) ?? {};

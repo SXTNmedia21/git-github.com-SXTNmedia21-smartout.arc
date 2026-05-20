@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generated_at": "2026-05-20T19:22:16.325Z",
+  "generated_at": "2026-05-20T20:11:14.152Z",
   "rollup": {
-    "routes_tracked": 65,
+    "routes_tracked": 64,
     "routes_verified": 53,
-    "coverage_pct": 82,
+    "coverage_pct": 83,
     "median_warm_lcp_ms": 1086,
     "median_warm_cls": 0.001,
-    "total_harness_tools": 209,
+    "total_harness_tools": 181,
     "tier0_elements_clean": 6,
     "tier0_elements_total": 8
   },
@@ -16,10 +16,10 @@
       "route": "/dashboard",
       "tier": 1,
       "module": "Core",
-      "status": null,
-      "verified": false,
-      "verified_at": null,
-      "url": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard",
       "warm": {
         "lcp_ms": null,
         "cls": null,
@@ -27,7 +27,7 @@
       },
       "zinc_hits": null,
       "motion_hits": null,
-      "tool_count": 28,
+      "tool_count": 0,
       "tool_names": [
         "getDaySnapshot",
         "getRosterForDay",
@@ -58,7 +58,7 @@
         "getActivitySummary",
         "listTodos"
       ],
-      "source": "site-map"
+      "source": "both"
     },
     {
       "route": "/dashboard/calendar",
@@ -108,7 +108,9 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 1,
-      "tool_names": ["createChat"],
+      "tool_names": [
+        "createChat"
+      ],
       "source": "site-map"
     },
     {
@@ -252,7 +254,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 3,
-      "tool_names": ["getCurrentTariffBinding", "changeTariffBinding", "addSupplementOverride"],
+      "tool_names": [
+        "getCurrentTariffBinding",
+        "changeTariffBinding",
+        "addSupplementOverride"
+      ],
       "source": "site-map"
     },
     {
@@ -350,7 +356,10 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getPosAccountsState", "getPosActionState"],
+      "tool_names": [
+        "getPosAccountsState",
+        "getPosActionState"
+      ],
       "source": "both"
     },
     {
@@ -369,7 +378,11 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getAiOverview", "getAuthorityConfig", "navigateToConfig"],
+      "tool_names": [
+        "getAiOverview",
+        "getAuthorityConfig",
+        "navigateToConfig"
+      ],
       "source": "both"
     },
     {
@@ -462,7 +475,12 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getCloseStatus", "listCloseSteps", "getBlockers", "proposeSubmitClose"],
+      "tool_names": [
+        "getCloseStatus",
+        "listCloseSteps",
+        "getBlockers",
+        "proposeSubmitClose"
+      ],
       "source": "both"
     },
     {
@@ -607,7 +625,10 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 2,
-      "tool_names": ["getCurrentDocument", "clearDocumentSelection"],
+      "tool_names": [
+        "getCurrentDocument",
+        "clearDocumentSelection"
+      ],
       "source": "both"
     },
     {
@@ -626,7 +647,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 0,
-      "tool_names": ["getDriftStatus", "getDriftInsights", "getDriftBlockers"],
+      "tool_names": [
+        "getDriftStatus",
+        "getDriftInsights",
+        "getDriftBlockers"
+      ],
       "source": "both"
     },
     {
@@ -645,7 +670,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 3,
-      "tool_names": ["getHmsGovernanceOverview", "listGovernanceProtocols", "getProtocolDetail"],
+      "tool_names": [
+        "getHmsGovernanceOverview",
+        "listGovernanceProtocols",
+        "getProtocolDetail"
+      ],
       "source": "both"
     },
     {
@@ -708,7 +737,11 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getMyContractSummary", "getMyContractHistory", "downloadMyContract"],
+      "tool_names": [
+        "getMyContractSummary",
+        "getMyContractHistory",
+        "downloadMyContract"
+      ],
       "source": "both"
     },
     {
@@ -727,7 +760,12 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 4,
-      "tool_names": ["getMyCvStatus", "getMyCvProfile", "getMyCvSkills", "getMyCvCertifications"],
+      "tool_names": [
+        "getMyCvStatus",
+        "getMyCvProfile",
+        "getMyCvSkills",
+        "getMyCvCertifications"
+      ],
       "source": "both"
     },
     {
@@ -794,7 +832,12 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getMySchedule", "getNextShift", "getMyShifts", "navigateWeek"],
+      "tool_names": [
+        "getMySchedule",
+        "getNextShift",
+        "getMyShifts",
+        "navigateWeek"
+      ],
       "source": "both"
     },
     {
@@ -839,7 +882,12 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["getOnboardingProgress", "listOnboardingSteps", "getCurrentStep", "openStep"],
+      "tool_names": [
+        "getOnboardingProgress",
+        "listOnboardingSteps",
+        "getCurrentStep",
+        "openStep"
+      ],
       "source": "both"
     },
     {
@@ -959,7 +1007,12 @@
       "zinc_hits": 0,
       "motion_hits": 0,
       "tool_count": 0,
-      "tool_names": ["listTeams", "getTeamDetail", "proposeCreateTeam", "proposeAssignLeader"],
+      "tool_names": [
+        "listTeams",
+        "getTeamDetail",
+        "proposeCreateTeam",
+        "proposeAssignLeader"
+      ],
       "source": "both"
     },
     {
@@ -1030,7 +1083,10 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 2,
-      "tool_names": ["getRevisionContext", "navigateBackToContract"],
+      "tool_names": [
+        "getRevisionContext",
+        "navigateBackToContract"
+      ],
       "source": "site-map"
     },
     {
@@ -1275,7 +1331,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 0,
-      "tool_names": ["getWebsiteState", "getPagesList", "getPublishActionState"],
+      "tool_names": [
+        "getWebsiteState",
+        "getPagesList",
+        "getPublishActionState"
+      ],
       "source": "both"
     },
     {
@@ -1294,7 +1354,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 3,
-      "tool_names": ["getPageState", "getSectionsList", "getSaveActionState"],
+      "tool_names": [
+        "getPageState",
+        "getSectionsList",
+        "getSaveActionState"
+      ],
       "source": "both"
     },
     {
@@ -1313,27 +1377,11 @@
       "zinc_hits": null,
       "motion_hits": null,
       "tool_count": 2,
-      "tool_names": ["getSetupStatus", "getTemplateOptions"],
+      "tool_names": [
+        "getSetupStatus",
+        "getTemplateOptions"
+      ],
       "source": "both"
-    },
-    {
-      "route": "/dashboard (variant=oversikt|strategic|reconciliation|activity|todo|interactive)",
-      "tier": null,
-      "module": null,
-      "status": "done",
-      "verified": true,
-      "verified_at": "2026-05-14T12:00:00+02:00",
-      "url": "https://app.smartout.ai/dashboard",
-      "warm": {
-        "lcp_ms": null,
-        "cls": null,
-        "tti_ms": null
-      },
-      "zinc_hits": null,
-      "motion_hits": null,
-      "tool_count": 0,
-      "tool_names": [],
-      "source": "run.yml"
     },
     {
       "route": "/dashboard/contracts",

@@ -21,11 +21,11 @@ tags: [dashboard, worktrees, campaign-scoped, git-state]
 
 | Metric | Value |
 |---|---|
-| Routes tracked | 61 |
-| Routes verified | 40 (66%) |
+| Routes tracked | 64 |
+| Routes verified | 53 (83%) |
 | Median warm LCP | 1086 ms |
 | Median warm CLS | 0.001 |
-| Harness tools | 235 |
+| Harness tools | 181 |
 | Tier 0 elements clean | 6/8 |
 
 ## Campaign

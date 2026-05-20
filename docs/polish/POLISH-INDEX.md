@@ -11,17 +11,17 @@ tags: [polish, coverage, performance, harness]
 > **Generated** by `pnpm --filter web polish:index` — DO NOT hand-edit.
 > Truth sources: `.claude/page-polish/*.run.yml`, `apps/web/.botsson/site-map.json`,
 > live source grep of Tier 0 primitives. Regenerate after touching any of them.
-> Last generated: 2026-05-20T19:22:16.325Z
+> Last generated: 2026-05-20T20:11:14.152Z
 
 ## Coverage Rollup
 
 | Metric | Value |
 |---|---|
-| Routes tracked | 65 |
-| Routes verified | 53 (82%) |
+| Routes tracked | 64 |
+| Routes verified | 53 (83%) |
 | Median warm LCP | 1086 ms |
 | Median warm CLS | 0.001 |
-| Total harness tools | 209 |
+| Total harness tools | 181 |
 | Tier 0 elements clean | 6/8 |
 
 ## Routes
@@ -32,7 +32,7 @@ Tracked from `*.run.yml` (polish worksheets) + `site-map.json` (route catalog).
 
 | Route | Tier | Status | ✓ | LCP ms | CLS | TTI ms | Tools | Source |
 |---|---|---|---|---|---|---|---|---|
-| `/dashboard` | 1 | — | · | — | — | — | 28 | site-map |
+| `/dashboard` | 1 | done | ✓ | — | — | — | 0 | both |
 | `/dashboard/calendar` | 1 | done | ✓ | — | — | — | 12 | both |
 | `/dashboard/chat` | 1 | — | · | — | — | — | 1 | site-map |
 | `/dashboard/komm` | 1 | done | ✓ | — | — | — | 0 | both |
@@ -87,7 +87,6 @@ Tracked from `*.run.yml` (polish worksheets) + `site-map.json` (route catalog).
 | `/dashboard/website` | 3 | done | ✓ | — | — | — | 0 | both |
 | `/dashboard/website/pages/[pageId]` | 3 | done | ✓ | — | — | — | 3 | both |
 | `/dashboard/website/setup` | 3 | done | ✓ | — | — | — | 2 | both |
-| `/dashboard (variant=oversikt|strategic|reconciliation|activity|todo|interactive)` | — | done | ✓ | — | — | — | 0 | run.yml |
 | `/dashboard/contracts` | — | done | ✓ | — | — | — | 7 | run.yml |
 | `/dashboard/contracts/[id]` | — | done | ✓ | — | — | — | 5 | run.yml |
 | `/dashboard/contracts/[id]/revise` | — | done | ✓ | — | — | — | 2 | run.yml |
