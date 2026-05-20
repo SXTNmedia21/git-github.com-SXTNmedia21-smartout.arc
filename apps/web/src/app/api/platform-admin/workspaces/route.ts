@@ -38,8 +38,11 @@ const CreateWorkspaceSchema = z.object({
   phone: z.string().optional().or(z.literal("")),
   is_active: z.boolean().default(true),
 
-  // Pricing (Stripe-aligned)
+  // Pricing — ADR-0121 model: monthly_cost + free_users + overage_price_per_user.
+  // price_per_employee accepted for backward compat and synced = overage in insert.
   price_per_employee: z.number().min(0).optional(),
+  free_users: z.number().int().nonnegative().optional(),
+  overage_price_per_user: z.number().nonnegative().optional(),
   monthly_cost: z.number().min(0).optional(),
   billing_interval: z.enum(["month", "year"]).default("month"),
   onboarding_package: z.enum(["small", "medium", "large", "enterprise", "custom"]).optional(),
@@ -271,13 +274,19 @@ export async function POST(request: NextRequest) {
       await admin.from("company").update(updates).eq("company_id", companyId);
     }
 
-    // 4. Insert pricing_terms
+    // 4. Insert pricing_terms (ADR-0121 fields)
     // Map Stripe billing interval to existing DB values
     const billingIntervalMap = { month: "monthly", year: "yearly" } as const;
+    // Sync legacy price_per_employee = overage_price_per_user when only the
+    // new field is provided. Both fields are still written to keep the NOT NULL
+    // legacy column populated during the transition.
+    const overage = d.overage_price_per_user ?? d.price_per_employee ?? 0;
     await admin.from("pricing_terms").insert({
       company_id: companyId,
       workspace_id: workspace.workspace_id,
-      price_per_employee: d.price_per_employee ?? 0,
+      price_per_employee: d.price_per_employee ?? overage,
+      free_users: d.free_users ?? 10,
+      overage_price_per_user: overage,
       monthly_cost: d.monthly_cost ?? null,
       currency: (d.pricing_currency ?? d.currency) as "NOK" | "SEK" | "DKK" | "EUR",
       billing_interval:

@@ -258,6 +258,8 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
               workspaceId: pricingTerms.workspace_id,
               monthlyCost: pricingTerms.monthly_cost,
               pricePerEmployee: pricingTerms.price_per_employee,
+              freeUsers: pricingTerms.free_users ?? 10,
+              overagePricePerUser: pricingTerms.overage_price_per_user ?? null,
               billingInterval: pricingTerms.billing_interval,
               currency: pricingTerms.currency,
               discountPercent: pricingTerms.discount_percent,
