@@ -31,6 +31,8 @@ import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 
 // Canonical Expo Router initial route declaration — more reliable than the
 // initialRouteName prop on <Tabs> when the target screen has href: null.
@@ -85,6 +87,26 @@ export default function AppLayout() {
   const handleFabLongPress = useCallback(() => {
     markFabHintSeen(true);
     botssonSheetRef.current?.expand();
+    // Emit: mobile.fab.long_press (ADR-0134 — non-null IDs required).
+    void (async () => {
+      try {
+        const { profileId, workspaceId } = await getProfileContext();
+        void emit({
+          event: "mobile.fab.long_press",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { device_type: "mobile" } },
+        });
+        void emit({
+          event: "mobile.botsson_sheet.opened",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { source: "fab_long_press", device_type: "mobile" } },
+        });
+      } catch {
+        // Profile unavailable — skip telemetry; UX must not be blocked.
+      }
+    })();
   }, [markFabHintSeen]);
 
   /** Swipe layer 1 (≥80px up) → open AddSheet only. */
@@ -97,6 +119,20 @@ export default function AppLayout() {
     markFabHintSeen(true);
     addSheetRef.current?.open();
     botssonSheetRef.current?.expand();
+    // Emit: mobile.botsson_sheet.opened (source = fab_swipe_layer_2).
+    void (async () => {
+      try {
+        const { profileId, workspaceId } = await getProfileContext();
+        void emit({
+          event: "mobile.botsson_sheet.opened",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { source: "fab_swipe_layer_2", device_type: "mobile" } },
+        });
+      } catch {
+        // Profile unavailable — skip telemetry; UX must not be blocked.
+      }
+    })();
   }, [markFabHintSeen]);
 
   const handleBotssonDismiss = useCallback(() => {

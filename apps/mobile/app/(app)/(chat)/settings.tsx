@@ -32,8 +32,8 @@ import {
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { LucideIcon } from "lucide-react-native";
-import { useBotsson } from "@/providers/botsson-provider";
-import type { BotssonLanguage, BotssonInteractionMode } from "@/providers/botsson-provider";
+import { useAiPrefs } from "@/hooks/use-ai-prefs";
+import type { BotssonLanguage, BotssonInteractionMode } from "@/lib/ai-prefs";
 
 /* ── Types ── */
 
@@ -419,15 +419,9 @@ export default function ChatSettingsScreen() {
   const [walkieMode, setWalkieMode] = useState(false);
   const [status, setStatus] = useState("online");
 
-  // AI settings — sourced from BotssonProvider (MMKV-persisted).
-  const {
-    voiceEnabled,
-    language,
-    interactionMode,
-    setVoiceEnabled,
-    setLanguage,
-    setInteractionMode,
-  } = useBotsson();
+  // AI settings — sourced via useAiPrefs() which emits mobile.ai_prefs.changed
+  // on every change (ADR-0134). Backed by BotssonProvider + MMKV.
+  const { prefs: aiPrefs, updatePref: updateAiPref } = useAiPrefs();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -514,19 +508,19 @@ export default function ChatSettingsScreen() {
           </View>
         </Animated.View>
 
-        {/* AI section */}
+        {/* Botsson AI section — prefs via useAiPrefs() which emits mobile.ai_prefs.changed */}
         <Animated.View
           entering={FadeInDown.delay(400).duration(400).springify()}
           style={styles.section}
         >
-          <Text style={styles.sectionTitle}>AI</Text>
+          <Text style={styles.sectionTitle}>Botsson AI</Text>
           <View style={styles.sectionCard}>
             <ToggleRow
               icon={Mic}
               label="Stemme"
               description="Aktiver talesamtaler med Botsson"
-              value={voiceEnabled}
-              onValueChange={setVoiceEnabled}
+              value={aiPrefs.voiceEnabled}
+              onValueChange={(v) => updateAiPref("voiceEnabled", v)}
             />
             <View style={styles.divider} />
             <PickerRow
@@ -534,8 +528,8 @@ export default function ChatSettingsScreen() {
               label="Språk"
               description="Språk AI-agenten svarer på"
               options={LANGUAGE_OPTIONS}
-              value={language}
-              onSelect={setLanguage}
+              value={aiPrefs.language}
+              onSelect={(v) => updateAiPref("language", v)}
               accessibilityLabel="Velg AI-språk"
             />
             <View style={styles.divider} />
@@ -544,8 +538,8 @@ export default function ChatSettingsScreen() {
               label="Mikrofon-modus"
               description="Hold inne: hold for å snakke. Alltid på: kontinuerlig lytting."
               options={INTERACTION_MODE_OPTIONS}
-              value={interactionMode}
-              onSelect={setInteractionMode}
+              value={aiPrefs.interactionMode}
+              onSelect={(v) => updateAiPref("interactionMode", v)}
               accessibilityLabel="Velg mikrofon-modus"
             />
           </View>

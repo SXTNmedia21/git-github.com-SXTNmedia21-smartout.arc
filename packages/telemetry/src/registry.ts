@@ -4812,6 +4812,43 @@ export interface VoiceBootstrapSnapshotAssemblyFailed extends BaseEvent {
   };
 }
 
+// ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe) ─────────
+// Emitted by the mobile app UI layer (not BFF) for interaction funnel analytics.
+// fab.long_press — posthog + logger. Non-auditable interaction signal.
+// ai_prefs.changed — posthog + logger + activity_trail. Preference mutations are auditable.
+// botsson_sheet.opened — posthog + logger. Non-auditable session-start signal.
+export interface MobileFabLongPress extends BaseEvent {
+  event: "mobile.fab.long_press";
+  properties: {
+    data: {
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileAiPrefsChanged extends BaseEvent {
+  event: "mobile.ai_prefs.changed";
+  properties: {
+    data: {
+      /** Which preference key changed */
+      pref_key: string;
+      /** Stringified new value — boolean "true"/"false", or string enum */
+      pref_value: string;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileBotssonSheetOpened extends BaseEvent {
+  event: "mobile.botsson_sheet.opened";
+  properties: {
+    data: {
+      source: "fab_long_press" | "fab_swipe_layer_2" | "intent";
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -8643,7 +8680,11 @@ export type SmartoutEvent =
   // ─── Voice Bootstrap Snapshot (ADR-0297, feat/mobile-voice-bootstrap-pipe 2026-05-20) ──
   | VoiceBootstrapSnapshotSent
   | VoiceBootstrapSnapshotRefreshed
-  | VoiceBootstrapSnapshotAssemblyFailed;
+  | VoiceBootstrapSnapshotAssemblyFailed
+  // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
+  | MobileFabLongPress
+  | MobileAiPrefsChanged
+  | MobileBotssonSheetOpened;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -13385,6 +13426,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "voice.bootstrap.snapshot_assembly_failed": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
+  // fab.long_press: posthog (UX discovery funnel) + logger. No activity_trail — tap events
+  //   are not auditable actions, they're interaction signals. No engine_event — not workflow.
+  // ai_prefs.changed: posthog (feature adoption) + logger + activity_trail (preference-change
+  //   audit). No engine_event — preferences are not workflow-driving.
+  // botsson_sheet.opened: posthog (session-start funnel) + logger. No activity_trail — sheet
+  //   open is a UI event, not a data-mutation. No engine_event — informational.
+  "mobile.fab.long_press": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "mobile.ai_prefs.changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.botsson_sheet.opened": {
+    destinations: ["posthog", "logger"],
     category: "agent",
   },
 };

@@ -10,7 +10,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -25,6 +25,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 import { useBotsson, type TranscriptEntry, type BotssonIntent } from "@/providers/botsson-provider";
+import { TranscriptPane } from "@/components/ai/TranscriptPane";
 
 // TranscriptEntry is defined and exported by botsson-provider — imported above.
 
@@ -72,7 +73,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       endSession,
       setMicrophoneMuted,
     } = useBotsson();
-    const scrollRef = useRef<ScrollView>(null);
 
     // Snapshot the intent the moment it arrives so the prompt persists for the
     // duration of the sheet session even after clearIntent() fires.
@@ -98,16 +98,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     // When voice is disabled the array stays empty — chat-only path uses it too
     // (empty state remains until a voice session starts).
     const transcript = voiceEnabled ? voiceTranscript : [];
-
-    // Auto-scroll to bottom whenever a new transcript entry arrives.
-    useEffect(() => {
-      if (transcript.length === 0) return;
-      // Small timeout lets the ScrollView finish layout before we scroll.
-      const timer = setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-      return () => clearTimeout(timer);
-    }, [transcript.length]);
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -239,31 +229,8 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             </View>
           ) : null}
 
-          {/* Transcript — scrollable conversation history */}
-          <ScrollView
-            ref={scrollRef}
-            style={styles.transcript}
-            contentContainerStyle={styles.transcriptContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {transcript.length === 0 && (
-              <Text style={styles.emptyText}>Trykk på mikrofonen for å starte en samtale</Text>
-            )}
-            {transcript.map((entry) => (
-              <View
-                key={entry.id}
-                style={[
-                  styles.transcriptEntry,
-                  entry.role === "user" ? styles.userEntry : styles.agentEntry,
-                ]}
-              >
-                <Text style={styles.transcriptRole}>
-                  {entry.role === "agent" ? "Botsson" : "Du"}
-                </Text>
-                <Text style={styles.transcriptText}>{entry.text}</Text>
-              </View>
-            ))}
-          </ScrollView>
+          {/* Transcript — scrollable conversation history (extracted to TranscriptPane) */}
+          <TranscriptPane transcripts={transcript} />
 
           {/* Control area — status orb + mic button in thumb zone */}
           <View style={styles.controlArea}>
@@ -342,44 +309,6 @@ const useStyles = createStyles((theme) => ({
   intentBannerText: {
     ...theme.typography.body,
     color: theme.colors.foreground,
-  },
-  transcript: {
-    flex: 1,
-  },
-  transcriptContent: {
-    paddingHorizontal: theme.spacing.card,
-    paddingVertical: theme.spacing.element,
-    gap: theme.spacing.element,
-  },
-  emptyText: {
-    ...theme.typography.body,
-    color: theme.colors.mutedForeground,
-    textAlign: "center",
-    marginTop: theme.spacing.section,
-  },
-  transcriptEntry: {
-    gap: 2,
-  },
-  userEntry: {
-    alignItems: "flex-end",
-  },
-  agentEntry: {
-    alignItems: "flex-start",
-  },
-  transcriptRole: {
-    ...theme.typography.caption,
-    color: theme.colors.mutedForeground,
-    fontWeight: theme.fontWeights.medium,
-  },
-  transcriptText: {
-    ...theme.typography.body,
-    color: theme.colors.foreground,
-    backgroundColor: theme.colors.secondary,
-    paddingHorizontal: theme.spacing.element,
-    paddingVertical: theme.spacing.tight,
-    borderRadius: theme.radius.lg,
-    maxWidth: "85%",
-    overflow: "hidden",
   },
   controlArea: {
     alignItems: "center",
