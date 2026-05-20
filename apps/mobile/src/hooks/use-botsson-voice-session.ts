@@ -645,7 +645,11 @@ export function useBotssonVoiceSession(
                 data: {
                   tool: name,
                   call_id,
-                  reason: publishRes.ok ? resultStr : (publishRes.reason ?? "publish failed"),
+                  // Never include raw tool output — may contain PII (ADR-0078).
+                  // Tool name + call_id are sufficient for diagnosability.
+                  reason: publishRes.ok
+                    ? "tool_execution_failed"
+                    : (publishRes.reason ?? "publish failed"),
                   device_type: "mobile",
                 },
               },

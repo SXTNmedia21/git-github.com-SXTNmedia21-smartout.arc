@@ -201,7 +201,7 @@ export function getToolDefinitionsForRegistration(): Array<{
         name: paramName,
         location: "body",
         description: paramDef.description,
-        required: paramDef.required !== false,
+        required: paramDef.required === true,
         schema: { type: paramDef.type as "string" | "number" | "boolean" | "object" | "array" },
       })),
       client: {} as Record<string, never>,
