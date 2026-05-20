@@ -44,6 +44,10 @@ import type { OrbStatus } from "./types";
 // 4-stop gradient per status, resolved offline from the prototype's OKLCH
 // formula (hue 50, chroma 0.08 / 0.12 / 0.04). See file header for the exact
 // source formula. Values cover lightness 0.82 → transparent.
+//
+// "error" stop: hue 20 (red-orange), chroma 0.14 — resolved offline from the
+// same formula at lightness 0.82 → transparent. Visually distinct destructive
+// tint. Backward-compat: existing consumers only use waiting/active/complete.
 const STOPS: Record<OrbStatus, [string, string, string, string]> = {
   waiting: [
     "rgba(194, 154, 116, 1)",
@@ -61,6 +65,13 @@ const STOPS: Record<OrbStatus, [string, string, string, string]> = {
     "rgba(183, 168, 154, 1)",
     "rgba(155, 139, 126, 0.75)",
     "rgba(117, 103, 93, 0.35)",
+    "transparent",
+  ],
+  // hue 20 (destructive red-orange), chroma 0.14: lightness 0.82 → 0.72 → 0.62 → transparent
+  error: [
+    "rgba(220, 110, 80, 1)",
+    "rgba(192, 84, 55, 0.75)",
+    "rgba(148, 58, 34, 0.35)",
     "transparent",
   ],
 };

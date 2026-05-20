@@ -97,6 +97,17 @@ export type BotssonVoiceStatus =
   | "speaking"
   | "error";
 
+/**
+ * D3: Phase of the exponential-backoff reconnect state machine.
+ *   idle     — no reconnect in progress
+ *   retrying — attempt 1–3 in flight
+ *   failed   — all 3 attempts exhausted
+ */
+export type ReconnectPhase = "idle" | "retrying" | "failed";
+
+/** D2: error code emitted when mic permission is denied by the OS. */
+export const MIC_PERMISSION_DENIED_CODE = "MIC_PERMISSION_DENIED" as const;
+
 export type BotssonVoiceError = {
   code: string;
   message: string;
@@ -135,6 +146,15 @@ export type UseBotssonVoiceSessionParams = {
   disabled?: boolean;
   /** Called whenever the orchestrator transitions into `error`. */
   onError?: (error: BotssonVoiceError) => void;
+  /**
+   * D4: Called when the BFF returns 403 with `reason: 'voice_policy_disabled'`
+   * mid-session, indicating the workspace voice policy was revoked. The
+   * provider should tear down the voice session and switch to text mode.
+   *
+   * The `onError` callback also fires with code='VOICE_POLICY_DISABLED' so
+   * callers that only listen to `onError` get the signal too.
+   */
+  onPolicyFlipped?: () => void;
   /** Test seam — replaces expo-speech. Not documented in the public API. */
   speechAdapter?: SpeechAdapter;
   /** Test seam — replaces `new Room()`. Not documented in the public API. */
@@ -160,6 +180,16 @@ export type UseBotssonVoiceSessionResult = {
   error: BotssonVoiceError | null;
   /** True once the LiveKit Room transitions to connected. */
   isConnected: boolean;
+  /**
+   * D3: Current phase of the exponential-backoff reconnect state machine.
+   * 'idle' when no reconnect is in progress (normal session or after explicit stop).
+   * 'retrying' while one of the 3 attempts is in flight.
+   * 'failed' after all 3 attempts are exhausted — parent should render final
+   *   "switch to text" banner.
+   */
+  reconnectPhase: ReconnectPhase;
+  /** D3: Current retry attempt index (1–3). 0 when reconnectPhase is 'idle'. */
+  reconnectAttempt: number;
   /**
    * True when the local participant's mic is enabled. Always false for
    * `listen_only` policy. Flipping via `toggleMic` is a no-op on
@@ -334,8 +364,32 @@ export async function performStart(deps: PerformStartDeps): Promise<PerformStart
         krispProcessor ? { processor: krispProcessor } : undefined,
       );
       micEnabled = true;
-    } catch {
-      // Mic enable failed — keep the session running in effective-mute.
+    } catch (micErr) {
+      // D2: Detect OS-level mic permission denial. `NotAllowedError` is the
+      // standard DOMException name thrown by getUserMedia when the user (or
+      // OS) has denied the microphone permission. React Native / expo-av
+      // surfaces this as a `NotAllowedError` or includes "Permission" in the
+      // message. We re-throw with a distinct code so the caller can show the
+      // MicPermissionDialog instead of a generic error banner.
+      const errMsg = micErr instanceof Error ? micErr.message : "";
+      const isPermissionDenied =
+        (micErr instanceof Error && micErr.name === "NotAllowedError") ||
+        errMsg.toLowerCase().includes("permission") ||
+        errMsg.toLowerCase().includes("denied");
+
+      if (isPermissionDenied) {
+        // Disconnect the room — no audio = no session.
+        try {
+          await room.disconnect();
+        } catch {
+          /* swallow */
+        }
+        throw {
+          code: MIC_PERMISSION_DENIED_CODE,
+          message: "Mikrofontilgang er avvist. Åpne innstillinger for å aktivere.",
+        } satisfies BotssonVoiceError;
+      }
+      // Other mic errors (hardware issue, etc.) — keep session running muted.
       micEnabled = false;
     }
   }
@@ -354,6 +408,7 @@ export function useBotssonVoiceSession(
     asrProvider,
     disabled = false,
     onError,
+    onPolicyFlipped,
     speechAdapter = expoSpeechAdapter,
     roomFactory,
     currentSnapshot,
@@ -371,15 +426,28 @@ export function useBotssonVoiceSession(
   >(null);
   const [lastResponse, setLastResponse] = useState<string>("");
   const [lastUserTranscript, setLastUserTranscript] = useState<string>("");
+  /** D3: Exponential-backoff reconnect phase and attempt counter. */
+  const [reconnectPhase, setReconnectPhase] = useState<ReconnectPhase>("idle");
+  const [reconnectAttempt, setReconnectAttempt] = useState<number>(0);
 
   // Refs keep async handlers stable so React-state churn doesn't re-subscribe.
   const roomRef = useRef<Room | null>(null);
   const speechAdapterRef = useRef(speechAdapter);
   const onErrorRef = useRef(onError);
+  const onPolicyFlippedRef = useRef(onPolicyFlipped);
   const onSnapshotRef = useRef(onSnapshot);
   const ttsLanguageRef = useRef(ttsLanguage);
   const startingRef = useRef(false);
   const stoppedRef = useRef(false);
+  /**
+   * D3: Exponential-backoff reconnect state machine.
+   * reconnectAttemptsRef tracks in-progress retries so the handler is
+   * idempotent even if RoomEvent.Disconnected fires multiple times during
+   * a single disconnect episode.
+   * reconnectTimerRef holds the active setTimeout so stop() can cancel it.
+   */
+  const reconnectAttemptsRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * ADR-0297: version of the last snapshot we successfully published on the
    * "botsson-context" data channel. Prevents re-publishing the same version
@@ -434,6 +502,9 @@ export function useBotssonVoiceSession(
     onErrorRef.current = onError;
   }, [onError]);
   useEffect(() => {
+    onPolicyFlippedRef.current = onPolicyFlipped;
+  }, [onPolicyFlipped]);
+  useEffect(() => {
     onSnapshotRef.current = onSnapshot;
   }, [onSnapshot]);
   useEffect(() => {
@@ -451,6 +522,18 @@ export function useBotssonVoiceSession(
     setError(err);
     setStatus("error");
     onErrorRef.current?.(err);
+    // D4: If the error indicates voice policy was disabled, fire the
+    // dedicated policy-flip callback so the provider can auto-switch to text.
+    // Code 'VOICE_POLICY_DISABLED' is set when getLiveKitToken returns a 403
+    // with reason='voice_policy_disabled' at session start, or when the
+    // reconnect flow gets a 403 from the token edge function.
+    // NOTE: mid-session BFF 403s from the transcript route are not propagated
+    //   here because useVoiceTranscripts does not surface errors to callers
+    //   (architectural gap — documented in P6 report). The provider watches
+    //   voice.error as a fallback for any VOICE_POLICY_DISABLED code.
+    if (err.code === "VOICE_POLICY_DISABLED") {
+      onPolicyFlippedRef.current?.();
+    }
   }, []);
 
   /**
@@ -525,12 +608,132 @@ export function useBotssonVoiceSession(
         void publishToolsToRoom(room, workspaceIdRef.current);
       });
     };
+    /**
+     * D3: Exponential-backoff reconnect on unexpected disconnect.
+     *
+     * Backoff schedule: attempt 1 → 500ms, attempt 2 → 1000ms, attempt 3 → 2000ms.
+     * After 3 failures the reconnect phase becomes 'failed' and the caller
+     * should render the "switch to text" banner.
+     *
+     * Telemetry: `mobile.voice.disconnect_recovered` on success,
+     * `mobile.voice.disconnect_failed` after all retries exhausted.
+     *
+     * Guard: skipped when stoppedRef is true (explicit stop()) so we don't
+     * re-connect after the user ends the session intentionally.
+     */
+    const RECONNECT_DELAYS_MS = [500, 1000, 2000] as const;
+    const MAX_RECONNECT_ATTEMPTS = RECONNECT_DELAYS_MS.length;
+    const disconnectStartMs = { value: Date.now() };
+
+    const attemptReconnect = async (): Promise<void> => {
+      if (stoppedRef.current) return;
+
+      const attempt = reconnectAttemptsRef.current + 1;
+      reconnectAttemptsRef.current = attempt;
+      setReconnectAttempt(attempt);
+
+      if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        // All retries exhausted.
+        setReconnectPhase("failed");
+        setStatus("error");
+        const elapsed_ms = Date.now() - disconnectStartMs.value;
+        fail({ code: "RECONNECT_FAILED", message: "Kunne ikke koble til igjen." });
+        // Telemetry: mobile.voice.disconnect_failed
+        try {
+          const { profileId } = await getProfileContext();
+          const wid = workspaceIdRef.current;
+          if (wid) {
+            void emit({
+              event: "mobile.voice.disconnect_failed",
+              workspace_id: nonEmpty(wid, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "agent_session", entity_id: room.name },
+                data: {
+                  workspace_id: wid,
+                  attempts: MAX_RECONNECT_ATTEMPTS,
+                  elapsed_ms,
+                  device_type: "mobile",
+                },
+              },
+            });
+          }
+        } catch {
+          /* profile context unavailable — skip telemetry */
+        }
+        return;
+      }
+
+      setReconnectPhase("retrying");
+      setStatus("connecting");
+
+      const delayMs = RECONNECT_DELAYS_MS[attempt - 1];
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        void (async () => {
+          if (stoppedRef.current) return;
+          try {
+            // Re-use the same room instance — LiveKit Room.connect after
+            // disconnect resets internal state and reconnects.
+            const wid = workspaceIdRef.current;
+            const cid = channelId;
+            if (!wid || !cid) {
+              throw new Error("workspaceId or channelId missing on reconnect");
+            }
+            const token = await import("@smartout/walkie-talkie").then(({ getLiveKitToken }) =>
+              getLiveKitToken(supabase, { channelId: cid, workspaceId: wid, purpose: "ai_voice" }),
+            );
+            await room.connect(token.serverUrl, token.token, { autoSubscribe: true });
+
+            // Reconnected successfully.
+            setIsConnected(true);
+            setStatus("listening");
+            setReconnectPhase("idle");
+            reconnectAttemptsRef.current = 0;
+            setReconnectAttempt(0);
+
+            const recovery_ms = Date.now() - disconnectStartMs.value;
+            // Telemetry: mobile.voice.disconnect_recovered
+            try {
+              const { profileId } = await getProfileContext();
+              if (wid) {
+                void emit({
+                  event: "mobile.voice.disconnect_recovered",
+                  workspace_id: nonEmpty(wid, "workspace_id"),
+                  actor_id: nonEmpty(profileId, "actor_id"),
+                  properties: {
+                    entity: { entity_type: "agent_session", entity_id: room.name },
+                    data: {
+                      workspace_id: wid,
+                      attempt,
+                      recovery_ms,
+                      device_type: "mobile",
+                    },
+                  },
+                });
+              }
+            } catch {
+              /* skip telemetry if profile context unavailable */
+            }
+          } catch {
+            // This attempt failed — schedule next retry (recursive call
+            // advances attempt counter and checks MAX).
+            if (!stoppedRef.current) {
+              void attemptReconnect();
+            }
+          }
+        })();
+      }, delayMs);
+    };
+
     const handleDisconnected = () => {
       setIsConnected(false);
       setIsMuted(false);
-      // Only transition status if we're not deliberately stopping.
+      // Only trigger reconnect if the session wasn't explicitly stopped.
       if (!stoppedRef.current) {
-        setStatus("idle");
+        disconnectStartMs.value = Date.now();
+        reconnectAttemptsRef.current = 0;
+        void attemptReconnect();
       }
     };
     const handleTrackMuted = () => {
@@ -728,6 +931,26 @@ export function useBotssonVoiceSession(
     } catch (e) {
       const err = e as BotssonVoiceError;
       if (err && typeof err === "object" && "code" in err) {
+        // D2: Emit mic-permission-denied telemetry before forwarding the error.
+        if (err.code === MIC_PERMISSION_DENIED_CODE) {
+          try {
+            const { profileId } = await getProfileContext();
+            const wid = workspaceId;
+            if (wid) {
+              void emit({
+                event: "mobile.voice.mic_permission_denied",
+                workspace_id: nonEmpty(wid, "workspace_id"),
+                actor_id: nonEmpty(profileId, "actor_id"),
+                properties: {
+                  entity: { entity_type: "agent_session", entity_id: channelId ?? "unknown" },
+                  data: { workspace_id: wid, device_type: "mobile" },
+                },
+              });
+            }
+          } catch {
+            /* getProfileContext unavailable — skip telemetry */
+          }
+        }
         fail(err);
       } else {
         fail({
@@ -743,6 +966,12 @@ export function useBotssonVoiceSession(
   const stop = useCallback(async () => {
     stoppedRef.current = true;
     speechAdapterRef.current.stop();
+    // D3: Cancel any pending reconnect timer so we don't reconnect after explicit stop.
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectAttemptsRef.current = 0;
     // ADR-0297: reset published version on explicit stop so the next session
     // always publishes a fresh snapshot (version may be stale by reconnect time).
     lastPublishedVersionRef.current = "";
@@ -768,6 +997,8 @@ export function useBotssonVoiceSession(
     setVoiceParticipation(null);
     setLastUserTranscript("");
     setStatus("idle");
+    setReconnectPhase("idle");
+    setReconnectAttempt(0);
   }, []);
 
   const toggleMic = useCallback(async () => {
@@ -805,6 +1036,8 @@ export function useBotssonVoiceSession(
     voiceParticipation,
     lastResponse,
     lastUserTranscript,
+    reconnectPhase,
+    reconnectAttempt,
     start,
     stop,
     toggleMic,

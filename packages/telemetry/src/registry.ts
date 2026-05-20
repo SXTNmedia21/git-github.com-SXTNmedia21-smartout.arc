@@ -5260,6 +5260,73 @@ export interface MobileChatError extends BaseEvent {
   };
 }
 
+// ─── Mobile Voice UX Events (P6 mobile-voice-runtime-wire 2026-05-20) ────────
+// Emitted by use-botsson-voice-session.ts + botsson-provider.tsx on mobile.
+// mic_permission_denied: posthog + logger + activity_trail.
+//   posthog: permission-denial funnel (how many users hit this).
+//   activity_trail: auditable — permission denial is a security-surface event.
+//   No engine_event — not a workflow trigger.
+// disconnect_recovered: posthog + logger.
+//   posthog: reliability funnel (how often do we recover vs fail completely).
+//   logger: debugging disconnect patterns. No activity_trail — transient infra event.
+// disconnect_failed: posthog + logger + activity_trail.
+//   activity_trail: degraded-session audit. posthog: reliability KPI.
+// policy_flipped: posthog + logger + activity_trail.
+//   activity_trail: governance audit — workspace policy change mid-session is a notable event.
+export interface MobileVoiceMicPermissionDenied extends BaseEvent {
+  event: "mobile.voice.mic_permission_denied";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoiceDisconnectRecovered extends BaseEvent {
+  event: "mobile.voice.disconnect_recovered";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** Which retry attempt succeeded (1-based). */
+      attempt: number;
+      /** Milliseconds from first disconnect detection to successful reconnect. */
+      recovery_ms: number;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoiceDisconnectFailed extends BaseEvent {
+  event: "mobile.voice.disconnect_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** Total retry attempts exhausted. */
+      attempts: number;
+      /** Total ms elapsed from first disconnect to final failure. */
+      elapsed_ms: number;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoicePolicyFlipped extends BaseEvent {
+  event: "mobile.voice.policy_flipped";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** HTTP status from BFF that indicated policy denial (typically 403). */
+      status_code: number;
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -9193,7 +9260,11 @@ export type SmartoutEvent =
   // ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ──
   | MobileChatMessageSent
   | MobileChatResponseReceived
-  | MobileChatError;
+  | MobileChatError
+  | MobileVoiceMicPermissionDenied
+  | MobileVoiceDisconnectRecovered
+  | MobileVoiceDisconnectFailed
+  | MobileVoicePolicyFlipped;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -14890,6 +14961,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "mobile.chat.error": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Mobile Voice UX Events (P6 mobile-voice-runtime-wire 2026-05-20) ──
+  // mic_permission_denied: posthog (denial funnel) + logger + activity_trail (security-surface audit).
+  // disconnect_recovered: posthog (reliability KPI) + logger. Transient — no activity_trail.
+  // disconnect_failed: posthog (reliability KPI) + logger + activity_trail (degraded-session audit).
+  // policy_flipped: posthog (governance signal) + logger + activity_trail (workspace policy audit).
+  "mobile.voice.mic_permission_denied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.voice.disconnect_recovered": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "mobile.voice.disconnect_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.voice.policy_flipped": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

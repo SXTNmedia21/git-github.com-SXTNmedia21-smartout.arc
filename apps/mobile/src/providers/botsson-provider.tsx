@@ -29,11 +29,16 @@ import {
   type ReactNode,
 } from "react";
 import { randomUUID } from "expo-crypto";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
-import { useBotssonVoiceSession } from "@/hooks/use-botsson-voice-session";
-import type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
+import {
+  useBotssonVoiceSession,
+  MIC_PERMISSION_DENIED_CODE,
+} from "@/hooks/use-botsson-voice-session";
+import type { BotssonVoiceStatus, ReconnectPhase } from "@/hooks/use-botsson-voice-session";
 import type { ResolvedSnapshot } from "@/hooks/use-voice-transcripts";
 import { useBotssonSettingsStore } from "@/hooks/stores/use-botsson-settings-store";
 import type {
@@ -181,6 +186,25 @@ type BotssonContextValue = {
   clearIntent: () => void;
   /** Error message if status is "error" */
   error: string | null;
+  /**
+   * D2: True when voice session start failed due to OS mic permission denial.
+   * BotssonSheet renders `MicPermissionDialog` when this is true.
+   * Cleared on next `startVoiceSession()` attempt or explicit `endSession()`.
+   */
+  micPermissionDenied: boolean;
+  /**
+   * D3: Current reconnect phase from the voice session hook. Surfaces the
+   * exponential-backoff reconnect state so BotssonSheet can render the
+   * `NetworkRetryBanner`.
+   */
+  reconnectPhase: ReconnectPhase;
+  /** D3: Current retry attempt (1–3). 0 when reconnectPhase is 'idle'. */
+  reconnectAttempt: number;
+  /**
+   * D4: True when the workspace voice policy was disabled mid-session.
+   * BotssonSheet renders the policy-flip banner. Cleared on mode switch.
+   */
+  policyFlipped: boolean;
   /** User-configurable AI preferences — persisted via MMKV. */
   voiceEnabled: boolean;
   language: BotssonLanguage;
@@ -201,6 +225,10 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
+  /** D2: Set when voice start fails with MIC_PERMISSION_DENIED. */
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  /** D4: Set when voice policy is revoked mid-session (403 from token or transcript BFF). */
+  const [policyFlipped, setPolicyFlipped] = useState(false);
   /**
    * ADR-0297: canonical snapshot state. Set when the BFF returns a new or
    * refreshed snapshot. Cleared on endSession(). Passed to voice session hook
@@ -257,7 +285,53 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const handleVoiceError = useCallback((err: { code: string; message: string }) => {
     setError(err.message);
+    // D2: Mic permission denial — surface the dedicated dialog state.
+    if (err.code === MIC_PERMISSION_DENIED_CODE) {
+      setMicPermissionDenied(true);
+      // Keep status as error but do NOT set mode to null — the sheet stays open
+      // so the user can see the MicPermissionDialog and choose an action.
+    }
   }, []);
+
+  /**
+   * D4: Voice policy flipped mid-session. Auto-switch to text mode.
+   *
+   * Called by useBotssonVoiceSession when fail() fires with code='VOICE_POLICY_DISABLED'.
+   * The voice session is in error state at this point — we tear it down cleanly
+   * (stop() is idempotent) then switch to text mode so the user can continue.
+   * Transcript history is preserved — endSession() is NOT called.
+   */
+  const handlePolicyFlipped = useCallback(() => {
+    setPolicyFlipped(true);
+    setStatus("active");
+    setMode("text");
+    setError(null);
+    // Telemetry: mobile.voice.policy_flipped — ADR-0134 L-0177.
+    void (async () => {
+      try {
+        const { profileId } = await getProfileContext();
+        if (!workspaceId) return; // L-0177 fail-fast
+        void emit({
+          event: "mobile.voice.policy_flipped",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: {
+            entity: {
+              entity_type: "agent_session",
+              entity_id: botssonChannelId ?? "unknown",
+            },
+            data: {
+              workspace_id: workspaceId,
+              status_code: 403,
+              device_type: "mobile",
+            },
+          },
+        });
+      } catch {
+        /* getProfileContext unavailable — skip telemetry per L-0177 */
+      }
+    })();
+  }, [workspaceId, botssonChannelId]);
 
   /**
    * ADR-0297: lift snapshot from transcript hook to provider context.
@@ -276,6 +350,7 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     channelId: botssonChannelId,
     disabled: mode !== "voice",
     onError: handleVoiceError,
+    onPolicyFlipped: handlePolicyFlipped,
     currentSnapshot,
     onSnapshot: handleSnapshot,
   });
@@ -404,6 +479,11 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
 
   const startVoiceSession = useCallback(async () => {
     setError(null);
+    // D2: clear mic-permission-denied on each new attempt (user may have granted
+    // permission in settings since the last failure).
+    setMicPermissionDenied(false);
+    // D4: clear policy-flip flag on re-attempt (policy may have been re-enabled).
+    setPolicyFlipped(false);
     // Transcript is NOT cleared — mode switching preserves history.
     setMode("voice");
     setStatus("connecting");
@@ -474,6 +554,9 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     setStatus("idle");
     setMode(null);
     setError(null);
+    // D2/D4: clear error dialog states on full session end.
+    setMicPermissionDenied(false);
+    setPolicyFlipped(false);
     // Clear unified transcript and text session id on full session end.
     setTranscript([]);
     setTextSessionId(null);
@@ -531,6 +614,11 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      // D2/D3/D4: error dialog + reconnect state.
+      micPermissionDenied,
+      reconnectPhase: voice.reconnectPhase,
+      reconnectAttempt: voice.reconnectAttempt,
+      policyFlipped,
       // AI settings — user preferences from the MMKV-backed store.
       voiceEnabled,
       language,
@@ -545,6 +633,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       voice.isMuted,
       voice.status,
       voice.lastResponse,
+      voice.reconnectPhase,
+      voice.reconnectAttempt,
       transcript,
       sessionContext,
       pendingIntent,
@@ -558,6 +648,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      micPermissionDenied,
+      policyFlipped,
       voiceEnabled,
       language,
       interactionMode,
