@@ -14,6 +14,17 @@ on:
       - "supabase/migrations/**"
       - ".github/scripts/migration-lint.sh"
       - ".github/workflows/migration-lint.yml"
+  # Also run on direct pushes (development accepts direct commits per CLAUDE.md).
+  # Without this, a direct-push to development bypasses the linter entirely —
+  # which is exactly how the ADR-0388 cron fix skipped Check 0 in CI. The
+  # cron-coherence check (Check 0) is a working-tree scan and runs regardless
+  # of base-ref; the diff-based checks compare against the pre-push SHA.
+  push:
+    branches: [development, preview, main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/scripts/migration-lint.sh"
+      - ".github/workflows/migration-lint.yml"
 
 jobs:
   lint:
@@ -28,6 +39,10 @@ jobs:
           fetch-depth: 0
 
       - name: Run migration linter
+        # PR events compare against the base branch; push events compare against
+        # the pre-push SHA (github.event.before). If the base ref is
+        # unresolvable (e.g. first push to a new branch), the diff-based checks
+        # skip cleanly while Check 0 still runs.
         env:
-          GIT_BASE_REF: origin/${{ github.base_ref }}
+          GIT_BASE_REF: ${{ github.base_ref && format('origin/{0}', github.base_ref) || github.event.before }}
         run: bash .github/scripts/migration-lint.sh
