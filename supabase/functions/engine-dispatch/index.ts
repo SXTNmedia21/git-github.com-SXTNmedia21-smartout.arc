@@ -789,11 +789,12 @@ async function executeStep(
       // Create session_task if department_session context exists
       if (state.entity_type === "department_session" && state.entity_id) {
         const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: anchoredDayLineId } = await (supabase as any).rpc(
+        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc(
           "fn_resolve_single_day_line",
           { p_department_session_id: state.entity_id as string },
         );
+        if (dayLineErr)
+          console.warn("[engine-dispatch] fn_resolve_single_day_line failed:", dayLineErr);
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: state.entity_id,
@@ -2160,11 +2161,12 @@ async function executeStep(
       const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
 
       if (sessionId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: anchoredDayLineId } = await (supabase as any).rpc(
+        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc(
           "fn_resolve_single_day_line",
           { p_department_session_id: sessionId },
         );
+        if (dayLineErr)
+          console.warn("[engine-dispatch] fn_resolve_single_day_line failed:", dayLineErr);
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: sessionId,
