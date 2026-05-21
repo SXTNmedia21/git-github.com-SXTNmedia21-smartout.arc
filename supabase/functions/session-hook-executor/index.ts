@@ -154,6 +154,12 @@ Deno.serve(async (req) => {
         // Only fire if current time is past fire time
         if (now < fireTime) continue;
 
+        // A-ANCHOR (ADR-0367): anchor hook-spawned tasks to the session's single day_line.
+        // NULL when 0 or >1 day_lines (don't guess) — task stays department-level.
+        const { data: anchoredDayLineId } = await supabase.rpc("fn_resolve_single_day_line", {
+          p_department_session_id: session.department_session_id,
+        });
+
         // Materialize procedure steps into session_task rows
         if (hook.linked_procedure_id) {
           const procedureSteps = stepsByProcedure.get(hook.linked_procedure_id) ?? [];
@@ -166,6 +172,7 @@ Deno.serve(async (req) => {
             description: step.description,
             status: "pending",
             is_compliance_required: step.is_required,
+            day_line_id: anchoredDayLineId ?? null,
           }));
 
           if (taskRows.length > 0) {
@@ -196,6 +203,7 @@ Deno.serve(async (req) => {
             title: `Rutine: ${hook.hook_type}`,
             description: `Automatisk opprettet fra rutine ${hook.linked_routine_id}`,
             status: "pending",
+            day_line_id: anchoredDayLineId ?? null,
           });
           if (!error) {
             totalTasksCreated += 1;
