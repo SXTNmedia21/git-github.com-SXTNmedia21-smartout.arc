@@ -477,3 +477,54 @@ jobs:
             exit 1
           fi
           echo "✓ Prod schema diff matches committed baseline (known cosmetic only)"
+
+      - name: Verify pg_cron jobs registered in prod (ADR-0388)
+        # Coherence is more than schema shape: a guarded cron.schedule() can
+        # record "applied" yet register ZERO jobs when pg_cron is disabled in
+        # the target env (the silent-skip class — see ADR-0388). Assert prod
+        # actually holds the canonical job set.
+        env:
+          SUPABASE_PROD_URL: ${{ secrets.SUPABASE_PROD_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_PROD_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          CANON=$(grep -rl "CRON-REGISTRY-CANONICAL" supabase/migrations/*.sql 2>/dev/null | head -1 || true)
+          if [ -z "$CANON" ]; then
+            echo "::error::No canonical cron-registry migration (marker CRON-REGISTRY-CANONICAL). See ADR-0388."
+            exit 1
+          fi
+          EXPECTED=$(perl -0777 -ne 'while(/cron\.schedule\s*\(\s*\x27([^\x27]+)\x27/g){print "$1\n"}' "$CANON" | sort -u | grep -c .)
+          echo "canonical registry: $CANON (expects >= $EXPECTED jobs)"
+
+          HTTP=$(mktemp)
+          CODE=$(curl -s -o "$HTTP" -w '%{http_code}' \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -X POST "$SUPABASE_PROD_URL/rest/v1/rpc/fn_cron_jobs_health" -d '{}')
+          BODY=$(cat "$HTTP"); rm -f "$HTTP"
+          echo "rpc http=$CODE body=$BODY"
+
+          # Graceful-degrade: if the RPC is not yet deployed (PostgREST PGRST202
+          # / 404), the ADR-0388 migration hasn't reached prod yet — warn instead
+          # of false-red so this verifier can ship in a release before/with it.
+          if echo "$BODY" | grep -q "PGRST202" || [ "$CODE" = "404" ]; then
+            echo "::warning::fn_cron_jobs_health() not deployed yet (ADR-0388 migration not on prod). Skipping cron assertion."
+            exit 0
+          fi
+          if [ "$CODE" != "200" ]; then
+            echo "::error::cron health RPC failed (http $CODE): $BODY"
+            exit 1
+          fi
+
+          ENABLED=$(echo "$BODY" | jq -r '.pg_cron_enabled')
+          COUNT=$(echo "$BODY" | jq -r '.count')
+          if [ "$ENABLED" != "true" ]; then
+            echo "::error::pg_cron NOT enabled in prod — guarded cron.schedule() calls silently skipped. Enable the pg_cron extension. (ADR-0388)"
+            exit 1
+          fi
+          if [ "$COUNT" -lt "$EXPECTED" ]; then
+            echo "::error::Cron drift — prod registered $COUNT jobs, canonical registry expects >= $EXPECTED. (ADR-0388)"
+            exit 1
+          fi
+          echo "✓ pg_cron healthy: $COUNT jobs registered in prod (>= $EXPECTED expected)"

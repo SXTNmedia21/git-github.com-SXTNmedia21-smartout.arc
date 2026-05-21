@@ -33,6 +33,37 @@ TYPES_FILE="packages/supabase/src/database.types.ts"
 FAIL=0
 
 # ---------------------------------------------------------------------------
+# 0. Cron registration coherence (ALWAYS runs — global invariant, ADR-0388)
+#
+# Every cron.schedule('name'...) anywhere in supabase/migrations/ must also be
+# present in the canonical cron-registry migration (marked
+# CRON-REGISTRY-CANONICAL). This guarantees a fresh DB / re-enabled pg_cron
+# registers the complete net-state. Root cause it guards against: a guarded
+# cron.schedule that records "applied" but never registers because pg_cron is
+# disabled in the target env — the silent-skip rot that left 27 prod jobs dead.
+# ---------------------------------------------------------------------------
+log "Check 0 — cron registration coherence"
+CANON=$(grep -rl "CRON-REGISTRY-CANONICAL" "$MIGRATIONS_DIR"/*.sql 2>/dev/null | head -1 || true)
+if [[ -z "$CANON" ]]; then
+  fail "No canonical cron-registry migration found (marker CRON-REGISTRY-CANONICAL). See ADR-0388."
+else
+  log "Canonical cron registry: $CANON"
+  extract_jobs() {
+    perl -0777 -ne 'while(/cron\.schedule\s*\(\s*\x27([^\x27]+)\x27/g){print "$1\n"}' "$@" 2>/dev/null
+  }
+  CANON_JOBS=$(extract_jobs "$CANON" | sort -u)
+  OTHER_FILES=$(ls "$MIGRATIONS_DIR"/*.sql | grep -vF "$CANON" || true)
+  ALL_JOBS=$(extract_jobs $OTHER_FILES | sort -u)
+  while IFS= read -r jn; do
+    [[ -z "$jn" ]] && continue
+    if ! grep -qxF "$jn" <<< "$CANON_JOBS"; then
+      fail "Cron job '$jn' is scheduled in a migration but missing from canonical registry $(basename "$CANON"). Add it there too (ADR-0388)."
+    fi
+  done <<< "$ALL_JOBS"
+  [[ "$FAIL" -eq 0 ]] && ok "All scheduled cron jobs present in canonical registry."
+fi
+
+# ---------------------------------------------------------------------------
 # 1. Find new migration files (added since base ref)
 # ---------------------------------------------------------------------------
 NEW_MIGRATIONS=$(git diff --name-only --diff-filter=A "$GIT_BASE_REF...HEAD" -- "$MIGRATIONS_DIR/*.sql" 2>/dev/null || true)
