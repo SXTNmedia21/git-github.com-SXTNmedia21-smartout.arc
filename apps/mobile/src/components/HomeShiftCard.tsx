@@ -19,6 +19,7 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useShiftSession } from "@/hooks/queries/use-shift-session";
 import { useDayLineItems } from "@/hooks/queries/use-day-line-items";
 import { useTheme } from "@/theme";
+import { isShiftActiveForTasks } from "@/lib/shift-task-visibility";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -75,10 +76,13 @@ export function HomeShiftCard({ shift }: HomeShiftCardProps) {
   const { data: session } = useShiftSession(profileId, dateISO);
 
   const dayLineIds = (session?.day_lines ?? []).map((dl) => dl.day_line_id);
-  // shiftSessionId null → useDayLineItems disabled (enabled guard on shiftSessionId)
-  const shiftSessionId = session?.shift_session_id ?? null;
+  // Gate day_line task visibility on shift status (FINDINGS §2 Gap 2).
+  // Terminal/inactive status -> pass null -> useDayLineItems disables -> no tasks shown.
+  const gatedShiftSessionId = isShiftActiveForTasks(session?.status)
+    ? (session?.shift_session_id ?? null)
+    : null;
 
-  const { data: items = [] } = useDayLineItems(dayLineIds, dayLineIds, shiftSessionId);
+  const { data: items = [] } = useDayLineItems(dayLineIds, dayLineIds, gatedShiftSessionId);
 
   // "neste 3": items with scheduled_at >= now(), sorted ascending, slice 3
   const now = new Date().toISOString();
