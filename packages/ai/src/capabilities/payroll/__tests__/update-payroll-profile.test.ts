@@ -56,6 +56,7 @@ const EVAL_ID = "eval-00000000-0000-0000-0000-000000000099";
 
 type MockRpcResult = { data: Record<string, unknown>; error: null };
 
+// gate_action allow shape (Pathway A).
 function allowGate(evalId = EVAL_ID): MockRpcResult {
   return {
     data: {
@@ -73,37 +74,88 @@ function allowGate(evalId = EVAL_ID): MockRpcResult {
   };
 }
 
+// cascade_gate_write allow shape (Pathway B).
+// Must use `allowed` (not `allow`) and include `outcome` so gatedMutation
+// correctly branches to the domain-write path.
+function allowCascade(evalId = EVAL_ID): MockRpcResult {
+  return {
+    data: {
+      allowed: true,
+      outcome: "applied",
+      reason: "no-active-framework",
+      gate_evaluation_id: evalId,
+    },
+    error: null,
+  };
+}
+
 /**
- * Build a Supabase mock that:
- * 1. RPC (gate_action) → rpcResult
- * 2. First .from() chain (.select/.eq/.single) → profileResult (workspace verification)
- * 3. Second .from() chain (.update/.eq/.select/.single) → updateResult
+ * Build a Supabase mock that handles the mutateWithGate composition
+ * orchestrator (ADR-0204) call sequence:
+ *
+ *   1. rpc("gate_action", ...)       → Pathway A allow
+ *   2. from("gate_evaluation")       → stampCorrelation (best-effort, swallowed)
+ *   3. rpc("cascade_gate_write", ...) → Pathway B allow
+ *   4. from("employee_payroll_profile") .select/.eq/.single  → profileResult (workspace verify)
+ *   5. from("employee_payroll_profile") .update/.eq/.select/.single → updateResult (exec)
+ *   6. from("gate_evaluation")       → optional stampCorrelation row2 (swallowed)
+ *
+ * The from() mock is table-aware (not call-count–based) so intermediate
+ * gate_evaluation stamp calls inserted by the orchestrator don't shift
+ * the count and mis-route the profile/update queries.
  */
 function makeSupabaseMock(
   rpcResult: MockRpcResult,
   profileResult: { data: Record<string, unknown> | null; error: { message: string } | null },
   updateResult: { data: Record<string, unknown> | null; error: { message: string } | null },
 ): AgentToolContext["supabaseAdmin"] {
-  let fromCallCount = 0;
+  // Track how many times employee_payroll_profile has been queried so we
+  // can distinguish the select (workspace verify) from the update (exec).
+  let payrollProfileCallCount = 0;
 
   return {
-    rpc: vi.fn().mockResolvedValue(rpcResult),
-    from: vi.fn().mockImplementation(() => {
-      fromCallCount += 1;
-      if (fromCallCount === 1) {
-        // Workspace verification query
-        return {
-          select: vi.fn().mockReturnThis(),
+    // Discriminate gate_action vs cascade_gate_write — each pathway
+    // expects a distinct response shape (L-0133 / ADR-0204).
+    rpc: vi.fn().mockImplementation((fn: string) => {
+      if (fn === "cascade_gate_write") return Promise.resolve(allowCascade());
+      // gate_action (and any other RPC) uses the caller-supplied result.
+      return Promise.resolve(rpcResult);
+    }),
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === "gate_evaluation") {
+        // stampCorrelation — best-effort; errors are swallowed by the
+        // orchestrator so returning a no-op thenable is sufficient.
+        const noop = {
+          update: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue(profileResult),
+          then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
+        };
+        return noop;
+      }
+      if (table === "employee_payroll_profile") {
+        payrollProfileCallCount += 1;
+        if (payrollProfileCallCount === 1) {
+          // Workspace verification query (.select/.eq/.single)
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue(profileResult),
+          };
+        }
+        // Domain update inside exec (.update/.eq/.select/.single)
+        return {
+          update: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue(updateResult),
         };
       }
-      // Update query
+      // Unknown table — return a silent no-op builder.
       return {
+        select: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue(updateResult),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,24 +201,49 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
       };
     });
 
+    let payrollCallCount1 = 0;
     const supabaseMock = {
-      rpc: vi.fn().mockResolvedValue(allowGate()),
-      from: vi
-        .fn()
-        .mockImplementationOnce(() => ({
+      // Discriminate gate_action vs cascade_gate_write (ADR-0204 composition
+      // orchestrator calls both; each expects a distinct response shape).
+      rpc: vi.fn().mockImplementation((fn: string) => {
+        if (fn === "cascade_gate_write") return Promise.resolve(allowCascade());
+        return Promise.resolve(allowGate());
+      }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === "gate_evaluation") {
+          // stampCorrelation — best-effort, errors swallowed by orchestrator.
+          return {
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
+          };
+        }
+        if (table === "employee_payroll_profile") {
+          payrollCallCount1 += 1;
+          if (payrollCallCount1 === 1) {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              single: vi.fn().mockResolvedValue({
+                data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
+                error: null,
+              }),
+            };
+          }
+          return {
+            update: updateMock,
+            eq: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: { id: PAYROLL_PROFILE_ID }, error: null }),
+          };
+        }
+        return {
           select: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
-            error: null,
-          }),
-        }))
-        .mockImplementationOnce(() => ({
-          update: updateMock,
-          eq: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: { id: PAYROLL_PROFILE_ID }, error: null }),
-        })),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
@@ -190,10 +267,12 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
     expect(capturedUpdatePayload!.tax_card_fetched_at).toBeDefined();
     expect(typeof capturedUpdatePayload!.tax_card_fetched_at).toBe("string");
 
-    // Telemetry: tax_fields_touched=true, fields_changed includes the tax keys.
-    expect(emit).toHaveBeenCalledOnce();
-    const emitCall = asUpdateEmit(vi.mocked(emit).mock.calls[0]![0]);
-    expect(emitCall.event).toBe("payroll.update_payroll_profile");
+    // Telemetry: mutateWithGate emits gate_evaluated internally (ADR-0204 SS-4)
+    // and the tool emits payroll.update_payroll_profile — 2 calls total.
+    expect(emit).toHaveBeenCalledTimes(2);
+    const allCalls = vi.mocked(emit).mock.calls.map((c) => asUpdateEmit(c[0]));
+    const emitCall = allCalls.find((c) => c.event === "payroll.update_payroll_profile")!;
+    expect(emitCall).toBeDefined();
     expect(emitCall.properties.data.tax_fields_touched).toBe(true);
     expect(emitCall.properties.data.fields_changed).toContain("tax_card_type");
     expect(emitCall.properties.data.fields_changed).toContain("tax_percentage");
@@ -224,8 +303,12 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
     const result = JSON.parse(raw) as { ok: boolean };
     expect(result.ok).toBe(true);
 
-    expect(emit).toHaveBeenCalledOnce();
-    const emitCall = asUpdateEmit(vi.mocked(emit).mock.calls[0]![0]);
+    // mutateWithGate emits gate_evaluated internally (ADR-0204 SS-4) + tool emits
+    // payroll.update_payroll_profile — 2 calls total.
+    expect(emit).toHaveBeenCalledTimes(2);
+    const allCalls2 = vi.mocked(emit).mock.calls.map((c) => asUpdateEmit(c[0]));
+    const emitCall = allCalls2.find((c) => c.event === "payroll.update_payroll_profile")!;
+    expect(emitCall).toBeDefined();
     expect(emitCall.properties.data.tax_fields_touched).toBe(true);
     expect(emitCall.properties.data.fields_changed).toContain("monthly_salary");
     expect(emitCall.properties.data.fields_changed).toContain("tax_card_type");
@@ -278,28 +361,55 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
   it("clear tax card: all 5 tax fields=null → columns cleared, tax_card_fetched_at still set", async () => {
     let capturedUpdatePayload: Record<string, unknown> | null = null;
 
+    let payrollCallCount5 = 0;
     const supabaseMock = {
-      rpc: vi.fn().mockResolvedValue(allowGate()),
-      from: vi
-        .fn()
-        .mockImplementationOnce(() => ({
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
-            error: null,
-          }),
-        }))
-        .mockImplementationOnce(() => ({
-          update: vi.fn().mockImplementation((payload: Record<string, unknown>) => {
-            capturedUpdatePayload = payload;
+      // Discriminate gate_action vs cascade_gate_write (ADR-0204 composition
+      // orchestrator calls both; each expects a distinct response shape).
+      rpc: vi.fn().mockImplementation((fn: string) => {
+        if (fn === "cascade_gate_write") return Promise.resolve(allowCascade());
+        return Promise.resolve(allowGate());
+      }),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === "gate_evaluation") {
+          // stampCorrelation — best-effort, errors swallowed by orchestrator.
+          return {
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
+          };
+        }
+        if (table === "employee_payroll_profile") {
+          payrollCallCount5 += 1;
+          if (payrollCallCount5 === 1) {
             return {
-              eq: vi.fn().mockReturnThis(),
               select: vi.fn().mockReturnThis(),
-              single: vi.fn().mockResolvedValue({ data: { id: PAYROLL_PROFILE_ID }, error: null }),
+              eq: vi.fn().mockReturnThis(),
+              single: vi.fn().mockResolvedValue({
+                data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
+                error: null,
+              }),
             };
-          }),
-        })),
+          }
+          return {
+            update: vi.fn().mockImplementation((payload: Record<string, unknown>) => {
+              capturedUpdatePayload = payload;
+              return {
+                eq: vi.fn().mockReturnThis(),
+                select: vi.fn().mockReturnThis(),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: { id: PAYROLL_PROFILE_ID }, error: null }),
+              };
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
@@ -337,9 +447,12 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
     // tax_card_fetched_at MUST still be set (records the clear-action timestamp).
     expect(capturedUpdatePayload!.tax_card_fetched_at).toBeDefined();
 
-    // Telemetry: tax_fields_touched=true even for a clear.
-    expect(emit).toHaveBeenCalledOnce();
-    const emitCall = asUpdateEmit(vi.mocked(emit).mock.calls[0]![0]);
+    // Telemetry: mutateWithGate emits gate_evaluated internally (ADR-0204 SS-4)
+    // + tool emits payroll.update_payroll_profile — 2 calls total.
+    expect(emit).toHaveBeenCalledTimes(2);
+    const allCalls5 = vi.mocked(emit).mock.calls.map((c) => asUpdateEmit(c[0]));
+    const emitCall = allCalls5.find((c) => c.event === "payroll.update_payroll_profile")!;
+    expect(emitCall).toBeDefined();
     expect(emitCall.properties.data.tax_fields_touched).toBe(true);
   });
 });

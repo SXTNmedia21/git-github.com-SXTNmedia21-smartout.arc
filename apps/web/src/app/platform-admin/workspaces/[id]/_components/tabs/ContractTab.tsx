@@ -50,6 +50,7 @@ export type PricingTermsData = {
   effectiveUntil: string | null;
   notes: string | null;
   contractId: string | null;
+  paymentTermsDays: number;
   updatedAt: string;
 };
 
@@ -96,6 +97,7 @@ type PricingFormState = {
   trialDays: string;
   effectiveFrom: string;
   notes: string;
+  paymentTermsDays: string;
 };
 
 function toFormState(terms: PricingTermsData | null): PricingFormState {
@@ -116,6 +118,7 @@ function toFormState(terms: PricingTermsData | null): PricingFormState {
     trialDays: terms?.trialDays?.toString() ?? "",
     effectiveFrom: terms?.effectiveFrom?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
     notes: terms?.notes ?? "",
+    paymentTermsDays: (terms?.paymentTermsDays ?? 14).toString(),
   };
 }
 
@@ -178,6 +181,7 @@ export function ContractTab({
         trial_days: formState.trialDays ? parseInt(formState.trialDays, 10) : null,
         effective_from: formState.effectiveFrom,
         notes: formState.notes || null,
+        payment_terms_days: parseInt(formState.paymentTermsDays, 10) || 14,
         // Include the existing record ID for PATCH
         ...(pricingTerms ? { pricing_terms_id: pricingTerms.pricingTermsId } : {}),
       };
@@ -271,6 +275,11 @@ export function ContractTab({
                 {contractStatus.replace(/_/g, " ")}
               </Badge>
             </div>
+            {contractStatus !== "active" && (
+              <p className="text-muted-foreground mt-2 text-xs">
+                Faktureres ikke — kontrakt ikke signert
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -335,7 +344,7 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="freeUsers">Inkluderte brukere (gratis)</Label>
+                  <Label htmlFor="freeUsers">Inkluderte ansatte i månedslisens (standard 10)</Label>
                   <Input
                     id="freeUsers"
                     type="number"
@@ -348,7 +357,9 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="overagePricePerUser">Pris per bruker over inkluderte</Label>
+                  <Label htmlFor="overagePricePerUser">
+                    Pris per aktiv ansatt på vaktliste (over inkluderte)
+                  </Label>
                   <Input
                     id="overagePricePerUser"
                     type="number"
@@ -449,6 +460,19 @@ export function ContractTab({
                 </div>
 
                 <div className="space-y-1.5">
+                  <Label htmlFor="paymentTermsDays">Betalingsfrist (dager)</Label>
+                  <Input
+                    id="paymentTermsDays"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={formState.paymentTermsDays}
+                    onChange={(e) => setField("paymentTermsDays", e.target.value)}
+                    placeholder="14"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
                   <Label htmlFor="effectiveFrom">Gyldig fra</Label>
                   <Input
                     id="effectiveFrom"
@@ -483,13 +507,15 @@ export function ContractTab({
                   </div>
 
                   <div>
-                    <dt className="text-muted-foreground text-xs">Inkluderte brukere</dt>
+                    <dt className="text-muted-foreground text-xs">
+                      Inkluderte ansatte (månedslisens)
+                    </dt>
                     <dd className="mt-0.5 text-sm font-medium">{pricingTerms?.freeUsers ?? 10}</dd>
                   </div>
 
                   <div>
                     <dt className="text-muted-foreground text-xs">
-                      Pris per bruker over inkluderte
+                      Pris per aktiv ansatt på vaktliste
                     </dt>
                     <dd className="mt-0.5 text-sm font-medium">
                       {pricingTerms?.overagePricePerUser != null
@@ -537,6 +563,13 @@ export function ContractTab({
                       <dd className="mt-0.5 text-sm font-medium">{pricingTerms.trialDays}</dd>
                     </div>
                   )}
+
+                  <div>
+                    <dt className="text-muted-foreground text-xs">Betalingsfrist</dt>
+                    <dd className="mt-0.5 text-sm font-medium">
+                      {pricingTerms?.paymentTermsDays ?? 14} dager
+                    </dd>
+                  </div>
 
                   <div>
                     <dt className="text-muted-foreground text-xs">Gyldig fra</dt>

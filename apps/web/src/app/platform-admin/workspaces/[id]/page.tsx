@@ -271,6 +271,7 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
               effectiveUntil: pricingTerms.effective_until,
               notes: pricingTerms.notes,
               contractId: pricingTerms.contract_id,
+              paymentTermsDays: pricingTerms.payment_terms_days ?? 14,
               updatedAt: pricingTerms.updated_at,
             }
           : null

@@ -33,16 +33,6 @@ const ContractPreviewEditor = dynamic(
 import { resolvePlaceholders } from "@smartout/utils";
 import type { PlaceholderDef } from "@smartout/utils";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,7 +95,6 @@ export function ContractSendDrawer({
   const [resolvedMap, setResolvedMap] = useState<Record<string, string>>({});
   const [isResolving, setIsResolving] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   // Template HTML fetched when entering preview step
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -129,7 +118,6 @@ export function ContractSendDrawer({
     setSelectedTemplate(null);
     setOverrides({});
     setResolvedMap({});
-    setShowConfirm(false);
     setPreviewHtml(null);
     editedHtmlRef.current = null;
     setIsDocumentEdited(false);
@@ -227,7 +215,6 @@ export function ContractSendDrawer({
   async function handleSend() {
     if (!selectedTemplate) return;
     setIsSending(true);
-    setShowConfirm(false);
 
     try {
       // Step 1: create the contract record
@@ -354,7 +341,7 @@ export function ContractSendDrawer({
                     setIsDocumentEdited(html !== originalHtmlRef.current);
                   }}
                   onBack={() => setStep("review")}
-                  onSend={() => setShowConfirm(true)}
+                  onSend={handleSend}
                 />
               )}
             </div>
@@ -395,41 +382,6 @@ export function ContractSendDrawer({
           onOpenChange(false);
         }}
       />
-
-      {/* Confirmation dialog — shown on top of the Sheet */}
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("send_drawer.confirm_title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("send_drawer.confirm_description")}
-              {isDocumentEdited && (
-                <span className="mt-1 block text-xs font-medium text-amber-600">
-                  {t("send_drawer.confirm_edited_warning")}
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSending}>
-              {t("send_drawer.confirm_cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleSend} disabled={isSending}>
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("send_drawer.sending")}
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  {t("send_drawer.send_contract")}
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
@@ -682,7 +634,7 @@ function ReviewStep({ fields, isLoadingPreview, onOverride, onBack, onNext }: Re
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
         {fields.map((field) => (
           <div key={field.key} className="space-y-1">
             <div className="flex items-center justify-between">

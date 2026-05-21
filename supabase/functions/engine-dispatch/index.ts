@@ -880,6 +880,58 @@ async function executeStep(
             .eq("id", state.id);
           return;
         }
+
+        // ADR-0379 / ADR-0134: emit profile.activated telemetry when the
+        // employee_activation process flips the profile row.
+        // actor_id = 'system' (ADR-0281 platform-actor pattern; no human actor).
+        // workspace_id from state — never empty for a running engine_state.
+        // Non-fatal: telemetry failure must not block the cascade flip.
+        if (state.process_id === "employee_activation" && entity === "profile") {
+          const emitUrl = Deno.env.get("INTERNAL_EMIT_URL");
+          const emitSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
+          // R4 (ADR-0379 remediation): fail loud if the emit bridge is unconfigured.
+          // A legally-significant autonomous status flip must always leave an audit trace;
+          // a missing INTERNAL_EMIT_URL must not silently drop profile.activated.
+          if (!emitUrl || !emitSecret || !state.workspace_id) {
+            console.error(
+              "[employee_activation] profile.activated NOT emitted — emit bridge unconfigured",
+              {
+                has_url: Boolean(emitUrl),
+                has_secret: Boolean(emitSecret),
+                has_workspace: Boolean(state.workspace_id),
+                profile_id: state.entity_id,
+              },
+            );
+          } else {
+            const ctx = state.context as Record<string, unknown>;
+            try {
+              await fetch(emitUrl, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${emitSecret}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  event: "profile activated",
+                  actor_id: "system",
+                  workspace_id: state.workspace_id,
+                  properties: {
+                    entity: { entity_type: "profile", entity_id: state.entity_id },
+                    data: {
+                      contract_id: (ctx.contract_id as string | undefined) ?? "",
+                      submission_id: String(ctx.submission_id ?? ""),
+                    },
+                  },
+                }),
+              });
+            } catch (emitErr) {
+              console.error(
+                "[employee_activation] profile.activated emit failed:",
+                emitErr instanceof Error ? emitErr.message : String(emitErr),
+              );
+            }
+          }
+        }
       }
       await advanceToNextStep(supabase, state, step);
       break;

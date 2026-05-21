@@ -14,6 +14,11 @@
 // target) combination already has a non-failed invoice_dispatch row.
 // Calling enqueue twice for the same invoice does not create duplicate
 // dispatches. Retries happen via retryDispatch, not enqueue.
+//
+// V1 collection boundary (ADR-0385): this is built-but-intentionally-unwired
+// from the monthly generation cron. The cron stops at status='issued' and
+// does NOT auto-call this. Current callers are manual/operator paths only.
+// Do NOT delete as "unused" — auto-charge wiring is a future ADR.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@smartout/supabase";

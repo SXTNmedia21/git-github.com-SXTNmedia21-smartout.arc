@@ -41,6 +41,7 @@ const CreateSchema = z.object({
   trial_days: z.number().int().nonnegative().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   contract_id: z.string().uuid().nullable().optional(),
+  payment_terms_days: z.number().int().positive().optional(),
 });
 
 const UpdateSchema = z.object({
@@ -60,6 +61,7 @@ const UpdateSchema = z.object({
   trial_days: z.number().int().nonnegative().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   contract_id: z.string().uuid().nullable().optional(),
+  payment_terms_days: z.number().int().positive().optional(),
 });
 
 // price_per_employee is NOT NULL in DB. If caller sends overage but no
