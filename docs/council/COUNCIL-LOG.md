@@ -2366,3 +2366,19 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Merge-blockers:** ADR-0317 lockstep guard same sortie; typegen ordering (migration→gen types no op-run→TS→typecheck); e2e second-location-must-not-surface test.
 **ADR created:** none (sortie executes under ADR-0367/0298/0317; no new decision — plan in `docs/modules/task-manager/EXECUTION-PLAN-5h.md`).
 **Learning created:** L-NEW (7th L-0147 self-reversal precedent: "one read surface" ADR-0298 claim doesn't hold when web/mobile consume different RPCs — verify consumers before invoking single-surface invariant) — captured to steward agent-memory.
+
+## 2026-05-21 — Day_line → shift-tasks → Min dag (POST-IMPLEMENTATION review, pre-development-merge)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES → all 3 conditions applied + verified
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), feature-dev:code-reviewer (mobile axis) — 4/4 responded + Phase 2.5 fact-check (6/6 VERIFIED)
+**Prior verdict held?** YES — the dual-perspective overturn (drop `fn_list_shift_tasks`, mobile resolves client-side via `use-shift-session` + `useDayLineItems`) HELD; steward confirmed the read path is sound and the dropped resolver was correct (a parallel read surface would violate ADR-0298). Supersedes the 2026-05-21 5h-plan council's Q-B self-reversal (which the dual-perspective then overturned).
+**What shipped (8 files, 11 commits):** `fn_resolve_single_day_line` SECURITY DEFINER helper (single non-cancelled day_line or NULL on 0/>1); 4 server `session_task` insert sites (hook-executor ×2, engine-dispatch ×2) set `day_line_id`; mobile `isShiftActiveForTasks` status gate + `HomeShiftCard`; 2 pgTAP. EXTEND-EXISTING throughout.
+**3 blocker/condition findings (all fixed):**
+1. (code-reviewer REJECT, 95%) **TanStack v5 `enabled:false` returns cached data** → status gate leaked clocked-in tasks ~30s after clock-out (queryKey omits shiftSessionId, staleTime 30s). FIX `b2759b013`: gate on the RESULT (`items = isShiftActiveForTasks(status) ? rawItems : []`). → L-0328.
+2. (steward C1) **Multi-area semantics vs ADR-0367 Rule 2** — resolver NULL on >1 day_lines silently de-anchors auto-tasks on multi-area days (not a regression — pre-sortie ALL auto-tasks were NULL — but silent). FIX `919aaf153`: `RAISE LOG` on >1 (return contract unchanged) + header documents single-area-V1 scope; Rule 2 per-area fan-out deferred to follow-up. Verified live (LOG fires, returns NULL).
+3. (agent-coord C1) hook-executor dropped RPC error → FIX `6f328549d`: destructure + `console.warn` (parity with engine-dispatch).
+**Agent Trust Gate:** PASS — no new tool/capability; sortie adds a column to existing inserts + a read-side gate; no emit-contract change (EF inserts were already silent pre-sortie — separate ticket).
+**Verification:** SQL resolver driven live (5 probes incl. live-mutated 2-day_line → NULL + LOG); guardrail clean (no readiness/season/fn_list_my_tasks/list_mine); mobile typecheck 0; pgTAP 3+3 ok; jest 3/3.
+**Out of scope (named):** ADR-0367 Rule 2 per-area fan-out; push/notification (receiver pulls — FINDINGS G16); web per-employee shift-tasks view (ADR-0133 mobile-executes); full Min dag UI port (separate plan).
+**ADR created:** none (executes under ADR-0367/0298/0317; ADR-0367 single-area-V1 clarification noted in migration header — formal amendment optional, deferred).
+**Learning created:** L-0328 (TanStack v5 enabled:false returns cached data — gate on result not enabled). Meta: verify-skill GUI-undriven seam caught by council (sibling L-0325).
