@@ -16,10 +16,10 @@ tags: [handoff, task-manager, hospitality-intelligence, i1, role-compliance, adr
 The task system's setup-track needs role→mandatory-protocol knowledge to live in Hospitality Intelligence (I1), not be hand-authored per workspace. Council found the spine **already existed as an orphan** (`profession_training`, `20260421100300`) and rejected the original parallel-build (`policy_scope='role'` + `protocol.is_mandatory`). This sortie revives the orphan, feeds it from I1, and exposes it — additively, with **zero behavior change** (no readiness/gate/trigger edits — those are 0387b).
 
 **Delivered (RA1–RA3):**
-- **RA1** Read-path indexes on `profession_training` (`(workspace_id, profession_id)`, `(profession_id, protocol_id)`). Migration `20260621000100`.
+- **RA1** Read-path indexes on `profession_training` (`(workspace_id, profession_id)`, `(profession_id, protocol_id)`). Migration `20260621200105`.
 - **RA2a** Role-capability baseline upgraded prose → slug matrix (5 roles; 21/21 protocol slugs resolve to real `governance.sql`/`mattilsynet.sql` protocol names). `docs/engines/.../08-role-capability-profiles/restaurant-role-capability-baseline.md`.
 - **RA2b** `RoleCapabilityProfile` type + optional `IndustryPackage.roleCapabilityProfiles`; `hospitalityPackage` populated. `defaultPackage`/`retail` unaffected (optional field).
-- **RA2c** `fn_seed_profession_training` SECURITY DEFINER RPC (idempotent, workspace-scoped, best-effort) + `bootstrap-cascade` Step 11 `profession_seed` (hospitality-gated). Migration `20260621000200`.
+- **RA2c** `fn_seed_profession_training` SECURITY DEFINER RPC (idempotent, workspace-scoped, best-effort) + `bootstrap-cascade` Step 11 `profession_seed` (hospitality-gated). Migration `20260621200106`.
 - **RA3** `governance.list_mandatory_protocols_for_role` read-only tool (`profession.slug==roleSlug` → `profession_training(is_required)` → `protocol`). 4 unit tests.
 
 ## Decisions (registered in ADR-0387 §Council Outcome)

@@ -32,7 +32,7 @@ tags: [journey]
 
 ## Verification
 
-- [x] Implementation matches the steps above — `fn_seed_profession_training` RPC (`supabase/migrations/20260621000200`) + bootstrap-cascade Step 11 `profession_seed` seed `profession`+`profession_training` from inlined I1 profiles, hospitality-gated, idempotent, best-effort.
+- [x] Implementation matches the steps above — `fn_seed_profession_training` RPC (`supabase/migrations/20260621200106`) + bootstrap-cascade Step 11 `profession_seed` seed `profession`+`profession_training` from inlined I1 profiles, hospitality-gated, idempotent, best-effort.
 - [x] Integration verified on Supabase Local — 5 `profession` rows seeded; transactional test with `Handhygiene-protokoll` present → 5 `profession_training` rows (`is_required=true`, `weight=1.0`); workspace with no matching protocols → 0 trainings (correct best-effort); idempotent re-run → 0 duplicates. _(Automated bootstrap E2E harness deferred — follow-up.)_
 - [x] Manually tested on Supabase Local; idempotent confirmed; zero behavior change confirmed (guardrail audit — no readiness/gate/trigger/season files in diff).
 
