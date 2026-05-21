@@ -109,11 +109,28 @@ Three-part recovery + prevention:
    `'30 seconds'`, which requires pg_cron ≥ 1.5. Verified against the
    now-enabled prod extension version before promotion. If the version were
    older, that one job would need a `* * * * *` fallback.
-2. **GUC dependency (pre-existing).** The `net.http_post` jobs read
-   `app.supabase_url` and `app.watchdog_cron_secret` (and a few
-   job-specific secrets). These must be set on the prod database for the
-   jobs to do real work — registration succeeds regardless, but a post-deploy
-   spot-check of one HTTP job's `cron.job_run_details` is recommended.
+2. **GUC dependency — CONFIRMED FAILURE, now CI-enforced.** Post-merge
+   `cron.job_run_details` showed every `net.http_post` job failing with
+   `null value in column "url" of relation "http_request_queue"`. Root cause:
+   prod DB had **none** of the 5 required GUCs (`app.supabase_url`,
+   `app.watchdog_cron_secret`, `app.service_role_key`,
+   `app.process_notifications_secret`, `app.morning_digest_secret`) — only an
+   unrelated `app.settings.jwt_exp`. SQL-only jobs (`emma_task_trigger`,
+   `process-scheduled-communications`) succeeded; all http jobs failed.
+   - These CANNOT live in a migration (secret values → secrets-protocol).
+   - They CANNOT be set via the Supabase MCP role (`42501 permission denied
+     to set parameter`) — `ALTER DATABASE … SET` requires the `postgres`
+     owner role.
+   - **Fix:** a "Ensure cron GUCs set (ADR-0388)" step in the Migration Deploy
+     job (`ci.yml`) connects as `postgres` via the session pooler and
+     idempotently `ALTER DATABASE postgres SET`s all 5 from GH Actions secrets
+     on every main deploy. **Requires 3 new repo secrets**:
+     `WATCHDOG_CRON_SECRET`, `PROCESS_NOTIFICATIONS_SECRET`,
+     `MORNING_DIGEST_SECRET` (the other two reuse existing `SUPABASE_PROD_URL`
+     + `SUPABASE_PROD_SERVICE_ROLE_KEY`). The step hard-fails if
+     `WATCHDOG_CRON_SECRET` is absent.
+   - GUCs apply to new sessions; pg_cron spawns a fresh session per run, so the
+     next firing picks them up — no restart.
 3. **Runtime prod assertion is a follow-up.** Wiring `fn_cron_jobs_health()`
    into `smoke-probe.sh production` requires service-role-key plumbing in the
    smoke script and is intentionally deferred to a separate change to avoid
