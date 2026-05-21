@@ -87,7 +87,17 @@ export async function updateSession(
       // Auth failed (stale token, revoked session, rate-limited).
       // Clear auth cookies to break retry loops — the browser will stop
       // sending the dead refresh token on subsequent requests.
-      const authCookies = request.cookies.getAll().filter((c) => c.name.startsWith("sb-"));
+      //
+      // BUT preserve the PKCE code-verifier. An unauthenticated user mid-OAuth /
+      // mid-password-reset carries only `sb-*-code-verifier` and no session yet,
+      // so getUser() legitimately errors on this pass (e.g. a `<Link>` prefetch of
+      // /dashboard). Nuking the verifier orphans the in-flight flow → the callback
+      // exchange fails with "both auth code and code verifier should be non-empty"
+      // → user bounced to /login. Mirrors scrubOrphanAuthCookies in the callback
+      // route (api/auth/callback/route.ts), which already preserves it.
+      const authCookies = request.cookies
+        .getAll()
+        .filter((c) => c.name.startsWith("sb-") && !c.name.endsWith("-code-verifier"));
       if (authCookies.length > 0) {
         supabaseResponse = NextResponse.next({ request });
         for (const cookie of authCookies) {
