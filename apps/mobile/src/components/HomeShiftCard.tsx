@@ -82,7 +82,16 @@ export function HomeShiftCard({ shift }: HomeShiftCardProps) {
     ? (session?.shift_session_id ?? null)
     : null;
 
-  const { data: items = [] } = useDayLineItems(dayLineIds, dayLineIds, gatedShiftSessionId);
+  // Gate is enforced on the RESULT, not just `enabled`: TanStack v5 returns cached
+  // data while enabled:false (queryKey omits shiftSessionId), so a stale clocked-in
+  // result would otherwise leak for staleTime after clock-out. gatedShiftSessionId
+  // still prevents fetching when inactive.
+  const { data: rawDayLineItems = [] } = useDayLineItems(
+    dayLineIds,
+    dayLineIds,
+    gatedShiftSessionId,
+  );
+  const items = isShiftActiveForTasks(session?.status) ? rawDayLineItems : [];
 
   // "neste 3": items with scheduled_at >= now(), sorted ascending, slice 3
   const now = new Date().toISOString();
