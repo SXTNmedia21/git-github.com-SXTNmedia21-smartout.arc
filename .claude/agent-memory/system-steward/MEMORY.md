@@ -7,6 +7,11 @@
 - [cascade-review-findings.md](cascade-review-findings.md) — Current implementation status aligned to `docs/STATE.md`: Phase A done, Phase B 4/6, Phase C partial, active conflicts and bootstrap gaps, wrong hospitality rates.
 - [cascade-claudemd-rewrite-assessment.md](cascade-claudemd-rewrite-assessment.md) — Block full CLAUDE.md rewrite until Phase C. Concepts that don't map to cascade. Active traps.
 
+### Plan-Verification Patterns
+
+- [schema-orphan-rebuild-pattern.md](schema-orphan-rebuild-pattern.md) — Schema-only orphan trap: a shipped table spine with zero non-generated code consumers gets rebuilt beside by a later unaware ADR (duplicate source-of-truth). 1st occurrence ADR-0379 council 2026-05-20 (`profession_training`+`profile_position`+`position.profession_id` vs proposed `policy_scope='position'`+`roleCapabilityProfiles`). Phase 5 verdict REJECT→SPLIT 0379a/0379b; revive spine, DROP policy_scope='role'+protocol.is_mandatory. Detection: grep CREATE TABLE for concept noun, then grep app consumers excluding dist + database.types.ts. Force revive-or-retire decision.
+- [authority-seed-inert-pattern.md](authority-seed-inert-pattern.md) — Seeding `engine_authority_config('X.Y')` is INERT if the consumer evaluates permission in hardcoded code and never calls gate_action/callGateAction. 1st occurrence ADR-0379 D6 (`evaluateReadinessGate` hardcoded; governance in never-seeded list → default-allow). Sibling of L-0083. Trust Gate: grep callGateAction in owning capability before trusting a seed claim; check never-seeded list for backfill need.
+
 ### Test Infrastructure
 
 - [test-coverage-map.md](test-coverage-map.md) — Playwright E2E test coverage map: what's tested, what's missing, known fake tests, seed helper gaps.

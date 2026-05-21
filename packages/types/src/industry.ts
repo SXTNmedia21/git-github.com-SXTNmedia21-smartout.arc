@@ -109,6 +109,13 @@ export type IndustryPackage = {
    * packages may omit). See ADR-0165 and the progressive-channel spec.
    */
   domains?: Domain[];
+  /**
+   * Static role-capability profiles for I1 bootstrap (optional — non-hospitality
+   * packages may omit). Populated per role during workspace creation to seed the
+   * initial readiness gate configuration. No runtime DB-load path — stays static
+   * on the package (ADR-0379a council: bootstrap-only, no K1a runtime read).
+   */
+  roleCapabilityProfiles?: RoleCapabilityProfile[];
 };
 
 export type PositionTier = "basis" | "mid" | "specialist";
@@ -133,4 +140,26 @@ export type IndustrySuggestion = {
 export type IndustryProcedureSuggestion = {
   name: string;
   preselected: boolean;
+};
+
+/**
+ * Static role-capability profile for I1 bootstrap.
+ *
+ * Declares which protocol completions constitute "ready" for a given role.
+ * Authored in the industry package (hospitalityPackage.roleCapabilityProfiles[]);
+ * consumed at workspace bootstrap to seed the initial readiness gate config.
+ * Protocol slugs must match `protocol.name` values inserted by governance templates.
+ *
+ * Source of truth: docs/engines/industri-inteligence/hospitalety/08-role-capability-profiles/
+ * restaurant-role-capability-baseline.md (ADR-0379a, A2).
+ */
+export type RoleCapabilityProfile = {
+  /** Identifies the operational role, e.g. "kokk", "bartender". */
+  roleSlug: string;
+  /** Position names from POSITION_REGISTRY that map to this role. */
+  positionSlugs: string[];
+  /** Protocol names (exact match against protocol.name) that must be completed for "ready". */
+  mandatoryProtocolSlugs: string[];
+  /** Human-readable description of what "ready" means for this role. */
+  readySignal: string;
 };
