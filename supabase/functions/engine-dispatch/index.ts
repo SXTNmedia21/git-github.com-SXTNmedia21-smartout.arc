@@ -789,10 +789,9 @@ async function executeStep(
       // Create session_task if department_session context exists
       if (state.entity_type === "department_session" && state.entity_id) {
         const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
-        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc(
-          "fn_resolve_single_day_line",
-          { p_department_session_id: state.entity_id as string },
-        );
+        // @ts-expect-error supabase-js rpc typing is narrow; our RPCs
+        // are plpgsql and return scalar UUIDs or jsonb objects.
+        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc("fn_resolve_single_day_line", { p_department_session_id: state.entity_id as string });
         if (dayLineErr)
           console.warn("[engine-dispatch] fn_resolve_single_day_line failed:", dayLineErr);
         await supabase.from("session_task").insert({
@@ -2161,10 +2160,9 @@ async function executeStep(
       const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
 
       if (sessionId) {
-        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc(
-          "fn_resolve_single_day_line",
-          { p_department_session_id: sessionId },
-        );
+        // @ts-expect-error supabase-js rpc typing is narrow; our RPCs
+        // are plpgsql and return scalar UUIDs or jsonb objects.
+        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc("fn_resolve_single_day_line", { p_department_session_id: sessionId });
         if (dayLineErr)
           console.warn("[engine-dispatch] fn_resolve_single_day_line failed:", dayLineErr);
         await supabase.from("session_task").insert({
