@@ -20,11 +20,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, Send, Info, CheckCircle2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
+import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 
 /**
  * Hash an email with SHA-256 for enumeration-safe telemetry.
@@ -41,9 +43,18 @@ async function hashEmail(email: string): Promise<string> {
 }
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  // Code-based recovery: once the email is sent we swap the email form for a
+  // 6-digit code entry. We do NOT pass `redirectTo` to resetPasswordForEmail —
+  // that would mint a magic LINK (a one-time token shared with the code; a mail
+  // prefetch burns it → the typed code then fails `otp_expired`). Link-less =
+  // nothing prefetchable. The user types the recovery code instead, which
+  // OtpVerificationForm verifies with type:"recovery". A successful verify
+  // establishes a live recovery session, so /update-password is then reachable.
+  const [codeSent, setCodeSent] = useState(false);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +62,7 @@ export default function ResetPasswordPage() {
     setMessage(null);
 
     const supabase = createClient();
-    // redirectTo points at the PKCE callback so the `?code=` exchange happens
-    // server-side; callback then forwards to /update-password with a live
-    // session cookie. Direct redirect to /update-password breaks under PKCE
-    // (the page only inspects `#access_token`, never the `?code=` query).
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     setIsLoading(false);
 
@@ -66,9 +71,10 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    setCodeSent(true);
     setMessage({
       type: "success",
-      text: "Hvis kontoen finnes, har vi sendt en lenke for å tilbakestille passordet.",
+      text: "Hvis kontoen finnes, har vi sendt en 6-sifret kode for å tilbakestille passordet.",
     });
 
     // Emit auth password_reset_requested (registry:263). SHA-256 hash only — never raw email.
@@ -109,10 +115,12 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-[400px]">
           <div className="animate-auth-in mb-8" style={{ animationDelay: "100ms" }}>
             <h1 className="font-heading text-foreground text-[2rem] leading-[1.1] tracking-tight">
-              Glemt passord?
+              {codeSent ? "Skriv inn koden" : "Glemt passord?"}
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Vi sender deg en lenke for å sette et nytt.
+              {codeSent
+                ? "Vi sendte en 6-sifret kode til e-posten din."
+                : "Vi sender deg en kode for å sette et nytt passord."}
             </p>
           </div>
 
@@ -134,39 +142,65 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          <form
-            onSubmit={handleRequestReset}
-            className="animate-auth-in space-y-4"
-            style={{ animationDelay: "160ms" }}
-          >
-            <AuthIconInput
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="navn@bedrift.no"
-              label="E-post"
-              icon={<Mail className="h-4 w-4" />}
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+          {codeSent ? (
+            <div className="animate-auth-in space-y-6" style={{ animationDelay: "160ms" }}>
+              <OtpVerificationForm
+                email={email}
+                context="recovery"
+                onVerified={() => {
+                  // verifyOtp({type:"recovery"}) just established a live recovery
+                  // session — /update-password's getUser() now resolves a user,
+                  // so the set-new-password form is reachable (no dead-end bounce).
+                  router.push("/update-password");
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCodeSent(false);
+                  setMessage(null);
+                }}
+                className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Bruk en annen e-post
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleRequestReset}
+              className="animate-auth-in space-y-4"
+              style={{ animationDelay: "160ms" }}
             >
-              <Send className="h-4 w-4" />
-              {isLoading ? "Sender..." : "Send lenke"}
-            </button>
-            <Link
-              href="/login"
-              className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Tilbake til innlogging
-            </Link>
-          </form>
+              <AuthIconInput
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="navn@bedrift.no"
+                label="E-post"
+                icon={<Mail className="h-4 w-4" />}
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                {isLoading ? "Sender..." : "Send kode"}
+              </button>
+              <Link
+                href="/login"
+                className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Tilbake til innlogging
+              </Link>
+            </form>
+          )}
 
           <p className="border-border/60 text-muted-foreground mt-8 border-t pt-5 text-center text-sm">
             Husker du passordet?{" "}
