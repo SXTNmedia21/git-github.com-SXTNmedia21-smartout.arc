@@ -138,6 +138,11 @@ const brandTextVariant = {
   },
 };
 
+// Module-scope so the OTP-restore mount effect's empty dependency array stays
+// exhaustive (in-component consts would be flagged by react-hooks/exhaustive-deps).
+const OTP_PENDING_KEY = "smartout_otp_pending";
+const OTP_TTL_MS = 30 * 60 * 1000; // 30 min = GoTrue otp_expiry
+
 function LoginContent() {
   const { t } = useTranslation("auth");
   const router = useRouter();
@@ -173,6 +178,37 @@ function LoginContent() {
   // OTP login method state
   const [authMethod, setAuthMethod] = useState<"password" | "otp">("password");
   const [otpSent, setOtpSent] = useState(false);
+
+  // Sticky code screen — persist OTP state across page refreshes.
+  //
+  // WHY: when the user refreshes after requesting a code, otpSent resets to
+  // false, the email input reappears, and any re-submission via handleSendOtp
+  // issues a NEW code to GoTrue — which immediately invalidates the code
+  // already sitting in the user's inbox. Result: "koden har utløpt" every
+  // time. We guard against this by storing {email, sentAt} in sessionStorage
+  // and restoring the OTP screen on mount — WITHOUT re-sending.
+  //
+  // TTL matches GoTrue otp_expiry (1800 s). After expiry we clear the key so
+  // the user naturally falls back to the email-entry step.
+  // (OTP_PENDING_KEY / OTP_TTL_MS are module-scope so this effect's [] deps stay exhaustive.)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(OTP_PENDING_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as { email: string; sentAt: number };
+      if (Date.now() - stored.sentAt < OTP_TTL_MS) {
+        setEmail(stored.email);
+        setAuthMethod("otp");
+        setOtpSent(true);
+      } else {
+        sessionStorage.removeItem(OTP_PENDING_KEY);
+      }
+    } catch {
+      // Corrupt value — clean up silently
+      sessionStorage.removeItem(OTP_PENDING_KEY);
+    }
+  }, []);
 
   // Delayed mode switch: let button animation breathe, then start transition
   const switchMode = useCallback((next: Mode) => {
@@ -266,10 +302,14 @@ function LoginContent() {
       setError(t("login.error.otp_send"));
       return;
     }
+    // Persist so a page refresh restores the code screen instead of re-sending.
+    sessionStorage.setItem(OTP_PENDING_KEY, JSON.stringify({ email, sentAt: Date.now() }));
     setOtpSent(true);
   }
 
   function handleOtpVerified() {
+    // Clear the pending key — code has been used successfully.
+    sessionStorage.removeItem(OTP_PENDING_KEY);
     setHasInteracted(true);
     setTimeout(() => setPendingMode("logging-in"), 200);
   }
@@ -562,6 +602,8 @@ function LoginContent() {
                         setAuthMethod("password");
                         setOtpSent(false);
                         setError(null);
+                        // User explicitly left the OTP flow — clear sticky state.
+                        sessionStorage.removeItem(OTP_PENDING_KEY);
                       }}
                       className={cn(
                         "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
