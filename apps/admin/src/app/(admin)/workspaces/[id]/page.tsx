@@ -42,7 +42,7 @@ export default async function WorkspaceDetailPage({ params }: Props) {
   // Resolve workspace + company_id (needed for hasAccountantAccess).
   const { data: workspace, error: wsError } = await supabase
     .from("workspace")
-    .select("workspace_id, company_id, name")
+    .select("workspace_id, company_id, name, contract_status")
     .eq("workspace_id", workspaceId)
     .maybeSingle();
 
@@ -101,6 +101,7 @@ export default async function WorkspaceDetailPage({ params }: Props) {
         hasPartialAccess={kartotek.hasPartialAccess}
         workspaceId={workspaceId}
         userId={userId}
+        contractStatus={workspace.contract_status}
       />
 
       {/* 3. Order history — last 12 invoices, link each to /orders?preview= */}

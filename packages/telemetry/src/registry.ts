@@ -565,6 +565,19 @@ export interface ProfileStatusUpdated extends BaseEvent {
   };
 }
 
+/** Emitted when an employee's profile is activated (trainee→active) via signed contract.
+ * System-initiated (actor=system, ADR-0281). Distinct from ProfileReactivated
+ * (inactive→active manual path). Source: employee_activation engine_process (ADR-0379).
+ */
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface ProfileActivated extends BaseEvent {
+  event: "profile activated";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; submission_id: string };
+  };
+}
+
 export interface ProfileDeactivated extends BaseEvent {
   event: "profile deactivated";
   properties: {
@@ -5070,6 +5083,110 @@ export interface VoiceBootstrapSnapshotAssemblyFailed extends BaseEvent {
   };
 }
 
+// ─── Voice Bootstrap Publish Events (ADR-0297, P3 mobile-voice-runtime-wire) ─────────────────────
+// Emitted by the mobile app when publishing the botsson-context data-channel message.
+// snapshot_published — posthog + logger + activity_trail. Data-transfer audit.
+// publish_failed    — posthog + logger + activity_trail. Error audit for degraded sessions.
+export interface VoiceBootstrapSnapshotPublished extends BaseEvent {
+  event: "voice.bootstrap.snapshot_published";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Stable version token that was published: `${workspaceId}:${profileId}:${unix_ms}` */
+      version: string;
+      /** Serialised payload size in bytes */
+      payload_bytes: number;
+      /** Time (ms) from RoomEvent.Connected to successful publish */
+      latency_ms: number;
+      /** Always 'mobile' — disambiguates from future web publish path */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapPublishFailed extends BaseEvent {
+  event: "voice.bootstrap.publish_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Snapshot version we attempted to publish */
+      version: string;
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Number of attempts made (1 or 2) */
+      attempts: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+// ─── Voice Bootstrap RPC Events (P4 mobile-voice-runtime-wire, L-0234 closure) ──────────────────
+// Emitted by the mobile app during tool-register and RPC round-trips.
+// tool_registered      — posthog + logger + activity_trail. Confirms client-tool pipe is live.
+// tool_register_failed — posthog + logger + activity_trail. Error audit for degraded sessions.
+// rpc_completed        — posthog (latency funnel) + logger + activity_trail (AI-action audit).
+// rpc_failed           — posthog + logger + activity_trail. Error audit.
+export interface VoiceBootstrapToolRegistered extends BaseEvent {
+  event: "voice.bootstrap.tool_registered";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Number of tools registered in this batch (5 for mobile MVP) */
+      tool_count: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapToolRegisterFailed extends BaseEvent {
+  event: "voice.bootstrap.tool_register_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapRpcCompleted extends BaseEvent {
+  event: "voice.bootstrap.rpc_completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Tool name that was invoked (e.g. "mobile_navigate_to") */
+      tool: string;
+      /** Correlation ID from voice-agent — links call to result in logs */
+      call_id: string;
+      /** Round-trip latency from DataReceived to result publish (ms) */
+      latency_ms: number;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface VoiceBootstrapRpcFailed extends BaseEvent {
+  event: "voice.bootstrap.rpc_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Tool name that was invoked (unknown if tool name unresolvable) */
+      tool: string;
+      /** Correlation ID from voice-agent */
+      call_id: string;
+      /** Human-readable failure reason (no PII) */
+      reason: string;
+      /** Always 'mobile' */
+      device_type: "mobile";
+    };
+  };
+}
+
 // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe) ─────────
 // Emitted by the mobile app UI layer (not BFF) for interaction funnel analytics.
 // fab.long_press — posthog + logger. Non-auditable interaction signal.
@@ -5102,6 +5219,122 @@ export interface MobileBotssonSheetOpened extends BaseEvent {
   properties: {
     data: {
       source: "fab_long_press" | "fab_swipe_layer_2" | "intent";
+      device_type: "mobile";
+    };
+  };
+}
+
+// ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ────────────
+// Emitted by use-emma-chat.ts on the mobile thin client.
+// message_sent: posthog (funnel analytics) + logger + activity_trail (message-send audit).
+//   No engine_event — informational, not workflow-driving.
+// response_received: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+//   No engine_event — informational.
+// error: posthog (error funnel) + logger + activity_trail (error audit for degraded sessions).
+//   No engine_event — not a state-machine input.
+export interface MobileChatMessageSent extends BaseEvent {
+  event: "mobile.chat.message_sent";
+  properties: {
+    data: {
+      /** Character length of the message — no PII. */
+      length: number;
+      /** Whether a stage-engine session_id was supplied (warm vs cold turn). */
+      session_id_present: boolean;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileChatResponseReceived extends BaseEvent {
+  event: "mobile.chat.response_received";
+  properties: {
+    data: {
+      /** End-to-end latency from send() call to response parsed (ms). */
+      latency_ms: number;
+      /** Character length of the agent response — no PII. */
+      response_length: number;
+      /** Routed intent returned by stage-engine (e.g. "schedule", "profile"). */
+      intent?: string;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileChatError extends BaseEvent {
+  event: "mobile.chat.error";
+  properties: {
+    data: {
+      /** Short error code — never PII, never full stack trace. */
+      reason: string;
+      /** HTTP status from BFF, or 0 for network failures. */
+      status_code: number;
+      device_type: "mobile";
+    };
+  };
+}
+
+// ─── Mobile Voice UX Events (P6 mobile-voice-runtime-wire 2026-05-20) ────────
+// Emitted by use-botsson-voice-session.ts + botsson-provider.tsx on mobile.
+// mic_permission_denied: posthog + logger + activity_trail.
+//   posthog: permission-denial funnel (how many users hit this).
+//   activity_trail: auditable — permission denial is a security-surface event.
+//   No engine_event — not a workflow trigger.
+// disconnect_recovered: posthog + logger.
+//   posthog: reliability funnel (how often do we recover vs fail completely).
+//   logger: debugging disconnect patterns. No activity_trail — transient infra event.
+// disconnect_failed: posthog + logger + activity_trail.
+//   activity_trail: degraded-session audit. posthog: reliability KPI.
+// policy_flipped: posthog + logger + activity_trail.
+//   activity_trail: governance audit — workspace policy change mid-session is a notable event.
+export interface MobileVoiceMicPermissionDenied extends BaseEvent {
+  event: "mobile.voice.mic_permission_denied";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoiceDisconnectRecovered extends BaseEvent {
+  event: "mobile.voice.disconnect_recovered";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** Which retry attempt succeeded (1-based). */
+      attempt: number;
+      /** Milliseconds from first disconnect detection to successful reconnect. */
+      recovery_ms: number;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoiceDisconnectFailed extends BaseEvent {
+  event: "mobile.voice.disconnect_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** Total retry attempts exhausted. */
+      attempts: number;
+      /** Total ms elapsed from first disconnect to final failure. */
+      elapsed_ms: number;
+      device_type: "mobile";
+    };
+  };
+}
+
+export interface MobileVoicePolicyFlipped extends BaseEvent {
+  event: "mobile.voice.policy_flipped";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <channelId>
+    data: {
+      workspace_id: string;
+      /** HTTP status from BFF that indicated policy denial (typically 403). */
+      status_code: number;
       device_type: "mobile";
     };
   };
@@ -6014,6 +6247,24 @@ export interface InvoiceOverdueDetected extends BaseEvent {
       /** Emit origin tag (cron|web|api). Provider reads this into
        *  billing_activity_log.source. */
       source?: string;
+    };
+  };
+}
+
+// Watchdog event: cron detected that a company with contract_status='active'
+// has no non-void recurring invoice for the previous calendar month.
+// Written directly to billing_activity_log by fn_check_billing_run()
+// (SECURITY DEFINER, ADR-0125). entity_id = company_id (no invoice exists yet).
+// feat/billing-cron-correctness R1, 2026-05-20.
+export interface InvoiceGenerationMissing extends BaseEvent {
+  event: "invoice generation_missing";
+  properties: {
+    entity_type: "company";
+    entity_id: string; // company_id
+    data: {
+      company_id: string;
+      period_from: string;
+      period_to: string;
     };
   };
 }
@@ -8568,6 +8819,7 @@ export type SmartoutEvent =
   | ProfileRoleUpdated
   | ProfileDepartmentUpdated
   | ProfileStatusUpdated
+  | ProfileActivated
   | ProfileDeactivated
   | ProfileReactivated
   | ProfileLoginCodeSent
@@ -8667,6 +8919,7 @@ export type SmartoutEvent =
   | InvoiceVoided
   | InvoiceMarkedUncollectible
   | InvoiceOverdueDetected
+  | InvoiceGenerationMissing
   | InvoiceCreditNoteIssued
   | InvoiceBasisDriftDetected
   | UsageSnapshotCreated
@@ -9025,10 +9278,26 @@ export type SmartoutEvent =
   | VoiceBootstrapSnapshotSent
   | VoiceBootstrapSnapshotRefreshed
   | VoiceBootstrapSnapshotAssemblyFailed
+  // ─── Voice Bootstrap Publish (ADR-0297, P3 mobile-voice-runtime-wire 2026-05-20) ──
+  | VoiceBootstrapSnapshotPublished
+  | VoiceBootstrapPublishFailed
+  // ─── Voice Bootstrap RPC (P4 mobile-voice-runtime-wire 2026-05-20, L-0234) ──
+  | VoiceBootstrapToolRegistered
+  | VoiceBootstrapToolRegisterFailed
+  | VoiceBootstrapRpcCompleted
+  | VoiceBootstrapRpcFailed
   // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
   | MobileFabLongPress
   | MobileAiPrefsChanged
-  | MobileBotssonSheetOpened;
+  | MobileBotssonSheetOpened
+  // ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ──
+  | MobileChatMessageSent
+  | MobileChatResponseReceived
+  | MobileChatError
+  | MobileVoiceMicPermissionDenied
+  | MobileVoiceDisconnectRecovered
+  | MobileVoiceDisconnectFailed
+  | MobileVoicePolicyFlipped;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -12672,6 +12941,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
   },
+  "profile activated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
   "profile deactivated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
@@ -13040,6 +13313,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "invoice overdue_detected": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  // Watchdog: cron-detected missing billing run. Logger + billing_activity_log
+  // only — the audit stream IS the alert. No engine_event (no invoice to spawn
+  // a lifecycle process from). feat/billing-cron-correctness R1.
+  "invoice generation_missing": {
+    destinations: ["logger", "billing_activity_log"],
     category: "billing",
   },
   "invoice credit_note_issued": {
@@ -14654,6 +14934,44 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
 
+  // ─── Voice Bootstrap Publish (ADR-0297, P3 mobile-voice-runtime-wire 2026-05-20) ──
+  // snapshot_published: posthog (mobile bootstrap funnel adoption) + logger + activity_trail
+  //   (data-channel publish is a data-transfer event that must be auditable).
+  //   No engine_event — informational, not workflow-driving.
+  // publish_failed: posthog + logger + activity_trail (error audit for degraded sessions).
+  //   No engine_event — not a state-machine input.
+  "voice.bootstrap.snapshot_published": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.publish_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Voice Bootstrap RPC (P4 mobile-voice-runtime-wire 2026-05-20, L-0234) ──
+  // tool_registered: posthog (adoption funnel) + logger + activity_trail (pipe-live audit).
+  // tool_register_failed: posthog + logger + activity_trail (error audit).
+  // rpc_completed: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+  // rpc_failed: posthog + logger + activity_trail (error audit).
+  // None route to engine_event — tool-call round-trips are not workflow state inputs.
+  "voice.bootstrap.tool_registered": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.tool_register_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.rpc_completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "voice.bootstrap.rpc_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
   // ─── Mobile AI Surface Events (P2 UI scaffold, feat/mobile-mobile-voice-bootstrap-pipe 2026-05-20) ──
   // fab.long_press: posthog (UX discovery funnel) + logger. No activity_trail — tap events
   //   are not auditable actions, they're interaction signals. No engine_event — not workflow.
@@ -14671,6 +14989,45 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "mobile.botsson_sheet.opened": {
     destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
+  // ─── Mobile Chat Events (P5 mobile-voice-runtime-wire 2026-05-20) ──
+  // message_sent: posthog (funnel) + logger + activity_trail (send-audit).
+  // response_received: posthog (latency funnel) + logger + activity_trail (AI-action audit).
+  // error: posthog + logger + activity_trail (error audit for degraded sessions).
+  "mobile.chat.message_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.chat.response_received": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.chat.error": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Mobile Voice UX Events (P6 mobile-voice-runtime-wire 2026-05-20) ──
+  // mic_permission_denied: posthog (denial funnel) + logger + activity_trail (security-surface audit).
+  // disconnect_recovered: posthog (reliability KPI) + logger. Transient — no activity_trail.
+  // disconnect_failed: posthog (reliability KPI) + logger + activity_trail (degraded-session audit).
+  // policy_flipped: posthog (governance signal) + logger + activity_trail (workspace policy audit).
+  "mobile.voice.mic_permission_denied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.voice.disconnect_recovered": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "mobile.voice.disconnect_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.voice.policy_flipped": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
 };

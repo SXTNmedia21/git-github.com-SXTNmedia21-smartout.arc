@@ -34,6 +34,7 @@ When NOT to use: feature still in active build (premature polish). Wait until jo
 | 6 | Page instructions | Header + description + non-generic empty/error copy | Read page as a new user — does it explain itself? |
 | 7 | Harness tool expectations | `useRegisterTools(pageKey, kit)` with `description` per tool | Botsson can list + invoke tools |
 | 8 | Site-map registration | Entry in `apps/web/.botsson/site-map.json` (path + purpose + tools + access + tier) | `pnpm site-map:validate` (`apps/web/scripts/validate-site-map.ts`) |
+| 10 | Polish index regeneration | Master ledger (routes + Tier 0 elements + perf + harness tools) in `docs/polish/POLISH-INDEX.md`; rollup linked from `docs/DASHBOARD.md` | `pnpm --filter web polish:index` |
 
 ## Phase 0 — Pre-Polish Capability Check
 
@@ -51,7 +52,7 @@ If any answer is "no, but planned for this polish session," ship the prerequisit
 Capture metrics BEFORE touching anything. Without baseline, "feels faster" is theatre.
 
 1. Run dev build (`op run --env-file=.env.template -- pnpm --filter web dev`) and Lighthouse on the route both signed-out (where applicable) and signed-in.
-2. Record LCP, CLS, TTI, blocking JS bundle size. Save to a scratch note (do NOT commit).
+2. Record LCP, CLS, TTI, blocking JS bundle size into the page's `.claude/page-polish/<route-slug>.run.yml` under `speed_test.cold` / `speed_test.warm` (and `retest.warm` after Phase 2 fixes). These ARE committed — they feed the Phase 10 polish index + DASHBOARD rollup. (Earlier skill versions said "scratch, do NOT commit"; that contradicted the run.yml template, which has the fields. Persist them.)
 3. Open DevTools → Performance tab → record one cold load + one warm reload. Note any frame >50ms.
 
 If the page is admin-gated, capture two profiles: admin and employee — they branch on `isAdminMode` and load different dynamic imports.
@@ -513,11 +514,12 @@ Polishing these once propagates to every page that consumes them.
 Tier is "done" only when:
 
 - Lighthouse LCP < 1.5s on every page in the tier
-- `grep -rn "stiffness:\|damping:" <tier-paths>` returns 0 hits outside `motionTokens.*`
-- `grep -rn "zinc-\|gray-\|slate-" <tier-paths>` returns 0 hits outside intentional escape hatches
+- `grep -rnE "stiffness:|damping:" <tier-paths>` returns 0 hits outside `motionTokens.*`
+- `grep -rnE "\b(zinc|gray|slate)-" <tier-paths>` returns 0 hits outside intentional escape hatches. **Use the `\b` word boundary** — a bare `slate-` pattern matches `tran**slate-**x`/`tran**slate-**y` Tailwind classes and `interpolate`/`translate-todo` imports as false positives. `pnpm --filter web polish:index` uses the boundary-correct regex; trust the index over a loose grep.
 - Every page header has a description, every empty/error state has next-action copy
 - Every page that Botsson should operate has `useRegisterTools` with descriptions
 - Every page in the tier has an entry in `apps/web/.botsson/site-map.json` with matching tool list; `pnpm --filter web site-map:validate` exits 0
+- `pnpm --filter web polish:index` regenerated; `docs/polish/POLISH-INDEX.md` + DASHBOARD rollup reflect the tier's new state
 
 ## Verification Checklist
 
@@ -581,6 +583,37 @@ Before flipping `verified: true` in run.yml, verify ADR-0133 alignment:
 
 Mobile-polish is a separate skill (planned: `smartout-mobile-polish`). Phase 9 here is only the data-layer parity check, not visual parity.
 
+## Phase 10 — Polish Index Regeneration
+
+The master ledger that answers "what is polished, how fast, with which harness tools?" — addressable from a single file. The rollup is surfaced in `docs/DASHBOARD.md` § Polish Coverage (live git state) and the index is linked from `docs/ORIENTATION.md` § "Where does X live?" (stable North Star — survives `/status` regeneration). Run after EVERY polish slice (page or Tier 0 element), and at tier completion.
+
+```bash
+pnpm --filter web polish:index
+```
+
+**Generator:** `apps/web/scripts/build-polish-index.ts`. It is drift-free — it never invents data, it aggregates three truth sources:
+
+| Source | Supplies |
+|--------|----------|
+| `.claude/page-polish/*.run.yml` | route status, `verified`, `verified_at`, `speed_test`/`retest` metrics, `design` debt counts, `harness_tools` |
+| `apps/web/.botsson/site-map.json` | tier, module, access, tool names per route |
+| live source grep of Tier 0 primitives | element-level motion (`stiffness:`/`damping:` outside `motionTokens.*`) + palette (`\b(zinc\|gray\|slate)-`) debt — shared primitives have no run.yml |
+
+**Emits (both overwritten every run — never hand-edit):**
+
+- `docs/polish/POLISH-INDEX.md` — human ledger: coverage rollup + Routes table + Tier 0 Elements table.
+- `apps/web/.botsson/polish-index.json` — machine mirror (same data, for future LLM/HarnessAdapter consumption).
+
+**DASHBOARD link:** the rollup block (routes tracked/verified, median warm LCP/CLS, harness-tool total, Tier 0 clean count) is mirrored into `docs/DASHBOARD.md` under "Polish Coverage" with a link to the full index. Update both by re-running the generator, then copy the rollup row values into DASHBOARD (or let `/status` pick it up once wired).
+
+**`Source` column meaning in the Routes table:**
+
+- `both` — run.yml worksheet + site-map entry (fully tracked).
+- `run.yml` — worksheet exists, no site-map entry (Phase 8 gap — add the site-map route).
+- `site-map` — catalogued route never polished (coverage gap — a polish target).
+
+**Why the index over a loose grep:** the generator's palette regex uses a `\b` word boundary, so it does NOT miscount `translate-x`/`translate-y` or `interpolate`/`translate-todo` imports as `slate-` debt. A bare `grep "slate-"` over-reports. Trust the index numbers.
+
 ## Cross-References
 
 - `smartout-nordic-split` — design tokens + forbidden colors (phase 4)
@@ -593,5 +626,8 @@ Mobile-polish is a separate skill (planned: `smartout-mobile-polish`). Phase 9 h
 - `apps/web/src/app/Botsson/_components/tool-registry.ts` — harness tool registration
 - `apps/web/.botsson/site-map.json` — site-map source of truth (Phase 8)
 - `apps/web/scripts/validate-site-map.ts` — validator that diffs `useRegisterTools` calls against site-map.json
+- `apps/web/scripts/build-polish-index.ts` — polish-index generator (Phase 10)
+- `docs/polish/POLISH-INDEX.md` — master polish ledger (generated; linked from DASHBOARD.md)
+- `apps/web/.botsson/polish-index.json` — machine mirror of the polish ledger
 - `docs/reference/ROUTES.md` — canonical route catalog (module + access reference)
 - BFF `/api/botsson/voice/session-context` — reads site-map.json, ships in `context_init` bootstrap pipe (2026-05-13 — same pipe as workforce snapshot)

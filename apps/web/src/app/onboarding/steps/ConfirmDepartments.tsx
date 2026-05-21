@@ -61,7 +61,10 @@ export function ConfirmDepartments({
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.departments_description")}</p>
         <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
-          {selectedCount} valgt av {departments.length} forslag
+          {t("confirm.departments_selected_count", {
+            selected: selectedCount,
+            total: departments.length,
+          })}
         </p>
       </div>
 
@@ -94,7 +97,7 @@ export function ConfirmDepartments({
 
             {!dept.selected && (
               <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
-                Forslag
+                {t("confirm.proposal_badge")}
               </span>
             )}
           </button>
@@ -113,7 +116,7 @@ export function ConfirmDepartments({
                   setCustomName("");
                 }
               }}
-              placeholder="Avdelingsnavn"
+              placeholder={t("confirm.departments_name_placeholder")}
               className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
               autoFocus
             />
@@ -122,7 +125,7 @@ export function ConfirmDepartments({
               onClick={addCustomDepartment}
               className="rounded-lg bg-[var(--brand-orange)]/10 px-3 py-2 text-sm text-[var(--brand-orange)] transition-colors hover:bg-[var(--brand-orange)]/20"
             >
-              Legg til
+              {t("confirm.add_button")}
             </button>
             <button
               type="button"
@@ -142,7 +145,7 @@ export function ConfirmDepartments({
             className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-1 text-xs transition-colors"
           >
             <Plus className="size-3.5" />
-            Legg til egen avdeling
+            {t("confirm.departments_add_custom")}
           </button>
         )}
       </div>

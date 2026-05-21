@@ -82,6 +82,13 @@ Deno.serve(async (req) => {
       .single();
     const workspaceName = workspace?.name ?? "Smartout";
 
+    // Resolve the web origin once — the magic link must point at the web
+    // /api/auth/callback so PKCE exchange runs (mirrors the password-reset
+    // fix in commit c29155e6c). The previous `smartout://auth/callback`
+    // value was mobile-only and silently 404'd for every desktop recipient.
+    const siteUrl = Deno.env.get("SITE_URL") || "https://app.smartout.ai";
+    const webRedirectTo = `${siteUrl}/api/auth/callback?next=/dashboard`;
+
     if (channel === "email") {
       if (!userEmail) throw new Error("Employee has no email registered");
 
@@ -89,7 +96,7 @@ Deno.serve(async (req) => {
         type: "magiclink",
         email: userEmail,
         options: {
-          redirectTo: "smartout://auth/callback",
+          redirectTo: webRedirectTo,
         },
       });
 
@@ -97,36 +104,46 @@ Deno.serve(async (req) => {
         throw new Error("Failed to generate magic link");
       }
 
-      await sendEmailLoginCode(userEmail, linkData.properties.action_link, workspaceName);
+      // generateLink returns BOTH a clickable action_link AND a 6-digit
+      // email_otp the user can type into /login → Engangskode tab. Surface
+      // both — desktop users on a hostile mail client (no clickable links)
+      // can still log in by reading the code aloud or copy-pasting it.
+      await sendEmailLoginCode(
+        userEmail,
+        linkData.properties.action_link,
+        linkData.properties.email_otp,
+        workspaceName,
+      );
     } else {
       if (!userPhone) throw new Error("Employee has no phone number registered");
 
-      // For SMS, generate a magic link and send it as a clickable URL
-      // We need to use email for generateLink, so if they only have phone,
-      // we use Supabase OTP flow instead.
       if (userEmail) {
+        // generateLink works on email even when we deliver via SMS — the
+        // OTP code is the same on both channels. We prefer SMS-delivering
+        // the 6-digit code (160-char-friendly + no link-rewriter mangling)
+        // and skip the full URL.
         const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
           type: "magiclink",
           email: userEmail,
           options: {
-            redirectTo: "smartout://auth/callback",
+            redirectTo: webRedirectTo,
           },
         });
 
-        if (linkError || !linkData?.properties?.action_link) {
-          throw new Error("Failed to generate login link");
+        if (linkError || !linkData?.properties?.email_otp) {
+          throw new Error("Failed to generate login code");
         }
 
         const smsBody =
-          `Hei! Din leder har sendt deg en innloggingslenke for ${workspaceName} pa Smartout. ` +
-          `Trykk her for a logge inn: ${linkData.properties.action_link}`;
+          `Smartout: din innloggingskode for ${workspaceName} er ${linkData.properties.email_otp}. ` +
+          `Skriv den inn pa Logg inn -> Engangskode. Koden er gyldig i 1 time.`;
 
         const result = await sendSms(userPhone, smsBody);
         if (!result.success) {
           throw new Error(`Failed to send SMS: ${result.error}`);
         }
       } else {
-        // Phone-only user: trigger OTP directly (Supabase sends the SMS)
+        // Phone-only user: trigger phone OTP directly (Supabase delivers SMS).
         const { error: otpError } = await adminClient.auth.signInWithOtp({
           phone: userPhone,
         });
@@ -160,12 +177,18 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Send a magic link login email via SendGrid.
+ * Send a magic-link login email via SendGrid. The body carries BOTH the
+ * clickable button and the 6-digit code so a recipient on a mail client
+ * that strips links (or a recipient on a different device than the one
+ * they want to log in on) can still get in by typing the code into the
+ * "Engangskode" tab on /login.
+ *
  * Falls back silently if SendGrid is not configured (dev environment).
  */
 async function sendEmailLoginCode(
   recipientEmail: string,
   magicLink: string,
+  otpCode: string | undefined,
   workspaceName: string,
 ) {
   const apiKey = Deno.env.get("SENDGRID_API_KEY");
@@ -173,6 +196,19 @@ async function sendEmailLoginCode(
     console.warn("SENDGRID_API_KEY not configured, skipping email dispatch");
     return;
   }
+
+  // Render the code as monospaced digit chips when present. If the SDK
+  // surface ever stops returning email_otp (Supabase upgrade), the email
+  // still works via the clickable button — graceful degradation.
+  const codeBlock = otpCode
+    ? `
+              <div style="margin: 24px 0; padding: 20px; background: #f9fafb; border-radius: 12px; text-align: center;">
+                <p style="color: #666; font-size: 13px; margin: 0 0 8px;">Eller skriv inn koden manuelt:</p>
+                <p style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 28px; letter-spacing: 6px; font-weight: 600; color: #1a1a1a; margin: 0;">${otpCode}</p>
+                <p style="color: #999; font-size: 12px; margin: 8px 0 0;">Logg inn -> Engangskode -> tast koden</p>
+              </div>
+        `
+    : "";
 
   const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
     method: "POST",
@@ -195,9 +231,9 @@ async function sendEmailLoginCode(
               </p>
               <a href="${magicLink}" style="display: inline-block; background: #f97316; color: white; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 600; font-size: 15px; margin: 24px 0;">
                 Logg inn
-              </a>
+              </a>${codeBlock}
               <p style="color: #999; font-size: 13px;">
-                Denne lenken er gyldig i 24 timer. Hvis du ikke ba om dette, kan du ignorere denne e-posten.
+                Denne lenken er gyldig i 1 time. Hvis du ikke ba om dette, kan du ignorere denne e-posten.
               </p>
             </div>
           `,

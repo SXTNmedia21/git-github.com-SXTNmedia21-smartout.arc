@@ -7,11 +7,24 @@
  *
  * Prefix: "mobile_" to avoid collision with web tools.
  * Registered via Botsson provider session params.
+ *
+ * ADR-0378 R7 + ADR-0078: tool schemas and wire arguments MUST NOT carry PII.
+ * `mobile_call_leader` resolves the leader phone locally (via `phoneResolver`)
+ * and never includes a phone number in the published tool-call arguments.
  */
 
 import { router } from "expo-router";
 import { Linking, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
+
+/**
+ * Resolves the team leader's phone number client-side, without the phone
+ * ever appearing on the voice wire.
+ *
+ * Injected at session-start by `use-botsson-voice-session.ts`.
+ * Returns null when no leader or no phone is on file.
+ */
+export type LeaderPhoneResolver = () => Promise<string | null>;
 
 export type MobileToolHandler = (params: Record<string, string>) => Promise<string>;
 
@@ -112,51 +125,173 @@ const startPunch: MobileToolDefinition = {
 };
 
 /**
- * Call the team leader via phone dialer.
+ * Build the `mobile_call_leader` tool.
+ *
+ * ADR-0378 R7: phone number is NOT a tool parameter.
+ * The agent passes `leader_name` only (for acknowledgement text). The phone is
+ * resolved locally via `phoneResolver` so it never crosses the LiveKit
+ * `botsson-tool-call` wire. Fail-fast: if the resolver returns null, the tool
+ * returns an error string without opening the dialer.
+ *
+ * @param phoneResolver - Injected at session-start; resolves leader phone from
+ *   local DB chain (team_member → team → profile → user_identity).
  */
-const callLeader: MobileToolDefinition = {
-  name: "mobile_call_leader",
-  description: "Call the team leader via phone. Requires leader_phone parameter.",
-  parameters: {
-    leader_phone: {
-      type: "string",
-      description: "Phone number of the team leader (e.g. +4712345678)",
-      required: true,
+function buildCallLeader(phoneResolver: LeaderPhoneResolver): MobileToolDefinition {
+  return {
+    name: "mobile_call_leader",
+    description:
+      "Call the team leader via phone. No phone number in arguments — mobile resolves phone locally.",
+    parameters: {
+      leader_name: {
+        type: "string",
+        description: "Name of the leader (used in confirmation text only)",
+      },
     },
-    leader_name: {
-      type: "string",
-      description: "Name of the leader (for confirmation)",
+    handler: async (params) => {
+      // Resolve phone locally — never from tool params (ADR-0078 + ADR-0378 R7).
+      const phone = await phoneResolver();
+      if (!phone) {
+        return "Ingen leder er tilgjengelig med telefonnummer. Bruk chat for å ta kontakt.";
+      }
+      const url = `tel:${phone}`;
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) return "Kan ikke åpne telefon på denne enheten.";
+      await Linking.openURL(url);
+      return `Ringer ${params.leader_name ?? "leder"}.`;
     },
-  },
-  handler: async (params) => {
-    const phone = params.leader_phone;
-    if (!phone) return "Error: no leader phone number available";
-    const url = `tel:${phone}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) return "Cannot open phone dialer on this device";
-    await Linking.openURL(url);
-    return `Calling ${params.leader_name ?? "leader"} at ${phone}`;
-  },
-};
+  };
+}
 
-/** All mobile client tools, ready for registration */
-export const MOBILE_CLIENT_TOOLS: MobileToolDefinition[] = [
-  navigateTo,
-  openSheet,
-  showToast,
-  startPunch,
-  callLeader,
-];
+// ── ClientToolDefinition wire shape ──────────────────────────────────────────
 
 /**
- * Execute a mobile client tool by name.
- * Returns the tool result string, or an error message if not found.
+ * ClientToolDefinition shape (matches packages/ai/src/harness/types.ts).
+ * Duplicated locally to avoid cross-package dep mobile → @smartout/ai.
+ * voice-agent's DataReceived handler validates { definitions: ClientToolDefinition[] }
+ * and uses `temporaryTool.modelToolName` as the key for stub lookup.
  */
+export type ClientToolDefinitionShape = {
+  temporaryTool: {
+    modelToolName: string;
+    description: string;
+    dynamicParameters: Array<{
+      name: string;
+      location: string;
+      description: string;
+      required?: boolean;
+      schema:
+        | { type: "string"; enum?: string[] }
+        | { type: "number" }
+        | { type: "boolean" }
+        | { type: "object"; properties?: Record<string, unknown> }
+        | { type: "array"; items?: unknown };
+    }>;
+    client: Record<string, never>;
+  };
+};
+
+// ── Session-scoped tool bundle ────────────────────────────────────────────────
+
+/**
+ * Runtime context injected at session-start.
+ *
+ * `phoneResolver` is the only dependency today — it resolves the leader phone
+ * locally so the wire never carries PII (ADR-0378 R7 + ADR-0078).
+ */
+export type MobileToolDeps = {
+  phoneResolver: LeaderPhoneResolver;
+};
+
+/**
+ * Session-scoped tool bundle.
+ * Create once per voice session via `createMobileClientTools`.
+ * Re-creating between sessions is safe — each bundle is independent.
+ */
+export type MobileToolBundle = {
+  /** All tools, including `mobile_call_leader` with injected resolver. */
+  tools: MobileToolDefinition[];
+  /** Execute a tool by name. Returns error string if unknown. */
+  executeTool: (toolName: string, params: Record<string, string>) => Promise<string>;
+  /**
+   * Wire definitions for `botsson-tools-register` registration.
+   * No PII in schemas — `leader_phone` is absent from `mobile_call_leader`.
+   */
+  getDefinitionsForRegistration: () => ClientToolDefinitionShape[];
+};
+
+/**
+ * Build the session-scoped mobile tool bundle.
+ *
+ * ADR-0378 R7: `phoneResolver` is injected here so `mobile_call_leader` can
+ * resolve the leader phone locally without it ever appearing in tool params or
+ * crossing the LiveKit `botsson-tool-call` wire.
+ *
+ * @example
+ *   const { profileId } = await getProfileContext();
+ *   const bundle = createMobileClientTools({
+ *     phoneResolver: () => fetchLeaderPhone(profileId),
+ *   });
+ */
+export function createMobileClientTools(deps: MobileToolDeps): MobileToolBundle {
+  const tools: MobileToolDefinition[] = [
+    navigateTo,
+    openSheet,
+    showToast,
+    startPunch,
+    buildCallLeader(deps.phoneResolver),
+  ];
+
+  return {
+    tools,
+
+    executeTool: async (toolName, params) => {
+      const tool = tools.find((t) => t.name === toolName);
+      if (!tool) return `Unknown mobile tool: ${toolName}`;
+      return tool.handler(params);
+    },
+
+    getDefinitionsForRegistration: () =>
+      tools.map((tool) => ({
+        temporaryTool: {
+          modelToolName: tool.name,
+          description: tool.description,
+          dynamicParameters: Object.entries(tool.parameters).map(([paramName, paramDef]) => ({
+            name: paramName,
+            location: "body",
+            description: paramDef.description,
+            required: paramDef.required === true,
+            schema: {
+              type: paramDef.type as "string" | "number" | "boolean" | "object" | "array",
+            },
+          })),
+          client: {} as Record<string, never>,
+        },
+      })),
+  };
+}
+
+// ── Legacy shims (deprecated) ─────────────────────────────────────────────────
+// Callers that have not yet migrated to createMobileClientTools() can still
+// import executeMobileTool / getToolDefinitionsForRegistration. The shim builds
+// a bundle with a no-op resolver: `mobile_call_leader` will always return the
+// "no phone" error until the call site injects a real resolver.
+
+const _legacyBundle = createMobileClientTools({
+  phoneResolver: async () => null,
+});
+
+/** @deprecated Use createMobileClientTools() with a real phoneResolver. */
+export const MOBILE_CLIENT_TOOLS: MobileToolDefinition[] = _legacyBundle.tools;
+
+/** @deprecated Use createMobileClientTools().executeTool() instead. */
 export async function executeMobileTool(
   toolName: string,
   params: Record<string, string>,
 ): Promise<string> {
-  const tool = MOBILE_CLIENT_TOOLS.find((t) => t.name === toolName);
-  if (!tool) return `Unknown mobile tool: ${toolName}`;
-  return tool.handler(params);
+  return _legacyBundle.executeTool(toolName, params);
+}
+
+/** @deprecated Use createMobileClientTools().getDefinitionsForRegistration() instead. */
+export function getToolDefinitionsForRegistration(): ClientToolDefinitionShape[] {
+  return _legacyBundle.getDefinitionsForRegistration();
 }

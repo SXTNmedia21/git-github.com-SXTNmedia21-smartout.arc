@@ -313,24 +313,80 @@ export async function POST(request: NextRequest) {
           .eq("signing_contract_id", contract.contract_id);
       }
 
-      // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition
-      // The engine_event drives profile_status update (trainee → active) via engine_process.
+      // Dispatch cascade coupling: D2 active + C4 trainee→active transition.
+      // ADR-0379 remediation (council 2026-05-20, REJECT → fix-forward):
+      //   R0 — a raw `engine_event` INSERT is NOT dispatch. Nothing reads the table to
+      //        evaluate triggers; engine-dispatch is a POST-body server. We MUST invoke it
+      //        (via service-role functions.invoke) so it runs idempotency-check + event
+      //        insert + trigger eval + engine_state creation. (See L-0324.)
+      //   R2 — do NOT fall back to entity_type=employment_contract when profile_id is
+      //        unresolved: update_entity's allowlist excludes employment_contract, so the
+      //        step would silently no-op and the employee stays trainee with no signal.
+      //        Fail loud + skip instead; monitoring catches signed-contract-still-trainee.
+      // engine-dispatch reads entity_type/entity_id from payload to target the profile row.
       if (contract.workspace_id) {
-        void Promise.resolve(
-          admin.from("engine_event").insert({
-            workspace_id: contract.workspace_id,
-            entity_type: "employment_contract",
-            entity_id: contract.contract_id,
-            event_name: "contract.signed",
-            payload: {
-              signed_at: new Date().toISOString(),
-              contract_type: "employee",
+        const submissionId = data.submission_id;
+
+        const { data: empContract } = await admin
+          .from("employment_contract")
+          .select("profile_id")
+          .eq("signing_contract_id", contract.contract_id)
+          .maybeSingle();
+
+        // R1 (ADR-0379 remediation): guard the transition to trainee→active ONLY.
+        // ADR-0379 §Scope boundary restricts this path to trainee→active; offboarding/
+        // inactive→active (re-hire) is explicitly out of scope and requires its own ADR.
+        // The engine update_entity step ships condition=NULL (engine evaluateCondition
+        // reads payload context, not live DB row), so the only place to enforce the
+        // current-status guard is here at the producer, against the live profile row.
+        let profileStatus: string | null = null;
+        if (empContract?.profile_id) {
+          const { data: prof } = await admin
+            .from("profile")
+            .select("status")
+            .eq("profile_id", empContract.profile_id)
+            .maybeSingle();
+          profileStatus = prof?.status ?? null;
+        }
+
+        if (!empContract?.profile_id) {
+          // R2: fail loud, skip dispatch. Contract update above already succeeded;
+          // only the activation tail is deferred until profile_id is repaired.
+          console.error("[docuseal] employee activation SKIPPED — profile_id unresolved", {
+            signing_contract_id: contract.contract_id,
+            submission_id: submissionId,
+          });
+        } else if (profileStatus !== "trainee") {
+          // R1: not a trainee → out of ADR-0379 scope. Do not auto-flip.
+          console.warn("[docuseal] employee activation SKIPPED — profile not trainee", {
+            profile_id: empContract.profile_id,
+            current_status: profileStatus,
+            submission_id: submissionId,
+          });
+        } else {
+          // R0: invoke engine-dispatch (proven pattern: api/engine-dispatch/route.ts).
+          const { error: dispatchError } = await admin.functions.invoke("engine-dispatch", {
+            body: {
+              event_type: "contract.signed",
+              workspace_id: contract.workspace_id,
+              idempotency_key: `docuseal:${submissionId}:signed`,
+              payload: {
+                entity_type: "profile",
+                entity_id: empContract.profile_id,
+                signed_at: new Date().toISOString(),
+                contract_type: "employee",
+                submission_id: submissionId,
+                contract_id: contract.contract_id,
+              },
             },
-            created_at: new Date().toISOString(),
-          } as never),
-        ).catch(() => {
-          // engine_event table may not exist yet in all envs — non-blocking
-        });
+          });
+          if (dispatchError) {
+            console.error("[docuseal] engine-dispatch invoke failed", {
+              error: dispatchError,
+              submission_id: submissionId,
+            });
+          }
+        }
       }
     } else {
       // SaaS contracts: update workspace contract status (existing behavior)

@@ -407,6 +407,20 @@ describe("approve_shift", () => {
         protocol_assignment: {
           result: { data: READY_PROTOCOL_ROWS, error: null },
         },
+        // approveShift reads the pending shift_approval row before calling
+        // mutateWithGate (read-before-gate per tools.ts). Without this entry
+        // the function short-circuits with the Norwegian "not found" string
+        // before the gate is ever evaluated.
+        shift_approval: {
+          result: {
+            data: {
+              approval_id: "approval-22222222",
+              status: "pending",
+              calculated_hours: 8,
+            },
+            error: null,
+          },
+        },
       },
       rpc: (fn) => {
         if (fn === "gate_action") {

@@ -26,6 +26,10 @@ export default function MeLayout() {
         options={{ headerShown: false, title: "Fyll ut data" }}
       />
       <Stack.Screen name="channel-detail/[id]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="change-password"
+        options={{ headerShown: false, title: "Bytt passord" }}
+      />
     </Stack>
   );
 }

@@ -34,6 +34,7 @@ import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
+import { ChangePasswordCard } from "./change-password-card";
 
 const MalerTab = lazy(() =>
   import("@/app/dashboard/people/contracts/_components/MalerTab").then((m) => ({
@@ -348,9 +349,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return <NotificationPreferences userId={userId} />;
     case "security":
       return (
-        <Suspense fallback={<SettingsLoadingSkeleton />}>
-          <ShiftLockPolicySettings />
-        </Suspense>
+        <div className="space-y-6">
+          <ChangePasswordCard />
+          <Suspense fallback={<SettingsLoadingSkeleton />}>
+            <ShiftLockPolicySettings />
+          </Suspense>
+        </div>
       );
     case "general":
       return (

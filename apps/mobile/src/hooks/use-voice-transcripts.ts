@@ -42,8 +42,39 @@ import {
 } from "livekit-client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { supabase } from "@/lib/supabase";
-import { getEmmaVoiceTranscriptUrl } from "@/lib/web-api";
+import { getEmmaVoiceTranscriptUrl, getEmmaVoiceSnapshotUrl } from "@/lib/web-api";
 import { getProfileContext } from "@/lib/profile-context";
+
+/**
+ * Snapshot field returned by the BFF on cold-start or drift-aware warm turns.
+ * ADR-0297: version + payload (inline) or version + payload_url (size guard).
+ * Mobile resolves payload_url via GET /api/emma/voice/snapshot/:version before
+ * lifting to BotssonProvider context.
+ */
+export type SnapshotField =
+  | {
+      version: string;
+      hash: string;
+      payload: Record<string, unknown>;
+      payload_bytes: number;
+      trigger?: string;
+    }
+  | {
+      version: string;
+      hash: string;
+      payload_url: string;
+      payload_bytes: number;
+      trigger?: string;
+    };
+
+/**
+ * Resolved snapshot — payload is always present (payload_url fetched and
+ * resolved before this is passed to `onSnapshot`).
+ */
+export type ResolvedSnapshot = {
+  version: string;
+  payload: Record<string, unknown>;
+};
 
 type UseVoiceTranscriptsParams = {
   /** Live LiveKit Room (or null when no voice session is active). */
@@ -57,6 +88,12 @@ type UseVoiceTranscriptsParams = {
   /** Stage-engine session id seed (rare — usually undefined on first turn). */
   initialSessionId?: string;
   /**
+   * ADR-0297: version token of the snapshot currently cached by the caller.
+   * Sent to BFF on each POST so BFF can detect drift and return a refreshed
+   * snapshot only when needed.
+   */
+  currentSnapshotVersion?: string | null;
+  /**
    * Called with the agent's text response. Caller is responsible for TTS
    * (Expo Speech on mobile). Receives the response *after* it has landed
    * on the BFF — partial / streamed responses are not surfaced.
@@ -64,6 +101,12 @@ type UseVoiceTranscriptsParams = {
   onResponse?: (response: AgentResponse) => void;
   /** Called when the hook posts a final transcript (for UI feedback). */
   onTranscript?: (transcript: string) => void;
+  /**
+   * ADR-0297: called when the BFF returns a new or refreshed snapshot.
+   * The snapshot is fully resolved (payload_url fetched inline) before
+   * this callback fires. Caller dedupes by version.
+   */
+  onSnapshot?: (snapshot: ResolvedSnapshot) => void;
   /** ASR provider tag — defaults to LiveKit's built-in Whisper. */
   asrProvider?: string;
   /** Disable the hook entirely (e.g. when channel policy is listen_only). */
@@ -106,8 +149,10 @@ export function useVoiceTranscripts({
   workspaceId,
   channelId,
   initialSessionId,
+  currentSnapshotVersion,
   onResponse,
   onTranscript,
+  onSnapshot,
   asrProvider = DEFAULT_ASR_PROVIDER,
   disabled = false,
 }: UseVoiceTranscriptsParams): UseVoiceTranscriptsState {
@@ -122,6 +167,8 @@ export function useVoiceTranscripts({
   const sessionIdRef = useRef<string | undefined>(initialSessionId);
   const onResponseRef = useRef(onResponse);
   const onTranscriptRef = useRef(onTranscript);
+  const onSnapshotRef = useRef(onSnapshot);
+  const currentSnapshotVersionRef = useRef(currentSnapshotVersion);
   const disabledRef = useRef(disabled);
   const sessionStartTsRef = useRef<number | null>(null);
   const seenSegmentIdsRef = useRef<Set<string>>(new Set());
@@ -136,12 +183,22 @@ export function useVoiceTranscripts({
     onTranscriptRef.current = onTranscript;
   }, [onTranscript]);
   useEffect(() => {
+    onSnapshotRef.current = onSnapshot;
+  }, [onSnapshot]);
+  useEffect(() => {
+    currentSnapshotVersionRef.current = currentSnapshotVersion;
+  }, [currentSnapshotVersion]);
+  useEffect(() => {
     disabledRef.current = disabled;
   }, [disabled]);
 
   /**
    * POST a final transcript to the BFF and dispatch the agent response.
    * Returns nothing — state updates flow through setLastResponse + setError.
+   *
+   * ADR-0297: sends `snapshotVersion` so BFF can skip re-assembly on warm
+   * turns. Parses the returned `snapshot` field and resolves `payload_url`
+   * (size-guard path) before calling `onSnapshot`.
    */
   const postTranscript = useCallback(
     async (transcript: string, asrLatencyMs: number) => {
@@ -160,13 +217,15 @@ export function useVoiceTranscripts({
         return;
       }
 
+      const accessToken = sess.session.access_token;
+
       let res: Response;
       try {
         res = await fetch(getEmmaVoiceTranscriptUrl(), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${sess.session.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             workspaceId,
@@ -176,6 +235,8 @@ export function useVoiceTranscripts({
             transcript,
             asrProvider,
             asrLatencyMs,
+            // ADR-0297: include current version so BFF skips assembly on warm turns.
+            snapshotVersion: currentSnapshotVersionRef.current ?? undefined,
           }),
         });
       } catch (networkErr) {
@@ -213,6 +274,7 @@ export function useVoiceTranscripts({
             sessionId: string;
             intent?: { capability: string; confidence: number };
             pipelineLatencyMs: number;
+            snapshot?: SnapshotField;
           }
         | {
             // listen_only short-circuit response
@@ -238,6 +300,14 @@ export function useVoiceTranscripts({
       };
       setLastResponse(response);
       onResponseRef.current?.(response);
+
+      // ADR-0297: parse and resolve the snapshot field if present.
+      // This fires the onSnapshot callback after payload_url resolution (if
+      // needed). Voice-agent context update happens in use-botsson-voice-session
+      // via the onSnapshot → BotssonProvider → data-channel publish path.
+      if (data.snapshot) {
+        void resolveAndDispatchSnapshot(data.snapshot, accessToken, onSnapshotRef.current);
+      }
     },
     [workspaceId, livekitRoomId, channelId, asrProvider],
   );
@@ -358,6 +428,61 @@ export function useVoiceTranscripts({
     () => ({ lastResponse, sessionId, isProcessing, error }),
     [lastResponse, sessionId, isProcessing, error],
   );
+}
+
+/**
+ * Internal: resolve the snapshot field from the BFF response and dispatch
+ * via the onSnapshot callback.
+ *
+ * When the BFF returns `payload_url` (size guard triggered), fetches the
+ * full payload via GET /api/emma/voice/snapshot/:version with the same
+ * Bearer JWT. The URL is already encoded by the BFF (the version token
+ * contains colons which must be encoded in path segments).
+ *
+ * Errors here are swallowed — failure to resolve a snapshot means the
+ * voice-agent stays in degraded mode (falls back to query_smartout roundtrip)
+ * rather than aborting the session. The publish path will emit
+ * voice.bootstrap.publish_failed in that case.
+ */
+async function resolveAndDispatchSnapshot(
+  snapshot: SnapshotField,
+  accessToken: string,
+  onSnapshot: ((s: ResolvedSnapshot) => void) | undefined,
+): Promise<void> {
+  if (!onSnapshot) return;
+
+  try {
+    let payload: Record<string, unknown>;
+
+    if ("payload" in snapshot) {
+      // Inline payload — no fetch needed.
+      payload = snapshot.payload;
+    } else {
+      // Size-guard path: fetch full payload from GET route.
+      // BFF already encodes the version token in the URL.
+      const url = getEmmaVoiceSnapshotUrl(encodeURIComponent(snapshot.version));
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        console.warn(`[useVoiceTranscripts] snapshot payload_url fetch failed: ${res.status}`);
+        return;
+      }
+      const fetched = (await res.json()) as { payload?: Record<string, unknown> };
+      if (!fetched.payload) {
+        console.warn("[useVoiceTranscripts] snapshot payload_url response missing payload field");
+        return;
+      }
+      payload = fetched.payload;
+    }
+
+    onSnapshot({ version: snapshot.version, payload });
+  } catch (err) {
+    // Swallow — snapshot failure is non-fatal. Voice session continues in
+    // degraded mode per ADR-0297 §Error-paths.
+    console.warn("[useVoiceTranscripts] snapshot resolve error:", err);
+  }
 }
 
 /** Internal: emit voice.session_ended with safe profile resolution. */

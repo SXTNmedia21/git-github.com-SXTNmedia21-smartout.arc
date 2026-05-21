@@ -1,5 +1,8 @@
 # Supervisor Agent Memory
 
+## Task-Manager / Governance
+- [Auto-assign trigger + policy_scope + template traps](task_manager_governance_review.md) — verified 2026-05-20. Trigger fires AFTER INSERT on profile (profile_position empty); CASE has no ELSE (silent NULL = regression class); template_restaurant_* NOT installed by any migration (dev-showcase only); scope_ref_id is uuid (can't hold profile_role).
+
 ## Module Docs Location
 - CLAUDE.md references "23 module docs" in `docs/modules/` but most have been moved to `docs/architecture/modules/`. Only `MODULE_YEAR_WHEEL_PRD.md` is in `docs/modules/` currently. 3 remain in `docs/architecture/modules/` (BOTSSON, 0_ROADMAP, AGENT_SDK).
 - MODULE_ naming convention is established but inconsistent in location.
@@ -47,6 +50,14 @@
 - Legacy `chat_*` tables never dropped — coexist with `channel_*`
 - `packages/ai/src/tools/channels.ts` has orphaned tools (search_knowledge) not in any capability
 - 20+ hardcoded Norwegian strings in hooks despite `komm.json` existing
+
+## Billing / Invoice Cron (verified 2026-05-20)
+- [Full review](billing_cron_review.md) — cron-pattern split, stuck-draft trap, no watchdog, phantom telemetry
+- generate-monthly-invoices uses external n8n; dunning (same billing engine) uses pg_cron+engine_event. Inconsistency = Fase-1 drift. House style = pg_cron+engine_event.
+- Stuck-draft bug: per-company insert→lineitems→issue is NON-transactional. Die mid-sequence → re-fire early-exits on the draft row → company permanently skipped with header-only invoice. Fix = wrap in SECURITY DEFINER RPC.
+- Zero billing missing-run watchdog (ops-monitor has no billing refs). n8n silent fail = undetected.
+- `invoice sent` + `invoice voided` registry events have NO emit-sites (phantom per ADR-0358).
+- Runbook `docs/runbooks/billing-monthly-cron-n8n.md` (cited index.ts:4) does not exist.
 
 ## Review Patterns
 - When reviewing year-wheel agent output: always check for hardcoded colors, isDark prop usage, spring constants, and Norwegian strings.

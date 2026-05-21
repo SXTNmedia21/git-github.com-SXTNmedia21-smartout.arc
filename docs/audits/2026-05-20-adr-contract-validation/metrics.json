@@ -1,0 +1,138 @@
+{
+  "date": "2026-05-20",
+  "run_id": "2026-05-20-adr-contract-validation",
+  "mode": "full",
+  "slices_delivered": 14,
+  "slices_total": 14,
+  "baseline": "2026-05-18-adr-contract-validation-02",
+  "verdict": "YELLOW",
+  "promote_safety": "SAFE_TO_PROMOTE",
+  "totals": {
+    "critical": 0,
+    "high": 7,
+    "medium": 30,
+    "low": 32,
+    "info": 17,
+    "total_tracked": 86
+  },
+  "delta": {
+    "vs_baseline": "2026-05-18-adr-contract-validation-02",
+    "new_critical": 0,
+    "new_high_genuine": 1,
+    "new_high_surface_restored": 1,
+    "new_medium": 23,
+    "new_low": 21,
+    "regressed": 0,
+    "closed": 7,
+    "unchanged_open": 14,
+    "notes": "Headline counts inflated by restoring slices 03 + 14 (baseline missed both). Substantive new HIGH = MOB-01 only (PR #430 today). EF-01 was present 2026-05-13, invisible 2026-05-18 due to slice absence."
+  },
+  "by_theme": {
+    "i18n_adoption": { "c": 0, "h": 4, "m": 5, "l": 3, "i": 1 },
+    "adr_0366_oklch_tokens": { "c": 0, "h": 0, "m": 5, "l": 3, "i": 1 },
+    "capability_mutation_patterns": { "c": 0, "h": 0, "m": 5, "l": 1, "i": 0 },
+    "telemetry_single_producer_and_missing_emit": { "c": 0, "h": 1, "m": 4, "l": 1, "i": 1 },
+    "edge_functions_auth_perimeter": { "c": 0, "h": 1, "m": 0, "l": 1, "i": 3 },
+    "schema_webhook_integrity": { "c": 0, "h": 0, "m": 1, "l": 0, "i": 0 },
+    "mobile_surface": { "c": 0, "h": 1, "m": 2, "l": 1, "i": 1 },
+    "journey_and_adr_registry_hygiene": { "c": 0, "h": 0, "m": 4, "l": 5, "i": 1 },
+    "cascade_portability_and_style": { "c": 0, "h": 0, "m": 2, "l": 4, "i": 2 },
+    "performance_budgets_motion_tokens": { "c": 0, "h": 0, "m": 0, "l": 6, "i": 0 },
+    "onboarding_wizard_nordic_split": { "c": 0, "h": 0, "m": 0, "l": 3, "i": 0 },
+    "tests_and_protocol_registry": { "c": 0, "h": 0, "m": 2, "l": 0, "i": 0 }
+  },
+  "coverage": {
+    "slices": {
+      "01_capability_tools": { "delivered": true, "c": 0, "h": 0, "m": 5, "l": 3, "i": 0 },
+      "02_stage_engine_bff": { "delivered": true, "c": 0, "h": 1, "m": 2, "l": 0, "i": 1 },
+      "03_edge_functions": { "delivered": true, "restored_vs_baseline": true, "c": 0, "h": 1, "m": 0, "l": 1, "i": 3 },
+      "04_schedule_cascade": { "delivered": true, "c": 0, "h": 0, "m": 2, "l": 4, "i": 2 },
+      "05_mobile_surface": { "delivered": true, "c": 0, "h": 1, "m": 2, "l": 1, "i": 1 },
+      "06_contracts_payroll_lovsen": { "delivered": true, "c": 0, "h": 0, "m": 1, "l": 2, "i": 2 },
+      "07_db_rls_telemetry": { "delivered": true, "all_green": true, "c": 0, "h": 0, "m": 0, "l": 0, "i": 2 },
+      "08_journeys": { "delivered": true, "c": 0, "h": 0, "m": 2, "l": 2, "i": 1 },
+      "09_adr_coverage_gaps": { "delivered": true, "c": 0, "h": 0, "m": 2, "l": 3, "i": 0 },
+      "10_onboarding_wizard": { "delivered": true, "c": 0, "h": 3, "m": 2, "l": 3, "i": 0 },
+      "11_performance_design": { "delivered": true, "c": 0, "h": 0, "m": 5, "l": 7, "i": 1 },
+      "12_i18n_frontmatter": { "delivered": true, "c": 0, "h": 1, "m": 4, "l": 3, "i": 1 },
+      "13_webhook_integration": { "delivered": true, "c": 0, "h": 0, "m": 1, "l": 0, "i": 3 },
+      "14_missions_e2e": { "delivered": true, "restored_vs_baseline": true, "c": 0, "h": 0, "m": 2, "l": 3, "i": 0 }
+    },
+    "coverage_pct": 100,
+    "baseline_coverage_pct": 85.7
+  },
+  "adr_registry_health": {
+    "files_on_disk": 368,
+    "decision_log_entries": 368,
+    "highest_id": 378,
+    "new_since_baseline": 7,
+    "new_adrs": ["0372", "0373", "0374", "0375", "0376", "0377", "0378"],
+    "sequence_gaps_undocumented": 1,
+    "sequence_gaps_list": ["0322"],
+    "filled_since_baseline": ["0368"]
+  },
+  "specialist_effectiveness": {
+    "high_value_slices": ["02", "05", "10", "11", "13"],
+    "all_green_slices": ["07"],
+    "surface_restored_slices": ["03", "14"],
+    "code_trace_quality": "all_findings_have_file_line_evidence",
+    "false_positives_re_flagged": 0,
+    "known_false_positives_correctly_skipped": 5,
+    "fp_skipped_list": ["FP-001", "FP-002", "FP-003", "FP-004", "FP-005"]
+  },
+  "positive_deltas": [
+    "Slice 04 ADR-0366 9-file day-component cluster fully remediated (0 oklch literals)",
+    "Slice 07 fully GREEN — 2 baseline LOWs closed, no new findings",
+    "Slice 11 OKLCH sweep: 280+ component hits → 3 hits (helpdesk-orb runtime only)",
+    "PR #430 (mobile-voice-runtime-wire) 13/13 telemetry parity PASS — L-0083 trap absent, all events use nonEmpty() + getProfileContext()",
+    "5 of 6 baseline cron EFs (2026-05-13) fixed; only tariff-amendment-sweep remains",
+    "ADR-0367 BT1/BT2 (day-line + routine + org) establishes canonical delegation reference pattern",
+    "Slice 10 baseline ConfirmBusiness + TariffSection + ConfirmRoles all resolved",
+    "Login page Norwegian char count 10+ → 0",
+    "All 2026-05-13 CRITICALs remain closed (F-DB-09, F-OB-10-01, F-CL-11, F-EF-03)",
+    "Zero regressions"
+  ],
+  "recommended_sortier": [
+    {
+      "rank": 1,
+      "id": "MOB-01-pii-fix",
+      "size": "XS",
+      "scope": "Remove leader_phone from mobile_call_leader schema OR add voice-agent PII redaction",
+      "adrs": ["0378", "0078"],
+      "eta": "0.5d"
+    },
+    {
+      "rank": 2,
+      "id": "i18n-eslint-rule-plus-onboarding-sweep",
+      "size": "M",
+      "scope": "Ship nordic-split/no-hardcoded-norwegian + migrate ConfirmPositions/Departments/Procedures + reset-password keys",
+      "adrs": ["CLAUDE.md-i18n"],
+      "eta": "3d"
+    },
+    {
+      "rank": 3,
+      "id": "wh-01-engine-event-fix-plus-adr-0377-script",
+      "size": "S",
+      "scope": "Fix docuseal engine_event column names + ship check-telemetry-emit-coverage.ts",
+      "adrs": ["0377"],
+      "eta": "1d"
+    },
+    {
+      "rank": 4,
+      "id": "adr-0366-eslint-rule-plus-landing-oklch",
+      "size": "S",
+      "scope": "Ship nordic-split/no-oklch-literal + migrate landing-app 6 hits + orb chroma tokens",
+      "adrs": ["0366"],
+      "eta": "1d"
+    },
+    {
+      "rank": 5,
+      "id": "adr-registry-hygiene-plus-0246-0248-promotion",
+      "size": "S",
+      "scope": "Document ADR-0322 reserved + promote 0246/0248 to accepted + close SE-01",
+      "adrs": ["0246", "0248", "0322"],
+      "eta": "1d"
+    }
+  ],
+  "trend_line": "- 2026-05-20 full c=0 h=7 m=30 l=32 Δnew=1-genuine+1-restored Δreg=0 Δclosed=7 — all 14 slices delivered; PR #430 13/13 telemetry parity PASS; MOB-01 PII new HIGH; ADR-0366 280→3 hits"
+}

@@ -235,19 +235,38 @@ function LoginContent() {
     }
   }
 
-  // Sends an OTP to the given email. Never reveals whether the email exists in the system.
+  // Sends an OTP to the given email. Default Supabase email template carries
+  // both a 6-digit code AND a magic link. The magic link path needs the same
+  // `/api/auth/callback?next=` redirect the password-reset flow uses — without
+  // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
+  // so the click is silently lost. Code-typing path is unaffected.
+  //
+  // Enumeration safety: with `shouldCreateUser: false`, GoTrue returns
+  // "Signups not allowed for otp" (code `otp_disabled`) for emails that don't
+  // exist (supabase/auth#1547). Surfacing that message would leak account
+  // existence, so we treat it as success and advance to the digit screen
+  // exactly as for a real user. Only genuine send failures (rate-limit, SMTP,
+  // network) reach the UI, and they show a generic i18n message — never the
+  // raw English Supabase string.
   async function handleSendOtp() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
-    // shouldCreateUser: false — OTP login only works for existing accounts.
-    // We don't await for a specific error to avoid leaking email existence.
-    await supabase.auth.signInWithOtp({
+    const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
+      },
     });
-    setOtpSent(true);
     setLoading(false);
+    const isEnumerationSignal =
+      otpError?.code === "otp_disabled" || /signups not allowed/i.test(otpError?.message ?? "");
+    if (otpError && !isEnumerationSignal) {
+      setError(t("login.error.otp_send"));
+      return;
+    }
+    setOtpSent(true);
   }
 
   function handleOtpVerified() {

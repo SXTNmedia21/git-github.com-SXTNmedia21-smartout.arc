@@ -60,6 +60,16 @@ vi.mock("@smartout/telemetry", () => ({
   nonEmpty: (v: string | null) => v ?? "anonymous",
 }));
 
+// scrubOrphanAuthCookies() calls cookies() from next/headers, which throws
+// "called outside a request scope" when GET() is invoked directly in a unit
+// test. Stub a minimal cookie store so the scrub loop is a no-op.
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({
+    getAll: () => [],
+    set: vi.fn(),
+  })),
+}));
+
 const PROD_ENV = { ...process.env, NEXT_PUBLIC_ROOT_DOMAIN: "smartout.ai" };
 const USER_ID = "00000000-0000-0000-0000-000000000abc";
 

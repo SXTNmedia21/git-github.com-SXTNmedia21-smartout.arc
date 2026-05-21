@@ -28,3 +28,10 @@ services/strike-mcp/
 **/.last-run.json
 supabase/.temp/
 apps/e2e/reports/
+
+# Generated polish index (machine mirror) — emitted by build-polish-index.ts.
+# Prettier-formatting it on commit collapses arrays the generator emits
+# multi-line → every `pnpm polish:index` run dirties the tree. Ignore so the
+# generator's output IS the committed form. (site-map.json stays formatted —
+# it's hand-maintained.)
+apps/web/.botsson/polish-index.json

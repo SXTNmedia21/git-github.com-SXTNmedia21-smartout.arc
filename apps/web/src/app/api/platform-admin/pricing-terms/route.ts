@@ -14,10 +14,22 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 // Currency enum mirrors the database constraint — must stay in sync with the DB enum.
 const CurrencyEnum = z.enum(["NOK", "SEK", "DKK", "EUR"]);
 
+// ADR-0121 fields. Pricing model:
+//   monthly_cost      (flat base)
+//   free_users        (included users in base; default 10)
+//   overage_price_per_user  (per-user charge above free_users)
+//
+// price_per_employee predates ADR-0121 and is still NOT NULL in DB. We keep
+// accepting it for backward compat and sync it = overage_price_per_user when
+// only the new field is provided. A future migration may drop the legacy
+// column after a data audit.
+
 const CreateSchema = z.object({
   workspace_id: z.string().uuid(),
   company_id: z.string().uuid(),
-  price_per_employee: z.number().nonnegative(),
+  price_per_employee: z.number().nonnegative().optional(),
+  free_users: z.number().int().nonnegative().optional(),
+  overage_price_per_user: z.number().nonnegative().nullable().optional(),
   effective_from: z.string(), // ISO date string
   billing_interval: z.string().optional(),
   currency: CurrencyEnum.optional(),
@@ -29,12 +41,15 @@ const CreateSchema = z.object({
   trial_days: z.number().int().nonnegative().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   contract_id: z.string().uuid().nullable().optional(),
+  payment_terms_days: z.number().int().positive().optional(),
 });
 
 const UpdateSchema = z.object({
   pricing_terms_id: z.string().uuid(),
   workspace_id: z.string().uuid(),
   price_per_employee: z.number().nonnegative().optional(),
+  free_users: z.number().int().nonnegative().optional(),
+  overage_price_per_user: z.number().nonnegative().nullable().optional(),
   effective_from: z.string().optional(),
   billing_interval: z.string().optional(),
   currency: CurrencyEnum.optional(),
@@ -46,7 +61,23 @@ const UpdateSchema = z.object({
   trial_days: z.number().int().nonnegative().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   contract_id: z.string().uuid().nullable().optional(),
+  payment_terms_days: z.number().int().positive().optional(),
 });
+
+// price_per_employee is NOT NULL in DB. If caller sends overage but no
+// price_per_employee, sync them so the constraint holds during transition.
+function syncLegacyPricePerEmployee<
+  T extends {
+    price_per_employee?: number;
+    overage_price_per_user?: number | null;
+  },
+>(fields: T): T & { price_per_employee: number } {
+  if (typeof fields.price_per_employee === "number") {
+    return fields as T & { price_per_employee: number };
+  }
+  const fallback = fields.overage_price_per_user ?? 0;
+  return { ...fields, price_per_employee: fallback };
+}
 
 // ── GET /api/platform-admin/pricing-terms?workspace_id=<uuid> ────────────────
 
@@ -88,7 +119,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { workspace_id, ...fields } = parsed.data;
+  const { workspace_id, ...fieldsRaw } = parsed.data;
+  const fields = syncLegacyPricePerEmployee(fieldsRaw);
 
   const { data, error } = await auth.admin
     .from("pricing_terms")
@@ -142,6 +174,16 @@ export async function PATCH(req: NextRequest) {
   const updates: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(fields)) {
     if (val !== undefined) updates[key] = val;
+  }
+
+  // If overage_price_per_user is being updated but price_per_employee is not,
+  // sync them so the deprecated column stays in lockstep during transition.
+  if (
+    "overage_price_per_user" in updates &&
+    !("price_per_employee" in updates) &&
+    typeof updates.overage_price_per_user === "number"
+  ) {
+    updates.price_per_employee = updates.overage_price_per_user;
   }
 
   const { data, error } = await auth.admin

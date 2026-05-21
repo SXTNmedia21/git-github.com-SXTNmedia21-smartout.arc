@@ -1,0 +1,1623 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-20T20:11:14.152Z",
+  "rollup": {
+    "routes_tracked": 64,
+    "routes_verified": 53,
+    "coverage_pct": 83,
+    "median_warm_lcp_ms": 1086,
+    "median_warm_cls": 0.001,
+    "total_harness_tools": 181,
+    "tier0_elements_clean": 6,
+    "tier0_elements_total": 8
+  },
+  "routes": [
+    {
+      "route": "/dashboard",
+      "tier": 1,
+      "module": "Core",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getDaySnapshot",
+        "getRosterForDay",
+        "getOpenDeviations",
+        "getSessionTasks",
+        "getDayBudget",
+        "getDayActivity",
+        "getCascadeMustDo",
+        "openSession",
+        "transitionSession",
+        "signoffSession",
+        "addShift",
+        "manualTimeEntry",
+        "addSessionTask",
+        "toggleSessionTask",
+        "sendBroadcast",
+        "switchDayTab",
+        "switchDate",
+        "switchVariantView",
+        "getStrategicSnapshot",
+        "getWorkforcePipeline",
+        "getTrainingStatus",
+        "getSeasonProgress",
+        "listReconciliationDays",
+        "getReconciliationDetail",
+        "getRecentActivity",
+        "searchActivity",
+        "getActivitySummary",
+        "listTodos"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/calendar",
+      "tier": 1,
+      "module": "Schedule Planning",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T14:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/calendar",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 12,
+      "tool_names": [
+        "getCalendarState",
+        "getEventsForRange",
+        "getBookingsForRange",
+        "getEventsForDay",
+        "getBookingsForDay",
+        "getNextEvents",
+        "proposeNewEvent",
+        "proposeNewBooking",
+        "navigateCalendar",
+        "switchCalendarView",
+        "switchCalendarTab",
+        "openDayInDayControl"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/chat",
+      "tier": 1,
+      "module": "Communication",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 1,
+      "tool_names": [
+        "createChat"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/komm",
+      "tier": 1,
+      "module": "Communication",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T16:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/komm",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "listChannels",
+        "getActiveChannel",
+        "getRecentMessages",
+        "getUnreadCount",
+        "getMyHelpdeskCount",
+        "sendMessage",
+        "createChat",
+        "joinCall"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-day",
+      "tier": 1,
+      "module": "Core",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/people",
+      "tier": 1,
+      "module": "People",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:40:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/people",
+      "warm": {
+        "lcp_ms": 424,
+        "cls": 0.001,
+        "tti_ms": 165
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 4,
+      "tool_names": [
+        "getPeopleState",
+        "getEmployeeInfo",
+        "getPeopleByDepartment",
+        "getReadinessSummary"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/schedule",
+      "tier": 1,
+      "module": "Schedule",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T01:20:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/schedule",
+      "warm": {
+        "lcp_ms": 1748,
+        "cls": 0.001,
+        "tti_ms": 679
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 6,
+      "tool_names": [
+        "getScheduleState",
+        "getShiftsForDay",
+        "getEmployeeSchedule",
+        "getCoverage",
+        "getWeekOperationsSummary",
+        "createShift"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/governance",
+      "tier": 2,
+      "module": "Governance",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T10:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/governance",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getGovernanceState",
+        "listProtocols",
+        "getProtocolDetail",
+        "listOverdueItems",
+        "listOpenDeviations",
+        "proposeAssignProtocol",
+        "proposeCreateDeviation",
+        "switchGovernanceTab"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/payroll/tariff",
+      "tier": 2,
+      "module": "Payroll",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 3,
+      "tool_names": [
+        "getCurrentTariffBinding",
+        "changeTariffBinding",
+        "addSupplementOverride"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/reconciliation",
+      "tier": 2,
+      "module": "Reconciliation",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/reconciliation",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 1,
+      "tool_count": 0,
+      "tool_names": [
+        "getReconciliationState",
+        "listReconciliationDays",
+        "getReconciliationDetail",
+        "listPendingHours",
+        "listDeviationsForDay",
+        "switchDate"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/season/[seasonId]",
+      "tier": 2,
+      "module": "Season",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T09:45:00+02:00",
+      "url": "https://smartout.ai/dashboard/season/[seasonId]",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 6,
+      "tool_names": [
+        "getSeasonStatus",
+        "getActivationReadiness",
+        "getBudgetSummary",
+        "getFactorSummary",
+        "proposeActivateSeason",
+        "proposeArchiveSeason"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/year-wheel",
+      "tier": 2,
+      "module": "Year Wheel",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T10:00:00+02:00",
+      "url": "https://smartout.ai/dashboard/year-wheel",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 7,
+      "tool_names": [
+        "getYearWheelState",
+        "listSeasons",
+        "getSeasonDetail",
+        "listPlanningEvents",
+        "getSeasonProgress",
+        "proposeActivateSeason",
+        "proposeArchiveSeason"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/admin/pos-accounts",
+      "tier": 3,
+      "module": "Admin",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-16T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/admin/pos-accounts",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getPosAccountsState",
+        "getPosActionState"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/ai",
+      "tier": 3,
+      "module": "AI",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/ai",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getAiOverview",
+        "getAuthorityConfig",
+        "navigateToConfig"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/billing",
+      "tier": 3,
+      "module": "Billing",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/billing",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 5,
+      "tool_names": [
+        "getBillingOverview",
+        "listInvoices",
+        "getInvoiceDetail",
+        "openInvoiceDetail",
+        "openBillingSettings"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/billing/[invoice_id]",
+      "tier": 3,
+      "module": "Billing",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:50:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/billing/[invoice_id]",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "getInvoiceDetail",
+        "listInvoiceLineItems",
+        "getInvoicePaymentInfo",
+        "getInvoiceActionState",
+        "getInvoiceTotalsSummary"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/billing/settings",
+      "tier": 3,
+      "module": "Billing",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:50:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/billing/settings",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 4,
+      "tool_names": [
+        "getBillingSettingsOverview",
+        "listDispatchRulesSnapshot",
+        "listDunningOptOutWorkspaces",
+        "getEhfStatus"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/close",
+      "tier": 3,
+      "module": "Close",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/close",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getCloseStatus",
+        "listCloseSteps",
+        "getBlockers",
+        "proposeSubmitClose"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/cost",
+      "tier": 3,
+      "module": "Cost",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T13:15:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/cost",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 4,
+      "tool_names": [
+        "getCostOverview",
+        "getLaborCostByPeriod",
+        "getMarginAnalysis",
+        "getCostBreakdownByDepartment"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/handbook",
+      "tier": 3,
+      "module": "Handbook",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/handbook",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "getHandbookState",
+        "listHandbookSections",
+        "getHandbookEntry",
+        "searchHandbook",
+        "openHandbookEntry"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/help",
+      "tier": 3,
+      "module": "Settings",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T01:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/help",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 6,
+      "tool_names": [
+        "kb_query_voice_fallback",
+        "ui.navigate_to",
+        "ui.highlight_element",
+        "ui.simulate_click",
+        "ui.submit_form",
+        "ui.wait_for_state"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms",
+      "tier": 3,
+      "module": "HMS",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/hms",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getHmsOverview",
+        "listOpenDeviations",
+        "listOverdueProtocols",
+        "getDriftStatus",
+        "switchHmsTab",
+        "focusDeviation"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms/deviations",
+      "tier": 3,
+      "module": "HMS",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/hms/deviations",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "getDeviationsOverview",
+        "listOpenDeviations",
+        "getDeviationDetail",
+        "setDeviationsViewMode",
+        "openDeviationDetail"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms/documents",
+      "tier": 3,
+      "module": "HMS",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/hms/documents",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 2,
+      "tool_names": [
+        "getCurrentDocument",
+        "clearDocumentSelection"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms/drift",
+      "tier": 3,
+      "module": "HMS",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/hms/drift",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getDriftStatus",
+        "getDriftInsights",
+        "getDriftBlockers"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms/governance",
+      "tier": 3,
+      "module": "HMS",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/hms/governance",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 3,
+      "tool_names": [
+        "getHmsGovernanceOverview",
+        "listGovernanceProtocols",
+        "getProtocolDetail"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/hms/training",
+      "tier": 3,
+      "module": "HMS",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/komm/varsler",
+      "tier": 3,
+      "module": "Core",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "listNotifications",
+        "getUnreadCount",
+        "markAsRead",
+        "markAllAsRead",
+        "filterNotifications"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/my-contract",
+      "tier": 3,
+      "module": "My Contract",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-contract",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getMyContractSummary",
+        "getMyContractHistory",
+        "downloadMyContract"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-cv",
+      "tier": 3,
+      "module": "My CV",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T17:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-cv",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 4,
+      "tool_names": [
+        "getMyCvStatus",
+        "getMyCvProfile",
+        "getMyCvSkills",
+        "getMyCvCertifications"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-profile/complete",
+      "tier": 3,
+      "module": "My Profile",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T17:45:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-profile/complete",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 3,
+      "tool_names": [
+        "getCompleteProfileStatus",
+        "getCompleteProfileFieldState",
+        "getCompleteProfileFieldHelp"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-salary",
+      "tier": 3,
+      "module": "My Salary",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-salary",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 5,
+      "tool_names": [
+        "getMyLatestSalary",
+        "listMyLonnsgrunnlag",
+        "getLonnsgrunnlagDetail",
+        "getYearToDateSummary",
+        "openLonnsgrunnlagDetail"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-schedule",
+      "tier": 3,
+      "module": "My Schedule",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-schedule",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getMySchedule",
+        "getNextShift",
+        "getMyShifts",
+        "navigateWeek"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/my-training",
+      "tier": 3,
+      "module": "My Training",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-training",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 6,
+      "tool_names": [
+        "getMyReadiness",
+        "listMyProtocols",
+        "getNextProtocol",
+        "listOverdue",
+        "getCompletionProgress",
+        "openProtocol"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/onboarding-assistant",
+      "tier": 3,
+      "module": "Onboarding",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:30:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/onboarding-assistant",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getOnboardingProgress",
+        "listOnboardingSteps",
+        "getCurrentStep",
+        "openStep"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/operations",
+      "tier": 3,
+      "module": "Operations",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/operations",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 2,
+      "tool_count": 5,
+      "tool_names": [
+        "getOperationsOverview",
+        "getStressBreakdown",
+        "getActiveDeviations",
+        "getTaskStatus",
+        "getHourlyChart"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/organization",
+      "tier": 3,
+      "module": "Organization",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/organization",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 7,
+      "tool_names": [
+        "getOrganizationOverview",
+        "listDepartments",
+        "listLocations",
+        "listTeams",
+        "getDepartmentDetail",
+        "getSetupChecklist",
+        "switchOrgTab"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/organization/departments/[id]",
+      "tier": 3,
+      "module": "Organization",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "getDepartmentSummary",
+        "listPositions",
+        "listDepartmentTeams",
+        "getDepartmentOperatingHours",
+        "openDepartmentEdit"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/organization/locations/[id]",
+      "tier": 3,
+      "module": "Organization",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getLocationDetail",
+        "listLocationZones",
+        "listLocationAssets",
+        "getLocationSummary"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/organization/teams",
+      "tier": 3,
+      "module": "Organization",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T10:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/organization/teams",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "listTeams",
+        "getTeamDetail",
+        "proposeCreateTeam",
+        "proposeAssignLeader"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/people/contracts",
+      "tier": 3,
+      "module": "Contracts",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 7,
+      "tool_names": [
+        "listContracts",
+        "getContractCounts",
+        "getPendingMine",
+        "searchContracts",
+        "openContractDetail",
+        "openNewContractFlow",
+        "switchStatusFilter"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/people/contracts/[id]",
+      "tier": 3,
+      "module": "Contracts",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [
+        "getContractDetail",
+        "getContractTerms",
+        "getContractComplianceOverrides",
+        "navigateToReviseContract",
+        "navigateToCompleteEmployeeData"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/people/contracts/[id]/revise",
+      "tier": 3,
+      "module": "Contracts",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 2,
+      "tool_names": [
+        "getRevisionContext",
+        "navigateBackToContract"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/people/contracts/awaiting-my-signature",
+      "tier": 3,
+      "module": "Contracts",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 3,
+      "tool_names": [
+        "getAwaitingSignatureCount",
+        "listAwaitingSignatureContracts",
+        "openContractForSigning"
+      ],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/people/contracts/new",
+      "tier": 3,
+      "module": "Contracts",
+      "status": null,
+      "verified": false,
+      "verified_at": null,
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "site-map"
+    },
+    {
+      "route": "/dashboard/policies",
+      "tier": 3,
+      "module": "Policies",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T14:41:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/policies",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 5,
+      "tool_names": [
+        "listPolicies",
+        "getPolicySummary",
+        "filterByType",
+        "proposeCreatePolicy",
+        "openPolicyDetail"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/proposals",
+      "tier": 3,
+      "module": "Proposals",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/proposals",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "listProposals",
+        "getProposalDetail",
+        "getPendingProposals",
+        "openProposal",
+        "switchStatusFilter"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/reports",
+      "tier": 3,
+      "module": "Reports",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/reports",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getReportsState",
+        "getKpiSummary",
+        "getReportByTab",
+        "listSavedReports",
+        "getUnfilledShifts",
+        "switchReportTab",
+        "openAiReportAssistant"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/settings",
+      "tier": 3,
+      "module": "Settings",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/settings",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getSettingsOverview",
+        "listSettingsSections",
+        "getCurrentTabInfo",
+        "openSettingsSection",
+        "getPayrollSettingsSummary",
+        "getOperatingHoursSummary",
+        "openStrukturTab",
+        "openIntegrasjonerTab"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/settings/operations",
+      "tier": 3,
+      "module": "Settings",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/settings/operations",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 4,
+      "tool_names": [
+        "getOperationsSettingsOverview",
+        "getWorkingTimeRulesSummary",
+        "getBreakRulesSummary",
+        "navigateToOperationsSetting"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/setup",
+      "tier": 3,
+      "module": "Setup",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/setup",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [
+        "getSetupProgress",
+        "listSetupSteps",
+        "getCurrentStep",
+        "proposeAdvanceStep",
+        "openStep",
+        "restartSetup"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/shift-clock",
+      "tier": 3,
+      "module": "Shift Clock",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T14:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/shift-clock",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 9,
+      "tool_names": [
+        "getShiftClockState",
+        "getCurrentShift",
+        "getTodayHours",
+        "getBreakStatus",
+        "proposePunchIn",
+        "proposePunchOut",
+        "proposeStartBreak",
+        "proposeEndBreak",
+        "switchClockTab"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/website",
+      "tier": 3,
+      "module": "Website",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-16T09:30:00+02:00",
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [
+        "getWebsiteState",
+        "getPagesList",
+        "getPublishActionState"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/website/pages/[pageId]",
+      "tier": 3,
+      "module": "Website",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-16T16:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/website/pages/[pageId]",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 3,
+      "tool_names": [
+        "getPageState",
+        "getSectionsList",
+        "getSaveActionState"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/website/setup",
+      "tier": 3,
+      "module": "Website",
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-16T16:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/website/setup",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 2,
+      "tool_names": [
+        "getSetupStatus",
+        "getTemplateOptions"
+      ],
+      "source": "both"
+    },
+    {
+      "route": "/dashboard/contracts",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T12:28:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/contracts",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 7,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/contracts/[id]",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:30:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/contracts/[id]",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 5,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/contracts/[id]/revise",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:30:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/contracts/[id]/revise",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 2,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/contracts/awaiting-my-signature",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:30:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/contracts/awaiting-my-signature",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 3,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/contracts/new",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:30:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/contracts/new",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/my-profile",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T17:55:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/my-profile",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/notifications",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T18:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/notifications",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/organization/departments/:id",
+      "tier": null,
+      "module": null,
+      "status": "done",
+      "verified": true,
+      "verified_at": "2026-05-14T00:00:00+02:00",
+      "url": null,
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": null,
+      "motion_hits": null,
+      "tool_count": 0,
+      "tool_names": [],
+      "source": "run.yml"
+    },
+    {
+      "route": "/dashboard/payroll",
+      "tier": null,
+      "module": null,
+      "status": "in_progress",
+      "verified": true,
+      "verified_at": "2026-05-11T00:00:00+02:00",
+      "url": "https://app.smartout.ai/dashboard/payroll",
+      "warm": {
+        "lcp_ms": null,
+        "cls": null,
+        "tti_ms": null
+      },
+      "zinc_hits": 0,
+      "motion_hits": 0,
+      "tool_count": 6,
+      "tool_names": [
+        "lock_period",
+        "acknowledge_deviation",
+        "add_manual_supplement",
+        "adjust_timebank_balance",
+        "force_timebank_payout",
+        "query_timebank_balance"
+      ],
+      "source": "run.yml"
+    }
+  ],
+  "elements": [
+    {
+      "name": "DashboardShell",
+      "path": "apps/web/src/components/dashboard/DashboardShell.tsx",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    },
+    {
+      "name": "entity-drawer",
+      "path": "apps/web/src/components/dashboard/entity-drawer",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    },
+    {
+      "name": "PaymentStatusBadge",
+      "path": "apps/web/src/components/ui/PaymentStatusBadge.tsx",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    },
+    {
+      "name": "DispatchStatusBadge",
+      "path": "apps/web/src/components/ui/DispatchStatusBadge.tsx",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    },
+    {
+      "name": "NotificationBell",
+      "path": "apps/web/src/components/dashboard/NotificationBell.tsx",
+      "motion_debt": 1,
+      "palette_debt": 0,
+      "status": "debt"
+    },
+    {
+      "name": "GlobalCallAlert",
+      "path": "apps/web/src/components/dashboard/GlobalCallAlert.tsx",
+      "motion_debt": 1,
+      "palette_debt": 0,
+      "status": "debt"
+    },
+    {
+      "name": "AnimatedWizardShell",
+      "path": "apps/web/src/components/wizard/AnimatedWizardShell.tsx",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    },
+    {
+      "name": "Sonner toast theme (globals.css)",
+      "path": "apps/web/src/app/globals.css",
+      "motion_debt": 0,
+      "palette_debt": 0,
+      "status": "clean"
+    }
+  ]
+}
