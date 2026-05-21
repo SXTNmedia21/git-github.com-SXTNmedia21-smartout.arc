@@ -3,30 +3,32 @@
 /**
  * Reset Password page — requests a password-reset email.
  *
- * This route is now SINGLE-MODE. The previous dual-mode implementation (request
- * email OR set new password based on URL hash) was split per council Q9=a in
- * docs/superpowers/specs/2026-04-20-auth-invitation-implementation-plan.md §4.2.
- * The update-password form lives at /update-password (commit 76d93688), and
- * the middleware force_password_reset gate routes there (commit 4bd734f6).
+ * SINGLE-MODE: this page only REQUESTS the email. Setting the new password
+ * happens on /update-password (council Q9=a, split commit 76d93688).
  *
- * Entry points here:
- *  - User clicks "Glemt passord?" on /login
- *  - User lands here directly from a bookmark
+ * Flow (token_hash, robust SSR — ADR auth-token-hash 2026-05-21):
+ *   email input → resetPasswordForEmail(email) → GoTrue sends the recovery
+ *   email whose template links to /api/auth/callback?token_hash=…&type=recovery
+ *   &next=/update-password. The user clicks it; the callback verifies the
+ *   token_hash SERVER-SIDE (no PKCE code_verifier cookie required → works across
+ *   email clients/devices) and lands them on /update-password with a live
+ *   recovery session. We deliberately pass NO `redirectTo` here — the template
+ *   owns the destination, and a redirectTo would re-introduce the fragile
+ *   PKCE `?code=` link.
  *
- * Flow: email input → supabase.auth.resetPasswordForEmail with redirectTo
- * pointing at /update-password → success toast → user checks inbox.
+ * Entry points:
+ *  - "Glemt passord?" on /login
+ *  - direct bookmark
  */
 
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, Send, Info, CheckCircle2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
-import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 
 /**
  * Hash an email with SHA-256 for enumeration-safe telemetry.
@@ -43,18 +45,10 @@ async function hashEmail(email: string): Promise<string> {
 }
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
-  // Code-based recovery: once the email is sent we swap the email form for a
-  // 6-digit code entry. We do NOT pass `redirectTo` to resetPasswordForEmail —
-  // that would mint a magic LINK (a one-time token shared with the code; a mail
-  // prefetch burns it → the typed code then fails `otp_expired`). Link-less =
-  // nothing prefetchable. The user types the recovery code instead, which
-  // OtpVerificationForm verifies with type:"recovery". A successful verify
-  // establishes a live recovery session, so /update-password is then reachable.
-  const [codeSent, setCodeSent] = useState(false);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +56,9 @@ export default function ResetPasswordPage() {
     setMessage(null);
 
     const supabase = createClient();
+    // No `redirectTo`: the email template owns the destination via a
+    // token_hash link to /api/auth/callback (see file header). redirectTo
+    // would mint the fragile PKCE `?code=` link instead.
     const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     setIsLoading(false);
@@ -71,16 +68,15 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    setCodeSent(true);
+    setSent(true);
     setMessage({
       type: "success",
-      text: "Hvis kontoen finnes, har vi sendt en 6-sifret kode for å tilbakestille passordet.",
+      text: "Hvis kontoen finnes, har vi sendt en lenke for å sette et nytt passord. Sjekk e-posten din.",
     });
 
     // Emit auth password_reset_requested (registry:263). SHA-256 hash only — never raw email.
-    // user_exists is conservatively false here: Supabase hides account existence client-side for
-    // enumeration-safety, so we cannot determine it from this surface. Server-side enumeration
-    // check (if added later) should emit a richer event from an Edge Function or Server Action.
+    // user_exists is conservatively false: Supabase hides account existence client-side for
+    // enumeration-safety, so we cannot determine it from this surface.
     try {
       const email_hash = await hashEmail(email);
       void emit({
@@ -115,12 +111,12 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-[400px]">
           <div className="animate-auth-in mb-8" style={{ animationDelay: "100ms" }}>
             <h1 className="font-heading text-foreground text-[2rem] leading-[1.1] tracking-tight">
-              {codeSent ? "Skriv inn koden" : "Glemt passord?"}
+              {sent ? "Sjekk e-posten" : "Glemt passord?"}
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {codeSent
-                ? "Vi sendte en 6-sifret kode til e-posten din."
-                : "Vi sender deg en kode for å sette et nytt passord."}
+              {sent
+                ? "Klikk lenken i e-posten for å sette et nytt passord."
+                : "Vi sender deg en lenke for å sette et nytt passord."}
             </p>
           </div>
 
@@ -142,22 +138,12 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          {codeSent ? (
-            <div className="animate-auth-in space-y-6" style={{ animationDelay: "160ms" }}>
-              <OtpVerificationForm
-                email={email}
-                context="recovery"
-                onVerified={() => {
-                  // verifyOtp({type:"recovery"}) just established a live recovery
-                  // session — /update-password's getUser() now resolves a user,
-                  // so the set-new-password form is reachable (no dead-end bounce).
-                  router.push("/update-password");
-                }}
-              />
+          {sent ? (
+            <div className="animate-auth-in space-y-4" style={{ animationDelay: "160ms" }}>
               <button
                 type="button"
                 onClick={() => {
-                  setCodeSent(false);
+                  setSent(false);
                   setMessage(null);
                 }}
                 className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
@@ -190,7 +176,7 @@ export default function ResetPasswordPage() {
                 className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
-                {isLoading ? "Sender..." : "Send kode"}
+                {isLoading ? "Sender..." : "Send lenke"}
               </button>
               <Link
                 href="/login"
