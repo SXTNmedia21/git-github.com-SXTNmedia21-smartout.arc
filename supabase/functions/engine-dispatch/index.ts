@@ -789,9 +789,15 @@ async function executeStep(
       // Create session_task if department_session context exists
       if (state.entity_type === "department_session" && state.entity_id) {
         const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: anchoredDayLineId } = await (supabase as any).rpc(
+          "fn_resolve_single_day_line",
+          { p_department_session_id: state.entity_id as string },
+        );
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: state.entity_id,
+          day_line_id: (anchoredDayLineId as string | null) ?? null,
           title: (ap.task as string) ?? "Task",
           description: (ap.description as string) ?? null,
           status: "available",
@@ -2154,10 +2160,16 @@ async function executeStep(
       const ctxOrigin = (state.context as Record<string, unknown>).origin as string | undefined;
 
       if (sessionId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: anchoredDayLineId } = await (supabase as any).rpc(
+          "fn_resolve_single_day_line",
+          { p_department_session_id: sessionId },
+        );
         await supabase.from("session_task").insert({
           workspace_id: state.workspace_id,
           department_session_id: sessionId,
           session_hook_id: hookId ?? null,
+          day_line_id: (anchoredDayLineId as string | null) ?? null,
           title: (ap.title as string) ?? "Task",
           description: (ap.description as string) ?? null,
           status: "available",
