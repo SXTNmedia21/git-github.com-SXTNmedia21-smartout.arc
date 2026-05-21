@@ -11,6 +11,10 @@
 --
 -- "Cancelled" day_lines (cancelled_at IS NOT NULL) are excluded — they no longer represent
 -- a valid anchor for shift attachment.
+--
+-- SINGLE-AREA V1: a department_session with >1 day_line (multi-area day) leaves auto-spawned
+-- tasks department-level (day_line_id NULL) and logs via RAISE LOG. Full per-area fan-out is
+-- ADR-0367 Rule 2, deferred to a follow-up sortie.
 
 CREATE OR REPLACE FUNCTION public.fn_resolve_single_day_line(p_department_session_id uuid)
 RETURNS uuid
@@ -39,6 +43,12 @@ BEGIN
       AND dl.cancelled_at IS NULL
     LIMIT 1;
     RETURN v_result;
+  END IF;
+
+  -- Multi-area session (single-area V1 scope cut): make the de-anchor OBSERVABLE, not silent.
+  -- Return contract is unchanged (still NULL) — this log only surfaces the boundary in postgres logs.
+  IF v_count > 1 THEN
+    RAISE LOG 'fn_resolve_single_day_line: department_session % has % active day_lines (multi-area) — task left department-level (single-area V1 scope, ADR-0367 Rule 2 fan-out deferred)', p_department_session_id, v_count;
   END IF;
   RETURN NULL;
 END;
