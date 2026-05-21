@@ -355,17 +355,17 @@ jobs:
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           echo "::endgroup::"
 
-      - name: Ensure cron GUCs set (ADR-0388)
-        # The 27 pg_cron http_post jobs read app.* GUCs via current_setting().
-        # Without them every net.http_post job fails "null value in column url".
-        # These CANNOT live in a migration (secret values) — set them here from
-        # GH Actions secrets on every main deploy (idempotent ALTER DATABASE).
-        # Connect as `postgres` (DB owner — has ALTER DATABASE priv) via the
-        # session-mode pooler. Secret values are GH-masked in logs; no -x/-e echo.
+      - name: Seed cron secrets into Vault (ADR-0388)
+        # The 27 pg_cron http_post jobs read secrets via public.get_secret(name)
+        # → vault.decrypted_secrets. (GUCs are NOT usable: Supabase blocks
+        # ALTER ROLE/DATABASE SET for the postgres role — 42501. Vault IS
+        # writable by postgres.) Upsert the 5 secrets from GH secrets each main
+        # deploy (idempotent). Connect as postgres via the session-mode pooler.
+        # Values GH-masked in logs; no -x/-e echo.
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PROD_URL: ${{ secrets.SUPABASE_PROD_URL }}
+          SUPA_URL: ${{ secrets.SUPABASE_PROD_URL }}
           SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_PROD_SERVICE_ROLE_KEY }}
           WATCHDOG_CRON_SECRET: ${{ secrets.WATCHDOG_CRON_SECRET }}
           PROCESS_NOTIFICATIONS_SECRET: ${{ secrets.PROCESS_NOTIFICATIONS_SECRET }}
@@ -373,19 +373,30 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${WATCHDOG_CRON_SECRET:-}" ]; then
-            echo "::error::WATCHDOG_CRON_SECRET GH secret missing — cron http jobs will fail on null auth. Add it (+ PROCESS_NOTIFICATIONS_SECRET, MORNING_DIGEST_SECRET) to repo secrets. (ADR-0388)"
+            echo "::error::WATCHDOG_CRON_SECRET GH secret missing — cron http jobs 401. Add it + PROCESS_NOTIFICATIONS_SECRET + MORNING_DIGEST_SECRET to repo secrets. (ADR-0388)"
             exit 1
           fi
-          # session-mode pooler (port 5432) — prod region eu-west-1 (list_projects)
           PSQL="psql -v ON_ERROR_STOP=1 -h aws-0-eu-west-1.pooler.supabase.com -p 5432 -U postgres.${SUPABASE_PROJECT_REF} -d postgres"
+          # Single session: env vars expand into stdin SQL (not argv). Idempotent
+          # upsert per secret. \$up\$ escapes the dollar-quote from the shell.
           $PSQL <<SQL
-          ALTER DATABASE postgres SET app.supabase_url = '${PROD_URL}';
-          ALTER DATABASE postgres SET app.service_role_key = '${SERVICE_ROLE_KEY}';
-          ALTER DATABASE postgres SET app.watchdog_cron_secret = '${WATCHDOG_CRON_SECRET}';
-          ALTER DATABASE postgres SET app.process_notifications_secret = '${PROCESS_NOTIFICATIONS_SECRET}';
-          ALTER DATABASE postgres SET app.morning_digest_secret = '${MORNING_DIGEST_SECRET}';
+          DO \$up\$
+          DECLARE sid uuid;
+          BEGIN
+            SELECT id INTO sid FROM vault.secrets WHERE name='supabase_url';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$SUPA_URL','supabase_url','cron'); ELSE PERFORM vault.update_secret(sid,'$SUPA_URL'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='service_role_key';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$SERVICE_ROLE_KEY','service_role_key','cron'); ELSE PERFORM vault.update_secret(sid,'$SERVICE_ROLE_KEY'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='watchdog_cron_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$WATCHDOG_CRON_SECRET','watchdog_cron_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$WATCHDOG_CRON_SECRET'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='process_notifications_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$PROCESS_NOTIFICATIONS_SECRET','process_notifications_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$PROCESS_NOTIFICATIONS_SECRET'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='morning_digest_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$MORNING_DIGEST_SECRET','morning_digest_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$MORNING_DIGEST_SECRET'); END IF;
+          END
+          \$up\$;
           SQL
-          echo "✓ cron GUCs ensured on prod (next pg_cron firing picks them up)"
+          echo "✓ cron secrets upserted into Vault (next pg_cron firing reads them)"
 
   # ── Migration state poller (ADR-0262) ──────────────────────────
   # On main push: assert prod's last applied migration timestamp matches the

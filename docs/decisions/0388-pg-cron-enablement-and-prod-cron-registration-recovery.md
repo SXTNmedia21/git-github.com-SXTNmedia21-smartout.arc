@@ -147,3 +147,54 @@ Three-part recovery + prevention:
 - Migration `20260621201500_reregister_pg_cron_jobs.sql` — canonical registry
 - `.github/scripts/migration-lint.sh` Check 0 — cron registration coherence guard
 - Incident: red Migration Coherence on `preview → main` 2026-05-21 (run 26201591421)
+
+---
+
+## Amendment 2026-05-21 — GUCs unsettable on managed Supabase → pivot to Vault
+
+Consequence #2 assumed `app.*` GUCs could be set. **They cannot.** Supabase
+restricts `ALTER ROLE`/`ALTER DATABASE … SET` to the `supabase_admin`
+superuser. The `postgres` role (migrations, MCP, pooler) gets
+`42501 permission denied to set parameter` for every form tried:
+
+- MCP `execute_sql` `ALTER DATABASE app.supabase_url` → 42501
+- psql-as-postgres `ALTER DATABASE app.*` / `ALTER ROLE postgres SET app.*` → 42501
+- unclaimed namespace `ALTER ROLE postgres SET smartout.*` → 42501
+- `ALTER DATABASE app.settings.*` (the `jwt_exp` class) → 42501
+- **Supabase Dashboard SQL Editor** → 42501
+
+`app.settings.jwt_exp` exists because the Supabase *platform* set it, not us.
+So `current_setting('app.*')` is permanently unpopulatable by us.
+`supabase_vault` IS writable by `postgres` (`vault.create_secret` /
+`vault.update_secret` / `vault.decrypted_secrets` all work).
+
+**Revised decision — secrets via Vault, not GUCs:**
+
+1. Reuse the pre-existing `public.get_secret(secret_name)` (from
+   `20260228230000_api_key_management.sql`) — SECURITY DEFINER reader of
+   `vault.decrypted_secrets`.
+2. New migration `20260621202000_cron_jobs_via_vault.sql` re-registers all 27
+   jobs with every `current_setting('app.X', true)` swapped for
+   `public.get_secret('X')`. Supersedes the GUC-based `20260621201500`.
+3. Seed 5 vault secrets: `supabase_url`, `service_role_key`,
+   `watchdog_cron_secret`, `process_notifications_secret`,
+   `morning_digest_secret`. CI step renamed **"Seed cron secrets into Vault"**
+   (idempotent `vault.create_secret`/`update_secret` from GH secrets each main
+   deploy) — replaces the dead ALTER-DATABASE step.
+
+**Verified on prod after re-registration:** SQL-only jobs + all 12
+`watchdog_cron_secret` jobs → `200`. **Two bugs found via `cron.job_run_details`
++ EF probes:**
+
+- `journey-stuck-detector` cron used `service_role_key` → `401`. Its EF
+  actually accepts `WATCHDOG_CRON_SECRET` (doc'd). Fixed in the migration to
+  use `watchdog_cron_secret` → `200`.
+- `process-notifications` (`PROCESS_NOTIFICATIONS_SECRET`) and
+  `send-morning-digest` (`MORNING_DIGEST_SECRET`) → `401`: the value in the
+  prod 1Password vault ≠ the deployed Edge Function secret (value drift). These
+  two need reconciliation (operator: confirm authoritative value, set EF secret
+  = vault value, or vice-versa). Tracked open.
+
+**Open operator items:** (a) add GH secrets `WATCHDOG_CRON_SECRET`,
+`PROCESS_NOTIFICATIONS_SECRET`, `MORNING_DIGEST_SECRET` for the CI Vault-seed
+step; (b) reconcile the two drifted EF secrets.
