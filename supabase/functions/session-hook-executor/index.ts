@@ -156,9 +156,14 @@ Deno.serve(async (req) => {
 
         // A-ANCHOR (ADR-0367): anchor hook-spawned tasks to the session's single day_line.
         // NULL when 0 or >1 day_lines (don't guess) — task stays department-level.
-        const { data: anchoredDayLineId } = await supabase.rpc("fn_resolve_single_day_line", {
-          p_department_session_id: session.department_session_id,
-        });
+        const { data: anchoredDayLineId, error: dayLineErr } = await supabase.rpc(
+          "fn_resolve_single_day_line",
+          {
+            p_department_session_id: session.department_session_id,
+          },
+        );
+        if (dayLineErr)
+          console.warn("[session-hook-executor] fn_resolve_single_day_line failed:", dayLineErr);
 
         // Materialize procedure steps into session_task rows
         if (hook.linked_procedure_id) {
