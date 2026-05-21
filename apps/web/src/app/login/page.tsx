@@ -138,6 +138,11 @@ const brandTextVariant = {
   },
 };
 
+// Module-scope so the OTP-restore mount effect's empty dependency array stays
+// exhaustive (in-component consts would be flagged by react-hooks/exhaustive-deps).
+const OTP_PENDING_KEY = "smartout_otp_pending";
+const OTP_TTL_MS = 30 * 60 * 1000; // 30 min = GoTrue otp_expiry
+
 function LoginContent() {
   const { t } = useTranslation("auth");
   const router = useRouter();
@@ -173,6 +178,37 @@ function LoginContent() {
   // OTP login method state
   const [authMethod, setAuthMethod] = useState<"password" | "otp">("password");
   const [otpSent, setOtpSent] = useState(false);
+
+  // Sticky code screen — persist OTP state across page refreshes.
+  //
+  // WHY: when the user refreshes after requesting a code, otpSent resets to
+  // false, the email input reappears, and any re-submission via handleSendOtp
+  // issues a NEW code to GoTrue — which immediately invalidates the code
+  // already sitting in the user's inbox. Result: "koden har utløpt" every
+  // time. We guard against this by storing {email, sentAt} in sessionStorage
+  // and restoring the OTP screen on mount — WITHOUT re-sending.
+  //
+  // TTL matches GoTrue otp_expiry (1800 s). After expiry we clear the key so
+  // the user naturally falls back to the email-entry step.
+  // (OTP_PENDING_KEY / OTP_TTL_MS are module-scope so this effect's [] deps stay exhaustive.)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(OTP_PENDING_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as { email: string; sentAt: number };
+      if (Date.now() - stored.sentAt < OTP_TTL_MS) {
+        setEmail(stored.email);
+        setAuthMethod("otp");
+        setOtpSent(true);
+      } else {
+        sessionStorage.removeItem(OTP_PENDING_KEY);
+      }
+    } catch {
+      // Corrupt value — clean up silently
+      sessionStorage.removeItem(OTP_PENDING_KEY);
+    }
+  }, []);
 
   // Delayed mode switch: let button animation breathe, then start transition
   const switchMode = useCallback((next: Mode) => {
@@ -235,11 +271,14 @@ function LoginContent() {
     }
   }
 
-  // Sends an OTP to the given email. Default Supabase email template carries
-  // both a 6-digit code AND a magic link. The magic link path needs the same
-  // `/api/auth/callback?next=` redirect the password-reset flow uses — without
-  // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
-  // so the click is silently lost. Code-typing path is unaffected.
+  // Sends a pure 6-digit OTP to the given email. We deliberately omit
+  // `emailRedirectTo`: this is a code-only flow. With a redirect set, GoTrue
+  // also renders a magic link in the email, and that link is a one-time token
+  // SHARED with the code — a mail-client/proxy prefetch (or the user clicking
+  // it) burns the token, after which the typed code returns `otp_expired`. No
+  // link in the email = nothing prefetchable = the code stays valid until the
+  // user types it. The OtpVerificationForm verifies with type:"email" to match
+  // the `email` token signInWithOtp mints.
   //
   // Enumeration safety: with `shouldCreateUser: false`, GoTrue returns
   // "Signups not allowed for otp" (code `otp_disabled`) for emails that don't
@@ -256,7 +295,6 @@ function LoginContent() {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
       },
     });
     setLoading(false);
@@ -266,10 +304,14 @@ function LoginContent() {
       setError(t("login.error.otp_send"));
       return;
     }
+    // Persist so a page refresh restores the code screen instead of re-sending.
+    sessionStorage.setItem(OTP_PENDING_KEY, JSON.stringify({ email, sentAt: Date.now() }));
     setOtpSent(true);
   }
 
   function handleOtpVerified() {
+    // Clear the pending key — code has been used successfully.
+    sessionStorage.removeItem(OTP_PENDING_KEY);
     setHasInteracted(true);
     setTimeout(() => setPendingMode("logging-in"), 200);
   }
@@ -562,6 +604,8 @@ function LoginContent() {
                         setAuthMethod("password");
                         setOtpSent(false);
                         setError(null);
+                        // User explicitly left the OTP flow — clear sticky state.
+                        sessionStorage.removeItem(OTP_PENDING_KEY);
                       }}
                       className={cn(
                         "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",

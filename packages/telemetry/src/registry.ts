@@ -308,7 +308,7 @@ export interface AuthSignedOut extends BaseEvent {
 
 export interface AuthOtpSent extends BaseEvent {
   event: "auth otp_sent";
-  properties: { data: { context: "workspace_entry" | "login" } };
+  properties: { data: { context: "workspace_entry" | "login" | "recovery" } };
 }
 
 export interface AuthOtpVerified extends BaseEvent {
