@@ -76,8 +76,24 @@ cookie → the session never persists.** Hence two modes:
 
 | Mode | ROOT_DOMAIN | URL | Cookies | Reproduces |
 |------|-------------|-----|---------|------------|
-| `localhost` (default) | forced to `localhost` | http://localhost:3060 | host-scoped, persist ✓ | middleware/prefetch/logic bugs, the verifier-nuke. **Not** the `.smartout.ai` dual-domain collision. |
-| `domain` | `smartout.ai` | https://app.smartout.ai | `.smartout.ai`-scoped ✓ | **everything**, incl. domain collision. Needs hosts + HTTPS proxy. |
+| `localhost` (default) | forced to `localhost` | http://localhost:3060 | host-scoped, persist ✓ | middleware/prefetch/logic bugs, the verifier-nuke. **Not** `.smartout.ai` cookies, **not** the post-login flow. |
+| `domain` | `smartout.ai` | https://app.smartout.ai | `.smartout.ai`-scoped ✓ | **everything**, incl. dual-domain collision + full authed multi-subdomain flow. Needs DNS map + :443 HTTPS proxy. |
+
+### Topology gotcha — bare `localhost` can NOT test post-login (load-bearing)
+`extractSubdomain("localhost")` returns **`{ type: "root" }`** (`apps/web/src/lib/subdomain.ts`). The
+whole post-login flow assumes the prod topology:
+- `app.smartout.ai` → `{ type: "portal" }` → portal `/dashboard` redirects to `/select-workspace`
+- `{slug}.smartout.ai` → `{ type: "workspace" }` → renders the workspace dashboard
+- `app.localhost:3060` / `{slug}.localhost:3060` → same, for dev (Chrome auto-resolves `*.localhost`)
+
+On **bare `localhost:3060`** the OAuth callback (`next=/dashboard`) lands on a `root`-type host →
+proxy.ts subdomain routing can't resolve a workspace subdomain → **ERR_TOO_MANY_REDIRECTS**.
+This loop is a **local-topology artifact, NOT a prod bug.** GoTrue login succeeds (session row +
+audit `login`), the exchange completes — only the post-login navigation loops. So:
+- Use `localhost` mode ONLY for pre-session mechanics (verifier-nuke, middleware cookie clearing).
+- To test the **authed** flow you MUST use real subdomains (`domain` mode, or `app.localhost`/`{slug}.localhost`).
+- Cross-subdomain session sharing requires `.smartout.ai`-scoped cookies → `domain` mode (ROOT_DOMAIN=smartout.ai).
+  Host-scoped localhost cookies do NOT carry `app.` → `{slug}.` → another reason bare-localhost can't test it.
 
 ---
 
@@ -95,29 +111,91 @@ SKIP_BUILD=1 ./infra/scripts/local-prod.sh localhost # faster on rebuilds
 Build is heavy on WSL2 — OOM risk (L-0316). If `next build` is killed (exit 143/SIGTERM),
 run with `TURBO_CONCURRENCY=1` and/or stop other dev servers first.
 
-### Mode `domain` (full parity — only for cookie-domain bugs)
-1. hosts: `127.0.0.1  app.smartout.ai` (Windows: `C:\Windows\System32\drivers\etc\hosts`, admin).
-   Add `*.smartout.ai` slugs you test.
-2. local HTTPS proxy `:443 → 127.0.0.1:3060` with a trusted CA:
-   `caddy reverse-proxy --from app.smartout.ai --to localhost:3060`
-3. `./infra/scripts/local-prod.sh domain`
-4. **Revert the hosts entry when done** — otherwise this machine can't reach the real prod site.
+### Mode `domain` — full prod parity (the ONLY way to test the authed flow)
+
+Goal: browser believes it is on `https://app.smartout.ai` + `https://{slug}.smartout.ai`,
+both resolved to the local prod build, with real `.smartout.ai` cookies. Two ways to drive it.
+
+**Why :443 (not :8443):** the app builds **portless** cross-subdomain redirects
+(`https://${slug}.${rootDomain}/dashboard`). A `:8443` proxy is never hit by those hops →
+the post-login flow breaks. Cookie *domain* ignores port, but the redirect *target* does not.
+So domain mode needs the proxy on **:443**.
+
+Steps:
+1. **Build domain mode** (inlines `NEXT_PUBLIC_ROOT_DOMAIN=smartout.ai` so the CLIENT sets
+   `.smartout.ai` verifier/session cookies):
+   ```bash
+   ./infra/scripts/local-prod.sh domain      # serves http on :3060
+   ```
+2. **Self-signed cert** with a wildcard SAN (covers app + every workspace slug):
+   ```bash
+   openssl req -x509 -newkey rsa:2048 -keyout /tmp/proxy-key.pem -out /tmp/proxy-cert.pem \
+     -days 1 -nodes -subj "/CN=app.smartout.ai" \
+     -addext "subjectAltName=DNS:app.smartout.ai,DNS:*.smartout.ai"
+   ```
+3. **HTTPS proxy on :443**, preserving the original Host (do NOT rewrite to app.smartout.ai —
+   workspace-subdomain requests must forward `{slug}.smartout.ai` so subdomain routing works).
+   :443 needs privilege — the agent shell usually has neither sudo nor a display, so **Pontus runs this**:
+   ```bash
+   # easiest: caddy auto-CA, both hosts
+   sudo caddy reverse-proxy --from app.smartout.ai:443 --to 127.0.0.1:3060
+   # (repeat / add the workspace host you test, e.g. smartout.smartout.ai)
+   ```
+4. **DNS map** `app.smartout.ai` + the workspace subdomain → `127.0.0.1`:
+   - Automated (Playwright, no Windows edit): launch with
+     `args: ["--host-resolver-rules=MAP *.smartout.ai 127.0.0.1, MAP app.smartout.ai 127.0.0.1"]`
+     + context `ignoreHTTPSErrors: true`. **But** real Google login needs a human + visible browser,
+     and the agent shell has no WSLg display → can't drive headed itself.
+   - Manual (Pontus's Windows Chrome): add to `C:\Windows\System32\drivers\etc\hosts` (admin):
+     `127.0.0.1  app.smartout.ai` and `127.0.0.1  {slug}.smartout.ai` (e.g. `smartout.smartout.ai`).
+     Click through the self-signed cert warning.
+5. **Supabase redirect allowlist**: with :443 the callback is `https://app.smartout.ai/api/auth/callback`
+   (portless) → already matched by the prod allow-list entry `https://*.smartout.ai`. No change needed.
+   (If you ever use a port, you must add `https://app.smartout.ai:PORT/**` in Auth → URL Configuration.)
+6. **Test**: open `https://app.smartout.ai/login`, do the real flow, confirm you land on the
+   workspace dashboard and **stay** (session persists across the `app.` → `{slug}.` hop).
+7. **Cleanup**: stop the proxy, revert Windows hosts entries (else this machine can't reach real prod).
+
+**Distinguish local vs real prod at every step:** `curl -skI https://app.smartout.ai/login` →
+**absence of `x-vercel-id`** = you hit the local proxy; presence = real prod (DNS map not active).
 
 ---
 
 ## 5. Verifying browser/auth behaviour (no secrets)
-Drive the prod build headless with Playwright (the repo has chromium). Pattern that
-caught the verifier-nuke (worked example):
-- launch chromium → load `/login` or `/reset-password`
-- start the flow (`signInWithOAuth` / `resetPasswordForEmail`), capture `context.cookies()`
-  → confirm `sb-...-code-verifier` is set, with which domain
-- seed a fresh context with **only** the verifier cookie → navigate to a protected route
-  (`/dashboard`) → assert the verifier survives and you are not bounced to `/login`
 
-Backend-side diagnosis (read-only, fast): MCP `get_logs(service:"auth")`,
-`execute_sql` on `auth.audit_log_entries` + `auth.flow_state` (look for
-`auth_code_issued_at` set + consumed). If GoTrue issues sessions but the user lands on
-`/login`, the bug is the SSR cookie layer, not the backend.
+Two layers — know which one you're proving:
+
+**A. Pre-session mechanics (automatable, headless, no real login).** Drive the prod build with
+Playwright (repo has chromium). Covers the verifier-nuke + cookie clearing. Works in `localhost`
+mode (domain-independent) AND in `domain` mode (real `.smartout.ai` cookies via the proxy +
+`--host-resolver-rules`). Worked-example probe: `apps/e2e/domain-parity.mjs` (4 checks:
+local-not-prod via `x-vercel-id`, verifier `.smartout.ai` domain, verifier survives `/dashboard`,
+dual-domain orphan clearing). Pattern that caught the verifier-nuke:
+- start a flow (`signInWithOAuth` / `resetPasswordForEmail`) → capture `context.cookies()` →
+  confirm `sb-...-code-verifier` set + domain
+- seed a context with **only** the verifier (+ optional orphan session cookies) → GET `/dashboard`
+  → assert verifier survives (fix) vs len→0 (bug)
+
+**B. The authed post-login flow (needs a REAL session → human + visible browser).** Cannot be
+automated here (no Google headless, no email read, no WSLg display in the agent shell). Requires
+`domain` mode + :443 proxy + real subdomains (§4). Pontus drives it in Windows Chrome; the agent
+watches `/tmp/local-prod*.log` + Supabase `auth.audit_log_entries` / `auth.sessions` live.
+
+Backend-side diagnosis (read-only, fast): MCP `get_logs(service:"auth")`, `execute_sql` on
+`auth.audit_log_entries` + `auth.flow_state` (look for `auth_code_issued_at` set + consumed) +
+`auth.sessions` (was a session row created?). **If GoTrue issues a session but the user lands on
+`/login`/loops, the bug is the SSR cookie layer or subdomain routing, not the backend.** Temp
+server-side debug: gate a `console.warn` on `process.env.LOCAL_PROD_DEBUG === "1"` and pass
+`LOCAL_PROD_DEBUG=1` to the run (op run inherits the shell env) — but note that loops in
+`proxy.ts`/middleware never reach `server.ts` `getUser`, so instrument `proxy.ts` for redirect-loop
+diagnosis and `server.ts` only for RSC-layer null-user.
+
+### Agent-shell constraints (plan around these)
+- **No `sudo`** (harness-denied) → can't bind :443, install caddy, or `setcap`. Privileged steps = Pontus via `! <cmd>`.
+- **No display** (`DISPLAY` empty, no WSLg) → can't drive a headed browser. Real OAuth = Pontus's browser.
+- **`op` sessions expire** mid-session → re-auth with `! eval $(op signin)` (account `sxtn`).
+- **`pkill` returns exit 144** when it hits its own process group — kill servers by PID
+  (`ss -ltnp | grep :3060` → kill the `op` ancestor), not broad `pkill`.
 
 ---
 
