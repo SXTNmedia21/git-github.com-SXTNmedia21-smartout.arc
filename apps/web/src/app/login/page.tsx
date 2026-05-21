@@ -271,11 +271,14 @@ function LoginContent() {
     }
   }
 
-  // Sends an OTP to the given email. Default Supabase email template carries
-  // both a 6-digit code AND a magic link. The magic link path needs the same
-  // `/api/auth/callback?next=` redirect the password-reset flow uses — without
-  // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
-  // so the click is silently lost. Code-typing path is unaffected.
+  // Sends a pure 6-digit OTP to the given email. We deliberately omit
+  // `emailRedirectTo`: this is a code-only flow. With a redirect set, GoTrue
+  // also renders a magic link in the email, and that link is a one-time token
+  // SHARED with the code — a mail-client/proxy prefetch (or the user clicking
+  // it) burns the token, after which the typed code returns `otp_expired`. No
+  // link in the email = nothing prefetchable = the code stays valid until the
+  // user types it. The OtpVerificationForm verifies with type:"email" to match
+  // the `email` token signInWithOtp mints.
   //
   // Enumeration safety: with `shouldCreateUser: false`, GoTrue returns
   // "Signups not allowed for otp" (code `otp_disabled`) for emails that don't
@@ -292,7 +295,6 @@ function LoginContent() {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
       },
     });
     setLoading(false);

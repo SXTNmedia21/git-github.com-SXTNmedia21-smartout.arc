@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
-type OtpContext = "login" | "workspace_entry";
+type OtpContext = "login" | "workspace_entry" | "recovery";
 
 interface OtpVerificationFormProps {
   email: string;
@@ -19,6 +19,18 @@ interface OtpVerificationFormProps {
   workspaceId?: string;
   actorId?: string;
 }
+
+// GoTrue verifies an emailed code against a token of a SPECIFIC type. A login /
+// workspace-entry code is an `email` token (signInWithOtp); a password-reset
+// code is a `recovery` token (resetPasswordForEmail). Verifying a recovery
+// token with type:"email" makes GoTrue answer `otp_expired` — its misleading
+// generic for "no matching token of THIS type" — even though the token is live.
+// So the verify type MUST track the flow that issued the code.
+const VERIFY_TYPE: Record<OtpContext, "email" | "recovery"> = {
+  login: "email",
+  workspace_entry: "email",
+  recovery: "recovery",
+};
 
 export function OtpVerificationForm({
   email,
@@ -115,7 +127,7 @@ export function OtpVerificationForm({
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email,
       token: code,
-      type: "email",
+      type: VERIFY_TYPE[context],
     });
 
     if (verifyError) {
@@ -175,18 +187,20 @@ export function OtpVerificationForm({
     setAttempts(0);
     startTimeRef.current = Date.now();
 
-    // Mirror the login page's send-OTP options. The magic link in the same
-    // email needs `emailRedirectTo=/api/auth/callback` to actually log the
-    // user in (PKCE code exchange), otherwise clicking it does nothing.
-    // (handleResend is a click handler in a client component — window is
-    // always defined here, no SSR guard needed.)
-    const { error: resendError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
-      },
-    });
+    // Re-issue a code through the SAME endpoint that minted the original, so the
+    // resent token type matches what verifyCode() will check (VERIFY_TYPE):
+    //   recovery → resetPasswordForEmail (recovery token)
+    //   login / workspace_entry → signInWithOtp (email token)
+    // No `emailRedirectTo`: we are a pure-code flow. Setting it would make GoTrue
+    // also render a magic link in the email — a one-time link that a mail-client
+    // / proxy prefetch could burn, killing the shared token before the user types
+    // the code. Code-only emails carry nothing prefetchable.
+    // (handleResend is a click handler in a client component — window is always
+    // defined here, no SSR guard needed.)
+    const { error: resendError } =
+      context === "recovery"
+        ? await supabase.auth.resetPasswordForEmail(email)
+        : await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
 
     // Enumeration safety (supabase/auth#1547): with shouldCreateUser:false,
     // GoTrue returns "Signups not allowed for otp" (otp_disabled) for unknown
