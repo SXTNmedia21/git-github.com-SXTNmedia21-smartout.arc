@@ -1,25 +1,40 @@
 ---
-title: Task Manager Module — Blueprint Index
+title: Procedure Engine Module — Blueprint Index
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, task-ontology, day-line, routine, adr-0298, adr-0367, source-of-truth]
+module: procedure-engine
+tags: [module, procedure-engine, task-manager, governance, policy, protocol, procedure, routine, task, one-truth-many-views, day-line, adr-0298, adr-0367, adr-0387, source-of-truth]
 ---
 
-# Task Manager Module — Blueprint & Source of Truth
+# Procedure Engine Module — Blueprint & Source of Truth
 
-> Authoritative blueprint for Smartout's complete task system. If code contradicts this folder → CODE wins, update these docs.
+> Authoritative blueprint for Smartout's Procedure Engine (formerly Task Manager). If code contradicts this folder → CODE wins, update these docs.
+>
+> **Spec (read first):** `docs/superpowers/specs/2026-05-22-procedure-engine-design.md` — canonical architecture, data decisions, and gap list.
 
 ## What this module is
 
-The Task Manager is the **unifying lens over every "thing a person must do"** in Smartout. It is not one table or one surface — it is the contract that ties together three independently-grown subsystems:
+**"Én sannhet, flere visninger."** The Procedure Engine is the operational content and compliance system of Smartout. The **procedure** is the atomic unit of operational knowledge — stored once, rendered as document, training, task, deviation reference, and compliance KPI. _Formerly called Task Manager_; renamed 2026-05-22 because "task" is merely the Drift view of a procedure, not the canonical concept.
 
-1. **Read/Write unification** (ADR-0298, *shipped*) — five task sources, one read RPC (`fn_list_my_tasks`), one write capability (`task`).
-2. **D6 Production structure** (ADR-0367, *schema shipped, wiring partial*) — `department_session → day_line (location + time-window) → session_task`, with `shift_session` linking employees to areas.
-3. **Governance templates** (*schema shipped, instantiation partial*) — `procedure`(+`procedure_step`) / `routine` / `control_list` as reusable definitions that materialize into runtime `session_task` rows.
+The module unifies three independently-grown subsystems under a single governing model:
 
-The product promise the manager experiences: **"create a task list attached to a location, where each task has a time window, the list can also carry routines, and the tasks show up inside the relevant shifts."** Structurally, a **`day_line` is that location-anchored task list with a time window**; a **`session_task` is a task inside it**; a **`routine` is a procedure run on a schedule** (itself a task-list template).
+```
+Policy            (krav)
+└── Protocol      (compliance-container — 1:1 to policy)
+    └── Procedure (sannheten — steg, media, ansvar)
+        ├── Training  (manual + quiz + signering — VISNING)
+        └── Routine   (gjentakende arbeidsflyt + location + team)
+            └── Task  (instans materialisert per dag)
+```
+
+Concretely, the module is the contract for:
+
+1. **Governance spine** — `policy → protocol → procedure(+procedure_step) / routine / control_list / knowledge_test / confirmation`. Schema shipped; manual table (GAP G-manual) and routine gaps (G-loc, G-team) pending Phase 1.
+2. **Read/Write unification** (ADR-0298, *shipped*) — five task sources, one read RPC (`fn_list_my_tasks`), one write capability (`task`).
+3. **D6 Production structure** (ADR-0367, *schema shipped, wiring partial*) — `department_session → day_line (location + time-window) → session_task`, with `shift_session` linking employees to areas.
+
+The product promise: **"admin creates routines with instructions/media, assigns them to a location; cron materializes them into today's tasks; employee clocks in, sees their day on a timeline, preps the next shift, and completes with evidence — the whole chain gives measurable compliance against defined policies."**
 
 ## Two halves
 
@@ -40,7 +55,7 @@ SETUP: doc-drop · wizard routines · role compliance · admin surface  ──pr
 - **Doc-drop:** works for 6 categories (policy/payroll/employees/shifts/terms/handbook); extracts **no tasks/routines** (Phase S1).
 - **Wizard starter routines:** admin picks procedure *names* only; industry routine templates exist but run **only in dev seed**, not live onboarding (Phase S2).
 - **Role mandatory compliance:** **absent** — `policy_scope` has no position/role; readiness has no per-role gate (Phase S3).
-- **Admin surface:** prototype (`taskmanager-handoff/`) holds the full vision but is mock/unwired (Phase S4).
+- **Admin surface:** prototype (`taskmanager-DESIGNE/`) holds the full vision but is mock/unwired (Phase S4).
 
 **Priority:** Phase R1 (location-tasks → shift view) delivers the manager promise + demo. See [BLUEPRINT.md](./BLUEPRINT.md) for both tracks + falsifiable acceptance.
 
@@ -48,12 +63,13 @@ SETUP: doc-drop · wizard routines · role compliance · admin surface  ──pr
 
 | # | Doc | Purpose |
 |---|-----|---------|
-| 1 | [MODULE_TASK_MANAGER.md](./MODULE_TASK_MANAGER.md) | Main module doc — the unified model, cascade placement, the three axes (template / instance / anchor), surface contract, authority, invariants |
-| 2 | [DATA-MODEL.md](./DATA-MODEL.md) | All 13 tables, the 5-source schema with FK + naming divergences, `fn_list_my_tasks` projection, telemetry events, RLS |
+| 0 | [ROADMAP.md](./ROADMAP.md) | **At-a-glance journey status** — 13 UX-journeys (incl. Min dag, Botsson-setup, role-compliance, admin-authoring) with `live`/`in_progress`/`planned`/`blocked` + 2 open architecture questions (4→2 consolidation, cron-health gate). Living doc; read FIRST for "where are we." |
+| 1 | [MODULE_PROCEDURE_ENGINE.md](./MODULE_PROCEDURE_ENGINE.md) | Main module doc — governing model (Policy→Protocol→Procedure→Routine→Task), cascade placement, three axes (template/instance/anchor), surface contract, authority, invariants, gaps |
+| 2 | [DATA-MODEL.md](./DATA-MODEL.md) | Full schema: governance spine (policy/protocol/procedure/procedure_step/routine/knowledge_test/confirmation/control_list/manual), D6 runtime (department_session/day_line/session_task/shift_session), 5-source schema, fn_list_my_tasks projection, gaps (G-loc/G-team/G-manual/G-expand/G-version/G-projection), telemetry, RLS |
 | 3 | [ARCHITECTURE.md](./ARCHITECTURE.md) | L1–L5 code map: capability tools, RPC, BFF routes, server actions, web + mobile UI surfaces, voice mirror, telemetry |
 | 4 | [USER-FLOWS.md](./USER-FLOWS.md) | Manager / employee / agent journeys across template authoring → instantiation → completion |
 | 5 | [GAPS-AND-DEBT.md](./GAPS-AND-DEBT.md) | Verified-working vs aspirational. 16 gaps classified by severity. The fragility of the read-normalization layer. |
-| 6 | [BLUEPRINT.md](./BLUEPRINT.md) | Phased plan. Phase 1 = location-tasks → shift-tasks view. Falsifiable acceptance per phase. |
+| 6 | [BLUEPRINT.md](./BLUEPRINT.md) | Phased plan (Phases 1–5). Phase 1 = routine authoring + location-tasks → shift-tasks view. Falsifiable acceptance per phase. |
 | 7 | [E2E-COVERAGE.md](./E2E-COVERAGE.md) | Web Playwright + mobile + capability units + manual matrix |
 
 ### Active sortie docs (day_line → Min dag)
@@ -64,7 +80,7 @@ SETUP: doc-drop · wizard routines · role compliance · admin surface  ──pr
 | [ADR-DRAFT-0387-role-mandatory-compliance-i1.md](./ADR-DRAFT-0387-role-mandatory-compliance-i1.md) | Role-compliance ADR (0387a shipped, 0387b proposed) — adjacent track, different goal. |
 | [BUILD-PLAN-i1-role-compliance.md](./BUILD-PLAN-i1-role-compliance.md) | 0387b phasing. |
 
-Design prototype: [taskmanager-handoff/](./taskmanager-handoff/) — interactive HTML/JSX handoff (library, task-drawer, min-dag, quiz-master, manual-builder). **Mockup-source for all task UI — port, do not redesign.**
+Design prototype: [taskmanager-DESIGNE/](./taskmanager-DESIGNE/) — interactive HTML/JSX handoff (library, task-drawer, min-dag, quiz-master, manual-builder). **Mockup-source for all task UI — port to Nordic Split + new tokens (`taskStatus`/`taskOrigin`), do not redesign.** HEX → OKLCH-token at port time. North-star for: Min dag full fidelity, Library, Routine editor, evidence-capture.
 
 ## Cross-references
 

@@ -1,13 +1,13 @@
 ---
-title: Task Manager — Gaps & Debt
+title: Procedure Engine — Gaps & Debt
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, gaps, debt, day-line, routine, fn-list-my-tasks]
+module: procedure-engine
+tags: [module, procedure-engine, gaps, debt, day-line, routine, fn-list-my-tasks, g-loc, g-team, g-expand, g-version, g-manual, g-projection]
 ---
 
-# Task Manager — Gaps & Debt
+# Procedure Engine — Gaps & Debt
 
 > Verified-working vs aspirational. Severity-ranked. Every gap cites the file that proves it. The single biggest gap blocking the manager promise: **the shift→tasks join is specified in schema but rendered nowhere.**
 
@@ -65,7 +65,7 @@ tags: [module, task-manager, gaps, debt, day-line, routine, fn-list-my-tasks]
 | G21 | **No role/position scope for compliance.** `policy_scope` enum = workspace/department/team/location (no position/role). Roles cannot carry mandatory protocols. | 🔴 | `00003_governance_tables.sql:3` |
 | G22 | **`assigned_via='position'` is a dead letter.** Enum value exists; `auto_assign_protocols_to_new_employee` trigger has no position branch. | 🟠 | `20260414014856_training_schema_foundation.sql:11`; `20260429000000_fix_auto_assign_regression_v2.sql:50–57` |
 | G23 | **Readiness has no per-role gate.** Computed as workspace-wide % of `protocol_assignment` completed; no "all mandatory protocols for this role done" notion. Role-capability baseline is docs-only. | 🟠 | `packages/ai/src/tools/season/get-readiness.ts:15–97`; `docs/engines/.../08-role-capability-profiles/` |
-| G24 | **No unified admin task surface.** Prototype (`taskmanager-handoff/`) defines Min dag / Bibliotek / Maler / task-drawer / manual-builder but is mock/in-memory. Real surfaces fragmented (TasksTab session-scoped, HMS DriftTaskList, Todo, CascadeTaskTab). No `manual_id` link on `session_task` for the Bibliotek. | 🟡 | `taskmanager-handoff/README.md`; ARCHITECTURE §L4 |
+| G24 | **No unified admin task surface.** Prototype (`taskmanager-DESIGNE/`) defines Min dag / Bibliotek / Maler / task-drawer / manual-builder but is mock/in-memory. Real surfaces fragmented (TasksTab session-scoped, HMS DriftTaskList, Todo, CascadeTaskTab). No `manual_id` link on `session_task` for the Bibliotek. | 🟡 | `taskmanager-DESIGNE/README.md`; ARCHITECTURE §L4 |
 | G25 | **No `is_mandatory`/`required_before_shift` flag** on `protocol`/`protocol_assignment`. `is_compliance_required` exists only per `session_task`, not at the role/protocol level. | 🟡 | `session_task` `20260412100300:79`; protocol_assignment schema |
 
 ## Adjacent debt

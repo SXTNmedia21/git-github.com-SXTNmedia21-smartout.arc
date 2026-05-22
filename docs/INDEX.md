@@ -121,7 +121,7 @@ Flat module docs + folder-based modules (folder = README index + standard doc se
 | MOD_DAYTIMELINE | modules/daytimeline/README.md     | active |
 | MOD_ANNOUNCEMENTS | modules/announcments/README.md  | active |
 | MOD_PAYROLL     | modules/payroll/README.md         | active |
-| MOD_TASK_MANAGER | modules/task-manager/README.md   | active |
+| MOD_PROCEDURE_ENGINE | modules/procedure-engine/README.md | active |
 
 ## Architecture
 

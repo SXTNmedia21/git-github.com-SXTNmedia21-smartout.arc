@@ -1,13 +1,13 @@
 ---
-title: Task Manager — E2E Coverage
+title: Procedure Engine — E2E Coverage
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, e2e, playwright, maestro, capability-units, test-matrix]
+module: procedure-engine
+tags: [module, procedure-engine, e2e, playwright, maestro, capability-units, test-matrix]
 ---
 
-# Task Manager — E2E Coverage
+# Procedure Engine — E2E Coverage
 
 > Test plan across web (Playwright), mobile (Maestro), capability units, and a manual matrix. Status reflects what exists vs what Phase 1 requires.
 

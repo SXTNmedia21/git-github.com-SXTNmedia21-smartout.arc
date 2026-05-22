@@ -1,10 +1,10 @@
 ---
 title: ADR-DRAFT-0387 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
 status: draft
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [adr-draft, task-manager, hospitality-intelligence, i1, policy-scope, role-compliance, readiness-gate, council-class]
+module: procedure-engine
+tags: [adr-draft, procedure-engine, hospitality-intelligence, i1, policy-scope, role-compliance, readiness-gate, council-class]
 ---
 
 # ADR-DRAFT-0387 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
@@ -130,7 +130,7 @@ Council: system-steward (chair), supervisor, system-agent-coordinator, botsson-h
 Structured 2-row ghost card + metadata strip; mandatory-locked = 3-layer non-color (Lock icon + "Obligatorisk" word + `bg-muted` surface); mandatory cards NOT buttons (WCAG 2.1.1); `aria-pressed` + `focus-visible` ring; new tokens as aliases (no OKLCH literals).
 
 ### MOCKUP-SOURCE HARD RULE (Pontus directive 2026-05-20)
-All task-manager UI (wizard routine-picker P6, and the S4 admin surface — Min dag, Task-drawer, Bibliotek, Maler, manual-builder, quizmaster) MUST be **ported from the existing mockups in `docs/modules/task-manager/taskmanager-handoff/`** (Task Manager.html + `components/{min-dag,task-drawer,library,manual-builder,quiz-master,sidebar}.jsx`). **Do NOT redesign.** Pull components, tokens, and interaction logic from the prototype `source/`; adapt to Nordic Split tokens + a11y per frontend review. The prototype is the canonical visual + interaction spec.
+All task-manager UI (wizard routine-picker P6, and the S4 admin surface — Min dag, Task-drawer, Bibliotek, Maler, manual-builder, quizmaster) MUST be **ported from the existing mockups in `docs/modules/procedure-engine/taskmanager-DESIGNE/`** (Task Manager.html + `components/{min-dag,task-drawer,library,manual-builder,quiz-master,sidebar}.jsx`). **Do NOT redesign.** Pull components, tokens, and interaction logic from the prototype `source/`; adapt to Nordic Split tokens + a11y per frontend review. The prototype is the canonical visual + interaction spec.
 
 ### Knowledge captured
 - Learning: **schema-orphan-rebuild** — grep for an existing spine before proposing a new one (`profession_training` orphan).

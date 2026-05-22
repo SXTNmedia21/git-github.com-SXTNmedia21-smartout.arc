@@ -1,13 +1,13 @@
 ---
-title: Task Manager — Implementation Blueprint
+title: Procedure Engine — Implementation Blueprint
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, blueprint, phases, day-line, shift-tasks, doc-extraction, wizard, role-compliance, admin-ia]
+module: procedure-engine
+tags: [module, procedure-engine, blueprint, phases, day-line, shift-tasks, doc-extraction, wizard, role-compliance, admin-ia, manual, routine, one-truth-many-views]
 ---
 
-# Task Manager — Implementation Blueprint
+# Procedure Engine — Implementation Blueprint
 
 > Phased plan to deliver the full task system. The module has **two halves**: a **Setup/Authoring track** (where tasks come from — documents, wizard, role compliance, the admin surface) and a **Runtime track** (where tasks live and get done — day_line, shift, completion). Most schema already exists; much of the work is *wiring*. Each phase has falsifiable acceptance.
 
@@ -24,7 +24,7 @@ admin surface (Min dag / Bibliotek / Maler) ◀── manage ──┘
 
 The runtime track was Phase 1–5 in the prior draft (now **Track R**). The setup track (**Track S**) answers "where do tasks come from," which the manager promise also depends on: a manager doesn't hand-type every task — they drop a document, pick routines in the wizard, and roles auto-receive their mandatory compliance work.
 
-**Design anchor for the admin surface:** `taskmanager-handoff/` is the canonical, already-approved visual + interaction spec (Min dag, TaskKort with 10 elements, Bibliotek/Maler, task-drawer, manual-builder, quizmaster). It is mock/in-memory today — Track S4 wires it to the real backend. **Do not redesign — port from the prototype.**
+**Design anchor for the admin surface:** `taskmanager-DESIGNE/` is the canonical, already-approved visual + interaction spec (Min dag, TaskKort with 10 elements, Bibliotek/Maler, task-drawer, manual-builder, quizmaster). It is mock/in-memory today — Track S4 wires it to the real backend. **Do not redesign — port from the prototype.**
 
 ---
 
@@ -105,7 +105,7 @@ ADR-0367 Rule 4 cron: SELECT `session_task WHERE scheduled_at IN window AND day_
 
 **Goal:** Wire the prototype's admin/employee surface to the real backend — one home for tasks, library, templates.
 
-**Scope (port from `taskmanager-handoff/`, do not redesign):**
+**Scope (port from `taskmanager-DESIGNE/`, do not redesign):**
 1. **Min dag** (TaskKort 10 elements, filter chips, 3 sections, Botsson-nudge, dag-meter) → backed by `fn_list_my_tasks` (R1) instead of mock data. Origin badge maps source/hook→routine/protocol/deviation/adhoc.
 2. **Task-drawer** (subtasks, evidence, activity feed) → `session_task` + `evidence` JSONB + `task.complete`.
 3. **Sidebar / mobile tabbar** → navigation (Min dag, Alle, Tildelt meg, Følger, Foldere, Bibliotek, Maler).

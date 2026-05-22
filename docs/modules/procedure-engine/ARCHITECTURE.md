@@ -1,13 +1,13 @@
 ---
-title: Task Manager — Architecture
+title: Procedure Engine — Architecture
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, architecture, code-map, capability, rpc, bff, ui, voice, telemetry]
+module: procedure-engine
+tags: [module, procedure-engine, architecture, code-map, capability, rpc, bff, ui, voice, telemetry]
 ---
 
-# Task Manager — Architecture
+# Procedure Engine — Architecture
 
 > L1–L5 code map of the complete task system: capability tools → RPC → BFF/server actions → web + mobile UI → voice mirror → telemetry.
 
@@ -103,7 +103,7 @@ Adjacent read RPCs: `resolve_cascade_tasks` (CascadeTaskTab — *setup* tasks, n
 Task done = teal/green; pending = orange; compliance/overdue = destructive; in_progress = warning. Headings Instrument Serif; body Geist; data Geist Mono. Cards `bg-card border-border rounded-[14px]`. Sticky headers `bg-background/80 backdrop-blur-xl`. Motion via `motionTokens.*` (no inline springs).
 
 ### MOCKUP-SOURCE HARD RULE (Pontus directive 2026-05-20)
-All task-manager UI is **ported from the canonical mockups in [taskmanager-handoff/](./taskmanager-handoff/)** — `Task Manager.html` + `components/{min-dag,task-drawer,library,manual-builder,quiz-master,sidebar}.jsx`. **Do NOT redesign.** Pull components, tokens, interaction logic from the prototype `source/`; adapt to Nordic Split tokens + a11y. Mockup→surface map:
+All task-manager UI is **ported from the canonical mockups in [taskmanager-DESIGNE/](./taskmanager-DESIGNE/)** — `Task Manager.html` + `components/{min-dag,task-drawer,library,manual-builder,quiz-master,sidebar}.jsx`. **Do NOT redesign.** Pull components, tokens, interaction logic from the prototype `source/`; adapt to Nordic Split tokens + a11y. Mockup→surface map:
 
 | Mockup component | Surface | Phase |
 |---|---|---|

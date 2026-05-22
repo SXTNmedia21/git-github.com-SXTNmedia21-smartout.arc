@@ -1,13 +1,13 @@
 ---
-title: Task Manager — User Flows
+title: Procedure Engine — User Flows
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, user-flows, journeys, manager, employee, agent]
+module: procedure-engine
+tags: [module, procedure-engine, user-flows, journeys, manager, employee, agent]
 ---
 
-# Task Manager — User Flows
+# Procedure Engine — User Flows
 
 > Flows across the full pipeline: template authoring → day-line composition → instantiation → assignment → completion. Marked ✅ shipped, 🟡 partial, 🔴 not built.
 

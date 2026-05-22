@@ -1,10 +1,10 @@
 ---
 title: Build Plan — Role-Compliance + Starter Routines into Hospitality Intelligence
 status: draft
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [build-plan, task-manager, hospitality-intelligence, i1, sortie, role-compliance, full-wiring]
+module: procedure-engine
+tags: [build-plan, procedure-engine, hospitality-intelligence, i1, sortie, role-compliance, full-wiring]
 ---
 
 # Build Plan — Role-Compliance + Starter Routines into Hospitality Intelligence
@@ -27,9 +27,9 @@ Council REJECTED the original plan. The decisive finding: `profession_training` 
 - **RB3** Rewire `evaluateReadinessGate` → `callGateAction('governance.readiness_gate')` + level; `ready = missing_mandatory===0` (drop `rows.length>0` trap). THEN seed authority row.
 - **RB4** Backfill `governance.readiness_gate` for existing workspaces (default-allow trap).
 - **RB5** C1/C4 split; `season.get_readiness` unchanged; do NOT touch engine-dispatch `check_readiness` (name collision).
-- **RP6** Wizard routine-picker — **port from `taskmanager-handoff/`** (see Mockup rule), structured ghost card + mandatory-locked non-color affordance.
+- **RP6** Wizard routine-picker — **port from `taskmanager-DESIGNE/`** (see Mockup rule), structured ghost card + mandatory-locked non-color affordance.
 
-**MOCKUP-SOURCE HARD RULE:** every task-manager UI surface (RP6 wizard + future S4 admin: Min dag, Task-drawer, Bibliotek, Maler, manual-builder, quizmaster) is **ported from `docs/modules/task-manager/taskmanager-handoff/` `source/`** — components, tokens, interaction logic. Adapt to Nordic Split + a11y. **Do NOT redesign.** Prototype is canonical.
+**MOCKUP-SOURCE HARD RULE:** every task-manager UI surface (RP6 wizard + future S4 admin: Min dag, Task-drawer, Bibliotek, Maler, manual-builder, quizmaster) is **ported from `docs/modules/procedure-engine/taskmanager-DESIGNE/` `source/`** — components, tokens, interaction logic. Adapt to Nordic Split + a11y. **Do NOT redesign.** Prototype is canonical.
 
 The original P0–P7 below are PRESERVED for reference but the RA*/RB* set above is the build order.
 

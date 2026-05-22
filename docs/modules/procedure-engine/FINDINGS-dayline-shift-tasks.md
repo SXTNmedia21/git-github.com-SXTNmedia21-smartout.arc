@@ -2,8 +2,8 @@
 title: "Findings — Day_line → Shift Tasks → Min dag: dual-perspective + reuse audit"
 status: done
 created: 2026-05-21
-updated: 2026-05-21
-module: task-manager
+updated: 2026-05-22
+module: procedure-engine
 tags: [findings, dual-perspective, reuse-audit, day-line, shift-tasks, min-dag, anti-duplication]
 ---
 
@@ -56,7 +56,7 @@ tags: [findings, dual-perspective, reuse-audit, day-line, shift-tasks, min-dag, 
 
 ## 5. Mockup source (confirmed — port, do not redesign)
 Min dag / mobile-day UI ports from the **design-folder mockups**:
-- `docs/modules/task-manager/taskmanager-handoff/components/min-dag.jsx` + `Task Manager.html` — canonical Min dag (TaskKort, sections, day-meter, filter chips, Botsson-nudge).
+- `docs/modules/procedure-engine/taskmanager-DESIGNE/components/min-dag.jsx` + `Task Manager.html` — canonical Min dag (TaskKort, sections, day-meter, filter chips, Botsson-nudge).
 - `docs/design/day-handoff/source/day/mobile-day.jsx` + `source/components/primitives.jsx` — mobile-day surface.
 - `docs/design/design_handoff_calendar/source/shiftlist.jsx` — shift-list reference.
 Adapt hex → `@smartout/design-tokens` `native.ts` (ADR-0366); RN adaptation (SectionList, Reanimated, a11y). Existing `HomeShiftCard`/`DuringShiftView` align to these, not diverge.

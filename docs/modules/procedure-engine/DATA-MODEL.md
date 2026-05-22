@@ -1,15 +1,140 @@
 ---
-title: Task Manager — Data Model
+title: Procedure Engine — Data Model
 status: in_progress
-updated: 2026-05-20
+updated: 2026-05-22
 created: 2026-05-20
-module: task-manager
-tags: [module, task-manager, data-model, schema, five-sources, day-line, routine, fn-list-my-tasks]
+module: procedure-engine
+tags: [module, procedure-engine, data-model, schema, governance, policy, protocol, procedure, routine, manual, five-sources, day-line, fn-list-my-tasks, adr-0298, adr-0367, adr-0387]
 ---
 
-# Task Manager — Data Model
+# Procedure Engine — Data Model
 
-> Every table the task system reads or writes, the read RPC projection, telemetry, and the schema divergences that make the read-normalization layer load-bearing.
+> Every table the Procedure Engine reads or writes, the governance spine (policy→protocol→procedure/routine), the D6 runtime structure (department_session→day_line→session_task), the read RPC projection, gaps, and the schema divergences that make the read-normalization layer load-bearing.
+>
+> **Spec:** `docs/superpowers/specs/2026-05-22-procedure-engine-design.md` — authoritative source for gap details and phase decisions.
+
+## 0. Governance spine — Policy → Protocol → Procedure → Routine (EXISTS)
+
+The canonical model (spec §1). All tables verified in code.
+
+### 0.1 `policy`
+Migration: `00003_governance_tables.sql:13`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `policy_id` | UUID PK | |
+| `workspace_id` | UUID NOT NULL → workspace | |
+| `policy_type` | TEXT | e.g. hms, ik-mat, brann |
+| `policy_scope` | TEXT | workspace/department/team/location |
+| `statement` | TEXT | the normative requirement |
+| `enforcement_status` | TEXT | active/draft/archived |
+
+### 0.2 `protocol`
+Migration: `00003:39`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `protocol_id` | UUID PK | |
+| `policy_id` | UUID UNIQUE NOT NULL → policy | **1:1** (UNIQUE constraint) |
+| `workspace_id` | UUID NOT NULL | |
+| `version` | INTEGER | current published version |
+| `status` | TEXT | draft/active/archived |
+| `evidence_tier` | TEXT | `quiz` / `quiz_plus_observer` / `quiz_plus_observer_plus_confirmation` / `four_eyes` |
+
+`evidence_tier` drives how much proof is required before protocol_assignment status → `completed`. Auto-flip triggers update assignment status at step-completion / test-pass / signering.
+
+### 0.3 `procedure`
+Migration: `00003:61`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `procedure_id` | UUID PK | |
+| `protocol_id` | UUID NOT NULL → protocol | currently 1:1; M:N reserved via `protocol_procedure` junction (decision 6) |
+| `procedure_type` | enum | |
+| `skill_requirements` | JSONB | |
+| `sort_order` | INTEGER | |
+
+### 0.4 `procedure_step`
+Migration: `00003:80`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `step_id` | UUID PK | |
+| `procedure_id` | UUID NOT NULL → procedure | |
+| `title` | TEXT NOT NULL | |
+| `step_order` | INTEGER NOT NULL | |
+| `is_required` | BOOLEAN | |
+| `estimated_minutes` | INTEGER | |
+| `training_content` | TEXT (markdown) | **inline step learning content** ("how to do this step") — NOT a manual |
+| `media_urls` | JSONB | `{type, url, caption}` array |
+
+**Two distinct content layers:** `training_content`/`media_urls` = inline step content (execution-coupled). `manual` (new table, §0.8) = standalone document (intro/overview/Q&A). Different purpose, no duplication.
+
+### 0.5 `routine`
+Migration: `00003:107`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `routine_id` | UUID PK | |
+| `protocol_id` | UUID → protocol | |
+| `procedure_id` | UUID NOT NULL → procedure | steps live here |
+| `trigger_type` | TEXT | `scheduled` / `event` |
+| `trigger_config` | JSONB | times/days/event spec |
+| `assigned_to_type` | TEXT | `role` / `team` / `profile` / `location` |
+| `assigned_to_ref` | UUID | single FK (team gap → routine_team junction) |
+| `control_list_id` | UUID → control_list | optional |
+| `control_frequency` | TEXT | |
+| `control_nth` | INTEGER | |
+| `is_active` | BOOLEAN | |
+| `location_id` | UUID → location | **GAP G-loc — DOES NOT EXIST YET** |
+| `workspace_id` | UUID | **GAP G-loc — DOES NOT EXIST YET (denorm)** |
+| `executor_type` | enum | `human`/`ai`/`system`/`hybrid` — **Phase 1 schema delta** |
+
+**A routine has no step table of its own — its steps are the linked procedure's steps.**
+
+### 0.6 `knowledge_test` / `confirmation` / `control_list` / `runbook`
+Migration: `00003`.
+
+| Table | Role | Key fields |
+|-------|------|------------|
+| `knowledge_test` | quiz | `protocol_id`, `questions` (jsonb), `pass_threshold`, `max_attempts` |
+| `confirmation` | signering | `protocol_id`, `confirmation_text`, `requires_signature` |
+| `control_list` | sjekkliste | `protocol_id`, **`items` jsonb** (no child table), `assigned_to_type`; **no workspace_id** (via protocol) |
+| `runbook` (+`runbook_step`) | incident response | `protocol_id`, **`control_list_id` NOT NULL**, `trigger_event`, `escalation_chain` jsonb |
+
+### 0.7 `protocol_assignment` + execution proof tables
+Migration: `00003` + later migrations.
+
+| Table | Role | Key fields |
+|-------|------|------------|
+| `protocol_assignment` | assignment + progress | `profile_id`, `protocol_id`, `status`, **`protocol_version` (snapshot)**, denormalized counters, `next_review_at` |
+| `knowledge_test_attempt` | quiz execution (immutable) | `score`, `passed`, `attempt_number` |
+| `confirmation_signature` | signing proof (immutable) | `signed_at`, `ip_address` |
+| `procedure_step_completion` | step proof (immutable) | `evidence` (jsonb) |
+| `observer_request` | four-eyes verification | `subject_profile_id`, `observer_profile_id`, `status` |
+
+### 0.8 `manual` — NEW TABLE (GAP G-manual — does not exist yet)
+
+Standalone document with `manual_type` + polymorphic FK. Distinct from `procedure_step.training_content`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `manual_id` | UUID PK | |
+| `workspace_id` | UUID NOT NULL | |
+| `manual_type` | TEXT | `routine_overview` / `procedure_intro` / `qna` / `general` (extensible) |
+| `procedure_id` | UUID → procedure | nullable polymorphic FK |
+| `routine_id` | UUID → routine | nullable polymorphic FK |
+| `protocol_id` | UUID → protocol | nullable polymorphic FK |
+| `sections` | JSONB | blocks: text/video/image/checklist |
+| `version` | INTEGER | |
+
+ManualBuilder (port `manual-builder.jsx`) authors; ManualViewer/Guide renders.
+
+### 0.9 `protocol_procedure` — Reserved M:N junction (decision 6)
+
+Not yet migrated. Reserve when a procedure (e.g. clean-grill) needs to appear in multiple protocols (HACCP + HMS + Brann + Opening). Populate 1:1 until then.
+
+---
 
 ## 1. The Five Sources (instance axis)
 
@@ -120,17 +245,23 @@ Migration: `20260412100100_engine_state_step.sql`. Per-step tracking of `engine_
 
 **The shift→tasks chain:** `schedule_shift → shift_session (1:1) → shift_session_day_line (M:N) → day_line → session_task WHERE day_line_id = day_line.day_line_id`. This chain is **not rendered by any query/UI today** (see GAPS).
 
-## 3. Governance templates
+## 3. Governance templates (summary — full detail in §0 above)
+
+See §0 for full column-level detail of each governance table.
 
 | Table | PK | Key columns | Migration |
 |---|---|---|---|
-| `policy` | `policy_id` | workspace | `00003_governance_tables.sql:13` |
-| `protocol` | `protocol_id` | `policy_id` (UNIQUE), workspace | `00003:39` |
+| `policy` | `policy_id` | workspace, `policy_type`, `policy_scope`, `statement`, `enforcement_status` | `00003:13` |
+| `protocol` | `protocol_id` | `policy_id` (UNIQUE — 1:1), workspace, `version`, `status`, **`evidence_tier`** | `00003:39` |
 | `procedure` | `procedure_id` | `protocol_id`, `procedure_type` enum, `skill_requirements` jsonb, `sort_order` | `00003:61` |
-| `procedure_step` | `step_id` | `procedure_id`, `title`, `step_order`, `is_required`, `estimated_minutes` | `00003:80` |
-| `routine` | `routine_id` | `protocol_id`, **`procedure_id` NOT NULL** (steps live here), `trigger_type`(scheduled/event), `trigger_config` jsonb, `assigned_to_type/ref`, `control_list_id`, `control_frequency`, `control_nth`, `is_active` | `00003:107` |
+| `procedure_step` | `step_id` | `procedure_id`, `title`, `step_order`, `is_required`, `estimated_minutes`, **`training_content`** (markdown), **`media_urls`** (jsonb) | `00003:80` |
+| `routine` | `routine_id` | `protocol_id`, **`procedure_id` NOT NULL** (steps live here), `trigger_type`(scheduled/event), `trigger_config` jsonb, `assigned_to_type/ref`, `control_list_id`, `control_frequency`, `control_nth`, `is_active`; **GAP G-loc: no `location_id`/`workspace_id`**; **Phase 1: +`executor_type`** | `00003:107` |
 | `control_list` | `control_list_id` | `protocol_id`, **`items` jsonb** (no child table), `assigned_to_type`; **no workspace_id** (via protocol) | `00003:92` |
 | `runbook` (+`runbook_step`) | `runbook_id` | `protocol_id`, **`control_list_id` NOT NULL**, `trigger_event`, `escalation_chain` jsonb | `00003:129` |
+| `protocol_assignment` | `id` | `profile_id`, `protocol_id`, `status`, **`protocol_version` (snapshot)**, denorm counters, `next_review_at` | `00003` + later |
+| `manual` | `manual_id` | **GAP G-manual — NEW TABLE** (manual_type + sections jsonb + polymorphic FK) | not yet migrated |
+| `routine_team` | (routine, team) | **GAP G-team — NEW TABLE** junction 0..N | not yet migrated |
+| `protocol_procedure` | (protocol, procedure) | **Reserved M:N** — populate 1:1 until needed | not yet migrated |
 
 ## 4. `fn_list_my_tasks` projection
 

@@ -1,10 +1,10 @@
 ---
-title: "Task Manager — 5h Agent-Team Orchestration: Admin-Authored Task → Mobile Execution During Active Shift"
+title: "Procedure Engine — 5h Agent-Team Orchestration: Admin-Authored Task → Mobile Execution During Active Shift"
 status: draft
 created: 2026-05-21
-updated: 2026-05-21
-module: task-manager
-tags: [execution-plan, agent-team, orchestrator, task-manager, shift-tasks, mobile-execution, 5h]
+updated: 2026-05-22
+module: procedure-engine
+tags: [execution-plan, agent-team, orchestrator, procedure-engine, shift-tasks, mobile-execution, 5h]
 ---
 
 # 5h Agent-Team Orchestration
@@ -28,7 +28,7 @@ Grep of both sides found the **receiver pipe largely built**, overturning the co
 
 ## MOCKUP SOURCE — CONFIRMED (Pontus directive, port not redesign)
 The Min dag / mobile-day UI is **ported from the design-folder mockups**, NOT redesigned:
-- **`docs/modules/task-manager/taskmanager-handoff/components/min-dag.jsx`** + `Task Manager.html` — canonical Min dag (TaskKort 10-element, sections, day-meter, filter chips, Botsson-nudge).
+- **`docs/modules/procedure-engine/taskmanager-DESIGNE/components/min-dag.jsx`** + `Task Manager.html` — canonical Min dag (TaskKort 10-element, sections, day-meter, filter chips, Botsson-nudge).
 - **`docs/design/day-handoff/source/day/mobile-day.jsx`** + `docs/design/day-handoff/source/components/primitives.jsx` — mobile-day surface primitives.
 - **`docs/design/design_handoff_calendar/source/shiftlist.jsx`** — shift-list reference.
 A-MOBILE pulls components/layout/interaction from these; adapts hex → `@smartout/design-tokens` `native.ts` (ADR-0366, no literals) + RN adaptation (SectionList, Reanimated, a11y per frontend review). Existing `HomeShiftCard`/`DuringShiftView` must align to these mockups, not diverge.
@@ -42,7 +42,7 @@ A-MOBILE pulls components/layout/interaction from these; adapts hex → `@smarto
 | **A-DATA** | sonnet (db) | Location-anchored shift resolver: expose `day_line_id`/`scheduled_at`/`location_id` in `fn_list_my_tasks` + new `fn_list_shift_tasks(profile_id)` resolving the employee's shift_session **by location** → day_lines at that location → session_task in window | migrations, `fn_list_my_tasks` + `list_mine` TS mirror |
 | **A-AUTHOR** | sonnet (web) | Admin authoring: add-task to a **location's day_line** writes `session_task` with `day_line_id` + `assigned_to` + `scheduled_at`/window; AddTaskDialog/day-line strip default area+window | `add-day-line-item-action`, `add-task-action`, AddTaskDialog, DayLineStrip |
 | **A-ANCHOR** | sonnet (edge) | Hook/cron tasks get `day_line_id` (single-location attach per council) so they're reachable by the resolver | `session-hook-executor`, `engine-dispatch assign_task` |
-| **A-MOBILE** | sonnet (mobile) | **"Min dag"** view: show the employee's tasks for the location(s) their shift operates on; execute → BFF complete; gate on shift-at-location. Port TaskKort/sections/day-meter from `taskmanager-handoff/components/min-dag.jsx` (mockup-source rule) | `apps/mobile/.../task/*`, `use-my-tasks`, Min dag screen |
+| **A-MOBILE** | sonnet (mobile) | **"Min dag"** view: show the employee's tasks for the location(s) their shift operates on; execute → BFF complete; gate on shift-at-location. Port TaskKort/sections/day-meter from `taskmanager-DESIGNE/components/min-dag.jsx` (mockup-source rule) | `apps/mobile/.../task/*`, `use-my-tasks`, Min dag screen |
 | **A-TELE** | sonnet | Telemetry (`task.surfaced_on_shift`/reuse `task completed`) registered (emit-wiring, ADR-0377) + golden e2e test for the vertical | registry, e2e/test |
 | **R-GUARD** | opus (supervisor) | Guardrail + scope: zero behavior change outside the goal; ADR-0317 lockstep on `fn_list_my_tasks` | review-only |
 | **R-CONTRACT** | opus (agent-coord) | Code-trace the payload both directions: web author → DB → resolver → mobile → BFF complete. Dual-perspective (admin author + employee execute) | review-only |
@@ -54,7 +54,7 @@ Orchestrator assigns each a task with precise scope + the shared contract; membe
 - **Shift-at-location** = the employee has a `shift_session` whose `location_id` matches the day_line's location, linked via `shift_session_day_line`. Resolver keys on **location match**, not just shift existence.
 - **Task→shift reachability** = `session_task.day_line_id → day_line(location) → shift_session_day_line → shift_session(employee, location, status)`. (ADR-0367 schema already there; A-DATA + A-ANCHOR make it resolve.)
 - **Shift state** = council Q-A decides which `shift_session.status` shows tasks (`clocked_in` during shift; maybe `scheduled` for pre-shift prep).
-- **Surface = "Min dag"** = the employee day view (prototype `taskmanager-handoff/components/min-dag.jsx` — TaskKort, sections, day-meter). Mobile primary; web Min dag parity later.
+- **Surface = "Min dag"** = the employee day view (prototype `taskmanager-DESIGNE/components/min-dag.jsx` — TaskKort, sections, day-meter). Mobile primary; web Min dag parity later.
 - **Resolver shape** = same normalized columns as `fn_list_my_tasks` + `day_line_id`/`location_id`/`scheduled_at`. ADR-0317 lockstep: SQL + `list_mine` TS move together.
 - **Execute** = mobile → `/api/mobile/tasks/[id]/complete` → `task.complete{source:'session'}` (exists; A-MOBILE wires the Min dag surface to it).
 
@@ -96,7 +96,7 @@ Dispatch A-DATA, A-AUTHOR, A-ANCHOR, A-MOBILE, A-TELE in parallel (mostly disjoi
 - Supabase Local: admin-add a day_line task for employee X with active shift_session → resolver returns it; employee Y (no active shift) → not returned.
 
 ### T+3:20 – 4:15 — WAVE 2 (UI port + active-shift gating + tests)
-- A-MOBILE: port TaskKort/feed visuals from `taskmanager-handoff/` (Nordic Split + a11y; frontend-designer review). Active-shift gate: hide/disable execute when shift inactive.
+- A-MOBILE: port TaskKort/feed visuals from `taskmanager-DESIGNE/` (Nordic Split + a11y; frontend-designer review). Active-shift gate: hide/disable execute when shift inactive.
 - Remediate Gate 1 findings.
 - A-TELE: golden e2e — admin add → mobile (active) shows → complete → web reflects done.
 - Telemetry emit verified (registry + call-site, ADR-0377).
