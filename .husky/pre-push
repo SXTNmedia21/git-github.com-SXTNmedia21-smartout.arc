@@ -56,3 +56,8 @@ pnpm lint:tool-collisions
 # MUST equal GoTrue otp_length in supabase/config.toml. A mismatch silently
 # breaks OTP login (valid code, 403). Prod dashboard OTP Length must also match.
 node scripts/check-otp-coherence.mjs
+
+# ADR-0392: Domain doc folders — validates docs/domains/<name>/ spine + frontmatter
+# (mirror/last_verified) + staleness for any domain touched in this push.
+# No-op until docs/domains/ exists. See scripts/domain-lint.mjs + the domain-steward skill.
+node scripts/domain-lint.mjs --changed
