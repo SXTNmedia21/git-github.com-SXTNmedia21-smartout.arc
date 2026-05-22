@@ -161,8 +161,10 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
             router.push("/(app)/(me)/payroll/payslip");
             break;
           case "logout":
-            void logoutOneSignal();
-            supabase.auth.signOut();
+            void (async () => {
+              await logoutOneSignal();
+              await supabase.auth.signOut();
+            })();
             break;
           default:
             break;

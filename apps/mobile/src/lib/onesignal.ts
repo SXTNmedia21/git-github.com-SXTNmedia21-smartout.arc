@@ -28,6 +28,8 @@ export async function initOneSignal(): Promise<void> {
 
 export async function loginOneSignal(profileId: string): Promise<void> {
   if (Platform.OS !== "web" || !profileId) return;
+  // Ensure SDK is initialised before calling login — init is idempotent (initialised flag).
+  await initOneSignal();
   try {
     const OneSignal = (await import("react-onesignal")).default;
     await OneSignal.login(profileId);
