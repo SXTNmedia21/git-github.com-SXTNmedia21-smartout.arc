@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { resolveMobileActor } from "../../_shared/actor";
 import { createAdminClient } from "@smartout/supabase/admin";
+import type { Json } from "@smartout/supabase";
 import { emit, nonEmpty } from "@smartout/telemetry";
 
 const NewLocationSchema = z.object({
@@ -78,9 +79,8 @@ export async function POST(request: NextRequest | Request): Promise<Response> {
     p_actor_profile_id: actor.profileId,
     p_routine_name: body.routine_name,
     p_trigger_type: body.trigger_type,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    p_trigger_config: body.trigger_config as any,
-    p_steps: body.steps as any,
+    p_trigger_config: body.trigger_config as unknown as Json,
+    p_steps: body.steps as unknown as Json,
     p_source_reference: body.source_reference,
     p_location_id: body.location_id ?? undefined,
     p_new_location: body.new_location ?? undefined,
