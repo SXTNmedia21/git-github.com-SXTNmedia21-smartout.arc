@@ -29,7 +29,7 @@ Deno.test("sendOneSignalPush posts external_id alias + headings/contents + url",
 
   assertEquals(res.ok, true);
   assertEquals(res.recipients, 1);
-  assertEquals(captured!.url, "https://onesignal.com/api/v1/notifications");
+  assertEquals(captured!.url, "https://api.onesignal.com/notifications");
   const sentBody = JSON.parse(captured!.init.body as string);
   assertEquals(sentBody.app_id, "app-123");
   assertEquals(sentBody.target_channel, "push");
@@ -39,7 +39,7 @@ Deno.test("sendOneSignalPush posts external_id alias + headings/contents + url",
   assertEquals(sentBody.url, "https://mobile.smartout.ai/dashboard/shifts");
   assertEquals(
     (captured!.init.headers as Record<string, string>)["Authorization"],
-    "Basic key-abc",
+    "Key key-abc",
   );
 });
 

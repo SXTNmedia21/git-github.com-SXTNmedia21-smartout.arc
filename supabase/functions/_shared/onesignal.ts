@@ -25,7 +25,7 @@ export type SendOneSignalPushResult = {
   error?: string;
 };
 
-const ONESIGNAL_ENDPOINT = "https://onesignal.com/api/v1/notifications";
+const ONESIGNAL_ENDPOINT = "https://api.onesignal.com/notifications";
 
 export async function sendOneSignalPush(
   input: SendOneSignalPushInput,
@@ -46,7 +46,7 @@ export async function sendOneSignalPush(
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Basic ${input.restApiKey}`,
+        Authorization: `Key ${input.restApiKey}`,
       },
       body: JSON.stringify(payload),
     });
