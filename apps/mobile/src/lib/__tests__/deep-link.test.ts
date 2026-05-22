@@ -25,7 +25,10 @@ describe("mobileRouteForActionUrl", () => {
   it("maps contracts to contract index", () => {
     expect(mobileRouteForActionUrl("/dashboard/contracts")).toBe("/(app)/(me)/contract");
   });
-  it("maps people to team", () => {
+  it("maps people/contracts to contract index", () => {
+    expect(mobileRouteForActionUrl("/dashboard/people/contracts")).toBe("/(app)/(me)/contract");
+  });
+  it("maps bare people to team", () => {
     expect(mobileRouteForActionUrl("/dashboard/people")).toBe("/(app)/(home)/team");
   });
   it("returns null for generic dashboard and unknown paths", () => {

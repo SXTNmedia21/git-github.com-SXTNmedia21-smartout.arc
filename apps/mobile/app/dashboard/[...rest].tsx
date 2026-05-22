@@ -13,12 +13,13 @@ export default function DashboardDeepLinkCatchAll() {
   const pathname = usePathname(); // e.g. "/dashboard/my-schedule"
   const params = useLocalSearchParams();
 
+  const dateParam = typeof params.date === "string" ? params.date : null;
+
   useEffect(() => {
-    // Preserve query string (e.g. ?date=) for the mapper's pattern matching.
-    const query = typeof params.date === "string" ? `?date=${params.date}` : "";
+    const query = dateParam ? `?date=${dateParam}` : "";
     const target = mobileRouteForActionUrl(`${pathname}${query}`);
     router.replace((target ?? "/(app)/(home)") as never);
-  }, [pathname, params]);
+  }, [pathname, dateParam]);
 
   return <View />;
 }

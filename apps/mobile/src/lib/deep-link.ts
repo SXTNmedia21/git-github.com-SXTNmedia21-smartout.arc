@@ -32,6 +32,7 @@ export function mobileRouteForActionUrl(actionUrl: string): string | null {
     case "contracts":
       return "/(app)/(me)/contract";
     case "people":
+      if (segments[2] === "contracts") return "/(app)/(me)/contract";
       return "/(app)/(home)/team";
     default:
       return null; // generic /dashboard or unknown
