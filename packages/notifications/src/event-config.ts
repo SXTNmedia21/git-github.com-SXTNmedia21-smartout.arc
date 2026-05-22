@@ -612,6 +612,38 @@ export const NOTIFICATION_EVENTS: Record<string, NotificationEventConfig> = {
     grouping_window_sec: 0,
     admin_overridable: true,
   },
+
+  // ─── Task Due Reminders ──────────────────────────────────
+  "task.due_soon": {
+    event_key: "task.due_soon",
+    mode: "work",
+    default_priority: 1,
+    group_key_template: "task:{task_id}",
+    title_template: "Oppgave forfaller snart",
+    body_template: "{task_title} forfaller {due_label}",
+    title_i18n_key: "notifications.task.due_soon.title",
+    body_i18n_key: "notifications.task.due_soon.body",
+    action_url_template: "/dashboard/operations",
+    icon_type: "task",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 300,
+    admin_overridable: true,
+  },
+  "task.overdue": {
+    event_key: "task.overdue",
+    mode: "work",
+    default_priority: 2,
+    group_key_template: "task:{task_id}",
+    title_template: "Oppgave er forfalt",
+    body_template: "{task_title} er forfalt",
+    title_i18n_key: "notifications.task.overdue.title",
+    body_i18n_key: "notifications.task.overdue.body",
+    action_url_template: "/dashboard/operations",
+    icon_type: "task",
+    allowed_channels: ["push", "in_app"],
+    grouping_window_sec: 0,
+    admin_overridable: true,
+  },
 };
 
 export function getEventConfig(eventKey: string): NotificationEventConfig | undefined {
