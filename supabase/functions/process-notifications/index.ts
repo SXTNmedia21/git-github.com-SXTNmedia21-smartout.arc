@@ -46,6 +46,67 @@ type NotificationPref = {
   quiet_hours_timezone: string;
 };
 
+// ── Dev SMTP helper ──────────────────────────────────────────────────
+// Sends a minimal RFC 5321 SMTP message over a plain TCP connection.
+// Intended ONLY for local development (Inbucket / Mailpit catcher).
+// Never called when SENDGRID_API_KEY is present — gated at call site.
+
+type SmtpOptions = {
+  host: string;
+  port: number;
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+};
+
+async function sendDevSmtp(opts: SmtpOptions): Promise<void> {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const conn = await Deno.connect({ hostname: opts.host, port: opts.port });
+
+  const send = async (line: string) => {
+    await conn.write(encoder.encode(line + "\r\n"));
+  };
+
+  const read = async (): Promise<string> => {
+    const buf = new Uint8Array(1024);
+    const n = await conn.read(buf);
+    return decoder.decode(buf.subarray(0, n ?? 0));
+  };
+
+  try {
+    await read(); // 220 greeting
+    await send(`EHLO smartout-dev`);
+    await read(); // 250 capabilities
+    await send(`MAIL FROM:<${opts.from}>`);
+    await read(); // 250 OK
+    await send(`RCPT TO:<${opts.to}>`);
+    await read(); // 250 OK
+    await send("DATA");
+    await read(); // 354 Start input
+    // Minimal headers + body
+    const date = new Date().toUTCString();
+    await send(`From: Smartout <${opts.from}>`);
+    await send(`To: <${opts.to}>`);
+    await send(`Subject: ${opts.subject}`);
+    await send(`Date: ${date}`);
+    await send(`Content-Type: text/plain; charset=UTF-8`);
+    await send(``); // blank line separates headers from body
+    // Dot-stuffing: lines starting with "." must be doubled per RFC 5321
+    for (const line of opts.body.split("\n")) {
+      await send(line.startsWith(".") ? "." + line : line);
+    }
+    await send("."); // end-of-data marker
+    await read(); // 250 queued
+    await send("QUIT");
+    await read(); // 221 bye
+  } finally {
+    conn.close();
+  }
+}
+
 // ── Main handler ─────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -372,7 +433,7 @@ async function deliverToChannels(
   // Email via SendGrid — resolve recipient email from user_identity
   if (channels.includes("email") && (pref?.email_enabled ?? true)) {
     const sgKey = Deno.env.get("SENDGRID_API_KEY");
-    if (sgKey && profileUserId) {
+    if (profileUserId) {
       const { data: userRow } = await supabase
         .from("user_identity")
         .select("email")
@@ -380,30 +441,55 @@ async function deliverToChannels(
         .single();
 
       if (userRow?.email) {
-        try {
-          const actionLine = row.action_url
-            ? `\n\nSe mer: https://app.smartout.ai${row.action_url}`
-            : "";
-          await fetch("https://api.sendgrid.com/v3/mail/send", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${sgKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              personalizations: [{ to: [{ email: userRow.email }] }],
-              from: { email: "varsler@smartout.ai", name: "Smartout" },
+        const actionLine = row.action_url
+          ? `\n\nSe mer: https://app.smartout.ai${row.action_url}`
+          : "";
+        const emailBody = `${resolvedBody}${actionLine}`;
+
+        if (sgKey) {
+          // Production path: SendGrid API
+          try {
+            await fetch("https://api.sendgrid.com/v3/mail/send", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${sgKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                personalizations: [{ to: [{ email: userRow.email }] }],
+                from: { email: "varsler@smartout.ai", name: "Smartout" },
+                subject: resolvedTitle,
+                content: [
+                  {
+                    type: "text/plain",
+                    value: emailBody,
+                  },
+                ],
+              }),
+            });
+          } catch (err) {
+            console.error("Email delivery failed:", err);
+          }
+        } else {
+          // Dev fallback: send via local SMTP catcher (Inbucket/Mailpit).
+          // Only active when SENDGRID_API_KEY is absent — production behavior
+          // is byte-for-byte unchanged because sgKey is always set in prod.
+          const smtpHost = Deno.env.get("SMTP_DEV_HOST") ?? "host.docker.internal";
+          const smtpPort = parseInt(Deno.env.get("SMTP_DEV_PORT") ?? "54325", 10);
+          try {
+            await sendDevSmtp({
+              host: smtpHost,
+              port: smtpPort,
+              from: "varsler@smartout.ai",
+              to: userRow.email,
               subject: resolvedTitle,
-              content: [
-                {
-                  type: "text/plain",
-                  value: `${resolvedBody}${actionLine}`,
-                },
-              ],
-            }),
-          });
-        } catch (err) {
-          console.error("Email delivery failed:", err);
+              body: emailBody,
+            });
+            console.log(`[dev] Email sent via local SMTP (${smtpHost}:${smtpPort}) to ${userRow.email}`);
+          } catch (err) {
+            // Best-effort: log and continue, never throw
+            console.error("[dev] Local SMTP delivery failed:", err);
+          }
         }
       }
     }
