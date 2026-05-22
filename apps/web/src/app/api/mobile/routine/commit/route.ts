@@ -25,7 +25,7 @@ const BodySchema = z
     trigger_config: z.record(z.unknown()).default({}),
     location_id: z.string().uuid().nullable().default(null),
     new_location: NewLocationSchema.nullable().default(null),
-    team_ids: z.array(z.string().min(1)).default([]),
+    team_ids: z.array(z.string().uuid()).default([]),
     protocol_id: z.string().uuid().nullable().default(null),
     steps: z.array(StepSchema).min(1).max(50),
     source_reference: z.string().min(1),
