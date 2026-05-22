@@ -195,11 +195,12 @@ async function processOutboxRow(
   // Fetch recipient's preferences via profile -> user_id -> notification_preference
   const { data: profile } = await supabase
     .from("profile")
-    .select("user_id, phone")
+    .select("user_id")
     .eq("profile_id", row.recipient_id)
     .single();
 
   let pref: NotificationPref | null = null;
+  let recipientPhone: string | null = null;
   if (profile?.user_id) {
     const { data } = await supabase
       .from("notification_preference")
@@ -207,6 +208,14 @@ async function processOutboxRow(
       .eq("user_id", profile.user_id)
       .single();
     pref = data as NotificationPref | null;
+
+    // Phone lives on user_identity (NOT profile) — resolve for SMS channel.
+    const { data: idRow } = await supabase
+      .from("user_identity")
+      .select("phone")
+      .eq("user_id", profile.user_id)
+      .single();
+    recipientPhone = (idRow as { phone: string | null } | null)?.phone ?? null;
   }
 
   // Check quiet hours — defer low-priority notifications
@@ -278,7 +287,7 @@ async function processOutboxRow(
     supabase,
     row,
     pref,
-    profile?.phone,
+    recipientPhone,
     resolvedTitle,
     resolvedBody,
     profile?.user_id ?? null,
