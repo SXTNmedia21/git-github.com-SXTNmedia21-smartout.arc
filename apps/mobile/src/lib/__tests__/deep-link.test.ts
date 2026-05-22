@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { mobileRouteForActionUrl } from "../deep-link";
 
 describe("mobileRouteForActionUrl", () => {

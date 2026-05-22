@@ -20,6 +20,7 @@ import { Stack, useRouter } from "expo-router";
 import { ArrowLeft, CheckCheck } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
+import { mobileRouteForActionUrl } from "@/lib/deep-link";
 import { NotificationList } from "./NotificationList";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount, useMarkAllAsRead } from "@/hooks/queries/use-notifications";
@@ -57,56 +58,9 @@ export function NotificationScreen() {
   const handleNotificationPress = useCallback(
     (notification: Notification) => {
       if (!notification.action_url) return;
-
-      const url = notification.action_url;
-      // Strip query string for pattern matching; keep it for params if needed
-      const [pathname] = url.split("?");
-      const segments = pathname.split("/").filter(Boolean); // ["dashboard", "komm", "<id>"]
-
-      // /dashboard/komm/<channelId> → chat conversation (chat.message, call.incoming, call.missed)
-      // Navigate within the (me) stack so router.back() returns here, not into the chat tab.
-      if (segments[1] === "komm" && segments[2]) {
-        router.push(`/(app)/(me)/channel-detail/${segments[2]}`);
-        return;
-      }
-
-      // /dashboard/shift-clock → punch clock
-      if (segments[1] === "shift-clock") {
-        router.push("/(app)/(home)/punch-clock");
-        return;
-      }
-
-      // /dashboard/my-schedule or /dashboard/schedule → shifts tab
-      if (segments[1] === "my-schedule" || segments[1] === "schedule") {
-        router.push("/(app)/(shifts)");
-        return;
-      }
-
-      // /dashboard/operations or /dashboard/reconciliation → operations
-      if (segments[1] === "operations" || segments[1] === "reconciliation") {
-        router.push("/(app)/(home)/operations");
-        return;
-      }
-
-      // /dashboard/my-training → training
-      if (segments[1] === "my-training") {
-        router.push("/(app)/(home)/training");
-        return;
-      }
-
-      // /dashboard/contracts → contract index
-      if (segments[1] === "contracts") {
-        router.push("/(app)/(me)/contract");
-        return;
-      }
-
-      // /dashboard/people → team
-      if (segments[1] === "people") {
-        router.push("/(app)/(home)/team");
-        return;
-      }
-
-      // /dashboard (generic) — no navigation, notification tap is the feedback
+      const route = mobileRouteForActionUrl(notification.action_url);
+      // Generic /dashboard or unknown → no navigation; the tap itself is the feedback.
+      if (route) router.push(route as never);
     },
     [router],
   );
