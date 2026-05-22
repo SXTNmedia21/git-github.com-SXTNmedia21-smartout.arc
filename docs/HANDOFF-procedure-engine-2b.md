@@ -79,6 +79,9 @@ All registered in `docs/decisions/0000-decision-log.md`.
 | Don't weaken prod schema for a test | Task 9 relaxed `location_id` from `.uuid()` to `.min(1)` to fit a fixture; corrected — fixed the fixture, restored the guard. |
 | expo-image-picker v55 | `MediaTypeOptions` deprecated → use `mediaTypes: ['images']`. |
 | Vision lives in stage-engine only | `generateObject` + OpenRouter are stage-engine-only; `packages/ai` has no LLM client. The extract route owns the single multimodal call. |
+| `generateObject` fails via Bedrock + image | OpenRouter routed claude-sonnet-4.6 to Amazon Bedrock; json_schema mode + image block → "Provider returned error". Use `generateText` + JSON-parse + `DraftSchema.parse` (provider-robust). Proven by live smoke. |
+| BFF must auth to stage-engine | stage-engine has global auth middleware (x-api-key or JWT, skips only /health). The extract proxy must send `x-api-key: STAGE_ENGINE_API_KEY`. |
+| expo-image-picker is stubbed on web (PWA) | metro aliases it to a no-op on web builds, so the camera button did nothing on PWA. Platform-split `pick-routine-image.{ts,web.ts}` — web uses `<input type=file accept=image/* capture>`. Target platform is PWA, so this is load-bearing, not a nicety. |
 
 ## Known Issues / Debt
 
