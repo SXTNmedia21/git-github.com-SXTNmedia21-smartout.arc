@@ -40,6 +40,7 @@ import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
 import { useDayInfo } from "@/hooks/queries/use-day-info";
 import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
+import { useShiftSession } from "@/hooks/queries/use-shift-session";
 
 export default function HomeScreen() {
   const styles = useStyles();
@@ -59,6 +60,23 @@ export default function HomeScreen() {
   const departmentId = activeShift?.department_id ?? nextShift?.department_id ?? null;
   const workspaceId = profile?.workspace_id ?? null;
   const { data: dutyLeader } = useDutyLeader(departmentId, workspaceId);
+
+  // Derive today's ISO date (YYYY-MM-DD) for shift_session lookup.
+  // shift_date from activeShift/nextShift is authoritative when available
+  // (avoids timezone skew between device clock and server business_date).
+  const today = useMemo(() => {
+    const candidate = activeShift?.shift_date ?? nextShift?.shift_date;
+    if (candidate) return candidate;
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }, [activeShift?.shift_date, nextShift?.shift_date]);
+
+  // Load shift_session for the current employee + today (ADR-0367).
+  // Used to pass shift_session_id to BeforeShiftView (clock-in CTA) and
+  // DuringShiftViewV2 (day-line task timeline).
+  const { data: shiftSession } = useShiftSession(profile?.profile_id ?? null, today);
+  const shiftSessionId = shiftSession?.shift_session_id ?? null;
 
   const notificationSheetRef = useRef<GorhomBottomSheet>(null);
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
@@ -111,6 +129,7 @@ export default function HomeScreen() {
             dayInfo={dayInfo}
             tasks={tasks ?? []}
             variant="late"
+            shiftSessionId={shiftSessionId}
           />
         )}
         {phase === "before_shift" && !nextShift && (
@@ -127,6 +146,7 @@ export default function HomeScreen() {
             timeEntry={activeTimeEntry}
             tasks={tasks ?? []}
             leaderPhone={dutyLeader?.phone}
+            shiftSessionId={shiftSessionId}
           />
         )}
         {phase === "during_shift" && !activeTimeEntry && (
