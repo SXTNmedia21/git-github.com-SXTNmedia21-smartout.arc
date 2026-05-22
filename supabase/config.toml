@@ -169,7 +169,11 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3050"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai"]
+# NOTE (ADR-0390): mobile reset redirect target must be allow-listed by EXACT path —
+# the host-glob `https://*.smartout.ai` does NOT cover the `/m/update-password` path,
+# so GoTrue would silently default `.RedirectTo` to site_url. Prod dashboard Redirect
+# URLs must include the same entry, or the recovery email degrades to the web branch.
+additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai", "https://app.smartout.ai/m/update-password"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
