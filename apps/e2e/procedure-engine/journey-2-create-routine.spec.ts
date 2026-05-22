@@ -121,11 +121,13 @@ test.describe.serial("J2 — Admin creates routine via governance form @smoke", 
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible({ timeout: 6_000 });
 
-    // Required fields present
+    // Required fields present. Use exact label text — the combobox placeholders
+    // ("Velg protokoll…") also contain these words, so a loose /regex/ matches
+    // multiple elements (strict-mode violation). Exact matches the <label> only.
     await expect(sheet.getByLabel(/Navn/i)).toBeVisible({ timeout: 4_000 });
-    await expect(sheet.getByText(/Protokoll/i)).toBeVisible({ timeout: 4_000 });
-    await expect(sheet.getByText(/Prosedyre/i)).toBeVisible({ timeout: 4_000 });
-    await expect(sheet.getByText(/Lokasjon/i)).toBeVisible({ timeout: 4_000 });
+    await expect(sheet.getByText("Protokoll", { exact: true })).toBeVisible({ timeout: 4_000 });
+    await expect(sheet.getByText("Prosedyre", { exact: true })).toBeVisible({ timeout: 4_000 });
+    await expect(sheet.getByText("Lokasjon", { exact: true })).toBeVisible({ timeout: 4_000 });
 
     // Submit button starts disabled (no name/procedure/location yet)
     const submitBtn = sheet.getByRole("button", { name: /Opprett rutine/i });
@@ -238,7 +240,10 @@ test.describe.serial("J2 — Admin creates routine via governance form @smoke", 
     await submitBtn.click();
 
     // Step 9: Assert success — toast and sheet close
-    // sonner toasts render in a [data-sonner-toaster] container
+    // sonner toasts render in a [data-sonner-toaster] container. Settle first:
+    // the toast appears + auto-dismisses, so poll only after the server action
+    // round-trip has had time to surface it (avoids a dismiss-before-poll race).
+    await page.waitForTimeout(1500);
     const successToast = page.locator("[data-sonner-toaster]").getByText(/Rutine opprettet/i);
     const toastVisible = await successToast.isVisible({ timeout: 8_000 }).catch(() => false);
 
