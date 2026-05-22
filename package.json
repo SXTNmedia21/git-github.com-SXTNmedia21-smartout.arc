@@ -12,6 +12,7 @@
     "dev:journey-control": "pnpm --filter @smartout/journey-control dev",
     "lint": "turbo run lint",
     "lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts",
+    "check:otp": "node scripts/check-otp-coherence.mjs",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
