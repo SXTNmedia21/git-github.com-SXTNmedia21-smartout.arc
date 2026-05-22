@@ -13,12 +13,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput } from "react-native";
-import { X, Mic, MicOff, Camera } from "lucide-react-native";
-import { pickRoutineImage } from "@/lib/pick-routine-image";
-import { useRouter } from "expo-router";
-import { useRoutineExtract } from "@/hooks/use-routine-extract";
-import { uploadRoutineSource } from "@/lib/upload-routine-source";
-import { getProfileContext } from "@/lib/profile-context";
+import { X, Mic, MicOff } from "lucide-react-native";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -93,12 +88,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       reconnectPhase,
       reconnectAttempt,
       policyFlipped,
-      routineDraft,
-      setRoutineDraft,
     } = useBotsson();
-
-    const router = useRouter();
-    const { extract } = useRoutineExtract();
 
     // Local text input state — controlled input for the text-mode compose field.
     const [textInput, setTextInput] = useState("");
@@ -157,23 +147,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await sendTextMessage(last);
     }, [isSendingText, sendTextMessage]);
-
-    /**
-     * Pick an image from the library, upload it to routine-source storage,
-     * run BFF vision extraction, and store the resulting draft in provider state.
-     * Draft card appears in transcript area; tapping navigates to /routine-review.
-     */
-    const handlePickImage = useCallback(async () => {
-      // Platform-split: native uses expo-image-picker (asset uri), web/PWA uses a
-      // file input (File). expo-image-picker is stubbed on web, so the file-input
-      // path is the only working capture there.
-      const source = await pickRoutineImage();
-      if (!source) return;
-      const { workspaceId, profileId } = await getProfileContext();
-      const storagePath = await uploadRoutineSource(workspaceId, profileId, source);
-      const draft = await extract(storagePath);
-      if (draft) setRoutineDraft({ draft, storagePath });
-    }, [extract, setRoutineDraft]);
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -422,22 +395,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             <ChatErrorBanner message={textError} onRetry={handleRetry} />
           ) : null}
 
-          {/* Routine draft card — shown after photo extraction; navigates to review */}
-          {routineDraft ? (
-            <Pressable
-              style={styles.draftCard}
-              onPress={() => router.push("/routine-review")}
-              accessibilityRole="button"
-              accessibilityLabel="Gjennomgå rutineutkast"
-            >
-              <Text style={styles.draftTitle}>{routineDraft.draft.routine_name}</Text>
-              <Text
-                style={styles.draftSub}
-              >{`Fant ${routineDraft.draft.steps.length} oppgaver`}</Text>
-              <Text style={styles.draftCta}>Gjennomgå og opprett →</Text>
-            </Pressable>
-          ) : null}
-
           {/* Transcript — shared for voice and text turns */}
           <TranscriptPane transcripts={transcript} />
 
@@ -460,19 +417,6 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
                   editable={!isSendingText}
                   accessibilityLabel="Skriv melding til Botsson"
                 />
-                <Pressable
-                  onPress={handlePickImage}
-                  disabled={isSendingText}
-                  style={({ pressed }) => [
-                    styles.attachButton,
-                    pressed && styles.sendButtonPressed,
-                    isSendingText && styles.sendButtonDisabled,
-                  ]}
-                  accessibilityLabel="Legg ved bilde av sjekkliste"
-                  accessibilityRole="button"
-                >
-                  <Camera size={20} color={theme.colors.foreground} />
-                </Pressable>
                 <Pressable
                   onPress={handleSendText}
                   disabled={isSendingText || textInput.trim().length === 0}
