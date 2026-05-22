@@ -53,6 +53,7 @@ import {
   type BotssonMode,
   type BotssonSessionChannel,
 } from "./botsson-channel";
+import type { RoutineDraft } from "@/hooks/use-routine-extract";
 
 export { deriveBotssonChannel } from "./botsson-channel";
 export type { BotssonMode, BotssonSessionChannel, BotssonDeviceType } from "./botsson-channel";
@@ -187,6 +188,12 @@ type BotssonContextValue = {
   /** Error message if status is "error" */
   error: string | null;
   /**
+   * Routine draft extracted from a photo — set by the image button in
+   * BotssonSheet after upload + BFF extraction. Cleared on endSession().
+   */
+  routineDraft: { draft: RoutineDraft; storagePath: string } | null;
+  setRoutineDraft: (draft: { draft: RoutineDraft; storagePath: string } | null) => void;
+  /**
    * D2: True when voice session start failed due to OS mic permission denial.
    * BotssonSheet renders `MicPermissionDialog` when this is true.
    * Cleared on next `startVoiceSession()` attempt or explicit `endSession()`.
@@ -229,6 +236,14 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   /** D4: Set when voice policy is revoked mid-session (403 from token or transcript BFF). */
   const [policyFlipped, setPolicyFlipped] = useState(false);
+  /**
+   * Routine draft from photo extraction. Set by the BotssonSheet image button
+   * after upload + BFF vision extraction. Cleared on endSession().
+   */
+  const [routineDraft, setRoutineDraft] = useState<{
+    draft: RoutineDraft;
+    storagePath: string;
+  } | null>(null);
   /**
    * ADR-0297: canonical snapshot state. Set when the BFF returns a new or
    * refreshed snapshot. Cleared on endSession(). Passed to voice session hook
@@ -563,6 +578,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     // ADR-0297: clear snapshot on session end so the next session always
     // gets a fresh cold-start snapshot from the BFF.
     setCurrentSnapshot(null);
+    // Clear routine draft on session end.
+    setRoutineDraft(null);
   }, [voice]);
 
   /**
@@ -614,6 +631,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      routineDraft,
+      setRoutineDraft,
       // D2/D3/D4: error dialog + reconnect state.
       micPermissionDenied,
       reconnectPhase: voice.reconnectPhase,
@@ -648,6 +667,8 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
       openWithIntent,
       clearIntent,
       error,
+      routineDraft,
+      setRoutineDraft,
       micPermissionDenied,
       policyFlipped,
       voiceEnabled,

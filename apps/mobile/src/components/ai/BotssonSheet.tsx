@@ -13,7 +13,12 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput } from "react-native";
-import { X, Mic, MicOff } from "lucide-react-native";
+import { X, Mic, MicOff, Camera } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useRoutineExtract } from "@/hooks/use-routine-extract";
+import { uploadRoutineSource } from "@/lib/upload-routine-source";
+import { getProfileContext } from "@/lib/profile-context";
 import GorhomBottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
@@ -88,7 +93,12 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       reconnectPhase,
       reconnectAttempt,
       policyFlipped,
+      routineDraft,
+      setRoutineDraft,
     } = useBotsson();
+
+    const router = useRouter();
+    const { extract } = useRoutineExtract();
 
     // Local text input state — controlled input for the text-mode compose field.
     const [textInput, setTextInput] = useState("");
@@ -147,6 +157,25 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await sendTextMessage(last);
     }, [isSendingText, sendTextMessage]);
+
+    /**
+     * Pick an image from the library, upload it to routine-source storage,
+     * run BFF vision extraction, and store the resulting draft in provider state.
+     * Draft card appears in transcript area; tapping navigates to /routine-review.
+     */
+    const handlePickImage = useCallback(async () => {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return;
+      const picked = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.7,
+      });
+      if (picked.canceled || !picked.assets[0]) return;
+      const { workspaceId, profileId } = await getProfileContext();
+      const storagePath = await uploadRoutineSource(workspaceId, profileId, picked.assets[0].uri);
+      const draft = await extract(storagePath);
+      if (draft) setRoutineDraft({ draft, storagePath });
+    }, [extract, setRoutineDraft]);
 
     const snapPoints = useMemo(() => ["75%"], []);
 
@@ -395,6 +424,22 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
             <ChatErrorBanner message={textError} onRetry={handleRetry} />
           ) : null}
 
+          {/* Routine draft card — shown after photo extraction; navigates to review */}
+          {routineDraft ? (
+            <Pressable
+              style={styles.draftCard}
+              onPress={() => router.push("/routine-review" as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Gjennomgå rutineutkast"
+            >
+              <Text style={styles.draftTitle}>{routineDraft.draft.routine_name}</Text>
+              <Text
+                style={styles.draftSub}
+              >{`Fant ${routineDraft.draft.steps.length} oppgaver`}</Text>
+              <Text style={styles.draftCta}>Gjennomgå og opprett →</Text>
+            </Pressable>
+          ) : null}
+
           {/* Transcript — shared for voice and text turns */}
           <TranscriptPane transcripts={transcript} />
 
@@ -417,6 +462,19 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
                   editable={!isSendingText}
                   accessibilityLabel="Skriv melding til Botsson"
                 />
+                <Pressable
+                  onPress={handlePickImage}
+                  disabled={isSendingText}
+                  style={({ pressed }) => [
+                    styles.attachButton,
+                    pressed && styles.sendButtonPressed,
+                    isSendingText && styles.sendButtonDisabled,
+                  ]}
+                  accessibilityLabel="Legg ved bilde av sjekkliste"
+                  accessibilityRole="button"
+                >
+                  <Camera size={20} color={theme.colors.foreground} />
+                </Pressable>
                 <Pressable
                   onPress={handleSendText}
                   disabled={isSendingText || textInput.trim().length === 0}
@@ -599,5 +657,40 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.headline,
     color: theme.colors.background,
     fontSize: 20,
+  },
+  // Image attach button — sits to the left of the send button in the text row
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  // Routine draft card — appears above transcript after photo extraction
+  draftCard: {
+    marginHorizontal: theme.spacing.card,
+    marginTop: theme.spacing.element,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.element,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: theme.spacing.tight,
+  },
+  draftTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.foreground,
+  },
+  draftSub: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+  },
+  draftCta: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
   },
 }));
