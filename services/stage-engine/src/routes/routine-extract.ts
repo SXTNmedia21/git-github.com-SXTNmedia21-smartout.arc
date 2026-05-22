@@ -13,10 +13,54 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+// heic-convert ships no types — pure-JS libheif wasm, safe in node (no native deps).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error no type declarations
+import heicConvert from "heic-convert";
 import { DraftSchema, type RoutineDraft } from "@smartout/ai/capabilities/routine/draft-schema";
 import { getSecrets } from "../secrets.js";
 
 const VISION_MODEL = "anthropic/claude-sonnet-4.6";
+
+// Anthropic vision accepts jpeg/png/gif/webp — NOT heic/heif (iPhone default).
+// We download the image, transcode HEIC→JPEG, and inline it as base64 so the
+// model never has to fetch (also sidesteps private/localhost-URL rejection).
+const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+function isHeic(bytes: Uint8Array, contentType: string): boolean {
+  if (/hei[cf]|heif/i.test(contentType)) return true;
+  // ISO-BMFF: bytes 4..8 = "ftyp", brand at 8..12 (heic/heix/mif1/msf1/heif…).
+  if (bytes.length < 12) return false;
+  const ftyp = String.fromCharCode(bytes[4]!, bytes[5]!, bytes[6]!, bytes[7]!);
+  if (ftyp !== "ftyp") return false;
+  const brand = String.fromCharCode(bytes[8]!, bytes[9]!, bytes[10]!, bytes[11]!).toLowerCase();
+  return /^(hei|hev|mif|msf)/.test(brand);
+}
+
+/** Download an image URL, transcode HEIC→JPEG, return a base64 data URL the model can read. */
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  if (!res.ok) throw new Error(`image_fetch_failed: ${res.status}`);
+  const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+  let bytes = new Uint8Array(await res.arrayBuffer());
+  let mediaType = contentType.split(";")[0]?.trim() ?? "";
+
+  if (isHeic(bytes, contentType)) {
+    const jpg: ArrayBuffer | Buffer = await heicConvert({
+      buffer: Buffer.from(bytes),
+      format: "JPEG",
+      quality: 0.85,
+    });
+    bytes = new Uint8Array(jpg as ArrayBuffer);
+    mediaType = "image/jpeg";
+  } else if (!SUPPORTED_IMAGE_TYPES.includes(mediaType)) {
+    // Unknown/missing content-type — default to jpeg (covers signed-URL responses
+    // that omit a precise type). If it's truly unsupported the model will reject.
+    mediaType = "image/jpeg";
+  }
+
+  return `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`;
+}
 
 const EXTRACT_PROMPT =
   "Du er en operativ assistent. Bildet viser en sjekkliste eller rutine fra en " +
@@ -49,6 +93,7 @@ function stripJsonFences(text: string): string {
 }
 
 export async function extractRoutineFromImage(imageUrl: string): Promise<RoutineDraft> {
+  const dataUrl = await fetchImageAsDataUrl(imageUrl);
   const { text } = await generateText({
     model: getOpenRouter()(VISION_MODEL),
     messages: [
@@ -56,7 +101,7 @@ export async function extractRoutineFromImage(imageUrl: string): Promise<Routine
         role: "user",
         content: [
           { type: "text", text: EXTRACT_PROMPT },
-          { type: "image", image: new URL(imageUrl) },
+          { type: "image", image: new URL(dataUrl) },
         ],
       },
     ],

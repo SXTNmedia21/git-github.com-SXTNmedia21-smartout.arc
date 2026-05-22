@@ -5,6 +5,22 @@ vi.mock("ai", () => ({ generateText: (...a: unknown[]) => generateTextMock(...a)
 vi.mock("@openrouter/ai-sdk-provider", () => ({
   createOpenRouter: () => (model: string) => ({ model }),
 }));
+// heic-convert is only invoked for HEIC bytes; mock so the wasm module never loads.
+vi.mock("heic-convert", () => ({ default: vi.fn() }));
+
+// extractRoutineFromImage now downloads the image — mock fetch to return a tiny
+// JPEG (magic bytes FF D8 FF) with an image/jpeg content-type.
+beforeEach(() => {
+  const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "image/jpeg" },
+      arrayBuffer: async () => jpegBytes.buffer,
+    }),
+  );
+});
 // Mock secrets so supabase/config env-validation is never reached
 vi.mock("../../secrets.js", () => ({
   getSecrets: vi.fn().mockReturnValue({

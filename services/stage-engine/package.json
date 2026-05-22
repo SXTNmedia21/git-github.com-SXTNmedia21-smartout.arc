@@ -27,6 +27,7 @@
     "@smartout/types": "workspace:^",
     "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
+    "heic-convert": "^2.1.0",
     "hono": "^4.7.0",
     "pg": "^8.20.0",
     "pino": "^10.3.1",
