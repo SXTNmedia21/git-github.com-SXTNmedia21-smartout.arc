@@ -23,6 +23,7 @@ import {
   type TextInputProps,
   type DimensionValue,
 } from "react-native";
+import { useTheme } from "@/theme";
 
 /* ---------- Types ---------- */
 
@@ -59,9 +60,23 @@ export type BottomSheetRef = {
 };
 
 const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function BottomSheet(
-  { children, snapPoints, index = -1, onChange, onClose, enablePanDownToClose, style, ...rest },
+  {
+    children,
+    snapPoints,
+    index = -1,
+    onChange,
+    onClose,
+    enablePanDownToClose,
+    style,
+    backgroundStyle,
+    handleIndicatorStyle,
+    // Destructured out so they never leak onto the DOM node via {...rest}.
+    backdropComponent: _backdropComponent,
+    ...rest
+  },
   ref,
 ) {
+  const theme = useTheme();
   const [visible, setVisible] = useState(index >= 0);
 
   // Re-entrancy guard via a ref — NOT the setVisible updater. Side effects
@@ -105,9 +120,23 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
   return (
     <View style={webStyles.overlay}>
       <Pressable style={webStyles.backdrop} onPress={enablePanDownToClose ? close : undefined} />
-      <View style={[webStyles.sheet, { height }, style]} {...rest}>
+      <View
+        style={[
+          webStyles.sheet,
+          { height, backgroundColor: theme.colors.card },
+          backgroundStyle,
+          style,
+        ]}
+        {...rest}
+      >
         <View style={webStyles.handleContainer}>
-          <View style={webStyles.handle} />
+          <View
+            style={[
+              webStyles.handle,
+              { backgroundColor: theme.colors.border },
+              handleIndicatorStyle,
+            ]}
+          />
         </View>
         {children}
       </View>
@@ -203,7 +232,6 @@ const webStyles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: "hidden",
@@ -217,6 +245,5 @@ const webStyles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#ccc",
   },
 });
