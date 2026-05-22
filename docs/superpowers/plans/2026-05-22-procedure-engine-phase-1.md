@@ -47,6 +47,69 @@
 
 ---
 
+## Parallel Team Execution (domain-owned agents, dependency waves)
+
+Pure "all domains at once" fails: schema (enums/tables) blocks capability, cron, and UI. The team runs in **3 waves**, each gated by the orchestrator. Within a wave, agents own **non-overlapping file boundaries** and run concurrently.
+
+### Team roster
+
+| Agent | Model | Domain | Owns (file boundary) |
+|-------|-------|--------|----------------------|
+| **DB** | sonnet | database/schema | `supabase/migrations/*` (Tasks 1,2), regenerates `packages/supabase/src/database.types.ts` (sole owner) |
+| **Logic** | sonnet | capability/tools | `packages/ai/src/capabilities/routine/*`, `router/intent-classifier.ts`, **sole editor of `packages/telemetry/src/registry.ts`**, authority-seed migration (Tasks 3,4,5,5b) |
+| **Cron** | sonnet | edge function | `supabase/functions/session-hook-executor/*` (Task 6) |
+| **WebUI** | sonnet | web | `apps/web/src/app/dashboard/governance/_components/RoutineForm.tsx` + `_hooks/*`, shift-location editor in `apps/web/src/components/day/*` (Tasks 7,8) |
+| **MobileUI** | sonnet | mobile | `apps/mobile/src/*`, `apps/web/src/app/api/mobile/shift-session/[id]/clock-in/route.ts` (Task 9) |
+| **Notif** | sonnet | notifications | `supabase/functions/session-watchdog-demoter/*`, notif emit in `task/tools.ts` — coordinates registry adds THROUGH Logic agent (Task 10) |
+| **Reviewer** | opus | gate | reviews each agent's diff between waves; no file ownership |
+| **Orchestrator** | opus | coordination | dispatches per wave, **commits each agent's work** (sub-agents do NOT commit — L-collision), runs typecheck gate between waves |
+
+### Waves (dependency gates)
+
+```
+WAVE 0 (blocking)        WAVE 1 (parallel ×2)         WAVE 2 (parallel ×3)
+─────────────────        ────────────────────         ────────────────────
+DB: Tasks 1,2      ──▶   Logic: Tasks 3,4,5,5b   ──▶  WebUI: Tasks 7,8
+(schema + types)         Cron:  Task 6                 MobileUI: Task 9
+                                                       Notif: Task 10
+```
+
+- **Wave 0 → Wave 1 gate:** migrations applied locally + `database.types.ts` regenerated + `pnpm --filter @smartout/supabase typecheck` green. Logic + Cron both consume the new enums/columns.
+- **Wave 1 → Wave 2 gate:** `cd packages/ai && pnpm typecheck` green + capability tools callable. WebUI/MobileUI/Notif consume the capability + schema contracts.
+- Cron (Wave 1) depends only on Wave-0 schema (provenance cols, routine.location_id), NOT on Logic's TS — runs fully parallel with Logic.
+
+### Collision rules (from L-subagent-commit-collision + L-0316)
+
+1. **One file, one owner.** Shared hot files arbitrated: `database.types.ts` → DB only; `packages/telemetry/src/registry.ts` → Logic only (Notif requests its events via the Wave-1 handoff note, Logic adds them). `intent-classifier.ts` → Logic only.
+2. **Sub-agents do NOT commit or push.** Each returns a diff summary; the orchestrator stages + commits per agent (atomic, correct message). Prevents the pre-commit-hook batch-collision (L, 2026-05-20).
+3. **Worktree isolation optional.** If using `isolation:"worktree"`, verify the physical path exists via `git worktree list` BEFORE dispatch (L-0316) — the flag is metadata only. Default here: shared `development` branch + file boundaries (boundaries are clean across domains; waves serialize the schema dependency).
+4. **Branch discipline.** Every sub-agent told explicitly: work on `development`, do not switch branch, do not commit.
+5. **Between-wave verify.** Orchestrator runs the gate typecheck (post-merge-verify discipline) before opening the next wave.
+
+### Dispatch shape (orchestrator, per wave)
+
+```
+# Wave 0 — single blocking agent
+Agent(subagent_type="general-purpose", model="sonnet", description="DB schema",
+      prompt="<Tasks 1+2 verbatim from this plan> ... do NOT commit; return migration files + type-regen diff summary")
+# orchestrator: apply, regen types, commit, typecheck gate
+
+# Wave 1 — two agents IN ONE MESSAGE (parallel)
+Agent(... model="sonnet", description="Logic capability", prompt="<Tasks 3,4,5,5b> ... sole editor of registry.ts; do NOT commit")
+Agent(... model="sonnet", description="Cron expansion",   prompt="<Task 6> ... do NOT commit")
+# orchestrator: review (opus Reviewer), commit each, typecheck gate
+
+# Wave 2 — three agents IN ONE MESSAGE (parallel)
+Agent(... model="sonnet", description="Web UI",   prompt="<Tasks 7,8>")
+Agent(... model="sonnet", description="Mobile UI",prompt="<Task 9>")
+Agent(... model="sonnet", description="Notif",    prompt="<Task 10>")
+# orchestrator: review, commit each, final acceptance run
+```
+
+> Effective parallelism: Wave 0 = 1 agent, Wave 1 = 2 concurrent, Wave 2 = 3 concurrent. Critical path ≈ DB → Logic → WebUI/Mobile. Notif + Cron ride free in their waves.
+
+---
+
 ## Task 1: Schema — routine location + team + executor_type
 
 **Files:**
