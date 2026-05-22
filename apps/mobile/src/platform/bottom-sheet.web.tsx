@@ -111,11 +111,14 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 
   if (!visible) return null;
 
-  const height = snapPoints?.[0]
-    ? typeof snapPoints[0] === "string"
-      ? (snapPoints[0] as DimensionValue)
-      : snapPoints[0]
-    : ("50%" as DimensionValue);
+  // Fit content, hard-capped at 85% of the screen. The panel is only as tall as
+  // its content; if content exceeds the cap, the inner ScrollView scrolls. No
+  // fixed height → no empty space, mostly static per content.
+  const largest = snapPoints?.length ? snapPoints[snapPoints.length - 1] : "85%";
+  const largestPct =
+    typeof largest === "string" && largest.endsWith("%") ? parseFloat(largest) : 85;
+  const maxHeight =
+    `${Math.min(Number.isFinite(largestPct) ? largestPct : 85, 85)}%` as DimensionValue;
 
   return (
     <View style={webStyles.overlay}>
@@ -123,7 +126,7 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
       <View
         style={[
           webStyles.sheet,
-          { height, backgroundColor: theme.colors.card },
+          { maxHeight, backgroundColor: theme.colors.card },
           backgroundStyle,
           style,
         ]}
