@@ -236,9 +236,12 @@ surface-agnostic so the web cut is pure L1 composition.
 
 ## 7. Provenance & Governance
 
-- `procedure_step` / `session_task` born from this flow:
-  `generated_by = 'agent'`, `source_reference = <storage_path>`,
-  `origin` per the Phase 1 provenance triple.
+- Provenance lands on the **routine template** (not `procedure_step` — that table
+  has no provenance columns): `routine.created_via = 'image'` +
+  `routine.source_reference = <storage_path>`. `session_task` instances later
+  materialized by cron trace back via `routine_id → routine.source_reference`
+  (the Phase 1 session_task provenance triple still stamps `generated_by='cron'`
+  at materialization time — the *image* origin is recorded once, on the routine).
 - `routine.governance_status = 'unassigned'` when no protocol chosen.
 - Telemetry: `routine.created_from_image`, `routine.governance_unassigned`
   (registry `packages/telemetry/src/registry.ts`). The unassigned event is what
