@@ -357,7 +357,11 @@ async function deliverToChannels(
           event: (row.metadata?.event_key as string) ?? "notification",
           profile_id: row.recipient_id,
           workspace_id: row.workspace_id,
-          payload: { title: resolvedTitle, body: resolvedBody, data: {} },
+          payload: {
+            title: resolvedTitle,
+            body: resolvedBody,
+            data: { action_url: row.action_url ?? "" },
+          },
         }),
       });
     } catch (err) {
