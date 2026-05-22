@@ -186,6 +186,8 @@ export default function AppLayout() {
           <Tabs.Screen name="journey" options={{ href: null }} />
           {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
           <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
+          {/* Routine review — navigated to from BotssonSheet after draft extraction. */}
+          <Tabs.Screen name="routine-review" options={{ href: null }} />
         </Tabs>
 
         {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}

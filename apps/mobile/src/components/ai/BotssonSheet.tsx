@@ -428,7 +428,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
           {routineDraft ? (
             <Pressable
               style={styles.draftCard}
-              onPress={() => router.push("/routine-review" as never)}
+              onPress={() => router.push("/routine-review")}
               accessibilityRole="button"
               accessibilityLabel="Gjennomgå rutineutkast"
             >
