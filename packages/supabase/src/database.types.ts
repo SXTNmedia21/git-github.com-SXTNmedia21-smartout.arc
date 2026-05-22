@@ -7754,8 +7754,6 @@ export type Database = {
           due_at: string | null
           id: string
           mission: string | null
-          notified_due_soon_at: string | null
-          notified_overdue_at: string | null
           position: number
           priority: string
           profile_id: string
@@ -7772,8 +7770,6 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
-          notified_due_soon_at?: string | null
-          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id: string
@@ -7790,8 +7786,6 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
-          notified_due_soon_at?: string | null
-          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id?: string
@@ -13444,8 +13438,6 @@ export type Database = {
           created_at: string
           due_at: string | null
           id: string
-          notified_due_soon_at: string | null
-          notified_overdue_at: string | null
           priority: string
           profile_id: string
           status: string
@@ -13457,8 +13449,6 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
-          notified_due_soon_at?: string | null
-          notified_overdue_at?: string | null
           priority?: string
           profile_id: string
           status?: string
@@ -13470,8 +13460,6 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
-          notified_due_soon_at?: string | null
-          notified_overdue_at?: string | null
           priority?: string
           profile_id?: string
           status?: string
@@ -15334,6 +15322,7 @@ export type Database = {
           address_line_2: string | null
           authority_level: Database["public"]["Enums"]["authority_level"] | null
           avatar_url: string | null
+          bank_account: string | null
           botsson_channel_id: string | null
           city: string | null
           company_id: string | null
@@ -15357,6 +15346,7 @@ export type Database = {
           location_id: string | null
           locations: string[] | null
           notification_pref: Json | null
+          personal_number: string | null
           postal_code: string | null
           profile_code: string
           profile_id: string
@@ -15383,6 +15373,7 @@ export type Database = {
             | Database["public"]["Enums"]["authority_level"]
             | null
           avatar_url?: string | null
+          bank_account?: string | null
           botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
@@ -15406,6 +15397,7 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
+          personal_number?: string | null
           postal_code?: string | null
           profile_code: string
           profile_id?: string
@@ -15432,6 +15424,7 @@ export type Database = {
             | Database["public"]["Enums"]["authority_level"]
             | null
           avatar_url?: string | null
+          bank_account?: string | null
           botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
@@ -15455,6 +15448,7 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
+          personal_number?: string | null
           postal_code?: string | null
           profile_code?: string
           profile_id?: string
@@ -20367,9 +20361,8 @@ export type Database = {
         Row: {
           auth_provider: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id: string | null
-          bank_account_enc: string | null
           created_at: string
-          date_of_birth_enc: string | null
+          date_of_birth: string | null
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -20379,8 +20372,7 @@ export type Database = {
           is_godmode: boolean
           last_login_at: string | null
           last_name: string
-          personal_email_enc: string | null
-          personal_number_enc: string | null
+          personal_email: string | null
           phone: string | null
           preferred_language: Database["public"]["Enums"]["preferred_language"]
           timezone: string
@@ -20390,9 +20382,8 @@ export type Database = {
         Insert: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
-          bank_account_enc?: string | null
           created_at?: string
-          date_of_birth_enc?: string | null
+          date_of_birth?: string | null
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -20402,8 +20393,7 @@ export type Database = {
           is_godmode?: boolean
           last_login_at?: string | null
           last_name: string
-          personal_email_enc?: string | null
-          personal_number_enc?: string | null
+          personal_email?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -20413,9 +20403,8 @@ export type Database = {
         Update: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
-          bank_account_enc?: string | null
           created_at?: string
-          date_of_birth_enc?: string | null
+          date_of_birth?: string | null
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -20425,8 +20414,7 @@ export type Database = {
           is_godmode?: boolean
           last_login_at?: string | null
           last_name?: string
-          personal_email_enc?: string | null
-          personal_number_enc?: string | null
+          personal_email?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -22317,7 +22305,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      enqueue_task_due_notifications: { Args: never; Returns: undefined }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
@@ -22362,10 +22349,6 @@ export type Database = {
       }
       fn_check_billing_run: { Args: never; Returns: number }
       fn_cron_jobs_health: { Args: never; Returns: Json }
-      fn_decrypt_user_identity_pii: {
-        Args: { p_user_identity_id: string }
-        Returns: Json
-      }
       fn_generate_company_invoice: {
         Args: {
           p_amount_excl_vat: number
@@ -22434,8 +22417,12 @@ export type Database = {
         }
         Returns: undefined
       }
-      fn_upsert_user_identity_pii: {
-        Args: { p_field: string; p_plaintext: string; p_user_id: string }
+      fn_resolve_single_day_line: {
+        Args: { p_department_session_id: string }
+        Returns: string
+      }
+      fn_seed_profession_training: {
+        Args: { p_profiles: Json; p_workspace_id: string }
         Returns: Json
       }
       gate_action: {
