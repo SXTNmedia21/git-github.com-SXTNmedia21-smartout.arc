@@ -33,8 +33,10 @@ tags: [domain, billing, e2e, testing]
 | 14 | Accountant mark-paid | MISSING | `supabase/tests/billing_settlement_bucket.test.sql` | `packages/billing/src/__tests__/run.audit.spec.ts` | 🟡 manual |
 | 15 | Platform-admin product catalog | `apps/e2e/tests/journey-platform-admin-billing-product-catalog.spec.ts` ✅ | — | — | verified |
 | 16 | Settlement period lifecycle | MISSING | `supabase/tests/migrations/20260512000009_billing_fase3a_schema.spec.sql` | `packages/billing/src/__tests__/settlement-render.spec.ts` | 🟡 manual |
-| 17 | Accountant kartotek (cross-company) | `apps/e2e/admin/kartotek.spec.ts` ✅ | — | — | verified |
-| 18 | Accountant avstemming | `apps/e2e/admin/avstemming.spec.ts` ✅ | — | — | verified |
+| 17 | Accountant kartotek (cross-company) — `apps/admin/workspaces` | `apps/e2e/admin/kartotek.spec.ts` ✅ | — | — | verified |
+| 18 | Accountant avstemming — `apps/admin/avstemming/*` | `apps/e2e/admin/avstemming.spec.ts` ✅ (anchor: `Production: https://admin.smartout.ai` comment at line 17) | — | — | verified |
+| 21 | Accountant orders list — `apps/admin/orders` | MISSING | — | — | 🔴 no test |
+| 22 | Accountant mark-received action | MISSING | — | `packages/billing/src/__tests__/run.audit.spec.ts` (covers run pipeline) | 🟡 manual |
 | 19 | RLS: company A cannot read company B invoice | — | `supabase/tests/migrations/20260417_billing_rls.spec.sql` ✅ | — | verified |
 | 20 | Dunning integration handler | — | `supabase/tests/migrations/20260511200000_billing_fase2_integration_handler.spec.sql`, `20260512000011_billing_fase3a_dunning_handler.spec.sql` | — | 🟡 partial |
 

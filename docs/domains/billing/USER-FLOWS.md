@@ -38,8 +38,20 @@ tags: [domain, billing, user-flows, journeys]
 | 19 | Accountant marks invoice paid | accountant | ✅ | [JOURNEY-billing-erik-seed-erik-login.md](../../journeys/JOURNEY-billing-erik-seed-erik-login.md) |
 | 20 | Accountant: kartotek (cross-company billing view) | accountant | ✅ | [JOURNEY-avstemming-pages.md](../../journeys/JOURNEY-avstemming-pages.md) |
 | 21 | Settlement period open → locked → closed | platform-admin/accountant | ✅ (tables) | [JOURNEY-settlement-bucket-migration.md](../../journeys/JOURNEY-settlement-bucket-migration.md) |
+| 22 | Accountant: view order list (admin.smartout.ai/orders) | accountant | ✅ | `apps/admin/src/app/(admin)/orders/page.tsx` |
+| 23 | Accountant: view order detail + payment history + dispatch history | accountant | ✅ | `apps/admin/src/app/(admin)/orders/[id]/page.tsx` |
+| 24 | Accountant: run avstemming (period close, generate 4 artifacts) | accountant | ✅ | `apps/admin/src/app/(admin)/avstemming/run/page.tsx` + `runSettlement` action |
+| 25 | Accountant: view settlement run detail + download artifacts | accountant | ✅ | `apps/admin/src/app/(admin)/avstemming/[run_id]/page.tsx` |
+| 26 | Accountant: view settlement history (last 50 runs) | accountant | ✅ | `apps/admin/src/app/(admin)/avstemming/historikk/page.tsx` |
 
 ## Cross-surface notes
+
+**apps/admin (`admin.smartout.ai`) — accountant surface (NEW as of 2026-05-22):**
+
+- `apps/admin/` is the canonical accountant-facing admin. It is a separate Next.js app + separate Vercel project (`admin.smartout.ai`, dev port 3070).
+- Actor: `accountant` — must have at least one active `billing.accountant_company_grant` row. Auth via `requireAccountant()` in `apps/admin/src/lib/accountant.ts`.
+- The `/orders` section = invoice list/detail for granted companies. The `/avstemming` section = settlement pipeline (period reconciliation). The `/workspaces` section = kartotek (full workspace billing overview).
+- `apps/web/src/app/platform-admin/billing/` is a parallel surface for **Smartout-internal superadmin** operations (dunning, drift, integration CRUD, dispatch-rule admin). Both surfaces are live; they serve different actors.
 
 **Web composes, mobile executes (ADR-0133):**
 - Billing authoring (invoice generation config, pricing terms, dispatch rule creation, integration CRUD, void/credit-note) → **web-only** (platform-admin or workspace-admin dashboard).

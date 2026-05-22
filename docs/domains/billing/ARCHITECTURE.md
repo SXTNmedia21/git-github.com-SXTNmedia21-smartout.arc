@@ -15,7 +15,53 @@ tags: [domain, billing, architecture, c3-commercial]
 
 ## L1 — Surface (UI)
 
-### Platform-admin routes (`apps/web/src/app/platform-admin/billing/`)
+### CANONICAL admin surface — `apps/admin/` (admin.smartout.ai)
+
+`apps/admin/` is a **separate Next.js app** (separate Vercel project) serving `admin.smartout.ai` (dev port: 3070). It is the new order system ("ordresystem") for accountants. Auth role: `requireAccountant()` via `billing.accountant_company_grant`. No `.vercel/project.json` is present as of 2026-05-22 — deployment is configured separately in Vercel (project name not yet confirmed in code).
+
+**Anchor:** `apps/admin/next.config.ts` — comment `Serves admin.smartout.ai — accountant portal for Erik`; `apps/admin/README.md` — `Deployed at: admin.smartout.ai`
+
+| Route | File | Purpose |
+|---|---|---|
+| `/` (dashboard) | `apps/admin/src/app/(admin)/page.tsx` | Accountant action-dashboard: period CTA, quick-tasks, last settlement run |
+| `/orders` | `apps/admin/src/app/(admin)/orders/page.tsx` | Paginated invoice list across all granted companies; filter by status/company; `OrderDetailSheet` slide-in |
+| `/orders/[id]` | `apps/admin/src/app/(admin)/orders/[id]/page.tsx` | Invoice detail: `InvoiceDetailReadOnly` + `PaymentsHistory` + `DispatchesList` + `MarkReceivedDialog` |
+| `/orders/[id]/download-csv` | route handler | CSV export for a single invoice |
+| `/orders/[id]/download-pdf` | route handler | PDF export for a single invoice |
+| `/avstemming/run` | `apps/admin/src/app/(admin)/avstemming/run/page.tsx` | Pre-check + confirm form to trigger a settlement run (`runSettlement` server action) |
+| `/avstemming/[run_id]` | `apps/admin/src/app/(admin)/avstemming/[run_id]/page.tsx` | Settlement run detail: `SettlementSummaryView` + `ArtifactDownloads` |
+| `/avstemming/historikk` | `apps/admin/src/app/(admin)/avstemming/historikk/page.tsx` | Table of last 50 settlement runs |
+| `/workspaces` | `apps/admin/src/app/(admin)/workspaces/page.tsx` | Kartotek workspace list across all granted companies |
+| `/workspaces/[id]` | `apps/admin/src/app/(admin)/workspaces/[id]/page.tsx` | Per-workspace kartotek: 7 parallel data sections (summary, orders, payments, members, contracts, pricing_terms, recent activity) |
+| `/account` | `apps/admin/src/app/(admin)/account/page.tsx` | Accountant account settings |
+| `/auth/login` | public | Email/OTP login |
+| `/auth/callback` | public | OAuth / token callback |
+| `/auth/logout` | public | Session destroy |
+| `/api/health` | public | Health probe |
+| `/api/orders/[id]/mark-received` | POST route handler | REST entry point for `markReceivedAction` |
+| `/api/avstemming/[run_id]/artifact/[type]` | GET route handler | Signed artifact download |
+
+**Key libs:**
+- `apps/admin/src/lib/orders/fetchers.ts` — wraps `@smartout/billing` query functions; queries `public.invoice` with `company_id` filter
+- `apps/admin/src/lib/orders/actions.ts` — `markReceivedAction`: INSERT `payment` + UPDATE `invoice.status = 'paid'`; emits `order marked_received`
+- `apps/admin/src/lib/avstemming/fetchers.ts` — queries `billing.settlement_run`, `billing.settlement_artifact`; calls `billing.compute_period_aggregates` RPC
+- `apps/admin/src/lib/avstemming/actions.ts` — `runSettlement`: delegates to `executeSettlementRun` (packages/billing/server/settlement); emits `settlement run_initiated`
+- `apps/admin/src/lib/kartotek/fetchers.ts` — stub (M3 pending); will wrap `@smartout/billing/server` `fetchWorkspaceKartotek`
+- `apps/admin/src/lib/accountant.ts` — `requireAccountant()` gate: session check + `fetchAccountantCompanyGrants`
+
+**Tables directly queried by apps/admin:**
+- `public.invoice` — order list + detail (via `@smartout/billing`)
+- `public.payment` — payment history + markReceivedAction INSERT
+- `billing.settlement_run` — avstemming run list, status, summary (via `billing` schema selector)
+- `billing.settlement_artifact` — artifact downloads (via `billing` schema selector)
+- `billing.accountant_company_grant` — via `@smartout/billing/accountant` grant helpers
+- `billing.compute_period_aggregates` RPC — period preview on dashboard (migration `20260522000200_billing_settlement_helpers.sql`)
+
+**Anchor for fetchers:** `apps/admin/src/lib/avstemming/fetchers.ts` — comment `settlement data fetchers for the admin app`; `apps/admin/src/lib/orders/fetchers.ts` — comment `typed order fetcher wrappers`
+
+### Platform-admin routes in `apps/web` — parallel-still-live, legacy scope
+
+`apps/web/src/app/platform-admin/billing/` routes are still routed and linked (sidebar: `apps/web/src/components/platform-admin/sidebar-nav.tsx:61`). They serve **Smartout internal operations** (invoicing configuration, dunning management, drift review, dispatch rule administration, integration CRUD) — NOT the accountant-facing order/settlement workflow that `apps/admin/` owns. These two surfaces are parallel, not redundant: they serve different actors with different authority levels.
 
 | Route | Purpose |
 |---|---|
@@ -30,6 +76,8 @@ tags: [domain, billing, architecture, c3-commercial]
 | `/platform-admin/billing/integrations` | Integration registry UI |
 | `/platform-admin/billing/settings/dispatch` | Dispatch rule settings |
 
+**Actor distinction:** `apps/web/platform-admin/billing` requires `getSuperAdminId()` (Smartout internal staff). `apps/admin/` requires `requireAccountant()` (external accountants with company grants).
+
 ### Dashboard (workspace-admin) routes (`apps/web/src/app/dashboard/billing/`)
 
 | Route | Purpose |
@@ -40,7 +88,7 @@ tags: [domain, billing, architecture, c3-commercial]
 
 **Anchor:** directory confirmed at `apps/web/src/app/platform-admin/billing/` and `apps/web/src/app/dashboard/billing/`.
 
-### Web components (`apps/web/src/components/billing/`)
+### Web components (`apps/web/src/components/billing/`) and admin components
 
 - `StripeRedirectInterstitial.tsx` — trust anchor interstitial before Stripe Checkout redirect
 

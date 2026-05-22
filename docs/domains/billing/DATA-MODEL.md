@@ -33,8 +33,8 @@ All core billing tables live in the `public` schema (no dedicated billing schema
 | `payment_attempt` | public | via FK | ❌ | `payment_attempt_id`, `payment_id`, `stripe_event_id` (UNIQUE), `redacted_payload` (jsonb, PII-whitelisted) | (Fase 3A migrations) |
 | `billing.accountant_company_grant` | billing | ✅ | ❌ | `grant_id`, `user_id`, `company_id`, `scope`, `granted_by`, `granted_at`, `revoked_at` | `20260521000100_billing_accountant_grant.sql` |
 | `billing.settlement_period` | billing | ❌ | ✅ | `period_id`, `workspace_id`, `period_start`, `period_end`, `status`, `locked_at`, `locked_by` | `20260522000000_billing_settlement_schema.sql` |
-| `billing.settlement_run` | billing | ❌ | ✅ (via period) | `run_id`, immutable append-only | `20260522000000_billing_settlement_schema.sql` |
-| `billing.settlement_artifact` | billing | ❌ | ✅ (via run) | `artifact_id`, `run_id`, `artifact_type`, storage URL | `20260522000000_billing_settlement_schema.sql` |
+| `billing.settlement_run` | billing | ❌ | ✅ (via period) | `run_id`, `scope`, `initiated_by`, `period_start`, `period_end`, `workspace_ids`, `started_at`, `completed_at`, `status`, `summary` (jsonb), `error_message` — immutable append-only; each "Kjør avstemming" click = new row | `20260522000000_billing_settlement_schema.sql` |
+| `billing.settlement_artifact` | billing | ❌ | ✅ (via run) | `artifact_id`, `run_id`, `artifact_type` (summary_pdf/detail_csv/invoice_bundle_pdf/discrepancy_pdf), `storage_path`, `file_size_bytes`, `generated_at` | `20260522000000_billing_settlement_schema.sql` |
 
 > **Note:** `invoice.delivery_channel`, `delivery_status`, `external_reference` were dropped in migration `20260512000012_drop_invoice_delivery_columns.sql` (Fase 3A B6). MODULE_BILLING.md referenced these columns — they are gone. Use `invoice_dispatch` table for delivery state (ADR-0128).
 
@@ -198,6 +198,13 @@ All billing events are registered in `packages/telemetry/src/registry.ts` (aroun
 | `dunning_note added` | logger, billing_activity_log | Manual dunning note |
 | `billing ehf_export_generated` | logger, billing_activity_log | EHF CSV/PDF exported |
 | `billing accountant_marked_paid` | logger, billing_activity_log | Accountant marks invoice paid |
+| `order list_viewed` | posthog, logger, billing_activity_log | Accountant views order list in `apps/admin/orders` |
+| `order detail_viewed` | posthog, logger, billing_activity_log | Accountant views order detail in `apps/admin/orders/[id]` |
+| `order marked_received` | posthog, logger, billing_activity_log | Accountant marks invoice paid via `markReceivedAction` |
+| `settlement run_initiated` | posthog, logger, billing_activity_log | Accountant triggers `runSettlement` in `apps/admin/avstemming/run` |
+| `kartotek viewed` | posthog, logger, billing_activity_log | Accountant views workspace kartotek in `apps/admin/workspaces/[id]` |
+
+**Note on `workspace_id: null`:** admin-app telemetry emits with `workspace_id: null` because accountant operations are company-scoped (across multiple workspaces). This is intentional per the accountant role design. The `entity_id` field carries the relevant `invoice_id` or `settlement_run.run_id` for audit tracking.
 
 **Note:** spec events used dot notation (`invoice.issued`); the actual registry uses space-separated (`invoice issued`) per ADR-0118 telemetry convention. Code wins — space-separated is correct. `registry.ts:6185` anchor: `space-separated convention`.
 

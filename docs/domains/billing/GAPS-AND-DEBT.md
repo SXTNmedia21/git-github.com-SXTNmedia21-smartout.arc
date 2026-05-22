@@ -87,12 +87,25 @@ tags: [domain, billing, gaps, debt]
 | DEV5 | Fase 2 spec — `stripe_invoice` adapter channel | Not in original Fase 2 spec (Stripe was Fase 3) | `billing_dispatch_channel` includes `stripe_invoice`; `StripeDispatchAdapter` registered in `ADAPTER_REGISTRY` | Dispatch adapter added during Fase 3A to unify dispatch mechanics |
 | DEV6 | Fase 1 spec §6.1 / plan | Cron trigger via n8n POST to EF | pg_cron job (migration `20260621200003`) — ADR-0386 chose pg_cron over n8n | ADR-0386: pg_cron preferred for billing generation |
 | DEV7 | MODULE_BILLING.md §11 | "What Exists Today (Fase 1)": 11 migrations, 5 billing tables, 4 enums, 3 views, 3 functions, 5 triggers | As of 2026-05-22: 46+ billing-related migrations, 12+ tables, 10+ enums, additional views, 4 Fase complete | Normal evolution; MODULE_BILLING captures Fase 1 snapshot only |
+| DEV8 | Previous ARCHITECTURE.md (prior to 2026-05-22 update) | Admin billing surface = `apps/web/src/app/platform-admin/billing/` | Canonical accountant/admin surface is `apps/admin/` — a separate Next.js app at `admin.smartout.ai` (port 3070). `apps/web/platform-admin/billing/` is still live and serves internal Smartout staff (superadmin scope), not external accountants. Two parallel surfaces, different actors. | `apps/admin/` was built as the new order system ("ordresystem") per Pontus 2026-05-22. The doc erroneously made `platform-admin/billing` the L1 admin entry point. |
 
 ## 5. Overlap with other domains
 
 | Overlapping domain | Shared surface | Recommendation | Rationale |
 |---|---|---|---|
-| settlement (future domain) | `billing.settlement_period`, `billing.settlement_run`, `billing.settlement_artifact` — workspace-internal cash/revenue reconciliation by accountant | **split** — carve out to a dedicated `settlement` or `daily-operation` domain | Settlement is a DIFFERENT concept from Smartout-invoicing-its-customers. It models the workspace's own revenue settlement period (Erik/accountant closes a month). Keeping it in the `billing` schema is physical convenience, not ownership. Leaks billing-team mental model into operations teams. Recommended: create `docs/domains/settlement/` when settlement gets its own feature work. |
+| settlement (future domain) | `billing.settlement_period`, `billing.settlement_run`, `billing.settlement_artifact` — workspace-internal cash/revenue reconciliation by accountant | **keep in billing domain for now, with clear seam** (revised from original "split" recommendation — see note) | See note below. |
 | accountant-portal (future domain) | `billing.accountant_company_grant` — cross-company accountant access | **keep (clear seam)** for now | Grant table is a billing data-access mechanism. If accountant portal grows significantly (its own UI, onboarding, multi-company dashboard beyond billing), promote to own domain. ADR-0269 acceptance is the natural trigger point. |
 | payroll | `pricing_terms` read path | **keep** — payroll reads pricing_terms for tariff/cost reasons; billing owns the billing extension columns | Clear FK boundary. No write conflict. |
 | procedure-engine / daytimeline | `schedule_shift` read path | **keep** — billing reads `schedule_shift` for usage metering; D6 domain owns the table | Read-only dependency, well-defined ADR-0119 predicate. |
+
+**Settlement/avstemming overlap — revised decision (2026-05-22):**
+
+The prior recommendation was to **split** settlement tables out to a future `settlement` or `daily-operation` domain. After examining the actual code in `apps/admin/`, the recommendation is revised to **keep in billing** with a clear seam:
+
+- `apps/admin/src/lib/avstemming/fetchers.ts` queries `billing.settlement_run` + `billing.settlement_artifact` directly, and calls `billing.compute_period_aggregates` RPC.
+- `apps/admin/src/lib/avstemming/actions.ts` delegates to `executeSettlementRun` from `@smartout/billing/server/settlement`.
+- The `/avstemming/run` and `/avstemming/historikk` pages are **accountant-facing billing reconciliation** — the accountant reconciles what Smartout earned/invoiced for a period. This is conceptually downstream of the invoice/payment cycle that billing already owns.
+- Settlement is NOT workspace-internal employee-facing (that would belong to the daytimeline/schedule domain). It is Smartout's accountant (Erik) confirming that a period's invoices and payments are squared. The seam is clean: `billing` owns invoice + payment generation; `billing.settlement_*` is the period-close confirmation step.
+- **The conceptual boundary that justified "split"** (settlement = workspace's own revenue reconciliation) does not match what the code actually does: the accountant reconciles **Smartout's invoices to its customers**, not a workspace's internal revenue data.
+- **New seam rule:** `billing.settlement_*` = part of the billing domain. `apps/admin/(admin)/avstemming/` is the L1 surface for settlement within billing. If a future domain needs workspace-internal settlement (i.e. the workspace tracking its own revenue/payroll period), that is a genuinely different concept and should get its own tables outside the `billing` schema.
+- **Action:** Update `docs/domains/_DASHBOARD.md` overlap edge to reflect this revised decision.

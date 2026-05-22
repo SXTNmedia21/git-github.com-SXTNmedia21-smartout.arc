@@ -17,7 +17,11 @@ tags: [domain, billing, overview, c3-commercial, invoice]
 
 The Billing domain is Smartout's internal invoice system ("fakturamotor"). It generates monthly invoice drafts from cascade-derived usage data — counting distinct employees who completed shifts in the previous calendar month — stores them with full audit-trail and Norwegian bokføringslov compliance, and exposes platform-admin surfaces for review, dispatch, and payment reconciliation. Workspace-admins (company owners) get a read-only view of their own company's invoices.
 
-Billing owns the full customer-money loop: generating what is owed (usage metering), creating the legal invoice record, dispatching it via configurable channels (email, HTTP API, Stripe), tracking whether it was delivered and paid, and triggering dunning escalation for overdue invoices. It also manages accountant access — external accountants who must see billing data across multiple companies they service.
+Billing owns the full customer-money loop: generating what is owed (usage metering), creating the legal invoice record, dispatching it via configurable channels (email, HTTP API, Stripe), tracking whether it was delivered and paid, triggering dunning escalation for overdue invoices, and period-close reconciliation (accountant runs "avstemming" to confirm a month's invoices + payments are squared). It also manages accountant access — external accountants who access billing data across multiple companies they service via `admin.smartout.ai`.
+
+**Two admin surfaces, different actors:**
+- `apps/admin/` (`admin.smartout.ai`) — accountant-facing: orders, avstemming, kartotek. Auth: `requireAccountant()` (external accountant with company grants). This is the canonical new order system ("ordresystem").
+- `apps/web/platform-admin/billing/` — Smartout-internal superadmin: dunning management, basis drift, dispatch-rule configuration, integration CRUD, EHF export. Auth: `getSuperAdminId()` (Smartout staff only).
 
 **What billing is NOT:** workspace → end-customer billing. Smartout is not a payment processor for its workspace customers' end-customers. That is explicitly out of scope (ADR-0131 — Stripe Connect rejected). Smartout is the merchant-of-record, billing its own B2B customers (the companies that operate workspaces on the platform).
 
@@ -52,7 +56,7 @@ The engine **reads** from D6/K1b/Identity and **writes** only to billing tables.
 
 **Does NOT own:**
 - `pricing_terms` core columns — owned by the subscription/contract domain; billing only extends it (ADR-0121)
-- `settlement_*` tables (`billing.settlement_period`, `billing.settlement_run`, `billing.settlement_artifact`) — physically in the `billing` schema but a DIFFERENT concept: workspace-internal cash/revenue reconciliation by Erik/accountant. See GAPS §5 for the overlap-edge recommendation.
+- `settlement_period` (`billing.settlement_period`) — period status/lock tracking. Note: `billing.settlement_run` + `billing.settlement_artifact` ARE owned by billing (used by accountant via `apps/admin/avstemming/`). `billing.settlement_period` (period lock/status) may split to a future domain if workspace-internal period management diverges. See GAPS §5 for the revised overlap decision (2026-05-22).
 - `schedule_shift` — D6 Production; billing reads it, never writes
 - `company` / `workspace` / `user_identity` — Identity layer; billing reads, never writes
 - Workspace → end-customer payment processing — rejected (ADR-0131)

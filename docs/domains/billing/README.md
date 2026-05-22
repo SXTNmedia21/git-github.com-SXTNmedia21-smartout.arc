@@ -20,7 +20,8 @@ tags: [domain, billing, invoice, c3-commercial, source-of-truth]
 | Schema (enums + 5 core tables) | ✅ | ✅ | Fase 1 — migrations `20260417*` |
 | Invoice lifecycle triggers | ✅ | ✅ | assign_invoice_number, immutability, credit-note constraints |
 | generate-monthly-invoices Edge Function | ✅ | 🟡 | EF live; pg_cron trigger (see GAPS G1) |
-| Platform-admin billing UI | ✅ | 🟡 | All sub-routes present; visual coverage incomplete |
+| apps/admin (`admin.smartout.ai`) — accountant order/avstemming surface | ✅ | 🟡 | Orders + avstemming + workspaces/kartotek routes live; E2E partial (kartotek + avstemming specs exist) |
+| Platform-admin billing UI (`apps/web/platform-admin/billing/`) | ✅ | 🟡 | All sub-routes present; serves Smartout-internal superadmin (parallel to apps/admin, different actor) |
 | Workspace-admin billing UI | ✅ | 🟡 | `/dashboard/billing` read-only; settings page |
 | `billing_query` AI capability | ✅ | ✅ | 6 chat-only tools (Fase 1+2) |
 | Dispatch system (Fase 2) | ✅ | ✅ | `billing_dispatch_rule` + `invoice_dispatch` + 4 adapters |
@@ -59,5 +60,6 @@ tags: [domain, billing, invoice, c3-commercial, source-of-truth]
 - **NEVER add `stripe_customer_id` to `company` in Fase 1 scope.** Deferred to Fase 2/3 via ADR-0012 amendment (ADR-0131 governs Stripe model).
 - **NEVER claim delivery via `invoice.delivery_channel`/`delivery_status`/`external_reference`.** These columns were dropped (migration `20260512000012`). Use `invoice_dispatch` table (ADR-0128).
 - **NEVER instantiate a `peppol_ehf` adapter class.** Enum exists for forward-compat; adapter class is intentionally absent until Fase 3B (ADR-0129, `packages/billing/src/dispatch/registry.ts:20`).
-- **Settlement tables (`billing.settlement_*`) are NOT billing-of-customers.** They are workspace-internal cash/revenue reconciliation. Do NOT conflate (see GAPS §5).
-- Owning packages: `packages/billing/` · Edge Functions: `supabase/functions/generate-monthly-invoices/`, `supabase/functions/stripe-webhook/` · Core tables: `public.invoice`, `public.invoice_line_item`, `public.usage_snapshot`, `public.billing_dispatch_rule`, `public.invoice_dispatch`, `public.billing_integration`, `public.payment`, `billing.accountant_company_grant`
+- **`apps/admin/` is the canonical accountant admin surface.** `admin.smartout.ai` (port 3070) — separate Vercel project. Auth via `requireAccountant()`. Do NOT build accountant-facing flows in `apps/web/platform-admin/`. `apps/web/platform-admin/billing/` is for Smartout-internal superadmin only.
+- **Settlement tables (`billing.settlement_*`) ARE part of the billing domain.** `billing.settlement_run` + `billing.settlement_artifact` are queried by `apps/admin/avstemming/` to reconcile Smartout's invoiced periods. This is NOT workspace-internal employee settlement — it is accountant period close for Smartout's B2B billing cycle. See GAPS §5 revised decision (2026-05-22).
+- Owning packages: `packages/billing/` · Edge Functions: `supabase/functions/generate-monthly-invoices/`, `supabase/functions/stripe-webhook/` · Core tables: `public.invoice`, `public.invoice_line_item`, `public.usage_snapshot`, `public.billing_dispatch_rule`, `public.invoice_dispatch`, `public.billing_integration`, `public.payment`, `billing.accountant_company_grant`, `billing.settlement_run`, `billing.settlement_artifact`

@@ -45,7 +45,7 @@ tags: [domain, billing, roadmap, blueprint]
 
 ### Phase: ADR-0269 acceptance + accountant portal hardening
 
-**Goal:** Accept ADR-0269 (currently `proposed`), complete accountant portal UI (`admin.smartout.ai` or `/platform-admin/accountant/`), accountant onboarding flow, grant management UI.
+**Goal:** Accept ADR-0269 (currently `proposed`), complete accountant portal UI in `apps/admin/` (`admin.smartout.ai`) — grant management UI, accountant onboarding flow, multi-company dashboard. The surface is already live at `admin.smartout.ai`; this phase fills in the grant management and onboarding screens. Do NOT build these in `apps/web/platform-admin/accountant/` — `apps/admin/` is the correct home.
 
 **Governing ADR:** ADR-0269 (`proposed` → `accepted`).
 
@@ -104,4 +104,6 @@ tags: [domain, billing, roadmap, blueprint]
 
 ## Boundary watch
 
-**Settlement overlap (split recommended):** `billing.settlement_*` tables are physically in the `billing` schema but model workspace-internal cash/revenue reconciliation (Erik/accountant closes a period), not Smartout billing its customers. Recommendation: carve out to a future `settlement` or `daily-operation` domain. See GAPS §5.
+**Settlement overlap — REVISED 2026-05-22 (was: "split recommended"):** After examining `apps/admin/src/lib/avstemming/`, the settlement tables (`billing.settlement_run`, `billing.settlement_artifact`) are confirmed to be **accountant-facing billing reconciliation** (Erik confirms Smartout's invoiced period is squared). They are NOT workspace-internal employee settlement. They remain in the `billing` domain. Only `billing.settlement_period` is a potential future split candidate if workspace-level period-lock management grows independently. See GAPS §5 for full rationale.
+
+**apps/admin is the canonical accountant surface.** Future accountant features (grant management, onboarding, portal expansion) belong in `apps/admin/` — not `apps/web/platform-admin/`. The ADR-0269 acceptance path (accountant portal hardening) should target `apps/admin/` as the home app.

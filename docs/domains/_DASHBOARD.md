@@ -16,13 +16,13 @@ tags: [domain, dashboard, status, source-of-truth]
 
 | Domain | Spine | Build state | Tested | mirror | last_verified | Open gaps |
 |---|---|---|---|---|---|---|
-| [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak) | mixed | 2026-05-22 | 9 |
+| [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B + apps/admin accountant portal built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak — admin kartotek + avstemming covered) | mixed | 2026-05-22 | 10 |
 
 ## Overlap edges (consolidate / split watch)
 
 | Domain A | Domain B | Shared surface | Recommendation | Status |
 |---|---|---|---|---|
-| billing | settlement (future domain) | `billing.settlement_period`, `billing.settlement_run`, `billing.settlement_artifact` — workspace-internal cash/revenue reconciliation | **split** — create `docs/domains/settlement/` when settlement gets feature investment; these are a different concept from Smartout billing its customers | open |
+| billing | settlement (future domain) | `billing.settlement_run`, `billing.settlement_artifact` — accountant period reconciliation | **keep in billing** — confirmed by `apps/admin/avstemming/` code: these tables represent accountant-facing period close for Smartout's B2B billing cycle (not workspace-internal employee settlement). `billing.settlement_period` remains a split candidate if workspace-level period-lock grows independently. Revised 2026-05-22. | resolved (keep) |
 | billing | accountant-portal (future) | `billing.accountant_company_grant` | **keep** for now — promote to own domain when ADR-0269 is accepted + portal UI grows | open |
 
 ## Migration backlog (pre-domain sources to absorb)
