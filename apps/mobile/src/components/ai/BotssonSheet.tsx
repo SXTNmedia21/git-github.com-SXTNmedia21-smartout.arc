@@ -14,7 +14,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput } from "react-native";
 import { X, Mic, MicOff, Camera } from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
+import { pickRoutineImage } from "@/lib/pick-routine-image";
 import { useRouter } from "expo-router";
 import { useRoutineExtract } from "@/hooks/use-routine-extract";
 import { uploadRoutineSource } from "@/lib/upload-routine-source";
@@ -164,15 +164,13 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
      * Draft card appears in transcript area; tapping navigates to /routine-review.
      */
     const handlePickImage = useCallback(async () => {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) return;
-      const picked = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.7,
-      });
-      if (picked.canceled || !picked.assets[0]) return;
+      // Platform-split: native uses expo-image-picker (asset uri), web/PWA uses a
+      // file input (File). expo-image-picker is stubbed on web, so the file-input
+      // path is the only working capture there.
+      const source = await pickRoutineImage();
+      if (!source) return;
       const { workspaceId, profileId } = await getProfileContext();
-      const storagePath = await uploadRoutineSource(workspaceId, profileId, picked.assets[0].uri);
+      const storagePath = await uploadRoutineSource(workspaceId, profileId, source);
       const draft = await extract(storagePath);
       if (draft) setRoutineDraft({ draft, storagePath });
     }, [extract, setRoutineDraft]);
