@@ -9265,6 +9265,9 @@ export type SmartoutEvent =
   | ShiftSessionClockedIn
   | ShiftSessionClockedOut
   | RoutineAttached
+  | RoutineCreated
+  | RoutineAssignedToLocation
+  | ProcedureStepAdded
   | OrgDeptAreasUpdated
   | ShiftSessionItemLeakDetected
   | CelebrationAutoPublished
@@ -11131,6 +11134,60 @@ export interface RoutineAttached extends BaseEvent {
       actor_capability?: string;
       /** Load-bearing per ADR-0356 §"Audit trail symmetry". */
       delegated_via?: string;
+    };
+  };
+}
+
+// ─── Procedure Engine Phase 1 Events (procedure-engine-phase1, 2026-05-22) ───
+//
+// routine.created: 4 destinations — admin C4 act creating a routine template.
+//   engine_event: downstream workflows may react to a new routine being registered.
+// routine.assigned_to_location: 4 destinations — scoping act (manager+, C4 confirm).
+//   engine_event: session_hook wiring is a workflow-driving mutation.
+// procedure_step.added: 3 destinations — content authoring by admin/manager.
+//   No engine_event: step additions are authoring acts, not workflow state inputs.
+
+export interface RoutineCreated extends BaseEvent {
+  event: "routine.created";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      name: string;
+      procedure_id: string;
+      protocol_id: string;
+      trigger_type: string;
+      executor_type: string;
+    };
+  };
+}
+
+export interface RoutineAssignedToLocation extends BaseEvent {
+  event: "routine.assigned_to_location";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      location_id: string;
+      team_ids: string[];
+      /** Number of session_hook rows upserted. */
+      hooks_upserted: number;
+    };
+  };
+}
+
+export interface ProcedureStepAdded extends BaseEvent {
+  event: "procedure_step.added";
+  properties: {
+    entity: { entity_type: "procedure"; entity_id: string };
+    data: {
+      step_id: string;
+      procedure_id: string;
+      title: string;
+      step_order: number;
+      is_required: boolean;
+      /** routine_id that initiated the step addition, if delegated via routine.add_step */
+      source_routine_id?: string;
     };
   };
 }
@@ -14870,6 +14927,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "routine.attached": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  // routine.created: 4 destinations — admin C4 act; engine_event for workflow reactions.
+  "routine.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  // routine.assigned_to_location: 4 destinations — scoping + hook-wiring act.
+  "routine.assigned_to_location": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  // procedure_step.added: 3 destinations — authoring act, no state-machine reaction.
+  "procedure_step.added": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
   },
   "org.dept_areas_updated": {

@@ -11,7 +11,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionChannel } from "../types.js";
 
 export type GateRoutineArgs = {
-  /** e.g. 'routine.attach_to_line' */
+  /**
+   * e.g. 'routine.attach_to_line' | 'routine.create' |
+   *      'routine.assign_to_location' | 'routine.add_step'
+   */
   actionType: string;
   channel: SessionChannel;
   approversPresent?: string[];
