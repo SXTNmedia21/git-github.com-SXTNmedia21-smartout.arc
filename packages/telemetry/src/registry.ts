@@ -9297,6 +9297,8 @@ export type SmartoutEvent =
   | ShiftSessionClockedOut
   | RoutineAttached
   | RoutineCreated
+  | RoutineCreatedFromImage
+  | RoutineGovernanceUnassigned
   | RoutineAssignedToLocation
   | ProcedureStepAdded
   | OrgDeptAreasUpdated
@@ -11190,6 +11192,29 @@ export interface RoutineCreated extends BaseEvent {
       trigger_type: string;
       executor_type: string;
     };
+  };
+}
+
+export interface RoutineCreatedFromImage extends BaseEvent {
+  event: "routine.created_from_image";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      procedure_id: string;
+      location_id: string;
+      governance_status: "unassigned" | "attached";
+      step_count: number;
+      source_reference: string;
+    };
+  };
+}
+
+export interface RoutineGovernanceUnassigned extends BaseEvent {
+  event: "routine.governance_unassigned";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: { routine_id: string; source_reference: string };
   };
 }
 
@@ -14967,6 +14992,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // routine.created: 4 destinations — admin C4 act; engine_event for workflow reactions.
   "routine.created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.created_from_image": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.governance_unassigned": {
+    destinations: ["logger", "activity_trail"],
     category: "scheduling",
   },
   // routine.assigned_to_location: 4 destinations — scoping + hook-wiring act.
