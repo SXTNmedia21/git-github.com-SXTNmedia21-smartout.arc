@@ -17,6 +17,7 @@ import { useRoutineExtract, type CommitInput } from "@/hooks/use-routine-extract
 import { supabase } from "@/lib/supabase";
 
 type LocationRow = { location_id: string; name: string };
+type TeamRow = { team_id: string; name: string };
 
 export default function RoutineReviewScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function RoutineReviewScreen() {
   const theme = useTheme();
   const { commit, isWorking, error } = useRoutineExtract();
   const [locations, setLocations] = useState<LocationRow[]>([]);
+  const [teams, setTeams] = useState<TeamRow[]>([]);
 
   useEffect(() => {
     supabase
@@ -31,6 +33,10 @@ export default function RoutineReviewScreen() {
       .select("location_id, name")
       .eq("is_active", true)
       .then(({ data }) => setLocations(data ?? []));
+    supabase
+      .from("team")
+      .select("team_id, name")
+      .then(({ data }) => setTeams(data ?? []));
   }, []);
 
   const onSubmit = useCallback(
@@ -55,7 +61,12 @@ export default function RoutineReviewScreen() {
         </Pressable>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <RoutineReviewForm locations={locations} isWorking={isWorking} onSubmit={onSubmit} />
+      <RoutineReviewForm
+        locations={locations}
+        teams={teams}
+        isWorking={isWorking}
+        onSubmit={onSubmit}
+      />
     </SafeAreaView>
   );
 }
