@@ -27,28 +27,39 @@ function fail(msg) {
 }
 
 const configToml = readFileSync(join(root, "supabase/config.toml"), "utf8");
-const form = readFileSync(
+const webForm = readFileSync(
   join(root, "apps/web/src/components/auth/OtpVerificationForm.tsx"),
+  "utf8",
+);
+const mobileVerify = readFileSync(
+  join(root, "apps/mobile/app/(auth)/verify.tsx"),
   "utf8",
 );
 
 // First otp_length under [auth.email]
 const cfgMatch = configToml.match(/otp_length\s*=\s*(\d+)/);
-const formMatch = form.match(/const\s+OTP_LENGTH\s*=\s*(\d+)/);
+const webMatch = webForm.match(/const\s+OTP_LENGTH\s*=\s*(\d+)/);
+const mobileMatch = mobileVerify.match(/const\s+OTP_LENGTH\s*=\s*(\d+)/);
 
 if (!cfgMatch) fail("could not find otp_length in supabase/config.toml");
-if (!formMatch) fail("could not find OTP_LENGTH in OtpVerificationForm.tsx");
+if (!webMatch) fail("could not find OTP_LENGTH in web OtpVerificationForm.tsx");
+if (!mobileMatch) fail("could not find OTP_LENGTH in mobile app/(auth)/verify.tsx");
 
-const cfg = Number(cfgMatch[1]);
-const formLen = Number(formMatch[1]);
+const sources = {
+  "config.toml otp_length": Number(cfgMatch[1]),
+  "web OtpVerificationForm OTP_LENGTH": Number(webMatch[1]),
+  "mobile verify.tsx OTP_LENGTH": Number(mobileMatch[1]),
+};
 
-if (cfg !== formLen) {
+const values = [...new Set(Object.values(sources))];
+if (values.length !== 1) {
   fail(
-    `drift — config.toml otp_length=${cfg} but OtpVerificationForm OTP_LENGTH=${formLen}. ` +
-      `They must be equal (and prod dashboard OTP Length must match too). See ADR-0389.`,
+    `drift — ${Object.entries(sources)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ")}. All must be equal (and prod dashboard OTP Length must match too). See ADR-0389.`,
   );
 }
 
 console.log(
-  `\x1b[32m✓ OTP coherence: config.toml otp_length = OTP_LENGTH = ${cfg} (ADR-0389)\x1b[0m`,
+  `\x1b[32m✓ OTP coherence: config.toml = web = mobile OTP length = ${values[0]} (ADR-0389)\x1b[0m`,
 );
