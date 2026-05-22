@@ -7754,6 +7754,8 @@ export type Database = {
           due_at: string | null
           id: string
           mission: string | null
+          notified_due_soon_at: string | null
+          notified_overdue_at: string | null
           position: number
           priority: string
           profile_id: string
@@ -7770,6 +7772,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id: string
@@ -7786,6 +7790,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id?: string
@@ -13438,6 +13444,8 @@ export type Database = {
           created_at: string
           due_at: string | null
           id: string
+          notified_due_soon_at: string | null
+          notified_overdue_at: string | null
           priority: string
           profile_id: string
           status: string
@@ -13449,6 +13457,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           priority?: string
           profile_id: string
           status?: string
@@ -13460,6 +13470,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           priority?: string
           profile_id?: string
           status?: string
@@ -15322,7 +15334,6 @@ export type Database = {
           address_line_2: string | null
           authority_level: Database["public"]["Enums"]["authority_level"] | null
           avatar_url: string | null
-          bank_account: string | null
           botsson_channel_id: string | null
           city: string | null
           company_id: string | null
@@ -15346,7 +15357,6 @@ export type Database = {
           location_id: string | null
           locations: string[] | null
           notification_pref: Json | null
-          personal_number: string | null
           postal_code: string | null
           profile_code: string
           profile_id: string
@@ -15373,7 +15383,6 @@ export type Database = {
             | Database["public"]["Enums"]["authority_level"]
             | null
           avatar_url?: string | null
-          bank_account?: string | null
           botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
@@ -15397,7 +15406,6 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
-          personal_number?: string | null
           postal_code?: string | null
           profile_code: string
           profile_id?: string
@@ -15424,7 +15432,6 @@ export type Database = {
             | Database["public"]["Enums"]["authority_level"]
             | null
           avatar_url?: string | null
-          bank_account?: string | null
           botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
@@ -15448,7 +15455,6 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
-          personal_number?: string | null
           postal_code?: string | null
           profile_code?: string
           profile_id?: string
@@ -15957,7 +15963,9 @@ export type Database = {
           control_list_id: string | null
           control_nth: number | null
           created_at: string
+          executor_type: Database["public"]["Enums"]["routine_executor_type"]
           is_active: boolean
+          location_id: string | null
           name: string
           procedure_id: string
           protocol_id: string
@@ -15965,6 +15973,7 @@ export type Database = {
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           assigned_to_ref: string
@@ -15973,7 +15982,9 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
           is_active?: boolean
+          location_id?: string | null
           name: string
           procedure_id: string
           protocol_id: string
@@ -15981,6 +15992,7 @@ export type Database = {
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           assigned_to_ref?: string
@@ -15989,7 +16001,9 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
           is_active?: boolean
+          location_id?: string | null
           name?: string
           procedure_id?: string
           protocol_id?: string
@@ -15997,6 +16011,7 @@ export type Database = {
           trigger_config?: Json
           trigger_type?: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -16019,6 +16034,77 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
+          },
+          {
+            foreignKeyName: "routine_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      routine_team: {
+        Row: {
+          created_at: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          routine_id?: string
+          team_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_team_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routine"
+            referencedColumns: ["routine_id"]
+          },
+          {
+            foreignKeyName: "routine_team_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -17792,10 +17878,13 @@ export type Database = {
           department_session_id: string
           description: string | null
           evidence: Json | null
+          generated_by: Database["public"]["Enums"]["task_generated_by"] | null
           id: string
           is_compliance_required: boolean
+          origin: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at: string | null
           session_hook_id: string | null
+          source_reference: string | null
           status: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at: string
@@ -17810,10 +17899,13 @@ export type Database = {
           department_session_id: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at?: string
@@ -17828,10 +17920,13 @@ export type Database = {
           department_session_id?: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title?: string
           updated_at?: string
@@ -20272,8 +20367,9 @@ export type Database = {
         Row: {
           auth_provider: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id: string | null
+          bank_account_enc: string | null
           created_at: string
-          date_of_birth: string | null
+          date_of_birth_enc: string | null
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -20283,7 +20379,8 @@ export type Database = {
           is_godmode: boolean
           last_login_at: string | null
           last_name: string
-          personal_email: string | null
+          personal_email_enc: string | null
+          personal_number_enc: string | null
           phone: string | null
           preferred_language: Database["public"]["Enums"]["preferred_language"]
           timezone: string
@@ -20293,8 +20390,9 @@ export type Database = {
         Insert: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
+          bank_account_enc?: string | null
           created_at?: string
-          date_of_birth?: string | null
+          date_of_birth_enc?: string | null
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -20304,7 +20402,8 @@ export type Database = {
           is_godmode?: boolean
           last_login_at?: string | null
           last_name: string
-          personal_email?: string | null
+          personal_email_enc?: string | null
+          personal_number_enc?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -20314,8 +20413,9 @@ export type Database = {
         Update: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
+          bank_account_enc?: string | null
           created_at?: string
-          date_of_birth?: string | null
+          date_of_birth_enc?: string | null
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -20325,7 +20425,8 @@ export type Database = {
           is_godmode?: boolean
           last_login_at?: string | null
           last_name?: string
-          personal_email?: string | null
+          personal_email_enc?: string | null
+          personal_number_enc?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -22216,6 +22317,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      enqueue_task_due_notifications: { Args: never; Returns: undefined }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
@@ -22259,6 +22361,11 @@ export type Database = {
         }[]
       }
       fn_check_billing_run: { Args: never; Returns: number }
+      fn_cron_jobs_health: { Args: never; Returns: Json }
+      fn_decrypt_user_identity_pii: {
+        Args: { p_user_identity_id: string }
+        Returns: Json
+      }
       fn_generate_company_invoice: {
         Args: {
           p_amount_excl_vat: number
@@ -22326,6 +22433,10 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      fn_upsert_user_identity_pii: {
+        Args: { p_field: string; p_plaintext: string; p_user_id: string }
+        Returns: Json
       }
       gate_action: {
         Args: {
@@ -23142,6 +23253,7 @@ export type Database = {
       remuneration_type_enum: "monthlyWage" | "hourlyWage" | "commissionOnly"
       revenue_source: "ocr" | "manual"
       routine_assigned_to_type: "team" | "role" | "profile"
+      routine_executor_type: "human" | "ai" | "system" | "hybrid"
       schedule_absence_type:
         | "sick_leave"
         | "parental_leave"
@@ -23217,6 +23329,14 @@ export type Database = {
       sync_status: "pending" | "synced" | "failed" | "conflict"
       sync_status_enum: "pending" | "synced" | "divergent" | "not_synced"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
+      task_generated_by: "cron" | "manager" | "agent" | "system"
+      task_origin:
+        | "session"
+        | "adhoc"
+        | "routine"
+        | "procedure"
+        | "projection"
+        | "manual"
       tax_card_type: "percentage" | "table" | "freecard"
       team_type:
         | "operational"
@@ -24842,6 +24962,7 @@ export const Constants = {
       remuneration_type_enum: ["monthlyWage", "hourlyWage", "commissionOnly"],
       revenue_source: ["ocr", "manual"],
       routine_assigned_to_type: ["team", "role", "profile"],
+      routine_executor_type: ["human", "ai", "system", "hybrid"],
       schedule_absence_type: [
         "sick_leave",
         "parental_leave",
@@ -24927,6 +25048,15 @@ export const Constants = {
       sync_status: ["pending", "synced", "failed", "conflict"],
       sync_status_enum: ["pending", "synced", "divergent", "not_synced"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
+      task_generated_by: ["cron", "manager", "agent", "system"],
+      task_origin: [
+        "session",
+        "adhoc",
+        "routine",
+        "procedure",
+        "projection",
+        "manual",
+      ],
       tax_card_type: ["percentage", "table", "freecard"],
       team_type: [
         "operational",
@@ -24984,3 +25114,4 @@ export const Constants = {
     },
   },
 } as const
+
