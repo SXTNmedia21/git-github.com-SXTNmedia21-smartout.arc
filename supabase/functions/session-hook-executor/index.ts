@@ -5,8 +5,12 @@
  * 1. Gets session_hook rows for the department
  * 2. Calculates fire time: anchor_time + trigger_offset_min
  * 3. Checks idempotency: skips if session_task rows already exist for this hook + session
- * 4. Gets procedure_step rows for the hook's linked procedure
- * 5. Inserts session_task for each step
+ * 4a. (linked_procedure_id) Gets procedure_step rows and inserts one session_task per step.
+ * 4b. (linked_routine_id) Resolves the routine's procedure, expands its steps, inserts one
+ *     session_task per step — mirrors 4a exactly, with provenance triple:
+ *     origin='routine', generated_by='cron', source_reference=routine_id.
+ * 5. Anchors each task to the session's single day_line via fn_resolve_single_day_line
+ *    (ADR-0367 tri-layer: department_session → day_line → session_task).
  *
  * Auth: WATCHDOG_CRON_SECRET bearer token (cron-only pattern).
  */
@@ -102,7 +106,7 @@ Deno.serve(async (req) => {
       (existingTasks ?? []).map((t) => `${t.session_hook_id}:${t.department_session_id}`),
     );
 
-    // Get procedure steps for all linked procedures
+    // ── Procedure steps (for linked_procedure_id hooks) ──────────────────────
     const procedureIds = [
       ...new Set(hooks.map((h) => h.linked_procedure_id).filter((id): id is string => id !== null)),
     ];
@@ -132,6 +136,51 @@ Deno.serve(async (req) => {
         stepsByProcedure.set(step.procedure_id, []);
       }
       stepsByProcedure.get(step.procedure_id)!.push(step);
+    }
+
+    // ── Routine → procedure resolution (for linked_routine_id hooks) ─────────
+    // Fetch each routine's procedure_id so we can expand its steps without an
+    // extra query inside the hot loop.
+    const routineIds = [
+      ...new Set(hooks.map((h) => h.linked_routine_id).filter((id): id is string => id !== null)),
+    ];
+
+    // Maps routine_id → procedure_id (resolved from routine table)
+    const procedureIdByRoutine = new Map<string, string>();
+
+    if (routineIds.length > 0) {
+      const { data: routineRows } = await supabase
+        .from("routine")
+        .select("routine_id, procedure_id")
+        .in("routine_id", routineIds);
+
+      for (const row of routineRows ?? []) {
+        if (row.procedure_id) {
+          procedureIdByRoutine.set(row.routine_id, row.procedure_id);
+        }
+      }
+
+      // Fetch steps for any routine-linked procedures not already fetched above
+      const routineProcedureIds = [
+        ...new Set(
+          [...procedureIdByRoutine.values()].filter((pid) => !stepsByProcedure.has(pid)),
+        ),
+      ];
+
+      if (routineProcedureIds.length > 0) {
+        const { data: routineSteps } = await supabase
+          .from("procedure_step")
+          .select("step_id, procedure_id, title, description, step_order, is_required")
+          .in("procedure_id", routineProcedureIds)
+          .order("step_order", { ascending: true });
+
+        for (const step of routineSteps ?? []) {
+          if (!stepsByProcedure.has(step.procedure_id)) {
+            stepsByProcedure.set(step.procedure_id, []);
+          }
+          stepsByProcedure.get(step.procedure_id)!.push(step);
+        }
+      }
     }
 
     // Process each session x hook combination
@@ -178,6 +227,10 @@ Deno.serve(async (req) => {
             status: "pending",
             is_compliance_required: step.is_required,
             day_line_id: anchoredDayLineId ?? null,
+            // Provenance triple (ADR-0298 §7b, migration 20260622100500)
+            origin: "procedure" as const,
+            generated_by: "cron" as const,
+            source_reference: hook.linked_procedure_id,
           }));
 
           if (taskRows.length > 0) {
@@ -200,31 +253,54 @@ Deno.serve(async (req) => {
             }
           }
         } else if (hook.linked_routine_id) {
-          // Routine hooks create a single task referencing the routine
-          const { error } = await supabase.from("session_task").insert({
-            workspace_id: session.workspace_id,
-            department_session_id: session.department_session_id,
-            session_hook_id: hook.id,
-            title: `Rutine: ${hook.hook_type}`,
-            description: `Automatisk opprettet fra rutine ${hook.linked_routine_id}`,
-            status: "pending",
-            day_line_id: anchoredDayLineId ?? null,
-          });
-          if (!error) {
-            totalTasksCreated += 1;
-            existingSet.add(key);
-            // Emit engine event for notifications + escalation (ADR-0069)
-            await supabase.from("engine_event").insert({
+          // Routine hooks expand the routine's procedure steps — one session_task per step.
+          // G6 fix: was a single stub task; now mirrors the linked_procedure_id branch exactly.
+          // Provenance: origin='routine', generated_by='cron', source_reference=routine_id.
+          const routineProcedureId = procedureIdByRoutine.get(hook.linked_routine_id);
+          const routineSteps = routineProcedureId
+            ? (stepsByProcedure.get(routineProcedureId) ?? [])
+            : [];
+
+          if (routineSteps.length === 0) {
+            // Routine has no resolvable procedure or no steps — skip silently.
+            // This preserves idempotency: we do NOT mark existingSet so the hook
+            // will be retried next cron tick once the routine is configured.
+            console.warn(
+              `[session-hook-executor] linked_routine_id ${hook.linked_routine_id} resolved to 0 steps (procedure_id=${routineProcedureId ?? "null"}) — skipping session ${session.department_session_id}`,
+            );
+          } else {
+            const taskRows = routineSteps.map((step) => ({
               workspace_id: session.workspace_id,
-              event_type: "session.hook_fired",
-              payload: {
-                department_session_id: session.department_session_id,
-                department_id: session.department_id,
-                session_hook_id: hook.id,
-                hook_type: hook.hook_type,
-                tasks_created: 1,
-              },
-            });
+              department_session_id: session.department_session_id,
+              session_hook_id: hook.id,
+              title: step.title,
+              description: step.description,
+              status: "pending",
+              is_compliance_required: step.is_required,
+              day_line_id: anchoredDayLineId ?? null,
+              // Provenance triple (ADR-0298 §7b, migration 20260622100500)
+              origin: "routine" as const,
+              generated_by: "cron" as const,
+              source_reference: hook.linked_routine_id,
+            }));
+
+            const { error } = await supabase.from("session_task").insert(taskRows);
+            if (!error) {
+              totalTasksCreated += taskRows.length;
+              existingSet.add(key);
+              // Emit engine event for notifications + escalation (ADR-0069)
+              await supabase.from("engine_event").insert({
+                workspace_id: session.workspace_id,
+                event_type: "session.hook_fired",
+                payload: {
+                  department_session_id: session.department_session_id,
+                  department_id: session.department_id,
+                  session_hook_id: hook.id,
+                  hook_type: hook.hook_type,
+                  tasks_created: taskRows.length,
+                },
+              });
+            }
           }
         }
       }
