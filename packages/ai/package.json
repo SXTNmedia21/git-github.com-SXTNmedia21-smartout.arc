@@ -190,6 +190,10 @@
       "types": "./dist/capabilities/tips/calculate.d.ts",
       "default": "./dist/capabilities/tips/calculate.js"
     },
+    "./capabilities/routine/draft-schema": {
+      "types": "./dist/capabilities/routine/draft-schema.d.ts",
+      "default": "./dist/capabilities/routine/draft-schema.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"
