@@ -9,6 +9,7 @@ import React, {
   forwardRef,
   useCallback,
   useImperativeHandle,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -63,25 +64,26 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 ) {
   const [visible, setVisible] = useState(index >= 0);
 
-  // Callbacks only fire on real open↔close transitions. Native
-  // @gorhom/bottom-sheet is idempotent; matching that prevents a
-  // re-entrant close() → onClose → onDismiss → close() loop that
-  // blows the stack in BotssonSheet.
+  // Re-entrancy guard via a ref — NOT the setVisible updater. Side effects
+  // (onChange/onClose) MUST run outside the updater: onClose → onDismiss can
+  // call close() again synchronously, and a nested updater sees the pre-commit
+  // `wasVisible` (still true), so an updater-based guard fails and the stack
+  // blows. The ref flips synchronously, so the re-entrant call no-ops.
+  const visibleRef = useRef(index >= 0);
+
   const open = useCallback(() => {
-    setVisible((wasVisible) => {
-      if (wasVisible) return wasVisible;
-      onChange?.(0);
-      return true;
-    });
+    if (visibleRef.current) return;
+    visibleRef.current = true;
+    setVisible(true);
+    onChange?.(0);
   }, [onChange]);
 
   const close = useCallback(() => {
-    setVisible((wasVisible) => {
-      if (!wasVisible) return wasVisible;
-      onChange?.(-1);
-      onClose?.();
-      return false;
-    });
+    if (!visibleRef.current) return;
+    visibleRef.current = false;
+    setVisible(false);
+    onChange?.(-1);
+    onClose?.();
   }, [onChange, onClose]);
 
   useImperativeHandle(ref, () => ({
