@@ -6,6 +6,7 @@ import { resolveMobileActor } from "../../_shared/actor";
 import { createAdminClient } from "@smartout/supabase/admin";
 
 const STAGE_ENGINE_URL = process.env.STAGE_ENGINE_URL ?? "http://localhost:5010";
+const STAGE_ENGINE_API_KEY = process.env.STAGE_ENGINE_API_KEY;
 const BodySchema = z.object({ storage_path: z.string().min(1) }).strict();
 
 export async function POST(request: NextRequest | Request): Promise<Response> {
@@ -37,9 +38,15 @@ export async function POST(request: NextRequest | Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
   }
 
+  // Server-to-server call: authenticate to the stage-engine with the platform
+  // API key (its auth middleware requires x-api-key or a user JWT). This is a
+  // stateless transform — identity is already enforced above (ADR-0151).
+  const engineHeaders: Record<string, string> = { "content-type": "application/json" };
+  if (STAGE_ENGINE_API_KEY) engineHeaders["x-api-key"] = STAGE_ENGINE_API_KEY;
+
   const res = await fetch(`${STAGE_ENGINE_URL}/routine/extract`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: engineHeaders,
     body: JSON.stringify({ image_url: signed.signedUrl }),
   });
   const payload = (await res.json().catch(() => ({
