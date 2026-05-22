@@ -1,6 +1,7 @@
 ---
 title: "Findings — Day_line → Shift Tasks → Min dag: dual-perspective + reuse audit"
-status: done
+status: archived
+superseded_by: docs/domains/procedure-engine/
 created: 2026-05-21
 updated: 2026-05-22
 module: procedure-engine

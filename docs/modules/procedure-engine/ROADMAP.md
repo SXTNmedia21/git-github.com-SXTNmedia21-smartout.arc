@@ -2,7 +2,8 @@
 title: "Procedure Engine — Roadmap"
 id: ROADMAP_PROCEDURE_ENGINE
 version: "1.1"
-status: in_progress
+status: archived
+superseded_by: docs/domains/procedure-engine/
 module: procedure-engine
 created: 2026-05-22
 updated: 2026-05-22

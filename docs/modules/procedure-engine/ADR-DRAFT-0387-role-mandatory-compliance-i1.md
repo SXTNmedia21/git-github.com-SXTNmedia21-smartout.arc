@@ -1,6 +1,7 @@
 ---
 title: ADR-DRAFT-0387 — Role-Mandatory Compliance Tasks + Starter Routines in Hospitality Intelligence
-status: draft
+status: archived
+superseded_by: docs/decisions/0387-role-mandatory-compliance-hospitality-intelligence.md
 updated: 2026-05-22
 created: 2026-05-20
 module: procedure-engine
