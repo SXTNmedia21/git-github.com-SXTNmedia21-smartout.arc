@@ -53,7 +53,7 @@ Registered: ADR-0391 in `docs/decisions/0000-decision-log.md`.
 
 ## Known Issues / Debt
 
-- **E2E:** J2 + J4 specs written (`apps/e2e/procedure-engine/`). J4 DB-contract tests pass; UI-render tests typecheck-clean but blocked by WSL2 dev-server instability (same as hms-drift/timeline-templates). J1 mobile = Detox (not Playwright); J3/J5 = backend cron (unit/SQL-covered).
+- **E2E: GREEN** (`apps/e2e/procedure-engine/`) — 7 passed, 1 graceful skip. J2 (create routine, all 4 sub-tests incl. DB verify) + J4-B (location DB-contract ×3) pass against a live local server. J4-A1 self-skips (needs a dept-session seed for the shift dialog on /dashboard — data precondition). Unblocked by the dashboard-auth fix (commit `ea3a38301`): `getFirstProfile`'s `workspace!inner` embed was ambiguous (PGRST201) after the signatory FK landed → `/dashboard↔/onboarding` loop on the slug-less path; this was a SUITE-WIDE blocker on every dashboard-nav spec, now fixed. J1 mobile = Detox (not Playwright); J3/J5 = backend cron (unit/SQL-covered).
 - **`web` typecheck — RESOLVED 2026-05-22** (commit `daee065c3`): the "payroll debt" was stale `database.types.ts` from the Wave-0 regen against a behind-DB (gap migrations had not added profile PII columns locally). Post `supabase db reset` + regen restored profile `personal_number/bank_account/address_line_1/postal_code`. **Full-repo `pnpm turbo typecheck` now green (51/51).**
 - **Routine create UI** uses plain `useState` (no react-hook-form) per existing ProcedureBuilder pattern — fine, but no client-side zod validation beyond the action's schema.
 - **`source_reference` FK-less** — dangling refs not DB-enforced; consumers tolerate.
