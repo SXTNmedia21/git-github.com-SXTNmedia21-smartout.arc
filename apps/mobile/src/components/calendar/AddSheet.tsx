@@ -32,7 +32,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import BottomSheet, {
@@ -52,10 +51,13 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { z } from "zod";
-import { nativeTheme } from "@smartout/design-tokens/native";
 import { supabase } from "@/lib/supabase";
 import { getWebApiUrl } from "@/lib/web-api";
 import { useTheme, withOpacity } from "@/theme";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { TIME_OPTIONS_15 } from "@/lib/time-options";
 
 // ─── Type definitions ────────────────────────────────────────────────────────
 
@@ -241,21 +243,21 @@ function ShiftForm({ theme, onSubmit, pending }: FormProps) {
       />
       <View style={formStyles.row}>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Fra"
-            value={startTime}
-            onChangeText={setStartTime}
-            placeholder="15:00"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={startTime || null}
+            onChange={setStartTime}
+            placeholder="Velg tid"
           />
         </View>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Til"
-            value={endTime}
-            onChangeText={setEndTime}
-            placeholder="23:00"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={endTime || null}
+            onChange={setEndTime}
+            placeholder="Velg tid"
           />
         </View>
       </View>
@@ -382,12 +384,12 @@ function BookingForm({ theme, onSubmit, pending }: FormProps) {
       />
       <View style={formStyles.row}>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Tid"
-            value={bookingTime}
-            onChangeText={setBookingTime}
-            placeholder="18:30"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={bookingTime || null}
+            onChange={setBookingTime}
+            placeholder="Velg tid"
           />
         </View>
         <View style={formStyles.half}>
@@ -539,39 +541,29 @@ function NoteForm({ theme, onSubmit, pending }: FormProps) {
 
 // ─── Shared form primitives ──────────────────────────────────────────────────
 
+// Shared field/button — unified on the ui/* primitives so every form uses the
+// SAME input type (token-based, dark-aware). `theme`/`color` props kept for
+// call-site compatibility but no longer drive styling.
 type FormFieldProps = {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  theme: ReturnType<typeof useTheme>;
+  theme?: ReturnType<typeof useTheme>;
   multiline?: boolean;
 };
 
-function FormField({ label, value, onChangeText, placeholder, theme, multiline }: FormFieldProps) {
+function FormField({ label, value, onChangeText, placeholder, multiline }: FormFieldProps) {
   return (
-    <View style={formStyles.fieldWrapper}>
-      <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={theme.colors.mutedForeground}
-        multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
-        style={[
-          formStyles.input,
-          {
-            color: theme.colors.foreground,
-            backgroundColor: theme.colors.secondary,
-            borderColor: theme.colors.border,
-            minHeight: multiline ? 72 : undefined,
-            textAlignVertical: multiline ? "top" : "center",
-          },
-        ]}
-        accessibilityLabel={label}
-      />
-    </View>
+    <Input
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      multiline={multiline}
+      numberOfLines={multiline ? 3 : 1}
+      returnKeyType="done"
+    />
   );
 }
 
@@ -579,20 +571,19 @@ type SubmitButtonProps = {
   label: string;
   pending: boolean;
   onPress: () => void;
-  color: string;
+  color?: string;
 };
 
-function SubmitButton({ label, pending, onPress, color }: SubmitButtonProps) {
+function SubmitButton({ label, pending, onPress }: SubmitButtonProps) {
   return (
-    <Pressable
+    <Button
+      title={pending ? "Lagrer…" : label}
+      variant="primary"
+      loading={pending}
+      fullWidth
       onPress={onPress}
-      disabled={pending}
-      style={[formStyles.submitBtn, { backgroundColor: color, opacity: pending ? 0.6 : 1 }]}
-      accessibilityRole="button"
       accessibilityLabel={label}
-    >
-      <Text style={formStyles.submitBtnLabel}>{pending ? "Lagrer..." : label}</Text>
-    </Pressable>
+    />
   );
 }
 
@@ -881,21 +872,11 @@ const formStyles = StyleSheet.create({
     gap: 12,
     paddingTop: 4,
   },
-  fieldWrapper: {
-    gap: 6,
-  },
   label: {
     fontSize: 9.5,
     fontWeight: "700",
     letterSpacing: 1.3,
     textTransform: "uppercase",
-  },
-  input: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
   },
   row: {
     flexDirection: "row",
@@ -910,17 +891,5 @@ const formStyles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-  },
-  submitBtn: {
-    marginTop: 8,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  submitBtnLabel: {
-    // Use light theme primaryForeground — submit buttons always have colored bg.
-    color: nativeTheme.light.primaryForeground,
-    fontSize: 14,
-    fontWeight: "700",
   },
 });
