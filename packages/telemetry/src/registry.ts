@@ -5370,6 +5370,21 @@ export interface MobileVoicePolicyFlipped extends BaseEvent {
   };
 }
 
+// ─── Mobile Routine Events ───────────────────────────────────────────────────
+// Emitted by useRoutineExtract hook (apps/mobile) after a photo-to-routine
+// extraction succeeds. Routing: posthog + logger (no audit trail needed for
+// a draft extraction — commit is the auditable action).
+export interface MobileRoutinePhotoExtracted extends BaseEvent {
+  event: "mobile.routine.photo_extracted";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      /** Number of steps returned in the draft */
+      step_count: number;
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -9333,7 +9348,8 @@ export type SmartoutEvent =
   | MobileVoiceMicPermissionDenied
   | MobileVoiceDisconnectRecovered
   | MobileVoiceDisconnectFailed
-  | MobileVoicePolicyFlipped;
+  | MobileVoicePolicyFlipped
+  | MobileRoutinePhotoExtracted;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -15169,5 +15185,9 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "mobile.voice.policy_flipped": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+  "mobile.routine.photo_extracted": {
+    destinations: ["posthog", "logger"],
+    category: "scheduling",
   },
 };
