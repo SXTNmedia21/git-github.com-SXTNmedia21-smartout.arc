@@ -46,6 +46,7 @@ export function RoutineReviewForm(props: {
   const [steps, setSteps] = useState<Step[]>([]);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [newLocationName, setNewLocationName] = useState("");
+  const [creatingLocation, setCreatingLocation] = useState(false);
   const [teamIds, setTeamIds] = useState<string[]>([]);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -89,6 +90,7 @@ export function RoutineReviewForm(props: {
         : undefined;
       if (hintMatch) {
         setLocationId(hintMatch.location_id);
+        setCreatingLocation(false);
         setNewLocationName("");
       }
     } catch (e) {
@@ -158,25 +160,31 @@ export function RoutineReviewForm(props: {
         returnKeyType="done"
       />
 
-      {/* ── Location ─────────────────────────────────────────────── */}
+      {/* ── Location (dropdown, with inline "+ Ny lokasjon") ─────── */}
       <Dropdown
         label="Lokasjon"
         options={locationOptions}
         value={locationId}
         onChange={(v) => {
           setLocationId(v);
+          setCreatingLocation(false);
           setNewLocationName("");
         }}
         placeholder="Velg lokasjon"
-      />
-      <Input
-        value={newLocationName}
-        onChangeText={(t) => {
-          setNewLocationName(t);
-          if (t) setLocationId(null);
+        creatable
+        creating={creatingLocation}
+        createValue={newLocationName}
+        createOptionLabel="+ Ny lokasjon"
+        createPlaceholder="Navn på ny lokasjon"
+        onStartCreate={() => {
+          setCreatingLocation(true);
+          setLocationId(null);
         }}
-        placeholder="+ Eller ny lokasjon"
-        returnKeyType="done"
+        onCreateValueChange={setNewLocationName}
+        onCancelCreate={() => {
+          setCreatingLocation(false);
+          setNewLocationName("");
+        }}
       />
 
       {/* ── Teams (multi-select) ─────────────────────────────────── */}
