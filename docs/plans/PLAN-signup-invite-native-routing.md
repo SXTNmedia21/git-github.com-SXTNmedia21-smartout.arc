@@ -1,11 +1,20 @@
 ---
 title: "Plan — signup-invite-native-routing + redirect-coherence guard"
-status: draft
+status: done
 updated: 2026-05-22
 created: 2026-05-22
 module: auth
-tags: [plan, auth, mobile, signup, invite, universal-link, token_hash, adr-0390, adr-0368, adr-0389]
+tags: [plan, auth, mobile, signup, invite, universal-link, token_hash, adr-0390, adr-0393, adr-0368, adr-0389]
 ---
+
+> **SCOPE COLLAPSED by P0 recon (2026-05-22) — see ADR-0393.** Template work
+> (P1/P2/P4 confirm-sign-up + invite-user conditionals + native screens) was
+> DROPPED: mobile has no email-signup (invite-only/login-only) and invites use a
+> custom `invitation`-table token + plain `/invite/<token>` Universal Link, not
+> GoTrue `inviteUserByEmail` — so those templates have no mobile consumer. Only
+> **P3 (the redirect-coherence guard) + ADR-0393** shipped. Trigger to revisit
+> templates: if invites ever migrate to GoTrue native invite with a mobile
+> redirectTo.
 
 # Plan — Signup/invite emails land native on mobile + drift guard
 
