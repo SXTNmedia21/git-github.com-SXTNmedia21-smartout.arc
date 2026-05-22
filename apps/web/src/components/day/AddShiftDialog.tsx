@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@smartout/design-tokens";
-import { Plus, Loader2, User, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, User, Calendar, AlertCircle, AlertTriangle, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { useWorkspaceProfiles } from "@/app/dashboard/settings/_hooks/use-employee-groups";
 import { addShiftAction } from "@/app/dashboard/_actions/add-shift-action";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@smartout/supabase/client";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useTeamAvailability } from "@/app/dashboard/_hooks/use-team-availability";
 import {
@@ -116,6 +118,8 @@ export function AddShiftDialog({
   const [endAt, setEndAt] = useState(() => defaultDatetimeLocal(dateISO, "16:00"));
   const [role, setRole] = useState("");
   const [reason, setReason] = useState("");
+  // Cascade D1: optional location scope for the shift.
+  const [locationId, setLocationId] = useState<string>("");
   const [isPending, startTransition] = useTransition();
   const qc = useQueryClient();
   const reducedMotion = useReducedMotion();
@@ -125,6 +129,23 @@ export function AddShiftDialog({
 
   const wsCtx = useWorkspaceOptional();
   const workspaceId = wsCtx?.workspace.workspace_id ?? "";
+
+  // Fetch workspace locations for the location Select (Cascade D1).
+  const locationsQuery = useQuery({
+    queryKey: ["locations", workspaceId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("location")
+        .select("location_id, name")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: open && !!workspaceId,
+  });
 
   /**
    * Availability window = the shift date. Task L's hook accepts a
@@ -213,6 +234,7 @@ export function AddShiftDialog({
     setEndAt(defaultDatetimeLocal(dateISO, "16:00"));
     setRole("");
     setReason("");
+    setLocationId("");
   }
 
   function handleConfirm(e: React.MouseEvent) {
@@ -230,6 +252,9 @@ export function AddShiftDialog({
           // very tab that created them (use-roster.ts filters dept
           // directly — see migration 20260519000000).
           ...(departmentId ? { departmentId } : {}),
+          // Cascade D1: pass location scope when set by admin.
+          // ensure_shift_session trigger propagates to shift_session.location_id.
+          ...(locationId ? { locationId } : {}),
           profileId,
           startAtISO: localToISO(startAt),
           endAtISO: localToISO(endAt),
@@ -392,6 +417,42 @@ export function AddShiftDialog({
                 placeholder="F.eks. servitør, resepsjon, kokk"
                 className="bg-background border-border focus-visible:ring-ring h-11 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
               />
+            </div>
+
+            {/* Location — Cascade D1 scope (optional) */}
+            <div className="space-y-1.5">
+              <label htmlFor="add-shift-location" className="text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  Lokasjon <span className="text-muted-foreground font-normal">(valgfritt)</span>
+                </span>
+              </label>
+              <Select value={locationId} onValueChange={setLocationId}>
+                <SelectTrigger
+                  id="add-shift-location"
+                  className="bg-background h-11 w-full"
+                  aria-label="Velg lokasjon"
+                >
+                  <SelectValue placeholder="Ingen lokasjon…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locationsQuery.isLoading ? (
+                    <SelectItem value="__loading__" disabled>
+                      Laster lokasjoner…
+                    </SelectItem>
+                  ) : (locationsQuery.data ?? []).length === 0 ? (
+                    <SelectItem value="__empty__" disabled>
+                      Ingen lokasjoner funnet
+                    </SelectItem>
+                  ) : (
+                    (locationsQuery.data ?? []).map((l) => (
+                      <SelectItem key={l.location_id} value={l.location_id}>
+                        {l.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">

@@ -82,6 +82,13 @@ const InputSchema = z
      */
     overrideReason: z.string().min(1).optional(),
     /**
+     * Optional location scope for the shift (Cascade D1).
+     * Stored as schedule_shift.location_id — FK to location table.
+     * The ensure_shift_session trigger propagates this to shift_session.location_id.
+     * Pass undefined to leave location_id NULL (unscoped shift).
+     */
+    locationId: z.string().uuid().optional(),
+    /**
      * Call origin for the authority gate (`gate_action` p_channel parameter).
      *
      * - "chat"   — default. Web AddShiftDialog, RosterTab CTA (cookie-authed).
@@ -284,6 +291,9 @@ export async function addShiftAction(
       workspace_id: profile.workspaceId,
       employee_id: parsed.data.profileId,
       department_id: departmentId,
+      // Cascade D1: location scope — nullable, set when provided by the dialog.
+      // The ensure_shift_session trigger propagates this to shift_session.location_id.
+      ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
       shift_date: date,
       start_time: startTime,
       end_time: endTime,
@@ -324,6 +334,8 @@ export async function addShiftAction(
         source: "manual_admin",
         manual: true,
         reason: parsed.data.reason,
+        // Cascade D1 location scope — present when admin set a location.
+        ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
         // Availability-override context — present only when the admin
         // assigned a profile flagged `unavailable` / `absent` on the
         // shift date. Lands in `activity_trail.data` via the telemetry
