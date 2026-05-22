@@ -46,9 +46,11 @@ import {
   FileText,
   AlertTriangle,
   MessageSquare,
+  ClipboardList,
   ChevronRight,
   X,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { z } from "zod";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { supabase } from "@/lib/supabase";
@@ -57,7 +59,7 @@ import { useTheme, withOpacity } from "@/theme";
 
 // ─── Type definitions ────────────────────────────────────────────────────────
 
-type AddType = "shift" | "task" | "booking" | "deviation" | "note";
+type AddType = "shift" | "task" | "booking" | "deviation" | "note" | "routine";
 
 export type AddSheetHandle = {
   open: () => void;
@@ -159,6 +161,13 @@ function useTypeOptions(): TypeOption[] {
         sub: "Privat · til deg selv",
         bffRoute: `${webApiUrl}/api/mobile/day-info`,
         Icon: MessageSquare,
+      },
+      {
+        k: "routine",
+        label: "Ny rutine",
+        sub: "Fra bilde eller manuelt",
+        bffRoute: "", // navigates to the create form instead of inline submit
+        Icon: ClipboardList,
       },
     ],
     [webApiUrl],
@@ -594,9 +603,24 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
   ref,
 ) {
   const theme = useTheme();
+  const router = useRouter();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["50%", "85%"], []);
   const typeOptions = useTypeOptions();
+
+  // "Ny rutine" navigates to its own create form (steps editor + photo prefill)
+  // instead of an inline sheet form. All other types open an inline form.
+  const handleSelectType = useCallback(
+    (k: AddType) => {
+      if (k === "routine") {
+        sheetRef.current?.close();
+        router.push("/routine-review");
+        return;
+      }
+      setActiveType(k);
+    },
+    [router],
+  );
 
   const [activeType, setActiveType] = useState<AddType | null>(null);
   const [pending, setPending] = useState(false);
@@ -692,7 +716,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               return (
                 <Pressable
                   key={opt.k}
-                  onPress={() => setActiveType(opt.k)}
+                  onPress={() => handleSelectType(opt.k)}
                   style={[
                     sheetStyles.optionRow,
                     {
@@ -785,6 +809,8 @@ function getTypeAccentColor(type: AddType, theme: ReturnType<typeof useTheme>): 
       return theme.colors.destructive;
     case "note":
       return theme.colors.mutedForeground;
+    case "routine":
+      return theme.colors.primary;
   }
 }
 
