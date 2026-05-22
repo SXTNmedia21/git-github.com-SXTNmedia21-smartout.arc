@@ -30,7 +30,7 @@ hidden preheader, mobile `@media`, bulletproof `<td>`-bg buttons).
 
 ## Link format (ADR-0389, ADR-0390)
 
-### Web (default — `{{ .RedirectTo }}` is empty)
+### Web (default — `{{ .RedirectTo }}` defaults to `site_url`, ≠ bridge URL)
 
 Email links point at our server-side callback, which verifies `token_hash`
 (robust, cross-device — no PKCE `code_verifier` cookie):
@@ -42,11 +42,15 @@ Email links point at our server-side callback, which verifies `token_hash`
 `{{ .SiteURL }}` must be `https://app.smartout.ai` (dashboard → Auth → URL
 Configuration → Site URL).
 
-### Mobile (when `{{ .RedirectTo }}` is set)
+### Mobile (when `{{ .RedirectTo }}` equals the bridge URL)
 
 When `resetPasswordForEmail` is called with
-`redirectTo: "https://app.smartout.ai/m/update-password"`, GoTrue populates
-`{{ .RedirectTo }}`. The `reset-password` template then links to:
+`redirectTo: "https://app.smartout.ai/m/update-password"` AND that exact URL is
+allow-listed, `{{ .RedirectTo }}` holds it and the template's
+`{{ if eq .RedirectTo `https://app.smartout.ai/m/update-password` }}` branch
+fires. (`.RedirectTo`is never empty — GoTrue defaults it to`site_url`— so the
+template matches on exact equality, not presence.) The`reset-password` template
+then links to:
 
 ```
 {{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery
@@ -60,11 +64,13 @@ web route `apps/web/src/app/m/update-password/page.tsx` renders, reads the query
 params, and verifies server-side — same mechanism as the web track.
 
 **Operator requirement (ADR-0390):** The Supabase dashboard
-→ Authentication → URL Configuration → Redirect URLs allow-list MUST include
-`https://app.smartout.ai/m/**` (or the exact path
-`https://app.smartout.ai/m/update-password`). GoTrue rejects any `redirectTo`
-that is not in the allow-list; the email will fall through to the web-path `{{ else }}`
-branch if `redirectTo` is blocked or absent.
+→ Authentication → URL Configuration → Redirect URLs allow-list MUST include the
+EXACT path `https://app.smartout.ai/m/update-password`. ⚠️ The host-glob
+`https://*.smartout.ai` does NOT cover the `/m/update-password` path (verified
+2026-05-22) — `*` matches the host only. GoTrue rejects any `redirectTo` not in
+the allow-list and defaults `{{ .RedirectTo }}` to `site_url`; the email then
+falls through to the web-path `{{ else }}` branch (safe — a working web reset,
+not a broken link).
 
 ## Two hard contracts (do not break)
 

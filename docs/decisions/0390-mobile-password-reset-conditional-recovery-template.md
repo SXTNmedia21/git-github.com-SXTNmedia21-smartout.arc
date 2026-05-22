@@ -49,10 +49,14 @@ route mobile resets to the bridge URL without duplicating or forking the templat
   web and mobile.
 - One-mechanism-per-email contract (ADR-0389 §3.3) — link-only, no `{{ .Token }}`
   code in the recovery email.
-- GoTrue populates `{{ .RedirectTo }}` only when the caller passes a `redirectTo`
-  value that is in the Supabase Redirect URLs allow-list. When `redirectTo` is
-  absent or blocked, `{{ .RedirectTo }}` is empty string — a falsy value in Go
-  templates.
+- GoTrue ALWAYS populates `{{ .RedirectTo }}`: when the caller passes a
+  `redirectTo` that is in the Supabase Redirect URLs allow-list, `{{ .RedirectTo }}`
+  is that value; when `redirectTo` is absent OR blocked by the allow-list, GoTrue
+  **defaults `{{ .RedirectTo }}` to `site_url`** — it is never empty. (Verified
+  2026-05-22 via `admin/generate_link`; see Verification.) Therefore the template
+  must branch on **exact equality** to the bridge URL, NOT on truthiness — a
+  `{{ if .RedirectTo }}` truthiness test is always true and would break the web
+  track.
 - Web track must keep its audited `/api/auth/callback` path (ADR-0389 §3.1)
   — the open-redirect guard (`ALLOWED_OTP_TYPES` allow-list) must not be
   bypassed.
@@ -63,10 +67,13 @@ route mobile resets to the bridge URL without duplicating or forking the templat
 
 ## Considered Options
 
-1. **Strategy A — Go-template conditional on `{{ .RedirectTo }}`** (chosen)
-   Single template; one `{{ if .RedirectTo }}…{{ else }}…{{ end }}` block wraps
-   only the href. Web call (no `redirectTo`) uses the existing callback path;
-   mobile call (with `redirectTo`) uses the bridge URL.
+1. **Strategy A — Go-template conditional on exact-match of `{{ .RedirectTo }}`**
+   (chosen) Single template; one
+   `{{ if eq .RedirectTo "https://app.smartout.ai/m/update-password" }}…{{ else }}…{{ end }}`
+   block wraps only the href. Web call (`.RedirectTo` defaults to `site_url`, ≠
+   bridge URL) uses the existing callback path; mobile call (`.RedirectTo` = bridge
+   URL) uses the bridge URL. (An earlier `{{ if .RedirectTo }}` truthiness variant
+   was rejected after verification proved `.RedirectTo` is never empty.)
 
 2. **Strategy B — Two separate templates (mobile + web)** — not a GoTrue option.
    GoTrue has one "Reset Password" slot per project. Not available without a
@@ -90,8 +97,8 @@ route mobile resets to the bridge URL without duplicating or forking the templat
 
 ## Decision Outcome
 
-Chosen option: **Strategy A — conditional `{{ if .RedirectTo }}`**, because it
-requires a single 3-line change in the template, touches no `apps/web/` or
+Chosen option: **Strategy A — conditional `{{ if eq .RedirectTo "<bridge-url>" }}`**,
+because it requires a single 3-line change in the template, touches no `apps/web/` or
 `apps/mobile/` code, preserves both the audited `/api/auth/callback` path for
 web and the Universal-Link bridge path for mobile, and respects the
 one-mechanism-per-email contract.
@@ -103,15 +110,17 @@ one-mechanism-per-email contract.
 <a href="{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/update-password" …>
 ```
 
-**After:**
+**After:** (Go string literal uses backticks — a `"` would close the HTML `href="…"`
+attribute; the template engine parses Go-template actions before HTML.)
 ```html
-<a href="{{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery{{ else }}{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/update-password{{ end }}" …>
+<a href="{{ if eq .RedirectTo `https://app.smartout.ai/m/update-password` }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery{{ else }}{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/update-password{{ end }}" …>
 ```
 
 ### Flow — web track (redirectTo absent)
 
 1. `resetPasswordForEmail(email)` — no `redirectTo`.
-2. GoTrue renders template with empty `{{ .RedirectTo }}` → `{{ else }}` branch.
+2. GoTrue defaults `{{ .RedirectTo }}` to `site_url` (`https://app.smartout.ai`),
+   which ≠ the bridge URL → `eq` is false → `{{ else }}` branch.
 3. Email link → `https://app.smartout.ai/api/auth/callback?token_hash=…&type=recovery&next=/update-password`.
 4. `/api/auth/callback` calls `verifyOtp({token_hash, type:"recovery"})` server-side.
 5. User lands at `/update-password` in the browser. No change from pre-ADR behaviour.
@@ -120,9 +129,10 @@ one-mechanism-per-email contract.
 
 1. `resetPasswordForEmail(email, { redirectTo: "https://app.smartout.ai/m/update-password" })`.
 2. GoTrue validates `redirectTo` against the Redirect URLs allow-list (must include
-   `https://app.smartout.ai/m/**` or the exact path — see Operator Requirement below).
-   If rejected, GoTrue drops the `redirectTo` → email falls through to web `{{ else }}`
-   branch (safe degradation).
+   the EXACT path `https://app.smartout.ai/m/update-password` — see Operator
+   Requirement below). If rejected, GoTrue defaults `{{ .RedirectTo }}` to `site_url`
+   → `eq` is false → email falls through to web `{{ else }}` branch (safe degradation
+   to a working web reset, not a broken link).
 3. GoTrue renders template with `{{ .RedirectTo }}` = `https://app.smartout.ai/m/update-password`
    → `{{ if }}` branch.
 4. Email link → `https://app.smartout.ai/m/update-password?token_hash=…&type=recovery`.
@@ -136,40 +146,70 @@ one-mechanism-per-email contract.
 
 ### Fallback guarantee
 
-If `redirectTo` is empty or blocked by GoTrue's allow-list, `{{ .RedirectTo }}`
-is falsy → template falls back to the web `/api/auth/callback` path automatically.
-No broken emails regardless of call site.
+If `redirectTo` is absent or blocked by GoTrue's allow-list, `{{ .RedirectTo }}`
+defaults to `site_url`, which ≠ the bridge URL → `eq` is false → template falls
+back to the web `/api/auth/callback` path automatically. No broken emails
+regardless of call site. (This is why exact-match is safer than truthiness: a
+missing allow-list entry degrades to a working web reset, never a broken
+`site_url?token_hash=…` link.)
 
 ## Operator Requirement
 
 **Supabase dashboard → Authentication → URL Configuration → Redirect URLs**
-must include:
+must include the EXACT path:
 
 ```
-https://app.smartout.ai/m/**
+https://app.smartout.ai/m/update-password
 ```
 
-(A wildcard entry covers all current and future `/m/` bridge paths, including
-`/m/update-password`.) Without this entry GoTrue rejects the mobile `redirectTo`
-silently — the email still delivers and lands on the web track, but the
-native-app landing is lost.
+⚠️ The host-glob `https://*.smartout.ai` does NOT cover this — verified
+2026-05-22: `*` matches the host only, not the `/m/update-password` path, so a
+host-glob entry leaves the mobile `redirectTo` rejected → `.RedirectTo` defaults
+to `site_url`. Use the exact path (proven), or a path-spanning glob
+`https://app.smartout.ai/m/**` only if your GoTrue version's matcher supports
+`**` across path segments. Without a covering entry, GoTrue rejects the mobile
+`redirectTo` silently — the email still delivers and lands on the web track, but
+the native-app landing is lost.
+
+Local parity: the same exact URL was added to `supabase/config.toml`
+`additional_redirect_urls` so the mobile branch is testable on the local stack.
 
 This is an operator step (dashboard setting, not code). It must be applied to
 **production** before mobile password-reset is exposed to users.
 
-## Verification Gate
+## Verification (performed 2026-05-22)
 
-Local verification via Inbucket (Supabase local):
+Split into the two independent halves; both passed.
 
-1. `npx supabase start` (local stack with Inbucket).
-2. **Web test:** call `resetPasswordForEmail(email)` with no `redirectTo`;
-   read email in Inbucket (`http://localhost:54324`); confirm href contains
-   `/api/auth/callback?token_hash=…&type=recovery&next=/update-password`.
-3. **Mobile test:** call `resetPasswordForEmail(email, { redirectTo: "https://app.smartout.ai/m/update-password" })`;
-   read email in Inbucket; confirm href is
-   `https://app.smartout.ai/m/update-password?token_hash=…&type=recovery`.
-4. Confirm `{{ if … }}{{ else }}{{ end }}` block is balanced (no dangling
-   template tags) by checking rendered output contains exactly one `href=`.
+**Data side — does GoTrue populate `.RedirectTo` as assumed?** Driven against the
+running local GoTrue via `POST /auth/v1/admin/generate_link` (response
+`redirect_to` == the template's `.RedirectTo`):
+
+- `{type:recovery}`, no `redirect_to` → `redirect_to = site_url` (NOT empty).
+  → disproved the original `{{ if .RedirectTo }}` truthiness design.
+- `{type:recovery, redirect_to:"https://app.smartout.ai/m/update-password"}` with
+  host-glob-only allow-list → rejected, defaulted to `site_url`. → drove the
+  exact-path allow-list requirement.
+- Allow-listed URL (`…/onboarding`) → echoed verbatim; `https://x.smartout.ai`
+  (matches host-glob) → echoed. → confirmed matcher is allow-list, host-glob
+  excludes paths.
+
+**Template side — does the `eq` conditional parse + branch correctly?** Rendered
+the exact href through Go `html/template` (GoTrue's body engine), fed the real
+`.RedirectTo` values:
+
+```
+WEB    (.RedirectTo=site_url)        → …/api/auth/callback?token_hash=HASH&type=recovery&next=/update-password
+MOBILE (.RedirectTo=bridge URL)      → https://app.smartout.ai/m/update-password?token_hash=HASH&type=recovery
+```
+
+Backtick `eq` literal parses; `{{ if }}{{ else }}{{ end }}` balanced; web branch
+output is byte-identical to the pre-ADR (ADR-0389) working link → existing web
+reset is not regressed.
+
+**Final gate (operator):** after applying the template to the prod dashboard +
+adding the exact Redirect URL, send a real reset from the mobile app and confirm
+the link opens the app at `/m/update-password`.
 
 ## Rules & Consequences
 
