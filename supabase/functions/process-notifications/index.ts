@@ -437,7 +437,7 @@ async function deliverToChannels(
       const { data: userRow } = await supabase
         .from("user_identity")
         .select("email")
-        .eq("id", profileUserId)
+        .eq("user_id", profileUserId)
         .single();
 
       if (userRow?.email) {
