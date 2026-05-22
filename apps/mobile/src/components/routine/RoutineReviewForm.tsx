@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { X, Camera, Plus } from "lucide-react-native";
 import { createStyles, useTheme } from "@/theme";
 import { Input } from "@/components/ui/Input";
