@@ -4,24 +4,33 @@ status: draft
 updated: 2026-05-22
 created: 2026-05-22
 module: procedure-engine
-tags: [procedure-engine, botsson, multimodal, vision, brownfield, routine, mobile]
+tags: [procedure-engine, botsson, multimodal, vision, brownfield, routine, mobile, mobile-first]
 ---
 
 # Procedure Engine 2B — Botsson Bilde→Rutine
 
 > Sub-spec of the Phase 2 umbrella (`docs/superpowers/specs/2026-05-22-procedure-engine-design.md` §6).
 > Builds on Phase 1 (`docs/HANDOFF-procedure-engine-phase1.md`, ADR-0391).
+> **Mobile-first.** V1 ships on the mobile app; web is a follow-up cut (§13).
 
 ## 1. Goal
 
-A manager photographs an existing checklist (a printed A4 of opening tasks, a
-whiteboard) and Botsson turns it into a working **routine** — extracted by
-vision, reviewed by the human, committed atomically. The routine and its steps
-can be born **ungoverned** (no protocol attached); governance is a later nudge,
-never a precondition.
+A manager standing at the wall photographs an existing checklist (a printed A4
+of opening tasks, a whiteboard) and Botsson turns it into a working **routine**
+— extracted by vision, reviewed by the human, committed atomically. The routine
+and its steps can be born **ungoverned** (no protocol attached); governance is a
+later nudge, never a precondition.
 
 One sentence: **photo → vision draft → human review → atomic commit → working,
 provenance-stamped routine, governed-later.**
+
+**Why mobile-first:** the natural capture moment is at the physical location,
+phone in hand. The mobile AI surface already exists — long-press the center FAB
+opens `BotssonSheet` (text + voice). Transport (`useEmmaChat` → `/api/emma/chat`),
+Storage upload pattern (`useSendMessage`), and the ADR-0134 telemetry helper
+(`getProfileContext`) are all live. Net-new work is concentrated: an image
+button in the sheet, BFF image-forwarding, two capability tools, and the review
+card. Web reuses the same backend later.
 
 ## 2. Core Principle — Brownfield-First
 
@@ -45,15 +54,18 @@ competence, not its precondition.**
 ## 3. Architecture — The Pipe (L1 → L4)
 
 ```
-L1  Capture
-      web:    file-picker + image preview in BotssonChat.tsx
-      mobile: camera capture (native), routes through web BFF (ADR-0132)
+L1  Capture  (MOBILE, V1)
+      long-press center FAB (AIFab, ≥500ms) → BotssonSheet opens
+        │  new image button in text-mode input row
+        │  → expo-image-picker (library) OR expo-camera (capture)
         │  image bytes
         ▼
-L2  BFF  POST /api/emma/chat
-        │  upload image → Supabase Storage (private bucket, RLS)
-        │  pass { storage_path, intent: photo→routine } to stage-engine
-        │  (signed path, NOT base64 bloat through every hop)
+      upload via the useSendMessage Storage pattern
+        │  blob → Supabase Storage (own private bucket, RLS) → storage_path
+        ▼
+L2  BFF  POST /api/emma/chat   (via useEmmaChat, channel pinned 'chat' server-side)
+        │  carries { storage_path, intent: photo→routine } (NOT base64 — path only)
+        │  forwards to stage-engine
         ▼
 L3  Stage-engine  agent-router
         │  intent classifier → routine capability → extract_from_image tool
@@ -65,8 +77,10 @@ L4  routine.extract_from_image   (READ-ONLY, zero writes)
         │  → strict Zod draft:
         │    { routine_name, trigger_guess, location_hint, steps[] }
         ▼
-    DRAFT returned to user
-        │  rendered as editable review card (web Sheet / mobile native)
+    DRAFT returned to BotssonSheet
+        │  rendered as a compact summary card in the transcript
+        │  ("Fant 7 oppgaver — Åpningsrutine")
+        │  tap "Gjennomgå og opprett" → full review screen (stacked-sheet pattern)
         │  user edits: routine_name, trigger, location (dropdown, AI-prefilled
         │  if location_hint matches existing; +create option), teams,
         │  step list, optional attach-to-protocol
@@ -165,24 +179,48 @@ new `location_id`, then proceeds to `create_from_draft`.
 
 ## 6. Surfaces
 
-### Web (`apps/web`)
-- `BotssonChat.tsx`: image file-picker + preview chip next to the textarea.
-- Review card: shadcn `Sheet` (Nordic Split tokens, no hardcoded colors). Fields
-  per §3. Editable step list (add/remove/reorder text). Location dropdown
-  (existing locations; AI-prefilled when `location_hint` fuzzy-matches; "+ Ny
-  lokasjon" inline). Optional protocol select (skip = ungoverned).
+### Mobile (`apps/mobile`) — V1, primary surface
 
-### Mobile (`apps/mobile`)
-- Camera capture → upload via BFF (ADR-0132, thin client).
-- Native review card mirrors web fields.
-- **Full flow (capture + review + commit) on mobile** — authoring a routine is a
-  compose verb, which ADR-0133 reserves for web. This is sanctioned by the
-  **ADR-0133 carve-out (ADR-0394):** AI-mediated capture-to-author from camera
-  evidence, with explicit C4 human confirmation, is a mobile cascade extension
-  (sibling to biometric C4 confirmation, ADR-0136 camera evidence). The human
-  confirms; Botsson is the author.
-- Telemetry: `getProfileContext()` resolves non-null `workspace_id` + `actor_id`
-  before any `emit()` (ADR-0134).
+Existing pieces reused as-is:
+- **Entry:** `AIFab.tsx` long-press (≥500ms) → opens `BotssonSheet` (no change to
+  the gesture; the photo flow is reached from inside the sheet).
+- **Transport:** `useEmmaChat` → `/api/emma/chat` (channel pinned 'chat'
+  server-side, ADR-0078).
+- **Storage:** the `useSendMessage` upload pattern (blob → Supabase Storage,
+  signed URL) — copied for a dedicated routine-source bucket (provenance
+  separation from `chat-media`).
+- **Telemetry:** `getProfileContext()` resolves non-null `workspace_id` +
+  `actor_id` before any `emit()` (ADR-0134).
+- **Provider:** `BotssonProvider` / `useBotsson`.
+
+Net-new mobile build:
+1. **Image button** in `BotssonSheet` text-mode input row → `expo-image-picker`
+   (library) or `expo-camera` (capture). No dedicated capture screen needed —
+   deps are installed; the picker covers both.
+2. **Draft summary card** in the sheet transcript (compact: routine name + task
+   count + "Gjennomgå og opprett").
+3. **Full review screen** (stacked-sheet pattern, like AddSheet): editable step
+   list (add/remove/reorder text), location dropdown (existing locations;
+   AI-prefilled on `location_hint` fuzzy-match; "+ Ny lokasjon" inline via
+   onboarding-capability delegation), team multi-select, optional protocol
+   select (skip = ungoverned). Nordic Split native tokens.
+4. **Confirm** = the C4 human-in-the-loop act.
+
+**Full flow (capture + review + commit) on mobile** — authoring a routine is a
+compose verb, which ADR-0133 reserves for web. Sanctioned by the **ADR-0133
+carve-out (ADR-0394):** AI-mediated capture-to-author from camera evidence, with
+explicit C4 human confirmation, is a mobile cascade extension (sibling to
+biometric C4 confirmation + ADR-0136 camera evidence). The human confirms;
+Botsson is the author.
+
+### Web (`apps/web`) — follow-up cut (V1.1)
+
+Same backend (RPC + tools + BFF image-forward), different L1:
+- `BotssonChat.tsx`: image file-picker + preview chip next to the textarea.
+- Review card: shadcn `Sheet` (Nordic Split tokens). Same fields as mobile.
+
+Web is deferred so V1 ships one surface end-to-end. Backend is built
+surface-agnostic so the web cut is pure L1 composition.
 
 ## 7. Provenance & Governance
 
@@ -217,15 +255,22 @@ new `location_id`, then proceeds to `create_from_draft`.
 
 ## 10. Testing
 
-- **Unit:** `DraftSchema` validation (good/malformed vision output); review-card
-  field mapping; `create_from_draft` arg → RPC contract.
+The backend (RPC + extract tool + commit tool) is surface-independent and
+fully testable without a device — that carries V1 confidence even though the
+primary surface is mobile.
+
+- **Unit:** `DraftSchema` validation (good/malformed vision output);
+  `create_from_draft` arg → RPC contract; review-card field mapping (RN).
 - **SQL:** `fn_create_routine_from_draft` atomicity (force mid-failure → assert
   zero rows); `governance_status` default + backfill; nullable `protocol_id`
   accepted; provenance columns stamped.
-- **E2E (Playwright, web):** upload fixture image → review card renders draft →
-  edit → confirm → assert routine + procedure + N steps + hook in DB with
-  `generated_by='agent'` + `governance_status='unassigned'`.
-- **Mobile:** Detox (deferred, like Phase 1 J1) — camera capture mocked.
+- **Tool integration:** `extract_from_image` against fixture images (committed
+  test images of checklists) → assert draft shape, no DB writes.
+- **Mobile flow:** Detox (camera/picker mocked) for happy path; plus a
+  `docs/journeys/MANUAL-TEST-procedure-engine-2b.md` for the on-device capture →
+  review → commit walk. Detox depth can be a fast-follow if the harness lags
+  (mirrors Phase 1 J1 mobile debt) — but the manual test cases are V1.
+- **E2E (Playwright, web):** deferred with the web cut (V1.1).
 
 ## 11. ADRs
 
@@ -239,27 +284,43 @@ new `location_id`, then proceeds to `create_from_draft`.
 
 | Journey | Role | Surface |
 |---------|------|---------|
-| J1 Manager photographs checklist on web → reviews → creates ungoverned routine | manager | web |
-| J2 Manager captures checklist on mobile camera → reviews → commits | manager | mobile |
+| J1 Manager long-presses FAB → picks/captures checklist photo → draft card appears | manager | mobile |
+| J2 Manager opens review screen → edits steps/location/teams → confirms → routine created | manager | mobile |
 | J3 Vision extract produces draft (no writes) + atomic commit RPC | system | backend |
-| J4 Created routine carries agent provenance + governance_status='unassigned' | system | backend |
-| J5 Location created inline via onboarding-capability delegation | manager | web/mobile |
+| J4 Created routine carries agent provenance + governance_status='unassigned' (ungoverned) | system | backend |
+| J5 Location created inline via onboarding-capability delegation | manager | mobile |
+
+(Web equivalents of J1/J2 ship with the V1.1 web cut.)
 
 ## 13. Out of Scope (V1)
 
+- **Web surface** — follow-up cut (V1.1); backend built surface-agnostic so web
+  is pure L1 composition.
 - Nudge-to-govern surface (attach ungoverned routine to a protocol later).
 - Auto-creating policy/protocol from the photo (governance objects stay
   human-owned).
 - Sesjonsplanlegger admin-canvas (the *other* Phase 2 subsystem, 2A — separate
   spec/plan).
 - Multi-image / multi-page checklist stitching.
+- Dedicated full-screen capture flow (picker + camera from inside the sheet
+  covers V1).
 
 ## 14. Dependencies on Existing Code
 
+Backend / shared:
 - Phase 1 routine capability: `create`, `assign_to_location`, `add_step`,
   `routine_team`, provenance triple (`packages/ai/src/capabilities/routine/`).
 - `onboarding` capability: location/department create tool (delegation target).
 - `agent-router.ts` message builder (text-only — left untouched; vision is
   tool-scoped).
-- `/api/emma/chat` route (extend to stash image + forward storage_path).
+- `/api/emma/chat` route (extend to forward `storage_path`).
 - `packages/telemetry/src/registry.ts` (new events).
+
+Mobile (`apps/mobile`):
+- `src/components/navigation/AIFab.tsx` (long-press entry — unchanged).
+- `src/components/ai/BotssonSheet.tsx` (add image button + draft summary card).
+- `src/providers/botsson-provider.tsx` / `useBotsson` (session context).
+- `src/hooks/use-emma-chat.ts` (forward `storage_path`).
+- `src/hooks/mutations/use-send-message.ts` (Storage-upload pattern to copy).
+- `src/lib/profile-context.ts` `getProfileContext` (ADR-0134 telemetry gate).
+- `expo-image-picker` + `expo-camera` (installed).
