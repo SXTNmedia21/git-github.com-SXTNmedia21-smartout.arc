@@ -23,7 +23,7 @@ Deno.test("sendOneSignalPush posts external_id alias + headings/contents + url",
     externalIds: ["profile-1"],
     title: "Hei",
     body: "Du har en ny vakt",
-    url: "https://m.smartout.ai/dashboard/shifts",
+    url: "https://mobile.smartout.ai/dashboard/shifts",
     data: { event: "shift.published" },
   });
 
@@ -36,7 +36,7 @@ Deno.test("sendOneSignalPush posts external_id alias + headings/contents + url",
   assertEquals(sentBody.include_aliases.external_id, ["profile-1"]);
   assertEquals(sentBody.headings.en, "Hei");
   assertEquals(sentBody.contents.en, "Du har en ny vakt");
-  assertEquals(sentBody.url, "https://m.smartout.ai/dashboard/shifts");
+  assertEquals(sentBody.url, "https://mobile.smartout.ai/dashboard/shifts");
   assertEquals(
     (captured!.init.headers as Record<string, string>)["Authorization"],
     "Basic key-abc",
