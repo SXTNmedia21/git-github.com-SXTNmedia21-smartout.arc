@@ -23,9 +23,9 @@ Built parallel-team across 3 dependency waves, committed direct to `development`
 | Journey | Status | Verification | E2E test |
 |---------|--------|--------------|----------|
 | J1 Employee clock-in + Min dag | verified | data-chain + unit; live HTTP not fired | none — debt |
-| J2 Admin creates routine | verified | SQL pipe-walk + 31 unit tests | none — debt |
-| J3 Routine→location→cron per-step tasks (G6 fix) | verified | SQL pipe-walk 3/3/3 + 12 cron tests | none — debt |
-| J4 Manager sets shift location | verified | SQL pipe-walk (propagation + day_line link) | none — debt |
+| J2 Admin creates routine | verified | SQL pipe-walk + 31 unit tests | apps/e2e/procedure-engine/journey-2-create-routine.spec.ts (UI env-blocked) |
+| J3 Routine→location→cron per-step tasks (G6 fix) | verified | SQL pipe-walk 3/3/3 + 12 cron tests | none — backend cron |
+| J4 Manager sets shift location | verified | SQL pipe-walk (propagation + day_line link) | apps/e2e/procedure-engine/journey-4-shift-location.spec.ts (DB-contract green) |
 | J5 Notify overdue + assigned | verified | 18 cron source tests; live tick not fired | none — debt |
 
 Full journeys: `docs/journeys/JOURNEY-procedure-engine-phase1.md`.
@@ -53,8 +53,8 @@ Registered: ADR-0391 in `docs/decisions/0000-decision-log.md`.
 
 ## Known Issues / Debt
 
-- **E2E tests:** none for any journey — all verification was SQL pipe-walk + unit. J1 (mobile clock-in HTTP) and J5 (pg_cron overdue tick) never fired against running surfaces.
-- **`web` typecheck RED** (pre-existing payroll debt) — full `pnpm turbo typecheck` will not be clean until that's fixed; procedure-engine files themselves are clean.
+- **E2E:** J2 + J4 specs written (`apps/e2e/procedure-engine/`). J4 DB-contract tests pass; UI-render tests typecheck-clean but blocked by WSL2 dev-server instability (same as hms-drift/timeline-templates). J1 mobile = Detox (not Playwright); J3/J5 = backend cron (unit/SQL-covered).
+- **`web` typecheck — RESOLVED 2026-05-22** (commit `daee065c3`): the "payroll debt" was stale `database.types.ts` from the Wave-0 regen against a behind-DB (gap migrations had not added profile PII columns locally). Post `supabase db reset` + regen restored profile `personal_number/bank_account/address_line_1/postal_code`. **Full-repo `pnpm turbo typecheck` now green (51/51).**
 - **Routine create UI** uses plain `useState` (no react-hook-form) per existing ProcedureBuilder pattern — fine, but no client-side zod validation beyond the action's schema.
 - **`source_reference` FK-less** — dangling refs not DB-enforced; consumers tolerate.
 
