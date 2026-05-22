@@ -1,11 +1,22 @@
 ---
 title: "Journey — Mobile password reset (native /m/ bridge)"
-status: draft
+feature: mobile-reset-token-hash-bridge
+status: verified
+verified_at: 2026-05-22
 updated: 2026-05-22
 created: 2026-05-22
 module: auth
 tags: [journey, auth, mobile, reset-password, token_hash]
 ---
+
+> **Verification (2026-05-22):** Web regression journey fully runtime-driven
+> (`/m/update-password` → 307 `/login?error=Invalid_link` on bad token; web else
+> branch byte-identical to ADR-0389 working link). Mobile native journey verified
+> to max extent pre-publish: template routing rendered correct (Go `html/template`
+> + `generate_link`), web fallback driven, native screen typecheck+eslint clean.
+> Device end-to-end E2E is gated on app-store publish (ADR-0368 native screens are
+> bridge-only pre-publish) and the operator prod step — tracked as debt in
+> `docs/HANDOFF-mobile-reset-token-hash-bridge.md`.
 
 # Journeys — Mobile password reset via /m/ bridge
 
