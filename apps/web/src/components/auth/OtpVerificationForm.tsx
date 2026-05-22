@@ -18,6 +18,17 @@ interface OtpVerificationFormProps {
   onVerified: () => void;
   workspaceId?: string;
   actorId?: string;
+  /**
+   * Called when a code is entered but no email is known yet (code-first login
+   * screen). The parent reveals its email-entry / "send new code" affordance.
+   */
+  onNeedEmail?: () => void;
+  /**
+   * Show the built-in resend countdown button. Login owns its own "Send ny kode"
+   * affordance (which re-collects the email), so it passes false to avoid two
+   * competing resend controls.
+   */
+  showResend?: boolean;
 }
 
 // GoTrue verifies an emailed code against a token of a SPECIFIC type. A login /
@@ -38,6 +49,8 @@ export function OtpVerificationForm({
   onVerified,
   workspaceId,
   actorId,
+  onNeedEmail,
+  showResend = true,
 }: OtpVerificationFormProps) {
   const { t } = useTranslation("auth");
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
@@ -120,6 +133,17 @@ export function OtpVerificationForm({
   );
 
   async function verifyCode(code: string) {
+    // Code-first login: the digit field is shown before any email is known.
+    // verifyOtp requires the email the code was issued to — without it GoTrue
+    // can't match the token. Guide the user to request a code instead of
+    // firing a guaranteed-failing verify.
+    if (!email) {
+      setError(t("otp.error.needEmail"));
+      setDigits(Array(6).fill(""));
+      onNeedEmail?.();
+      return;
+    }
+
     setIsVerifying(true);
     setAttempts((a) => a + 1);
     const duration = Date.now() - startTimeRef.current;
@@ -224,7 +248,9 @@ export function OtpVerificationForm({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <p className="text-muted-foreground text-sm">{t("otp.subtitle", { email: maskedEmail })}</p>
+      {email && (
+        <p className="text-muted-foreground text-sm">{t("otp.subtitle", { email: maskedEmail })}</p>
+      )}
 
       <div
         role="group"
@@ -275,18 +301,19 @@ export function OtpVerificationForm({
         )}
       </AnimatePresence>
 
-      {canResend ? (
-        <button
-          onClick={handleResend}
-          className="text-muted-foreground hover:text-foreground text-sm underline"
-        >
-          {t("otp.resend")}
-        </button>
-      ) : (
-        <p className="text-muted-foreground font-mono text-sm tabular-nums">
-          {t("otp.resendCountdown", { seconds: resendCountdown })}
-        </p>
-      )}
+      {showResend &&
+        (canResend ? (
+          <button
+            onClick={handleResend}
+            className="text-muted-foreground hover:text-foreground text-sm underline"
+          >
+            {t("otp.resend")}
+          </button>
+        ) : (
+          <p className="text-muted-foreground font-mono text-sm tabular-nums">
+            {t("otp.resendCountdown", { seconds: resendCountdown })}
+          </p>
+        ))}
     </div>
   );
 }
