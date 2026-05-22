@@ -99,6 +99,23 @@
     --color-phase-service: oklch(0.97 0.02 80);
     --color-phase-winddown: oklch(0.93 0.05 30);
 
+    /* Task Manager — lifecycle status (north-star prototype 2026-05-22) */
+    --task-status-todo: oklch(0.55 0.03 257);
+    --task-status-inprogress: oklch(0.55 0.21 264);
+    --task-status-awaiting: oklch(0.65 0.23 303);
+    --task-status-overdue: oklch(0.58 0.22 27);
+    --task-status-done: oklch(0.7 0.15 162);
+
+    /* Task Manager — origin badge (fg + bg pair, light mode) */
+    --task-origin-session-fg: oklch(0.55 0.21 264);
+    --task-origin-session-bg: oklch(0.93 0.04 264);
+    --task-origin-adhoc-fg: oklch(0.53 0.24 293);
+    --task-origin-adhoc-bg: oklch(0.94 0.03 293);
+    --task-origin-protocol-fg: oklch(0.48 0.1 178);
+    --task-origin-protocol-bg: oklch(0.95 0.05 174);
+    --task-origin-deviation-fg: oklch(0.58 0.22 27);
+    --task-origin-deviation-bg: oklch(0.94 0.03 17);
+
     /* Komm — Communication semantic colors */
     --komm-announcement: oklch(0.75 0.12 55);
     --komm-brief: oklch(0.6 0.15 250);
@@ -329,6 +346,12 @@
     --priority-high: oklch(0.7 0.2 40);
     --priority-normal: oklch(0.7 0.15 250);
     --priority-low: oklch(0.7 0.01 60);
+
+    /* Task Manager — status fg theme-agnostic; origin bg darkened — Dark */
+    --task-origin-session-bg: oklch(0.28 0.06 264);
+    --task-origin-adhoc-bg: oklch(0.28 0.07 293);
+    --task-origin-protocol-bg: oklch(0.27 0.05 178);
+    --task-origin-deviation-bg: oklch(0.28 0.06 17);
 
     /* Scrollbar — Dark */
     --scrollbar-thumb: oklch(0.35 0 0);
