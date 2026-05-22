@@ -559,6 +559,11 @@ verify_jwt = false
 [functions.session-watchdog-demoter]
 verify_jwt = false
 
+# Cron-only: transitions session_task status → 'overdue' + notifies assignee/managers.
+# Auth via WATCHDOG_CRON_SECRET bearer token. No user JWT. ADR-0298.
+[functions.session-task-overdue-cron]
+verify_jwt = false
+
 [functions.session-hook-executor]
 verify_jwt = false
 

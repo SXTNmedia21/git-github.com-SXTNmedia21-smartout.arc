@@ -1212,6 +1212,36 @@ export interface SessionTaskAssigned extends BaseEvent {
 }
 
 /**
+ * session_task.overdue — A session_task crossed its due_at threshold without
+ * being completed. Emitted by `session-task-overdue-cron` (Deno Edge Function)
+ * when it flips status → 'overdue'. One emit per affected task per run.
+ *
+ * Destinations: activity_trail (audit) + engine_event (workflow reactions e.g.
+ * auto-escalate or re-assign) + posthog (analytics: overdue rate per workspace).
+ *
+ * actor_id: SYSTEM_ACTOR_ID (00000000-0000-0000-0000-000000000001) — cron actor.
+ * workspace_id: non-null (all session_task rows are workspace-scoped).
+ */
+export interface SessionTaskOverdue extends BaseEvent {
+  event: "session_task.overdue";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      /** Profile that was assigned to the task (null if unassigned). */
+      assigned_to: string | null;
+      /** ISO-8601 original due_at from session_task. */
+      due_at: string;
+      /** Minutes elapsed past the due_at threshold. */
+      elapsed_minutes: number;
+      /** department_session_id the task belongs to. */
+      department_session_id: string;
+      /** Whether the task is compliance-required (HACCP, HMS, etc.). */
+      is_compliance_required: boolean;
+    };
+  };
+}
+
+/**
  * task.added_manual — Admin manually added an ad-hoc session_task via the
  * WebDayControl Oppgaver tab (NOT via hook-lifecycle cron or agent). Emitted
  * by `apps/web/src/app/dashboard/_actions/add-task-action.ts` after a
@@ -8845,6 +8875,7 @@ export type SmartoutEvent =
   | TelegramBridgeMessageRelayed
   | SessionTaskCreated
   | SessionTaskAssigned
+  | SessionTaskOverdue
   | TaskAddedManual
   | CommunicationBroadcastSent
   | AuthOtpSent
@@ -13084,6 +13115,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session_task.assigned": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "session_task.overdue": {
     destinations: ["activity_trail", "engine_event", "posthog"],
     category: "operations",
   },
