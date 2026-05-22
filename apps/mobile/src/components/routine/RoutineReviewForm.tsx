@@ -23,13 +23,13 @@ import { useRoutineExtract } from "@/hooks/use-routine-extract";
 import { pickRoutineImage } from "@/lib/pick-routine-image";
 import { uploadRoutineSource } from "@/lib/upload-routine-source";
 import { getProfileContext } from "@/lib/profile-context";
+import { TIME_OPTIONS_15 } from "@/lib/time-options";
 
 export type LocationOption = { location_id: string; name: string };
 export type TeamOption = { team_id: string; name: string };
 type Step = CommitInput["steps"][number];
 
 const EMPTY_STEP: Step = { title: "", description: "", is_required: true, estimated_minutes: null };
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM 24h
 
 export function RoutineReviewForm(props: {
   locations: LocationOption[];
@@ -60,9 +60,6 @@ export function RoutineReviewForm(props: {
   const addStep = () => setSteps((s) => [...s, { ...EMPTY_STEP }]);
   const toggleTeam = (id: string) =>
     setTeamIds((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
-
-  const startValid = startTime === "" || TIME_RE.test(startTime);
-  const endValid = endTime === "" || TIME_RE.test(endTime);
 
   // ── Photo → vision prefill ─────────────────────────────────────────────
   const handleFillFromImage = useCallback(async () => {
@@ -122,8 +119,6 @@ export function RoutineReviewForm(props: {
     steps.length > 0 &&
     steps.every((s) => s.title.trim().length > 0) &&
     (locationId !== null || newLocationName.trim().length > 0) &&
-    startValid &&
-    endValid &&
     !isExtracting;
 
   const locationOptions = locations.map((l) => ({ value: l.location_id, label: l.name }));
@@ -213,30 +208,24 @@ export function RoutineReviewForm(props: {
         )}
       </View>
 
-      {/* ── Time window ──────────────────────────────────────────── */}
+      {/* ── Time window (valid-by-construction dropdowns) ────────── */}
       <View style={styles.timeRow}>
         <View style={styles.timeCol}>
-          <Input
+          <Dropdown
             label="Fra"
-            value={startTime}
-            onChangeText={setStartTime}
-            placeholder="07:00"
-            keyboardType="numbers-and-punctuation"
-            maxLength={5}
-            error={startValid ? undefined : "HH:MM"}
-            returnKeyType="done"
+            options={TIME_OPTIONS_15}
+            value={startTime || null}
+            onChange={setStartTime}
+            placeholder="Velg tid"
           />
         </View>
         <View style={styles.timeCol}>
-          <Input
+          <Dropdown
             label="Til"
-            value={endTime}
-            onChangeText={setEndTime}
-            placeholder="08:00"
-            keyboardType="numbers-and-punctuation"
-            maxLength={5}
-            error={endValid ? undefined : "HH:MM"}
-            returnKeyType="done"
+            options={TIME_OPTIONS_15}
+            value={endTime || null}
+            onChange={setEndTime}
+            placeholder="Velg tid"
           />
         </View>
       </View>

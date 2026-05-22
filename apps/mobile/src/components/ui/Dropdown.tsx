@@ -6,7 +6,7 @@
  * token-based (light + dark). No native picker dependency.
  */
 import React, { useState, useCallback } from "react";
-import { View, Text, Pressable, TextInput } from "react-native";
+import { View, Text, Pressable, TextInput, ScrollView } from "react-native";
 import { ChevronDown, Check, Plus, X } from "lucide-react-native";
 import { createStyles, useTheme } from "@/theme";
 
@@ -93,24 +93,30 @@ export function Dropdown(props: {
 
       {open ? (
         <View style={styles.list}>
-          {props.options.map((opt) => {
-            const isSel = opt.value === props.value;
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => choose(opt.value)}
-                style={[styles.row, isSel && styles.rowSelected]}
-                accessibilityRole="menuitem"
-                accessibilityState={{ selected: isSel }}
-                accessibilityLabel={opt.label}
-              >
-                <Text style={[styles.rowText, isSel && styles.rowTextSelected]} numberOfLines={1}>
-                  {opt.label}
-                </Text>
-                {isSel ? <Check size={16} color={theme.colors.primary} /> : null}
-              </Pressable>
-            );
-          })}
+          <ScrollView
+            style={styles.listScroll}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            {props.options.map((opt) => {
+              const isSel = opt.value === props.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => choose(opt.value)}
+                  style={[styles.row, isSel && styles.rowSelected]}
+                  accessibilityRole="menuitem"
+                  accessibilityState={{ selected: isSel }}
+                  accessibilityLabel={opt.label}
+                >
+                  <Text style={[styles.rowText, isSel && styles.rowTextSelected]} numberOfLines={1}>
+                    {opt.label}
+                  </Text>
+                  {isSel ? <Check size={16} color={theme.colors.primary} /> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
           {props.creatable ? (
             <Pressable
               onPress={() => {
@@ -167,6 +173,7 @@ const useStyles = createStyles((theme) => ({
     borderRadius: theme.radius.md,
     overflow: "hidden",
   },
+  listScroll: { maxHeight: 264 },
   row: {
     flexDirection: "row",
     alignItems: "center",
