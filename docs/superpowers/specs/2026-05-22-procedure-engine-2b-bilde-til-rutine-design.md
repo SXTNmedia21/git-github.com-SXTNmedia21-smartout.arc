@@ -63,20 +63,16 @@ L1  Capture  (MOBILE, V1)
       upload via the useSendMessage Storage pattern
         │  blob → Supabase Storage (own private bucket, RLS) → storage_path
         ▼
-L2  BFF  POST /api/emma/chat   (via useEmmaChat, channel pinned 'chat' server-side)
-        │  carries { storage_path, intent: photo→routine } (NOT base64 — path only)
-        │  forwards to stage-engine
+L2  BFF  POST /api/mobile/routine/extract  { storage_path }   (NOT base64)
+        │  derive identity from Bearer JWT (ADR-0151, resolveMobileActor)
+        │  service-role signed URL for the image → forward to stage-engine
+        │  (dedicated endpoint — NOT the chat agent loop; deterministic, typed)
         ▼
-L3  Stage-engine  agent-router
-        │  intent classifier → routine capability → extract_from_image tool
-        │  MAIN AGENT LOOP STAYS TEXT-ONLY — only the extract tool touches vision
-        ▼
-L4  routine.extract_from_image   (READ-ONLY, zero writes)
-        │  fetch image from storage_path
-        │  vision generateObject (anthropic/claude-sonnet-4.6, vision-capable)
-        │  → strict Zod draft:
+L3  Stage-engine  POST /routine/extract   (owns the OpenRouter client)
+        │  generateObject (anthropic/claude-sonnet-4.6, vision via image content block)
+        │  → strict Zod DraftSchema, READ-ONLY (zero writes)
         │    { routine_name, trigger_guess, location_hint, steps[] }
-        ▼
+        ▼  draft JSON back through BFF to mobile
     DRAFT returned to BotssonSheet
         │  rendered as a compact summary card in the transcript
         │  ("Fant 7 oppgaver — Åpningsrutine")
@@ -84,14 +80,17 @@ L4  routine.extract_from_image   (READ-ONLY, zero writes)
         │  user edits: routine_name, trigger, location (dropdown, AI-prefilled
         │  if location_hint matches existing; +create option), teams,
         │  step list, optional attach-to-protocol
-        │  confirm → gate_action (C4 authority gate)
+        │  confirm → POST /api/mobile/routine/commit { draft + edits }
+        ▼
+L2  BFF  /api/mobile/routine/commit
+        │  derive identity (ADR-0151) → gate_action RPC (C4) → call:
         ▼
     fn_create_routine_from_draft  (ATOMIC RPC, SECURITY DEFINER, workspace-gated)
-        ├─ [if create-location requested] delegate → onboarding capability
+        ├─ [if create-location requested] insert location in-txn (server-derived ws)
         ├─ create bare procedure   (protocol_id NULL unless protocol chosen)
         ├─ create routine          (governance_status = 'unassigned' | 'attached')
         ├─ insert N procedure_step
-        ├─ assign_to_location      (+ optional team subset → routine_team)
+        ├─ set routine assignment  (+ optional team subset → routine_team)
         └─ provenance: generated_by='agent', source_reference=storage_path
 ```
 
@@ -132,19 +131,22 @@ UPDATE public.routine SET governance_status = 'attached' WHERE protocol_id IS NO
   routine/procedure's own `workspace_id` column (Phase 1 added
   `routine.workspace_id`; verify `procedure` has one or add it).
 
-## 5. New Capability Tool
+## 5. Backend — Endpoints + Vision (Arch B: dedicated BFF routes)
 
-`packages/ai/src/capabilities/routine/tools.ts`
+Decision (2026-05-22): extraction and commit are **dedicated mobile BFF
+routes**, not chat-agent capability tools. Rationale: the interaction is
+"image → structured data → typed review card → atomic commit" — not
+conversational. Routing it through the agent loop would force narration of a
+structured draft, add intent-classify overhead, and require wiring an LLM
+client into `AgentToolContext` (which has none). Dedicated routes match the
+established `/api/mobile/*` pattern (ADR-0298 task routes) and are
+unit-testable without the agent.
+
+### Shared draft contract
+`packages/ai/src/capabilities/routine/draft-schema.ts` (importable by
+stage-engine route + BFF + tests):
 
 ```
-extract_from_image   (name: "extract_from_image")
-  schema: { storage_path: string }   // path to the uploaded image in Storage
-  authority: read_only                // produces a draft, writes nothing
-  execute:
-    - fetch image bytes from Storage (service role, workspace-scoped path)
-    - generateObject(model: claude-sonnet-4.6, image block, schema: DraftSchema)
-    - return JSON draft (no DB writes)
-
 DraftSchema (Zod):
   routine_name:   string (1..200)
   trigger_guess:  { trigger_type: 'scheduled'|'event', trigger_config: record }
@@ -157,25 +159,33 @@ DraftSchema (Zod):
   }
 ```
 
-Commit is a separate tool `create_from_draft` — a thin `gatedMutation`
-wrapper (ADR-0204) that calls the atomic RPC and returns the new `routine_id`:
+### Stage-engine: `POST /routine/extract`  (owns OpenRouter)
+- input: `{ image_url: string }` (service-role signed URL from the BFF)
+- `generateObject({ model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
+  schema: DraftSchema, messages: [{ role:"user", content:[{type:"text",...},
+  {type:"image", image: new URL(image_url)}] }] })`
+- READ-ONLY — zero DB writes. Returns the validated draft.
 
-```
-create_from_draft   (name: "create_from_draft")
-  schema: {
-    routine_name, trigger_type, trigger_config,
-    location_id, team_ids[], protocol_id?: uuid|null,
-    steps[]: { title, description, is_required, estimated_minutes? },
-    source_reference: string         // storage_path of the source image
-  }
-  authority: suggest+ (gate_action C4)
-  execute: call fn_create_routine_from_draft(...) → returns routine_id
-```
+### BFF: `POST /api/mobile/routine/extract`
+- Bearer JWT → `resolveMobileActor` (ADR-0151); fail-fast empty IDs (ADR-0134)
+- input `{ storage_path }` → service-role `createSignedUrl("routine-source", path)`
+- forward `{ image_url }` to stage-engine `/routine/extract` → return draft JSON
 
-Location creation is **not** done by the routine tool — it delegates to the
-`onboarding` capability's location/department create tool (ADR-0240 namespace
-boundary). The review-card "create location" action calls that path, gets the
-new `location_id`, then proceeds to `create_from_draft`.
+### BFF: `POST /api/mobile/routine/commit`
+- Bearer JWT → `resolveMobileActor`; fail-fast
+- input: `{ routine_name, trigger_type, trigger_config, location_id?,
+  new_location?: {name,address?,city?}, team_ids[], protocol_id?: uuid|null,
+  steps[], source_reference }`
+- `gate_action` RPC (`p_capability:'routine'`, `p_action_type:'routine.create_from_image'`)
+  → if `allow` → `fn_create_routine_from_draft(...)` → return `{ ok, routine_id }`
+- the route emits `routine.created_from_image` (+ `routine.governance_unassigned`
+  when `protocol_id` null) — server-side, identity from JWT.
+
+Location creation happens **inside** `fn_create_routine_from_draft` (one atomic
+txn) when `new_location` is supplied — the txn owns workspace scoping, so no
+cross-namespace tool delegation is needed at commit time. (ADR-0240 boundary is
+about *capability tools* writing across namespaces; an RPC writing its own
+workspace's `location` row inside the same governance txn is not a tool.)
 
 ## 6. Surfaces
 
@@ -184,10 +194,11 @@ new `location_id`, then proceeds to `create_from_draft`.
 Existing pieces reused as-is:
 - **Entry:** `AIFab.tsx` long-press (≥500ms) → opens `BotssonSheet` (no change to
   the gesture; the photo flow is reached from inside the sheet).
-- **Transport:** `useEmmaChat` → `/api/emma/chat` (channel pinned 'chat'
-  server-side, ADR-0078).
+- **Transport pattern:** mirrors `useEmmaChat` (Bearer JWT → BFF), but hits the
+  new dedicated routes `/api/mobile/routine/extract` + `/commit` rather than the
+  chat endpoint.
 - **Storage:** the `useSendMessage` upload pattern (blob → Supabase Storage,
-  signed URL) — copied for a dedicated routine-source bucket (provenance
+  signed URL) — copied for a dedicated `routine-source` bucket (provenance
   separation from `chat-media`).
 - **Telemetry:** `getProfileContext()` resolves non-null `workspace_id` +
   `actor_id` before any `emit()` (ADR-0134).
@@ -201,8 +212,9 @@ Net-new mobile build:
    count + "Gjennomgå og opprett").
 3. **Full review screen** (stacked-sheet pattern, like AddSheet): editable step
    list (add/remove/reorder text), location dropdown (existing locations;
-   AI-prefilled on `location_hint` fuzzy-match; "+ Ny lokasjon" inline via
-   onboarding-capability delegation), team multi-select, optional protocol
+   AI-prefilled on `location_hint` fuzzy-match; "+ Ny lokasjon" inline →
+   passed as `new_location` to the commit route, created in-txn), team
+   multi-select, optional protocol
    select (skip = ungoverned). Nordic Split native tokens.
 4. **Confirm** = the C4 human-in-the-loop act.
 
@@ -236,9 +248,10 @@ surface-agnostic so the web cut is pure L1 composition.
 
 ## 8. Human-in-the-Loop & Authority
 
-- `extract_from_image` writes nothing — it returns a draft only.
+- `/routine/extract` writes nothing — it returns a draft only.
 - No DB write happens until the user confirms the review card.
-- `create_from_draft` is `gatedMutation` (ADR-0204) with C4 authority.
+- `/api/mobile/routine/commit` calls `gate_action` (ADR-0099/0204) with C4
+  authority before the RPC.
 - On mobile, the confirm tap is the C4 human-in-the-loop act that the ADR-0394
   carve-out hangs on.
 
@@ -251,20 +264,21 @@ surface-agnostic so the web cut is pure L1 composition.
 | `location_hint` no match | dropdown unfilled; user picks or creates |
 | Create-location fails | block commit, fail-fast surface error (L-0177) — no silent fallback |
 | RPC mid-failure | atomic transaction rolls back — no orphan procedure/routine |
-| Storage fetch fails in tool | extract returns explicit error, no draft |
+| Signed-URL / vision call fails | extract route returns explicit 5xx error, no draft |
+| gate_action denies | commit route returns 403, no write |
 
 ## 10. Testing
 
-The backend (RPC + extract tool + commit tool) is surface-independent and
+The backend (RPC + extract route + commit route) is surface-independent and
 fully testable without a device — that carries V1 confidence even though the
 primary surface is mobile.
 
-- **Unit:** `DraftSchema` validation (good/malformed vision output);
-  `create_from_draft` arg → RPC contract; review-card field mapping (RN).
+- **Unit:** `DraftSchema` validation (good/malformed vision output); commit-route
+  body → RPC arg contract; review-card field mapping (RN).
 - **SQL:** `fn_create_routine_from_draft` atomicity (force mid-failure → assert
   zero rows); `governance_status` default + backfill; nullable `protocol_id`
   accepted; provenance columns stamped.
-- **Tool integration:** `extract_from_image` against fixture images (committed
+- **Stage-engine route:** `/routine/extract` against fixture images (committed
   test images of checklists) → assert draft shape, no DB writes.
 - **Mobile flow:** Detox (camera/picker mocked) for happy path; plus a
   `docs/journeys/MANUAL-TEST-procedure-engine-2b.md` for the on-device capture →
@@ -308,12 +322,16 @@ primary surface is mobile.
 ## 14. Dependencies on Existing Code
 
 Backend / shared:
-- Phase 1 routine capability: `create`, `assign_to_location`, `add_step`,
-  `routine_team`, provenance triple (`packages/ai/src/capabilities/routine/`).
-- `onboarding` capability: location/department create tool (delegation target).
-- `agent-router.ts` message builder (text-only — left untouched; vision is
-  tool-scoped).
-- `/api/emma/chat` route (extend to forward `storage_path`).
+- Phase 1 routine schema + `routine_team` + provenance triple (the RPC writes
+  the same tables; tools not reused directly — the atomic RPC supersedes the
+  per-tool write path for this flow).
+- `DraftSchema` in `packages/ai/src/capabilities/routine/draft-schema.ts` (new,
+  shared by stage-engine route + BFF + tests).
+- stage-engine `getOpenRouter()` + `generateObject` from the `ai` SDK (new
+  route `services/stage-engine/src/routes/routine-extract.ts`).
+- `resolveMobileActor` (ADR-0151 identity) — reused by both BFF routes.
+- `gate_action` RPC (ADR-0099) — called by the commit route.
+- `agent-router.ts` left untouched (vision is out-of-band, not in the loop).
 - `packages/telemetry/src/registry.ts` (new events).
 
 Mobile (`apps/mobile`):
