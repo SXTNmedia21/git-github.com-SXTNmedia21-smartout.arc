@@ -2487,3 +2487,45 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Files committed (3 remediation commits + this Phase 8 capture):**
 - 9897db3f7, d36a69643, 405051773 (remediation)
 - This entry + 6 new docs (ADR-0400 + 5 learnings + this log)
+
+
+## 2026-05-23 — Tidslinje Surface Boundary (DayControlPanel vs WebDayControl)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES — path (b′) slim purpose-built TidslinjeTab in DayControlPanel; shares `day-line` capability + `DaySessionProvider` data layer with WebDayControl; NOT port full TimelineTab (spatial fit fails); NOT consolidate panels (distinct UX legitimate)
+**Agents consulted:** system-steward (chair, Phase 3 + 5), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer
+**Prior verdict held?** ADR-0156 (2026-04-19) WebDayControl-canonical held — amended here with surface-duplication clarification. ADR-0367 (2026-05-18) Day Line tri-layer held — used as capability anchor.
+
+**Chair self-reversal (L-0147 protocol, 10th precedent):**
+- Phase 3 claim 1 ("DayControlPanel + WebDayControl = §Rejected Option B violation") → REVERSED. Falsifying evidence: `DashboardShell.tsx:1138` global EntityDrawerProvider mount + day-line capability 4/4 Trust Gate PASS from both panels.
+- Phase 3 claim 2 ("Recommended path: Consolidate") → REVERSED. Falsifying evidence: Frontend spatial budget (full TimelineTab stack exceeds 654px sheet content area) + Harness distinct-UX argument (full-page route vs ephemeral bottom-sheet).
+- Phase 3 claim 3 ("Required: new ADR before any code change") → REFINED to "ADR-0156 amendment when wrapper lands" (not gate-before-code).
+
+**Vote split before reversal:** Steward REJECT(a)/REC(b=consolidate) vs Supervisor+Agent-coord+Harness APPROVE(a) vs Frontend APPROVE(b'=slim). Semantic conflict: Steward (b) ≠ Frontend (b). Resolved to 5 distinct options, (b′) selected.
+
+**Trust Gate (per-tool):**
+- day-line.create / add_item / instantiate_template / update_hours: 4/4 PASS
+- schedule.reschedule_shift: GAP — DEFERRED (G19a)
+- task.update_scheduled_at: GAP — DEFERRED (G19b)
+- session_hook re-time: GAP — DEFERRED (G19c, likely defer-and-document)
+- pinDayControlPanelContextAction: GAP — BLOCKS S2 (G16)
+- TidslinjeTab telemetry emit-wiring: GAP — BLOCKS S2 merge (forward risk per L-0340)
+
+**Implementation plan:** P10 in `docs/domains/day-session/ROADMAP.md`. 3-sortie sequence: S1 pre-cond cleanup (G16+G17+G18) → S2 slim TidslinjeTab build → S3 ADR amendment + docs. DnD re-time deferred to separate capability sortie + new ADR (gate-before-code).
+
+**Key decision:** Surface duplication permitted when both views consume the same capability with the same authority model + same data layer. Discriminating test codified (L-0338).
+
+**ADR amended:** 0156 (Amendment 2026-05-23 — Surface duplication clarification + discriminating test)
+**ADR created:** none (surface decision = amendment; DnD ADR deferred to separate sortie)
+**Learnings created:** L-0338 (surface duplication ≠ authority fragmentation), L-0339 (spatial budget Phase 3 axis), L-0340 (telemetry-registered without emit() 3rd-occurrence promotion), L-0341 (L-0147 10th precedent)
+
+**Gaps logged in day-session domain:** G16 (pin-context missing), G17 (TabButton ARIA WCAG 4.1.2), G18 (DaySessionProvider dead Ultravox), G19a/b/c (DnD capability gaps).
+
+**Files committed (this Phase 8 capture):**
+- `docs/decisions/0156-day-control-panel-canonical-admin-surface.md` (amendment appended)
+- `docs/domains/day-session/ROADMAP.md` (P10 added)
+- `docs/domains/day-session/GAPS-AND-DEBT.md` (G16-G19 added)
+- `docs/learnings/0338-surface-duplication-not-authority-fragmentation.md`
+- `docs/learnings/0339-spatial-budget-phase3-council-axis.md`
+- `docs/learnings/0340-telemetry-registered-without-emit-3rd-occurrence.md`
+- `docs/learnings/0341-l0147-tenth-precedent-chair-self-reversal.md`
+- This entry
