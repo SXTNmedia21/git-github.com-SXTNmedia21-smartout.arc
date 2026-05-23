@@ -2,13 +2,13 @@
 title: "Module 15: Season Planning & Budget Engine"
 id: MODULE_15
 version: "1.0"
-status: canonical
+status: archived
+superseded_by: docs/domains/year-wheel/
 layer: module
 created: 2026-02-24
-updated: 2026-03-22
+updated: 2026-05-23
 author: pontus
 supersedes: []
-superseded_by: null
 depends_on:
   - CORE_ARCH_V2
 tags:
@@ -27,7 +27,14 @@ tables:
 changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
+  - date: 2026-05-23
+    change: "Archived — superseded by docs/domains/year-wheel/"
 ---
+
+> **ARCHIVED 2026-05-23** — Superseded by `docs/domains/year-wheel/`. Content absorbed into domain spine. Read [docs/domains/year-wheel/README.md](../../domains/year-wheel/README.md) instead.
+> Note: flat files in `docs/architecture/modules/*.md` are not scanned by `check-archived-refs.mjs` (only folder-form docs). This frontmatter is present for future-proofing.
+
+
 
 # Module 15: Season Planning & Budget Engine
 

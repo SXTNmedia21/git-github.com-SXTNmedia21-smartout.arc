@@ -24,6 +24,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | [day-session](./day-session/) | 8/8 | 🟡 partial (dept-anchored + ADR-0367 Phase A+B shipped; Phase C UI + D mobile + E push in flight; admin dagsgodkjenning live; close flow live) | 🟡 partial (Playwright for quickadd + filter + templates; close/approval/settlement: MISSING; mobile: MISSING) | mixed | 2026-05-22 | 11 |
 | [payroll](./payroll/) | 8/8 | 🟡 partial (Phases 1–5 + 7f DONE: calc engine, 17 tools, CSV export, PDF lønnsgrunnlag, PII reveal, tariff capability tools; Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; mobile read-only components only — no mobile route) | 🟡 partial (calc engine: strong Vitest + golden-month CI; Phase 3–5 Playwright E2E; Phase 2 manual supplements + line override: MISSING; tariff tools: MISSING; mobile: MISSING) | mixed | 2026-05-23 | 10 |
 | [procedure-engine](./procedure-engine/) | 8/8 | 🟡 partial (governance spine + task ontology ADR-0298 live; Phase 1 schema + capability + cron expansion ADR-0391 shipped; Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387a shipped; 0387b council-gated) | 🟡 partial (dagslinjen-quickadd + timeline-templates Playwright exist; routine/Phase-1 capability unit tests pending; mobile shift-tasks tests missing) | mixed | 2026-05-22 | 28 |
+| [year-wheel](./year-wheel/) | 8/8 | 🟡 partial (canvas + season detail + 5-tool capability + 13 Botsson page-tools + activate_season RPC + D1 fanout trigger + 3 authority seeds shipped; M1+M3 of campaign DONE; SeasonGoalsTab + SeasonProceduresTab deferred; Duplicate UI not wired; drag-to-resize not built; M2 design-debt partial; M4 deferred completions open) | 🟡 partial (3 Playwright spec files: year-wheel-redesign + season-planning + season-activation; draw-to-create E2E missing; budget/factors tabs not tested; D1 fanout E2E missing) | mixed | 2026-05-23 | 7 |
 
 ## Overlap edges (consolidate / split watch)
 
@@ -49,6 +50,11 @@ tags: [domain, dashboard, status, source-of-truth]
 | botsson | procedure-engine | Mission lifecycle shows procedures via `training`/`governance` capabilities. Botsson `onboarding` capability creates protocols. | **keep** — botsson SHOWS procedures via capability tools; procedure-engine OWNS procedure data. Clear author/consumer. | resolved (keep) |
 | botsson | task | `fn_list_my_tasks`, `task` capability tools, `emma_task` table — botsson surfaces tasks | **keep** — task domain self-owns; botsson surfaces via capability registration. `use-emma-tasks.ts` is a thin bridge hook (botsson-owned). | resolved (keep) |
 | botsson | core-structure / day-session | Workforce snapshot injection (ADR-0297): botsson reads `department_session`, `schedule_shift`, `department`, `workspace` | **keep** — botsson reads only; day-session + core-structure own the tables. Clear read/write boundary. | resolved (keep) |
+| year-wheel | core-structure | `planning_cycle` (D1): year-wheel links seasons via `season.planning_cycle_id` FK; core-structure owns the table. `department_operating_hours`: activation trigger seeds D1 rows that core-structure references as its primary operating-hours record. | **keep** — clear author/consumer. core-structure provides D1 envelope; year-wheel consumes + seeds D1 rows on activation. | resolved (keep) |
+| year-wheel | scheduling (future domain) | `planning_event` (D4 demand signal) — currently rendered on year-wheel canvas via `usePlanningEvents`. When scheduling domain is defined, `planning_event` will migrate there; year-wheel becomes a read-only consumer. `planning_cycle` may follow. | **split candidate** — flag for scheduling domain `pre` run. | open (deferred) |
+| year-wheel | day-session | `department_session.season_id` FK: active season is the temporal envelope for daily sessions. Season activation seeds `department_operating_hours` that day-session reads at runtime. | **keep** — clear author/consumer. year-wheel provides season lifecycle; day-session consumes it. | resolved (keep) |
+| year-wheel | payroll | Season period defines tariff `effective_from/to` slice window for cost attribution. Payroll reads season start/end dates; year-wheel never touches tariff tables. | **keep** — read-only boundary. payroll owns tariff resolution; year-wheel provides the period. | resolved (keep) |
+| year-wheel | procedure-engine | `season_policy_binding.policy_id` FK → `public.policy` (procedure-engine owns policy rows). year-wheel owns the binding record; procedure-engine reads bindings to determine per-season HMS policy activation. `season.get_readiness` tool reads `protocol_assignment` table (procedure-engine data). | **keep** — clear author/consumer. year-wheel owns binding; procedure-engine owns policy + protocol. | resolved (keep) |
 
 ## Migration backlog (pre-domain sources to absorb)
 
@@ -71,7 +77,9 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/architecture/modules/MODULE_BOTSSON.md` | botsson | ✅ absorbed + archived (2026-05-23) |
 | `docs/engines/artificial-intelligence/BOTSSON-SYSTEM-MAP.md` | botsson | ✅ archived (2026-05-23) — stale duplicate of architecture version |
 | `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
-| `docs/modules/MODULE_*.md` (flat, non-communication, non-billing) | contracts / year-wheel / etc. | 🔴 pending |
+| `docs/modules/MODULE_YEAR_WHEEL_PRD.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
+| `docs/modules/MODULE_*.md` (flat, non-communication, non-billing, non-year-wheel) | contracts / etc. | 🔴 pending |
 
 ## Cross-ref update backlog
 
