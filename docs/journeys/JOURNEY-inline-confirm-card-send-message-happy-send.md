@@ -2,7 +2,7 @@
 title: "Journey — Admin sends message via InlineConfirmCard"
 feature: inline-confirm-card-send-message
 journey: happy-send
-status: verified-pending-live
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-23

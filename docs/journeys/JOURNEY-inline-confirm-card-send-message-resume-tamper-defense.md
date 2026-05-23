@@ -2,7 +2,7 @@
 title: "Journey — Server defends send_message against tampered channel_id (cross-workspace)"
 feature: inline-confirm-card-send-message
 journey: resume-tamper-defense
-status: verified-pending-live
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-23
