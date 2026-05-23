@@ -2,11 +2,12 @@
 title: "Journey — Critical event falls back to SMS when no push subscription"
 feature: onesignal-push
 journey: critical-sms-fallback
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-23
+verified_note: "code-verified pre-merge; preview iPhone PWA test pending after FF dev→preview"
 e2e_test: null
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-05-23
 module: MODULE_COMMUNICATION
 tags: [journey]
 ---
