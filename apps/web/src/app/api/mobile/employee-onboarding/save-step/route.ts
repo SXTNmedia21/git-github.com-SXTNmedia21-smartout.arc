@@ -48,7 +48,15 @@ function extractBearer(req: NextRequest): string | null {
 // ── Request schema ────────────────────────────────────────────────────────────
 
 const Body = z.object({
-  step: z.enum(["contact", "address", "personal_number", "availability", "consent", "optional"]),
+  step: z.enum([
+    "contact",
+    "address",
+    "personal_number",
+    "availability",
+    "consent",
+    "optional",
+    "complete",
+  ]),
   values: z.record(z.unknown()),
 });
 
@@ -130,6 +138,7 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
 
   // Step → telemetry numbering mirrors welcome-wizard-actions.ts step numbering.
+  // "complete" uses step 8 — emits welcome_wizard_completed (not step_completed).
   const STEP_MAP: Record<typeof step, { step: number; stepName: string }> = {
     contact: { step: 2, stepName: "contact" },
     address: { step: 3, stepName: "address" },
@@ -137,6 +146,7 @@ export async function POST(req: NextRequest) {
     optional: { step: 5, stepName: "optional" },
     availability: { step: 6, stepName: "availability" },
     consent: { step: 7, stepName: "consent" },
+    complete: { step: 8, stepName: "complete" },
   };
 
   switch (step) {
@@ -336,9 +346,50 @@ export async function POST(req: NextRequest) {
       }
       break;
     }
+
+    // ── complete: flip profile flag + mark onboarding_state done ─────────
+    // Mirrors web completeWelcome() Server Action (T11, commit 247d4c6bc).
+    // Uses admin client for profile update (no JWT UPDATE policy on profile).
+    case "complete": {
+      const { error: profErr } = await admin
+        .from("profile")
+        .update({
+          is_welcome_complete: true,
+          welcome_completed_at: now,
+          updated_at: now,
+        })
+        .eq("profile_id", actor.profileId);
+      if (profErr) return NextResponse.json({ error: profErr.message }, { status: 500 });
+
+      // employee_onboarding_state: idempotent upsert.
+      // completed_at required when status='completed' per eos_completed_iff_ts constraint.
+      const { error: stateErr } = await admin.from("employee_onboarding_state").upsert(
+        {
+          profile_id: actor.profileId,
+          workspace_id: actor.workspaceId,
+          status: "completed",
+          completed_at: now,
+        },
+        { onConflict: "profile_id" },
+      );
+      if (stateErr) return NextResponse.json({ error: stateErr.message }, { status: 500 });
+
+      // Emit wizard_completed (distinct event, not step_completed).
+      void emit({
+        event: "profile welcome_wizard_completed",
+        workspace_id: nonEmpty(actor.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actor.profileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "profile", entity_id: actor.profileId },
+          data: { completed_at: now },
+        },
+      });
+
+      return NextResponse.json({ ok: true });
+    }
   }
 
-  // ── Telemetry: emit step completed ────────────────────────────────────────
+  // ── Telemetry: emit step completed (all steps except "complete") ──────────
   const stepMeta = STEP_MAP[step];
   void emit({
     event: "profile welcome_wizard_step_completed",

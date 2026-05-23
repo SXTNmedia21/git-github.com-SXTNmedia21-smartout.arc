@@ -28,7 +28,8 @@ export type OnboardingStep =
   | "personal_number"
   | "availability"
   | "consent"
-  | "optional";
+  | "optional"
+  | "complete";
 
 export type OnboardingStateResponse = {
   status: string;
