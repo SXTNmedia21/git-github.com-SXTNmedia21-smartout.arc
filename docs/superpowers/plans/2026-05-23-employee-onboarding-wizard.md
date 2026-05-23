@@ -1,3 +1,13 @@
+---
+title: "Plan — Employee Onboarding Wizard"
+feature: employee-onboarding-wizard
+status: done
+module: onboarding
+created: 2026-05-23
+updated: 2026-05-23
+tags: [plan, onboarding, wizard, web, mobile]
+---
+
 # Employee Onboarding Wizard Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

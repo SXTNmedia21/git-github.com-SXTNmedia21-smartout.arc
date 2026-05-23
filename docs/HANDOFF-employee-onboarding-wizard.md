@@ -7,6 +7,7 @@ module: onboarding
 status: done
 created: 2026-05-23
 updated: 2026-05-23
+closure_addendum: 2026-05-23-pm
 tags: [onboarding, wizard, handoff, web, mobile, identity, consent, availability]
 ---
 
@@ -79,17 +80,35 @@ Both registered in `docs/decisions/0000-decision-log.md`.
 - **D3 (deferred):** Server-side mod-11 checksum for `personal_number` — only 11-digit format validated client + server. Real validation needs algorithm implementation.
 - **D4 (deferred):** Versioned consent document catalog — currently constants `handbook-v1` / `gdpr-v1` / `tariff-v1` hardcoded. ROADMAP item.
 - **D5 (deferred):** WizardShell drops validation errors from `useWizardState.next()` — V1 acceptable; future work surface via callback or context.
-- **E2E debt:** Playwright `apps/e2e/tests/employee-onboarding-wizard.spec.ts` happy-path test is `test.skip` pending `seedWizardUser` fixture in `apps/e2e/helpers/seed.ts`. Static auth-block smoke runs.
-- **Mobile E2E debt:** No Maestro coverage yet for mobile wizard.
+- **E2E (CLOSED Sortie D, commit `7c970f598`):** Playwright `apps/e2e/tests/employee-onboarding-wizard.spec.ts` happy-path + dismiss-resume now LIVE via `seedWizardUser` / `cleanupWizardUser` fixture in `apps/e2e/helpers/seed.ts`. 3/3 green (happy 48s, dismiss-resume 51s, smoke 742ms). DB invariants verified: `profile.is_welcome_complete` flips `false → true`, `employee_onboarding_state.status` cycles `in_progress → dismissed → in_progress`.
+- **Mobile E2E debt:** No Maestro coverage yet for mobile wizard — requires device.
+- **PWA install debt:** Minimal scaffold shipped (commit `6a45e0efca` — manifest + viewport + safe-area). Real "add to home screen" on iPhone/Android untested — requires device.
 - **Content gaps:** ConsentStep links to `/dashboard/handbook` + `/legal/privacy` — those routes may or may not exist; content owners need to verify.
 
 ## Next Steps
 
-1. Add `seedWizardUser` helper to `apps/e2e/helpers/seed.ts` + un-skip Playwright happy-path.
-2. Maestro mobile E2E spec mirroring web happy-path.
-3. Address-on-profile cleanup sortie (D1) — separate ADR if address moves to `user_identity` affects existing consumers.
-4. Versioned consent catalog (D4).
-5. Surface `useWizardState.next()` validation errors back to step components (D5).
+1. ~~Add `seedWizardUser` helper~~ — DONE Sortie D, commit `7c970f598`.
+2. Maestro mobile E2E spec mirroring web happy-path — requires device, separate sortie.
+3. iPhone/Android "add to home screen" PWA verification — requires device, separate sortie.
+4. Address-on-profile cleanup sortie (D1) — separate ADR if address moves to `user_identity` affects existing consumers.
+5. Versioned consent catalog (D4).
+6. Surface `useWizardState.next()` validation errors back to step components (D5).
+
+## Closure Addendum — Post-R3 Council + Sortie A/B/C/D + Phase 8 Capture (2026-05-23 PM)
+
+R3 council (post-implementation, full 8-phase) returned REJECT with 11 merge-blockers across 4 reviewers + 5 chair self-reversals (L-0147 precedents 5-9). Remediation shipped as 3 fix-sorties + Phase 8 + PWA + Sortie D:
+
+| Sortie | Commit | Scope |
+|---|---|---|
+| A — runtime crashes | `9897db3f7` | upsert+ignoreDuplicates PGRST116 trap fixed; `dismissed_at` lifecycle invariants (3 sites: completeWelcome, recordWelcomeResume, mobile save-step complete) |
+| B — a11y + design + sitemap | `d36a69643` | Radix DialogTitle/DialogDescription (WCAG 4.1.2), reduced-motion gating (WCAG 2.3.3), Nordic Split tokens, `/dashboard` site-map polished_at + common_intents |
+| C — mobile lifecycle + docs | `405051773` | Mobile redirect guard reads onboarding state (no race), document-version constants imported in mobile BFF (no string drift), ADR-0396 §Exceptions enumerates legacy address carve-outs, JOURNEY-employee-onboarding-wizard.md drift fixes |
+| Phase 8 — knowledge capture | `a9f95d6f4` | ADR-0400 (5 wizard-state invariants codified) + L-0333 (upsert+ignoreDuplicates trap) + L-0334 (biconditional CHECK coherence) + L-0335 (mirror-tables version drift) + L-0336 (page-polish misses Dialogs) + L-0337 (journey verified-flag premature toggle) + COUNCIL-LOG R3 entry |
+| Polish (Phase 10) | `9f999c304` | `pnpm --filter web polish:index` ledger regen |
+| PWA scaffold | `6a45e0efca` | `apps/web/src/app/manifest.ts` + Viewport export + `appleWebApp` metadata + `apple-touch-icon.png` |
+| D — Playwright proof | `7c970f598` | `seedWizardUser` + `cleanupWizardUser` fixtures, un-skip happy + dismiss-resume specs, 3/3 green |
+
+Branch tip: **45 commits ahead of `development`**. Web wizard flow proven authenticated end-to-end. Mobile UI + PWA install remain documented debt requiring device.
 
 ## File Manifest (high-density)
 
