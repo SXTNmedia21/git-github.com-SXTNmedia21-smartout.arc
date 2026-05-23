@@ -190,7 +190,7 @@ describe("sendMessage — ADR-0287 gate_action integration", () => {
     const ctx = makeCtx({ supabaseAdmin: makeSupabase(insertCaptures) });
 
     const raw = await sendMessage.execute(
-      { channel_id: CHANNEL_ID, content: "Hello world", is_proactive: false },
+      { channel_id: CHANNEL_ID, content: "Hello world", is_proactive: false, confirm: true },
       ctx,
     );
 
@@ -211,8 +211,8 @@ describe("sendMessage — ADR-0287 gate_action integration", () => {
       content: "Hello world",
     });
 
-    // emit fired.
-    expect(emit).toHaveBeenCalledOnce();
+    // emit fired twice: channel.message.sent + inline_confirm_card.confirmed (Phase 2-a, ADR-0403).
+    expect(emit).toHaveBeenCalledTimes(2);
 
     // Tool returned success JSON.
     const parsed = JSON.parse(raw) as { sent: boolean };
@@ -239,7 +239,7 @@ describe("sendMessage — ADR-0287 gate_action integration", () => {
     });
 
     const result = await sendMessage.execute(
-      { channel_id: CHANNEL_ID, content: "Sending on voice", is_proactive: false },
+      { channel_id: CHANNEL_ID, content: "Sending on voice", is_proactive: false, confirm: false },
       ctx,
     );
 
@@ -269,7 +269,7 @@ describe("sendMessage — ADR-0287 gate_action integration", () => {
     const ctx = makeCtx({ supabaseAdmin: makeSupabase(insertCaptures) });
 
     const result = await sendMessage.execute(
-      { channel_id: CHANNEL_ID, content: "Some message", is_proactive: false },
+      { channel_id: CHANNEL_ID, content: "Some message", is_proactive: false, confirm: false },
       ctx,
     );
 
