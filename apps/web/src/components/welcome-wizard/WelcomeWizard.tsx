@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useReducer } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { HeroStep } from "./steps/HeroStep";
 import { ContactStep } from "./steps/ContactStep";
 import { AddressStep } from "./steps/AddressStep";
@@ -75,9 +75,20 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
 
 // ─── Step Dots ────────────────────────────────────────────────────────────────
 
-function StepDots({ current, total }: { current: WizardStep; total: number }) {
-  // Dots show for steps 2-5 (4 data-entry steps). Current refers to which dot is active.
-  const dotIndex = current - 2; // step 2 = dot 0, step 5 = dot 3
+function StepDots({
+  current,
+  total,
+  prefersReduced,
+}: {
+  current: WizardStep;
+  total: number;
+  prefersReduced: boolean | null;
+}) {
+  // Dots show for steps 2-7 (6 data-entry steps). Current refers to which dot is active.
+  const dotIndex = current - 2; // step 2 = dot 0, step 7 = dot 5
+  // WHY: width morph is a vestibular trigger (WCAG 2.3.3) — collapse to near-instant when
+  // user prefers reduced motion.
+  const dotTransition = prefersReduced ? { duration: 0.01 } : SPRING;
   return (
     <div className="flex items-center justify-center gap-2" aria-hidden>
       {Array.from({ length: total }).map((_, i) => (
@@ -87,7 +98,7 @@ function StepDots({ current, total }: { current: WizardStep; total: number }) {
             width: i === dotIndex ? 20 : 6,
             opacity: i === dotIndex ? 1 : 0.35,
           }}
-          transition={SPRING}
+          transition={dotTransition}
           className="bg-foreground h-1.5 rounded-full"
         />
       ))}
@@ -139,9 +150,16 @@ export function WelcomeWizard({ userEmail, tariffBound = false }: WelcomeWizardP
         className="border-border bg-background flex max-w-md flex-col gap-0 overflow-hidden rounded-2xl border p-0 shadow-2xl"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
-        // Hide the default X close button via aria
         aria-describedby="welcome-wizard-desc"
       >
+        {/* WHY: Radix Dialog requires DialogTitle for WCAG 4.1.2 — screen readers announce
+            the dialog name on open. Visually hidden via sr-only. */}
+        <DialogTitle className="sr-only">Velkommen til Smartout</DialogTitle>
+        {/* WHY: aria-describedby="welcome-wizard-desc" declared on DialogContent above
+            needs a matching element — this fulfils the reference. */}
+        <DialogDescription id="welcome-wizard-desc" className="sr-only">
+          Fullfør profilen din. Det tar 3–5 minutter.
+        </DialogDescription>
         {/* Ambient warm orb — decorative, never interactive */}
         <div
           aria-hidden
@@ -185,15 +203,21 @@ export function WelcomeWizard({ userEmail, tariffBound = false }: WelcomeWizardP
         {/* Step dots — only visible for data-entry steps */}
         <AnimatePresence>
           {showIndicator && (
+            // WHY: transition gated on prefersReduced — unconditional 0.3s fade is a
+            // vestibular trigger for reduced-motion users (WCAG 2.3.3).
             <motion.div
               key="dots"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={prefersReduced ? { duration: 0.01 } : { duration: 0.3 }}
               className="flex justify-center pb-6"
             >
-              <StepDots current={step} total={STEPS_WITH_INDICATOR.length} />
+              <StepDots
+                current={step}
+                total={STEPS_WITH_INDICATOR.length}
+                prefersReduced={prefersReduced}
+              />
             </motion.div>
           )}
         </AnimatePresence>
