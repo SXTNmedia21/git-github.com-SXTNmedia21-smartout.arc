@@ -303,6 +303,21 @@ type AgentRouterInput = {
    * Absent when bundle is absent.
    */
   clientToolNames?: Set<string>;
+  /**
+   * Sortie 0 bulk_import: files uploaded via /api/botsson/imports/upload.
+   * Each entry carries a signed URL (1h TTL) + storage path.
+   * Wave 2 Track 5 will check MIME type here BEFORE intent classification
+   * to route .xlsx/.csv deterministically to bulk_import capability.
+   * Empty array when no attachments are present.
+   */
+  attachments?: ReadonlyArray<{
+    storage_path: string;
+    signed_url: string;
+    mime: string;
+    size_bytes: number;
+    filename: string;
+    expires_at: string;
+  }>;
 };
 
 /**
