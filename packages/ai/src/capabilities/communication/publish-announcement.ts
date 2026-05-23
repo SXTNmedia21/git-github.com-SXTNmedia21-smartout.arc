@@ -38,7 +38,7 @@ import { callGateAction } from "./gate.js";
 import { isAiAllowedInChannel } from "./policy.js";
 import { resolveAudience, type AudienceInput } from "./audience-resolver.js";
 import { emitAnnouncementPublished } from "./emit-announcement-events.js";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { buildInlineConfirmCard } from "../../primitives/inline-confirm-card/index.js";
 
 export const publishAnnouncement = defineTool({
@@ -298,11 +298,12 @@ export const publishAnnouncement = defineTool({
       });
 
       // Telemetry: card shown (L-0233 — emit in tool body, server-side, NOT React)
+      // nonEmpty() wraps match client-tool impl + ADR-0134 fail-fast (T9/F3).
       // Coordinate with T6 if inline_confirm_card.shown is not yet in the registry.
       await emit({
         event: "inline_confirm_card.shown",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
         properties: {
           surface: "announcement",
           proposal_id: clientMessageId,
@@ -324,7 +325,33 @@ export const publishAnnouncement = defineTool({
     // ctx.workspaceId. Audience params from body (audience_kind, department_ids, roles,
     // profile_ids) are accepted but used ONLY within ctx.workspaceId's RLS scope.
     // Body-supplied workspace_id is NEVER trusted — ctx.workspaceId is authoritative.
-    const isTargeted = audience.kind !== "all";
+
+    // DEFENSE 3 (ADR-0398 §Resume-Payload Trust Boundary) — Phase 1 narrowing:
+    // When proposal_id is present (resume from InlineConfirmCard), this is a commit
+    // on a previously shown draft. The descriptor only permits editable_fields:
+    // ["title", "body"]. All audience-targeting fields (audience_kind, department_ids,
+    // roles, profile_ids) are NOT in editable_fields — they must NOT be accepted from
+    // the body on resume. Phase 1 enforcement: force audience_kind="all" (safe default)
+    // and ignore body-supplied targeting params. The audience variable above was built
+    // from body params in the draft phase (before confirm=true); we re-resolve below.
+    // Phase 2 will replace this with stateful audience-fingerprint check via
+    // engine_memory keyed by proposal_id (deferred to ADR-0400).
+    //
+    // Refs: ADR-0398 §Resume-Payload Trust Boundary, L-0177 (silent-fallback ban),
+    //       T9 code-review finding F1 (CRITICAL).
+    const effectiveAudience = params.proposal_id != null ? ({ kind: "all" } as const) : audience;
+
+    let effectiveResolved = resolved;
+    if (params.proposal_id != null && audience.kind !== "all") {
+      // Re-resolve with forced "all" since body-supplied targeting is not trustworthy on resume.
+      try {
+        effectiveResolved = await resolveAudience(supabase, ctx.workspaceId, effectiveAudience);
+      } catch (err) {
+        return `Audience re-resolution failed on resume: ${err instanceof Error ? err.message : "unknown error"}`;
+      }
+    }
+
+    const isTargeted = effectiveAudience.kind !== "all";
     const content = `${params.title}\n${params.body}`;
 
     const { data: messageId, error } = await supabase.rpc("publish_announcement_atomic", {
@@ -333,8 +360,11 @@ export const publishAnnouncement = defineTool({
       p_channel_id: params.channel_id,
       p_content: content,
       p_visibility_scope: isTargeted ? "targeted_members" : "all_members",
-      p_target_profile_ids: isTargeted ? resolved.profileIds : [],
-      p_system_data: { audience_kind: audience.kind, audience_label: resolved.label },
+      p_target_profile_ids: isTargeted ? effectiveResolved.profileIds : [],
+      p_system_data: {
+        audience_kind: effectiveAudience.kind,
+        audience_label: effectiveResolved.label,
+      },
       p_kind: params.kind ?? "general",
       p_tier: params.tier ?? "work",
       p_tags: params.tags ?? [],
@@ -357,9 +387,9 @@ export const publishAnnouncement = defineTool({
       message_id: data.id,
       channel_id: params.channel_id,
       origin_type: "agent",
-      audience_kind: audience.kind,
+      audience_kind: effectiveAudience.kind,
       visibility_scope: isTargeted ? "targeted_members" : "all_members",
-      target_profile_count: resolved.count,
+      target_profile_count: effectiveResolved.count,
       kind: params.kind ?? "general",
       tier: params.tier ?? "work",
       tag_count: (params.tags ?? []).length,
@@ -368,15 +398,16 @@ export const publishAnnouncement = defineTool({
     });
 
     // Telemetry: card confirmed (L-0233 — emit in tool body, server-side, NOT React)
+    // nonEmpty() wraps match client-tool impl + ADR-0134 fail-fast (T9/F3).
     // Coordinate with T6 if inline_confirm_card.confirmed is not yet in the registry.
     await emit({
       event: "inline_confirm_card.confirmed",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       properties: {
         surface: "announcement",
         proposal_id: clientMessageId,
-        recipient_count: resolved.count,
+        recipient_count: effectiveResolved.count,
       },
     });
 
@@ -384,8 +415,8 @@ export const publishAnnouncement = defineTool({
     return JSON.stringify({
       phase: "published",
       message_id: data.id,
-      target_profile_count: resolved.count,
-      audience_label: resolved.label,
+      target_profile_count: effectiveResolved.count,
+      audience_label: effectiveResolved.label,
     });
   },
 });

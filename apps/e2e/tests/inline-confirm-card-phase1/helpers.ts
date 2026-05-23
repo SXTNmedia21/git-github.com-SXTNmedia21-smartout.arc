@@ -174,7 +174,9 @@ export async function assertActivityTrailEvent(
 
     const match = rows.find((r) => {
       const props = r.properties as Record<string, unknown>;
-      const proposalMatch = props?.["proposal_id"] === proposalId;
+      // "ANY" is a wildcard — matches any proposal_id. Used by soft-fallback
+      // paths in tests where the exact proposal_id is not yet known (T9/F4).
+      const proposalMatch = proposalId === "ANY" ? true : props?.["proposal_id"] === proposalId;
       const actorMatch = actorId === undefined || r.actor_id === actorId;
       return proposalMatch && actorMatch;
     });

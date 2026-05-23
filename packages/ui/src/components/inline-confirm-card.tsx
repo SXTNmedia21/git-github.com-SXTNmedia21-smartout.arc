@@ -176,8 +176,9 @@ export function InlineConfirmCard({ descriptor, onResolve, className }: InlineCo
         await onResolve(result);
 
         if (action === "confirm" || action === "edit") {
-          // resolved: ring-2 ring-green-500/40 one-shot 300ms, then settle
-          setRingClass("ring-2 ring-green-500/40");
+          // resolved: ring-2 ring-primary/40 one-shot 300ms, then settle
+          // ring-primary uses CSS var — Nordic Split + ADR-0366 compliant (T9/F2).
+          setRingClass("ring-2 ring-primary/40");
           setMode("resolved");
         } else {
           // cancelled: ring-2 ring-destructive/40 one-shot 300ms, then settle
