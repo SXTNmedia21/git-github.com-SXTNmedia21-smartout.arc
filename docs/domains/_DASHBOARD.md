@@ -17,6 +17,7 @@ tags: [domain, dashboard, status, source-of-truth]
 
 | Domain | Spine | Build state | Tested | mirror | last_verified | Open gaps |
 |---|---|---|---|---|---|---|
+| [contracts](./contracts/) | 8/8 | 🟡 partial (44 migrations + full create→sign→active lifecycle + composition engine + 2 capabilities (13 tools) + DocuSeal integration + amendment + GDPR anonymize RPC; route migration /dashboard/contracts→/people/contracts pending; mobile sign ADR-0245 partial; amendment classifier + lærling + Tripletex sync deferred) | ✅ strong (contract-employee 7 specs + contracts/ 12 specs + compliance 5 specs + harness 3 specs + E2E helpers) | mixed | 2026-05-23 | 6 |
 | [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B + apps/admin accountant portal built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak — admin kartotek + avstemming covered) | mixed | 2026-05-22 | 10 |
 | [botsson](./botsson/) | 8/8 | 🟡 partial (overlay UI + host mount + soul + 7 missions + session recorder Phase D1+2a+2b built; persona identity chat-unwired; proposal pipeline 🔴; soul-on-platform-admin 🔴; generator API 🔴; mission E2E 0/7) | 🟡 partial (harness E2E + recorder 3 specs + orb polish + domain-chat-ownership; mission Playwright: MISSING; voice E2E: MISSING) | mixed | 2026-05-23 | 11 |
 | [communication](./communication/) | 8/8 | 🟡 partial (channel schema + chat UI + voice/video + announcements + helpdesk Phase 1 + targeted note fanout shipped; channel_ai_policy half-wired; C2 intelligence pipeline not built; helpdesk_query capability not implemented; mobile parity missing) | 🟡 partial (domain-chat-ownership E2E; harness adapter; nyheter partial; core chat flows: MISSING) | mixed | 2026-05-23 | 11 |
@@ -30,6 +31,12 @@ tags: [domain, dashboard, status, source-of-truth]
 
 | Domain A | Domain B | Shared surface | Recommendation | Status |
 |---|---|---|---|---|
+| contracts | payroll | `employment_contract` (ansiennitet source) + `employee_payroll_profile` PII boundary (ADR-0242). `cascade_contract_payroll_sync` trigger propagates fields at signing. | **keep** — ADR-0242 governs: contracts own contract rows + pay/tip rules; payroll reads for calc + owns PII fields + tariff resolution. No dual ownership. | resolved (keep — ADR-0242) |
+| contracts | lovsen | `packages/lovsen-contract/` Zod-schema type-contract (ADR-0256/0257); lovsen-mcp provides §14-6 validation via `legal` capability. | **keep boundary** — lovsen-contract package belongs to lovsen domain (zero import-sites in contracts code; all consumers are lovsen-mcp Python services). Contracts consumes `legal` capability. | resolved (keep — deviation logged in GAPS §O3) |
+| contracts | billing | `employment_contract.signed_at` → billing gate (ADR-0384). Workspace becomes billable after contract signed. | **keep** — billing reads; contracts provides the signal. Clear author/consumer. | resolved (keep — ADR-0384) |
+| contracts | day-session | `contract_obligation` rows (training/certification) = day-session readiness gate. Active contract = prerequisite for shift clearance. | **keep** — contracts authors obligation rows; day-session reads at runtime. | resolved (keep) |
+| contracts | core-structure | `employment_contract.workspace_id` FK → `workspace` (D1 envelope). `employment_contract.company_id` FK → `company` (D1 company layer). | **keep** — standard D1/D2 pattern; core-structure provides envelope; contracts consumes. | resolved (keep) |
+| contracts | certifications (future domain) | `contract_obligation` rows cover training + certifications. Certifications may eventually warrant own domain (e.g., HMS certifications, food-safety certs). | **keep for now** — certifications-as-obligations co-located in contracts domain. Flag for future domain split if certification grows independently of employment contract. See GAPS §O8. | open (deferred) |
 | billing | settlement (future domain) | `billing.settlement_run`, `billing.settlement_artifact` — accountant period reconciliation | **keep in billing** — confirmed by `apps/admin/avstemming/` code: these tables represent accountant-facing period close for Smartout's B2B billing cycle (not workspace-internal employee settlement). `billing.settlement_period` remains a split candidate if workspace-level period-lock grows independently. Revised 2026-05-22. | resolved (keep) |
 | billing | accountant-portal (future) | `billing.accountant_company_grant` | **keep** for now — promote to own domain when ADR-0269 is accepted + portal UI grows | open |
 | core-structure | day-session | `department` + `location` — day-session anchors `department_session` on dept and `day_line` on location (ADR-0367) | **keep** — clear D1/D6 author/consumer split. core-structure provides; day-session consumes. | resolved (keep) |
@@ -79,6 +86,16 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
 | `docs/modules/MODULE_YEAR_WHEEL_PRD.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/PRD-contracts-module.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/ARCHITECTURE-contracts-module.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/CONTRACT-PIPELINE-MAP.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/CONTRACT_COMPONENTS.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/JOURNEY-contract-module.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/ADR-0001-kontrakt-og-lonnsprofil-fundament.md` | contracts | ✅ archived (2026-05-23) — points to docs/decisions/0024 |
+| `docs/architecture/SMARTOUT_CONTRACT_SYSTEM.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/cross-cutting/SMARTOUT_CROSSCUT_CONTRACTS_CERTIFICATIONS.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/modules/MODULE_CONTRACT_COMPONENTS.md` | contracts | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/contract-service/{schema,migrations}/` SQL files | contracts | ✅ flagged mirror:source (2026-05-23) — NOT absorbed; drift confirmed; cited in DATA-MODEL |
 | `docs/modules/MODULE_*.md` (flat, non-communication, non-billing, non-year-wheel) | contracts / etc. | 🔴 pending |
 
 ## Cross-ref update backlog
