@@ -209,7 +209,9 @@ export type EntityType =
   // ─── Day-Line Runtime (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────────────
   | "day_line"
   | "shift_session"
-  | "day_line_item";
+  | "day_line_item"
+  // ─── Bootstrap Gate (ADR-0407, Phase 1) ──────────────────────────────────
+  | "workspace_bootstrap_gate";
 
 export type ActionVerb =
   | "created"
@@ -8541,6 +8543,56 @@ export interface BulkImportBatchParsed extends BaseEvent {
   };
 }
 
+// ─── Bootstrap Gate Events (ADR-0407, Phase 1) ──────────────────────────────
+// bootstrap.gates_listed — activity_trail only (read, no mutation).
+// bootstrap.gate_closed  — posthog + logger + activity_trail + engine_event.
+// bootstrap.gate_skipped — posthog + logger + activity_trail + engine_event.
+export interface BootstrapGatesListed extends BaseEvent {
+  event: "bootstrap.gates_listed";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      open_gate_count: number;
+    };
+  };
+}
+
+export interface BootstrapGateClosed extends BaseEvent {
+  event: "bootstrap.gate_closed";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      gate_slug: string;
+      closed_via: string;
+      gate_evaluation_id?: string;
+    };
+  };
+}
+
+export interface BootstrapGateSkipped extends BaseEvent {
+  event: "bootstrap.gate_skipped";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      gate_slug: string;
+      skip_reason: string;
+      gate_evaluation_id?: string;
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9480,7 +9532,11 @@ export type SmartoutEvent =
   | MobileVoicePolicyFlipped
   | MobileRoutinePhotoExtracted
   // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
-  | BulkImportBatchParsed;
+  | BulkImportBatchParsed
+  // ─── Bootstrap Gate Events (ADR-0407, Phase 1) ───────────────────────────
+  | BootstrapGatesListed
+  | BootstrapGateClosed
+  | BootstrapGateSkipped;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -15354,6 +15410,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "bulk_import.batch_parsed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "bulk_import",
+  },
+
+  // ─── Bootstrap Gate Events (ADR-0407, Phase 1) ───────────────────────────
+  // bootstrap.gates_listed: read-only audit (activity_trail only — no PostHog/engine_event
+  // for list reads per convention). Call-site: listBootstrapGates tool body.
+  //
+  // bootstrap.gate_closed: full 4-destination routing.
+  //   posthog (setup-funnel analytics — track which gates get closed and when),
+  //   logger (debugging), activity_trail (workspace audit of setup actions),
+  //   engine_event (workflow trigger — coordinator phase 2 reads this to advance
+  //   next-gate suggestion).
+  // Call-site: closeBootstrapGate tool body (one emit per close).
+  //
+  // bootstrap.gate_skipped: full 4-destination routing (same rationale).
+  //   skip_reason logged to activity_trail for audit compliance.
+  // Call-site: skipBootstrapGate tool body (one emit per skip).
+  "bootstrap.gates_listed": {
+    destinations: ["activity_trail"],
+    category: "agent",
+  },
+  "bootstrap.gate_closed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "bootstrap.gate_skipped": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
   },
 
   // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────

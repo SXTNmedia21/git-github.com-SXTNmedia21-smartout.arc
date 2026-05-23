@@ -127,6 +127,215 @@ type RoleCapabilityProfile = {
   readySignal: string;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Bootstrap gate definitions (Step 12 — seed_bootstrap_gates).
+//
+// NOTE: Deno boundary (ADR-0084) — cannot import @smartout/ai or @smartout/types.
+// Inlined from:
+//   packages/ai/src/industry/packages/hospitality.ts → HOSPITALITY_BOOTSTRAP_GATES
+//   packages/ai/src/industry/packages/default.ts → DEFAULT_BOOTSTRAP_GATES
+// KEEP IN SYNC with those sources. TS packages are authoritative.
+//
+// ADR-0407 Phase 1 — workspace_bootstrap_gate table seeded here.
+// ─────────────────────────────────────────────────────────────────────────────
+type BootstrapGateDefinition = {
+  gate_slug: string;
+  required: boolean;
+  suggested_day: number | null;
+  depends_on: string[];
+  display_label_no: string;
+  display_label_en: string;
+  description: string;
+  capability_slug: string | null;
+};
+
+// Inlined from HOSPITALITY_BOOTSTRAP_GATES (hospitality.ts)
+const HOSPITALITY_BOOTSTRAP_GATES: BootstrapGateDefinition[] = [
+  {
+    gate_slug: "departments_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Avdelinger opprettet",
+    display_label_en: "Departments created",
+    description: "Minst én avdeling må eksistere for at vakter og protokoller skal fungere.",
+    capability_slug: "org",
+  },
+  {
+    gate_slug: "locations_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Lokasjoner opprettet",
+    display_label_en: "Locations created",
+    description: "Fysisk(e) lokasjon(er) for vaktplanlegging.",
+    capability_slug: "org",
+  },
+  {
+    gate_slug: "operating_hours_set",
+    required: true,
+    suggested_day: 2,
+    depends_on: ["departments_exist"],
+    display_label_no: "Åpningstider satt",
+    display_label_en: "Operating hours set",
+    description: "Åpningstider per avdeling — driver session_hook tidspunkter.",
+    capability_slug: "schedule",
+  },
+  {
+    gate_slug: "regulatory_framework_bound",
+    required: true,
+    suggested_day: 2,
+    depends_on: [],
+    display_label_no: "Tariff/lov-rammeverk valgt",
+    display_label_en: "Regulatory framework bound",
+    description:
+      "Bind workspace til Riksavtalen (NHO Reiseliv) eller default-norm. Driver §-håndhevelse.",
+    capability_slug: "payroll",
+  },
+  {
+    gate_slug: "tariff_binding_decided",
+    required: true,
+    suggested_day: 2,
+    depends_on: ["regulatory_framework_bound"],
+    display_label_no: "Tariff-binding bestemt",
+    display_label_en: "Tariff binding decided",
+    description:
+      "workspace_settings.is_tariff_bound må eksplisitt settes (true=bundet, false=fri).",
+    capability_slug: "payroll",
+  },
+  {
+    gate_slug: "owner_contract_active",
+    required: true,
+    suggested_day: 3,
+    depends_on: [],
+    display_label_no: "Eier-kontrakt aktiv",
+    display_label_en: "Owner contract active",
+    description:
+      "Workspace-eier må ha aktiv employment_contract for at C4-authority skal stemme.",
+    capability_slug: "contract",
+  },
+  {
+    gate_slug: "first_season_active",
+    required: true,
+    suggested_day: 3,
+    depends_on: ["departments_exist"],
+    display_label_no: "Første sesong aktiv",
+    display_label_en: "First season active",
+    description: "Aktiv season påkrevd for vaktplanlegging + budsjett.",
+    capability_slug: "season",
+  },
+  {
+    gate_slug: "mattilsynet_routines_seeded",
+    required: false,
+    suggested_day: 4,
+    depends_on: ["departments_exist"],
+    display_label_no: "Mattilsynet-rutiner aktivert",
+    display_label_en: "Food safety routines active",
+    description:
+      "20 IK-mat rutiner + 8 kontrollister + 4 kunnskapstester. Lovpålagt for matservering.",
+    capability_slug: "governance",
+  },
+  {
+    gate_slug: "alcohol_labor_routines_seeded",
+    required: false,
+    suggested_day: 5,
+    depends_on: ["departments_exist"],
+    display_label_no: "Alkohol + Aml. §10-rutiner aktivert",
+    display_label_en: "Alcohol + labor law routines active",
+    description:
+      "Alkoholloven + Aml. §10-6 (OT) + §10-11 (natt). Påkrevd ved skjenkebevilling.",
+    capability_slug: "governance",
+  },
+  {
+    gate_slug: "first_employees_invited",
+    required: false,
+    suggested_day: 6,
+    depends_on: ["owner_contract_active", "departments_exist"],
+    display_label_no: "Første ansatte invitert",
+    display_label_en: "First employees invited",
+    description: "Inviter minst én ansatt for å aktivere onboarding-flowen.",
+    capability_slug: "profile",
+  },
+  {
+    gate_slug: "authority_config_complete",
+    required: true,
+    suggested_day: 7,
+    depends_on: ["owner_contract_active"],
+    display_label_no: "C4-authority komplett",
+    display_label_en: "C4 authority complete",
+    description:
+      "Alle gated capabilities har min_role + four-eyes-policy satt for workspace.",
+    capability_slug: "governance",
+  },
+];
+
+// Inlined from DEFAULT_BOOTSTRAP_GATES (default.ts)
+const DEFAULT_BOOTSTRAP_GATES: BootstrapGateDefinition[] = [
+  {
+    gate_slug: "departments_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Avdelinger opprettet",
+    display_label_en: "Departments created",
+    description: "Minst én avdeling må eksistere for at vakter og protokoller skal fungere.",
+    capability_slug: "org",
+  },
+  {
+    gate_slug: "locations_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Lokasjoner opprettet",
+    display_label_en: "Locations created",
+    description: "Fysisk(e) lokasjon(er) for vaktplanlegging.",
+    capability_slug: "org",
+  },
+  {
+    gate_slug: "regulatory_framework_bound",
+    required: true,
+    suggested_day: 2,
+    depends_on: [],
+    display_label_no: "Regelverk valgt",
+    display_label_en: "Regulatory framework bound",
+    description:
+      "Bind workspace til et rammeverk (f.eks. Funksjonæroverenskomsten). Driver §-håndhevelse.",
+    capability_slug: "payroll",
+  },
+  {
+    gate_slug: "owner_contract_active",
+    required: true,
+    suggested_day: 2,
+    depends_on: [],
+    display_label_no: "Eier-kontrakt aktiv",
+    display_label_en: "Owner contract active",
+    description:
+      "Workspace-eier må ha aktiv employment_contract for at C4-authority skal stemme.",
+    capability_slug: "contract",
+  },
+  {
+    gate_slug: "first_season_active",
+    required: true,
+    suggested_day: 3,
+    depends_on: ["departments_exist"],
+    display_label_no: "Første sesong aktiv",
+    display_label_en: "First season active",
+    description: "Aktiv season påkrevd for vaktplanlegging + budsjett.",
+    capability_slug: "season",
+  },
+  {
+    gate_slug: "authority_config_complete",
+    required: true,
+    suggested_day: 5,
+    depends_on: ["owner_contract_active"],
+    display_label_no: "C4-authority komplett",
+    display_label_en: "C4 authority complete",
+    description:
+      "Alle gated capabilities har min_role + four-eyes-policy satt for workspace.",
+    capability_slug: "governance",
+  },
+];
+
 const HOSPITALITY_ROLE_CAPABILITY_PROFILES: RoleCapabilityProfile[] = [
   {
     roleSlug: "skiftleder",
@@ -805,6 +1014,10 @@ Deno.serve(async (req) => {
             "notification_dispatch",
             "deviation_handling",
             "session_management",
+            // ADR-0407 Phase 1 — bootstrap gate capability slugs
+            "list_bootstrap_gates",
+            "close_bootstrap_gate",
+            "skip_bootstrap_gate",
           ];
 
           const configRows = capabilities.map((cap) => ({
@@ -883,6 +1096,140 @@ Deno.serve(async (req) => {
       }
 
       await completeStep("profession_seed");
+    }
+
+    // ============================================================
+    // Step 12: seed_bootstrap_gates (ADR-0407 Phase 1)
+    //
+    // Seeds workspace_bootstrap_gate rows from the K1a industry-package gate
+    // definitions. Idempotent via ON CONFLICT (workspace_id, gate_slug) DO NOTHING.
+    //
+    // Industry detection: uses the same hospitality framework binding check as
+    // Step 11 (profession_seed). Hospitality → 11 gates. Default → 6 gates.
+    //
+    // Auto-close gates where the workspace already satisfies the condition:
+    //   departments_exist: if ≥1 active department row → closed via 'auto'
+    //   locations_exist:   if ≥1 active location row → closed via 'auto'
+    //   operating_hours_set: if department_operating_hours rows exist → closed via 'auto'
+    //   regulatory_framework_bound: if active workspace_framework_binding → closed via 'auto'
+    //   mattilsynet_routines_seeded: if mattilsynet template applied → closed via 'auto'
+    //   alcohol_labor_routines_seeded: if alcohol-labor template applied → closed via 'auto'
+    // ============================================================
+    if (!isCompleted("seed_bootstrap_gates")) {
+      await updateStep("seed_bootstrap_gates");
+
+      try {
+        // Determine industry: hospitality gate check (same pattern as Step 11)
+        const { data: hospitalityBinding } = await adminClient
+          .from("workspace_framework_binding")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("is_active", true)
+          .limit(1)
+          .single();
+
+        const isHospitality = !!hospitalityBinding;
+        const gateDefinitions = isHospitality
+          ? HOSPITALITY_BOOTSTRAP_GATES
+          : DEFAULT_BOOTSTRAP_GATES;
+        const industrySource = isHospitality ? "hospitality" : "default";
+
+        // Determine which gates to auto-close based on existing data
+
+        // Check department existence
+        const { count: deptCount } = await adminClient
+          .from("department")
+          .select("department_id", { count: "exact" })
+          .eq("workspace_id", workspaceId)
+          .eq("is_active", true);
+
+        const hasDepartments = (deptCount ?? 0) >= 1;
+
+        // Check location existence
+        const { count: locCount } = await adminClient
+          .from("location")
+          .select("location_id", { count: "exact" })
+          .eq("workspace_id", workspaceId);
+
+        const hasLocations = (locCount ?? 0) >= 1;
+
+        // Check operating hours
+        const { count: hoursCount } = await adminClient
+          .from("department_operating_hours")
+          .select("id", { count: "exact" })
+          .eq("workspace_id", workspaceId);
+
+        const hasOperatingHours = (hoursCount ?? 0) >= 1;
+
+        // Framework binding already checked (hospitalityBinding above)
+        const hasFrameworkBinding = isHospitality;
+
+        // Auto-close conditions per gate_slug
+        const autoCloseMap: Record<string, boolean> = {
+          departments_exist: hasDepartments,
+          locations_exist: hasLocations,
+          operating_hours_set: hasOperatingHours && hasDepartments,
+          regulatory_framework_bound: hasFrameworkBinding,
+          // Mattilsynet and alcohol routines — if templates were applied in prior steps,
+          // Step 11's completion implies these template files ran. Detect via routine count:
+          // mattilsynet.sql seeds ~20 routines; alcohol-labor.sql seeds ~36 routines.
+          // We conservatively don't auto-close these — admin confirms explicitly.
+          mattilsynet_routines_seeded: false,
+          alcohol_labor_routines_seeded: false,
+          // People/season/authority gates — not auto-detectable without deeper inspection.
+          // These remain open for Botsson to guide the admin.
+          owner_contract_active: false,
+          first_season_active: false,
+          first_employees_invited: false,
+          authority_config_complete: false,
+          tariff_binding_decided: false,
+        };
+
+        // Upsert gate rows (idempotent: ON CONFLICT DO NOTHING for status!=closed)
+        for (const gate of gateDefinitions) {
+          const shouldAutoClose = autoCloseMap[gate.gate_slug] ?? false;
+
+          const { error: insertError } = await adminClient
+            .from("workspace_bootstrap_gate")
+            .insert({
+              workspace_id: workspaceId,
+              gate_slug: gate.gate_slug,
+              status: shouldAutoClose ? "closed" : gate.depends_on.length > 0 ? "blocked" : "open",
+              industry_source: industrySource,
+              display_label_no: gate.display_label_no,
+              display_label_en: gate.display_label_en,
+              description: gate.description,
+              required: gate.required,
+              depends_on: gate.depends_on,
+              capability_slug: gate.capability_slug ?? null,
+              suggested_day: gate.suggested_day ?? null,
+              closed_at: shouldAutoClose ? new Date().toISOString() : null,
+              closed_via: shouldAutoClose ? "auto" : null,
+              metadata: { seeded_by: "bootstrap-cascade", step: 12 },
+            })
+            .on("conflict", ["workspace_id", "gate_slug"])
+            .ignore();
+
+          if (insertError) {
+            // Non-fatal: gate may already exist from a prior idempotent run
+            console.warn(
+              `seed_bootstrap_gates: insert warning for ${gate.gate_slug}:`,
+              insertError.message,
+            );
+          }
+        }
+
+        console.log(
+          `seed_bootstrap_gates: seeded ${gateDefinitions.length} gates (${industrySource}), ` +
+            `${Object.values(autoCloseMap).filter(Boolean).length} auto-closed`,
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        warnings.push({ step: "seed_bootstrap_gates", message: `seed failed: ${msg}` });
+        console.error("seed_bootstrap_gates error:", msg);
+      }
+
+      await completeStep("seed_bootstrap_gates");
     }
 
     // ============================================================

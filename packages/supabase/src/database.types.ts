@@ -15235,14 +15235,13 @@ export type Database = {
           name: string
           procedure_id: string
           procedure_type: Database["public"]["Enums"]["procedure_type"]
-          protocol_id: string | null
+          protocol_id: string
           provenance: Json
           skill_requirements: Json | null
           sort_order: number | null
           updated_at: string
           valid_from: string | null
           valid_to: string | null
-          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -15251,14 +15250,13 @@ export type Database = {
           name: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id?: string | null
+          protocol_id: string
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
-          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -15267,14 +15265,13 @@ export type Database = {
           name?: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id?: string | null
+          protocol_id?: string
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
-          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -16192,16 +16189,13 @@ export type Database = {
           control_list_id: string | null
           control_nth: number | null
           created_at: string
-          created_via: string
           executor_type: Database["public"]["Enums"]["routine_executor_type"]
-          governance_status: Database["public"]["Enums"]["governance_status"]
           is_active: boolean
           location_id: string | null
           name: string
           procedure_id: string
-          protocol_id: string | null
+          protocol_id: string
           routine_id: string
-          source_reference: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at: string
@@ -16214,16 +16208,13 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
-          created_via?: string
           executor_type?: Database["public"]["Enums"]["routine_executor_type"]
-          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
           location_id?: string | null
           name: string
           procedure_id: string
-          protocol_id?: string | null
+          protocol_id: string
           routine_id?: string
-          source_reference?: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
@@ -16236,16 +16227,13 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
-          created_via?: string
           executor_type?: Database["public"]["Enums"]["routine_executor_type"]
-          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
           location_id?: string | null
           name?: string
           procedure_id?: string
-          protocol_id?: string | null
+          protocol_id?: string
           routine_id?: string
-          source_reference?: string | null
           trigger_config?: Json
           trigger_type?: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
@@ -21083,6 +21071,94 @@ export type Database = {
           },
         ]
       }
+      workspace_bootstrap_gate: {
+        Row: {
+          capability_slug: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_via: string | null
+          created_at: string
+          depends_on: Json
+          description: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata: Json
+          required: boolean
+          skip_reason: string | null
+          status: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day: number | null
+          updated_at: string
+          workspace_bootstrap_gate_id: string
+          workspace_id: string
+        }
+        Insert: {
+          capability_slug?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_via?: string | null
+          created_at?: string
+          depends_on?: Json
+          description?: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata?: Json
+          required?: boolean
+          skip_reason?: string | null
+          status?: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day?: number | null
+          updated_at?: string
+          workspace_bootstrap_gate_id?: string
+          workspace_id: string
+        }
+        Update: {
+          capability_slug?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_via?: string | null
+          created_at?: string
+          depends_on?: Json
+          description?: string | null
+          display_label_en?: string
+          display_label_no?: string
+          gate_slug?: string
+          industry_source?: string
+          metadata?: Json
+          required?: boolean
+          skip_reason?: string | null
+          status?: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day?: number | null
+          updated_at?: string
+          workspace_bootstrap_gate_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bootstrap_gate_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workspace_bootstrap_gate_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_bootstrap_gate_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       workspace_bootstrap_run: {
         Row: {
           completed_at: string | null
@@ -22593,21 +22669,14 @@ export type Database = {
         }[]
       }
       fn_check_billing_run: { Args: never; Returns: number }
-      fn_create_routine_from_draft: {
+      fn_close_bootstrap_gate: {
         Args: {
-          p_actor_profile_id: string
-          p_location_id?: string
-          p_new_location?: Json
-          p_protocol_id?: string
-          p_routine_name: string
-          p_source_reference: string
-          p_steps: Json
-          p_team_ids?: string[]
-          p_trigger_config: Json
-          p_trigger_type: Database["public"]["Enums"]["trigger_type"]
+          p_gate_slug: string
+          p_profile_id: string
+          p_via: string
           p_workspace_id: string
         }
-        Returns: Json
+        Returns: string
       }
       fn_cron_jobs_health: { Args: never; Returns: Json }
       fn_fuzzy_match_entity: {
@@ -22665,6 +22734,36 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      fn_list_open_bootstrap_gates: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          capability_slug: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_via: string | null
+          created_at: string
+          depends_on: Json
+          description: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata: Json
+          required: boolean
+          skip_reason: string | null
+          status: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day: number | null
+          updated_at: string
+          workspace_bootstrap_gate_id: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workspace_bootstrap_gate"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
       fn_normalize_session_task_status: {
         Args: { p_raw: string }
@@ -22698,6 +22797,15 @@ export type Database = {
       fn_seed_profession_training: {
         Args: { p_profiles: Json; p_workspace_id: string }
         Returns: Json
+      }
+      fn_skip_bootstrap_gate: {
+        Args: {
+          p_gate_slug: string
+          p_profile_id: string
+          p_reason: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       gate_action: {
         Args: {
@@ -23104,6 +23212,12 @@ export type Database = {
         | "stripe_invoice"
       billing_integration_type: "fiken" | "tripletex" | "stripe" | "placeholder"
       booking_status: "confirmed" | "pending" | "cancelled"
+      bootstrap_gate_status:
+        | "open"
+        | "in_progress"
+        | "closed"
+        | "skipped"
+        | "blocked"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
       budget_status: "draft" | "active" | "locked"
       cascade_initiator:
@@ -23307,7 +23421,6 @@ export type Database = {
         | "manual_override"
         | "framework_rule_change"
         | "external_sync"
-      governance_status: "unassigned" | "attached"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
       invite_type: "email" | "sms" | "link"
@@ -24767,6 +24880,13 @@ export const Constants = {
       ],
       billing_integration_type: ["fiken", "tripletex", "stripe", "placeholder"],
       booking_status: ["confirmed", "pending", "cancelled"],
+      bootstrap_gate_status: [
+        "open",
+        "in_progress",
+        "closed",
+        "skipped",
+        "blocked",
+      ],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],
       cascade_initiator: [
@@ -24993,7 +25113,6 @@ export const Constants = {
         "framework_rule_change",
         "external_sync",
       ],
-      governance_status: ["unassigned", "attached"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
       invite_type: ["email", "sms", "link"],

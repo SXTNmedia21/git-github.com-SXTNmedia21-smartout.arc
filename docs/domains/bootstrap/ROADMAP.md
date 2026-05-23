@@ -5,13 +5,13 @@ updated: 2026-05-23
 created: 2026-05-23
 domain: bootstrap
 last_verified: 2026-05-23
-mirror: aspirational
+mirror: mixed
 tags: [bootstrap, roadmap, week-1, coordinator, readiness, phase]
 ---
 
 # Bootstrap — Roadmap
 
-> **mirror: aspirational** — This file is entirely forward-looking. Verified current state lives in ARCHITECTURE, DATA-MODEL, GAPS-AND-DEBT.
+> **mirror: mixed** — Phase 1 is verified (shipped 2026-05-23). Phases 2–5 are aspirational.
 
 ---
 
@@ -33,23 +33,26 @@ These ADRs govern the existing bootstrap surfaces. New phases must respect their
 
 ---
 
-## Phase 1 — workspace_readiness Schema
+## Phase 1 — workspace_bootstrap_gate Schema ✅ BUILT (2026-05-23, ADR-0407)
 
-**Goal:** Persist seed-completeness gate state per workspace so it survives across sessions.
+**Status: COMPLETE**
 
-**Deliverables:**
-- Migration: `workspace_readiness` table (schema design in DATA-MODEL §Aspirational)
-- Migration: seed `workspace_readiness` rows at end of `bootstrap-cascade` EF (Step 12, idempotent)
-- RPC: `fn_open_readiness_gates(workspace_id)` — returns open gates ordered by priority
-- RPC: `fn_close_readiness_gate(workspace_id, gate_slug, closed_by)` — marks gate closed
-- RLS: workspace members SELECT, service role ALL, api_key SELECT
+**What was built:**
+- Migration: `supabase/migrations/20260625120000_workspace_bootstrap_gate.sql`
+  - `bootstrap_gate_status` enum (open|in_progress|closed|skipped|blocked)
+  - `workspace_bootstrap_gate` table (workspace-scoped, RLS dual-auth)
+  - 3 SECURITY DEFINER RPCs (fn_list_open_bootstrap_gates + fn_close_bootstrap_gate + fn_skip_bootstrap_gate)
+  - engine_authority_config seed for 3 capability tool slugs — seeded per-workspace at Step 10 in bootstrap-cascade EF (NOT in migration; workspace_id is NOT NULL on engine_authority_config)
+- K1a gate registry:
+  - `BootstrapGateDefinition` type in `packages/types/src/industry.ts`
+  - `getBootstrapGates()` on `hospitality.ts` (11 gates) and `default.ts` (6 gates)
+- Capability: `packages/ai/src/capabilities/bootstrap/` (3 tools, gatedMutation ADR-0204)
+- Bootstrap-cascade EF Step 12: seeds gate rows with auto-close detection
+- Intent classifier enum entry + system prompt (ADR-0112 lag-trap closed)
+- Telemetry: bootstrap.gates_listed/closed/skipped in registry.ts
+- ADR-0407 registered and accepted
 
-**Gates to define (MVP):**
-- `departments`, `locations`, `framework_binding`, `tariff_binding_decision`, `season_active`, `owner_contract`, `authority_config`, `policy_seeded`
-
-**Dependencies:** None — purely additive schema.
-
-**Proposed ADR:** Bootstrap-coordinator schema (proposal before migration)
+**Note:** The original plan named this table `workspace_readiness`. Renamed to `workspace_bootstrap_gate` in ADR-0407 to avoid collision with employee-readiness terminology.
 
 ---
 

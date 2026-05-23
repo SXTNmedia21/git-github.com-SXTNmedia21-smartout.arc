@@ -11,7 +11,7 @@ tags: [bootstrap, architecture, I1, cascade, edge-function, industry, wizard]
 
 # Bootstrap — Architecture
 
-> **mirror: mixed** — L1 (SQL templates), L3a (bootstrap-cascade EF), L4 (industry loader), L3b (voice mission), L3c (setup wizard) are verified. L2 (readiness table), L3d (coordinator), L5 (session hook + week-1 UI) are aspirational.
+> **mirror: mixed** — L1 (SQL templates), L2 (workspace_bootstrap_gate table + 3 RPCs — ADR-0407), L3a (bootstrap-cascade EF + Step 12), L4 (industry loader + getBootstrapGates), L3b (voice mission), L3c (setup wizard) are verified. L3d (coordinator), L5 (session hook + week-1 UI) are aspirational.
 
 ## L1 — Execution: SQL Template Seed Layer (verified)
 
@@ -63,7 +63,11 @@ Runtime cascade seeder. Idempotent. Resumable. Auditable. Called internally by `
 | 10 | `authority_config` | Seeds `engine_authority_config` rows for all registered capabilities (ADR-0192) | C4 |
 | 11 | `profession_seed` | Seeds `profession` + `profession_training` for hospitality roles (ADR-0387a, hospitality only) | K1b |
 
-Source: `supabase/functions/bootstrap-cascade/index.ts:343–888` (step boundaries at lines 343, 372, 422, 496, 552, 592, 625, 685, 747, 775, 836)
+Source: `supabase/functions/bootstrap-cascade/index.ts` (11 original steps + Step 12 `seed_bootstrap_gates` at line ~891, ADR-0407)
+
+**Step 12: seed_bootstrap_gates (ADR-0407, Phase 1)**
+
+Inlines gate definitions (Deno boundary, ADR-0084) and seeds `workspace_bootstrap_gate` rows. Idempotent. Auto-closes `departments_exist`, `locations_exist`, `operating_hours_set`, `regulatory_framework_bound` when data already exists. Industry detection: uses same hospitality framework binding check as Step 11.
 
 ## L3b — Intake: Voice Onboarding Mission (verified)
 
@@ -123,14 +127,26 @@ Feeds industry defaults into the cascade seeder. 3-tier fallback: workspace K1b 
 **Entry point:** `packages/ai/src/industry/index.ts`
 **Loader:** `packages/ai/src/industry/loader.ts` — exports `loadIndustryPackage`, `getStaticIndustryPackage`
 **Packages:**
-- `packages/ai/src/industry/packages/hospitality.ts` — exports `hospitalityPackage`, `HOSPITALITY_TARIFF_RATES`, `PAYROLL_PROFILE_TEMPLATES`, `ADMINISTRATIVE_DEFAULT_HOURS`, `HOSPITALITY_DEFAULT_HOURS`
-- `packages/ai/src/industry/packages/default.ts` — exports `defaultPackage`
+- `packages/ai/src/industry/packages/hospitality.ts` — exports `hospitalityPackage`, `HOSPITALITY_TARIFF_RATES`, `PAYROLL_PROFILE_TEMPLATES`, `ADMINISTRATIVE_DEFAULT_HOURS`, `HOSPITALITY_DEFAULT_HOURS`, `HOSPITALITY_BOOTSTRAP_GATES`, `getBootstrapGates()` (ADR-0407)
+- `packages/ai/src/industry/packages/default.ts` — exports `defaultPackage`, `DEFAULT_BOOTSTRAP_GATES`, `getBootstrapGates()` (ADR-0407)
 **Classification:** `packages/ai/src/industry/department-classifier.ts` — exports `DEPARTMENT_TYPE_MAP`, `DEPARTMENT_OFFSET_DEFAULTS`, `lookupDepartmentType`
 **NACE map:** `packages/ai/src/industry/defaults.ts` — exports `INDUSTRY_NACE_MAP`, `getDepartmentsForIndustry`, `getPositionsForDepartment`, `getProceduresForIndustry`, `resolveNaceCode`
 
-## L2 — Reality: Workspace Readiness Table (aspirational)
+## L2 — Reality: Workspace Bootstrap Gate Table (verified — ADR-0407)
 
-Does NOT exist. The bootstrap-cascade step audit is tracked via `workspace_bootstrap_run` (L3a audit), but there is no business-level "gate checklist" table. The proposed table is designed in DATA-MODEL.md §Aspirational.
+**Migration:** `supabase/migrations/20260625120000_workspace_bootstrap_gate.sql`
+
+Table: `workspace_bootstrap_gate` — workspace-scoped gate registry.
+Enum: `bootstrap_gate_status` (open|in_progress|closed|skipped|blocked).
+
+3 SECURITY DEFINER RPCs:
+- `fn_list_open_bootstrap_gates(p_workspace_id)` — returns open/in_progress/blocked gates, re-evaluates blocked
+- `fn_close_bootstrap_gate(p_workspace_id, p_gate_slug, p_via, p_profile_id)` — admin-only close
+- `fn_skip_bootstrap_gate(p_workspace_id, p_gate_slug, p_reason, p_profile_id)` — admin-only skip (required gates forbidden)
+
+Capability: `packages/ai/src/capabilities/bootstrap/` — 3 tools through gatedMutation (ADR-0204).
+
+**NOTE:** "workspace_readiness" terminology is preserved for employee protocol completion (training domain). This table uses "gate" not "readiness" per ADR-0407 terminology section.
 
 ## L3d — Interpretation: Bootstrap-Coordinator (aspirational)
 

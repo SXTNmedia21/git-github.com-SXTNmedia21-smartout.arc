@@ -147,7 +147,13 @@ export type CapabilityName =
   /** ADR-0367 — Org-structure area-management capability. update_dept_areas tool.
    *  Links/unlinks department_location records.
    *  Admin+, confirm authority. Chat-only V1. */
-  | "org"; // ADR-0367
+  | "org" // ADR-0367
+  /** ADR-0407 Phase 1 — workspace_bootstrap_gate capability. Three tools:
+   *  list_bootstrap_gates (read_only, admin+, chat+voice),
+   *  close_bootstrap_gate (suggest, admin+, chat+voice),
+   *  skip_bootstrap_gate (suggest, admin+, chat-only).
+   *  Authority seeded per-workspace by bootstrap-cascade EF Step 10. */
+  | "bootstrap"; // ADR-0407
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

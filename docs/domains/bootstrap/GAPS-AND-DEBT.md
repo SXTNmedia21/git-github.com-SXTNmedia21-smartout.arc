@@ -8,6 +8,7 @@ last_verified: 2026-05-23
 mirror: mixed
 tags: [bootstrap, gaps, debt, overlap, deviations]
 ---
+<!-- Updated 2026-05-23: G1 workspace_readiness gap CLOSED by ADR-0407 (workspace_bootstrap_gate). -->
 
 # Bootstrap — Gaps and Debt
 
@@ -20,8 +21,12 @@ What exists today, verified against code:
 | Item | Location | Evidence |
 |------|----------|----------|
 | SQL template seed layer (10-step + Mattilsynet + alcohol-labor) | `supabase/templates/restaurant/` | `_apply.sql` + 12 SQL files, 296 INSERTs verified |
-| Bootstrap-cascade Edge Function (11-step, idempotent, resumable) | `supabase/functions/bootstrap-cascade/index.ts` | 969 lines, steps at lines 343–888 |
+| Bootstrap-cascade Edge Function (12-step, idempotent, resumable) | `supabase/functions/bootstrap-cascade/index.ts` | Steps 1–12; Step 12 = seed_bootstrap_gates (ADR-0407) |
 | `workspace_bootstrap_run` audit table | `supabase/migrations/20260422400000_cascade_b_schema.sql:82` | Schema + RLS verified |
+| `workspace_bootstrap_gate` table + `bootstrap_gate_status` enum | `supabase/migrations/20260625120000_workspace_bootstrap_gate.sql` | ADR-0407 Phase 1 |
+| 3 SECURITY DEFINER RPCs (list/close/skip bootstrap gates) | `supabase/migrations/20260625120000_workspace_bootstrap_gate.sql` | fn_list_open_bootstrap_gates, fn_close_bootstrap_gate, fn_skip_bootstrap_gate |
+| Bootstrap capability (3 tools) | `packages/ai/src/capabilities/bootstrap/` | list_bootstrap_gates, close_bootstrap_gate, skip_bootstrap_gate |
+| `BootstrapGateDefinition` type + `getBootstrapGates()` | `packages/types/src/industry.ts` + `hospitality.ts` + `default.ts` | 11 gates (hospitality), 6 gates (default) |
 | Industry config loader (L4) | `packages/ai/src/industry/` | `index.ts` + `loader.ts` + `hospitality.ts` + `default.ts` + `department-classifier.ts` |
 | Voice onboarding mission | `packages/ai/src/missions/registry.ts:14` | `onboarding-interview` mission, 30-min cap, 11 tools |
 | `finalize-workspace` EF calls bootstrap-cascade | `supabase/functions/finalize-workspace/index.ts:79` | URL construction confirmed |
@@ -40,7 +45,7 @@ What is designed but does not yet exist in code:
 
 | Gap | What is missing | Roadmap phase | Evidence of absence |
 |-----|-----------------|---------------|---------------------|
-| **G1: workspace_readiness table** | No seed-completeness gate table. `workspace_bootstrap_run` is technical audit, not business gate checklist. | Phase 1 | `grep -rn "workspace_readiness" supabase/migrations/` → zero migration hits (only the training RPC and telemetry reference the word) |
+| **G1: workspace_bootstrap_gate table** | ~~No seed-completeness gate table~~ — **CLOSED by ADR-0407 Phase 1 (2026-05-23)**. `workspace_bootstrap_gate` table + 3 RPCs + bootstrap capability shipped. | ~~Phase 1~~ DONE | Migration 20260625120000 |
 | **G2: bootstrap-coordinator** | No orchestrator code in `packages/ai/src/` that reads readiness and selects today's gate. | Phase 2 | `grep -rn "bootstrap_coordinator\|bootstrapCoordinator\|bootstrap-coordinator" packages/` → zero code hits |
 | **G3: session-start hook** | Botsson does not read gate state on session start. No hook in stage-engine or harness. | Phase 3 | `grep -rn "bootstrap.*session\|readiness.*hook" packages/ai/src/` → zero hits |
 | **G4: week-1 progressive UI** | No `/dashboard/bootstrap` or "day N of 7" surface exists. Admin has no visual gate checklist. | Phase 4 | `find apps/web/src/app/dashboard -name "*bootstrap*"` → zero results |

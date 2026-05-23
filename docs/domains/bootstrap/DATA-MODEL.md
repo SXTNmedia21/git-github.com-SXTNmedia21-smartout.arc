@@ -5,13 +5,13 @@ updated: 2026-05-23
 created: 2026-05-23
 domain: bootstrap
 last_verified: 2026-05-23
-mirror: mixed
-tags: [bootstrap, data-model, schema, workspace_bootstrap_run, readiness]
+mirror: verified
+tags: [bootstrap, data-model, schema, workspace_bootstrap_run, workspace_bootstrap_gate, readiness]
 ---
 
 # Bootstrap — Data Model
 
-> **mirror: mixed** — `workspace_bootstrap_run`, `workspace.onboarding_completed`, `workspace.setup_guide_completed`, `get_workspace_readiness` RPC are verified. `workspace_readiness` table is aspirational.
+> **mirror: verified** — `workspace_bootstrap_run`, `workspace_bootstrap_gate` (ADR-0407), `workspace.onboarding_completed`, `workspace.setup_guide_completed`, `get_workspace_readiness` RPC are all verified.
 
 ---
 
@@ -110,9 +110,71 @@ Counts verified by: `grep -c "^INSERT INTO\|^ *INSERT INTO" supabase/templates/r
 
 ---
 
-## Aspirational: workspace_readiness Table
+## Verified: workspace_bootstrap_gate (ADR-0407 Phase 1)
 
-Does NOT exist in any migration. Proposed schema:
+**Migration:** `supabase/migrations/20260625120000_workspace_bootstrap_gate.sql`
+
+```sql
+-- Enum
+CREATE TYPE bootstrap_gate_status AS ENUM (
+  'open', 'in_progress', 'closed', 'skipped', 'blocked'
+);
+
+-- Table
+CREATE TABLE workspace_bootstrap_gate (
+  workspace_bootstrap_gate_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
+  gate_slug text NOT NULL,
+  status bootstrap_gate_status NOT NULL DEFAULT 'open',
+  industry_source text NOT NULL,
+  display_label_no text NOT NULL,
+  display_label_en text NOT NULL,
+  description text,
+  required boolean NOT NULL DEFAULT true,
+  depends_on jsonb NOT NULL DEFAULT '[]'::jsonb,
+  capability_slug text,
+  suggested_day smallint,
+  closed_at timestamptz,
+  closed_by uuid REFERENCES profile(profile_id),
+  closed_via text,
+  skip_reason text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(workspace_id, gate_slug)
+);
+```
+
+**RLS policies:**
+- `jwt_read_workspace_bootstrap_gate` — SELECT for workspace members (authenticated)
+- `api_key_read_workspace_bootstrap_gate` — SELECT for API key scoped to workspace (anon)
+- No direct INSERT/UPDATE/DELETE — all writes go through SECURITY DEFINER RPCs
+
+**RPCs:**
+- `fn_list_open_bootstrap_gates(p_workspace_id uuid)` — SECURITY DEFINER, returns open/in_progress/blocked gates
+- `fn_close_bootstrap_gate(p_workspace_id, p_gate_slug, p_via, p_profile_id)` — admin-only close
+- `fn_skip_bootstrap_gate(p_workspace_id, p_gate_slug, p_reason, p_profile_id)` — admin-only skip; required=true gates RAISE EXCEPTION
+
+**K1a gate registry:**
+- `BootstrapGateDefinition` type in `packages/types/src/industry.ts`
+- `getBootstrapGates()` on `hospitality.ts` (11 gates) and `default.ts` (6 gates)
+- Seeded by bootstrap-cascade EF Step 12
+
+**Hospitality gates (11):** departments_exist, locations_exist, operating_hours_set, regulatory_framework_bound, tariff_binding_decided, owner_contract_active, first_season_active, mattilsynet_routines_seeded (optional), alcohol_labor_routines_seeded (optional), first_employees_invited (optional), authority_config_complete
+
+**Default gates (6):** departments_exist, locations_exist, regulatory_framework_bound, owner_contract_active, first_season_active, authority_config_complete
+
+---
+
+## Historical: Aspirational workspace_readiness Table (REPLACED by workspace_bootstrap_gate)
+
+The original ROADMAP.md proposal called this table `workspace_readiness`. That name was retired in ADR-0407 to avoid collision with the employee-readiness terminology (see `get_workspace_readiness` RPC below). The table exists as `workspace_bootstrap_gate` instead.
+
+**Archived proposed schema** (superseded):
+
+## Archived: workspace_readiness Table Proposal
+
+Originally proposed schema (never migrated, superseded by workspace_bootstrap_gate):
 
 ```sql
 -- ASPIRATIONAL — not yet migrated

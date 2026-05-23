@@ -40,6 +40,7 @@ import { bulkImportCapability } from "./bulk_import/index.js";
 import { dayLineCapability } from "./day-line/index.js";
 import { routineCapability } from "./routine/index.js";
 import { orgCapability } from "./org/index.js";
+import { bootstrapCapability } from "./bootstrap/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -178,6 +179,14 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Links/unlinks department_location records. Own namespace — no delegation needed.
   // Admin+, confirm, chat-only V1. emitPrefix='org'. Authority seeded in BT0 Phase A migration.
   org: orgCapability,
+  // Bootstrap capability — ADR-0407 Phase 1. 3 tools:
+  //   list_bootstrap_gates (read_only, admin+, chat+voice — fn_list_open_bootstrap_gates RPC),
+  //   close_bootstrap_gate (suggest, admin+, chat+voice — fn_close_bootstrap_gate RPC),
+  //   skip_bootstrap_gate  (suggest, admin+, chat-only V1 — fn_skip_bootstrap_gate RPC).
+  // Gate registry sourced from K1a industry-package (getBootstrapGates()).
+  // Hospitality: 11 gates (incl. Mattilsynet + alcohol). Default: 6 gates.
+  // Authority seeded in migration 20260625120000_workspace_bootstrap_gate.sql.
+  bootstrap: bootstrapCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

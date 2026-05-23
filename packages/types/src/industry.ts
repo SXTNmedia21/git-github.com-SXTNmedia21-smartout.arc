@@ -163,3 +163,34 @@ export type RoleCapabilityProfile = {
   /** Human-readable description of what "ready" means for this role. */
   readySignal: string;
 };
+
+/**
+ * Bootstrap gate definition — K1a industry-package source of truth for
+ * workspace_bootstrap_gate row seeds (ADR-0407, Phase 1).
+ *
+ * Each gate represents one business-level readiness requirement.
+ * The `industry_source` field is set by the loader (e.g. "hospitality" | "default").
+ * Hospitality exports 11 gates (incl. Mattilsynet + alcohol);
+ * default exports 6 generic gates.
+ *
+ * Seeded by bootstrap-cascade EF Step 12 via `getBootstrapGates()` on the
+ * industry package after SQL templates are applied.
+ */
+export type BootstrapGateDefinition = {
+  /** Unique identifier for this gate — must match gate_slug in workspace_bootstrap_gate. */
+  gate_slug: string;
+  /** Whether this gate is required (required gates cannot be skipped at RPC level). */
+  required: boolean;
+  /** Suggested week-1 day to close this gate (1..7). null = no specific day constraint. */
+  suggested_day: number | null;
+  /** Gate slugs that must be closed before this gate can transition from blocked → open. */
+  depends_on: string[];
+  /** Norwegian display label. */
+  display_label_no: string;
+  /** English display label. */
+  display_label_en: string;
+  /** Agent-readable rationale — explains WHY this gate matters. */
+  description: string;
+  /** Which capability tool closes this gate. null = manual / auto only. */
+  capability_slug: string | null;
+};

@@ -11,7 +11,12 @@
  * Source authority: docs/modules/payroll/SORTIE-PHASE-1.md §3.
  */
 
-import type { Domain, IndustryPackage, RoleCapabilityProfile } from "@smartout/types";
+import type {
+  BootstrapGateDefinition,
+  Domain,
+  IndustryPackage,
+  RoleCapabilityProfile,
+} from "@smartout/types";
 
 // ========================================
 // Cascade seed data — used for bootstrap seeding and hardcoded fallback
@@ -378,6 +383,157 @@ export const HOSPITALITY_DEFAULT_HOURS = [
   { dayOfWeek: 5, openTime: "11:00", closeTime: "23:00", isClosed: false },
   { dayOfWeek: 6, openTime: "12:00", closeTime: "22:00", isClosed: false },
 ] as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bootstrap gates — K1a source of truth for workspace_bootstrap_gate seeds
+// Seeded by bootstrap-cascade EF Step 12 (ADR-0407, Phase 1).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hospitality bootstrap gates — 11 gates covering week-1 setup.
+ *
+ * Industry-specific gates (Mattilsynet food safety, alcohol + labor law)
+ * are marked required=false — they are recommended but admin can skip
+ * with a reason if the venue doesn't serve food/alcohol.
+ *
+ * Day 1: structural foundation (departments + locations)
+ * Day 2: framework + tariff + operating hours
+ * Day 3: people + season (owner contract, first season)
+ * Day 4: food safety routines (Mattilsynet, lovpålagt for matservering)
+ * Day 5: alcohol + labor law routines
+ * Day 6: first employees invited
+ * Day 7: C4-authority finalized
+ */
+export const HOSPITALITY_BOOTSTRAP_GATES: BootstrapGateDefinition[] = [
+  // Day 1 — critical structural foundation
+  {
+    gate_slug: "departments_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Avdelinger opprettet",
+    display_label_en: "Departments created",
+    description: "Minst én avdeling må eksistere for at vakter og protokoller skal fungere.",
+    capability_slug: "org",
+  },
+  {
+    gate_slug: "locations_exist",
+    required: true,
+    suggested_day: 1,
+    depends_on: [],
+    display_label_no: "Lokasjoner opprettet",
+    display_label_en: "Locations created",
+    description: "Fysisk(e) lokasjon(er) for vaktplanlegging.",
+    capability_slug: "org",
+  },
+  // Day 2 — structural rules
+  {
+    gate_slug: "operating_hours_set",
+    required: true,
+    suggested_day: 2,
+    depends_on: ["departments_exist"],
+    display_label_no: "Åpningstider satt",
+    display_label_en: "Operating hours set",
+    description: "Åpningstider per avdeling — driver session_hook tidspunkter.",
+    capability_slug: "schedule",
+  },
+  {
+    gate_slug: "regulatory_framework_bound",
+    required: true,
+    suggested_day: 2,
+    depends_on: [],
+    display_label_no: "Tariff/lov-rammeverk valgt",
+    display_label_en: "Regulatory framework bound",
+    description:
+      "Bind workspace til Riksavtalen (NHO Reiseliv) eller default-norm. Driver §-håndhevelse.",
+    capability_slug: "payroll",
+  },
+  {
+    gate_slug: "tariff_binding_decided",
+    required: true,
+    suggested_day: 2,
+    depends_on: ["regulatory_framework_bound"],
+    display_label_no: "Tariff-binding bestemt",
+    display_label_en: "Tariff binding decided",
+    description:
+      "workspace_settings.is_tariff_bound må eksplisitt settes (true=bundet, false=fri).",
+    capability_slug: "payroll",
+  },
+  // Day 3 — people and season
+  {
+    gate_slug: "owner_contract_active",
+    required: true,
+    suggested_day: 3,
+    depends_on: [],
+    display_label_no: "Eier-kontrakt aktiv",
+    display_label_en: "Owner contract active",
+    description: "Workspace-eier må ha aktiv employment_contract for at C4-authority skal stemme.",
+    capability_slug: "contract",
+  },
+  {
+    gate_slug: "first_season_active",
+    required: true,
+    suggested_day: 3,
+    depends_on: ["departments_exist"],
+    display_label_no: "Første sesong aktiv",
+    display_label_en: "First season active",
+    description: "Aktiv season påkrevd for vaktplanlegging + budsjett.",
+    capability_slug: "season",
+  },
+  // Day 4 — hospitality-specific: Mattilsynet (food safety routines)
+  {
+    gate_slug: "mattilsynet_routines_seeded",
+    required: false,
+    suggested_day: 4,
+    depends_on: ["departments_exist"],
+    display_label_no: "Mattilsynet-rutiner aktivert",
+    display_label_en: "Food safety routines active",
+    description:
+      "20 IK-mat rutiner + 8 kontrollister + 4 kunnskapstester. Lovpålagt for matservering.",
+    capability_slug: "governance",
+  },
+  // Day 5 — hospitality-specific: alcohol + labor law
+  {
+    gate_slug: "alcohol_labor_routines_seeded",
+    required: false,
+    suggested_day: 5,
+    depends_on: ["departments_exist"],
+    display_label_no: "Alkohol + Aml. §10-rutiner aktivert",
+    display_label_en: "Alcohol + labor law routines active",
+    description: "Alkoholloven + Aml. §10-6 (OT) + §10-11 (natt). Påkrevd ved skjenkebevilling.",
+    capability_slug: "governance",
+  },
+  // Day 6 — onboarding
+  {
+    gate_slug: "first_employees_invited",
+    required: false,
+    suggested_day: 6,
+    depends_on: ["owner_contract_active", "departments_exist"],
+    display_label_no: "Første ansatte invitert",
+    display_label_en: "First employees invited",
+    description: "Inviter minst én ansatt for å aktivere onboarding-flowen.",
+    capability_slug: "profile",
+  },
+  // Day 7 — finalize C4
+  {
+    gate_slug: "authority_config_complete",
+    required: true,
+    suggested_day: 7,
+    depends_on: ["owner_contract_active"],
+    display_label_no: "C4-authority komplett",
+    display_label_en: "C4 authority complete",
+    description: "Alle gated capabilities har min_role + four-eyes-policy satt for workspace.",
+    capability_slug: "governance",
+  },
+];
+
+/**
+ * Returns bootstrap gate definitions for the hospitality industry.
+ * Called by bootstrap-cascade EF Step 12 to seed workspace_bootstrap_gate rows.
+ */
+export function getBootstrapGates(): BootstrapGateDefinition[] {
+  return HOSPITALITY_BOOTSTRAP_GATES;
+}
 
 export const hospitalityPackage: IndustryPackage = {
   id: "hospitality",
