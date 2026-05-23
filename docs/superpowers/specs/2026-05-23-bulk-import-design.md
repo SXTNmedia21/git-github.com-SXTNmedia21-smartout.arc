@@ -91,7 +91,7 @@ Scope:
 - ADR-0404 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
 - Migration `20260624000000_bulk_import_foundation.sql`:
   - `CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions`
-  - Composite GIN indexes: `(workspace_id, display_name gin_trgm_ops)` on profile; `(workspace_id, name gin_trgm_ops)` on department + location
+  - GIN indexes (`<name_col> gin_trgm_ops`) on profile.display_name + department.name + location.name, paired with BTREE indexes on workspace_id (two-index strategy: composite UUID-in-GIN is unsupported — btree_gin extension not installed; planner combines via BITMAP scan; correction surfaced by code-quality review of foundation migration, Sortie A 2026-05-23)
   - `CREATE TABLE import_run (...)` — see data model below
   - `CREATE FUNCTION fn_fuzzy_match_entity(...)` SECURITY DEFINER + active-status filter
   - `ALTER TABLE schedule_shift DROP CONSTRAINT ... ADD CONSTRAINT ... CHECK (source IN ('operational','bubble_migration','v3_engine','v3_bulk_import'))`

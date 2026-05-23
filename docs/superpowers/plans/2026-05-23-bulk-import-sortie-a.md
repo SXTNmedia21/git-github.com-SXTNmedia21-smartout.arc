@@ -421,17 +421,25 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
 
 -- ============================================================================
--- 2. Composite GIN indexes (workspace_id, name) for trigram similarity scans
---    Workspace-first to keep the search bounded to one tenant per query.
+-- 2. GIN indexes on name + BTREE on workspace_id (two-index strategy)
+--    Query pattern: WHERE workspace_id = X AND similarity(name, Y) >= T.
+--    Planner combines via BITMAP scan. Composite GIN on (UUID, text gin_trgm_ops)
+--    is NOT supported — UUID has no GIN opclass and btree_gin extension is not
+--    installed (only btree_gist for GiST exclusion).
 -- ============================================================================
-CREATE INDEX IF NOT EXISTS idx_profile_workspace_displayname_trgm
-  ON profile USING GIN (workspace_id, display_name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_profile_displayname_trgm
+  ON profile USING GIN (display_name extensions.gin_trgm_ops);
+-- profile.workspace_id btree already exists from 00001_identity_tables.sql
 
-CREATE INDEX IF NOT EXISTS idx_department_workspace_name_trgm
-  ON department USING GIN (workspace_id, name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_department_name_trgm
+  ON department USING GIN (name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_department_workspace_id_btree
+  ON department (workspace_id);
 
-CREATE INDEX IF NOT EXISTS idx_location_workspace_name_trgm
-  ON location USING GIN (workspace_id, name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_location_name_trgm
+  ON location USING GIN (name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_location_workspace_id_btree
+  ON location (workspace_id);
 
 -- ============================================================================
 -- 3. import_run table (Sortie A schema home; ADR-0401)
@@ -624,7 +632,7 @@ git commit -m "$(cat <<'EOF'
 feat(bulk-import): foundation migration — pg_trgm + import_run + fuzzy-match RPC
 
 ADR-0401 schema home + ADR-0404 schedule_shift.source v3_bulk_import value.
-- pg_trgm extension + 3 composite GIN indexes (workspace_id, name) on profile/department/location
+- pg_trgm extension + 3 GIN indexes (name gin_trgm_ops) + 3 BTREE workspace_id indexes (two-index strategy per Sortie A code-quality finding)
 - import_run table + JWT-only RLS + updated_at trigger + UNIQUE file-hash idempotency
 - fn_fuzzy_match_entity SECURITY DEFINER + pinned search_path + active-only filter
 - ALTER schedule_shift.source CHECK to allow v3_bulk_import (writer Sortie C)

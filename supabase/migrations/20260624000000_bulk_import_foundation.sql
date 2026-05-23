@@ -21,17 +21,25 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
 
 -- ============================================================================
--- 2. Composite GIN indexes (workspace_id, name) for trigram similarity scans
---    Workspace-first to keep the search bounded to one tenant per query.
+-- 2. pg_trgm GIN indexes on name columns + BTREE on workspace_id for the
+--    fuzzy-match query pattern: WHERE workspace_id = X AND similarity(name, Y) >= T.
+--    Two-index strategy: planner combines via BITMAP scan. Composite GIN on
+--    (UUID, text gin_trgm_ops) is NOT supported — UUID has no GIN opclass and
+--    btree_gin extension is not installed (only btree_gist for GiST exclusion).
 -- ============================================================================
-CREATE INDEX IF NOT EXISTS idx_profile_workspace_displayname_trgm
-  ON profile USING GIN (workspace_id, display_name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_profile_displayname_trgm
+  ON profile USING GIN (display_name extensions.gin_trgm_ops);
+-- profile.workspace_id btree already exists from 00001_identity_tables.sql (idx_profile_workspace_id)
 
-CREATE INDEX IF NOT EXISTS idx_department_workspace_name_trgm
-  ON department USING GIN (workspace_id, name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_department_name_trgm
+  ON department USING GIN (name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_department_workspace_id_btree
+  ON department (workspace_id);
 
-CREATE INDEX IF NOT EXISTS idx_location_workspace_name_trgm
-  ON location USING GIN (workspace_id, name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_location_name_trgm
+  ON location USING GIN (name extensions.gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_location_workspace_id_btree
+  ON location (workspace_id);
 
 -- ============================================================================
 -- 3. import_run table (Sortie A schema home; ADR-0401)
@@ -72,7 +80,7 @@ CREATE TABLE import_run (
   CONSTRAINT unique_workspace_file_hash UNIQUE (workspace_id, excel_sha256)
 );
 
-CREATE INDEX idx_import_run_workspace_status ON import_run (workspace_id, status);
+CREATE INDEX IF NOT EXISTS idx_import_run_workspace_status ON import_run (workspace_id, status);
 
 -- updated_at trigger (reuses public.set_updated_at() — exists since 00001_identity_tables.sql)
 CREATE TRIGGER trg_import_run_updated_at
