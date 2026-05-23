@@ -6,7 +6,7 @@ created: 2026-05-23
 domain: agent-harness
 mirror: aspirational
 last_verified: 2026-05-23
-tags: [domain, agent-harness, roadmap, adr, milestones, forward-plan]
+tags: [domain, agent-harness, roadmap, adr, milestones, forward-plan, specialist-layer]
 ---
 
 # Agent Harness — Roadmap
@@ -46,6 +46,8 @@ tags: [domain, agent-harness, roadmap, adr, milestones, forward-plan]
 | Intent classifier continuous coverage improvement | ADR-0112 CI check is green but new capabilities require enum addition before merge. Pattern: every new capability = 1 enum entry + intent description update | each capability PR |
 | Eval harness golden transcript expansion | ADR-0073 eval harness exists; only golden-transcripts present. Need regression transcripts per capability cluster (payroll, scheduling, contracts, day-session) | capability domain champions |
 | gatedMutation feature-flag graduation | `SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED` flag is ON. Stabilize + remove flag scaffolding once ADR-0204 SS-4/SS-5 complete | SS-4/SS-5 sorties |
+| Schedule specialist BFF route | `runScheduleAgent` defined but no `apps/web/src/app/api/schedule-agent/route.ts` exists (GAP-7). Needed for a dashboard scheduling chat widget | scheduling domain decision |
+| Clarify `runBotssonAgent()` production status | The function exists but the web BFF proxies to stage-engine instead. Confirm if it's a test harness, fallback mode, or dead code (GAP-9) | botsson domain decision |
 
 ### Medium-term
 

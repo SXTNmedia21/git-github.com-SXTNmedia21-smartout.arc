@@ -6,7 +6,7 @@ created: 2026-05-23
 domain: agent-harness
 mirror: verified
 last_verified: 2026-05-23
-tags: [domain, agent-harness, e2e, tests, coverage, eval-harness]
+tags: [domain, agent-harness, e2e, tests, coverage, eval-harness, specialist-layer]
 ---
 
 # Agent Harness — E2E Coverage
@@ -80,3 +80,5 @@ These cover individual capability tools, gate paths, classifier edge cases. Key 
 | No E2E for ADR-0199 I8 edge-function dual-auth | `engine-dispatch` internal auth not integration-tested |
 | No E2E for sixten orchestrator health checks | `workers/sixten-orchestrator.ts` health check execution unverified in CI |
 | Voice agent harness pipeline E2E missing | LiveKit adapter + voice tool dispatch exercised only in manual testing |
+| No E2E for specialist layer BFF routes | 6 specialist BFF routes (`contract-agent`, `journey-agent`, `journey-ops-agent`, `onboarding-agent`, `reports-agent`, `docs-agent`) have zero Playwright coverage. Each specialist is a standalone AI runner — regression risk is independent of main harness pipeline E2E. |
+| No golden transcripts per specialist | `packages/ai/src/__evals__/golden-transcripts/` covers general pipeline only. No golden transcript for reports wizard, contract editor, journey wizard, journey-ops, onboarding agent, or schedule agent turns. |

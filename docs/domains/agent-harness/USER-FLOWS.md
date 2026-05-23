@@ -6,7 +6,7 @@ created: 2026-05-23
 domain: agent-harness
 mirror: verified
 last_verified: 2026-05-23
-tags: [domain, agent-harness, user-flows, plumbing, upstream-links]
+tags: [domain, agent-harness, user-flows, plumbing, upstream-links, specialist-layer]
 ---
 
 # Agent Harness — User Flows
@@ -32,6 +32,19 @@ The harness is invisible to users. What users see is Botsson's persona (orb, cha
 | year-wheel | `docs/journeys/JOURNEY-year-wheel-*.md` | engine-dispatch (season activation process) |
 | procedure-engine | `docs/journeys/JOURNEY-procedure-engine-*.md` | engine_process (protocol assignment workflow) |
 | announcements | `docs/journeys/JOURNEY-announcements-*.md` | engine_dispatch (notification routing) |
+
+## Specialist BFF routes (harness-owned AI runners with their own HTTP endpoints)
+
+These 6 routes bypass the stage-engine main pipeline. They call harness-owned `run*Agent()` directly. Each is owned by the edge domain listed but the AI runner + tools are agent-harness.
+
+| BFF route | App | Specialist called | Edge-domain owner | Auth |
+|---|---|---|---|---|
+| `POST /api/contract-agent` | `apps/web` | `runContractAgent()` — contract template editor | contracts (platform-admin) | JWT + `is_godmode` check |
+| `POST /api/journey-agent` | `apps/web` | `runJourneyAgent()` — 6-phase journey definition wizard | procedure-engine / platform-admin | godmode (`getSuperAdminId()`) |
+| `POST /api/platform-admin/journey-ops-agent` | `apps/web` | `runJourneyOpsAgent()` — post-definition journey ops | platform-admin (pending domain) | godmode (`getSuperAdminId()`) |
+| `POST /api/onboarding-agent` | `apps/web` | `runOnboardingAgent()` + `extractOnboardingIntelligence()` | onboarding-wizard domain | JWT + session ownership |
+| `POST /api/reports-agent` | `apps/web` | `runReportsAgent()` — report builder wizard | reports domain | JWT + workspace-profile check |
+| `POST /api/docs-agent` | `apps/landing` | `runDocsAgent()` — LISA documentation agent | landing app (no dedicated domain) | none (public) |
 
 ## Harness-internal observable behaviors (operational, not user-visible)
 

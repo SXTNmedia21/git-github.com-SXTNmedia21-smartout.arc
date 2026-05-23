@@ -6,7 +6,7 @@ created: 2026-05-23
 domain: agent-harness
 mirror: verified
 last_verified: 2026-05-23
-tags: [domain, agent-harness, gaps, debt, deviations, overlap]
+tags: [domain, agent-harness, gaps, debt, deviations, overlap, specialist-layer]
 ---
 
 # Agent Harness — Gaps and Debt
@@ -65,6 +65,23 @@ Harness hardening spec 2026-04-23 included a capability circuit breaker (fail-op
 ### GAP-6: ADR-0199 I9 — activity_trail emit partial
 `docs/architecture/INVARIANTS.md:I9` — "Every mutation emits to `activity_trail`" — status 🟡 (partial via auto-emit). Harness-layer mutations do not all include explicit `activity_trail` routing.
 
+## Specialist layer gaps
+
+### GAP-7: schedule specialist has no dedicated BFF route in `apps/web`
+**Evidence:** `grep -rn "runScheduleAgent" apps/web/ --include="*.ts"` returns 0 hits. `packages/ai/src/agents/schedule.ts:130` defines `runScheduleAgent()` but only the function definition exists. The agent is designed for service invocation via `ScheduleAgentContext` (jwt or apiKey to shift-mcp).
+**Impact:** The schedule specialist is not surfaced as a chat UI endpoint in the dashboard. Scheduling AI is routed through stage-engine → `schedule` capability instead.
+**Action:** If a standalone schedule-agent wizard UI is planned, add `apps/web/src/app/api/schedule-agent/route.ts` + register `runScheduleAgent` call. Until then, stage-engine handles scheduling AI via the capability pipeline.
+
+### GAP-8: docs specialist is on landing app, not dashboard — edge-domain ownership ambiguous
+**Evidence:** `apps/landing/src/app/api/docs-agent/route.ts:4` imports `runDocsAgent`. No dashboard equivalent. The "docs" specialist answers questions about Smartout documentation (user manual). It is NOT workspace-scoped.
+**Impact:** `docs.ts` has no edge-domain mapping to an existing domain folder. The landing app has no dedicated `docs/domains/` entry.
+**Action:** Register docs specialist as "landing-app infra" in this file. Do NOT create a docs domain unless/until a dedicated product docs area is defined.
+
+### GAP-9: botsson specialist `runBotssonAgent()` — no direct call-site outside tests/definition
+**Evidence:** `grep -rn "runBotssonAgent" /apps /services --include="*.ts"` = 0 call-sites outside `packages/ai/`. The `apps/web/src/app/api/botsson/chat/route.ts` proxies to stage-engine, which runs the intent classifier → capability pipeline (NOT `runBotssonAgent`). `runBotssonAgent` exists as a standalone runner but is not currently wired into any production path.
+**Impact:** `botsson.ts` is potentially orphaned as a standalone runner — the actual Botsson chat flow goes through stage-engine. The botsson specialist may be the "future direct mode" or a testing harness.
+**Action:** Clarify in botsson domain whether `runBotssonAgent` is (a) a fallback / test harness, (b) a planned "dev shortcut mode", or (c) dead code. Document in botsson GAPS until decided.
+
 ## Overlap edges (cross-domain)
 
 | Edge | Recommendation | Status |
@@ -75,6 +92,11 @@ Harness hardening spec 2026-04-23 included a capability circuit breaker (fail-op
 | **notifications ↔ agent-harness** | `engine_event` rows trigger notification dispatch via `engine-dispatch` `send_notification` handler. Harness fans out to notification_outbox; notifications domain owns dispatch pipeline. | resolved (keep) |
 | **voice-agent service ↔ agent-harness** | harness owns `adapters/livekit.ts` (tool dispatch); voice-agent owns LiveKit realtime audio transport. Sibling services. ADR boundary not formalized yet (GAP-2). | open |
 | **lovsen-mcp (future) ↔ agent-harness** | Harness will call lovsen via MCP for legal capability. Protocol boundary not yet built. | open (deferred) |
+| **reports ↔ agent-harness** | `packages/ai/src/agents/reports.ts` + `packages/ai/src/tools/report/` (5 tools) owned by harness. Reports domain links via README Agent Guardrails. BFF route `/api/reports-agent` is in reports domain's code path but the AI runner is harness-owned. | resolved (CONSOLIDATE-toward-harness — reports links only, per _DASHBOARD.md:132) |
+| **contracts ↔ agent-harness** | `packages/ai/src/agents/contract.ts` + `packages/ai/src/tools/contract/` (19 tools) owned by harness. Contracts domain uses the specialist for template editing. BFF route is platform-admin only (godmode). | resolved (keep boundary — contracts domain invokes, harness owns runner + tools) |
+| **procedure-engine / journey-protocol ↔ agent-harness** | `agents/journey.ts` (6-phase wizard) + `agents/journey-ops.ts` (post-definition ops) both owned by harness. Procedure-engine domain owns the `journey` table schema; harness owns the AI runners + `tools/journey/` + `tools/journey-ops/`. | resolved (keep — schema vs AI-runner split is the seam) |
+| **onboarding-wizard ↔ agent-harness** | `packages/ai/src/agents/onboarding.ts` + `packages/ai/src/tools/onboarding.ts` owned by harness. Onboarding-wizard domain owns the wizard UI + session management. BFF route at `/api/onboarding-agent` belongs to onboarding-wizard domain. | resolved (keep — onboarding-wizard invokes, harness owns runner + tools) |
+| **scheduling ↔ agent-harness** | `packages/ai/src/agents/schedule.ts` owned by harness. No dedicated BFF route exists in `apps/web` (GAP-7). Scheduling domain owns `services/shift-mcp/` tool backend. | open (GAP-7 — no BFF route yet) |
 
 ## Debt
 

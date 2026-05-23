@@ -6,7 +6,7 @@ created: 2026-05-23
 domain: agent-harness
 mirror: verified
 last_verified: 2026-05-23
-tags: [domain, agent-harness, stage-engine, gate, classifier, router, engine-motor, agent-sdk, source-of-truth]
+tags: [domain, agent-harness, stage-engine, gate, classifier, router, engine-motor, agent-sdk, source-of-truth, specialist-layer]
 ---
 
 # Agent Harness — Source of Truth
@@ -26,7 +26,7 @@ tags: [domain, agent-harness, stage-engine, gate, classifier, router, engine-mot
 | `packages/ai/src/engine/` — engine_state lifecycle | ✅ | 🟡 | authority-pipeline + condition-evaluator; state machine |
 | `packages/ai/src/harness/` — HarnessAdapter (ADR-0327) | ✅ | 🟡 | factory + authority + sources (capabilities + site-map); ADR-0327 proposed→shipped |
 | `packages/ai/src/adapters/` — LLM adapters (ADR-0327, ADR-0010) | ✅ | 🟡 | vercel-ai.ts + livekit.ts; tool-name sanitization for OpenRouter/Bedrock |
-| `packages/ai/src/agents/` — agent registry | ✅ | 🟡 | botsson.ts + 8 named agents; persona wrapper (botsson domain defines, harness registers) |
+| `packages/ai/src/agents/` — specialist layer (8 specialists) | ✅ | 🟡 | botsson, contract, docs, journey, journey-ops, onboarding, reports, schedule — all `anthropic/claude-sonnet-4.6` via OpenRouter; 6 active BFF routes (botsson proxies to stage-engine); schedule lacks standalone BFF route (GAP-7) |
 | `packages/ai/src/prompts/` — system-prompt compilation (ADR-0329) | 🟡 | 🔴 | mr-botsson.ts + posture.ts built; ADR-0329 proposed; soul-on-platform-admin sortie not shipped |
 | `packages/ai/src/context/` — session-context | ✅ | 🟡 | collector.ts + memory-writer.ts + types.ts |
 | `packages/ai/src/journey-ops/` — runtime journey ops | ✅ | 🟡 | runbook.ts |
