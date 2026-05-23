@@ -239,10 +239,10 @@ SET search_path = public, extensions
 
 | Risk | Reversibility | Mitigation |
 |---|---|---|
-| `import_run` schema lock-in | LOAD-BEARING after first import | Schema finalized in ADR-0398 review; pg_trgm composite indexes; nullable resolver_decisions |
-| xlsx library bundle bloat / supply-chain | REVERSIBLE | Sortie A ships CSV-only; xlsx ADR-0399 reviewed before Sortie B |
+| `import_run` schema lock-in | LOAD-BEARING after first import | Schema finalized in ADR-0400 review; pg_trgm composite indexes; nullable resolver_decisions |
+| xlsx library bundle bloat / supply-chain | REVERSIBLE | Sortie A ships CSV-only; xlsx ADR-0401 reviewed before Sortie B |
 | Cascade-delegation symmetry slips (one helper emits, another doesn't) | LATENT BUG — surfaces in audit weeks later | Trust Gate per-tool check at Sortie C close; explicit emit-symmetry test in close-feature |
-| Profile-stub creep ("just this one workspace") | LOAD-BEARING — orphans break D2 permanently | ADR-0398 FORBIDS stubs explicitly; capability rejects on FK-chain attempt |
+| Profile-stub creep ("just this one workspace") | LOAD-BEARING — orphans break D2 permanently | ADR-0400 FORBIDS stubs explicitly; capability rejects on FK-chain attempt |
 | RPC `fn_commit_bulk_import` runtime > Vercel 10s timeout | LOAD-BEARING for files > ~30 rows | Async dispatch via `engine_process`; commit_batch returns immediately with import_run_id, polling endpoint returns status |
 | Idempotency hash collision (sha256 — astronomically rare) | REVERSIBLE | Admin-only `force_reimport=true` flag in commit_batch signature |
 | Attachment-routing change breaks chat composer for non-import paths | REVERSIBLE | Sortie 0 ships with feature-flag default off; flip on after Sortie A green |
@@ -276,7 +276,7 @@ SET search_path = public, extensions
 ## Out of Scope (v1)
 
 - Multi-file upload in single drop (architecture is array-ready for v2)
-- Excel binary (.xlsx) parsing — CSV only in Sortie A; xlsx in Sortie B after ADR-0399 approved
+- Excel binary (.xlsx) parsing — CSV only in Sortie A; xlsx in Sortie B after ADR-0401 approved
 - Voice channel (ADR-0288 forbids irreversible writes via voice)
 - Mobile composer UI (ADR-0133 — Compose verb is web-only)
 - Round-trip resolver memory cache (deferred to v2 after evaluating ≥95% confidence false-positive rate)
