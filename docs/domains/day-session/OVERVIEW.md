@@ -2,8 +2,8 @@
 title: "Day Session — Overview"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-22
-updated: 2026-05-22
+last_verified: 2026-05-23
+updated: 2026-05-23
 created: 2026-05-22
 domain: day-session
 tags: [domain, day-session, d6, overview, cascade, orchestration]

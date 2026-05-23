@@ -156,7 +156,7 @@ const workforceContextSchema = z
 const clientToolParameterSchema = z.object({
   name: z.string(),
   location: z.string(),
-  description: z.string(),
+  description: z.string().optional(),
   required: z.boolean().optional(),
   schema: z.union([
     z.object({ type: z.literal("string"), enum: z.array(z.string()).optional() }),

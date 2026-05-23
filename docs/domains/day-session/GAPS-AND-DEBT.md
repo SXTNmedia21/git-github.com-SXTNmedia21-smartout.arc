@@ -2,8 +2,8 @@
 title: "Day Session — Gaps & Debt"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-22
-updated: 2026-05-22
+last_verified: 2026-05-23
+updated: 2026-05-23
 created: 2026-05-22
 domain: day-session
 tags: [domain, day-session, gaps, debt, verified]
@@ -105,20 +105,43 @@ For each item below:
 **Gap:** Grace period is not workspace-configurable. Fixed at 2h post planned_close in EF code (more generous than the design's 15m post planned_open). Likely intentional to avoid false-missed on late-opening departments.
 **Severity:** LOW (functional; operator expectation drift risk).
 
-### G9 — `department_location` migration not directly verified
-**Code:** ADR-0367 spec + module DATA-MODEL reference migration `20260620120500_department_location_table.sql`. Direct file content not read during this verification pass.
-**Gap:** Cannot cite exact schema columns/constraints. Aspirational claim.
-**Action:** Run `grep -n "department_location" supabase/migrations/20260620120500*` to verify. Flagged for next `domain-steward update`.
-**Severity:** LOW (schema likely correct per ADR-0367 Rule 6 addendum; RLS dual-auth pattern documented).
+### G9 — `department_location` migration — CLOSED (2026-05-23)
+**Resolution:** Verified `supabase/migrations/20260620120500_department_location_junction.sql` (note: actual filename is `_junction` not `_table`). Schema: `(department_id, location_id, workspace_id)` PK on `(department_id, location_id)`. RLS: jwt_read (workspace member), jwt_insert (admin+), jwt_delete (admin+), service_role. Trigger `trg_set_department_location_workspace_id` auto-populates `workspace_id` on INSERT. No remaining gap — spine claims now verified.
+**Severity:** CLOSED.
 
 ### G10 — Slot picker "Rutine" lane vs `routine.attach_to_line` not wired
 **Code:** `apps/web/src/components/day/SlotPicker.tsx` — contains `D6_ITEMS` array. Check if "Rutine" option is present and where it dispatches. `AttachRoutineDialog.tsx` exists but capability not shipped.
 **Severity:** MEDIUM — partially overlaps G4.
 
+### G12 — `session_note` shipped schema is minimal (full rich model aspirational)
+**Code:** `supabase/migrations/20260412100300_session_infrastructure.sql:120` — shipped `session_note` has 7 columns: `id`, `workspace_id`, `department_session_id`, `note_type` (handoff/closing/general), `content`, `created_by`, `created_at`. No `target_date`, `visibility`, `category`, `is_actionable`, `priority`, `attachments`, `action_status`.
+**Legacy design:** MODULE_4_OPERATIONS §17.1 describes a rich `session_note` with actionable flag, multi-category, visibility scope, priority, AI-to-task pipeline. None of that is built.
+**Gap:** Rich information layer (Day Brief compilation, actionable notes, AI triage) is aspirational. Only minimal session notes exist.
+**Severity:** MEDIUM (functional for handoff notes; no AI-driven information layer yet).
+
+### G13 — `waste_log` shipped schema is simplified (production integration aspirational)
+**Code:** `supabase/migrations/20260407200001_waste_log_table.sql` — `waste_log` table exists with `session_id` FK but no `production_session_id`, no `dish_id`, no `ingredient_id`. `waste_category` enum exists.
+**Legacy design:** MODULE_14_PRODUCTION §7.2 + MODULE_4_OPERATIONS integration expects `waste_log` to link to `production_session` (not built) and `ingredient`/`dish` tables (not built). No production calculation engine, no recipes/dishes/bookings data model exists in migrations.
+**Gap:** Food production module (ingredients, recipes, dishes, menus, bookings, production_session, calculation engine) is not built. `waste_log` is a standalone operational log, not connected to production tracking.
+**Severity:** LOW (waste_log usable without production module; production module is a separate major initiative — see ROADMAP P9).
+
 ### G11 — Workforce snapshot slice must include `day_line` rows post-ADR-0367
 **Code:** ADR-0297 workforce snapshot bootstraps `D2+D6` facts at session start to voice + chat. Snapshot slice defined in stage-engine system-prompt builder. Does not yet include `day_line` rows (pre-dates ADR-0367).
 **Gap:** Botsson voice loses area-aware day context until snapshot is extended.
 **Severity:** MEDIUM.
+
+### G14 — MODULE_4.5 aspirational `daily_financial_close` table not built
+**Legacy design:** SMARTOUT_MODULE_4.5_DAILY_SATTLED §5.1 describes a dedicated `daily_financial_close` table with 8-state machine (`not_started → closing_in_progress → awaiting_ocr → awaiting_validation → validation_failed → awaiting_approval → rejected → closed`), plus `close_image`, `close_task`, `close_deviation`, `pos_template` tables.
+**Code:** None of these tables exist in migrations. The current implementation uses `daily_reconciliation.status` (6-state `reconciliation_status` enum) + `settlement_image` (extended with `image_type`, `captured_by`, `parse_status` in `20260328120000`) as the financial close layer. The design intent was partially realized via a simpler schema.
+**Gap:** Richer financial close state machine, separate close_task checklist, per-image deviation tracking (`close_deviation`), POS template system, and checkout-gate function `check_financial_close_gate` are not built. The `financial_close_config` table captures some config intent.
+**Severity:** LOW (current `daily_reconciliation` + `settlement_image` + OCR EFs handle core flow; detailed gatekeeper and multi-image-type deviation tracking are v2 features).
+
+### G15 — MODULE_14 Production module entirely unbuilt
+**Legacy design:** SMARTOUT_MODULE_14_PRODUCTION describes ingredient/recipe/dish/menu/booking/production_plan_step/production_session/waste_log data model + calculation engine.
+**Code:** None of `ingredient`, `recipe`, `recipe_ingredient`, `dish`, `dish_recipe`, `production_plan_step`, `menu`, `menu_dish`, `booking`, `booking_dish`, `production_session`, `season_menu` tables exist in migrations. Only `waste_log` (simplified) exists.
+**Gap:** Food production module is a future major initiative. Note: the MODULE_14 doc had `planned_domain: day-session` but this content may belong to a dedicated `production` or `menu` domain. The tag was aspirational — production session "runs inside" department_session but owns its own set of domain entities.
+**Recommendation:** When production module is prioritized, run `domain-steward pre production` (or `menu`) rather than absorbing into day-session. The `production_session → department_session` FK is a seam, not co-ownership.
+**Severity:** LOW (not needed for current product; note for future domain planning).
 
 ---
 
@@ -163,6 +186,21 @@ For each item below:
 **Shared surface:** Komm session channel auto-created per `department_session`. `BroadcastComposer` sends through that channel.
 **Classification:** **keep** — day-session creates the container (`department_session` → Komm channel creation trigger), communication owns the routing/delivery.
 **Seam:** Channel creation trigger on `department_session` INSERT.
+
+### §5f day-session ↔ gamification (not yet a domain)
+**Shared surface (aspirational):** MODULE_4_OPERATIONS §19.2 defines point-earning actions on `session_task` completion, `session_hook` clean signoff, deviation patterns. A `gamification_config` policy + `points_event` table is described but NOT built.
+**Classification:** **keep** — when gamification is prioritized, it reads session_task/session data; day-session owns the task tables. Seam: task completion events (telemetry) feed into a future gamification engine.
+**Note from retro-absorb:** MODULE_4 gamification content belongs to a future `gamification` domain, NOT to day-session spine. Content logged here for routing; do NOT move into day-session data model.
+
+### §5g day-session ↔ AI operations layer / Day Brief (not yet built)
+**Shared surface (aspirational):** MODULE_4_OPERATIONS §17.2 describes a `day_brief` table (AI-compiled daily summary + sections JSONB + delivery tracking) + `session_handoff` (structured end-of-shift knowledge transfer with voice recording). Neither table exists in migrations.
+**Classification:** **keep** — Day Brief + AI monitoring belongs to the Botsson / stage-engine domain. Day-session provides the input data; Botsson compiles and delivers. The `ops-day-brief` Edge Function is the current minimal implementation (ADR-0297 workforce snapshot direction).
+**Note from retro-absorb:** `day_brief`, `session_handoff`, `ai_session_event`, `ai_operations_config` tables are aspirational Botsson/agent-harness domain content. Not absorbed into day-session DATA-MODEL.
+
+### §5h day-session ↔ shift-template / recurring_task_config (not yet a domain)
+**Shared surface (aspirational):** MODULE_4_OPERATIONS §9–§13 describes `shift_template`, `shift_template_procedure`, `recurring_task_config` tables. Shift templates are authoring constructs for scheduling/procedure-engine; `recurring_task_config` is a procedure-engine concept.
+**Classification:** **keep** — `shift_template` belongs to scheduling domain; `recurring_task_config` belongs to procedure-engine. None of these tables are in day-session ownership scope.
+**Note from retro-absorb:** This content from MODULE_4 has NOT been absorbed into day-session spine; it belongs to scheduling + procedure-engine `pre`/`update` sorties.
 
 ### §5e daytimeline ↔ day-session (FOLDED)
 **Former docs/modules/daytimeline/**: absorbed into this domain. Not an overlap — daytimeline was the `active`-phase surface of `department_session`. No separate domain exists.

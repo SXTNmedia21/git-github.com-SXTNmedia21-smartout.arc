@@ -1,7 +1,6 @@
 // packages/ui/src/wizard/types.ts
 import type { ComponentType } from "react";
 import type { ZodSchema } from "zod";
-import type { LucideIcon } from "lucide-react";
 
 // -- Wizard Definition (config object per wizard) --
 
@@ -31,7 +30,10 @@ export interface WizardDefinition<TState extends Record<string, unknown>> {
 export interface WizardStepDef<TState> {
   id: string;
   labelKey: string;
-  icon?: LucideIcon;
+  /** Icon name (kebab-case). Each platform renders via its own icon lookup
+   *  (web: lucide-react; mobile: lucide-react-native). Replaces former
+   *  LucideIcon type to keep this module RN-portable. */
+  iconName?: string;
   component: ComponentType<WizardStepProps<TState>>;
   validation?: ZodSchema;
   /** Key in TState to validate (e.g. "account"). If omitted, validates full state. */

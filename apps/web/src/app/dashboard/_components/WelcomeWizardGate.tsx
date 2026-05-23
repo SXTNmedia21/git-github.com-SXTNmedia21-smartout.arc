@@ -3,20 +3,21 @@
 /**
  * WelcomeWizardGate — first-login wizard mounting point.
  *
- * Stub for now (2026-04-30): the full wizard component lives in
- * `apps/web/src/components/welcome-wizard/` (untracked WIP). When that ships,
- * this gate becomes the lazy-loader. For now it returns null so the layout
- * compiles without bringing in the WIP surface.
+ * Layout.tsx decides WHEN to mount this gate (based on profile.is_welcome_complete).
+ * This gate is purely a thin client wrapper: it renders <WelcomeWizard> with the
+ * props resolved server-side by layout (userEmail, tariffBound).
  *
- * The gate is mounted from `apps/web/src/app/dashboard/layout.tsx` when
- * `profile.is_welcome_complete` is false/null — meaning the wizard should
- * surface on next dashboard render.
+ * tariffBound is resolved from payroll.workspace_settings.is_tariff_bound by layout —
+ * it controls whether the Consent step (step 6) shows the tariff-agreement clause.
  */
+
+import { WelcomeWizard } from "@/components/welcome-wizard/WelcomeWizard";
 
 type Props = {
   userEmail: string;
+  tariffBound?: boolean;
 };
 
-export function WelcomeWizardGate(_props: Props): null {
-  return null;
+export function WelcomeWizardGate({ userEmail, tariffBound = false }: Props) {
+  return <WelcomeWizard userEmail={userEmail} tariffBound={tariffBound} />;
 }

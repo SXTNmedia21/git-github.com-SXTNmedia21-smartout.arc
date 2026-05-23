@@ -15,7 +15,7 @@ tags: [plan]
 
 **Spec:** [Nyheter Engagement Wave A](../superpowers/specs/2026-05-11-nyheter-engagement-wave-a.md)
 **Detailed implementation plan:** [2026-05-10-nyheter-engagement-wave-a.md](../superpowers/plans/2026-05-10-nyheter-engagement-wave-a.md) — 7 tasks, ~60 bite-sized TDD steps. Council-approved 2026-05-11.
-**Design handoff:** [docs/modules/announcments/nyheter/](../modules/announcments/nyheter/) — HTML prototype + JSX components + handoff README
+**Design handoff:** typo-folder `announcments/nyheter/` (archived 2026-05-23, see `docs/domains/announcements/`) — HTML prototype + JSX components + handoff README
 
 ## Journeys (the contract)
 

@@ -12,6 +12,7 @@
 import { useContext, useCallback, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { Phone, PhoneOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardContext } from "./DashboardShell";
@@ -73,10 +74,11 @@ function useRingtone() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Spring config (Nordic Split motion)                                */
+/*  Motion (Nordic Split — see @smartout/design-tokens)                */
 /* ------------------------------------------------------------------ */
 
-const OVERLAY_SPRING = { type: "spring" as const, stiffness: 40, damping: 24, mass: 2 };
+/** Overlay scale-in uses the snappy spring (popup feedback per nordic-split). */
+const OVERLAY_SPRING = { type: "spring" as const, ...motionTokens.springSnappy };
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -149,7 +151,7 @@ export function GlobalCallAlert() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: motionTokens.exitMs / 1000 }}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"

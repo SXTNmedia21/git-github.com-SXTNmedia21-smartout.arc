@@ -1,11 +1,16 @@
 ---
 title: Announcements Module — Blueprint Index
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, nyheter, broadcast, channel-message, communication, source-of-truth]
 ---
+
+> **ARCHIVED 2026-05-23.** Content absorbed into `docs/domains/announcements/` (ADR-0392).
+> Typo folder (`announcments/`) retained for git history — not git-mv'd. See `docs/domains/announcements/README.md`.
+> `nyheter/project/` Wave A design assets preserved in place as reference.
 
 # Announcements Module — Blueprint & Source of Truth
 

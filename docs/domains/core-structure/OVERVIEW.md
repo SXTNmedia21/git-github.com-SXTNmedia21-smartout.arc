@@ -6,7 +6,7 @@ last_verified: 2026-05-23
 updated: 2026-05-23
 created: 2026-05-23
 domain: core-structure
-tags: [domain, core-structure, d1, overview, cascade, operating-hours]
+tags: [domain, core-structure, d1, overview, cascade, operating-hours, identity, rls, multi-workspace]
 ---
 
 # Core Structure — Overview
@@ -110,3 +110,32 @@ The settings hook `use-operating-hours.ts:94` reads `department_operating_hours`
 7. **Runtime hours = `department_operating_hours`** — never read `operating_hours` table.
 8. **Structural mutations require `gatedMutation`** (ADR-0204) and admin role.
 9. **Mobile is read-only on structure** (ADR-0133) — no authoring UIs on mobile.
+
+## 7. Identity layer boundary and multi-workspace patterns
+
+Core structure starts AT the workspace. The identity layer below it is a prerequisite:
+
+```
+user_identity (global user — no workspace_id)
+  └── company_member (user ↔ company bridge — no workspace_id)
+        └── company (legal entity — no workspace_id)
+              └── workspace (tenant root — workspace_id PK)
+                    └── profile (one per user per workspace — RLS anchor for all D1–D6 queries)
+```
+
+**Multi-workspace user pattern:** A user (one `user_identity` row) can have profiles in multiple workspaces. This is the standard pattern for regional managers and employees who work at multiple locations. Each profile is independent — separate training status, separate schedule, separate tasks.
+
+```
+user: Ole (regional manager)
+  ├── profile in workspace "Sentrum" (role: admin)
+  ├── profile in workspace "Vest" (role: admin)
+  └── profile in workspace "Øst" (role: admin)
+```
+
+`get_workspace_ids_for_user(auth.uid())` returns all active workspace IDs for the current user. This is the universal RLS gate — every D1–D6 table uses it.
+
+**Multi-workspace employee:** Same user, different role per workspace. Profile, schedule, training, and tasks are completely isolated per workspace.
+
+**Workspace plan gates:** `workspace.active_modules text[]` gates which features are enabled. `workspace.max_profiles integer` is a nullable profile count ceiling. These columns exist in schema (`00001_identity_tables.sql:91-92`) but the enforcement mechanism (billing domain's `stripe_invoice`, `billing_integration_type`) is in the billing domain — NOT core-structure. Billing reads workspace columns; core-structure does not enforce billing logic.
+
+**Godmode:** `user_identity.is_godmode boolean` is the platform-admin bypass. Smartout internal use only. All significant RLS policies have a godmode bypass branch. Verified: `packages/supabase/src/database.types.ts:20372` + rename migration `20260301120000_rename_is_super_admin_to_is_godmode.sql`.

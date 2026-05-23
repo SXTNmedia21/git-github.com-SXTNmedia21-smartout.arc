@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Cake, PartyPopper, BookOpen, ChevronRight, Award, Clock } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { strings } from "@/constants/strings";
+import { CompleteProfileCard } from "@/components/onboarding/CompleteProfileCard";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -55,6 +56,9 @@ export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
 
   return (
     <View style={styles.content}>
+      {/* Onboarding CTA — hidden once wizard is complete (spec §S5) */}
+      <CompleteProfileCard />
+
       {/* Hero */}
       <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.hero}>
         <Text style={styles.heroTitle}>

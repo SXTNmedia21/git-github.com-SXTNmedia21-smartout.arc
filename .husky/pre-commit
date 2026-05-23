@@ -362,3 +362,10 @@ if [ -z "$SKIP_DESIGN_AUDIT" ]; then
   fi
 fi
 
+# ============================================================
+# 11. Identity-layer column guard (ADR-0396)
+# Prevents identity-class columns (phone, emergency_contact_*, etc.)
+# from being added to public.profile — they belong on user_identity.
+# ============================================================
+pnpm check:identity-on-profile
+

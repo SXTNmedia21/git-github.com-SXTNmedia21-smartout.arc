@@ -665,6 +665,22 @@ export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
   };
 }
 
+export interface ProfileWelcomeWizardDismissed extends BaseEvent {
+  event: "profile welcome_wizard_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardResumed extends BaseEvent {
+  event: "profile welcome_wizard_resumed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -4455,6 +4471,68 @@ export interface AnnouncementTierOverridden extends BaseEvent {
     kind: string;
     default_tier: string;
     chosen_tier: string;
+  };
+}
+
+// ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ────────────────
+//
+// Four events covering the full HITL lifecycle for Botsson mutations rendered
+// as an InlineConfirmCard. Emitted server-side (tool body) per L-0233 — voice
+// context is separate and must not receive card descriptors.
+//
+// inline_confirm_card.shown
+//   Emitted in publish_announcement.ts draft branch when capability returns
+//   {phase:"draft"} and proposal_id. Call-site: T3 (parallel).
+//
+// inline_confirm_card.confirmed
+//   Emitted in publish_announcement.ts commit branch after atomic RPC succeeds.
+//   Call-site: T3 (parallel).
+//
+// inline_confirm_card.cancelled
+//   Emitted when browser returns action:"cancel" via ClientToolCallResult roundtrip.
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// inline_confirm_card.edited
+//   Emitted when browser returns action:"edit" with patch. edited_field_count
+//   counts whitelisted editable_fields modified in the patch (per ADR-0398 §resume-payload).
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// Destinations: posthog + logger + activity_trail.
+//   engine_event EXCLUDED — these are UI telemetry events, NOT workflow triggers.
+//   (Sibling pattern: channel.message.sent — posthog + logger + activity_trail.)
+//
+export interface InlineConfirmCardShown extends BaseEvent {
+  event: "inline_confirm_card.shown";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string; // = p_client_message_id passed to atomic RPC
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardConfirmed extends BaseEvent {
+  event: "inline_confirm_card.confirmed";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardCancelled extends BaseEvent {
+  event: "inline_confirm_card.cancelled";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+  };
+}
+
+export interface InlineConfirmCardEdited extends BaseEvent {
+  event: "inline_confirm_card.edited";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    edited_field_count: number; // count of whitelisted editable_fields present in patch
   };
 }
 
@@ -8792,6 +8870,11 @@ export type SmartoutEvent =
   | AnnouncementLinkFollowed
   | AnnouncementKindChanged
   | AnnouncementTierOverridden
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  | InlineConfirmCardShown
+  | InlineConfirmCardConfirmed
+  | InlineConfirmCardCancelled
+  | InlineConfirmCardEdited
   | WebsiteCreated
   | WebsitePublished
   | WebsiteUnpublished
@@ -9170,6 +9253,8 @@ export type SmartoutEvent =
   | ProfileWelcomeWizardStepCompleted
   | ProfileWelcomeWizardCompleted
   | ProfileWelcomeWizardSkippedOptional
+  | ProfileWelcomeWizardDismissed
+  | ProfileWelcomeWizardResumed
   | LegalAml146Validated
   | LegalLawCited
   | LegalAmendmentClassified
@@ -14282,6 +14367,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "onboarding",
   },
+  // dismissed: posthog (funnel exit) + logger + activity_trail (audit — who
+  //   dismissed and at which step). No engine_event (only _completed triggers
+  //   downstream flows). Emit sites land in T11 (dismissWelcomeWizard Server Action).
+  "profile welcome_wizard_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  // resumed: posthog (re-engagement funnel) + logger + activity_trail (audit).
+  //   No engine_event. Emit sites land in T11 (resumeWelcomeWizard Server Action).
+  "profile welcome_wizard_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
 
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────────────────
   // Platform-scoped: workspace_id null. Destinations: logger + engine_event
@@ -15203,5 +15301,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "bulk_import.batch_parsed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "bulk_import",
+  },
+
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  // All 4 events route to posthog + logger + activity_trail.
+  // engine_event EXCLUDED — these are UI telemetry for the HITL gate, NOT
+  // workflow triggers. Pattern: channel.message.sent (same 3 destinations).
+  // Call-sites: shown + confirmed → T3 (publish-announcement.ts, parallel).
+  //             cancelled + edited → T4 (inline-confirm-card-tool.ts, deferred).
+  "inline_confirm_card.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.edited": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };

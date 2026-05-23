@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-05-23.** This handoff bundle is a Wave A design reference. Domain canonical docs at `docs/domains/announcements/`. `project/` folder preserved in place as design reference — see `docs/domains/announcements/ROADMAP.md`.
+
 # CODING AGENTS: READ THIS FIRST
 
 This is a **handoff bundle** from Claude Design (claude.ai/design).

@@ -148,6 +148,18 @@ Table schema defines `retain_media_days`, `retain_messages_days`, `searchable_af
 
 ---
 
+### G12 — SIP telephony not implemented (LOW)
+
+**MODULE_18 spec said:** `channel_call_type` ENUM includes `'sip'`. Manager can dial an employee's phone number via LiveKit SIP bridge + Twilio elastic trunk (`createSipParticipant()`). Useful for reaching off-duty staff without the app.
+
+**Code reality:** `channel_call_type` ENUM (`20260422301000_channel_voice.sql`) has values `direct`, `group`, `ptt` — no `'sip'` value. `livekit-webhook` and `livekit-token` EFs have no SIP-related logic. No Twilio SIP trunk config in env template.
+
+**Impact:** Phone-side employees cannot be called from the app. Low priority for current restaurant scale; direct app-to-app covers most use cases.
+
+**Fix path:** Add `'sip'` to `channel_call_type` enum migration + Twilio SIP trunk configuration + SIP dial Edge Function logic. Requires separate sortie when SIP is prioritized.
+
+---
+
 ## §Deviations (spec says X, code does Y)
 
 ### D1 — SMARTOUT_MODULE_9: notification table scope
@@ -167,6 +179,12 @@ Table schema defines `retain_media_days`, `retain_messages_days`, `searchable_af
 ### D3 — `channel_ai_voice_policy` vs `channel_ai_voice_mode`
 
 **MODULE_COMMUNICATION.md** used `channel_ai_voice_policy` for the per-channel AI voice mode enum. **Migration** defines both `channel_ai_voice_policy` (voice policy enum: `disabled`/`listen_only`/`interactive` on the `channel` table) and `channel_ai_voice_mode` (separate enum: same values). The `channel_ai_policy` table uses `voice_participation channel_ai_voice_mode`. Naming is internally consistent; module doc was slightly imprecise.
+
+### D4 — MODULE_18 uses bare `call_session`/`call_participant`; code uses `channel_` prefix
+
+**MODULE_18 spec said:** Tables named `call_session`, `call_participant`.
+
+**Code reality:** Tables are `channel_call_session`, `channel_call_participant` (`20260422301000_channel_voice.sql`). The `channel_` prefix reflects the channel-anchored design — all call state is scoped to a specific channel. MODULE_18 was written before the naming convention was finalized. `call_log` is the exception: it uses the unprefixed name.
 
 ---
 
