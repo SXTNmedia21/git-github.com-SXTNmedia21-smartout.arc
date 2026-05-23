@@ -1,15 +1,22 @@
 ---
 title: Notifications Module — Folder Index
-status: in_progress
-updated: 2026-05-22
+status: archived
+updated: 2026-05-23
 created: 2026-05-22
 module: notifications
+superseded_by: docs/domains/notifications/
 tags: [module, notifications, push, email, sms, in-app, onesignal, preferences]
 ---
 
-# Notifications Module — Folder Index
+# ⚠️ ARCHIVED — Superseded by `docs/domains/notifications/`
 
-> Source of truth for Smartout's notification system. If code contradicts this folder → CODE wins, update these docs.
+> This folder is archived as of 2026-05-23. The canonical source of truth for the notifications domain is now `docs/domains/notifications/`. Do not update files in this folder. Go to `docs/domains/notifications/README.md` for the current state.
+
+---
+
+# Notifications Module — Folder Index (ARCHIVED)
+
+> Source of truth for Smartout's notification system. If code contradicts this folder → CODE wins, update this doc.
 
 ## Service Status
 

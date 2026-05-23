@@ -1,11 +1,14 @@
 ---
 title: Module — Notifications
-status: in_progress
-updated: 2026-05-22
+status: archived
+updated: 2026-05-23
 created: 2026-05-22
 module: notifications
+superseded_by: docs/domains/notifications/
 tags: [module, notifications, push, email, sms, in-app, onesignal, preferences, outbox]
 ---
+
+> ⚠️ ARCHIVED — Superseded by `docs/domains/notifications/`. Do not update this file.
 
 # Module — Notifications
 
