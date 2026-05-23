@@ -464,6 +464,7 @@ export async function completeWelcome(): Promise<ActionResult> {
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
+  // Flip profile flags (existing behavior — service-role required, no JWT UPDATE policy on profile).
   const { error } = await admin
     .from("profile")
     .update({
@@ -475,7 +476,21 @@ export async function completeWelcome(): Promise<ActionResult> {
 
   if (error) return { ok: false, error: error.message };
 
-  await emit({
+  // Mirror completion into employee_onboarding_state (JWT policy sufficient — own row).
+  // completed_at must be set when status='completed' per eos_completed_iff_ts constraint.
+  const supabase = await createClient();
+  const { error: stateErr } = await supabase.from("employee_onboarding_state").upsert(
+    {
+      profile_id: profile.profileId,
+      workspace_id: profile.workspaceId,
+      status: "completed",
+      completed_at: now,
+    },
+    { onConflict: "profile_id" },
+  );
+  if (stateErr) return { ok: false, error: stateErr.message };
+
+  void emit({
     event: "profile welcome_wizard_completed",
     workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
     actor_id: nonEmpty(profile.profileId, "actor_id"),
@@ -486,4 +501,68 @@ export async function completeWelcome(): Promise<ActionResult> {
   });
 
   return { ok: true };
+}
+
+// ─── Dismiss / Resume ─────────────────────────────────────────────────────────
+
+/**
+ * Sets wizard state to 'dismissed' when user closes via "Lukk og fortsett
+ * senere". JWT policy on employee_onboarding_state is sufficient (own row).
+ * dismissed_at must be set when status='dismissed' per eos_dismissed_iff_ts.
+ * Callers MAY pass current step context for telemetry granularity.
+ */
+export async function dismissWelcomeWizard(
+  stepIndex: number = 0,
+  stepName: string = "wizard",
+): Promise<ActionResult> {
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("employee_onboarding_state").upsert(
+    {
+      profile_id: profile.profileId,
+      workspace_id: profile.workspaceId,
+      status: "dismissed",
+      dismissed_at: new Date().toISOString(),
+    },
+    { onConflict: "profile_id" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  void emit({
+    event: "profile welcome_wizard_dismissed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      data: { step: stepIndex, step_name: stepName },
+    },
+  });
+
+  return { ok: true };
+}
+
+/**
+ * Emits `welcome_wizard_resumed` when a previously-dismissed wizard is
+ * re-opened. Called from the BFF GET handler when state row has dismissed_at
+ * IS NOT NULL and the cold-start gate fires again.
+ * Takes explicit IDs + step context because this may be called server-side
+ * outside a Server Action (no resolveCurrentProfile() available).
+ */
+export async function recordWelcomeResume(
+  profileId: string,
+  workspaceId: string,
+  stepIndex: number = 0,
+  stepName: string = "wizard",
+): Promise<void> {
+  void emit({
+    event: "profile welcome_wizard_resumed",
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { step: stepIndex, step_name: stepName },
+    },
+  });
 }
