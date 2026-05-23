@@ -2,7 +2,7 @@
 title: "Journey — Server defends send_message against tampered channel_id (cross-workspace)"
 feature: inline-confirm-card-send-message
 journey: resume-tamper-defense
-status: draft
+status: verified-pending-live
 verified_at: null
 e2e_test: null
 created: 2026-05-23
@@ -30,7 +30,7 @@ tags: [journey, botsson, security, trust-boundary, hitl, send-message, l-0177-de
 4. LLM calls `send_message({channel_id:"<vakter-w2-uuid>", content:"NEW BODY...", confirm:true, proposal_id})`
 5. **DEFENSE 1 — Server re-derives workspace_id from session context (ADR-0151)** — `ctx.workspaceId = W1` from JWT, NEVER body. Even if patch includes `workspace_id`, ignored.
 6. **DEFENSE 2 — Server re-resolves channel via RLS** — query: `supabase.from("channel").select().eq("id", body.channel_id).eq("workspace_id", ctx.workspaceId)`. `vakter-w2-uuid` belongs to W2, RLS returns ZERO rows. Tool returns error: "Kan ikke sende melding — kanal finnes ikke eller er inaktiv".
-7. **DEFENSE 3 — `editable_fields` whitelist (ADR-0398 §Resume-Payload Trust Boundary)** — descriptor's `actions[id="edit"].editable_fields = ["body"]` (channel_id NOT whitelisted). On resume, body-supplied `channel_id` filtered out before commit-phase logic. Channel re-derived from ORIGINAL draft (proposal_id correlation).
+7. **DEFENSE 3 — `editable_fields` whitelist (ADR-0398 §Resume-Payload Trust Boundary, ADR-0403 §Decision 5)** — descriptor's `actions[id="edit"].editable_fields = ["content"]` (channel_id NOT whitelisted). On resume, body-supplied `channel_id` filtered out before commit-phase logic. Channel re-derived from ORIGINAL draft via RLS-scoped lookup with body channel_id + ctx.workspaceId (Phase 2-a stateless variant — cross-workspace channel_id rejected at the RLS edge).
 8. **DEFENSE 4 — RPC UNIQUE on `client_message_id`** — replay protection. Even if tampered call passes DEFENSE 2/3 by happenstance, RPC enforces single-INSERT per UUID.
 
 **Postcondition:**

@@ -2,7 +2,7 @@
 title: "Journey — Admin cancels message draft via Avbryt"
 feature: inline-confirm-card-send-message
 journey: cancel-send
-status: draft
+status: verified-pending-live
 verified_at: null
 e2e_test: null
 created: 2026-05-23
