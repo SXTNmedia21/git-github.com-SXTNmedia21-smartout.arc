@@ -664,6 +664,22 @@ export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
   };
 }
 
+export interface ProfileWelcomeWizardDismissed extends BaseEvent {
+  event: "profile welcome_wizard_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardResumed extends BaseEvent {
+  event: "profile welcome_wizard_resumed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -9126,6 +9142,8 @@ export type SmartoutEvent =
   | ProfileWelcomeWizardStepCompleted
   | ProfileWelcomeWizardCompleted
   | ProfileWelcomeWizardSkippedOptional
+  | ProfileWelcomeWizardDismissed
+  | ProfileWelcomeWizardResumed
   | LegalAml146Validated
   | LegalLawCited
   | LegalAmendmentClassified
@@ -14223,6 +14241,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "profile welcome_wizard_skipped_optional": {
     destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  // dismissed: posthog (funnel exit) + logger + activity_trail (audit — who
+  //   dismissed and at which step). No engine_event (only _completed triggers
+  //   downstream flows). Emit sites land in T11 (dismissWelcomeWizard Server Action).
+  "profile welcome_wizard_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  // resumed: posthog (re-engagement funnel) + logger + activity_trail (audit).
+  //   No engine_event. Emit sites land in T11 (resumeWelcomeWizard Server Action).
+  "profile welcome_wizard_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "onboarding",
   },
 
