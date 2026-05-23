@@ -47,18 +47,16 @@ describe("POST /api/mobile/routine/commit", () => {
 
   it("commits + emits created_from_image + governance_unassigned (null protocol)", async () => {
     resolveMobileActor.mockResolvedValue({ workspaceId: "w", profileId: "p" });
-    rpc
-      .mockResolvedValueOnce({ data: { allow: true }, error: null })
-      .mockResolvedValueOnce({
-        data: {
-          ok: true,
-          routine_id: "r-1",
-          procedure_id: "pc-1",
-          location_id: "loc-1",
-          governance_status: "unassigned",
-        },
-        error: null,
-      });
+    rpc.mockResolvedValueOnce({ data: { allow: true }, error: null }).mockResolvedValueOnce({
+      data: {
+        ok: true,
+        routine_id: "r-1",
+        procedure_id: "pc-1",
+        location_id: "loc-1",
+        governance_status: "unassigned",
+      },
+      error: null,
+    });
     const res = await POST(req(DRAFT));
     expect(res.status).toBe(200);
     expect((await res.json()).routine_id).toBe("r-1");
