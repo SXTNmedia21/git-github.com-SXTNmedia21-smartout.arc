@@ -1,7 +1,7 @@
 ---
 title: Polish Index — coverage, performance, harness tools
 status: live
-updated: 2026-05-20
+updated: 2026-05-23
 module: meta
 tags: [polish, coverage, performance, harness]
 ---
@@ -11,7 +11,7 @@ tags: [polish, coverage, performance, harness]
 > **Generated** by `pnpm --filter web polish:index` — DO NOT hand-edit.
 > Truth sources: `.claude/page-polish/*.run.yml`, `apps/web/.botsson/site-map.json`,
 > live source grep of Tier 0 primitives. Regenerate after touching any of them.
-> Last generated: 2026-05-20T20:11:14.152Z
+> Last generated: 2026-05-23T10:20:27.804Z
 
 ## Coverage Rollup
 

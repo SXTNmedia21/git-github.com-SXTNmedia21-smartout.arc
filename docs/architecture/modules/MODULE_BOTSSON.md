@@ -1,7 +1,8 @@
 ---
 title: "Module: Botsson — Voice Agent System"
-status: in_progress
-updated: 2026-05-10
+status: archived
+superseded_by: docs/domains/botsson/
+updated: 2026-05-23
 created: 2026-03-05
 module: ai-agent
 tags: [botsson, voice, livekit, agent, onboarding, mr-botsson, personality, cascade]
@@ -11,6 +12,8 @@ amendments:
   - "2026-05-10: Phase E shipped (ADR-0282) — Ultravox removed from web; LiveKit Agents 1.3.0 is sole voice transport across web + mobile + voice-agent service. Section §1 + §2 references rewritten."
   - "2026-05-10: Mission count corrected from 5 → 7 to match `packages/ai/src/missions/registry.ts`. Added `lise-interview` (Phase F0/Pre-Phase-E) and `botsson-session`."
 ---
+
+> ⚠️ **ARCHIVED 2026-05-23** — Superseded by `docs/domains/botsson/`. Content compiled into OVERVIEW (cascade mapping, what/why), ARCHITECTURE (code map), DATA-MODEL (tables), GAPS-AND-DEBT (limitations). Note: §2.3 Ultravox lifecycle diagram is stale — Ultravox removed 2026-05-10 (ADR-0282). §6 client-tools reference pre-Phase-E pattern (15 client tools migrated to server-side capabilities). Do not update this file.
 
 ## Cascade Mapping
 

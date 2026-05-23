@@ -1,13 +1,16 @@
 ---
 title: "Botsson — Stage + Mission Capability Model"
-status: canonical
+status: archived
+superseded_by: docs/domains/botsson/
+updated: 2026-05-23
 created: 2026-05-10
-updated: 2026-05-10
 verified_against_code: 2026-05-10
 verified_against_db: 2026-05-10
 module: MODULE_BOTSSON
 tags: [botsson, missions, stages, capabilities, validation]
 ---
+
+> ⚠️ **ARCHIVED 2026-05-23** — Superseded by `docs/domains/botsson/`. Mission framework content compiled into `docs/domains/botsson/OVERVIEW.md` §Mission framework and `docs/domains/botsson/ARCHITECTURE.md` §L4. Stage/mission model content compiled into OVERVIEW §Mission framework. Do not update this file.
 
 # Botsson — Stage + Mission Capability Model
 

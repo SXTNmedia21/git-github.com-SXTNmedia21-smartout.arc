@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { QueryProvider } from "./query-provider";
 import { VerificationGate } from "./_components/VerificationGate";
 import { WelcomeWizardGate } from "./_components/WelcomeWizardGate";
+import { createAdminClient } from "@smartout/supabase/admin";
 import {
   getUser,
   getWorkspaceBySlug,
@@ -184,10 +185,24 @@ export default async function DashboardLayout({
         welcomeStatus?.is_welcome_complete === false || welcomeStatus?.is_welcome_complete === null;
     }
 
+    // Resolve tariffBound from payroll schema (per T10 — NOT public.workspace).
+    // Row may not exist for workspaces not yet on payroll — defaults to false gracefully.
+    let tariffBound = false;
+    if (showWelcomeWizard && workspace) {
+      const admin = createAdminClient();
+      const { data: payrollSettings } = await admin
+        .schema("payroll")
+        .from("workspace_settings")
+        .select("is_tariff_bound")
+        .eq("workspace_id", workspace.workspace_id)
+        .maybeSingle();
+      tariffBound = payrollSettings?.is_tariff_bound === true;
+    }
+
     const shell = (
       <DashboardShell profileId={profileId}>
         {children}
-        {showWelcomeWizard && <WelcomeWizardGate userEmail={userEmail} />}
+        {showWelcomeWizard && <WelcomeWizardGate userEmail={userEmail} tariffBound={tariffBound} />}
       </DashboardShell>
     );
 

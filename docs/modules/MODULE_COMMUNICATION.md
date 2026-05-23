@@ -1,11 +1,17 @@
 ---
 title: Module — Communication
-status: in_progress
-updated: 2026-04-13
+status: archived
+updated: 2026-05-23
 created: 2026-04-13
 module: communication
 tags: [module, communication, channels, voice, ai]
+superseded_by: docs/domains/communication/
 ---
+
+> **ARCHIVED 2026-05-23** — Absorbed into `docs/domains/communication/`. This file is superseded; do not edit.
+> Single source of truth: `docs/domains/communication/`
+
+
 
 # Module — Communication (Komm)
 

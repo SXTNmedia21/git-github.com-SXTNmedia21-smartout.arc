@@ -13,7 +13,7 @@ tags: [procedure-engine, multimodal, vision, storage, stage-engine, mobile]
 
 ## Context and Problem Statement
 
-The 2B procedure-engine capture-to-author flow (ADR-0394) must move a photo from the mobile
+The 2B procedure-engine capture-to-author flow (ADR-0406) must move a photo from the mobile
 device to a vision model and produce a structured `RoutineDraft`. Three design questions arise:
 
 1. **Transport format:** base64 passthrough vs Supabase Storage path.
@@ -34,7 +34,7 @@ Spec: `docs/superpowers/specs/2026-05-22-procedure-engine-2b-bilde-til-rutine-de
 - The main agent chat loop must remain text-only — multimodal capability must not leak into
   every tool call's context window (token cost + complexity).
 - ADR-0132 mobile thin client — no authoring/extraction logic on device; BFF proxies.
-- ADR-0393 `routine.source_reference` — the committed routine must carry a reference back to the
+- ADR-0405 `routine.source_reference` — the committed routine must carry a reference back to the
   source image; a Storage path is the natural FK-less reference.
 - Short-lived URL security — the vision model must receive an accessible URL, but that URL must
   not be embeddable in client responses or logs.
@@ -97,7 +97,7 @@ device camera
   → presigned upload → routine-source/{workspace_id}/{routine_id}/…
   → /routine/extract (service-role signed URL, 60s TTL) → vision model
   → RoutineDraft (validated Zod)
-  → human confirm (C4 gate, ADR-0394)
+  → human confirm (C4 gate, ADR-0406)
   → /routine/commit → routine row {created_via: camera_capture, source_reference: <path>}
 ```
 
@@ -125,7 +125,7 @@ the object remains and can be re-accessed with service-role credentials.
   committed routine is the Storage path (not a signed URL) — always re-mint before passing to
   the vision model.
 
-Refs: ADR-0393 (brownfield routines + `source_reference` column), ADR-0394 (mobile carve-out,
+Refs: ADR-0405 (brownfield routines + `source_reference` column), ADR-0406 (mobile carve-out,
 C4 human-confirm gate), ADR-0132 (mobile thin client + BFF pattern), ADR-0151 (server-derived
 identity, workspace ownership), ADR-0136 (camera evidence as cascade extension).
 Spec: `docs/superpowers/specs/2026-05-22-procedure-engine-2b-bilde-til-rutine-design.md` §3 + §5.

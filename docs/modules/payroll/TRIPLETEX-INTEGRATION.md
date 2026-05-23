@@ -1,11 +1,14 @@
 ---
 title: Tripletex Integration Reference — Smartout Payroll Engine
-status: draft
+status: archived
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-23
 module: payroll
 tags: [tripletex, payroll, integration, A-melding, lønn, API]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Tripletex Integration Reference — Smartout Payroll Engine
 

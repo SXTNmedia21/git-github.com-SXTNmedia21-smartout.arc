@@ -1,6 +1,7 @@
 ---
 title: Procedure Engine — Gaps & Debt
-status: in_progress
+status: archived
+superseded_by: docs/domains/procedure-engine/
 updated: 2026-05-22
 created: 2026-05-20
 module: procedure-engine

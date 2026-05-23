@@ -457,7 +457,26 @@ BEGIN
       )$sql$
     );
 
-    RAISE NOTICE 'pg_cron re-registration complete: % jobs', 27;
+    -- session-task-overdue-cron  (origin: 20260622110000_session_task_overdue_cron.sql)
+    BEGIN PERFORM cron.unschedule('session-task-overdue-cron'); EXCEPTION WHEN OTHERS THEN NULL; END;
+    PERFORM cron.schedule(
+      'session-task-overdue-cron',
+      '*/5 * * * *',
+      $sql$SELECT net.http_post(
+        url := current_setting('app.supabase_url', true) || '/functions/v1/session-task-overdue-cron',
+        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.watchdog_cron_secret', true))
+      )$sql$
+    );
+
+    -- task-due-reminder  (origin: 20260621210000_task_due_reminder_cron.sql)
+    BEGIN PERFORM cron.unschedule('task-due-reminder'); EXCEPTION WHEN OTHERS THEN NULL; END;
+    PERFORM cron.schedule(
+      'task-due-reminder',
+      '*/15 * * * *',
+      'SELECT public.enqueue_task_due_notifications();'
+    );
+
+    RAISE NOTICE 'pg_cron re-registration complete: % jobs', 29;
   ELSE
     RAISE NOTICE 'pg_cron not enabled — skipping cron re-registration (expected on local dev)';
   END IF;

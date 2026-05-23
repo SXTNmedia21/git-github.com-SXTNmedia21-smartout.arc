@@ -13,16 +13,18 @@
  * NotificationBell.onPress or HomeHeader.onNotificationPress.
  */
 
-import React, { useCallback } from "react";
-import { View, Text, Pressable } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, Pressable, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
-import { ArrowLeft, CheckCheck } from "lucide-react-native";
+import { ArrowLeft, CheckCheck, Bell } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
+import { mobileRouteForActionUrl } from "@/lib/deep-link";
 import { NotificationList } from "./NotificationList";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount, useMarkAllAsRead } from "@/hooks/queries/use-notifications";
+import { isPushEnabled, requestPushPermission } from "@/lib/onesignal";
 import type { Database } from "@smartout/supabase/database.types";
 
 type Notification = Database["public"]["Tables"]["notification"]["Row"];
@@ -36,6 +38,28 @@ export function NotificationScreen() {
 
   const { data: unreadCount = 0 } = useUnreadCount(profileId);
   const { mutate: markAllAsRead, isPending: isMarkingAll } = useMarkAllAsRead(profileId);
+
+  // Web-only: track whether push permission still needs to be requested.
+  // On native this never renders — state stays false and the CTA is skipped.
+  const [showPushCta, setShowPushCta] = useState(false);
+
+  useEffect(() => {
+    // Only evaluate on web — native push is handled by native SDK, not this CTA.
+    if (Platform.OS !== "web") return;
+    let cancelled = false;
+    isPushEnabled().then((enabled) => {
+      if (!cancelled) setShowPushCta(!enabled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleEnablePush = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const granted = await requestPushPermission();
+    if (granted) setShowPushCta(false);
+  }, []);
 
   const handleBack = useCallback(() => {
     Haptics.selectionAsync();
@@ -57,56 +81,9 @@ export function NotificationScreen() {
   const handleNotificationPress = useCallback(
     (notification: Notification) => {
       if (!notification.action_url) return;
-
-      const url = notification.action_url;
-      // Strip query string for pattern matching; keep it for params if needed
-      const [pathname] = url.split("?");
-      const segments = pathname.split("/").filter(Boolean); // ["dashboard", "komm", "<id>"]
-
-      // /dashboard/komm/<channelId> → chat conversation (chat.message, call.incoming, call.missed)
-      // Navigate within the (me) stack so router.back() returns here, not into the chat tab.
-      if (segments[1] === "komm" && segments[2]) {
-        router.push(`/(app)/(me)/channel-detail/${segments[2]}`);
-        return;
-      }
-
-      // /dashboard/shift-clock → punch clock
-      if (segments[1] === "shift-clock") {
-        router.push("/(app)/(home)/punch-clock");
-        return;
-      }
-
-      // /dashboard/my-schedule or /dashboard/schedule → shifts tab
-      if (segments[1] === "my-schedule" || segments[1] === "schedule") {
-        router.push("/(app)/(shifts)");
-        return;
-      }
-
-      // /dashboard/operations or /dashboard/reconciliation → operations
-      if (segments[1] === "operations" || segments[1] === "reconciliation") {
-        router.push("/(app)/(home)/operations");
-        return;
-      }
-
-      // /dashboard/my-training → training
-      if (segments[1] === "my-training") {
-        router.push("/(app)/(home)/training");
-        return;
-      }
-
-      // /dashboard/contracts → contract index
-      if (segments[1] === "contracts") {
-        router.push("/(app)/(me)/contract");
-        return;
-      }
-
-      // /dashboard/people → team
-      if (segments[1] === "people") {
-        router.push("/(app)/(home)/team");
-        return;
-      }
-
-      // /dashboard (generic) — no navigation, notification tap is the feedback
+      const route = mobileRouteForActionUrl(notification.action_url);
+      // Generic /dashboard or unknown → no navigation; the tap itself is the feedback.
+      if (route) router.push(route as never);
     },
     [router],
   );
@@ -147,6 +124,20 @@ export function NotificationScreen() {
           <Text style={styles.markAllLabel}>Alle lest</Text>
         </Pressable>
       </View>
+
+      {/* Push permission CTA — web-only, hidden once permission granted */}
+      {showPushCta && (
+        <Pressable
+          onPress={handleEnablePush}
+          style={styles.pushCtaRow}
+          accessibilityRole="button"
+          accessibilityLabel="Aktiver push-varsler"
+          hitSlop={4}
+        >
+          <Bell size={16} color={styles.pushCtaIconColor.color} strokeWidth={2} />
+          <Text style={styles.pushCtaText}>Aktiver varsler</Text>
+        </Pressable>
+      )}
 
       {/* Notification list — handles filtering, infinite scroll, empty state */}
       <NotificationList profileId={profileId} onNotificationPress={handleNotificationPress} />
@@ -197,11 +188,30 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.mutedForeground,
     fontWeight: theme.fontWeights.medium,
   },
+  // Push CTA banner — web-only, unobtrusive strip below the header
+  pushCtaRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.card,
+    paddingVertical: theme.spacing.element,
+    backgroundColor: theme.colors.muted,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  pushCtaText: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
+    fontWeight: theme.fontWeights.medium,
+  },
   // Color-only styles for Lucide icons
   iconColor: {
     color: theme.colors.foreground,
   },
   markAllIconColor: {
+    color: theme.colors.mutedForeground,
+  },
+  pushCtaIconColor: {
     color: theme.colors.mutedForeground,
   },
 }));

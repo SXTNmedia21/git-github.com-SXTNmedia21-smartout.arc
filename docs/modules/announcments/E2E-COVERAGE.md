@@ -1,11 +1,14 @@
 ---
 title: Announcements — E2E Coverage
-status: placeholder
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, e2e, playwright, coverage, testing]
 ---
+
+> **ARCHIVED 2026-05-23.** See `docs/domains/announcements/E2E-COVERAGE.md` (updated with Wave B actual Playwright specs).
 
 # Announcements — E2E Coverage
 

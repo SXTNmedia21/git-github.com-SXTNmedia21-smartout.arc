@@ -55,7 +55,7 @@ async function fetchProcedureSteps(procedureId: string): Promise<ProcedureWithSt
   return {
     procedure,
     steps: steps ?? [],
-    knowledgeTest: knowledgeTest ?? null,
+    knowledgeTest,
   };
 }
 

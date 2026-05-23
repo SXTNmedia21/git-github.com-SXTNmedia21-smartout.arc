@@ -1,8 +1,54 @@
 // packages/ui/src/wizard/WizardSidebar.tsx
 "use client";
 
-import { Check } from "lucide-react";
+import {
+  Check,
+  Layers,
+  Crown,
+  Briefcase,
+  MapPin,
+  ClipboardCheck,
+  FileText,
+  CheckCircle,
+  Sparkles,
+  Upload,
+  ShieldCheck,
+  DollarSign,
+  Users,
+  Clock,
+  Calendar,
+  BookOpen,
+  Mail,
+  Building2,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import type { WizardStepDef } from "./types";
+
+/** Minimal icon registry — only the icons actually referenced by step definitions. */
+const ICON_BY_NAME: Record<string, LucideIcon> = {
+  // onboarding wizard
+  layers: Layers,
+  crown: Crown,
+  briefcase: Briefcase,
+  "map-pin": MapPin,
+  "clipboard-check": ClipboardCheck,
+  "file-text": FileText,
+  "check-circle": CheckCircle,
+  // setup wizard
+  sparkles: Sparkles,
+  upload: Upload,
+  "shield-check": ShieldCheck,
+  "dollar-sign": DollarSign,
+  users: Users,
+  clock: Clock,
+  calendar: Calendar,
+  "book-open": BookOpen,
+  // join wizard
+  mail: Mail,
+  "building-2": Building2,
+  "utensils-crossed": UtensilsCrossed,
+};
 
 interface WizardSidebarProps {
   steps: WizardStepDef<Record<string, unknown>>[];
@@ -29,7 +75,7 @@ export function WizardSidebar({
         const isCompleted = completedSteps.has(step.id);
         const isCurrent = index === currentStepIndex;
         const isPending = !isCompleted && !isCurrent;
-        const Icon = step.icon;
+        const Icon = step.iconName ? ICON_BY_NAME[step.iconName] : undefined;
 
         return (
           <button

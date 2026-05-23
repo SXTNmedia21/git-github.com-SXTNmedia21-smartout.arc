@@ -60,7 +60,8 @@ export type EventCategory =
   | "cost" // ui-shell-cost-polish — Cost overview telemetry
   | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
   | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
-  | "people"; // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "people" // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "bulk_import"; // ADR-0401 — bulk_import capability (Sortie A: parse_spreadsheet)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -661,6 +662,22 @@ export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { step: number };
+  };
+}
+
+export interface ProfileWelcomeWizardDismissed extends BaseEvent {
+  event: "profile welcome_wizard_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardResumed extends BaseEvent {
+  event: "profile welcome_wizard_resumed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
   };
 }
 
@@ -4457,6 +4474,68 @@ export interface AnnouncementTierOverridden extends BaseEvent {
   };
 }
 
+// ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ────────────────
+//
+// Four events covering the full HITL lifecycle for Botsson mutations rendered
+// as an InlineConfirmCard. Emitted server-side (tool body) per L-0233 — voice
+// context is separate and must not receive card descriptors.
+//
+// inline_confirm_card.shown
+//   Emitted in publish_announcement.ts draft branch when capability returns
+//   {phase:"draft"} and proposal_id. Call-site: T3 (parallel).
+//
+// inline_confirm_card.confirmed
+//   Emitted in publish_announcement.ts commit branch after atomic RPC succeeds.
+//   Call-site: T3 (parallel).
+//
+// inline_confirm_card.cancelled
+//   Emitted when browser returns action:"cancel" via ClientToolCallResult roundtrip.
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// inline_confirm_card.edited
+//   Emitted when browser returns action:"edit" with patch. edited_field_count
+//   counts whitelisted editable_fields modified in the patch (per ADR-0398 §resume-payload).
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// Destinations: posthog + logger + activity_trail.
+//   engine_event EXCLUDED — these are UI telemetry events, NOT workflow triggers.
+//   (Sibling pattern: channel.message.sent — posthog + logger + activity_trail.)
+//
+export interface InlineConfirmCardShown extends BaseEvent {
+  event: "inline_confirm_card.shown";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string; // = p_client_message_id passed to atomic RPC
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardConfirmed extends BaseEvent {
+  event: "inline_confirm_card.confirmed";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardCancelled extends BaseEvent {
+  event: "inline_confirm_card.cancelled";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+  };
+}
+
+export interface InlineConfirmCardEdited extends BaseEvent {
+  event: "inline_confirm_card.edited";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    edited_field_count: number; // count of whitelisted editable_fields present in patch
+  };
+}
+
 // ─── Website Factory Events ────────────────────
 export interface WebsiteCreated extends BaseEvent {
   event: "website created";
@@ -4918,6 +4997,24 @@ export interface BotssonAuthorityFiltered extends BaseEvent {
       blocked_count: number;
       blocked_tools: string[]; // tool names
       blocked_rules: string[]; // AuthorityRuleName for each blocked tool
+    };
+  };
+}
+
+// ─── Attachment Deterministic Routing (Sortie 0) ─────────────────
+// Emitted by:
+//   - stage-engine : agent-router.ts, when MIME-type resolver matches a
+//     spreadsheet attachment (.xlsx/.xls/.csv) BEFORE intent classification.
+//     Forces bulk_import capability; intent-classifier is never called.
+// Routing decision telemetry only — not a user action, no activity_trail.
+export interface AttachmentRouted extends BaseEvent {
+  event: "attachment.routed";
+  properties: {
+    data: {
+      capability: string;
+      source: "deterministic_attachment";
+      filename: string;
+      attachment_count: number;
     };
   };
 }
@@ -8420,6 +8517,30 @@ export interface UiDemoShown extends BaseEvent {
   };
 }
 
+// ─── Bulk Import Events (ADR-0401, Sortie A — parse_spreadsheet) ──────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// Emitted by:
+//   - packages/ai : bulk_import capability parse_spreadsheet tool, on successful
+//     CSV parse. ONE emit per parse per ADR-0287.
+// Routing: posthog (adoption analytics) + logger (debugging) + activity_trail
+//   (audit — file parse is an auditable import action, workspace-scoped).
+// No engine_event — Sortie A is read-only; no DB write = no workflow trigger.
+export interface BulkImportBatchParsed extends BaseEvent {
+  event: "bulk_import.batch_parsed";
+  properties: {
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      source_kind: "vaktliste" | "kjoreplan" | "mixed";
+      sheet_count: number;
+      row_count: number;
+      excel_sha256: string;
+      /** Fraction 0–1 of canonical fields auto-mapped from headers. */
+      suggested_mapping_completeness: number;
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -8764,6 +8885,11 @@ export type SmartoutEvent =
   | AnnouncementLinkFollowed
   | AnnouncementKindChanged
   | AnnouncementTierOverridden
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  | InlineConfirmCardShown
+  | InlineConfirmCardConfirmed
+  | InlineConfirmCardCancelled
+  | InlineConfirmCardEdited
   | WebsiteCreated
   | WebsitePublished
   | WebsiteUnpublished
@@ -8825,6 +8951,7 @@ export type SmartoutEvent =
   | BotssonSessionCreated
   | BotssonSessionArchived
   | BotssonAuthorityFiltered
+  | AttachmentRouted
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -9141,6 +9268,8 @@ export type SmartoutEvent =
   | ProfileWelcomeWizardStepCompleted
   | ProfileWelcomeWizardCompleted
   | ProfileWelcomeWizardSkippedOptional
+  | ProfileWelcomeWizardDismissed
+  | ProfileWelcomeWizardResumed
   | LegalAml146Validated
   | LegalLawCited
   | LegalAmendmentClassified
@@ -9349,7 +9478,9 @@ export type SmartoutEvent =
   | MobileVoiceDisconnectRecovered
   | MobileVoiceDisconnectFailed
   | MobileVoicePolicyFlipped
-  | MobileRoutinePhotoExtracted;
+  | MobileRoutinePhotoExtracted
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  | BulkImportBatchParsed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -12878,6 +13009,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
 
+  // attachment.routed: MIME-type deterministic capability dispatch fired.
+  // Emitted by: stage-engine agent-router.ts BEFORE intent-classifier.
+  // When a spreadsheet attachment (.xlsx/.xls/.csv) is present, the resolver
+  // short-circuits LLM classification and forces bulk_import capability.
+  // Routing decision only — no user action, no audit trail needed.
+  // Destinations: posthog (adoption analytics) + logger (debugging).
+  "attachment.routed": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
   // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
   // All four destinations: PostHog (analytics), logger (debugging),
   // activity_trail (audit), engine_event (drives observability dashboards).
@@ -14266,6 +14408,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "onboarding",
   },
+  // dismissed: posthog (funnel exit) + logger + activity_trail (audit — who
+  //   dismissed and at which step). No engine_event (only _completed triggers
+  //   downstream flows). Emit sites land in T11 (dismissWelcomeWizard Server Action).
+  "profile welcome_wizard_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  // resumed: posthog (re-engagement funnel) + logger + activity_trail (audit).
+  //   No engine_event. Emit sites land in T11 (resumeWelcomeWizard Server Action).
+  "profile welcome_wizard_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
 
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────────────────
   // Platform-scoped: workspace_id null. Destinations: logger + engine_event
@@ -15189,5 +15344,38 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "mobile.routine.photo_extracted": {
     destinations: ["posthog", "logger"],
     category: "scheduling",
+  },
+
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  // bulk_import.batch_parsed: ONE emit per successful CSV parse (ADR-0287).
+  // posthog (import-funnel analytics) + logger (debugging) + activity_trail
+  // (workspace-scoped audit for import actions). No engine_event — Sortie A
+  // is read-only; no DB write = no workflow state transition.
+  "bulk_import.batch_parsed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "bulk_import",
+  },
+
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  // All 4 events route to posthog + logger + activity_trail.
+  // engine_event EXCLUDED — these are UI telemetry for the HITL gate, NOT
+  // workflow triggers. Pattern: channel.message.sent (same 3 destinations).
+  // Call-sites: shown + confirmed → T3 (publish-announcement.ts, parallel).
+  //             cancelled + edited → T4 (inline-confirm-card-tool.ts, deferred).
+  "inline_confirm_card.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.edited": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };

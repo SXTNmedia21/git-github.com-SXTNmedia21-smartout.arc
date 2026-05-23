@@ -1,11 +1,17 @@
 ---
 title: "Harness Architecture — Botsson + LiveKit-Voice (faktisk tilstand + roadmap)"
-status: in_progress
-updated: 2026-05-04
+status: archived
+updated: 2026-05-23
 created: 2026-05-04
 module: architecture
 tags: [harness, botsson, livekit, stage-engine, voice-agent, roadmap, scope]
+mirror: source
+superseded_by: "docs/domains/agent-harness/ + docs/domains/botsson/"
 ---
+
+> **✅ ARCHIVED — 2026-05-23 (ADR-0392).** This compiled architecture doc (verified vs code @ 3f6e657f, 2026-05-04) has been superseded by the domain spine. Plumbing = `docs/domains/agent-harness/ARCHITECTURE.md`. Persona surface = `docs/domains/botsson/ARCHITECTURE.md`. Content preserved for historical reference. Do NOT use as canonical — CODE wins, and domain spines are more current.
+>
+> **Classification: compiled doc (factual snapshot as of 2026-05-04).** Absorbed into both domain spines during ADR-0392 `pre` run.
 
 # Harness Architecture
 

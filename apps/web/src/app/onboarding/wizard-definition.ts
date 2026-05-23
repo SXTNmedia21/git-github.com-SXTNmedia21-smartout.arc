@@ -8,16 +8,6 @@
  * The user reviews and adjusts before finalizing the workspace.
  */
 
-import {
-  Layers,
-  MapPin,
-  ClipboardCheck,
-  CheckCircle,
-  Users,
-  Crown,
-  Briefcase,
-  FileText,
-} from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
@@ -363,45 +353,45 @@ export const onboardingWizard: WizardDefinition<OnboardingConfirmState> = {
     {
       id: "confirm-departments",
       labelKey: "confirm.departments_title",
-      icon: Layers,
+      iconName: "layers",
       component: ConfirmDepartments,
     },
     {
       id: "confirm-roles",
       labelKey: "confirm.roles_title",
-      icon: Crown,
+      iconName: "crown",
       component: ConfirmRoles,
     },
     {
       id: "confirm-positions",
       labelKey: "confirm.positions_title",
-      icon: Briefcase,
+      iconName: "briefcase",
       component: ConfirmPositions,
     },
     {
       id: "confirm-locations",
       labelKey: "confirm.locations_title",
-      icon: MapPin,
+      iconName: "map-pin",
       component: ConfirmLocations,
       skippable: true,
     },
     {
       id: "confirm-procedures",
       labelKey: "confirm.procedures_title",
-      icon: ClipboardCheck,
+      iconName: "clipboard-check",
       component: ConfirmProcedures,
     },
     {
       id: "tariff",
       labelKey: "confirm.tariff_title",
-      icon: FileText,
+      iconName: "file-text",
       component: TariffSection,
       skippable: true,
     },
     {
       id: "summary",
       labelKey: "confirm.summary_title",
-      icon: CheckCircle,
+      iconName: "check-circle",
       component: ConfirmSummary,
       hideNavBar: true,
     },

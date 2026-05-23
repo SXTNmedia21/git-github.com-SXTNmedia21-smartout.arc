@@ -257,7 +257,7 @@ CREATE TABLE public.department_location (
 );
 ```
 
-See `docs/modules/core-structure/DEPARTMENTS.md` for semantics.
+See `docs/domains/core-structure/DATA-MODEL.md` for semantics.
 
 ### 5.5 Enums
 

@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-04-27
+updated: 2026-05-23
 last-reconciled: 2026-04-27
 ---
 
@@ -107,21 +107,35 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | REF_STAGE_ENGINE   | reference/STAGE_ENGINE_TRAINER_GUIDE.md          | canonical |
 | REF_GIT_WORKFLOW   | reference/GIT-WORKFLOW.md                        | superseded (pointer to ADR-0265) |
 
-## Modules
+## Domains (canonical, ADR-0392)
 
-Flat module docs + folder-based modules (folder = README index + standard doc set):
+Per ADR-0392 the **domain folder** (`docs/domains/<name>/`, fixed 8-file spine) is the single source of truth for each product area. Old `modules/` entries are migrated incrementally — see migration backlog in `_DASHBOARD`.
 
-| id              | File                              | Status |
-| --------------- | --------------------------------- | ------ |
-| MOD_BILLING     | modules/MODULE_BILLING.md         | active |
-| MOD_COMMUNICATION | modules/MODULE_COMMUNICATION.md | active |
-| MOD_YEAR_WHEEL  | modules/MODULE_YEAR_WHEEL_PRD.md  | active |
-| MOD_CONTRACT_COMPONENTS | modules/MODULE_CONTRACT_COMPONENTS.md | active |
-| MOD_CORE_STRUCTURE | modules/core-structure/README.md | active |
-| MOD_DAYTIMELINE | modules/daytimeline/README.md     | active |
-| MOD_ANNOUNCEMENTS | modules/announcments/README.md  | active |
-| MOD_PAYROLL     | modules/payroll/README.md         | active |
-| MOD_PROCEDURE_ENGINE | modules/procedure-engine/README.md | active |
+- **[docs/domains/\_DASHBOARD.md](domains/_DASHBOARD.md)** — status map: domain × build-state × tested × last_verified × open gaps × overlap edges.
+
+| id                  | Folder                                  | Status                              |
+| ------------------- | --------------------------------------- | ----------------------------------- |
+| DOM_BILLING         | [domains/billing/](domains/billing/)                 | canonical (Smartout-bills-company)  |
+| DOM_COMMUNICATION   | [domains/communication/](domains/communication/)     | canonical (absorbs MODULE_COMMUNICATION + SMARTOUT_MODULE_9) |
+| DOM_CORE_STRUCTURE  | [domains/core-structure/](domains/core-structure/)   | canonical (absorbs core-structure module) |
+| DOM_DAY_SESSION     | [domains/day-session/](domains/day-session/)         | canonical (absorbs daytimeline)     |
+| DOM_PROCEDURE_ENGINE | [domains/procedure-engine/](domains/procedure-engine/) | canonical (absorbs procedure-engine module) |
+
+## Modules (legacy / pending migration to domains)
+
+Flat module docs + folder-based modules (folder = README index + standard doc set). Migrated entries point to their new domain.
+
+| id                       | File                                  | Status                                            |
+| ------------------------ | ------------------------------------- | ------------------------------------------------- |
+| MOD_BILLING              | —                                     | **archived → [domains/billing/](domains/billing/)** |
+| MOD_COMMUNICATION        | —                                     | **archived → [domains/communication/](domains/communication/)** |
+| MOD_YEAR_WHEEL           | modules/MODULE_YEAR_WHEEL_PRD.md      | active                                            |
+| MOD_CONTRACT_COMPONENTS  | modules/MODULE_CONTRACT_COMPONENTS.md | active                                            |
+| MOD_CORE_STRUCTURE       | —                                     | **archived → [domains/core-structure/](domains/core-structure/)** |
+| MOD_DAYTIMELINE          | —                                     | **archived → [domains/day-session/](domains/day-session/)** |
+| MOD_ANNOUNCEMENTS        | —                                     | **archived → [domains/announcements/](domains/announcements/)** |
+| MOD_PAYROLL              | domains/payroll/README.md             | active                                            |
+| MOD_PROCEDURE_ENGINE     | —                                     | **archived → [domains/procedure-engine/](domains/procedure-engine/)** |
 
 ## Architecture
 

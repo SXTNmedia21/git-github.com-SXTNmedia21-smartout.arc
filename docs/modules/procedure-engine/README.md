@@ -1,6 +1,7 @@
 ---
 title: Procedure Engine Module — Blueprint Index
-status: in_progress
+status: archived
+superseded_by: docs/domains/procedure-engine/
 updated: 2026-05-22
 created: 2026-05-20
 module: procedure-engine
@@ -8,6 +9,12 @@ tags: [module, procedure-engine, task-manager, governance, policy, protocol, pro
 ---
 
 # Procedure Engine Module — Blueprint & Source of Truth
+
+> ⚠️ **ARCHIVED 2026-05-22** — This folder has been absorbed into the domain spine at `docs/domains/procedure-engine/`. The canonical source of truth is now there. Do NOT edit files in this folder. For code-truth, read `docs/domains/procedure-engine/`. This folder is preserved for git-blame traceability.
+>
+> **Superseded by:** `docs/domains/procedure-engine/`
+
+---
 
 > Authoritative blueprint for Smartout's Procedure Engine (formerly Task Manager). If code contradicts this folder → CODE wins, update these docs.
 >

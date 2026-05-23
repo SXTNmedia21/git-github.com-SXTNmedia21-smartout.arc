@@ -5,11 +5,15 @@
  * modal). This tool adds the agent-author path so Botsson can compose announcements
  * on behalf of managers via a single conversational turn.
  *
- * Two-call draft-return pattern (ADR-0099 §C4 broadcast-class harm prevention):
- *   1. confirm=false (default) → resolve audience + return draft preview. No INSERT.
- *   2. confirm=true (after human approval) → INSERT channel_message + emit.
+ * Two-call draft-return pattern with InlineConfirmCard (ADR-0398, ADR-0099 §C4
+ * broadcast-class harm prevention):
+ *   1. confirm=false (default) → gate precheck + resolve audience + return
+ *      InlineConfirmCardDescriptor via show_proposal_card (HITL, Architecture B).
+ *   2. confirm=true (after human approval via card) → INSERT channel_message + emit.
+ *      proposal_id from draft phase = p_client_message_id (RPC-level idempotency).
  *
- * Authority: callGateAction (capability=communication) → gates before INSERT.
+ * Authority: callGateAction (capability=communication) → gates before INSERT and before
+ *   draft descriptor is returned (precheck avoids dead-end UX per Blocking Condition #1).
  * Voice: rejected in-tool as FIRST statement per Council B3 (gate_action's
  *   channel_allowed only activates with p_engine_process_id; direct calls skip it).
  * PII: tool return NEVER exposes raw target_profile_ids — only count + label.
@@ -17,10 +21,14 @@
  * ADR references:
  *   ADR-0099  — gate_action RPC + four-eyes invariant
  *   ADR-0078  — voice-channel guard (in-tool layer)
+ *   ADR-0151  — server-derived workspace_id + profile_id (commit re-resolves audience)
  *   ADR-0163  — channel AI participation policy (isAiAllowedInChannel)
  *   ADR-0173  — capability boundary (communication owns channel_message)
  *   ADR-0189  — seed-parity + default-deny
  *   ADR-0287  — gate_action mandatory on all mutation capability tools
+ *   ADR-0398  — InlineConfirmCard HITL primitive (Architecture B)
+ *   L-0177    — silent-fallback ban (audience re-resolved server-side on commit)
+ *   L-0330    — stateless default: proposal_id = same UUID as client_message_id
  */
 
 import { z } from "zod";
@@ -30,15 +38,20 @@ import { callGateAction } from "./gate.js";
 import { isAiAllowedInChannel } from "./policy.js";
 import { resolveAudience, type AudienceInput } from "./audience-resolver.js";
 import { emitAnnouncementPublished } from "./emit-announcement-events.js";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { buildInlineConfirmCard } from "../../primitives/inline-confirm-card/index.js";
 
 export const publishAnnouncement = defineTool({
   name: "publish_announcement",
   description:
     "Compose and publish a workspace announcement on behalf of the manager. " +
-    "Two-call pattern: first call with confirm=false (default) returns a draft + " +
-    "audience preview for human confirmation; second call with confirm=true publishes " +
-    "the announcement via RPC (publish_announcement_atomic). Voice channel is rejected. " +
-    "Audience resolution is server-side; raw profile IDs are never returned to the agent. " +
+    "Phase 1: draft phase (confirm=false, default) returns an InlineConfirmCardDescriptor " +
+    "for HITL confirmation via the show_proposal_card client-tool. The LLM must call " +
+    "show_proposal_card with the descriptor immediately after; do NOT verbalize the draft. " +
+    "Commit phase (confirm=true) requires proposal_id from the draft phase response; " +
+    "idempotency is enforced via p_client_message_id (same UUID). Audience is re-resolved " +
+    "server-side on commit per ADR-0151 + L-0177 (silent-fallback ban). " +
+    "Voice channel is rejected. Raw profile IDs are never returned to the agent. " +
     "V2: accepts kind (7 agent-valid values: general|new_menu|new_hire|staff_event|" +
     "schedule_change|policy_update|external), " +
     "tier (social|work|external), optional tags, and optional entity-link pair (type+id). " +
@@ -137,9 +150,19 @@ export const publishAnnouncement = defineTool({
         .boolean()
         .default(false)
         .describe(
-          "False (default): resolve audience + return draft for human confirmation. No RPC call. " +
+          "False (default): resolve audience + return InlineConfirmCardDescriptor for HITL " +
+            "confirmation via show_proposal_card. No RPC call. " +
             "True: publish after human approval. Two-call pattern protects against " +
             "agent auto-publishing workspace-wide content without explicit consent.",
+        ),
+      proposal_id: z
+        .string()
+        .uuid()
+        .optional()
+        .describe(
+          "UUID from the draft phase response (proposal_id field). Pass this back on the " +
+            "confirm=true call to ensure RPC idempotency via p_client_message_id (L-0330). " +
+            "If omitted on commit, a fresh UUID is generated (idempotency lost but safe).",
         ),
     })
     .refine(
@@ -220,22 +243,116 @@ export const publishAnnouncement = defineTool({
       return "Audience resolves to 0 recipients. Adjust audience targeting or use 'all'.";
     }
 
-    // Phase: draft — return preview, no INSERT (confirm=false default)
+    // Precheck gate (Blocking Condition #1 per ADR-0398): verify commit-phase will be
+    // allowed BEFORE returning the draft descriptor. Avoids dead-end UX where the user
+    // confirms a draft that the gate then denies. Uses actionType "publish_announcement"
+    // (draft-phase action) — distinct from the commit-phase "publish_announcement_atomic".
+    // Placed AFTER resolveAudience so audience non-empty is confirmed first.
+    const precheckGate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "communication",
+      actionType: "publish_announcement",
+      channel: ctx.channel ?? "chat",
+      entityId: undefined,
+    });
+    if (!precheckGate.allow) {
+      return `Ikke tillatt: ${precheckGate.reason ?? "manglende autoritet"}`;
+    }
+
+    // Lift clientMessageId BEFORE the confirm branch so BOTH draft and commit phases share
+    // the same UUID (L-0330 stateless-default). On commit, prefer params.proposal_id (from
+    // the card result) to preserve RPC-level idempotency; fall back to fresh UUID if absent.
+    const clientMessageId = !params.confirm
+      ? crypto.randomUUID()
+      : (params.proposal_id ?? crypto.randomUUID());
+
+    // Phase: draft — return InlineConfirmCardDescriptor for HITL confirmation (ADR-0398 Architecture B)
     if (!params.confirm) {
+      const descriptor = buildInlineConfirmCard({
+        proposal_id: clientMessageId,
+        surface: "announcement",
+        draft: {
+          title: params.title,
+          body: params.body,
+          audience_kind: params.audience_kind,
+          channel_id: params.channel_id,
+          kind: params.kind,
+          tier: params.tier,
+        },
+        preview: {
+          title: params.title,
+          body_excerpt: params.body.slice(0, 200) + (params.body.length > 200 ? "…" : ""),
+          recipient_count: resolved.count,
+          metadata: [
+            { label: "Mottakere", value: resolved.label },
+            { label: "Kind", value: params.kind ?? "general" },
+            { label: "Tier", value: params.tier ?? "work" },
+          ],
+        },
+        actions: [
+          { id: "confirm", label: "Publiser", variant: "primary" },
+          { id: "edit", label: "Endre", variant: "ghost", editable_fields: ["title", "body"] },
+          { id: "cancel", label: "Avbryt", variant: "destructive" },
+        ],
+        channel_constraint: ["chat"],
+        platforms: ["web"],
+      });
+
+      // Telemetry: card shown (L-0233 — emit in tool body, server-side, NOT React)
+      // nonEmpty() wraps match client-tool impl + ADR-0134 fail-fast (T9/F3).
+      // Coordinate with T6 if inline_confirm_card.shown is not yet in the registry.
+      await emit({
+        event: "inline_confirm_card.shown",
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
+        properties: {
+          surface: "announcement",
+          proposal_id: clientMessageId,
+          recipient_count: resolved.count,
+        },
+      });
+
       return JSON.stringify({
         phase: "draft",
-        target_profile_count: resolved.count,
-        audience_label: resolved.label,
-        draft: { title: params.title, body: params.body },
+        proposal_id: clientMessageId,
+        descriptor,
         next_step:
-          "Show this draft to the user. On confirmation, call publish_announcement again with confirm=true.",
+          "Call show_proposal_card with the inline_confirm_card descriptor. Do not verbalize the draft.",
       });
     }
 
     // Phase: published — RPC publish_announcement_atomic (atomic per ADR-0369)
-    const isTargeted = audience.kind !== "all";
+    // TRUST BOUNDARY (ADR-0151 + L-0177): audience is re-resolved server-side from
+    // ctx.workspaceId. Audience params from body (audience_kind, department_ids, roles,
+    // profile_ids) are accepted but used ONLY within ctx.workspaceId's RLS scope.
+    // Body-supplied workspace_id is NEVER trusted — ctx.workspaceId is authoritative.
+
+    // DEFENSE 3 (ADR-0398 §Resume-Payload Trust Boundary) — Phase 1 narrowing:
+    // When proposal_id is present (resume from InlineConfirmCard), this is a commit
+    // on a previously shown draft. The descriptor only permits editable_fields:
+    // ["title", "body"]. All audience-targeting fields (audience_kind, department_ids,
+    // roles, profile_ids) are NOT in editable_fields — they must NOT be accepted from
+    // the body on resume. Phase 1 enforcement: force audience_kind="all" (safe default)
+    // and ignore body-supplied targeting params. The audience variable above was built
+    // from body params in the draft phase (before confirm=true); we re-resolve below.
+    // Phase 2 will replace this with stateful audience-fingerprint check via
+    // engine_memory keyed by proposal_id (deferred to ADR-0400).
+    //
+    // Refs: ADR-0398 §Resume-Payload Trust Boundary, L-0177 (silent-fallback ban),
+    //       T9 code-review finding F1 (CRITICAL).
+    const effectiveAudience = params.proposal_id != null ? ({ kind: "all" } as const) : audience;
+
+    let effectiveResolved = resolved;
+    if (params.proposal_id != null && audience.kind !== "all") {
+      // Re-resolve with forced "all" since body-supplied targeting is not trustworthy on resume.
+      try {
+        effectiveResolved = await resolveAudience(supabase, ctx.workspaceId, effectiveAudience);
+      } catch (err) {
+        return `Audience re-resolution failed on resume: ${err instanceof Error ? err.message : "unknown error"}`;
+      }
+    }
+
+    const isTargeted = effectiveAudience.kind !== "all";
     const content = `${params.title}\n${params.body}`;
-    const clientMessageId = crypto.randomUUID();
 
     const { data: messageId, error } = await supabase.rpc("publish_announcement_atomic", {
       p_workspace_id: ctx.workspaceId,
@@ -243,8 +360,11 @@ export const publishAnnouncement = defineTool({
       p_channel_id: params.channel_id,
       p_content: content,
       p_visibility_scope: isTargeted ? "targeted_members" : "all_members",
-      p_target_profile_ids: isTargeted ? resolved.profileIds : [],
-      p_system_data: { audience_kind: audience.kind, audience_label: resolved.label },
+      p_target_profile_ids: isTargeted ? effectiveResolved.profileIds : [],
+      p_system_data: {
+        audience_kind: effectiveAudience.kind,
+        audience_label: effectiveResolved.label,
+      },
       p_kind: params.kind ?? "general",
       p_tier: params.tier ?? "work",
       p_tags: params.tags ?? [],
@@ -267,9 +387,9 @@ export const publishAnnouncement = defineTool({
       message_id: data.id,
       channel_id: params.channel_id,
       origin_type: "agent",
-      audience_kind: audience.kind,
+      audience_kind: effectiveAudience.kind,
       visibility_scope: isTargeted ? "targeted_members" : "all_members",
-      target_profile_count: resolved.count,
+      target_profile_count: effectiveResolved.count,
       kind: params.kind ?? "general",
       tier: params.tier ?? "work",
       tag_count: (params.tags ?? []).length,
@@ -277,12 +397,26 @@ export const publishAnnouncement = defineTool({
       link_type: params.linked_entity_type,
     });
 
+    // Telemetry: card confirmed (L-0233 — emit in tool body, server-side, NOT React)
+    // nonEmpty() wraps match client-tool impl + ADR-0134 fail-fast (T9/F3).
+    // Coordinate with T6 if inline_confirm_card.confirmed is not yet in the registry.
+    await emit({
+      event: "inline_confirm_card.confirmed",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        surface: "announcement",
+        proposal_id: clientMessageId,
+        recipient_count: effectiveResolved.count,
+      },
+    });
+
     // PII boundary (Council B5): NEVER return raw target_profile_ids
     return JSON.stringify({
       phase: "published",
       message_id: data.id,
-      target_profile_count: resolved.count,
-      audience_label: resolved.label,
+      target_profile_count: effectiveResolved.count,
+      audience_label: effectiveResolved.label,
     });
   },
 });

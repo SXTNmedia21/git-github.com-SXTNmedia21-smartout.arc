@@ -1,7 +1,9 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
-status: canonical
-updated: 2026-05-17
+status: archived
+superseded_by: docs/domains/botsson/
+last_re_verified: 2026-05-23
+updated: 2026-05-23
 verified_against_code: 2026-05-17
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
@@ -9,6 +11,10 @@ created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
 ---
+
+> ⚠️ **ARCHIVED 2026-05-23** — This file is superseded by `docs/domains/botsson/`. The live truth now lives at `docs/domains/botsson/ARCHITECTURE.md` (Last re-verified: 2026-05-23). L-0150 staleness cycle closed. All 🟢/🟡/🔴 nodes in this file were re-verified vs code during the domain `pre` run; findings logged in `docs/domains/botsson/GAPS-AND-DEBT.md` §Deviations.
+>
+> Do not update this file. Update `docs/domains/botsson/` instead.
 
 > **Map staleness gate (per L-0150):** This file is a SUMMARY artifact, not a source of truth. When summary disagrees with code, code wins. Council briefings citing this map MUST verify the `verified_against_code` date is within 7 days. Stale citations require fresh code-trace before Phase 3.
 

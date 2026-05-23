@@ -1,7 +1,7 @@
 ---
 title: "Plan — payroll-phase-4 (PDF Lønnsgrunnlag)"
 feature: payroll-phase-4
-spec: docs/modules/payroll/PHASES.md#phase-4--pdf-lønnsgrunnlag
+spec: docs/domains/payroll/PHASES.md#phase-4--pdf-lønnsgrunnlag
 status: done
 updated: 2026-05-08
 created: 2026-05-08
@@ -13,7 +13,7 @@ tags: [plan, payroll, phase-4, pdf, lonnsgrunnlag, mobile-parity, signed-urls, p
 
 > Branch: `feat/payroll-payroll-phase-2` (continued — combined Phase 2+3+4 PR) | Worktree: `/home/sxtnl/dev/smartout.ai-payroll-wt-1` | Module: payroll
 
-**Spec:** [Phase 4 — PDF Lønnsgrunnlag](../modules/payroll/PHASES.md#phase-4--pdf-lønnsgrunnlag)
+**Spec:** [Phase 4 — PDF Lønnsgrunnlag](../domains/payroll/PHASES.md#phase-4--pdf-lønnsgrunnlag)
 
 ## Critical positioning (load-bearing)
 

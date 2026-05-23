@@ -1,11 +1,14 @@
 ---
 title: Workspace-Configurable Policies — Time-tracking & Payroll
-status: draft
+status: archived
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-23
 module: payroll
 tags: [payroll, time-tracking, policies, compliance, aml, gdpr, riksavtalen]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Workspace-Configurable Policies — Time-tracking & Payroll
 

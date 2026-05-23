@@ -2,12 +2,15 @@
 //
 // Unit tests for the `publish_announcement` capability tool.
 //
-// Five test cases covering the declared journeys in PLAN-botsson-publishannouncement-capability.md:
+// Test cases covering the declared journeys in PLAN-botsson-publishannouncement-capability.md:
 //   TC-1  Voice channel → in-tool reject as FIRST statement (no gate call, no INSERT)
 //   TC-2  Gate denied (allow=false) → no INSERT, descriptive error
-//   TC-3  confirm=false → draft phase returned, no INSERT, no emit
-//   TC-4  confirm=true + granted gate → INSERT fires, emit fires, PII boundary holds
+//   TC-3  confirm=false → InlineConfirmCardDescriptor returned, no INSERT,
+//          emit("inline_confirm_card.shown") fires (ADR-0398 Architecture B)
+//   TC-4  confirm=true + granted gate → INSERT fires, emit fires (channel.message.sent +
+//          inline_confirm_card.confirmed), PII boundary holds
 //   TC-5  Audience resolves to 0 → descriptive error, no INSERT
+//   TC-P  Precheck gate denied → draft refused, no descriptor, no INSERT
 //
 // Mock strategy mirrors sendMessage.gate.test.ts:
 //   - vi.mock("../gate.js")   — default allow, override per-test
@@ -242,7 +245,8 @@ describe("publishAnnouncement — capability tool", () => {
     expect(result).toMatch(/chat/i);
   });
 
-  it("TC-2 (gate denied): allow=false → no INSERT, no emit, descriptive error", async () => {
+  it("TC-2 (gate denied): allow=false on commit gate → no INSERT, no emit, descriptive error", async () => {
+    // First gate call (commit gate) denied → early return before precheck or descriptor
     vi.mocked(callGateAction).mockResolvedValueOnce({
       allow: false,
       reason: "default-deny-missing-seed",
@@ -260,7 +264,7 @@ describe("publishAnnouncement — capability tool", () => {
 
     const result = await publishAnnouncement.execute(DEFAULT_PARAMS, ctx);
 
-    // Gate was called
+    // First gate (commit) was called; precheck gate never reached
     expect(callGateAction).toHaveBeenCalledOnce();
 
     // No INSERT, no emit
@@ -272,49 +276,141 @@ describe("publishAnnouncement — capability tool", () => {
     expect(result).toContain("default-deny-missing-seed");
   });
 
-  it("TC-3 (confirm=false): returns draft phase, no INSERT, no emit", async () => {
+  it("TC-P (precheck gate denied): commit gate passes, precheck denied → draft refused, no INSERT, no emit", async () => {
+    // Commit gate passes (first call), precheck denied (second call)
+    vi.mocked(callGateAction)
+      .mockResolvedValueOnce({
+        allow: true,
+        reason: null,
+        channelAllowed: true,
+        downgradeTo: null,
+        minRoleRequired: null,
+        requiresFourEyes: false,
+        approversNeeded: 0,
+        approversPresent: [],
+        gateEvaluationId: null,
+      })
+      .mockResolvedValueOnce({
+        allow: false,
+        reason: "insufficient-authority",
+        channelAllowed: true,
+        downgradeTo: null,
+        minRoleRequired: "manager",
+        requiresFourEyes: false,
+        approversNeeded: 0,
+        approversPresent: [],
+        gateEvaluationId: null,
+      });
+
     const insertCaptures: InsertCapture[] = [];
     const ctx = makeCtx({ supabaseAdmin: makeSupabase(insertCaptures) });
 
     const result = await publishAnnouncement.execute({ ...DEFAULT_PARAMS, confirm: false }, ctx);
 
-    // Gate was called
-    expect(callGateAction).toHaveBeenCalledOnce();
+    // Both gates called
+    expect(callGateAction).toHaveBeenCalledTimes(2);
 
-    // No INSERT, no emit
+    // No INSERT, no emit (card was never shown)
     expect(insertCaptures).toHaveLength(0);
     expect(emit).not.toHaveBeenCalled();
 
-    // Draft phase returned
-    const parsed = JSON.parse(result) as {
-      phase: string;
-      target_profile_count: number;
-      audience_label: string;
-      draft: { title: string; body: string };
-      next_step: string;
-    };
-    expect(parsed.phase).toBe("draft");
-    expect(parsed.target_profile_count).toBe(5);
-    expect(parsed.audience_label).toBe("Alle (5)");
-    expect(parsed.draft.title).toBe("Viktig melding");
-    expect(parsed.draft.body).toBe("Husk å lukke baren ordentlig i kveld.");
-    // No raw profile IDs in the draft return
-    expect(JSON.stringify(parsed)).not.toContain("profileIds");
-    expect(JSON.stringify(parsed)).not.toContain("target_profile_ids");
+    // Norwegian denial message from precheck gate
+    expect(result).toMatch(/Ikke tillatt/i);
+    expect(result).toContain("insufficient-authority");
   });
 
-  it("TC-4 (confirm=true, granted): INSERT fires, emit fires, PII boundary — no raw IDs in return", async () => {
+  it("TC-3 (confirm=false): returns InlineConfirmCardDescriptor, no INSERT, emits shown card", async () => {
     const insertCaptures: InsertCapture[] = [];
     const ctx = makeCtx({ supabaseAdmin: makeSupabase(insertCaptures) });
 
-    const result = await publishAnnouncement.execute({ ...DEFAULT_PARAMS, confirm: true }, ctx);
+    const result = await publishAnnouncement.execute({ ...DEFAULT_PARAMS, confirm: false }, ctx);
 
-    // Gate called with correct args
-    expect(callGateAction).toHaveBeenCalledOnce();
-    const [, , , gateArgs] = vi.mocked(callGateAction).mock.calls[0]!;
-    expect(gateArgs.capability).toBe("communication");
-    expect(gateArgs.actionType).toBe("publish_announcement_atomic");
-    expect(gateArgs.channel).toBe("chat");
+    // Both gates called (commit gate + precheck gate)
+    expect(callGateAction).toHaveBeenCalledTimes(2);
+    // Precheck gate uses actionType "publish_announcement"
+    const [, , , precheckArgs] = vi.mocked(callGateAction).mock.calls[1]!;
+    expect(precheckArgs.actionType).toBe("publish_announcement");
+
+    // No INSERT
+    expect(insertCaptures).toHaveLength(0);
+
+    // Exactly one emit: inline_confirm_card.shown
+    expect(emit).toHaveBeenCalledOnce();
+    const emitArgs = vi.mocked(emit).mock.calls[0]![0] as unknown as Record<string, unknown>;
+    expect(emitArgs.event).toBe("inline_confirm_card.shown");
+    const emitProps = emitArgs.properties as Record<string, unknown>;
+    expect(emitProps.surface).toBe("announcement");
+    expect(typeof emitProps.proposal_id).toBe("string");
+    expect(emitProps.recipient_count).toBe(5);
+
+    // Draft phase returned with InlineConfirmCardDescriptor
+    const parsed = JSON.parse(result) as {
+      phase: string;
+      proposal_id: string;
+      descriptor: {
+        type: string;
+        proposal_id: string;
+        surface: string;
+        draft: Record<string, unknown>;
+        preview: {
+          title: string;
+          body_excerpt: string;
+          recipient_count: number;
+          metadata: Array<{ label: string; value: string }>;
+        };
+        actions: Array<{ id: string; label: string; variant: string }>;
+        channel_constraint: string[];
+        platforms: string[];
+      };
+      next_step: string;
+    };
+    expect(parsed.phase).toBe("draft");
+    expect(typeof parsed.proposal_id).toBe("string");
+    // proposal_id in envelope matches descriptor.proposal_id
+    expect(parsed.proposal_id).toBe(parsed.descriptor.proposal_id);
+
+    // Descriptor shape
+    expect(parsed.descriptor.type).toBe("inline_confirm_card");
+    expect(parsed.descriptor.surface).toBe("announcement");
+    expect(parsed.descriptor.preview.title).toBe("Viktig melding");
+    expect(parsed.descriptor.preview.recipient_count).toBe(5);
+    expect(parsed.descriptor.channel_constraint).toEqual(["chat"]);
+    expect(parsed.descriptor.platforms).toEqual(["web"]);
+
+    // Actions: confirm + edit + cancel
+    const confirmAction = parsed.descriptor.actions.find((a) => a.id === "confirm");
+    const editAction = parsed.descriptor.actions.find((a) => a.id === "edit");
+    const cancelAction = parsed.descriptor.actions.find((a) => a.id === "cancel");
+    expect(confirmAction?.variant).toBe("primary");
+    expect(editAction?.variant).toBe("ghost");
+    expect(cancelAction?.variant).toBe("destructive");
+
+    // No raw profile IDs in the draft return
+    expect(JSON.stringify(parsed)).not.toContain("profileIds");
+    expect(JSON.stringify(parsed)).not.toContain("target_profile_ids");
+
+    // next_step instructs LLM to call show_proposal_card
+    expect(parsed.next_step).toMatch(/show_proposal_card/i);
+  });
+
+  it("TC-4 (confirm=true, granted): INSERT fires, both emits fire, PII boundary — no raw IDs in return", async () => {
+    const PROPOSAL_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const insertCaptures: InsertCapture[] = [];
+    const ctx = makeCtx({ supabaseAdmin: makeSupabase(insertCaptures) });
+
+    const result = await publishAnnouncement.execute(
+      { ...DEFAULT_PARAMS, confirm: true, proposal_id: PROPOSAL_UUID },
+      ctx,
+    );
+
+    // Commit gate called (first), precheck gate also called (second) on confirm=true path
+    expect(callGateAction).toHaveBeenCalledTimes(2);
+    const [, , , commitGateArgs] = vi.mocked(callGateAction).mock.calls[0]!;
+    expect(commitGateArgs.capability).toBe("communication");
+    expect(commitGateArgs.actionType).toBe("publish_announcement_atomic");
+    expect(commitGateArgs.channel).toBe("chat");
+    const [, , , precheckArgs] = vi.mocked(callGateAction).mock.calls[1]!;
+    expect(precheckArgs.actionType).toBe("publish_announcement");
 
     // V2: RPC publish_announcement_atomic fired (not direct INSERT per ADR-0369)
     expect(insertCaptures).toHaveLength(1);
@@ -325,23 +421,35 @@ describe("publishAnnouncement — capability tool", () => {
       p_workspace_id: WORKSPACE_ID,
       p_actor_profile_id: PROFILE_ID,
       p_visibility_scope: "all_members",
+      // proposal_id from params threads through as p_client_message_id (L-0330)
+      p_client_message_id: PROPOSAL_UUID,
     });
     // p_content = "title\nbody"
     expect(rpcArgs.p_content).toBe("Viktig melding\nHusk å lukke baren ordentlig i kveld.");
     // all_members → empty target_profile_ids array (per V2 RPC contract)
     expect(rpcArgs.p_target_profile_ids).toEqual([]);
 
-    // Emit fired once
-    expect(emit).toHaveBeenCalledOnce();
-    const emitArgs = vi.mocked(emit).mock.calls[0]![0] as unknown as Record<string, unknown>;
-    expect(emitArgs.event).toBe("channel.message.sent");
-    const props = emitArgs.properties as Record<string, unknown>;
-    expect(props.origin_type).toBe("agent");
-    expect(props.message_type).toBe("announcement");
-    expect(props.target_profile_count).toBe(5);
-    expect(props.audience_kind).toBe("all");
-    expect(props.notification_priority).toBe(1);
-    expect(props.notification_mode).toBe("work");
+    // Two emits on commit path: channel.message.sent + inline_confirm_card.confirmed
+    expect(emit).toHaveBeenCalledTimes(2);
+
+    // First emit: emitAnnouncementPublished wraps channel.message.sent
+    const firstEmitArgs = vi.mocked(emit).mock.calls[0]![0] as unknown as Record<string, unknown>;
+    expect(firstEmitArgs.event).toBe("channel.message.sent");
+    const sentProps = firstEmitArgs.properties as Record<string, unknown>;
+    expect(sentProps.origin_type).toBe("agent");
+    expect(sentProps.message_type).toBe("announcement");
+    expect(sentProps.target_profile_count).toBe(5);
+    expect(sentProps.audience_kind).toBe("all");
+    expect(sentProps.notification_priority).toBe(1);
+    expect(sentProps.notification_mode).toBe("work");
+
+    // Second emit: inline_confirm_card.confirmed (ADR-0398)
+    const secondEmitArgs = vi.mocked(emit).mock.calls[1]![0] as unknown as Record<string, unknown>;
+    expect(secondEmitArgs.event).toBe("inline_confirm_card.confirmed");
+    const confirmedProps = secondEmitArgs.properties as Record<string, unknown>;
+    expect(confirmedProps.surface).toBe("announcement");
+    expect(confirmedProps.proposal_id).toBe(PROPOSAL_UUID);
+    expect(confirmedProps.recipient_count).toBe(5);
 
     // PII boundary (Council B5): return must NOT contain raw profile IDs
     const parsed = JSON.parse(result) as {

@@ -1,6 +1,7 @@
 ---
 title: "Procedure Engine — 5h Agent-Team Orchestration: Admin-Authored Task → Mobile Execution During Active Shift"
-status: draft
+status: archived
+superseded_by: docs/domains/procedure-engine/
 created: 2026-05-21
 updated: 2026-05-22
 module: procedure-engine

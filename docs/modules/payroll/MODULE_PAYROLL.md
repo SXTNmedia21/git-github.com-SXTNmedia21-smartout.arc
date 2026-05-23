@@ -1,11 +1,14 @@
 ---
 title: Module — Payroll Engine
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [module, payroll, lønn, c3-commercial, adr-0057, adr-0110, adr-0242, adr-0250, adr-0251, adr-0252, adr-0254]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Module — Payroll Engine
 

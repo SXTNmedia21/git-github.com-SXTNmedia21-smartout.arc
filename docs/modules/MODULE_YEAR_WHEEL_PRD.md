@@ -1,9 +1,10 @@
 ---
 title: "PRD — Year Wheel (Årshjul)"
-status: active
+status: archived
+superseded_by: docs/domains/year-wheel/
 version: 2.0.0
 created: 2026-04-12
-updated: 2026-04-12
+updated: 2026-05-23
 module: year-wheel
 route: /dashboard/year-wheel
 language: en
@@ -11,6 +12,11 @@ tags: [prd, season, planning, cascade, hospitality, ux, hypothesis]
 council-reviewed: 2026-04-12
 design-rationale-ref: docs/superpowers/specs/2026-04-10-year-wheel-ux-pivot.md
 ---
+
+> **ARCHIVED 2026-05-23** — Superseded by `docs/domains/year-wheel/`. Content absorbed into domain spine. Read [docs/domains/year-wheel/README.md](../domains/year-wheel/README.md) instead.
+> Note: flat files in `docs/modules/*.md` are not scanned by `check-archived-refs.mjs` (only folder-form docs). This frontmatter is present for future-proofing. See GAPS §Debt T7 in year-wheel domain.
+
+
 
 # PRD — Year Wheel (Årshjul)
 

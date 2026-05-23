@@ -28,11 +28,22 @@
  *   The conversation resumes from the LLM's next turn. Loop-safe: 3 rounds max.
  */
 
-import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
 import { Send, Loader2, Bot, User } from "lucide-react";
-import { Button, BotssonInputRequest, type BIRDescriptor } from "@smartout/ui";
+import {
+  Button,
+  BotssonInputRequest,
+  InlineConfirmCard,
+  type BIRDescriptor,
+  // InlineConfirmCardDescriptor + InlineConfirmCardResult are inlined in @smartout/ui
+  // (compatible with @smartout/ai schema per inline-confirm-card.tsx comment).
+  // We import from @smartout/ui here to avoid @smartout/ai dist-not-built resolution errors.
+  type InlineConfirmCardDescriptor,
+  type InlineConfirmCardResult,
+} from "@smartout/ui";
 import { useBotsson } from "./BotssonProvider";
 import { useRegisteredTools } from "./tool-registry";
+import { showProposalCardDefinition, makeShowProposalCardImpl } from "./inline-confirm-card-tool";
 import type {
   ClientToolCall,
   ClientToolCallResult,
@@ -62,6 +73,16 @@ type ChatMessage = {
   toolResults?: Array<{ tool_name: string; result: string }>;
   /** InputRequest forms attached to this assistant turn. Render inline below the text. */
   inputRequests?: BIRDescriptor[];
+  /**
+   * InlineConfirmCard attached to this assistant turn (ADR-0398 HITL primitive).
+   * Rendered inline below the bubble when show_proposal_card fires.
+   * resolveFn is the Promise resolver injected by pushCard — calling it completes
+   * the card UI interaction and resumes the client-tool roundtrip.
+   */
+  inlineConfirmCard?: {
+    descriptor: InlineConfirmCardDescriptor;
+    resolveFn: (result: InlineConfirmCardResult) => void;
+  };
 };
 
 export type BotssonChatPrimeContext = {
@@ -84,6 +105,14 @@ export type BotssonChatProps = {
   mission?: string;
   /** Additional mission context to pass with the first turn. */
   missionContext?: Record<string, unknown>;
+  /**
+   * Profile ID of the authenticated user for ADR-0134 telemetry (actor_id).
+   * Provided by server components (help/page.tsx) or read from BotssonProvider
+   * context when BotssonChat is mounted inside the arena. If absent from both
+   * sources, makeShowProposalCardImpl throws at invocation — never falls back
+   * to a sentinel (ADR-0134 + L-0177 silent-wrong-identity class).
+   */
+  profileId?: string;
 };
 
 // ── Client-tool roundtrip ───────────────────────────────────────────────────
@@ -202,8 +231,12 @@ export function BotssonChat({
   chatEndpoint = "/api/botsson/chat",
   mission,
   missionContext,
+  profileId: profileIdProp,
 }: BotssonChatProps) {
-  const { currentSessionId, setCurrentSessionId } = useBotsson();
+  const { currentSessionId, setCurrentSessionId, profileId: profileIdFromCtx } = useBotsson();
+  // Resolve profileId: prop wins (server-threaded), then provider context (arena path).
+  // Never falls back to workspaceId sentinel — actorId must be a real profile UUID.
+  const resolvedProfileId = profileIdProp ?? profileIdFromCtx ?? null;
   // Page-registered client-tool implementations — used for client-tool roundtrips (ADR-0327)
   const registeredTools = useRegisteredTools();
   const sessionId = currentSessionId ?? undefined;
@@ -213,6 +246,11 @@ export function BotssonChat({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ── Container-level ARIA live region text ────────────────────────────────
+  // Updated when a new InlineConfirmCard mounts so screen readers announce it.
+  // Single role=status element at root, updated per ADR-0398 §Accessibility.
+  const [liveRegionText, setLiveRegionText] = useState("");
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -229,6 +267,64 @@ export function BotssonChat({
     setInputValue("");
     setError(null);
   }, [currentSessionId]);
+
+  // ── pushCard — InlineConfirmCard injection (ADR-0398) ───────────────────
+  // Called by showProposalCardImpl when the LLM fires show_proposal_card.
+  // 1. Appends a synthetic assistant message carrying the card descriptor + resolve callback.
+  // 2. Updates the ARIA live region so screen readers announce the new proposal.
+  // 3. Returns a Promise that resolves only when the user clicks a button in the card.
+  //    The resolution value (InlineConfirmCardResult) becomes the tool's return value,
+  //    which is then POSTed back as client_tool_results to resume the LLM turn.
+  //
+  // We use useCallback so makeShowProposalCardImpl does not recreate the closure on each
+  // render — the factory only needs a stable function reference.
+  const pushCard = useCallback(
+    (descriptor: InlineConfirmCardDescriptor): Promise<InlineConfirmCardResult> => {
+      return new Promise<InlineConfirmCardResult>((resolve) => {
+        const cardMessage: ChatMessage = {
+          id: `card-${descriptor.proposal_id}`,
+          role: "assistant",
+          text: "", // Card messages have no text bubble — card IS the content
+          inlineConfirmCard: {
+            descriptor,
+            resolveFn: resolve,
+          },
+        };
+        setMessages((prev) => [...prev, cardMessage]);
+        // Announce to screen readers (ADR-0398 §Accessibility)
+        setLiveRegionText(`Nytt forslag: ${descriptor.preview.title}. Trykk Tab.`);
+      });
+    },
+    [],
+  );
+
+  // ── Fixed-primitive implementations (L-0331 §BotssonChat-fixed tier) ───
+  // show_proposal_card is a shell-fixed primitive — not page-scoped via useRegisteredTools.
+  // The merge puts fixedPrimitives LAST so fixed wins on name collision per L-0331 §Precedence.
+  // resolvedProfileId is threaded from the server (prop from help/page.tsx) or from
+  // BotssonProvider context (arena path via DashboardShell → BotssonHost → BotssonProvider).
+  // If resolvedProfileId is null, the show_proposal_card implementation throws on invocation —
+  // never falls back to workspaceId sentinel (ADR-0134 actor_id + L-0177 silent-wrong-identity).
+  const fixedPrimitives: Record<string, ClientToolImplementation> = {
+    show_proposal_card: resolvedProfileId
+      ? makeShowProposalCardImpl({
+          pushCard,
+          workspaceId,
+          actorId: resolvedProfileId,
+        })
+      : async (_args) => {
+          throw new Error(
+            "[BotssonChat] actor_id unavailable: profileId not threaded to BotssonChat. " +
+              "Wire profileId from the server component prop or ensure BotssonProvider receives it via BotssonHost.",
+          );
+        },
+  };
+
+  // Merge: page-registered tools first, fixed-primitives last (fixed wins on collision).
+  const mergedImplementations: Record<string, ClientToolImplementation> = {
+    ...registeredTools.implementations, // page-scoped tier (L-0331 §Page tools)
+    ...fixedPrimitives, // fixed tier wins on name collision (L-0331 §Precedence)
+  };
 
   async function sendTurn(userText: string) {
     if (!userText.trim() || isSending) return;
@@ -248,6 +344,14 @@ export function BotssonChat({
       // We send session_id on subsequent turns — no need to replay history from client.
       const currentPage = typeof window !== "undefined" ? window.location.pathname : undefined;
 
+      // Build client_tools array: fixed primitives (show_proposal_card) + page-scoped tools.
+      // Stage-engine guards on `body.client_tools.length > 0` to populate clientToolNames —
+      // omitting this array means show_proposal_card is never dispatched as a client tool (FIX-1).
+      const allClientToolDefs = [
+        showProposalCardDefinition,
+        ...registeredTools.definitions, // page-scoped tools registered via useRegisterTools()
+      ];
+
       const initialBody: Record<string, unknown> = {
         workspaceId,
         userMessage: userText,
@@ -257,15 +361,22 @@ export function BotssonChat({
         primeContext: !sessionId ? primeContext : undefined,
         // Mission context for employee-facing flows (e.g. contract_intake)
         ...(mission && !sessionId ? { mission, missionContext } : {}),
+        // Forward all client-tool definitions so stage-engine populates clientToolNames.
+        // Without this, the LLM never learns about show_proposal_card and client-tool
+        // dispatch is silently skipped (agent-coord Gate 2 finding Q3a).
+        client_tools: allClientToolDefs,
       };
 
       // Phase 3.5: client-tool roundtrip — if server emits client_tool_calls, we resolve
       // each implementation in the browser and POST back client_tool_results. Up to
       // MAX_ROUNDTRIPS times, then surface an error message.
+      //
+      // mergedImplementations = page-scoped tools merged with fixed-primitives (L-0331).
+      // Fixed-primitives (show_proposal_card) win on name collision per L-0331 §Precedence.
       const result = await executeClientToolRoundtrip({
         endpoint: chatEndpoint,
         initialBody,
-        implementations: registeredTools.implementations,
+        implementations: mergedImplementations,
       });
 
       // Persist session_id for subsequent turns
@@ -303,6 +414,13 @@ export function BotssonChat({
 
   return (
     <div className={`flex h-full flex-col ${className ?? ""}`} data-component="botsson-chat">
+      {/* Container-level ARIA live region — announces InlineConfirmCard mounts to screen readers.
+          Single element at root per ADR-0398 §Accessibility. sr-only keeps it invisible.
+          Updated by pushCard when a new card is injected into the message stream. */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {liveRegionText}
+      </div>
+
       {/* Scrollable message area */}
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 ? (
@@ -322,6 +440,13 @@ export function BotssonChat({
               key={msg.id}
               message={msg}
               onInputRequestSubmit={handleInputRequestSubmit}
+              onCardResolve={(result) => {
+                // Remove the card from the message (mark resolved) and call resolve
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === msg.id ? { ...m, inlineConfirmCard: undefined } : m)),
+                );
+                msg.inlineConfirmCard?.resolveFn(result);
+              }}
             />
           ))
         )}
@@ -374,38 +499,54 @@ export function BotssonChat({
 function ChatMessageBubble({
   message,
   onInputRequestSubmit,
+  onCardResolve,
 }: {
   message: ChatMessage;
   onInputRequestSubmit: (request_id: string, values: Record<string, string>) => void;
+  /** Called when user resolves an InlineConfirmCard (confirm/edit/cancel). */
+  onCardResolve: (result: InlineConfirmCardResult) => void;
 }) {
   const isUser = message.role === "user";
+  // Card messages have no text — skip the bubble wrapper if only a card is present
+  const hasText = message.text.length > 0;
+  const hasCard = !!message.inlineConfirmCard;
+
   return (
     <div
       className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
       data-role={message.role}
     >
-      <div
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isUser ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-        }`}
-      >
-        {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
-      </div>
-      <div className={`flex max-w-[85%] flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
+      {/* Avatar — suppress for card-only messages to avoid orphaned icon */}
+      {hasText || !hasCard ? (
         <div
-          className={`rounded-2xl px-3.5 py-2 text-sm ${
-            isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+            isUser ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}
         >
-          {/* Hide raw [input_response] payloads from the visual stream */}
-          {message.text.startsWith("[input_response]")
-            ? "(skjema sendt)"
-            : message.text.split("\n").map((line, i) => (
-                <p key={i} className={i > 0 ? "mt-1" : ""}>
-                  {line}
-                </p>
-              ))}
+          {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
         </div>
+      ) : (
+        // Spacer to preserve left-alignment of the card when no avatar shown
+        <div className="h-7 w-7 shrink-0" aria-hidden="true" />
+      )}
+      <div className={`flex max-w-[85%] flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
+        {/* Text bubble — omit for card-only messages */}
+        {hasText ? (
+          <div
+            className={`rounded-2xl px-3.5 py-2 text-sm ${
+              isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+            }`}
+          >
+            {/* Hide raw [input_response] payloads from the visual stream */}
+            {message.text.startsWith("[input_response]")
+              ? "(skjema sendt)"
+              : message.text.split("\n").map((line, i) => (
+                  <p key={i} className={i > 0 ? "mt-1" : ""}>
+                    {line}
+                  </p>
+                ))}
+          </div>
+        ) : null}
 
         {/* Tool execution chips — small status display under the bubble */}
         {message.toolResults && message.toolResults.length > 0 ? (
@@ -433,6 +574,19 @@ function ChatMessageBubble({
               />
             ))
           : null}
+
+        {/* InlineConfirmCard — HITL mutation confirm/edit/cancel (ADR-0398).
+            Rendered inline below the text bubble (or as the sole content for card-only messages).
+            onResolve is async because InlineConfirmCard's prop type requires Promise<void>. */}
+        {hasCard && message.inlineConfirmCard ? (
+          <InlineConfirmCard
+            descriptor={message.inlineConfirmCard.descriptor}
+            onResolve={async (result) => {
+              onCardResolve(result);
+            }}
+            className="w-full"
+          />
+        ) : null}
       </div>
     </div>
   );

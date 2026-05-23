@@ -11,9 +11,10 @@
  *   3. The structured logger emits one JSON line per affected task
  *      (registry destination #2).
  *   4. `activity_trail` inserts carry the "session_task.overdue" event key
- *      (registry destination #3). engine_event (destination #4) is reserved
- *      for the downstream Event Engine subscriber — this function does NOT
- *      insert engine_event directly.
+ *      (registry destination #3).
+ *   5. `engine_event` insert (destination #4) — ADR-0180 dual-route contract.
+ *      The Event Engine subscriber drives downstream automation (e.g. escalation).
+ *      Written here (not via trigger) to satisfy parity.test.ts.
  *
  * Auth: internal cron only. `verify_jwt = false` in config.toml.
  * Bearer: WATCHDOG_CRON_SECRET (same pattern as session-watchdog-demoter,
@@ -153,6 +154,7 @@ Deno.serve(async (req) => {
     // Flatten the join result — Supabase returns nested object for joined table.
     const rows: OverdueTaskRow[] = (overdue ?? []).map((r) => {
       // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const session = (r as any)["department_session"];
       return {
         id: r.id,
@@ -214,8 +216,12 @@ Deno.serve(async (req) => {
       results.push({ task_id: row.id, workspace_id: row.workspace_id, ok: true });
 
       // ─── 3. activity_trail fan-out (registry destination #3) ─────────────────
+      // activity_trail uses space-separated event names per parity.test.ts convention.
+      // engine_event uses dot-separated event_type (ADR-0180). Both resolve to
+      // EVENT_ROUTING["session_task.overdue"] / EVENT_ROUTING["session_task overdue"]
+      // (space-form alias added to registry for parity-test lookup).
       const { error: activityErr } = await supabase.from("activity_trail").insert({
-        event: "session_task.overdue",
+        event: "session_task overdue",
         action_verb: "expired",
         category: "operations",
         entity_type: "session_task",
@@ -251,7 +257,40 @@ Deno.serve(async (req) => {
         );
       }
 
-      // ─── 4. Notify assignee (if set) via notification_outbox ─────────────────
+      // ─── 4. engine_event (registry destination #4, ADR-0180 dual-route) ─────
+      // Registry mandates ["activity_trail","engine_event","posthog"] for
+      // "session_task.overdue". The Event Engine subscriber consumes this row to
+      // drive downstream automation (e.g. escalation). We write it here — not via
+      // a trigger — so the parity contract is met at the Edge Function level.
+      const { error: engineErr } = await supabase.from("engine_event").insert({
+        event_type: "session_task.overdue",
+        workspace_id: row.workspace_id,
+        payload: {
+          task_id: row.id,
+          department_session_id: row.department_session_id,
+          department_id: row.department_id,
+          assigned_to: row.assigned_to,
+          due_at: row.due_at,
+          elapsed_minutes: elapsedMinutes,
+          is_compliance_required: row.is_compliance_required,
+          grace_minutes: graceMin,
+        },
+        idempotency_key: `session_task.overdue:${row.id}:${row.due_at}`,
+      });
+
+      if (engineErr) {
+        console.log(
+          JSON.stringify({
+            level: "warn",
+            action: "session_task_overdue_cron",
+            category: "operations",
+            task_id: row.id,
+            engine_event_error: engineErr.message,
+          }),
+        );
+      }
+
+      // ─── 6. Notify assignee (if set) via notification_outbox ─────────────────
       if (row.assigned_to) {
         const { error: assigneeNotifErr } = await supabase.from("notification_outbox").insert({
           workspace_id: row.workspace_id,
@@ -285,7 +324,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ─── 5. Notify workspace+department managers ──────────────────────────────
+      // ─── 7. Notify workspace+department managers ──────────────────────────────
       // Pattern from shift-lateness-check: query profile by workspace_id +
       // department_id + role IN ['manager','admin','owner'] + is_active=true.
       const managerQuery = supabase
@@ -344,7 +383,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ─── 6. Structured logger destination (registry destination #2) ───────────
+      // ─── 8. Structured logger destination (registry destination #2) ───────────
       console.log(
         JSON.stringify({
           level: "info",

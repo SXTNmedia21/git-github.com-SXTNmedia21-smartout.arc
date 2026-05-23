@@ -57,7 +57,15 @@ pnpm lint:tool-collisions
 # breaks OTP login (valid code, 403). Prod dashboard OTP Length must also match.
 node scripts/check-otp-coherence.mjs
 
+# ADR-0393: Redirect-URL coherence — mobile redirectTo must byte-equal the GoTrue
+# email-template eq sentinel. Mismatch silently skips the native /m/ branch with no error.
+node scripts/check-redirect-coherence.mjs
+
 # ADR-0392: Domain doc folders — validates docs/domains/<name>/ spine + frontmatter
 # (mirror/last_verified) + staleness for any domain touched in this push.
 # No-op until docs/domains/ exists. See scripts/domain-lint.mjs + the domain-steward skill.
 node scripts/domain-lint.mjs --changed
+
+# ADR-0392: Archived-module migration debt — refs FROM live docs TO an archived
+# module folder must point to its superseded_by domain instead. Catches drift.
+node scripts/check-archived-refs.mjs

@@ -42,7 +42,7 @@ See the full 16-task TDD plan: [2026-05-22-procedure-engine-2b-bilde-til-rutine]
 
 - [ ] Every declared journey has `status: verified` in frontmatter
 - [ ] Typecheck passes: `pnpm turbo typecheck`
-- [ ] Decision log updated (ADR-0393/0394/0395 registered)
+- [ ] Decision log updated (ADR-0405/0406/0395 registered)
 - [ ] Backend tests green (draft-schema, routine-extract, extract route, commit route)
 - [ ] SQL atomicity + happy-path verified after `db reset`
 - [ ] Manual on-device walk completes (Detox deferred per spec)

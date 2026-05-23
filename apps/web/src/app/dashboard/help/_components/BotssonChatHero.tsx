@@ -3,9 +3,9 @@
 import { Suspense } from "react";
 import { BotssonChat } from "@/app/Botsson/_components/BotssonChat";
 
-type Props = { firstName: string; workspaceId: string };
+type Props = { firstName: string; workspaceId: string; profileId: string };
 
-export function BotssonChatHero({ firstName, workspaceId }: Props) {
+export function BotssonChatHero({ firstName, workspaceId, profileId }: Props) {
   return (
     <section
       aria-label="Spør Botsson om hjelp"
@@ -26,7 +26,7 @@ export function BotssonChatHero({ firstName, workspaceId }: Props) {
           in DashboardShell (ADR-0362). No nested provider needed. */}
       <Suspense>
         <div className="mt-4 max-h-[360px] overflow-auto">
-          <BotssonChat workspaceId={workspaceId} />
+          <BotssonChat workspaceId={workspaceId} profileId={profileId} />
         </div>
       </Suspense>
     </section>

@@ -1,11 +1,14 @@
 ---
 title: "Shift Lifecycle Map — Current State vs Target"
-status: in_progress
-updated: 2026-04-15
+status: archived
+updated: 2026-05-23
 created: 2026-04-15
 module: schedule
+superseded_by: docs/domains/scheduling/
 tags: [architecture, shift, lifecycle, cascade, five-layer, council-2026-04-15]
 ---
+
+> **ARCHIVED 2026-05-23** — Superseded by `docs/domains/scheduling/`. See ARCHITECTURE.md (5-layer lifecycle section) + GAPS-AND-DEBT.md (D3-D6 deviations) for current state. This file is kept for git-blame lineage. Do not edit.
 
 # Shift Lifecycle Map
 

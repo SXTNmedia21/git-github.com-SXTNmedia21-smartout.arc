@@ -1,11 +1,14 @@
 ---
 title: Payroll Time Banks — Engine Architecture
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [payroll, time-banks, tidskonto, toil, avspasering, feriekonto, velferdsdager, overtime-mode]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Time Banks — Engine Architecture
 
