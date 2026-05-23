@@ -202,4 +202,25 @@ test.describe("DayControlPanel — Sortie 1 a11y gate (PageTabNav ARIA contract)
     );
     await expect(oversiktTab).toHaveAttribute("aria-selected", "false");
   });
+
+  // -------------------------------------------------------------------------
+  // Test 6 (T18): Zero axe violations scoped to the Tidslinje tabpanel
+  // Added by Task 18 — extends axe coverage from global tablist to specific
+  // Tidslinje panel content (chip-bar, event rows, empty-state).
+  // -------------------------------------------------------------------------
+  test("zero axe violations on Tidslinje tabpanel", async ({ page }) => {
+    await openDayControlPanel(page);
+
+    // Switch to the Tidslinje tab (key="tidslinje", mounted by T8)
+    await page.locator(`[role="tab"][data-tab-key="tidslinje"]`).click();
+    await page.waitForSelector(`[role="tabpanel"][id="tab-panel-tidslinje"]`, {
+      timeout: 10_000,
+    });
+
+    const results = await new AxeBuilder({ page })
+      .include(`[role="tabpanel"][id="tab-panel-tidslinje"]`)
+      .analyze();
+
+    expect(results.violations).toEqual([]);
+  });
 });
