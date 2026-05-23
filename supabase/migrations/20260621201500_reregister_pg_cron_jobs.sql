@@ -468,7 +468,15 @@ BEGIN
       )$sql$
     );
 
-    RAISE NOTICE 'pg_cron re-registration complete: % jobs', 28;
+    -- task-due-reminder  (origin: 20260621210000_task_due_reminder_cron.sql)
+    BEGIN PERFORM cron.unschedule('task-due-reminder'); EXCEPTION WHEN OTHERS THEN NULL; END;
+    PERFORM cron.schedule(
+      'task-due-reminder',
+      '*/15 * * * *',
+      'SELECT public.enqueue_task_due_notifications();'
+    );
+
+    RAISE NOTICE 'pg_cron re-registration complete: % jobs', 29;
   ELSE
     RAISE NOTICE 'pg_cron not enabled — skipping cron re-registration (expected on local dev)';
   END IF;

@@ -183,7 +183,7 @@ notifications") — copy task tracked separately, not in this spec's code scope.
 
 ## ADR
 
-New external integration → **ADR-0389** (slot confirmed free 2026-05-21; re-grep
+New external integration → **ADR-0394** (slot confirmed free 2026-05-21; re-grep
 before claiming per L-ADR-squatting). Title: "OneSignal Web Push as PWA push
 channel (Expo path dormant until native)."
 
