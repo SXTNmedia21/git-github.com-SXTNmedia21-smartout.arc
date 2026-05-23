@@ -29,7 +29,7 @@ sends to another human (or receives from the system) passes through this domain.
 | Surface | Owner |
 |---|---|
 | External delivery (push, SMS, email) | Future **notifications** domain |
-| Broadcast news/announcements (Nyheter) | **Announcements** (`docs/modules/announcments/`) |
+| Broadcast news/announcements (Nyheter) | **Announcements** (`docs/domains/announcements/`) |
 | Botsson AI ↔ human conversations / Orb voice | Future **botsson** domain |
 | Session channel container creation | **day-session** domain (creates the `department_session` row that triggers channel creation) |
 | Engine process routing (`session.channel` modality: voice/chat/sms) | Stage-engine / capability layer (not this domain) |

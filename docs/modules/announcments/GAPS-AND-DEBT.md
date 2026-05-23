@@ -1,11 +1,14 @@
 ---
 title: Announcements — Gaps & Debt
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, gaps, debt, audit]
 ---
+
+> **ARCHIVED 2026-05-23.** See `docs/domains/announcements/GAPS-AND-DEBT.md` (updated with Wave B deviations and overlap edges).
 
 # Announcements — Gaps & Debt
 

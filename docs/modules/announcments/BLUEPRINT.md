@@ -1,11 +1,14 @@
 ---
 title: Announcements — Blueprint
-status: placeholder
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, blueprint, plan, phases]
 ---
+
+> **ARCHIVED 2026-05-23.** Blueprint content folded into `docs/domains/announcements/ROADMAP.md`.
 
 # Announcements — Blueprint
 

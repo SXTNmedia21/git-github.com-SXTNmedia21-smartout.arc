@@ -1,11 +1,14 @@
 ---
 title: Module — Announcements (Nyheter)
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, nyheter, broadcast, channel-message, communication]
 ---
+
+> **ARCHIVED 2026-05-23.** Content absorbed into `docs/domains/announcements/OVERVIEW.md`.
 
 # Module — Announcements (Nyheter)
 
