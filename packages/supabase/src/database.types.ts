@@ -15235,13 +15235,14 @@ export type Database = {
           name: string
           procedure_id: string
           procedure_type: Database["public"]["Enums"]["procedure_type"]
-          protocol_id: string
+          protocol_id: string | null
           provenance: Json
           skill_requirements: Json | null
           sort_order: number | null
           updated_at: string
           valid_from: string | null
           valid_to: string | null
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -15250,13 +15251,14 @@ export type Database = {
           name: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id: string
+          protocol_id?: string | null
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -15265,13 +15267,14 @@ export type Database = {
           name?: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id?: string
+          protocol_id?: string | null
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -16189,13 +16192,16 @@ export type Database = {
           control_list_id: string | null
           control_nth: number | null
           created_at: string
+          created_via: string
           executor_type: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status: Database["public"]["Enums"]["governance_status"]
           is_active: boolean
           location_id: string | null
           name: string
           procedure_id: string
-          protocol_id: string
+          protocol_id: string | null
           routine_id: string
+          source_reference: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at: string
@@ -16208,13 +16214,16 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          created_via?: string
           executor_type?: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
           location_id?: string | null
           name: string
           procedure_id: string
-          protocol_id: string
+          protocol_id?: string | null
           routine_id?: string
+          source_reference?: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
@@ -16227,13 +16236,16 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          created_via?: string
           executor_type?: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
           location_id?: string | null
           name?: string
           procedure_id?: string
-          protocol_id?: string
+          protocol_id?: string | null
           routine_id?: string
+          source_reference?: string | null
           trigger_config?: Json
           trigger_type?: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
@@ -22678,6 +22690,22 @@ export type Database = {
         }
         Returns: string
       }
+      fn_create_routine_from_draft: {
+        Args: {
+          p_actor_profile_id: string
+          p_location_id?: string
+          p_new_location?: Json
+          p_protocol_id?: string
+          p_routine_name: string
+          p_source_reference: string
+          p_steps: Json
+          p_team_ids?: string[]
+          p_trigger_config: Json
+          p_trigger_type: Database["public"]["Enums"]["trigger_type"]
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       fn_cron_jobs_health: { Args: never; Returns: Json }
       fn_fuzzy_match_entity: {
         Args: {
@@ -23421,6 +23449,7 @@ export type Database = {
         | "manual_override"
         | "framework_rule_change"
         | "external_sync"
+      governance_status: "unassigned" | "attached"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
       invite_type: "email" | "sms" | "link"
@@ -25113,6 +25142,7 @@ export const Constants = {
         "framework_rule_change",
         "external_sync",
       ],
+      governance_status: ["unassigned", "attached"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
       invite_type: ["email", "sms", "link"],
