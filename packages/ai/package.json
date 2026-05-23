@@ -194,6 +194,10 @@
       "types": "./dist/capabilities/tips/calculate.d.ts",
       "default": "./dist/capabilities/tips/calculate.js"
     },
+    "./capabilities/routine/draft-schema": {
+      "types": "./dist/capabilities/routine/draft-schema.d.ts",
+      "default": "./dist/capabilities/routine/draft-schema.js"
+    },
     "./router/attachment-dispatch": {
       "types": "./dist/router/attachment-dispatch.d.ts",
       "default": "./dist/router/attachment-dispatch.js"

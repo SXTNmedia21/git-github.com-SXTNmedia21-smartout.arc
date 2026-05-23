@@ -5467,6 +5467,21 @@ export interface MobileVoicePolicyFlipped extends BaseEvent {
   };
 }
 
+// ─── Mobile Routine Events ───────────────────────────────────────────────────
+// Emitted by useRoutineExtract hook (apps/mobile) after a photo-to-routine
+// extraction succeeds. Routing: posthog + logger (no audit trail needed for
+// a draft extraction — commit is the auditable action).
+export interface MobileRoutinePhotoExtracted extends BaseEvent {
+  event: "mobile.routine.photo_extracted";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      /** Number of steps returned in the draft */
+      step_count: number;
+    };
+  };
+}
+
 // ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
 // Emitted by session-manager.ts when a session expires or is abandoned and
 // a summary is written to engine_memory.
@@ -9426,6 +9441,8 @@ export type SmartoutEvent =
   | ShiftSessionClockedOut
   | RoutineAttached
   | RoutineCreated
+  | RoutineCreatedFromImage
+  | RoutineGovernanceUnassigned
   | RoutineAssignedToLocation
   | ProcedureStepAdded
   | OrgDeptAreasUpdated
@@ -9461,6 +9478,7 @@ export type SmartoutEvent =
   | MobileVoiceDisconnectRecovered
   | MobileVoiceDisconnectFailed
   | MobileVoicePolicyFlipped
+  | MobileRoutinePhotoExtracted
   // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
   | BulkImportBatchParsed;
 
@@ -11321,6 +11339,29 @@ export interface RoutineCreated extends BaseEvent {
       trigger_type: string;
       executor_type: string;
     };
+  };
+}
+
+export interface RoutineCreatedFromImage extends BaseEvent {
+  event: "routine.created_from_image";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      procedure_id: string;
+      location_id: string;
+      governance_status: "unassigned" | "attached";
+      step_count: number;
+      source_reference: string;
+    };
+  };
+}
+
+export interface RoutineGovernanceUnassigned extends BaseEvent {
+  event: "routine.governance_unassigned";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: { routine_id: string; source_reference: string };
   };
 }
 
@@ -15124,6 +15165,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
+  "routine.created_from_image": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.governance_unassigned": {
+    destinations: ["logger", "activity_trail"],
+    category: "scheduling",
+  },
   // routine.assigned_to_location: 4 destinations — scoping + hook-wiring act.
   "routine.assigned_to_location": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
@@ -15291,6 +15340,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "mobile.voice.policy_flipped": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+  "mobile.routine.photo_extracted": {
+    destinations: ["posthog", "logger"],
+    category: "scheduling",
   },
 
   // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────

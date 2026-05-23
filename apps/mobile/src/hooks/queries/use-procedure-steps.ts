@@ -39,19 +39,18 @@ async function fetchProcedureSteps(procedureId: string): Promise<ProcedureWithSt
 
   if (stepsError) throw stepsError;
 
-  // protocol_id is nullable in schema — orphan procedures skip the knowledge-test lookup
-  // (no protocol = no test to bind to). L-0177 fail-fast not warranted here; reader path.
-  let knowledgeTest: KnowledgeTestRow | null = null;
-  if (procedure.protocol_id) {
-    const { data } = await supabase
-      .from("knowledge_test")
-      .select("*")
-      .eq("protocol_id", procedure.protocol_id)
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
-    knowledgeTest = data ?? null;
-  }
+  // Fetch knowledge test linked to the same protocol.
+  // Brownfield (ADR-0393): procedure.protocol_id is now nullable — an ungoverned
+  // procedure has no protocol, hence no knowledge test.
+  const { data: knowledgeTest } = procedure.protocol_id
+    ? await supabase
+        .from("knowledge_test")
+        .select("*")
+        .eq("protocol_id", procedure.protocol_id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
 
   return {
     procedure,

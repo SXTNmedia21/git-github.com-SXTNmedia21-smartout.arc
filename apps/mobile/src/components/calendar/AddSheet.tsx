@@ -32,7 +32,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import BottomSheet, {
@@ -46,18 +45,33 @@ import {
   FileText,
   AlertTriangle,
   MessageSquare,
+  ClipboardList,
   ChevronRight,
   X,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { z } from "zod";
-import { nativeTheme } from "@smartout/design-tokens/native";
 import { supabase } from "@/lib/supabase";
 import { getWebApiUrl } from "@/lib/web-api";
 import { useTheme, withOpacity } from "@/theme";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Dropdown, type DropdownOption } from "@/components/ui/Dropdown";
+import { DateField } from "@/components/ui/DateField";
+import { TIME_OPTIONS_15 } from "@/lib/time-options";
+import { useTeamStaff } from "@/hooks/queries/use-team-staff";
 
 // ─── Type definitions ────────────────────────────────────────────────────────
 
-type AddType = "shift" | "task" | "booking" | "deviation" | "note";
+type AddType = "shift" | "task" | "booking" | "deviation" | "note" | "routine";
+
+/** YYYY-MM-DD in local time (no UTC shift). */
+function toYmdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export type AddSheetHandle = {
   open: () => void;
@@ -79,11 +93,16 @@ export type AddSheetProps = {
 // These match the BFF route request schemas (minus workspace_id / actor_id
 // which the BFF derives server-side per ADR-0151).
 
+// Shift form is manager create-for-employee (POST /api/mobile/shifts → addShiftAction,
+// min_role manager). date+times are converted to ISO-8601 UTC at submit; route
+// wants profileId (target employee) + startAtISO/endAtISO + role + reason(min 8).
 const shiftSchema = z.object({
+  profileId: z.string().uuid("Velg en ansatt"),
   date: z.string().min(1, "Dato er påkrevd"),
   start_time: z.string().regex(/^\d{2}:\d{2}$/, "Format: HH:MM"),
   end_time: z.string().regex(/^\d{2}:\d{2}$/, "Format: HH:MM"),
   position: z.string().min(1, "Stilling er påkrevd"),
+  reason: z.string().min(8, "Minst 8 tegn (revisjonsspor)"),
 });
 
 const taskSchema = z.object({
@@ -92,23 +111,31 @@ const taskSchema = z.object({
   priority: z.enum(["high", "normal", "low", "urgent"]),
 });
 
+// Matches POST /api/mobile/bookings requestSchema: shift_date (YYYY-MM-DD),
+// booking_time, title, guest_count(int), contact?, notes?.
 const bookingSchema = z.object({
+  shift_date: z.string().min(1, "Dato er påkrevd"),
   title: z.string().min(1, "Tittel er påkrevd"),
   guest_count: z.coerce.number().int().min(1, "Minst 1 gjest"),
   booking_time: z.string().regex(/^\d{2}:\d{2}$/, "Format: HH:MM"),
-  tables: z.string().optional(),
+  contact: z.string().optional(),
   notes: z.string().optional(),
 });
 
+// Matches DeviationPayloadSchema (via reportDeviationAction): title, domain (req),
+// severity, description?. domain enum mirrors public.deviation_domain.
 const deviationSchema = z.object({
   title: z.string().min(1, "Tittel er påkrevd"),
+  domain: z.enum(["safety", "customer", "procedure", "system", "material"]),
   description: z.string().min(1, "Beskrivelse er påkrevd"),
   severity: z.enum(["low", "medium", "high"]),
 });
 
+// Matches createDayInfoAction InputSchema: date, title (req), content?.
 const noteSchema = z.object({
-  content: z.string().min(1, "Notat kan ikke være tomt"),
   date: z.string().min(1, "Dato er påkrevd"),
+  title: z.string().min(1, "Tittel er påkrevd"),
+  content: z.string().optional(),
 });
 
 // ─── Type options (selector chips) ──────────────────────────────────────────
@@ -127,8 +154,8 @@ function useTypeOptions(): TypeOption[] {
     () => [
       {
         k: "shift",
-        label: "Vaktforespørsel",
-        sub: "Be om bytte eller registrer ekstra",
+        label: "Ny vakt",
+        sub: "Tildel en ansatt en vakt (leder)",
         bffRoute: `${webApiUrl}/api/mobile/shifts`,
         Icon: Clock,
       },
@@ -159,6 +186,13 @@ function useTypeOptions(): TypeOption[] {
         sub: "Privat · til deg selv",
         bffRoute: `${webApiUrl}/api/mobile/day-info`,
         Icon: MessageSquare,
+      },
+      {
+        k: "routine",
+        label: "Ny rutine",
+        sub: "Fra bilde eller manuelt",
+        bffRoute: "", // navigates to the create form instead of inline submit
+        Icon: ClipboardList,
       },
     ],
     [webApiUrl],
@@ -199,54 +233,76 @@ type FormProps = {
   theme: ReturnType<typeof useTheme>;
   onSubmit: (body: Record<string, unknown>) => Promise<void>;
   pending: boolean;
+  /** Day the sheet was opened on — anchors DateField default + window. */
+  anchorDate?: Date;
 };
 
-function ShiftForm({ theme, onSubmit, pending }: FormProps) {
-  const [date, setDate] = useState("");
+function ShiftForm({ theme, onSubmit, pending, anchorDate }: FormProps) {
+  const { data: staff, isLoading: staffLoading } = useTeamStaff();
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [date, setDate] = useState(anchorDate ? toYmdLocal(anchorDate) : "");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [position, setPosition] = useState("");
+  const [reason, setReason] = useState("");
+
+  const staffOptions = useMemo<DropdownOption[]>(
+    () => (staff ?? []).map((s) => ({ value: s.id, label: s.name })),
+    [staff],
+  );
 
   const handleSubmit = async () => {
     const result = shiftSchema.safeParse({
+      profileId,
       date,
       start_time: startTime,
       end_time: endTime,
       position,
+      reason,
     });
     if (!result.success) {
       Alert.alert("Valideringsfeil", result.error.errors[0]?.message ?? "Ugyldig input");
       return;
     }
-    await onSubmit(result.data);
+    // Build ISO-8601 UTC from local date + HH:MM (route derives workspace-local).
+    const startAtISO = new Date(`${result.data.date}T${result.data.start_time}:00`).toISOString();
+    const endAtISO = new Date(`${result.data.date}T${result.data.end_time}:00`).toISOString();
+    await onSubmit({
+      profileId: result.data.profileId,
+      startAtISO,
+      endAtISO,
+      role: result.data.position,
+      reason: result.data.reason,
+    });
   };
 
   return (
     <View style={formStyles.container}>
-      <FormField
-        label="Dato (YYYY-MM-DD)"
-        value={date}
-        onChangeText={setDate}
-        placeholder="2026-05-04"
-        theme={theme}
+      <Dropdown
+        label="Ansatt"
+        options={staffOptions}
+        value={profileId}
+        onChange={setProfileId}
+        placeholder={staffLoading ? "Laster ansatte…" : "Velg ansatt"}
       />
+      <DateField label="Dato" value={date || null} onChange={setDate} anchor={anchorDate} />
       <View style={formStyles.row}>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Fra"
-            value={startTime}
-            onChangeText={setStartTime}
-            placeholder="15:00"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={startTime || null}
+            onChange={setStartTime}
+            placeholder="Velg tid"
           />
         </View>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Til"
-            value={endTime}
-            onChangeText={setEndTime}
-            placeholder="23:00"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={endTime || null}
+            onChange={setEndTime}
+            placeholder="Velg tid"
           />
         </View>
       </View>
@@ -257,8 +313,15 @@ function ShiftForm({ theme, onSubmit, pending }: FormProps) {
         placeholder="Sous-chef"
         theme={theme}
       />
+      <FormField
+        label="Begrunnelse (revisjonsspor)"
+        value={reason}
+        onChangeText={setReason}
+        placeholder="F.eks. ekstravakt grunnet sykdom"
+        theme={theme}
+      />
       <SubmitButton
-        label="Send forespørsel"
+        label="Opprett vakt"
         pending={pending}
         onPress={handleSubmit}
         color={theme.colors.brandOrange}
@@ -267,9 +330,9 @@ function ShiftForm({ theme, onSubmit, pending }: FormProps) {
   );
 }
 
-function TaskForm({ theme, onSubmit, pending }: FormProps) {
+function TaskForm({ theme, onSubmit, pending, anchorDate }: FormProps) {
   const [title, setTitle] = useState("");
-  const [dueAt, setDueAt] = useState("");
+  const [dueAt, setDueAt] = useState(anchorDate ? toYmdLocal(anchorDate) : "");
   const [priority, setPriority] = useState<"high" | "normal" | "low" | "urgent">("normal");
 
   const handleSubmit = async () => {
@@ -293,12 +356,11 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
         placeholder="Oppgavetittel"
         theme={theme}
       />
-      <FormField
-        label="Forfallsdato (YYYY-MM-DD)"
-        value={dueAt}
-        onChangeText={setDueAt}
-        placeholder="2026-05-04"
-        theme={theme}
+      <DateField
+        label="Forfallsdato"
+        value={dueAt || null}
+        onChange={setDueAt}
+        anchor={anchorDate}
       />
       <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>Prioritet</Text>
       <View style={formStyles.row}>
@@ -340,19 +402,21 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
   );
 }
 
-function BookingForm({ theme, onSubmit, pending }: FormProps) {
+function BookingForm({ theme, onSubmit, pending, anchorDate }: FormProps) {
   const [title, setTitle] = useState("");
+  const [shiftDate, setShiftDate] = useState(anchorDate ? toYmdLocal(anchorDate) : "");
   const [guestCount, setGuestCount] = useState("");
   const [bookingTime, setBookingTime] = useState("");
-  const [tables, setTables] = useState("");
+  const [contact, setContact] = useState("");
   const [notes, setNotes] = useState("");
 
   const handleSubmit = async () => {
     const result = bookingSchema.safeParse({
+      shift_date: shiftDate,
       title,
       guest_count: guestCount,
       booking_time: bookingTime,
-      tables: tables || undefined,
+      contact: contact || undefined,
       notes: notes || undefined,
     });
     if (!result.success) {
@@ -371,14 +435,20 @@ function BookingForm({ theme, onSubmit, pending }: FormProps) {
         placeholder="Familie Andersen"
         theme={theme}
       />
+      <DateField
+        label="Dato"
+        value={shiftDate || null}
+        onChange={setShiftDate}
+        anchor={anchorDate}
+      />
       <View style={formStyles.row}>
         <View style={formStyles.half}>
-          <FormField
+          <Dropdown
             label="Tid"
-            value={bookingTime}
-            onChangeText={setBookingTime}
-            placeholder="18:30"
-            theme={theme}
+            options={TIME_OPTIONS_15}
+            value={bookingTime || null}
+            onChange={setBookingTime}
+            placeholder="Velg tid"
           />
         </View>
         <View style={formStyles.half}>
@@ -392,10 +462,10 @@ function BookingForm({ theme, onSubmit, pending }: FormProps) {
         </View>
       </View>
       <FormField
-        label="Bord (valgfritt)"
-        value={tables}
-        onChangeText={setTables}
-        placeholder="8 · 9"
+        label="Kontakt (valgfritt)"
+        value={contact}
+        onChangeText={setContact}
+        placeholder="Telefon eller navn"
         theme={theme}
       />
       <FormField
@@ -416,13 +486,22 @@ function BookingForm({ theme, onSubmit, pending }: FormProps) {
   );
 }
 
+const DEVIATION_DOMAINS: DropdownOption[] = [
+  { value: "safety", label: "Sikkerhet" },
+  { value: "customer", label: "Kunde" },
+  { value: "procedure", label: "Prosedyre" },
+  { value: "system", label: "System" },
+  { value: "material", label: "Materiell" },
+];
+
 function DeviationForm({ theme, onSubmit, pending }: FormProps) {
   const [title, setTitle] = useState("");
+  const [domain, setDomain] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<"low" | "medium" | "high">("medium");
 
   const handleSubmit = async () => {
-    const result = deviationSchema.safeParse({ title, description, severity });
+    const result = deviationSchema.safeParse({ title, domain, description, severity });
     if (!result.success) {
       Alert.alert("Valideringsfeil", result.error.errors[0]?.message ?? "Ugyldig input");
       return;
@@ -438,6 +517,13 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
         onChangeText={setTitle}
         placeholder="Sølt kjemikalie på kjøkken"
         theme={theme}
+      />
+      <Dropdown
+        label="Kategori"
+        options={DEVIATION_DOMAINS}
+        value={domain}
+        onChange={setDomain}
+        placeholder="Velg kategori"
       />
       <FormField
         label="Beskrivelse"
@@ -488,30 +574,38 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
   );
 }
 
-function NoteForm({ theme, onSubmit, pending }: FormProps) {
+function NoteForm({ theme, onSubmit, pending, anchorDate }: FormProps) {
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(anchorDate ? toYmdLocal(anchorDate) : "");
 
   const handleSubmit = async () => {
-    const result = noteSchema.safeParse({ content, date });
+    const result = noteSchema.safeParse({
+      date,
+      title,
+      content: content || undefined,
+    });
     if (!result.success) {
       Alert.alert("Valideringsfeil", result.error.errors[0]?.message ?? "Ugyldig input");
       return;
     }
-    await onSubmit(result.data);
+    // createDayInfoAction requires scopeType + category. A private mobile note
+    // is a workspace-scoped "note" (scopeId omitted → whole workspace).
+    await onSubmit({ ...result.data, scopeType: "workspace", category: "note" });
   };
 
   return (
     <View style={formStyles.container}>
+      <DateField label="Dato" value={date || null} onChange={setDate} anchor={anchorDate} />
       <FormField
-        label="Dato (YYYY-MM-DD)"
-        value={date}
-        onChangeText={setDate}
-        placeholder="2026-05-04"
+        label="Tittel"
+        value={title}
+        onChangeText={setTitle}
+        placeholder="F.eks. Husk leveranse kl 14"
         theme={theme}
       />
       <FormField
-        label="Notat"
+        label="Notat (valgfritt)"
         value={content}
         onChangeText={setContent}
         placeholder="Skriv notat eller påminnelse her..."
@@ -530,39 +624,29 @@ function NoteForm({ theme, onSubmit, pending }: FormProps) {
 
 // ─── Shared form primitives ──────────────────────────────────────────────────
 
+// Shared field/button — unified on the ui/* primitives so every form uses the
+// SAME input type (token-based, dark-aware). `theme`/`color` props kept for
+// call-site compatibility but no longer drive styling.
 type FormFieldProps = {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  theme: ReturnType<typeof useTheme>;
+  theme?: ReturnType<typeof useTheme>;
   multiline?: boolean;
 };
 
-function FormField({ label, value, onChangeText, placeholder, theme, multiline }: FormFieldProps) {
+function FormField({ label, value, onChangeText, placeholder, multiline }: FormFieldProps) {
   return (
-    <View style={formStyles.fieldWrapper}>
-      <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={theme.colors.mutedForeground}
-        multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
-        style={[
-          formStyles.input,
-          {
-            color: theme.colors.foreground,
-            backgroundColor: theme.colors.secondary,
-            borderColor: theme.colors.border,
-            minHeight: multiline ? 72 : undefined,
-            textAlignVertical: multiline ? "top" : "center",
-          },
-        ]}
-        accessibilityLabel={label}
-      />
-    </View>
+    <Input
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      multiline={multiline}
+      numberOfLines={multiline ? 3 : 1}
+      returnKeyType="done"
+    />
   );
 }
 
@@ -570,20 +654,19 @@ type SubmitButtonProps = {
   label: string;
   pending: boolean;
   onPress: () => void;
-  color: string;
+  color?: string;
 };
 
-function SubmitButton({ label, pending, onPress, color }: SubmitButtonProps) {
+function SubmitButton({ label, pending, onPress }: SubmitButtonProps) {
   return (
-    <Pressable
+    <Button
+      title={pending ? "Lagrer…" : label}
+      variant="primary"
+      loading={pending}
+      fullWidth
       onPress={onPress}
-      disabled={pending}
-      style={[formStyles.submitBtn, { backgroundColor: color, opacity: pending ? 0.6 : 1 }]}
-      accessibilityRole="button"
       accessibilityLabel={label}
-    >
-      <Text style={formStyles.submitBtnLabel}>{pending ? "Lagrer..." : label}</Text>
-    </Pressable>
+    />
   );
 }
 
@@ -594,9 +677,24 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
   ref,
 ) {
   const theme = useTheme();
+  const router = useRouter();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["50%", "85%"], []);
   const typeOptions = useTypeOptions();
+
+  // "Ny rutine" navigates to its own create form (steps editor + photo prefill)
+  // instead of an inline sheet form. All other types open an inline form.
+  const handleSelectType = useCallback(
+    (k: AddType) => {
+      if (k === "routine") {
+        sheetRef.current?.close();
+        router.push("/routine-review");
+        return;
+      }
+      setActiveType(k);
+    },
+    [router],
+  );
 
   const [activeType, setActiveType] = useState<AddType | null>(null);
   const [pending, setPending] = useState(false);
@@ -692,7 +790,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               return (
                 <Pressable
                   key={opt.k}
-                  onPress={() => setActiveType(opt.k)}
+                  onPress={() => handleSelectType(opt.k)}
                   style={[
                     sheetStyles.optionRow,
                     {
@@ -734,6 +832,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               <ShiftForm
                 theme={theme}
                 pending={pending}
+                anchorDate={selectedDate}
                 onSubmit={(body) => handleSubmit("shift", body)}
               />
             )}
@@ -741,6 +840,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               <TaskForm
                 theme={theme}
                 pending={pending}
+                anchorDate={selectedDate}
                 onSubmit={(body) => handleSubmit("task", body)}
               />
             )}
@@ -748,6 +848,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               <BookingForm
                 theme={theme}
                 pending={pending}
+                anchorDate={selectedDate}
                 onSubmit={(body) => handleSubmit("booking", body)}
               />
             )}
@@ -755,6 +856,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               <DeviationForm
                 theme={theme}
                 pending={pending}
+                anchorDate={selectedDate}
                 onSubmit={(body) => handleSubmit("deviation", body)}
               />
             )}
@@ -762,6 +864,7 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function
               <NoteForm
                 theme={theme}
                 pending={pending}
+                anchorDate={selectedDate}
                 onSubmit={(body) => handleSubmit("note", body)}
               />
             )}
@@ -785,6 +888,8 @@ function getTypeAccentColor(type: AddType, theme: ReturnType<typeof useTheme>): 
       return theme.colors.destructive;
     case "note":
       return theme.colors.mutedForeground;
+    case "routine":
+      return theme.colors.primary;
   }
 }
 
@@ -855,21 +960,11 @@ const formStyles = StyleSheet.create({
     gap: 12,
     paddingTop: 4,
   },
-  fieldWrapper: {
-    gap: 6,
-  },
   label: {
     fontSize: 9.5,
     fontWeight: "700",
     letterSpacing: 1.3,
     textTransform: "uppercase",
-  },
-  input: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
   },
   row: {
     flexDirection: "row",
@@ -884,17 +979,5 @@ const formStyles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-  },
-  submitBtn: {
-    marginTop: 8,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  submitBtnLabel: {
-    // Use light theme primaryForeground — submit buttons always have colored bg.
-    color: nativeTheme.light.primaryForeground,
-    fontSize: 14,
-    fontWeight: "700",
   },
 });

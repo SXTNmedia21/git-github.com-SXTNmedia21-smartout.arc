@@ -14,7 +14,7 @@
  * Phase 3b primitives (ScopeChips, CompactShiftRow, Avatar) are READ-ONLY imports.
  */
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -371,6 +371,21 @@ export default function ShiftListScreen() {
   const [scope, setScope] = useState<Scope>({ kind: "me" });
   // Keep previous scope kind for telemetry delta
   const prevScopeKind = useRef<ScopeKind>("me");
+
+  // Default managers/admins to the full team roster ("all") — they are rarely
+  // rostered themselves, so "Mine" would show an empty list. Employees keep "me".
+  // Runs once after the profile loads; never overrides a manual scope change.
+  const scopeDefaultedRef = useRef(false);
+  useEffect(() => {
+    if (scopeDefaultedRef.current) return;
+    const role = profile?.role;
+    if (!role) return; // wait for profile to load
+    scopeDefaultedRef.current = true;
+    if (role !== "employee") {
+      setScope({ kind: "all" });
+      prevScopeKind.current = "all";
+    }
+  }, [profile?.role]);
 
   // Compute weekStart and todayStr in workspace tz, not device tz (BLOCKING-3).
   const weekStart = useMemo(() => mondayOf(new Date(), tz), [tz]);

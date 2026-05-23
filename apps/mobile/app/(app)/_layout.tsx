@@ -236,9 +236,11 @@ export default function AppLayout() {
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />
-          <Tabs.Screen name="journey" options={{ href: null }} />
-          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
+          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak.
+              (No bare "journey" route exists — only the [id]/guided screen.) */}
           <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
+          {/* Routine review — navigated to from BotssonSheet after draft extraction. */}
+          <Tabs.Screen name="routine-review" options={{ href: null }} />
         </Tabs>
 
         {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}

@@ -44,7 +44,7 @@ Record: whether `procedure.workspace_id` exists, the exact `location` columns, a
 ## File Structure
 
 **Backend (surface-independent):**
-- `supabase/migrations/20260623100000_routine_brownfield_governance.sql` — nullable protocol_id, `governance_status`, `created_via` + `source_reference`, procedure.workspace_id guard.
+- `supabase/migrations/20260624130000_routine_brownfield_governance.sql` — nullable protocol_id, `governance_status`, `created_via` + `source_reference`, procedure.workspace_id guard.
 - `supabase/migrations/20260623100500_routine_source_storage_bucket.sql` — `routine-source` private bucket + RLS.
 - `supabase/migrations/20260623101000_fn_create_routine_from_draft.sql` — atomic commit RPC.
 - `packages/ai/src/capabilities/routine/draft-schema.ts` — shared `DraftSchema` (Zod).
@@ -80,7 +80,7 @@ Record: whether `procedure.workspace_id` exists, the exact `location` columns, a
 ### Task 1: Brownfield governance migration
 
 **Files:**
-- Create: `supabase/migrations/20260623100000_routine_brownfield_governance.sql`
+- Create: `supabase/migrations/20260624130000_routine_brownfield_governance.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -139,7 +139,7 @@ Expected: `protocol_id | YES`, `governance_status | NO`, `created_via | NO`, `so
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/20260623100000_routine_brownfield_governance.sql
+git add supabase/migrations/20260624130000_routine_brownfield_governance.sql
 git commit -m "feat(procedure-engine): brownfield governance — nullable protocol_id + governance_status
 
 Routines/procedures may be born ungoverned (no protocol). Adds governance_status
@@ -1553,11 +1553,11 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 # PHASE E — ADRs, journeys, handoff
 
-### Task 15: ADRs 0393 / 0394 / 0395
+### Task 15: ADRs 0405 / 0406 / 0395
 
 **Files:**
-- Create: `docs/decisions/0393-brownfield-first-ungoverned-routines.md`
-- Create: `docs/decisions/0394-mobile-camera-capture-to-author-carve-out.md`
+- Create: `docs/decisions/0405-brownfield-first-ungoverned-routines.md`
+- Create: `docs/decisions/0406-mobile-camera-capture-to-author-carve-out.md`
 - Create: `docs/decisions/0395-multimodal-image-storage-contract.md`
 - Modify: `docs/decisions/0000-decision-log.md`
 
@@ -1576,8 +1576,8 @@ Expected: no matches. If any are taken, bump to the next free trio and update al
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/decisions/0393-*.md docs/decisions/0394-*.md docs/decisions/0395-*.md docs/decisions/0000-decision-log.md
-git commit -m "docs(decisions): ADR-0393 brownfield routines, 0394 mobile carve-out, 0395 image contract
+git add docs/decisions/0405-*.md docs/decisions/0406-*.md docs/decisions/0395-*.md docs/decisions/0000-decision-log.md
+git commit -m "docs(decisions): ADR-0405 brownfield routines, 0406 mobile carve-out, 0395 image contract
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```

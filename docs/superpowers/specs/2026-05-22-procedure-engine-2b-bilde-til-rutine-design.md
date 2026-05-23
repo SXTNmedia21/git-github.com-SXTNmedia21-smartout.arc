@@ -220,7 +220,7 @@ Net-new mobile build:
 
 **Full flow (capture + review + commit) on mobile** — authoring a routine is a
 compose verb, which ADR-0133 reserves for web. Sanctioned by the **ADR-0133
-carve-out (ADR-0394):** AI-mediated capture-to-author from camera evidence, with
+carve-out (ADR-0406):** AI-mediated capture-to-author from camera evidence, with
 explicit C4 human confirmation, is a mobile cascade extension (sibling to
 biometric C4 confirmation + ADR-0136 camera evidence). The human confirms;
 Botsson is the author.
@@ -255,7 +255,7 @@ surface-agnostic so the web cut is pure L1 composition.
 - No DB write happens until the user confirms the review card.
 - `/api/mobile/routine/commit` calls `gate_action` (ADR-0099/0204) with C4
   authority before the RPC.
-- On mobile, the confirm tap is the C4 human-in-the-loop act that the ADR-0394
+- On mobile, the confirm tap is the C4 human-in-the-loop act that the ADR-0406
   carve-out hangs on.
 
 ## 9. Error Handling

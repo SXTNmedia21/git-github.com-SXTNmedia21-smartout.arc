@@ -67,9 +67,9 @@ type ToolSurfaceConstraints = {
 - **Active channel** is already resolved in `agent-router.ts` per ADR-0078 (chat/voice/SMS pinning). No new resolution needed.
 - **Active platform** is resolved server-side from request headers (`x-platform: web | mobile` set by the mobile BFF; absent = `web` default). Mobile chat sends `platforms: ["mobile"]` when registering its tool set; web chat sends `platforms: ["web"]`. The mobile BFF wrapper (`/api/emma/chat`) injects the header before forwarding to stage-engine.
 
-### Mobile Carve-Out per ADR-0394
+### Mobile Carve-Out per ADR-0406
 
-`publish_announcement` is **web-only** (`platforms: ["web"]`) regardless of the broader ADR-0394 mobile-camera-capture carve-out. ADR-0394 governs author-surface camera capture from mobile; it does NOT extend to general compose verbs. Reviewer escalation required if a future capability claims mobile authoring for compose verbs.
+`publish_announcement` is **web-only** (`platforms: ["web"]`) regardless of the broader ADR-0406 mobile-camera-capture carve-out. ADR-0406 governs author-surface camera capture from mobile; it does NOT extend to general compose verbs. Reviewer escalation required if a future capability claims mobile authoring for compose verbs.
 
 ## Rules & Consequences
 
@@ -96,7 +96,7 @@ type ToolSurfaceConstraints = {
 
 ## References
 
-- ADR-0078 (channel pinning), ADR-0133 (mobile = execute), ADR-0134 (mobile telemetry), ADR-0238 (Botsson surface disambiguation), ADR-0394 (mobile camera capture carve-out), ADR-0398 (InlineConfirmCard companion).
+- ADR-0078 (channel pinning), ADR-0133 (mobile = execute), ADR-0134 (mobile telemetry), ADR-0238 (Botsson surface disambiguation), ADR-0406 (mobile camera capture carve-out), ADR-0398 (InlineConfirmCard companion).
 - Code: `packages/ai/src/harness/types.ts`, `packages/ai/src/primitives/input-request/types.ts:104-105`, `packages/ai/src/capabilities/shift-lifecycle/tools.ts:294`, `packages/ai/src/capabilities/communication/tools.ts:165`, `services/stage-engine/src/core/agent-router.ts`, `apps/web/src/app/Botsson/_components/BotssonChat.tsx`.
 
 ---

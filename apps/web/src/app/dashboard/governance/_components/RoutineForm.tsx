@@ -185,8 +185,7 @@ export function RoutineForm({
   function handleProcedureChange(pid: string) {
     setProcedureId(pid);
     const proc = (procedures ?? []).find((p) => p.procedure_id === pid);
-    // protocol_id is nullable in schema; only auto-select when present.
-    // Orphan-procedure case: leave protocolId alone — user must pick manually.
+    // Brownfield (ADR-0393): procedure.protocol_id is now nullable; only derive when present.
     if (proc?.protocol_id && !preselectedProtocolId) {
       setProtocolId(proc.protocol_id);
     }
