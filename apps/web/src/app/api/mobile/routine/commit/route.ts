@@ -6,6 +6,7 @@ import { resolveMobileActor } from "../../_shared/actor";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 const NewLocationSchema = z.object({
   name: z.string().min(1),
@@ -59,19 +60,17 @@ export async function POST(request: NextRequest | Request): Promise<Response> {
 
   const admin = createAdminClient();
 
-  const { data: gate, error: gateErr } = await admin.rpc("gate_action", {
-    p_workspace_id: actor.workspaceId,
-    p_capability: "routine",
-    p_channel: "system",
-    p_actor_profile_id: actor.profileId,
-    p_action_type: "routine.create_from_image",
-    p_approvers_present: [actor.profileId],
+  // Gate via canonical orchestrator per ADR-0204 §3. four_eyes=false in seed
+  // (migration 20260623101500) so approvers_present default ARRAY[]::UUID[] OK.
+  const gate = await gateAction({
+    workspaceId: actor.workspaceId,
+    capability: "routine",
+    channel: "system",
+    actorProfileId: actor.profileId,
+    actionType: "routine.create_from_image",
   });
-  if (gateErr || (gate as { allow?: boolean })?.allow !== true) {
-    return NextResponse.json(
-      { ok: false, error: (gate as { reason?: string })?.reason ?? "ikke_tillatt" },
-      { status: 403 },
-    );
+  if (!gate.allow) {
+    return NextResponse.json({ ok: false, error: gate.reason ?? "ikke_tillatt" }, { status: 403 });
   }
 
   const { data: result, error: rpcErr } = await admin.rpc("fn_create_routine_from_draft", {
