@@ -37,7 +37,9 @@ describe("useDayControlTools", () => {
     const impl = kit.implementations[toolName];
     expect(impl).toBeDefined();
 
-    const result = await impl({});
+    // Non-null assertion: expect() above guarantees impl is defined; TypeScript
+    // cannot narrow through expect(), so we assert explicitly.
+    const result = await impl!({});
     const parsed = JSON.parse(result);
 
     expect(parsed.session_id).toBe("sess-1");

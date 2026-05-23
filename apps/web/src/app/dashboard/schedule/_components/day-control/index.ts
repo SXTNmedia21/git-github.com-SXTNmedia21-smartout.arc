@@ -6,5 +6,3 @@ export { DayControlSheet } from "./DayControlSheet";
 export { DayControlPanel } from "./DayControlPanel";
 export { DaySessionProvider } from "./DaySessionProvider";
 export { useDaySession } from "./use-day-session";
-export { createDaySessionAgentTools } from "./day-session-agent-tools";
-export { createDaySessionVoiceTools, mergeVoiceTools } from "./day-session-voice-tools";
