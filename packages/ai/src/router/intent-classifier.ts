@@ -54,6 +54,7 @@ export const intentSchema = z.object({
     "shift_lifecycle",
     "governance",
     "billing_query",
+    "bulk_import", // Sortie 0 — MIME-type deterministic dispatch primary route; classifier entry for command-line invocation ("import the shifts I uploaded yesterday"). Admin+ only. Chat-only (ADR-0078).
     "helpdesk_query",
     "journey",
     "journey_authoring",
@@ -177,6 +178,7 @@ Capabilities:
 - operations_intelligence: Manager/system-scoped operational intelligence queries (occupancy, demand, readiness trends across teams)
 - governance: Authority, approval gates, change proposals, policy-level decisions. Also: looking up which protocols a role/position must complete ("hva må en bartender fullføre?", "hvilke obligatoriske protokoller gjelder for kokk?", "mandatory protocols for role"). Use governance for role-compliance queries; use training for individual assignment status.
 - billing_query: Read-only billing questions — invoice status, pricing terms, payment history. (ADR-0118)
+- bulk_import: User drops an Excel/CSV file (.xlsx/.xls/.csv) into chat to bulk-import shifts (vaktliste) or daily-plan tasks (kjøreplan). Note: in normal operation MIME-type deterministic dispatch bypasses this classifier — but classifier needs the enum entry for command-line invocation (e.g. "import the shifts I uploaded yesterday"). Admin+ only.
 - helpdesk_query: Opening, listing, viewing, or resolving a help-desk ticket routed to a responsible representative. Examples: "jeg har et spørsmål til HR" (open ticket), "vis meg åpne henvendelser" (list queue), "marker som løst" (resolve). Use helpdesk_query for anything routed to a desk; use communication for general channel messaging.
 - journey: Running a journey in dev, publishing a journey as a mission or USER-GUIDE, or starting a guided journey run. Examples: "run dev journey" / "kjør journey på dev" (run_dev), "publish this mission" / "publiser som mission" (publish_mission), "publish user guide" / "publiser brukerguide" (publish_guide), "start guided journey" / "start veiledet journey" (run_guided). (ADR-0173)
 - journey_authoring: Defining, speccing, or authoring a NEW journey via the 6-phase wizard (Discovery → Classification → Steps → Testing → Documentation → Review). Examples: "definer journey", "ny brukerreise", "spec en journey", "lag ny journey", "journey wizard", "opprett journey". Do NOT use this for running, publishing, or operating EXISTING journeys (that is "journey"). (ADR-0239)
