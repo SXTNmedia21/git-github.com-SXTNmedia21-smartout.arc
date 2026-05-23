@@ -18,6 +18,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | Domain | Spine | Build state | Tested | mirror | last_verified | Open gaps |
 |---|---|---|---|---|---|---|
 | [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B + apps/admin accountant portal built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak — admin kartotek + avstemming covered) | mixed | 2026-05-22 | 10 |
+| [botsson](./botsson/) | 8/8 | 🟡 partial (overlay UI + host mount + soul + 7 missions + session recorder Phase D1+2a+2b built; persona identity chat-unwired; proposal pipeline 🔴; soul-on-platform-admin 🔴; generator API 🔴; mission E2E 0/7) | 🟡 partial (harness E2E + recorder 3 specs + orb polish + domain-chat-ownership; mission Playwright: MISSING; voice E2E: MISSING) | mixed | 2026-05-23 | 11 |
 | [communication](./communication/) | 8/8 | 🟡 partial (channel schema + chat UI + voice/video + announcements + helpdesk Phase 1 + targeted note fanout shipped; channel_ai_policy half-wired; C2 intelligence pipeline not built; helpdesk_query capability not implemented; mobile parity missing) | 🟡 partial (domain-chat-ownership E2E; harness adapter; nyheter partial; core chat flows: MISSING) | mixed | 2026-05-23 | 11 |
 | [core-structure](./core-structure/) | 8/8 | 🟡 partial (dept+location+zone+asset+position+dept_operating_hours+dept_hours_override+workspace_operating_hours+planning_cycle schema+UI live; I1 bootstrap live; zone+asset surfaced in V1; dept_location schema live, no admin UI; onboarding Step 7 bootstrap pipe not wired) | 🟡 partial (season-activation D1 fanout pgTAP; partial E2E; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E) | mixed | 2026-05-23 | 9 |
 | [day-session](./day-session/) | 8/8 | 🟡 partial (dept-anchored + ADR-0367 Phase A+B shipped; Phase C UI + D mobile + E push in flight; admin dagsgodkjenning live; close flow live) | 🟡 partial (Playwright for quickadd + filter + templates; close/approval/settlement: MISSING; mobile: MISSING) | mixed | 2026-05-22 | 11 |
@@ -43,7 +44,11 @@ tags: [domain, dashboard, status, source-of-truth]
 | day-session | communication | Komm session channel auto-created per `department_session`. BroadcastComposer sends through it. | **keep** — day-session creates container; communication owns routing. | resolved (keep) |
 | communication | announcements (`docs/modules/announcments/`) | `channel_message WHERE message_type='announcement'` in `news` channel | **keep** — communication owns channel/message infra; announcements owns Nyheter composers + UI. Seam: `message_type` discriminator. | resolved (keep) |
 | communication | notifications (future domain) | `channel_notification_policy` table; `notification_outbox` dispatch | **keep boundary** — communication = message creation + channel-level routing rules; future notifications = external delivery (push/SMS/email), quiet hours, rate limiting. | open (notifications domain not yet defined) |
-| communication | botsson (future domain) | `channel_ai_policy`, `channel_member WHERE is_ai=true`, `channel_type='ai'` | **keep** — communication owns AI policy schema; botsson will own runtime behavior. Seam: agent-router integration with channel_ai_policy. | open (botsson domain not yet defined) |
+| communication | botsson | `channel_ai_policy`, `channel_member WHERE is_ai=true`, `channel_type='ai'` | **keep** — communication owns AI policy schema; botsson owns runtime behavior. Seam: `channel_ai_policy.voice_participation` determines Botsson room joins. Botsson domain now defined. | resolved (keep) |
+| botsson | agent-harness (future domain) | `services/stage-engine/`, `packages/ai/src/{router,classifiers,gate,engine}/` — L3 runtime plumbing | **split candidate** — botsson-domain Scope A = persona surface (orb, soul, mission, host). Plumbing = future `agent-harness` domain. Seam: BFF HTTP call to stage-engine. When agent-harness domain is defined, `packages/ai/src/agents/` directory needs classification (botsson.ts + onboarding.ts IN; rest OUT). | open (agent-harness domain not yet defined) |
+| botsson | procedure-engine | Mission lifecycle shows procedures via `training`/`governance` capabilities. Botsson `onboarding` capability creates protocols. | **keep** — botsson SHOWS procedures via capability tools; procedure-engine OWNS procedure data. Clear author/consumer. | resolved (keep) |
+| botsson | task | `fn_list_my_tasks`, `task` capability tools, `emma_task` table — botsson surfaces tasks | **keep** — task domain self-owns; botsson surfaces via capability registration. `use-emma-tasks.ts` is a thin bridge hook (botsson-owned). | resolved (keep) |
+| botsson | core-structure / day-session | Workforce snapshot injection (ADR-0297): botsson reads `department_session`, `schedule_shift`, `department`, `workspace` | **keep** — botsson reads only; day-session + core-structure own the tables. Clear read/write boundary. | resolved (keep) |
 
 ## Migration backlog (pre-domain sources to absorb)
 
@@ -59,6 +64,12 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/modules/payroll/` (13 compiled files) | payroll | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_8_PAYROLL.md` | payroll | ✅ absorbed + archived (2026-05-23) |
 | `docs/modules/payroll/design/spec/MODULE_PAYROLL.md` | payroll | ✅ merged (lønnsgrunnlag terminology) + git rm (2026-05-23) |
+| `docs/architecture/BOTSSON-SYSTEM-MAP.md` | botsson | ✅ absorbed + archived (2026-05-23) — L-0150 closed |
+| `docs/architecture/BOTSSON-STAGE-MISSION-MODEL.md` | botsson | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/BOTSSON-KNOWN-LIMITATIONS.md` | botsson | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/BOTSSON_SOUL_ARCHITECTURE.md` | botsson | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/modules/MODULE_BOTSSON.md` | botsson | ✅ absorbed + archived (2026-05-23) |
+| `docs/engines/artificial-intelligence/BOTSSON-SYSTEM-MAP.md` | botsson | ✅ archived (2026-05-23) — stale duplicate of architecture version |
 | `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
 | `docs/modules/MODULE_*.md` (flat, non-communication, non-billing) | contracts / year-wheel / etc. | 🔴 pending |
 

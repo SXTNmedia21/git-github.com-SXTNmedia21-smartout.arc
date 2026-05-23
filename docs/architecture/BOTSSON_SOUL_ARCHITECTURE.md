@@ -1,11 +1,14 @@
 ---
 title: Botsson Soul Architecture — alle attributter som styrer opplevelsen
-status: draft
-updated: 2026-05-15
+status: archived
+superseded_by: docs/domains/botsson/
+updated: 2026-05-23
 created: 2026-05-15
 module: agent-system
 tags: [botsson, agent, prompt, persona, voice, ux, soul]
 ---
+
+> ⚠️ **ARCHIVED 2026-05-23** — Superseded by `docs/domains/botsson/`. Soul architecture compiled into `docs/domains/botsson/OVERVIEW.md` §Soul architecture and `docs/domains/botsson/ARCHITECTURE.md` §Soul wire-status + §L4 Soul+Missions. Channel matrix compiled into ARCHITECTURE §Soul wire-status. Identified gaps (P0–P3) compiled into GAPS-AND-DEBT §Gaps. Do not update this file.
 
 # Botsson Soul Architecture
 
