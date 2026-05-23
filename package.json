@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts",
     "check:otp": "node scripts/check-otp-coherence.mjs",
+    "check:redirects": "node scripts/check-redirect-coherence.mjs",
     "check:domains": "node scripts/domain-lint.mjs --changed",
     "check:archived-refs": "node scripts/check-archived-refs.mjs",
     "lint:fix": "turbo run lint -- --fix",
