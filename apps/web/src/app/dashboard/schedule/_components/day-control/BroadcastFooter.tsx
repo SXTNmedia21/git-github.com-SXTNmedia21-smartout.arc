@@ -41,13 +41,13 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
             onClick={() => setBroadcastType("push")}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "border-border bg-muted/30 text-foreground hover:bg-muted/60" : "border-border bg-muted text-foreground hover:bg-muted/80"}`}
           >
-            <MessageCircle className="h-3.5 w-3.5 text-blue-400" /> Push
+            <MessageCircle className="text-info h-3.5 w-3.5" /> Push
           </button>
           <button
             onClick={() => setBroadcastType("sms")}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "border-border bg-muted/30 text-foreground hover:bg-muted/60" : "border-border bg-muted text-foreground hover:bg-muted/80"}`}
           >
-            <Mail className="h-3.5 w-3.5 text-orange-400" /> SMS
+            <Mail className="text-accent h-3.5 w-3.5" /> SMS
           </button>
         </div>
       </div>
@@ -111,9 +111,9 @@ function BroadcastMessageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {type === "push" ? (
-              <MessageCircle className="h-5 w-5 text-blue-400" />
+              <MessageCircle className="text-info h-5 w-5" />
             ) : (
-              <Mail className="h-5 w-5 text-orange-400" />
+              <Mail className="text-accent h-5 w-5" />
             )}
             Send {type === "push" ? "Push-melding" : "SMS"}
           </DialogTitle>
@@ -127,7 +127,7 @@ function BroadcastMessageDialog({
             placeholder="Skriv melding..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="border-input focus:border-ring h-24 w-full resize-none rounded-lg border bg-transparent p-3 text-sm focus:outline-none"
+            className="border-input focus-visible:ring-ring h-24 w-full resize-none rounded-lg border bg-transparent p-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
           />
 
           <label className="flex cursor-pointer items-center gap-2">

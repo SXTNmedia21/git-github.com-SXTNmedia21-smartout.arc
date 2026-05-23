@@ -227,7 +227,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
         <SectionHeader label="Nokkeltall">
           <button
             onClick={() => setIsEditingBudget(!isEditingBudget)}
-            className="flex items-center gap-1 text-[10px] font-bold text-orange-400 hover:text-orange-300"
+            className="text-accent hover:text-accent/70 flex items-center gap-1 text-[10px] font-bold"
           >
             <Pencil className="h-3 w-3" />
             {isEditingBudget ? "Lagre" : "Rediger"}
@@ -387,8 +387,8 @@ function PlannedHoursDisplay({
   if (isClosed) {
     return (
       <span className="inline-flex items-center gap-1">
-        <AlertCircle className="h-3 w-3 text-red-400" />
-        <span className="font-bold text-red-400">Stengt</span>
+        <AlertCircle className="text-destructive h-3 w-3" />
+        <span className="text-destructive font-bold">Stengt</span>
         {overrideReason ? <span className="text-muted-foreground">({overrideReason})</span> : null}
       </span>
     );
@@ -404,7 +404,7 @@ function PlannedHoursDisplay({
     <span className="inline-flex items-center gap-1.5">
       {hasOverride ? (
         <span
-          className="inline-block h-1.5 w-1.5 rounded-full bg-orange-400"
+          className="bg-accent inline-block h-1.5 w-1.5 rounded-full"
           title={overrideReason ?? "Unntak for denne datoen"}
         />
       ) : null}
@@ -447,7 +447,7 @@ function EmployeeListRow({
       <div className="flex items-center gap-3">
         <div className="shrink-0">
           {isActive ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <CheckCircle2 className="text-success h-4 w-4" />
           ) : (
             <Clock className="text-muted-foreground h-4 w-4" />
           )}
@@ -478,7 +478,7 @@ function EmployeeListRow({
               );
               toast.success(`Starter Ultravox-samtale for ${name}`);
             }}
-            className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-blue-400"
+            className="text-muted-foreground hover:bg-muted hover:text-info rounded-lg p-1.5 transition-colors"
           >
             <Phone className="h-4 w-4" />
           </button>
@@ -494,7 +494,7 @@ function EmployeeListRow({
                 }),
               );
             }}
-            className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-orange-400"
+            className="text-muted-foreground hover:bg-muted hover:text-accent rounded-lg p-1.5 transition-colors"
           >
             <Mail className="h-4 w-4" />
           </button>

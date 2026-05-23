@@ -248,7 +248,7 @@ function DayControlPanelContent({
 
             {/* Title */}
             <div className="min-w-0 flex-1">
-              <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
+              <span className="text-accent text-[9px] font-bold tracking-widest uppercase">
                 Kontrollsenter
               </span>
               <h2 className="text-foreground truncate text-sm leading-tight font-black tracking-tight">

@@ -141,12 +141,12 @@ export function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[10px] font-bold whitespace-nowrap transition-all ${active ? "border-orange-500 text-orange-400" : "text-muted-foreground hover:text-foreground/70 border-transparent"}`}
+      className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[10px] font-bold whitespace-nowrap transition-colors ${active ? "border-accent text-accent" : "text-muted-foreground hover:text-foreground/70 border-transparent"}`}
     >
       {icon} {label}
       {badge !== undefined && badge > 0 && (
         <span
-          className={`ml-0.5 min-w-[16px] rounded-full px-1 py-px text-center text-[8px] leading-tight font-black ${active ? "bg-orange-500/20 text-orange-400" : "bg-muted text-muted-foreground"}`}
+          className={`ml-0.5 min-w-[16px] rounded-full px-1 py-px text-center text-[8px] leading-tight font-black ${active ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"}`}
         >
           {badge}
         </span>
@@ -179,11 +179,11 @@ export function MessageCard({
   const { isDark } = useContext(DashboardContext);
   return (
     <div
-      className={`rounded-xl border p-4 transition-all ${alert ? "border-rose-500/30 bg-rose-500/10" : isDark ? "border-border bg-muted/30" : "border-border bg-card"}`}
+      className={`rounded-xl border p-4 transition-colors ${alert ? "border-destructive/30 bg-destructive/10" : isDark ? "border-border bg-muted/30" : "border-border bg-card"}`}
     >
       <div className="mb-2 flex items-start justify-between">
         <h5
-          className={`flex items-center gap-1.5 text-xs font-black ${alert ? "text-rose-400" : "text-foreground"}`}
+          className={`flex items-center gap-1.5 text-xs font-black ${alert ? "text-destructive" : "text-foreground"}`}
         >
           {alert ? <AlertCircle className="h-3.5 w-3.5" /> : null} {title}
         </h5>
@@ -194,7 +194,7 @@ export function MessageCard({
           {onDelete && (
             <button
               onClick={onDelete}
-              className="text-muted-foreground transition-colors hover:text-rose-400"
+              className="text-muted-foreground hover:text-destructive transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

@@ -189,18 +189,21 @@ export function TimelineView({
       case "published":
         return {
           label: "Publisert",
-          badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+          badgeClass: "bg-success/10 text-success border-success/20",
         };
       case "active":
-        return { label: "Aktiv", badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
+        return { label: "Aktiv", badgeClass: "bg-info/10 text-info border-info/20" };
       case "completed":
         return { label: "Fullført", badgeClass: "bg-muted text-muted-foreground border-border" };
       case "unpublished":
-        return { label: "Avpublisert", badgeClass: "bg-red-500/10 text-red-500 border-red-500/20" };
+        return {
+          label: "Avpublisert",
+          badgeClass: "bg-destructive/10 text-destructive border-destructive/20",
+        };
       case "assigned":
         return {
           label: "Tildelt",
-          badgeClass: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+          badgeClass: "bg-accent/10 text-accent border-accent/20",
         };
       case "created":
         return { label: "Kladd", badgeClass: "bg-muted text-muted-foreground border-border" };
@@ -291,7 +294,8 @@ export function TimelineView({
                 {/* Now marker */}
                 {showNowLine && (
                   <div
-                    className="pointer-events-none absolute top-0 z-10 h-full w-0.5 bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.6)]"
+                    // TODO P10-phase4: no semantic token for rgba glow shadow — needs glow token addition in separate sortie
+                    className="bg-accent pointer-events-none absolute top-0 z-10 h-full w-0.5 shadow-[0_0_6px_rgba(249,115,22,0.6)]"
                     style={{ left: `${nowPct}%` }}
                   />
                 )}
@@ -302,7 +306,7 @@ export function TimelineView({
                     <div
                       className={`group/bar absolute top-1 flex h-5 items-center rounded-md shadow-sm transition-all group-hover/timeline:shadow-md ${
                         isShiftPressed
-                          ? "ring-offset-background ring-2 ring-emerald-500/50 ring-offset-1"
+                          ? "ring-offset-background ring-success/50 ring-2 ring-offset-1"
                           : ""
                       }`}
                       style={{
@@ -323,8 +327,8 @@ export function TimelineView({
                         onPointerCancel={isShiftPressed ? handlePointerUp : undefined}
                         className={`absolute inset-0 z-10 h-full w-full overflow-hidden rounded-md shadow-sm transition-all ${
                           isShiftPressed
-                            ? "cursor-grab bg-emerald-500/80 hover:bg-emerald-500 active:cursor-grabbing"
-                            : "cursor-pointer bg-orange-500/70 group-hover/timeline:bg-orange-500/90 hover:bg-orange-500"
+                            ? "bg-success/80 hover:bg-success cursor-grab active:cursor-grabbing"
+                            : "bg-accent/70 group-hover/timeline:bg-accent/90 hover:bg-accent cursor-pointer"
                         }`}
                         title={
                           isShiftPressed
