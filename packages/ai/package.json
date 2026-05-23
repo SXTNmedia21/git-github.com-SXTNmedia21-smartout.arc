@@ -190,6 +190,10 @@
       "types": "./dist/capabilities/tips/calculate.d.ts",
       "default": "./dist/capabilities/tips/calculate.js"
     },
+    "./router/attachment-dispatch": {
+      "types": "./dist/router/attachment-dispatch.d.ts",
+      "default": "./dist/router/attachment-dispatch.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"

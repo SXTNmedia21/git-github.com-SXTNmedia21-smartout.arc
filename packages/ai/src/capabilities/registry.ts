@@ -36,6 +36,7 @@ import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 import { schedulerCapability } from "./scheduler/index.js";
 import { timelineTemplateCapability } from "./timeline-template/index.js";
 import { cascadeCapability } from "./cascade/index.js";
+import { bulkImportCapability } from "./bulk_import/index.js";
 import { dayLineCapability } from "./day-line/index.js";
 import { routineCapability } from "./routine/index.js";
 import { orgCapability } from "./org/index.js";
@@ -155,6 +156,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Both the caller gate AND the cascade gate fire independently per ADR-0356 §"Gate convention".
   // emitPrefix='cascade'. Authority seeded at autonomous by 20260618200000.
   cascade: cascadeCapability,
+  // bulk_import capability — Sortie 0 skeleton. MIME-type deterministic routing:
+  // xlsx/xls/csv files dropped in chat bypass intent-classifier and route here.
+  // Tools populated in Sorties A (parse_spreadsheet), B (preview_batch, resolve_ambiguity),
+  // C (commit_batch). chat-only (ADR-0078); toolAuthPattern=direct_admin (service_role).
+  // Spec: docs/superpowers/specs/2026-05-23-bulk-import-design.md
+  bulk_import: bulkImportCapability,
   // Day-line capability — ADR-0367. D6 Production dag-linje lifecycle.
   // 4 tools: create (manager+, chat-only), add_item (delegating: task+routine, manager+),
   // instantiate_template (routine alias, manager+), update_hours (manager+, chat-only).
