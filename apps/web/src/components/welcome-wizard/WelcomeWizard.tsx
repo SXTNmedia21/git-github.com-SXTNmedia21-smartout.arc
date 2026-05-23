@@ -147,7 +147,7 @@ export function WelcomeWizard({ userEmail, tariffBound = false }: WelcomeWizardP
     <Dialog open modal>
       <DialogContent
         // Override default close button — wizard is mandatory until complete
-        className="border-border bg-background flex max-w-md flex-col gap-0 overflow-hidden rounded-2xl border p-0 shadow-2xl"
+        className="border-border bg-background flex max-h-[100dvh] max-w-md flex-col gap-0 overflow-y-auto rounded-2xl border p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         aria-describedby="welcome-wizard-desc"
