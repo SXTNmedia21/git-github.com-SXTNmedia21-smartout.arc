@@ -376,7 +376,7 @@ jobs:
             echo "::error::WATCHDOG_CRON_SECRET GH secret missing — cron http jobs 401. Add it + PROCESS_NOTIFICATIONS_SECRET + MORNING_DIGEST_SECRET to repo secrets. (ADR-0388)"
             exit 1
           fi
-          PSQL="psql -v ON_ERROR_STOP=1 -h aws-0-eu-west-1.pooler.supabase.com -p 5432 -U postgres.${SUPABASE_PROJECT_REF} -d postgres"
+          PSQL="psql -v ON_ERROR_STOP=1 -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.${SUPABASE_PROJECT_REF} -d postgres"
           # Single session: env vars expand into stdin SQL (not argv). Idempotent
           # upsert per secret. \$up\$ escapes the dollar-quote from the shell.
           $PSQL <<SQL
