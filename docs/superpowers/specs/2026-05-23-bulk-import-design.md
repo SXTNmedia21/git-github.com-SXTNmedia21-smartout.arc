@@ -86,12 +86,12 @@ Estimated: 4 days. Depends on Sortie 0.
 Goal: ship the database foundation + skeleton capability + first read-only tool.
 
 Scope:
-- ADR-0400 written: "bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline" (slots 0398+0399 taken cross-branch by wt-5 InlineConfirmCard work — L-0316 6th occurrence, renumbered 2026-05-23)
-- ADR-0401 written: "xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation"
-- ADR-0403 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
-- Migration `20260624000000_bulk_import_foundation.sql`:
+- ADR-0401 written: "bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline" (originally 0398; shifted +2 after wt-5 InlineConfirmCard collision then +1 more after wt-1 Welcome Wizard collision — L-0316 6th + 7th occurrences, renumbered 2026-05-23)
+- ADR-0402 written: "xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation"
+- ADR-0404 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
+- Migration `20260624120000_bulk_import_foundation.sql`:
   - `CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions`
-  - Composite GIN indexes: `(workspace_id, display_name gin_trgm_ops)` on profile; `(workspace_id, name gin_trgm_ops)` on department + location
+  - GIN indexes (`<name_col> gin_trgm_ops`) on profile.display_name + department.name + location.name, paired with BTREE indexes on workspace_id (two-index strategy: composite UUID-in-GIN is unsupported — btree_gin extension not installed; planner combines via BITMAP scan; correction surfaced by code-quality review of foundation migration, Sortie A 2026-05-23)
   - `CREATE TABLE import_run (...)` — see data model below
   - `CREATE FUNCTION fn_fuzzy_match_entity(...)` SECURITY DEFINER + active-status filter
   - `ALTER TABLE schedule_shift DROP CONSTRAINT ... ADD CONSTRAINT ... CHECK (source IN ('operational','bubble_migration','v3_engine','v3_bulk_import'))`
@@ -133,7 +133,7 @@ Estimated: 5 days. Depends on Sortie B.
 Goal: ship the atomic transactional commit pipeline with cascade-delegated writes.
 
 Scope:
-- ADR-0402 written: "Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch" (retroactive; Sortie 0 patterns codified)
+- ADR-0403 written: "Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch" (retroactive; Sortie 0 patterns codified)
 - `commit_batch` tool — calls SECURITY DEFINER RPC `fn_commit_bulk_import(import_run_id uuid)` for atomic write
 - RPC implementation:
   - Inside single transaction
@@ -239,10 +239,10 @@ SET search_path = public, extensions
 
 | Risk | Reversibility | Mitigation |
 |---|---|---|
-| `import_run` schema lock-in | LOAD-BEARING after first import | Schema finalized in ADR-0398 review; pg_trgm composite indexes; nullable resolver_decisions |
-| xlsx library bundle bloat / supply-chain | REVERSIBLE | Sortie A ships CSV-only; xlsx ADR-0399 reviewed before Sortie B |
+| `import_run` schema lock-in | LOAD-BEARING after first import | Schema finalized in ADR-0401 review; pg_trgm composite indexes; nullable resolver_decisions |
+| xlsx library bundle bloat / supply-chain | REVERSIBLE | Sortie A ships CSV-only; xlsx ADR-0402 reviewed before Sortie B |
 | Cascade-delegation symmetry slips (one helper emits, another doesn't) | LATENT BUG — surfaces in audit weeks later | Trust Gate per-tool check at Sortie C close; explicit emit-symmetry test in close-feature |
-| Profile-stub creep ("just this one workspace") | LOAD-BEARING — orphans break D2 permanently | ADR-0398 FORBIDS stubs explicitly; capability rejects on FK-chain attempt |
+| Profile-stub creep ("just this one workspace") | LOAD-BEARING — orphans break D2 permanently | ADR-0401 FORBIDS stubs explicitly; capability rejects on FK-chain attempt |
 | RPC `fn_commit_bulk_import` runtime > Vercel 10s timeout | LOAD-BEARING for files > ~30 rows | Async dispatch via `engine_process`; commit_batch returns immediately with import_run_id, polling endpoint returns status |
 | Idempotency hash collision (sha256 — astronomically rare) | REVERSIBLE | Admin-only `force_reimport=true` flag in commit_batch signature |
 | Attachment-routing change breaks chat composer for non-import paths | REVERSIBLE | Sortie 0 ships with feature-flag default off; flip on after Sortie A green |
@@ -251,12 +251,12 @@ SET search_path = public, extensions
 
 | ADR | Title | Sortie | Slot |
 |---|---|---|---|
-| 0400 | bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline | A Task 1 | reserved (was 0398; renumbered after wt-5 InlineConfirmCard collision — L-0316 6th occurrence) |
-| 0401 | xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation | A Task 2 | reserved (was 0399) |
-| 0402 | Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch | C Task 1 (retroactive codification) | reserved (was 0400) |
-| 0403 | schedule_shift.source — Add 'v3_bulk_import' Value | A Task 3 | reserved (was 0401) |
+| 0401 | bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline | A Task 1 | reserved (originally 0398; renumbered twice — L-0316 6th + 7th occurrences) |
+| 0402 | xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation | A Task 2 | reserved (originally 0399) |
+| 0403 | Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch | C Task 1 (retroactive codification) | reserved (originally 0400) |
+| 0404 | schedule_shift.source — Add 'v3_bulk_import' Value | A Task 3 | reserved (originally 0401) |
 
-**Cross-branch collision note:** ADR-0398 + ADR-0399 were committed by wt-5 (feat/inline-confirm-card-phase1) for InlineConfirmCard Primitive + Channel Platform Descriptors respectively. Discovered 2026-05-23 end-of-session via cross-branch grep. Reservation check at council Phase 8 Step 0 must include `git log --all` per L-0316 — original reservation passed but wt-5 committed concurrently. Resolution: bulk_import slots shifted up by 2.
+**Cross-branch collision note:** Two concurrent collisions discovered 2026-05-23. (1) L-0316 6th occurrence: ADR-0398 + ADR-0399 committed by wt-5 (feat/inline-confirm-card-phase1) for InlineConfirmCard Primitive + Channel Platform Descriptors — discovered end-of-prior-session via cross-branch grep; bulk_import slots shifted +2 to 0400/0401/0402/0403 on commit `4f0a00afa`. (2) L-0316 7th occurrence: ADR-0400 committed by wt-1 (feat/employee-onboarding-wizard) for Welcome Wizard State Lifecycle Constraints at `a9f95d6f4` — discovered during Sortie A Task 1 implementer dispatch (BLOCKED report); bulk_import slots shifted +1 more to 0401/0402/0403/0404. Reservation check at council Phase 8 Step 0 AND at each ADR-write task Step 1 must include `git log --all` per L-0316. Total drift from V1 reservation: +3 slots. Net positive: re-check protocol caught the collision before commit, not after.
 
 ## Learnings to Log (after Sortie C closes)
 
@@ -276,7 +276,7 @@ SET search_path = public, extensions
 ## Out of Scope (v1)
 
 - Multi-file upload in single drop (architecture is array-ready for v2)
-- Excel binary (.xlsx) parsing — CSV only in Sortie A; xlsx in Sortie B after ADR-0399 approved
+- Excel binary (.xlsx) parsing — CSV only in Sortie A; xlsx in Sortie B after ADR-0402 approved
 - Voice channel (ADR-0288 forbids irreversible writes via voice)
 - Mobile composer UI (ADR-0133 — Compose verb is web-only)
 - Round-trip resolver memory cache (deferred to v2 after evaluating ≥95% confidence false-positive rate)
