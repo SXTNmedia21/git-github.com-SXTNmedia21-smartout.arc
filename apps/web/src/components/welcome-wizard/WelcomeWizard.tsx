@@ -7,7 +7,7 @@
  *
  * WHY: Admins should not fill personal data on behalf of employees.
  * This wizard blocks dashboard access until `profile.is_welcome_complete`
- * is true, collecting the minimum required data in 6 warm, polished steps.
+ * is true, collecting the minimum required data in 8 warm, polished steps.
  *
  * Design: Nordic Split system — Instrument Serif headings, warm OKLCH palette,
  * Framer Motion spring physics (stiffness 35 / damping 22 / mass 2.2).
@@ -20,17 +20,19 @@ import { HeroStep } from "./steps/HeroStep";
 import { ContactStep } from "./steps/ContactStep";
 import { AddressStep } from "./steps/AddressStep";
 import { PersonalNumberStep } from "./steps/PersonalNumberStep";
+import { AvailabilityStep } from "./steps/AvailabilityStep";
+import { ConsentStep } from "./steps/ConsentStep";
 import { OptionalStep } from "./steps/OptionalStep";
 import { DoneStep } from "./steps/DoneStep";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 8;
 
-// Step 1 is hero (no indicator shown). Steps 2–5 show dots. Step 6 is done.
-const STEPS_WITH_INDICATOR: WizardStep[] = [2, 3, 4, 5];
+// Step 1 is hero (no indicator shown). Steps 2–7 show dots. Step 8 is done.
+const STEPS_WITH_INDICATOR: WizardStep[] = [2, 3, 4, 5, 6, 7];
 
 // ─── Spring config (Nordic Split — design-tokens motion.spring) ───────────────
 
@@ -98,9 +100,15 @@ function StepDots({ current, total }: { current: WizardStep; total: number }) {
 export type WelcomeWizardProps = {
   /** Email from auth.user — pre-filled and readonly in step 2. */
   userEmail: string;
+  /**
+   * Whether the employee is bound by a collective tariff agreement.
+   * Passed to ConsentStep (step 6) to show tariff-specific consent copy.
+   * Defaults to false; real value is wired by the parent page (T16).
+   */
+  tariffBound?: boolean;
 };
 
-export function WelcomeWizard({ userEmail }: WelcomeWizardProps) {
+export function WelcomeWizard({ userEmail, tariffBound = false }: WelcomeWizardProps) {
   const prefersReduced = useReducedMotion();
 
   const [state, dispatch] = useReducer(wizardReducer, {
@@ -160,13 +168,16 @@ export function WelcomeWizard({ userEmail }: WelcomeWizardProps) {
               exit="exit"
               transition={prefersReduced ? { duration: 0.15 } : SPRING}
               className="flex flex-1 flex-col p-8"
+              aria-live="polite"
             >
               {step === 1 && <HeroStep onNext={next} />}
               {step === 2 && <ContactStep userEmail={userEmail} onNext={next} onBack={back} />}
               {step === 3 && <AddressStep onNext={next} onBack={back} />}
               {step === 4 && <PersonalNumberStep onNext={next} onBack={back} />}
-              {step === 5 && <OptionalStep onNext={next} onBack={back} />}
-              {step === 6 && <DoneStep />}
+              {step === 5 && <AvailabilityStep onNext={next} onBack={back} />}
+              {step === 6 && <ConsentStep onNext={next} onBack={back} tariffBound={tariffBound} />}
+              {step === 7 && <OptionalStep onNext={next} onBack={back} />}
+              {step === 8 && <DoneStep />}
             </motion.div>
           </AnimatePresence>
         </div>
