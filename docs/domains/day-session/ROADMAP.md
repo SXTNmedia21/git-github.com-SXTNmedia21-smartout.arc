@@ -7,6 +7,7 @@ updated: 2026-05-23
 created: 2026-05-22
 domain: day-session
 tags: [domain, day-session, roadmap, adr-0367, forward-plan]
+council_refs: [council-2026-05-23-tidslinje-surface-boundary]
 ---
 
 # Day Session — Roadmap
@@ -86,6 +87,44 @@ MODULE_14_PRODUCTION describes the full food production data model: ingredients,
 
 ### P8 — `DuringShiftViewV2` feature-flag graduation
 `DuringShiftViewV2` (M4 gradient-hero redesign) is behind `EXPO_PUBLIC_DURING_SHIFT_V2=true` feature flag. Design intent: graduate to default after A/B testing. Pending product decision.
+
+### P10 — Slim TidslinjeTab in DayControlPanel (council 2026-05-23)
+
+**Verdict:** APPROVE WITH CHANGES — path (b′) build slimmed-down purpose-built `TidslinjeTab` for the `DayControlPanel` bottom-sheet (75vh), sharing `day-line` capability + `DaySessionProvider` data layer with `WebDayControl`. NOT port full `TimelineTab` (spatial fit fails). NOT consolidate panels (different UX legitimate — full-page route vs ephemeral bottom-sheet).
+
+Council reading of ADR-0156 §Rejected Option B: forbidden pattern is **fragmented authority** (two surfaces with different rules writing to overlapping state), NOT differentiated chrome over the same cascade pipeline. Two views consuming one capability = permitted. Chair Phase 3 verdict REVERSED on this point (L-0147 10th precedent).
+
+Sortie sequence — gates between each:
+
+**Sortie 1 — Pre-condition cleanup (BLOCKS S2):**
+1. Remove dead Ultravox path in `DaySessionProvider.tsx` — `useVoiceTools()` + `temporaryTool` shape post-ADR-0282 removal. Grep entire repo for `useVoiceTools|temporaryTool` before claiming complete (see G18).
+2. Replace with `useRegisterTools("day-control", ...)` per harness canonical pattern.
+3. Implement `pinDayControlPanelContextAction` mirroring `pinDayControlContextAction`, surface=`day_control_panel` (closes G16).
+4. Fix `DayControlPanel.tsx` inline `TabButton` ARIA — `role="tab"`, `aria-selected`, `aria-controls`, panel `role="tabpanel"` + `aria-labelledby` (closes G17, WCAG 4.1.2).
+
+Gate 1: axe-core 0 violations on `/dashboard/schedule` with panel open + Trust Gate per-tool PASS + L-0177 fail-fast verified on pin-context action.
+
+**Sortie 2 — Slim TidslinjeTab build (BLOCKED by S1):**
+1. Frontend spec: chip-bar (planlagt / pågående / fullført + location chips) + flat session-card list per Task Manager prototype canonical recipe. Spatial budget ≤654px (sheet content area = 75vh - header - tab-bar - broadcast-footer).
+2. Build `apps/web/src/components/day-control-panel/TidslinjeTab.tsx` consuming `useDayTimelineEvents` (close `session_hook` source-type gap per Supervisor cond.1) + `useDayLines` (multi-strip aware).
+3. Telemetry: `tidslinje_tab_opened`, `tidslinje_filter_changed` via `emit()` with L-0177 fail-fast on `workspace_id` + `profile_id`. Verify matching call-sites grep (no L-NEW telemetry-without-emit recurrence).
+4. NO `useMutation` in TidslinjeTab — read-only view. All mutations route through day-line capability tools via stage-engine.
+
+Gate 2: frontend visual review + harness Trust Gate per-tool table + steward cascade-integrity check (single pipeline preserved, no new source-of-truth).
+
+**Sortie 3 — ADR amendment + docs (BLOCKED by S2 merge):**
+1. ADR-0156 amendment: document bottom-sheet variant as Phase 2 packages-extraction precedent. Codify "surface duplication ≠ authority fragmentation" reading.
+2. L-NEW captures (3): (a) Surface duplication permitted when both views consume same capability, (b) Spatial budget as Phase 3 council coverage axis (sibling of design+a11y axis), (c) Telemetry-registered without emit() — 2nd occurrence pattern promotion.
+3. Update day-session domain spine: ARCHITECTURE.md (add bottom-sheet variant), USER-FLOWS.md (link 5 new journeys), E2E-COVERAGE.md (planned coverage matrix).
+
+Gate 3: steward verification pass on docs match shipped code.
+
+**DEFERRED to separate capability sortie (NOT in P10 scope):**
+- DnD re-time UX requires 3 missing capability tools — see G19. New ADR before any DnD UI is built. Gate-before-code.
+
+**Revisit:** Panel consolidation (sunset DayControlPanel) revisited after 60 days of dual-surface telemetry. If usage overlap >80% → reconsider sunset.
+
+**Journeys (target):** J-tidslinje-manager-plan-tomorrow, J-tidslinje-manager-live-status, J-tidslinje-employee-mobile-mirror, J-tidslinje-manager-botsson-reschedule, J-tidslinje-manager-empty-day-template-bootstrap. Draft inline in this session 2026-05-23; formal journey files filed in S3.
 
 ---
 

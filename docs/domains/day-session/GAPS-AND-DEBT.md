@@ -5,6 +5,7 @@ mirror: verified
 last_verified: 2026-05-23
 updated: 2026-05-23
 created: 2026-05-22
+council_refs: [council-2026-05-23-tidslinje-surface-boundary]
 domain: day-session
 tags: [domain, day-session, gaps, debt, verified]
 ---
@@ -135,6 +136,43 @@ For each item below:
 **Code:** None of these tables exist in migrations. The current implementation uses `daily_reconciliation.status` (6-state `reconciliation_status` enum) + `settlement_image` (extended with `image_type`, `captured_by`, `parse_status` in `20260328120000`) as the financial close layer. The design intent was partially realized via a simpler schema.
 **Gap:** Richer financial close state machine, separate close_task checklist, per-image deviation tracking (`close_deviation`), POS template system, and checkout-gate function `check_financial_close_gate` are not built. The `financial_close_config` table captures some config intent.
 **Severity:** LOW (current `daily_reconciliation` + `settlement_image` + OCR EFs handle core flow; detailed gatekeeper and multi-image-type deviation tracking are v2 features).
+
+### G16 — `DayControlPanel` missing `pinDayControlPanelContextAction` (Botsson context-blind)
+**Code:** `apps/web/src/components/day/WebDayControl.tsx:137` calls `pinDayControlContextAction` writing `engine_memory` with date+dept+session context, TTL 24h. `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx` calls no equivalent action. Grep `grep -rn "pinDayControl" apps/web/src` returns only the WebDayControl call-site.
+**Gap:** When manager opens DayControlPanel from `schedule/page.tsx:1207`, `calendar/CalendarPageShell.tsx:419`, or `AdminDashboard.tsx:62`, Botsson Orb has no context anchor — voice/chat queries about "i dag" answer with workspace-default context, not the panel's focused date+dept. This is a pre-existing gap independent of Tidslinje work, but is a Sortie 1 pre-condition for P10.
+**Severity:** MEDIUM (P10 Sortie 1 blocker; pre-existing).
+
+### G17 — `DayControlPanel` inline `TabButton` missing tab ARIA (WCAG 4.1.2)
+**Code:** `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx:221-273` renders 7 inline `TabButton` instances (oversikt/meldinger/bookings/oppgaver/budsjett/bemanning/okonomi). Pattern is custom inline `<button>` with onClick, missing `role="tab"`, `aria-selected={active}`, `aria-controls="panel-{id}"`. Tab content area at `:278` lacks `role="tabpanel"` + `aria-labelledby`.
+**Reference comparison:** `apps/web/src/components/day/WebDayControl.tsx:299-309` uses `PageTabNav` shared component with proper ARIA contract.
+**Gap:** Screen readers announce DayControlPanel tabs as generic buttons, not tab controls. Keyboard navigation (`ArrowLeft`/`ArrowRight` within tablist) not supported. Adding any new tab (e.g. Tidslinje per P10) inherits broken contract.
+**Severity:** HIGH (WCAG 4.1.2 fail; P10 Sortie 1 blocker; pre-existing).
+
+### G18 — `DaySessionProvider` carries dead Ultravox voice-tools path post-ADR-0282
+**Code:** `apps/web/src/app/dashboard/schedule/_components/day-control/DaySessionProvider.tsx:97` calls `useVoiceTools()`; `:335-336` calls `setClientTools(mergeVoiceTools(...))`. The `temporaryTool: { modelToolName: ... }` shape used in `day-session-voice-tools.ts` (referenced via `createDaySessionVoiceTools`) is the pre-ADR-0282 Ultravox browser-tool definition pattern. Ultravox was removed in ADR-0282; this code feeds `VoiceAssistant` (dynamic mount in `DashboardShell.tsx:42`) which is the dead Ultravox client.
+**Gap:** Live dead-code orphan. A future developer mistakes the path as active and adds new voice tools to a sink that never fires. Hazard class is "phantom contract" — sibling of L-176 (docstring drift) + L-NEW telemetry-without-emit.
+**Resolution path:** Replace with `useRegisterTools("day-control", ...)` per harness canonical post-ADR-0282 pattern. Grep entire `apps/web/src` for `useVoiceTools|temporaryTool` before claiming complete — may not be the only orphan.
+**Severity:** MEDIUM (P10 Sortie 1 pre-condition; not currently shipping broken behavior but blocks correct tool registration for new surface).
+
+### G19 — Three capability tools missing for DnD re-time
+Council 2026-05-23 deferred DnD re-time on Tidslinje surface until capability tools exist. Per Agent-coord code-trace:
+
+**G19a — `schedule.reschedule_shift` missing:**
+**Code:** `packages/ai/src/capabilities/schedule/tools.ts` is 100% read-only — only `get_*` tools (lines 34/122/167/228/269/386). `packages/ai/src/capabilities/shift-lifecycle/tools.ts` only updates `status` (publish line 194-202, approve line 358-369). `packages/ai/src/capabilities/scheduler/tools.ts:478` does bulk INSERT only (`build_schedule.materialise`). No `schedule.update_time` / `schedule.reschedule_shift` export anywhere.
+**Gap:** Cannot re-time `schedule_shift.start_time / end_time` through any capability. DnD UI on shift rows would have no tool to call.
+**Severity:** MEDIUM (P10 Sortie 1-3 not blocked; DnD-deferral gap).
+
+**G19b — `task.update_scheduled_at` missing:**
+**Code:** `packages/ai/src/capabilities/task/tools.ts` — `task.create_session` accepts + writes `scheduled_at` on CREATE only (line 415 + 523 + 560). No `task.update_scheduled_at` or generic `task.update` export. Re-time post-creation not possible via capability.
+**Gap:** Cannot re-time `session_task.scheduled_at` after creation. DnD UI on task rows would have no tool to call.
+**Severity:** MEDIUM.
+
+**G19c — `session_hook` re-time pattern unresolved:**
+**Code:** `packages/ai/src/capabilities/routine/tools.ts:499` upserts session_hook (creating/replacing per dept). Hook timing is template-derived (enum `pre_open|open|scheduled|pre_close|close` at line 30), not free-time. No update-timing tool.
+**Gap:** Re-timing a hook = re-creating the template association (architectural decision, not just a missing tool). DnD on hook rows is conceptually different from shift/task re-time. Per Agent-coord recommendation: likely defer entirely (hooks are template-derived; re-time = `routine` capability concern, not TimelineTab DnD primitive).
+**Severity:** LOW (defer-and-document rather than build).
+
+**Resolution path:** Separate capability sortie + new ADR before any DnD UI is wired. ADR must spec G19a + G19b contracts (gate_action, gatedMutation wrapper, emit shape, authority level — likely `four_eyes` for published shifts, `suggest` for unpublished). G19c may stay deferred with documented rationale.
 
 ### G15 — MODULE_14 Production module entirely unbuilt
 **Legacy design:** SMARTOUT_MODULE_14_PRODUCTION describes ingredient/recipe/dish/menu/booking/production_plan_step/production_session/waste_log data model + calculation engine.
