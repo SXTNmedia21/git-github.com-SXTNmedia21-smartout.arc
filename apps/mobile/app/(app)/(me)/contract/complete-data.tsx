@@ -208,6 +208,23 @@ export default function CompleteDataScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Deprecation banner */}
+          <View accessibilityRole="alert" style={styles.deprecationBanner}>
+            <Text style={styles.deprecationTitle}>Bruk onboarding-veiviseren</Text>
+            <Text style={styles.deprecationBody}>
+              Denne enkeltsiden er erstattet av en stegvis veiviser. Den kan fortsatt brukes for å
+              oppdatere enkeltfelt, men nye ansatte bør gå gjennom veiviseren.
+            </Text>
+            <Pressable
+              onPress={() => router.push("/(app)/onboarding")}
+              style={styles.deprecationLink}
+              accessibilityRole="button"
+              accessibilityLabel="Åpne veiviseren"
+            >
+              <Text style={styles.deprecationLinkText}>Åpne veiviseren →</Text>
+            </Pressable>
+          </View>
+
           {/* Info banner */}
           <View style={styles.infoBanner}>
             <Info size={16} color="#3b82f6" strokeWidth={1.6} />
@@ -356,6 +373,34 @@ const useStyles = createStyles((theme) => ({
     paddingHorizontal: theme.spacing.section,
     paddingTop: theme.spacing.md,
     paddingBottom: 120,
+  },
+
+  /* Deprecation banner */
+  deprecationBanner: {
+    backgroundColor: theme.colors.muted,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.card,
+    marginBottom: theme.spacing.section,
+  },
+  deprecationTitle: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: theme.colors.foreground,
+    marginBottom: 6,
+  },
+  deprecationBody: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  deprecationLink: {
+    marginTop: 8,
+  },
+  deprecationLinkText: {
+    fontSize: 15,
+    fontWeight: "500" as const,
+    color: theme.colors.primary,
   },
 
   /* Info banner */

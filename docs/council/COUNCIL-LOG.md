@@ -2425,3 +2425,65 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Learnings created:** L-0329 (collision-grep-globally before reserving symbol), L-0330 (stateless-default from existing UUID), L-0331 (BotssonChat-fixed client-tool sub-pattern), L-0332 (harness-builder mandatory in Phase 3 for Botsson surfaces — promotion candidate after 2nd occurrence).
 **Process improvements promoted to SKILL.md:** none this session; L-0332 candidate for amendment to existing Botsson-harness inclusion rule (add phase-classification question to Harness Builder's brief template).
 **Phase 9 self-improvement:** see council_meta.md.
+
+## 2026-05-23 — Employee Onboarding Wizard Design Spec (R1 → R2)
+**Type:** spec (pre-implementation)
+**Verdict:** REJECT (R1) → REVISED-AND-APPROVED-FOR-PLAN (R2 in same session)
+**Agents consulted:** system-steward (chair, Phase 3 + 5), supervisor, system-agent-coordinator, frontend-designer
+**Prior verdict held?** n/a (first council on topic)
+**Convergence:** 4/4 do-not-proceed on R1; user (Pontus) approved REJECT verdict and instructed inline R2 revision
+
+**Chair self-reversals (L-0147 protocol, 10th precedent):**
+1. Phase 3 "AnimatedWizardShell does not exist" → REVERSED. File exists at `apps/web/src/components/wizard/AnimatedWizardShell.tsx`. Falsifying evidence: Phase 2.5 fact-check + supervisor reference. Root cause: chair grep scoped to `welcome-wizard/` + `onboarding/`, missed `wizard/`. Sibling of L-NEW-2 + Chat-WhatsApp + HMS R1 grep-wrong-scope-key (3rd cross-session occurrence).
+2. Phase 3 "consent_acceptance conflicts with ADR-0311" → REVERSED. ADR-0311 governs payroll trekk-samtykke (Aml. §14-15) in payroll-domain; identity-layer onboarding consent is a separate concern. Cascade invariant 2 actually FORBIDS reusing payroll.consent_document for onboarding.
+3. Phase 3 "ADR-0133 boundary violation" → REFINED (not reversed). ADR-0133 R2 covers D1-D5 authoring; identity-layer / pre-cascade flows are not classified. Real issue: surface duplication with existing mobile `complete-data.tsx` (L-0178 dual-surface). Addressed in R2 §D9.
+
+**Key decision:** Strategy A (extend existing `apps/web/src/components/welcome-wizard/`); no new identity columns on `profile`; reuse `submit_own_pii` RPC + existing Server Actions; reuse `profile welcome_wizard_*` event family (preserve engine_event destination).
+
+**Blockers resolved in R2:**
+1. (R1) Migration strategy A/B/C declared → A
+2. (R2) No new profile columns → identity stays on `user_identity`
+3. (R3) `submit_own_pii` reused (not bypassed)
+4. (R4) Surface ownership vs mobile `complete-data.tsx` declared
+5. (R5) Telemetry reuses existing namespace + preserves engine_event
+6. (R6) Component contract table added (§S_components)
+7. (R7) A11y section added (§S_a11y, WCAG 2.2 AA)
+8. (R8) UX fixes: toggle inversion + PII reveal toggle
+9. (R9) Deep-import discipline `@smartout/ui/wizard/state` + ESLint rule
+10. (R10) Channel guard declared (cookie/Bearer only; no agent capability V1)
+
+**ADR slots reserved:** ADR-0396 (identity-on-user_identity invariant), ADR-0397 (employee onboarding wizard architecture). ADR-0398 (consent_acceptance contract) optional, may land in plan instead. All to be drafted in implementation plan.
+
+**ADR created (this session):** none (deferred to plan-writing per spec §S8).
+
+**Learning created:** Two learnings to log:
+- L-NEW (3rd cross-session occurrence — SKILL.md promotion threshold met): Phase 2.5/Phase 3 grep wrong-scope-key. Precedents: Chat-WhatsApp 2026-05-16, HMS R1 2026-05-17, employee-onboarding 2026-05-23. Rule: existence claims require recursive find from project root, not directory-scoped grep. Sibling-count sanity check required.
+- L-NEW (1st occurrence): "Default-by-omission in migration strategy" — when a spec proposes a redesign without naming the existing component, "Option B replace" becomes the silent default. Spec template must require explicit migration-strategy section when touching code paths with prior implementations. Cross-link to L-0098 prior-council-staleness.
+
+**Files committed:**
+- `docs/superpowers/specs/2026-05-23-employee-onboarding-wizard-design.md` (R2 — full rewrite)
+- `docs/council/COUNCIL-LOG.md` (this entry)
+
+## 2026-05-23 — Employee Onboarding Wizard R3 (Post-Implementation)
+**Type:** post-implementation
+**Verdict:** REJECT → APPROVE (post-remediation)
+**Agents consulted:** system-steward (chair, Phase 3 + 5), supervisor (Phase 3 + page-polish), system-agent-coordinator (code-tracer), feature-dev:code-reviewer (visual axis fallback)
+**Prior verdict held?** R2 spec verdict held (APPROVED-FOR-PLAN). R3 caught 11 implementation defects R2 didn't anticipate.
+
+**Chair self-reversals (L-0147 protocol):**
+1. Phase 3 C1 telemetry step-number drift claim was FALSE. Falsifying evidence: welcome-wizard-actions.ts L84/144/187/265/351/449 emit step= matches WizardStep enum 2/3/4/5/6/7. Author comment at L357-358 documents 5=optional/6=availability correctly per the codebase's chosen ordering. Classification: REVERSED. 5th L-0147 precedent for chair this council.
+
+**11 merge-blockers found + fixed in 3 sub-sorties:**
+- Sortie A (9897db3f7): #1+#2 state GET PGRST116, #3 eos_dismissed_iff_ts violation, #5 recordWelcomeResume amplification
+- Sortie B (d36a69643): #6 Radix Dialog a11y, #9 StepDots motion rm-gate, #11 site-map bump
+- Sortie C (405051773): #4 mobile dismiss redirect loop, #7 ADR-0396 §Exceptions amend, #8 mobile hardcoded versions, #10 journey doc drift
+
+**Key decision:** State-row coherence + lifecycle transitions codified in ADR-0400. ADR-0396 amended to enumerate address columns as legacy carve-outs (followup migration ADR placeholder).
+
+**ADR created:** 0400 (Welcome Wizard State Lifecycle Constraints)
+**ADR amended:** 0396 (§Exceptions extended)
+**Learnings created:** L-0333 (upsert+ignoreDuplicates trap), L-0334 (biconditional CHECK coherence), L-0335 (mirror-tables version drift), L-0336 (page-polish misses dialogs), L-0337 (journey verified-flag premature)
+
+**Files committed (3 remediation commits + this Phase 8 capture):**
+- 9897db3f7, d36a69643, 405051773 (remediation)
+- This entry + 6 new docs (ADR-0400 + 5 learnings + this log)

@@ -294,7 +294,172 @@ export async function skipOptional(): Promise<ActionResult> {
   return { ok: true };
 }
 
-// ─── Step 6: Complete ─────────────────────────────────────────────────────────
+// ─── Step 5b: Availability ────────────────────────────────────────────────────
+
+const WeekdayCode = z.enum(["MO", "TU", "WE", "TH", "FR", "SA", "SU"]);
+export type WeekdayCode = z.infer<typeof WeekdayCode>;
+
+const SaveAvailabilitySchema = z.object({
+  unavailableDays: z.array(WeekdayCode),
+});
+export type SaveAvailabilityInput = z.infer<typeof SaveAvailabilitySchema>;
+
+/**
+ * Wizard step 5b. Writes one row per unavailable weekday into
+ * `employee_availability` (preference_type='unavailable', RRULE weekly).
+ * Idempotent: deletes prior 'onboarding-wizard'-provenance rows for this
+ * profile before inserting the current selection.
+ * Auth: server-derived per ADR-0151. Fail-fast on missing profile per L-0177.
+ */
+export async function saveAvailability(input: SaveAvailabilityInput): Promise<ActionResult> {
+  const parsed = SaveAvailabilitySchema.safeParse(input);
+  if (!parsed.success) return badInput(parsed.error.issues);
+
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Idempotent: clear prior wizard-provenance rows.
+  const { error: delErr } = await supabase
+    .from("employee_availability")
+    .delete()
+    .eq("workspace_id", profile.workspaceId)
+    .eq("profile_id", profile.profileId)
+    .eq("reason", "onboarding-wizard");
+  if (delErr) return { ok: false, error: delErr.message };
+
+  if (parsed.data.unavailableDays.length === 0) {
+    return { ok: true };
+  }
+
+  const rows = parsed.data.unavailableDays.map((day) => ({
+    workspace_id: profile.workspaceId,
+    profile_id: profile.profileId,
+    valid_from: today,
+    valid_to: null as string | null,
+    rrule: `FREQ=WEEKLY;BYDAY=${day}`,
+    preference_type: "unavailable" as const,
+    reason: "onboarding-wizard",
+    created_by: profile.profileId,
+  }));
+
+  const { error: insErr } = await supabase.from("employee_availability").insert(rows);
+  if (insErr) return { ok: false, error: insErr.message };
+
+  await emit({
+    event: "profile welcome_wizard_step_completed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      // step 6 = availability (5=optional, 6=availability per wizard step numbering).
+      // unavailable_count omitted — registry schema only allows { step, step_name }.
+      data: { step: 6, step_name: "availability" },
+    },
+  });
+
+  return { ok: true };
+}
+
+// ─── Step 7: Consent ─────────────────────────────────────────────────────────
+
+// Document version constants live in ./welcome-wizard-constants — a
+// non-"use server" sibling. Re-exporting values from this module would
+// fail bundle ("Only async functions are allowed to be exported in a
+// 'use server' file"). Test + future consumers import from constants file.
+import {
+  HANDBOOK_DOCUMENT_VERSION,
+  GDPR_DOCUMENT_VERSION,
+  TARIFF_DOCUMENT_VERSION,
+} from "./welcome-wizard-constants";
+
+const SaveConsentInput = z.object({
+  handbook: z.literal(true),
+  gdpr: z.literal(true),
+  tariff: z.boolean().optional(),
+});
+export type SaveConsentInput = z.infer<typeof SaveConsentInput>;
+
+/**
+ * Wizard step 7. Inserts one consent_acceptance row per accepted
+ * consent_type. All-or-nothing: if tariff checkbox is required by
+ * payroll.workspace_settings.is_tariff_bound and missing, returns an error.
+ *
+ * INSERT requires service-role (no JWT INSERT policy on consent_acceptance —
+ * audit-trail immutability enforced at RLS level). Uses createAdminClient()
+ * per pattern established in other wizard steps (saveContact, saveAddress, etc).
+ *
+ * Auth: server-derived per ADR-0151. Fail-fast on missing profile per L-0177.
+ */
+export async function saveConsent(input: SaveConsentInput): Promise<ActionResult> {
+  const parsed = SaveConsentInput.safeParse(input);
+  if (!parsed.success) return badInput(parsed.error.issues);
+
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const admin = createAdminClient();
+
+  // Workspace tariff binding gate — read from payroll.workspace_settings
+  // (is_tariff_bound lives in payroll schema, not public.workspace).
+  const { data: ws } = await admin
+    .schema("payroll")
+    .from("workspace_settings")
+    .select("is_tariff_bound")
+    .eq("workspace_id", profile.workspaceId)
+    .maybeSingle();
+  const tariffRequired = ws?.is_tariff_bound === true;
+  if (tariffRequired && parsed.data.tariff !== true) {
+    return { ok: false, error: "tariff_consent_required" };
+  }
+
+  const rows: Array<{
+    workspace_id: string;
+    profile_id: string;
+    consent_type: "handbook" | "gdpr" | "tariff";
+    document_version: string;
+  }> = [
+    {
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "handbook",
+      document_version: HANDBOOK_DOCUMENT_VERSION,
+    },
+    {
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "gdpr",
+      document_version: GDPR_DOCUMENT_VERSION,
+    },
+  ];
+  if (parsed.data.tariff === true) {
+    rows.push({
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "tariff",
+      document_version: TARIFF_DOCUMENT_VERSION,
+    });
+  }
+
+  const { error } = await admin.from("consent_acceptance").insert(rows);
+  if (error) return { ok: false, error: error.message };
+
+  void emit({
+    event: "profile welcome_wizard_step_completed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      data: { step: 7, step_name: "consent" },
+    },
+  });
+
+  return { ok: true };
+}
+
+// ─── Step 8: Complete ─────────────────────────────────────────────────────────
 
 export async function completeWelcome(): Promise<ActionResult> {
   const profile = await resolveCurrentProfile();
@@ -303,6 +468,7 @@ export async function completeWelcome(): Promise<ActionResult> {
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
+  // Flip profile flags (existing behavior — service-role required, no JWT UPDATE policy on profile).
   const { error } = await admin
     .from("profile")
     .update({
@@ -314,7 +480,25 @@ export async function completeWelcome(): Promise<ActionResult> {
 
   if (error) return { ok: false, error: error.message };
 
-  await emit({
+  // Mirror completion into employee_onboarding_state (JWT policy sufficient — own row).
+  // completed_at must be set when status='completed' per eos_completed_iff_ts constraint.
+  // dismissed_at must be NULL when status='completed' per eos_dismissed_iff_ts constraint
+  // (bidirectional: status='dismissed' ↔ dismissed_at IS NOT NULL). A user who dismissed
+  // then resumed + completed would otherwise leave dismissed_at set → CHECK violation.
+  const supabase = await createClient();
+  const { error: stateErr } = await supabase.from("employee_onboarding_state").upsert(
+    {
+      profile_id: profile.profileId,
+      workspace_id: profile.workspaceId,
+      status: "completed",
+      completed_at: now,
+      dismissed_at: null,
+    },
+    { onConflict: "profile_id" },
+  );
+  if (stateErr) return { ok: false, error: stateErr.message };
+
+  void emit({
     event: "profile welcome_wizard_completed",
     workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
     actor_id: nonEmpty(profile.profileId, "actor_id"),
@@ -325,4 +509,101 @@ export async function completeWelcome(): Promise<ActionResult> {
   });
 
   return { ok: true };
+}
+
+// ─── Dismiss / Resume ─────────────────────────────────────────────────────────
+
+/**
+ * Sets wizard state to 'dismissed' when user closes via "Lukk og fortsett
+ * senere". JWT policy on employee_onboarding_state is sufficient (own row).
+ * dismissed_at must be set when status='dismissed' per eos_dismissed_iff_ts.
+ * Callers MAY pass current step context for telemetry granularity.
+ */
+export async function dismissWelcomeWizard(
+  stepIndex: number = 0,
+  stepName: string = "wizard",
+): Promise<ActionResult> {
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("employee_onboarding_state").upsert(
+    {
+      profile_id: profile.profileId,
+      workspace_id: profile.workspaceId,
+      status: "dismissed",
+      dismissed_at: new Date().toISOString(),
+    },
+    { onConflict: "profile_id" },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  void emit({
+    event: "profile welcome_wizard_dismissed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      data: { step: stepIndex, step_name: stepName },
+    },
+  });
+
+  return { ok: true };
+}
+
+/**
+ * Transitions a dismissed wizard back to 'in_progress' and emits
+ * `welcome_wizard_resumed`. Called from the BFF GET handler when the state row
+ * has dismissed_at IS NOT NULL and the wizard is re-opened.
+ *
+ * WHY UPDATE before emit: the GET gate (`dismissed_at && !completed_at`) fires
+ * on every subsequent GET while dismissed_at stays set — causing telemetry
+ * amplification (flood of resume events per page load). Transitioning the row
+ * to in_progress + clearing dismissed_at ensures the gate fires exactly once:
+ * the very next GET after dismissal finds dismissed_at=null and skips.
+ *
+ * The UPDATE is scoped to `status='dismissed'` — idempotent if the row was
+ * already transitioned (e.g. by a concurrent request). Uses admin client for
+ * safety: the JWT UPDATE policy on employee_onboarding_state covers own-row
+ * updates, but this function is called outside a Server Action context where
+ * the cookie session may not be available.
+ *
+ * CHECK constraint satisfaction after UPDATE:
+ *   eos_dismissed_iff_ts: (status='dismissed') = (dismissed_at IS NOT NULL)
+ *     → status='in_progress', dismissed_at=null → false=false ✓
+ *   eos_completed_iff_ts: (status='completed') = (completed_at IS NOT NULL)
+ *     → status='in_progress', completed_at stays null → false=false ✓
+ *
+ * Takes explicit IDs because this is called server-side outside a Server
+ * Action (no resolveCurrentProfile() available).
+ */
+export async function recordWelcomeResume(
+  profileId: string,
+  workspaceId: string,
+  stepIndex: number = 0,
+  stepName: string = "wizard",
+): Promise<void> {
+  const admin = createAdminClient();
+
+  // Transition row out of dismissed state — scoped so only dismissed rows are
+  // touched (idempotent: no-op if already in_progress or completed).
+  await admin
+    .from("employee_onboarding_state")
+    .update({
+      status: "in_progress",
+      dismissed_at: null,
+    })
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "dismissed");
+
+  void emit({
+    event: "profile welcome_wizard_resumed",
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { step: stepIndex, step_name: stepName },
+    },
+  });
 }

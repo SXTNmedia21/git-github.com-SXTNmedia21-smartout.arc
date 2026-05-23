@@ -229,3 +229,13 @@ export const nativeTheme = {
     },
   },
 } as const;
+
+/** Reanimated-compatible motion tokens. Mirrors the web `motion.*` tokens
+ *  from `tokens.ts` so the mobile WizardShell uses the same curve. */
+export const nativeMotion = {
+  spring: { stiffness: 35, damping: 22, mass: 2.2 },
+  springSnappy: { stiffness: 45, damping: 24, mass: 2 },
+  springGentle: { stiffness: 30, damping: 20, mass: 2.5 },
+  enterMs: 500,
+  exitMs: 250,
+} as const;

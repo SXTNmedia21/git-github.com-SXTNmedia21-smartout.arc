@@ -22,6 +22,7 @@ import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
+import { CompleteProfileCard } from "@/components/onboarding/CompleteProfileCard";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useClockIn } from "@/hooks/queries/use-shift-session";
@@ -174,6 +175,9 @@ export function BeforeShiftView({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Onboarding CTA — hidden once wizard is complete (spec §S5) */}
+      <CompleteProfileCard />
+
       {/* Phase header */}
       <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.header}>
         <View style={styles.phasePill}>

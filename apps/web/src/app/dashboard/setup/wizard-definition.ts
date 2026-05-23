@@ -8,17 +8,6 @@
  * to the existing step components in components/dashboard/wizard-steps/.
  */
 
-import {
-  Sparkles,
-  Upload,
-  ShieldCheck,
-  DollarSign,
-  Briefcase,
-  Users,
-  Clock,
-  Calendar,
-  BookOpen,
-} from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
@@ -366,33 +355,33 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
     {
       id: "welcome",
       labelKey: "steps.welcome",
-      icon: Sparkles,
+      iconName: "sparkles",
       component: WelcomeStepAdapter,
       skippable: true,
     },
     {
       id: "document-drop",
       labelKey: "steps.documents",
-      icon: Upload,
+      iconName: "upload",
       component: DocumentDropStepAdapter,
       skippable: true,
     },
     {
       id: "governance",
       labelKey: "steps.governance",
-      icon: ShieldCheck,
+      iconName: "shield-check",
       component: GovernanceStepAdapter,
     },
     {
       id: "payroll",
       labelKey: "steps.payroll",
-      icon: DollarSign,
+      iconName: "dollar-sign",
       component: PayrollStepAdapter,
     },
     {
       id: "employment",
       labelKey: "steps.employment",
-      icon: Briefcase,
+      iconName: "briefcase",
       component: EmploymentStepAdapter,
       onStepLeave: async () => {
         await callEmploymentSave();
@@ -401,7 +390,7 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
     {
       id: "team",
       labelKey: "steps.team",
-      icon: Users,
+      iconName: "users",
       component: TeamStepAdapter,
       skippable: true,
       onStepLeave: async (state: SetupState) => {
@@ -413,20 +402,20 @@ export const dashboardSetupWizard: WizardDefinition<SetupState> = {
     {
       id: "shift-template",
       labelKey: "steps.shifts",
-      icon: Clock,
+      iconName: "clock",
       component: ShiftTemplateStepAdapter,
       skippable: true,
     },
     {
       id: "season",
       labelKey: "steps.season",
-      icon: Calendar,
+      iconName: "calendar",
       component: SeasonStepAdapter,
     },
     {
       id: "handbook",
       labelKey: "steps.handbook",
-      icon: BookOpen,
+      iconName: "book-open",
       component: HandbookStepAdapter,
       skippable: true,
     },

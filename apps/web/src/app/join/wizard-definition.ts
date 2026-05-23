@@ -9,7 +9,6 @@
  * onComplete runs completeSignup server action and redirects to /onboarding.
  */
 
-import { Building2, CheckCircle, Clock, FileText, Mail, UtensilsCrossed } from "lucide-react";
 import type { WizardDefinition } from "@smartout/ui";
 import type { JoinState } from "./types";
 import { defaultJoinState } from "./types";
@@ -218,7 +217,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "account",
       labelKey: "steps.account",
-      icon: Mail,
+      iconName: "mail",
       component: Step1Account,
       validation: step1Schema,
       validationKey: "account",
@@ -226,7 +225,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "business",
       labelKey: "steps.business",
-      icon: Building2,
+      iconName: "building-2",
       component: Step2Business,
       validation: step2Schema,
       validationKey: "business",
@@ -234,7 +233,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "about",
       labelKey: "steps.about",
-      icon: FileText,
+      iconName: "file-text",
       component: Step3About,
       validation: step3Schema,
       validationKey: "about",
@@ -243,7 +242,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "hours",
       labelKey: "steps.hours",
-      icon: Clock,
+      iconName: "clock",
       component: Step4Hours,
       validation: step4Schema,
       validationKey: "hours",
@@ -251,7 +250,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "menu",
       labelKey: "steps.menu",
-      icon: UtensilsCrossed,
+      iconName: "utensils-crossed",
       component: Step5Menu,
       validation: step5Schema,
       validationKey: "menu",
@@ -260,7 +259,7 @@ export const joinWizard: WizardDefinition<JoinState> = {
     {
       id: "summary",
       labelKey: "steps.summary",
-      icon: CheckCircle,
+      iconName: "check-circle",
       component: Step6Summary,
       // No hideNavBar — the standard "Fullfør" nav button triggers onComplete
     },
