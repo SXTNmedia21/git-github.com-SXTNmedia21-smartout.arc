@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface WasteLogRow {
   waste_log_id: string;
@@ -21,6 +20,7 @@ interface WasteLogRow {
 export async function handleGetWasteLogs(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -38,7 +38,7 @@ export async function handleGetWasteLogs(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: waste:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -87,5 +87,5 @@ export async function handleGetWasteLogs(
 
   const rows = await executeWithWorkspaceContext<WasteLogRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ waste_logs: rows, limit, offset });
+  return jsonOk({ waste_logs: rows, limit, offset }, cors);
 }

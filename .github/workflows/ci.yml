@@ -84,6 +84,11 @@ jobs:
           echo "Checking $(echo "$FILES" | wc -l) files:"
           echo "$FILES"
           echo "$FILES" | xargs pnpm exec prettier --check
+      - name: CORS pattern gate (ADR-0408)
+        # Blocks re-introduction of the deprecated static corsHeaders constant.
+        # Any EF file importing corsHeaders from _shared/cors.ts or hardcoding
+        # Access-Control-Allow-Origin: https://... fails with exit 1.
+        run: pnpm check:cors
 
   # ── Vitest (packages with unit/integration tests) ───────────────
   # Any PR that breaks a capability, hook, or telemetry-registry test blocks merge.

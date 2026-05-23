@@ -12,6 +12,7 @@
     "dev:journey-control": "pnpm --filter @smartout/journey-control dev",
     "lint": "turbo run lint",
     "lint:tool-collisions": "tsx scripts/check-tool-name-collisions.ts",
+    "check:cors": "node scripts/check-cors-pattern.mjs",
     "check:otp": "node scripts/check-otp-coherence.mjs",
     "check:redirects": "node scripts/check-redirect-coherence.mjs",
     "check:domains": "node scripts/domain-lint.mjs --changed",

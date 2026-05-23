@@ -18,7 +18,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 /**
  * Generates a random 6-character profile code.
@@ -54,16 +54,17 @@ async function ensureCompanyMember(
 }
 
 Deno.serve(async (req: Request) => {
+  const cors = getCorsHeaders(req);
   // ── CORS preflight ──
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // Only accept POST
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -122,7 +123,7 @@ Deno.serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         },
       );
     }
@@ -131,14 +132,14 @@ Deno.serve(async (req: Request) => {
     if (!authenticatedUserId && !password) {
       return new Response(JSON.stringify({ error: "Password is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
     if (password && password.length < 8) {
       return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -154,7 +155,7 @@ Deno.serve(async (req: Request) => {
     if (invError || !invitation) {
       return new Response(JSON.stringify({ error: "Invalid or expired invitation" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -167,7 +168,7 @@ Deno.serve(async (req: Request) => {
     if (!authenticatedUserId && !inviteEmail) {
       return new Response(JSON.stringify({ error: "Email is required to create an account" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -192,7 +193,7 @@ Deno.serve(async (req: Request) => {
 
       return new Response(JSON.stringify({ error: "This invitation has expired" }), {
         status: 410,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -242,7 +243,7 @@ Deno.serve(async (req: Request) => {
             }),
             {
               status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: { ...cors, "Content-Type": "application/json" },
             },
           );
         }
@@ -286,7 +287,7 @@ Deno.serve(async (req: Request) => {
         }),
         {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         },
       );
     }
@@ -320,7 +321,7 @@ Deno.serve(async (req: Request) => {
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         },
       );
     }
@@ -457,7 +458,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       },
     );
   } catch (error: unknown) {
@@ -468,7 +469,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       },
     );
   }

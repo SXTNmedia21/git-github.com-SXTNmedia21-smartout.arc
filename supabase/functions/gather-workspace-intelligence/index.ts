@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 import {
   type BrregEntity,
@@ -112,8 +112,9 @@ async function fetchGooglePlaces(
 // --- Main handler ---
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
@@ -162,7 +163,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "URL, org number, or company name is required." }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
           status: 400,
         },
       );
@@ -322,7 +323,7 @@ Deno.serve(async (req) => {
     if (!companyName) {
       return new Response(
         JSON.stringify({ error: "Could not determine company name from scraping or Brreg." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        { headers: { ...cors, "Content-Type": "application/json" }, status: 400 },
       );
     }
 
@@ -548,7 +549,7 @@ Deno.serve(async (req) => {
         },
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 200,
       },
     );
@@ -559,7 +560,7 @@ Deno.serve(async (req) => {
         error: error instanceof Error ? error.message : String(error),
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 400,
       },
     );

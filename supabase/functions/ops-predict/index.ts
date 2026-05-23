@@ -14,7 +14,7 @@
  */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // ============================================================================
 // TYPES
@@ -556,9 +556,10 @@ async function emitTelemetry(
 // ============================================================================
 
 Deno.serve(async (req: Request) => {
+  const cors = getCorsHeaders(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // Auth guard: WATCHDOG_CRON_SECRET bearer token (standard cron pattern)
@@ -568,7 +569,7 @@ Deno.serve(async (req: Request) => {
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 401, headers: { "Content-Type": "application/json", ...cors } }
     );
   }
 
@@ -650,7 +651,7 @@ Deno.serve(async (req: Request) => {
         total_predictions: totalPredictions,
         workspaces_processed: workspaces.length,
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 200, headers: { "Content-Type": "application/json", ...cors } }
     );
   } catch (error) {
     console.error("Prediction analysis error:", error);
@@ -659,7 +660,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 500, headers: { "Content-Type": "application/json", ...cors } }
     );
   }
 });
