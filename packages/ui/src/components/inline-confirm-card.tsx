@@ -248,6 +248,8 @@ export function InlineConfirmCard({ descriptor, onResolve, className }: InlineCo
         onKeyDown={handleKeyDown}
         // Card must be focusable to receive keyboard events (tabIndex=-1: programmatic only)
         tabIndex={-1}
+        data-testid="inline-confirm-card"
+        data-mode={mode}
       >
         {/* ── Header row ────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-2">
@@ -353,6 +355,7 @@ export function InlineConfirmCard({ descriptor, onResolve, className }: InlineCo
               size="sm"
               disabled={isLoading || isSettled}
               onClick={() => void handleAction("confirm")}
+              data-testid="inline-confirm-card-confirm"
               className="focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2"
             >
               {isLoading && loadingButton === "confirm" ? (
@@ -375,6 +378,7 @@ export function InlineConfirmCard({ descriptor, onResolve, className }: InlineCo
               size="sm"
               disabled={isLoading || isSettled}
               onClick={() => void handleAction("edit")}
+              data-testid="inline-confirm-card-edit"
               className="focus-visible:ring-ring focus-visible:ring-offset-background gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
             >
               {isLoading && loadingButton === "edit" ? (
@@ -400,6 +404,7 @@ export function InlineConfirmCard({ descriptor, onResolve, className }: InlineCo
               size="sm"
               disabled={isLoading || isSettled}
               onClick={() => void handleAction("cancel")}
+              data-testid="inline-confirm-card-cancel"
               className={cn(
                 "text-destructive hover:text-destructive hover:bg-destructive/10",
                 "focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2",
