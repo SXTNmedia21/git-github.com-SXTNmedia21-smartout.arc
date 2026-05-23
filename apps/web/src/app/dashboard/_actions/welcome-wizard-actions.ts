@@ -482,6 +482,9 @@ export async function completeWelcome(): Promise<ActionResult> {
 
   // Mirror completion into employee_onboarding_state (JWT policy sufficient — own row).
   // completed_at must be set when status='completed' per eos_completed_iff_ts constraint.
+  // dismissed_at must be NULL when status='completed' per eos_dismissed_iff_ts constraint
+  // (bidirectional: status='dismissed' ↔ dismissed_at IS NOT NULL). A user who dismissed
+  // then resumed + completed would otherwise leave dismissed_at set → CHECK violation.
   const supabase = await createClient();
   const { error: stateErr } = await supabase.from("employee_onboarding_state").upsert(
     {
@@ -489,6 +492,7 @@ export async function completeWelcome(): Promise<ActionResult> {
       workspace_id: profile.workspaceId,
       status: "completed",
       completed_at: now,
+      dismissed_at: null,
     },
     { onConflict: "profile_id" },
   );
@@ -548,11 +552,30 @@ export async function dismissWelcomeWizard(
 }
 
 /**
- * Emits `welcome_wizard_resumed` when a previously-dismissed wizard is
- * re-opened. Called from the BFF GET handler when state row has dismissed_at
- * IS NOT NULL and the cold-start gate fires again.
- * Takes explicit IDs + step context because this may be called server-side
- * outside a Server Action (no resolveCurrentProfile() available).
+ * Transitions a dismissed wizard back to 'in_progress' and emits
+ * `welcome_wizard_resumed`. Called from the BFF GET handler when the state row
+ * has dismissed_at IS NOT NULL and the wizard is re-opened.
+ *
+ * WHY UPDATE before emit: the GET gate (`dismissed_at && !completed_at`) fires
+ * on every subsequent GET while dismissed_at stays set — causing telemetry
+ * amplification (flood of resume events per page load). Transitioning the row
+ * to in_progress + clearing dismissed_at ensures the gate fires exactly once:
+ * the very next GET after dismissal finds dismissed_at=null and skips.
+ *
+ * The UPDATE is scoped to `status='dismissed'` — idempotent if the row was
+ * already transitioned (e.g. by a concurrent request). Uses admin client for
+ * safety: the JWT UPDATE policy on employee_onboarding_state covers own-row
+ * updates, but this function is called outside a Server Action context where
+ * the cookie session may not be available.
+ *
+ * CHECK constraint satisfaction after UPDATE:
+ *   eos_dismissed_iff_ts: (status='dismissed') = (dismissed_at IS NOT NULL)
+ *     → status='in_progress', dismissed_at=null → false=false ✓
+ *   eos_completed_iff_ts: (status='completed') = (completed_at IS NOT NULL)
+ *     → status='in_progress', completed_at stays null → false=false ✓
+ *
+ * Takes explicit IDs because this is called server-side outside a Server
+ * Action (no resolveCurrentProfile() available).
  */
 export async function recordWelcomeResume(
   profileId: string,
@@ -560,6 +583,20 @@ export async function recordWelcomeResume(
   stepIndex: number = 0,
   stepName: string = "wizard",
 ): Promise<void> {
+  const admin = createAdminClient();
+
+  // Transition row out of dismissed state — scoped so only dismissed rows are
+  // touched (idempotent: no-op if already in_progress or completed).
+  await admin
+    .from("employee_onboarding_state")
+    .update({
+      status: "in_progress",
+      dismissed_at: null,
+    })
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "dismissed");
+
   void emit({
     event: "profile welcome_wizard_resumed",
     workspace_id: nonEmpty(workspaceId, "workspace_id"),

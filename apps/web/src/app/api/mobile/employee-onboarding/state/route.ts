@@ -5,7 +5,7 @@
  * Mobile BFF twin of /api/employee-onboarding/state (web cookie route, T17).
  * Bearer auth only — mobile surface per ADR-0132/0151.
  *
- * GET — Lazily creates the state row (UPSERT ignoreDuplicates=true).
+ * GET — Lazily creates the state row (UPSERT ignoreDuplicates=false).
  *        If previously dismissed and not completed, fires welcome_wizard_resumed
  *        telemetry so resumption is captured in activity_trail.
  *
@@ -56,13 +56,16 @@ export async function GET(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Lazy-create on first GET. UPSERT with ignoreDuplicates=true means the row is
-  // only inserted when absent; existing columns are never overwritten by the upsert.
+  // Lazy-create on first GET. ignoreDuplicates MUST be false (the default).
+  // With ignoreDuplicates:true PostgREST emits DO NOTHING on conflict and
+  // returns zero rows → .single() throws PGRST116 on every call after the first.
+  // ignoreDuplicates:false issues DO UPDATE SET … RETURNING which always returns
+  // the row. Only PK columns are supplied, so no existing data is overwritten.
   const { data, error } = await admin
     .from("employee_onboarding_state")
     .upsert(
       { profile_id: actor.profileId, workspace_id: actor.workspaceId },
-      { onConflict: "profile_id", ignoreDuplicates: true },
+      { onConflict: "profile_id", ignoreDuplicates: false },
     )
     .select("status, current_step_index, step_data, dismissed_at, completed_at")
     .single();

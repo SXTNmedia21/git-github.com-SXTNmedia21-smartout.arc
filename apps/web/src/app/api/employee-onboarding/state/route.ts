@@ -47,9 +47,11 @@ export async function GET(_req: NextRequest) {
 
   const supabase = await createClient();
 
-  // Lazy-create on first GET. UPSERT semantics — never errors when row already
-  // exists; existing columns are NOT reset (ignoreDuplicates: false + only PK
-  // columns supplied means no existing data is overwritten).
+  // Lazy-create on first GET. ignoreDuplicates MUST be false (the default).
+  // With ignoreDuplicates:true PostgREST emits DO NOTHING on conflict and
+  // returns zero rows → .single() throws PGRST116 on every call after the first.
+  // ignoreDuplicates:false issues DO UPDATE SET … RETURNING which always returns
+  // the row. Only PK columns are supplied, so no existing data is overwritten.
   const { data, error } = await supabase
     .from("employee_onboarding_state")
     .upsert(
@@ -57,7 +59,7 @@ export async function GET(_req: NextRequest) {
         profile_id: profile.profileId,
         workspace_id: profile.workspaceId,
       },
-      { onConflict: "profile_id", ignoreDuplicates: true },
+      { onConflict: "profile_id", ignoreDuplicates: false },
     )
     .select("status, current_step_index, step_data, dismissed_at, completed_at")
     .single();

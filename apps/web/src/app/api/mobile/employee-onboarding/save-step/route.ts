@@ -363,12 +363,16 @@ export async function POST(req: NextRequest) {
 
       // employee_onboarding_state: idempotent upsert.
       // completed_at required when status='completed' per eos_completed_iff_ts constraint.
+      // dismissed_at must be NULL when status='completed' per eos_dismissed_iff_ts constraint
+      // (bidirectional: status='dismissed' ↔ dismissed_at IS NOT NULL). A user who dismissed
+      // then resumed + completed would otherwise leave dismissed_at set → CHECK violation.
       const { error: stateErr } = await admin.from("employee_onboarding_state").upsert(
         {
           profile_id: actor.profileId,
           workspace_id: actor.workspaceId,
           status: "completed",
           completed_at: now,
+          dismissed_at: null,
         },
         { onConflict: "profile_id" },
       );
