@@ -2,22 +2,28 @@
 /**
  * bulk_import capability — drag-drop Excel/CSV migration of shifts + tasks.
  *
- * Sortie 0: skeleton (zero tools — wired in Sorties A/B/C).
+ * Sortie A: parse_spreadsheet (read-only) — wired here.
  * Spec: docs/superpowers/specs/2026-05-23-bulk-import-design.md
  * Council: 2026-05-23 APPROVE WITH CHANGES
  *
- * Tools (added in subsequent sorties):
- *   Sortie A: parse_spreadsheet (read-only)
+ * Tools:
+ *   Sortie A: parse_spreadsheet (read-only) ← current
  *   Sortie B: preview_batch, resolve_ambiguity
  *   Sortie C: commit_batch
  */
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
+import { parseSpreadsheetTool } from "./tools.js";
 
-const allTools = [] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
-const readOnlyTools = allTools;
-const suggestTools = allTools;
+const readOnlyTools = [parseSpreadsheetTool] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
+// parse_spreadsheet is suggest-level per ADR-0401 (admin+ can trigger a parse)
+const suggestTools = [parseSpreadsheetTool] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
+const allTools = [parseSpreadsheetTool] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 export const bulkImportCapability: CapabilityDefinition = {
   name: "bulk_import",

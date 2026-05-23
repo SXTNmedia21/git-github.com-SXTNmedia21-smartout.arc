@@ -60,7 +60,8 @@ export type EventCategory =
   | "cost" // ui-shell-cost-polish — Cost overview telemetry
   | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
   | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
-  | "people"; // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "people" // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "bulk_import"; // ADR-0401 — bulk_import capability (Sortie A: parse_spreadsheet)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -8423,6 +8424,30 @@ export interface UiDemoShown extends BaseEvent {
   };
 }
 
+// ─── Bulk Import Events (ADR-0401, Sortie A — parse_spreadsheet) ──────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// Emitted by:
+//   - packages/ai : bulk_import capability parse_spreadsheet tool, on successful
+//     CSV parse. ONE emit per parse per ADR-0287.
+// Routing: posthog (adoption analytics) + logger (debugging) + activity_trail
+//   (audit — file parse is an auditable import action, workspace-scoped).
+// No engine_event — Sortie A is read-only; no DB write = no workflow trigger.
+export interface BulkImportBatchParsed extends BaseEvent {
+  event: "bulk_import.batch_parsed";
+  properties: {
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      source_kind: "vaktliste" | "kjoreplan" | "mixed";
+      sheet_count: number;
+      row_count: number;
+      excel_sha256: string;
+      /** Fraction 0–1 of canonical fields auto-mapped from headers. */
+      suggested_mapping_completeness: number;
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9350,7 +9375,9 @@ export type SmartoutEvent =
   | MobileVoiceMicPermissionDenied
   | MobileVoiceDisconnectRecovered
   | MobileVoiceDisconnectFailed
-  | MobileVoicePolicyFlipped;
+  | MobileVoicePolicyFlipped
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  | BulkImportBatchParsed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -15166,5 +15193,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "mobile.voice.policy_flipped": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  // bulk_import.batch_parsed: ONE emit per successful CSV parse (ADR-0287).
+  // posthog (import-funnel analytics) + logger (debugging) + activity_trail
+  // (workspace-scoped audit for import actions). No engine_event — Sortie A
+  // is read-only; no DB write = no workflow state transition.
+  "bulk_import.batch_parsed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "bulk_import",
   },
 };
