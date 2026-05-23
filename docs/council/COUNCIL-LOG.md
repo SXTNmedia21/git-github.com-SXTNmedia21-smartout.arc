@@ -2420,3 +2420,27 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Files committed:**
 - `docs/superpowers/specs/2026-05-23-employee-onboarding-wizard-design.md` (R2 — full rewrite)
 - `docs/council/COUNCIL-LOG.md` (this entry)
+
+## 2026-05-23 — Employee Onboarding Wizard R3 (Post-Implementation)
+**Type:** post-implementation
+**Verdict:** REJECT → APPROVE (post-remediation)
+**Agents consulted:** system-steward (chair, Phase 3 + 5), supervisor (Phase 3 + page-polish), system-agent-coordinator (code-tracer), feature-dev:code-reviewer (visual axis fallback)
+**Prior verdict held?** R2 spec verdict held (APPROVED-FOR-PLAN). R3 caught 11 implementation defects R2 didn't anticipate.
+
+**Chair self-reversals (L-0147 protocol):**
+1. Phase 3 C1 telemetry step-number drift claim was FALSE. Falsifying evidence: welcome-wizard-actions.ts L84/144/187/265/351/449 emit step= matches WizardStep enum 2/3/4/5/6/7. Author comment at L357-358 documents 5=optional/6=availability correctly per the codebase's chosen ordering. Classification: REVERSED. 5th L-0147 precedent for chair this council.
+
+**11 merge-blockers found + fixed in 3 sub-sorties:**
+- Sortie A (9897db3f7): #1+#2 state GET PGRST116, #3 eos_dismissed_iff_ts violation, #5 recordWelcomeResume amplification
+- Sortie B (d36a69643): #6 Radix Dialog a11y, #9 StepDots motion rm-gate, #11 site-map bump
+- Sortie C (405051773): #4 mobile dismiss redirect loop, #7 ADR-0396 §Exceptions amend, #8 mobile hardcoded versions, #10 journey doc drift
+
+**Key decision:** State-row coherence + lifecycle transitions codified in ADR-0400. ADR-0396 amended to enumerate address columns as legacy carve-outs (followup migration ADR placeholder).
+
+**ADR created:** 0400 (Welcome Wizard State Lifecycle Constraints)
+**ADR amended:** 0396 (§Exceptions extended)
+**Learnings created:** L-0333 (upsert+ignoreDuplicates trap), L-0334 (biconditional CHECK coherence), L-0335 (mirror-tables version drift), L-0336 (page-polish misses dialogs), L-0337 (journey verified-flag premature)
+
+**Files committed (3 remediation commits + this Phase 8 capture):**
+- 9897db3f7, d36a69643, 405051773 (remediation)
+- This entry + 6 new docs (ADR-0400 + 5 learnings + this log)
