@@ -13,7 +13,7 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 
 **Goal:** Ship the database foundation + read-only first tool (`parse_spreadsheet`) for the `bulk_import` capability, unblocking Sortie B preview/resolver work.
 
-**Architecture:** Three ADRs (0400 capability + import_run + delegation, 0401 xlsx library policy, 0403 schedule_shift.source value) → two migrations same-commit (foundation schema + authority seed per L-0083 default-deny) → two pure-utility packages (CSV parser via papaparse, sha256 helper) → resolver wrapper around new RPC → first read-only capability tool (`parse_spreadsheet`) → telemetry registry entry for the one event that actually emits in Sortie A (per ADR-0377 register-with-emit). Zero DB writes from capability tools in this sortie — Sortie B+C add mutations.
+**Architecture:** Three ADRs (0401 capability + import_run + delegation, 0402 xlsx library policy, 0404 schedule_shift.source value) → two migrations same-commit (foundation schema + authority seed per L-0083 default-deny) → two pure-utility packages (CSV parser via papaparse, sha256 helper) → resolver wrapper around new RPC → first read-only capability tool (`parse_spreadsheet`) → telemetry registry entry for the one event that actually emits in Sortie A (per ADR-0377 register-with-emit). Zero DB writes from capability tools in this sortie — Sortie B+C add mutations.
 
 **Tech Stack:** PostgreSQL 17 + pg_trgm extension, Supabase migrations + RLS, TypeScript strict + Zod, papaparse, Node crypto for sha256, Hono (stage-engine), pnpm Turborepo, Playwright (E2E in Sortie B+C — integration smoke only here).
 
@@ -35,7 +35,7 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 - ADR-0173 frozen-4 boundary: `parse_spreadsheet` is read-only — no namespace-crossing concern. Sortie C cascade-delegation tools (Sortie B+C) will follow ADR-0356 helper pattern.
 
 **Out of scope (deferred to Sortie B+C):**
-- xlsx binary parsing (CSV-only in Sortie A per spec line 281 — Sortie B after ADR-0401 acceptance)
+- xlsx binary parsing (CSV-only in Sortie A per spec line 281 — Sortie B after ADR-0402 acceptance)
 - BotssonChat composer UI (Sortie B)
 - preview_batch / resolve_ambiguity / commit_batch tools
 - fn_commit_bulk_import RPC + cascade-delegation helper tools
@@ -45,9 +45,9 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 ## File Structure
 
 **Create (Sortie A):**
-- `docs/decisions/0400-bulk-import-capability-import-run-cascade-delegation.md` — capability + schema + delegation ADR
-- `docs/decisions/0401-xlsx-library-adoption-sheetjs.md` — xlsx library policy (adopted in Sortie B; ADR drafted now per spec lock-in)
-- `docs/decisions/0403-schedule-shift-source-bulk-import-value.md` — extends CHECK constraint
+- `docs/decisions/0401-bulk-import-capability-import-run-cascade-delegation.md` — capability + schema + delegation ADR
+- `docs/decisions/0402-xlsx-library-adoption-sheetjs.md` — xlsx library policy (adopted in Sortie B; ADR drafted now per spec lock-in)
+- `docs/decisions/0404-schedule-shift-source-bulk-import-value.md` — extends CHECK constraint
 - `supabase/migrations/20260624000000_bulk_import_foundation.sql` — pg_trgm + GIN indexes + import_run table + RLS + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK
 - `supabase/migrations/20260624000100_bulk_import_authority_seed.sql` — 4 engine_authority_config rows for parse_spreadsheet/preview_batch/resolve_ambiguity/commit_batch (all 4 tools registered in authority now to avoid L-0083 default-deny when later sorties add tool bodies)
 - `packages/utils/src/spreadsheet/index.ts` — papaparse wrapper, returns `Sheet[]`
@@ -64,7 +64,7 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 - `packages/telemetry/src/registry.ts` — register `bulk_import.batch_parsed` event (single entry; others come in Sortie B/C)
 - `packages/utils/package.json` — add `papaparse` + `@types/papaparse` deps
 - `docs/superpowers/specs/2026-05-23-bulk-import-design.md` — ADR-ref drift fix (lines 242/243/279 — already applied in plan-commit prep)
-- `docs/decisions/0000-decision-log.md` — register 0400/0401/0403 entries
+- `docs/decisions/0000-decision-log.md` — register 0401/0402/0404 entries
 
 **Test surfaces:**
 - Unit: `packages/utils/src/spreadsheet/index.test.ts`, `packages/utils/src/hash/index.test.ts`, `packages/ai/src/resolver/index.test.ts`, `packages/ai/src/capabilities/bulk_import/tools.test.ts`
@@ -72,36 +72,36 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 
 ---
 
-## Task 1: ADR-0400 — bulk_import Capability + import_run Table + Cascade-Delegated Commit Pipeline
+## Task 1: ADR-0401 — bulk_import Capability + import_run Table + Cascade-Delegated Commit Pipeline
 
 **Files:**
-- Create: `docs/decisions/0400-bulk-import-capability-import-run-cascade-delegation.md`
+- Create: `docs/decisions/0401-bulk-import-capability-import-run-cascade-delegation.md`
 - Modify: `docs/decisions/0000-decision-log.md` (add row)
 
 **Pre-work:** Read spec lines 22–104 (Locked Decisions + Sortie A scope), 149–227 (data model), 229–237 (C4 authority). Read `docs/templates/decision.md` if exists; otherwise mirror format of `docs/decisions/0398-inline-confirm-card-primitive.md`.
 
-- [ ] **Step 1: Verify slot 0400 still free across all branches (L-0316 reservation re-check)**
+- [ ] **Step 1: Verify slot 0401 still free across all branches (L-0316 reservation re-check)**
 
 ```bash
 cd /home/sxtnl/dev/smartout.ai-wt-4
 git fetch --all
-git log --all --oneline -- 'docs/decisions/0400-*' | head -5
-ls -la docs/decisions/0400-*.md 2>/dev/null
+git log --all --oneline -- 'docs/decisions/0401-*' | head -5
+ls -la docs/decisions/0401-*.md 2>/dev/null
 ```
 
-Expected: zero results from both. If any branch committed 0400-*, escalate before proceeding (cross-branch collision — bump to 0404).
+Expected: zero results from both. If any branch committed 0401-*, escalate before proceeding (cross-branch collision — bump to 0405).
 
-- [ ] **Step 2: Draft ADR-0400 file**
+- [ ] **Step 2: Draft ADR-0401 file**
 
 ```bash
-touch docs/decisions/0400-bulk-import-capability-import-run-cascade-delegation.md
+touch docs/decisions/0401-bulk-import-capability-import-run-cascade-delegation.md
 ```
 
 Content (full frontmatter + sections — `Context` cites spec + council 2026-05-23 + L-0316; `Decision` covers capability registration as new namespace, dedicated `import_run` table choice over `change_proposal` extension, cascade-delegation per ADR-0356 for cross-namespace writes, FORBIDDEN profile-stub policy with FK-chain rationale from DB-tracer; `Consequences` lists 3 helper tools to add Sortie C, RLS dual-path retired in favor of JWT-only since capability runs `direct_admin` service_role, schema lock-in load-bearing; `References` ADRs 0078/0112/0133/0173/0204/0287/0356/0377, L-0042/0083/0176/0177/0292/0316; `Status` Accepted 2026-05-23):
 
 ```markdown
 ---
-adr: 0400
+adr: 0401
 title: bulk_import Capability — Dedicated import_run Table + Cascade-Delegated Commit Pipeline
 status: accepted
 date: 2026-05-23
@@ -111,7 +111,7 @@ supersedes: []
 superseded-by: []
 ---
 
-# ADR-0400: bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline
+# ADR-0401: bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline
 
 ## Context
 
@@ -139,10 +139,15 @@ chair's "extend change_proposal" verdict after Supervisor evidence; column namin
 from `payload` to `changes` per DB-tracer; namespace naming REVERSED from `migration` to
 `bulk_import` to avoid collision with SQL-migration term in 400+ files).
 
-L-0316 6th occurrence: ADR slots 0398+0399 reserved for this sortie pre-empted cross-branch
-by wt-5 (feat/inline-confirm-card-phase1) for InlineConfirmCard + Channel Platform Descriptors.
-Discovered 2026-05-23 end-of-session via cross-branch grep. Reservation shifted up to 0400
-+ 0401 + 0403 (with 0402 reserved for Sortie C retroactive attachment-routing ADR).
+L-0316 6th + 7th occurrences: ADR slots reserved for this sortie pre-empted twice cross-branch.
+(1) 6th: slots 0398+0399 taken by wt-5 (feat/inline-confirm-card-phase1) for InlineConfirmCard +
+Channel Platform Descriptors — discovered 2026-05-23 end-of-prior-session via cross-branch grep;
+shifted +2 to 0400/0401/0402/0403. (2) 7th: slot 0400 then taken by wt-1
+(feat/employee-onboarding-wizard) for Welcome Wizard State Lifecycle Constraints at commit
+a9f95d6f4 — discovered during Sortie A Task 1 implementer pre-flight reservation re-check
+(implementer correctly reported BLOCKED rather than auto-bumping); shifted +1 more.
+Final reservation: 0401 + 0402 + 0404 (with 0403 reserved for Sortie C retroactive
+attachment-routing ADR). Total drift from V1 reservation: +3 slots.
 
 ## Decision
 
@@ -161,7 +166,7 @@ Discovered 2026-05-23 end-of-session via cross-branch grep. Reservation shifted 
   - `commit_batch` (Sortie C — calls SECURITY DEFINER RPC `fn_commit_bulk_import`)
 - Intent classifier enum entry + system prompt prose landed Sortie 0 (ADR-0112 6th
   pre-flight check observed). MIME-type deterministic dispatch (`.xlsx`/`.xls`/`.csv`)
-  bypasses the classifier in normal operation per ADR-0402 (Sortie C retroactive).
+  bypasses the classifier in normal operation per ADR-0403 (Sortie C retroactive).
 
 ### 2. Schema — dedicated `import_run` table
 
@@ -247,33 +252,33 @@ deserves intentional action, not automatic."
 - ADR-0288 — voice forbidden for irreversible writes
 - ADR-0356 — cascade-delegation actor_capability + delegated_via pattern
 - ADR-0377 — telemetry registry+emit same-commit gate
-- ADR-0402 — attachment routing MIME-deterministic dispatch (Sortie C retroactive)
+- ADR-0403 — attachment routing MIME-deterministic dispatch (Sortie C retroactive)
 - L-0042 — migration timestamp ordering
 - L-0083 — engine_authority_config default deny
 - L-0176 — docstring drift ban
 - L-0177 — silent fallback ban
 - L-0292 — ADR-0112 enum-lag (6th occurrence resolved Sortie 0)
-- L-0316 — cross-branch ADR collision rule (6th occurrence — this ADR's renumber)
+- L-0316 — cross-branch ADR collision rule (6th + 7th occurrences — both observed during this ADR's renumber sequence)
 - Spec: `docs/superpowers/specs/2026-05-23-bulk-import-design.md`
 - Plan: `docs/superpowers/plans/2026-05-23-bulk-import-sortie-a.md`
 ```
 
-- [ ] **Step 3: Register ADR-0400 in decision log**
+- [ ] **Step 3: Register ADR-0401 in decision log**
 
 Append row to `docs/decisions/0000-decision-log.md` matching existing format (single line entry under the 04xx range or appropriate section header).
 
-- [ ] **Step 4: Commit ADR-0400 + log entry**
+- [ ] **Step 4: Commit ADR-0401 + log entry**
 
 ```bash
-git add docs/decisions/0400-bulk-import-capability-import-run-cascade-delegation.md \
+git add docs/decisions/0401-bulk-import-capability-import-run-cascade-delegation.md \
         docs/decisions/0000-decision-log.md
 git commit -m "$(cat <<'EOF'
-docs(bulk-import): ADR-0400 bulk_import capability + import_run + cascade-delegation
+docs(bulk-import): ADR-0401 bulk_import capability + import_run + cascade-delegation
 
 Council 2026-05-23 APPROVE WITH CHANGES — 3 architectural forks locked:
 schema placement (dedicated import_run table), cross-namespace writes
 (cascade-delegation per ADR-0356), profile-stub creation (FORBIDDEN per
-DB-tracer FK-chain evidence). L-0316 6th occurrence renumber notes inline.
+DB-tracer FK-chain evidence). L-0316 6th + 7th occurrence renumber notes inline.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -284,27 +289,27 @@ Expected: clean commit, husky pre-commit passes (no code changes — docs only).
 
 ---
 
-## Task 2: ADR-0401 — xlsx Library Adoption (SheetJS) — Policy Drafted, Adoption Sortie B
+## Task 2: ADR-0402 — xlsx Library Adoption (SheetJS) — Policy Drafted, Adoption Sortie B
 
 **Files:**
-- Create: `docs/decisions/0401-xlsx-library-adoption-sheetjs.md`
+- Create: `docs/decisions/0402-xlsx-library-adoption-sheetjs.md`
 - Modify: `docs/decisions/0000-decision-log.md`
 
 **Pre-work:** Sortie A ships CSV-only (papaparse, MIT, ~30KB). xlsx adoption deferred to Sortie B — but the ADR is drafted NOW so the constraints (license review, bundle size, zip-bomb mitigation) are locked before Sortie B can install the dep.
 
-- [ ] **Step 1: Verify slot 0401 still free**
+- [ ] **Step 1: Verify slot 0402 still free**
 
 ```bash
-git log --all --oneline -- 'docs/decisions/0401-*' | head -5
-ls -la docs/decisions/0401-*.md 2>/dev/null
+git log --all --oneline -- 'docs/decisions/0402-*' | head -5
+ls -la docs/decisions/0402-*.md 2>/dev/null
 ```
 
 Expected: zero results.
 
-- [ ] **Step 2: Draft ADR-0401**
+- [ ] **Step 2: Draft ADR-0402**
 
 ```bash
-touch docs/decisions/0401-xlsx-library-adoption-sheetjs.md
+touch docs/decisions/0402-xlsx-library-adoption-sheetjs.md
 ```
 
 Content covers: license analysis (SheetJS Community Edition Apache-2.0 — compatible with our stack; CDN-only Pro edition explicitly REJECTED), bundle-size budget (gzip ≤120KB acceptable; if exceeds budget, dynamic import only), zip-bomb mitigation (`xlsx.read(buf, { dense: true, sheetRows: 10000 })` cap; reject files >10MB at upload per existing storage migration), security (no eval/Function-from-string; document any `dangerouslySetInnerHTML`-equivalent surfaces — none exist in SheetJS), versioning (pin major; renovate excluded until next ADR), adoption phase (Sortie B; parse_spreadsheet tool's MIME branch gains xlsx parsing only after this ADR moves from `proposed` to `accepted`).
@@ -314,9 +319,9 @@ Frontmatter status: `proposed` (NOT `accepted` — Pontus + Council re-review at
 - [ ] **Step 3: Register in decision log + commit**
 
 ```bash
-git add docs/decisions/0401-xlsx-library-adoption-sheetjs.md docs/decisions/0000-decision-log.md
+git add docs/decisions/0402-xlsx-library-adoption-sheetjs.md docs/decisions/0000-decision-log.md
 git commit -m "$(cat <<'EOF'
-docs(bulk-import): ADR-0401 xlsx library policy (proposed; adoption Sortie B)
+docs(bulk-import): ADR-0402 xlsx library policy (proposed; adoption Sortie B)
 
 License Apache-2.0, bundle budget ≤120KB gzip, zip-bomb mitigation via dense+sheetRows
 cap + existing 10MB upload limit. Status proposed — flips to accepted at Sortie B
@@ -329,18 +334,18 @@ EOF
 
 ---
 
-## Task 3: ADR-0403 — schedule_shift.source Add 'v3_bulk_import' Value
+## Task 3: ADR-0404 — schedule_shift.source Add 'v3_bulk_import' Value
 
 **Files:**
-- Create: `docs/decisions/0403-schedule-shift-source-v3-bulk-import-value.md`
+- Create: `docs/decisions/0404-schedule-shift-source-v3-bulk-import-value.md`
 - Modify: `docs/decisions/0000-decision-log.md`
 
 **Pre-work:** Existing CHECK constraint on `schedule_shift.source` allows `operational | bubble_migration | v3_engine`. Sortie C `commit_batch` will insert via delegated `scheduler.create_shift_via_bulk_import(...)` — that helper sets `source='v3_bulk_import'` so the row is auditably distinguishable from cascade-generated (`v3_engine`) and Bubble-migrated (`bubble_migration`). Precedent: `bubble_migration` from ADR-0108.
 
-- [ ] **Step 1: Verify slot 0403 still free**
+- [ ] **Step 1: Verify slot 0404 still free**
 
 ```bash
-git log --all --oneline -- 'docs/decisions/0403-*' | head -5
+git log --all --oneline -- 'docs/decisions/0404-*' | head -5
 ```
 
 Expected: zero results.
@@ -353,10 +358,10 @@ grep -rn "source IN (" supabase/migrations/ | grep schedule_shift
 
 Expected: single migration defining `CHECK (source IN ('operational','bubble_migration','v3_engine'))`. Note migration filename + line for ADR reference.
 
-- [ ] **Step 3: Draft ADR-0403**
+- [ ] **Step 3: Draft ADR-0404**
 
 ```bash
-touch docs/decisions/0403-schedule-shift-source-v3-bulk-import-value.md
+touch docs/decisions/0404-schedule-shift-source-v3-bulk-import-value.md
 ```
 
 Content covers: Context (Sortie C cascade-delegated bulk-import writes must be auditably separable from cascade-generated and Bubble-migrated shifts), Decision (add `'v3_bulk_import'` value via ALTER TABLE in Sortie A foundation migration — even though the writer code doesn't ship until Sortie C, the CHECK must allow the value when the seed/test data lands so we don't gate Sortie A green on Sortie C code), Consequences (one-line addition to constraint; backward compatible; existing rows unaffected; consumer queries that filter by source must add `v3_bulk_import` to their allowlists — grep `WHERE.*source.*=.*'` audit at Sortie C close).
@@ -366,9 +371,9 @@ Frontmatter status: `accepted` (migration applies in Sortie A).
 - [ ] **Step 4: Register in decision log + commit**
 
 ```bash
-git add docs/decisions/0403-schedule-shift-source-v3-bulk-import-value.md docs/decisions/0000-decision-log.md
+git add docs/decisions/0404-schedule-shift-source-v3-bulk-import-value.md docs/decisions/0000-decision-log.md
 git commit -m "$(cat <<'EOF'
-docs(bulk-import): ADR-0403 schedule_shift.source add v3_bulk_import value
+docs(bulk-import): ADR-0404 schedule_shift.source add v3_bulk_import value
 
 Extends CHECK constraint to allow Sortie C cascade-delegated bulk-import writes
 to be auditably separable from cascade-generated (v3_engine) and Bubble-migrated
@@ -405,7 +410,7 @@ touch supabase/migrations/20260624000000_bulk_import_foundation.sql
 ```sql
 -- supabase/migrations/20260624000000_bulk_import_foundation.sql
 -- bulk_import Sortie A foundation: pg_trgm + GIN indexes + import_run + RPC + ALTER CHECK
--- ADRs: 0400 (capability), 0403 (schedule_shift.source)
+-- ADRs: 0401 (capability), 0404 (schedule_shift.source)
 -- Council: 2026-05-23
 
 BEGIN;
@@ -429,7 +434,7 @@ CREATE INDEX IF NOT EXISTS idx_location_workspace_name_trgm
   ON location USING GIN (workspace_id, name extensions.gin_trgm_ops);
 
 -- ============================================================================
--- 3. import_run table (Sortie A schema home; ADR-0400)
+-- 3. import_run table (Sortie A schema home; ADR-0401)
 -- ============================================================================
 CREATE TABLE import_run (
   import_run_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -499,7 +504,7 @@ CREATE POLICY jwt_delete_import_run ON import_run FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
 COMMENT ON TABLE import_run IS
-  'bulk_import capability state per uploaded file. ADR-0400. JWT-only RLS — capability '
+  'bulk_import capability state per uploaded file. ADR-0401. JWT-only RLS — capability '
   'tools run direct_admin (service_role) and bypass RLS; policies cover dashboard reads '
   'and admin overrides. Idempotency: UNIQUE (workspace_id, excel_sha256) prevents '
   'duplicate processing of the same file in the same workspace.';
@@ -577,7 +582,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_fuzzy_match_entity IS
-  'Workspace-scoped fuzzy match for bulk_import resolver. ADR-0400. SECURITY DEFINER + '
+  'Workspace-scoped fuzzy match for bulk_import resolver. ADR-0401. SECURITY DEFINER + '
   'pinned search_path. Filters by active-status (profile.status != ''offboarding''). '
   'Returns top-5 candidates above threshold sorted by similarity DESC. Empty result = no '
   'candidate met threshold.';
@@ -586,7 +591,7 @@ COMMENT ON FUNCTION fn_fuzzy_match_entity IS
 GRANT EXECUTE ON FUNCTION fn_fuzzy_match_entity TO authenticated, service_role;
 
 -- ============================================================================
--- 5. ALTER schedule_shift.source CHECK — add 'v3_bulk_import' (ADR-0403)
+-- 5. ALTER schedule_shift.source CHECK — add 'v3_bulk_import' (ADR-0404)
 -- ============================================================================
 ALTER TABLE schedule_shift DROP CONSTRAINT IF EXISTS schedule_shift_source_check;
 
@@ -594,7 +599,7 @@ ALTER TABLE schedule_shift ADD CONSTRAINT schedule_shift_source_check
   CHECK (source IN ('operational','bubble_migration','v3_engine','v3_bulk_import'));
 
 COMMENT ON CONSTRAINT schedule_shift_source_check ON schedule_shift IS
-  'Source provenance. v3_bulk_import added per ADR-0403 (Sortie A) — writer ships Sortie C '
+  'Source provenance. v3_bulk_import added per ADR-0404 (Sortie A) — writer ships Sortie C '
   'via scheduler.create_shift_via_bulk_import cascade-delegated helper.';
 
 COMMIT;
@@ -618,7 +623,7 @@ git add supabase/migrations/20260624000000_bulk_import_foundation.sql
 git commit -m "$(cat <<'EOF'
 feat(bulk-import): foundation migration — pg_trgm + import_run + fuzzy-match RPC
 
-ADR-0400 schema home + ADR-0403 schedule_shift.source v3_bulk_import value.
+ADR-0401 schema home + ADR-0404 schedule_shift.source v3_bulk_import value.
 - pg_trgm extension + 3 composite GIN indexes (workspace_id, name) on profile/department/location
 - import_run table + JWT-only RLS + updated_at trigger + UNIQUE file-hash idempotency
 - fn_fuzzy_match_entity SECURITY DEFINER + pinned search_path + active-only filter
@@ -658,7 +663,7 @@ touch supabase/migrations/20260624000100_bulk_import_authority_seed.sql
 ```sql
 -- supabase/migrations/20260624000100_bulk_import_authority_seed.sql
 -- bulk_import Sortie A authority seed: 4 engine_authority_config rows per L-0083 default-deny
--- ADR-0400 (capability) + ADR-0288 (voice forbidden for irreversible writes)
+-- ADR-0401 (capability) + ADR-0288 (voice forbidden for irreversible writes)
 -- Rows for all 4 tools land NOW; bodies for preview_batch/resolve_ambiguity/commit_batch
 -- ship Sortie B+C. Without these rows, default-deny would block integration tests when
 -- those bodies land.
@@ -685,23 +690,23 @@ VALUES
   -- parse_spreadsheet — read-only, chat-only, manager+ (PII-adjacent file contents)
   (NULL, 'bulk_import', 'parse_spreadsheet', 'suggest',
    ARRAY['chat'], 'manager', now(), now(),
-   'ADR-0400 Sortie A. Read-only. PII-adjacent (file contents in payload).'),
+   'ADR-0401 Sortie A. Read-only. PII-adjacent (file contents in payload).'),
 
   -- preview_batch — single-namespace write to import_run; PII in resolver output
   (NULL, 'bulk_import', 'preview_batch', 'suggest',
    ARRAY['chat'], 'manager', now(), now(),
-   'ADR-0400 Sortie B. Writes to import_run only. Body lands Sortie B.'),
+   'ADR-0401 Sortie B. Writes to import_run only. Body lands Sortie B.'),
 
   -- resolve_ambiguity — patches resolver_decisions[]; decision input
   (NULL, 'bulk_import', 'resolve_ambiguity', 'suggest',
    ARRAY['chat'], 'manager', now(), now(),
-   'ADR-0400 Sortie B. Mutates resolver_decisions[] only. Body lands Sortie B.'),
+   'ADR-0401 Sortie B. Mutates resolver_decisions[] only. Body lands Sortie B.'),
 
   -- commit_batch — admin+, confirm gate (largest blast radius capability tool ever added);
   -- voice forbidden per ADR-0288
   (NULL, 'bulk_import', 'commit_batch', 'confirm',
    ARRAY['chat'], 'admin', now(), now(),
-   'ADR-0400 Sortie C. Atomic cascade-delegated commit. ADR-0288 voice forbidden. '
+   'ADR-0401 Sortie C. Atomic cascade-delegated commit. ADR-0288 voice forbidden. '
    'Body + RPC fn_commit_bulk_import land Sortie C.')
 ON CONFLICT DO NOTHING;
 
@@ -876,7 +881,7 @@ touch packages/utils/src/spreadsheet/index.ts
 
 ```ts
 // packages/utils/src/spreadsheet/index.ts
-// Sortie A: CSV-only (papaparse). xlsx adoption deferred to Sortie B per ADR-0401.
+// Sortie A: CSV-only (papaparse). xlsx adoption deferred to Sortie B per ADR-0402.
 import Papa from 'papaparse';
 
 export type SheetRow = Record<string, string>;
@@ -940,7 +945,7 @@ feat(utils): CSV parser (papaparse) for bulk_import Sortie A
 
 parseCsv(input, {sheetName}) returns Sheet[] with headers + rows. Fail-fast
 on empty input + header-only input per L-0177. xlsx parsing deferred to
-Sortie B per ADR-0401.
+Sortie B per ADR-0402.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -1006,7 +1011,7 @@ touch packages/utils/src/hash/index.ts
 
 ```ts
 // packages/utils/src/hash/index.ts
-// SHA-256 hex helper for bulk_import file + row idempotency (ADR-0400).
+// SHA-256 hex helper for bulk_import file + row idempotency (ADR-0401).
 import { createHash } from 'node:crypto';
 
 export function sha256Hex(input: Buffer | Uint8Array | string): string {
@@ -1029,7 +1034,7 @@ git add packages/utils/src/hash/ packages/utils/src/index.ts
 git commit -m "$(cat <<'EOF'
 feat(utils): sha256Hex helper for bulk_import file + row idempotency
 
-ADR-0400 idempotency: file-level (excel_sha256 UNIQUE) + row-level (row_hashes[]).
+ADR-0401 idempotency: file-level (excel_sha256 UNIQUE) + row-level (row_hashes[]).
 Wraps node:crypto createHash to hex digest. Accepts Buffer / Uint8Array / string.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
@@ -1125,7 +1130,7 @@ touch packages/ai/src/resolver/index.ts
 
 ```ts
 // packages/ai/src/resolver/index.ts
-// Resolver wrapper for bulk_import fuzzy-match RPC. ADR-0400.
+// Resolver wrapper for bulk_import fuzzy-match RPC. ADR-0401.
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type EntityType = 'profile' | 'department' | 'location';
@@ -1173,7 +1178,7 @@ git add packages/ai/src/resolver/
 git commit -m "$(cat <<'EOF'
 feat(ai): resolveEntity wrapper around fn_fuzzy_match_entity RPC
 
-ADR-0400 resolver primitive. Calls RPC with (workspace_id, entity_type, raw_name,
+ADR-0401 resolver primitive. Calls RPC with (workspace_id, entity_type, raw_name,
 threshold). Fail-fast on RPC error per L-0177 — no silent empty-array fallback.
 Returns top-5 candidates above threshold (RPC enforces LIMIT 5).
 
@@ -1203,7 +1208,7 @@ EOF
   2. Verify storage path is workspace-prefixed: `botsson-imports/{workspace_id}/...` — else REJECT with 4xx
   3. Fetch signed URL from Supabase Storage (1h TTL — already returned by Sortie 0 upload endpoint, but verify path matches workspace)
   4. Download file via signed URL
-  5. Validate MIME by file extension — Sortie A accepts `.csv` only; `.xlsx`/`.xls` → REJECT with "xlsx support ships Sortie B per ADR-0401"
+  5. Validate MIME by file extension — Sortie A accepts `.csv` only; `.xlsx`/`.xls` → REJECT with "xlsx support ships Sortie B per ADR-0402"
   6. Compute `excel_sha256` (sha256Hex from Task 8)
   7. Parse via `parseCsv` (Task 7)
   8. Suggest column mapping: pattern-match headers (case-insensitive) against `vaktliste` known fields (name|navn, start|fra, end|til|stop, department|avdeling, location|lokasjon|sted) OR `kjoreplan` fields (time|tid, location|sted, tasks|oppgaver|gjøremål). Return `suggestedMapping: Record<canonicalField, headerName | null>`.
@@ -1219,7 +1224,7 @@ touch packages/ai/src/capabilities/bulk_import/tools.ts
 ```ts
 // packages/ai/src/capabilities/bulk_import/tools.ts
 // bulk_import Sortie A: parse_spreadsheet tool (read-only).
-// ADR-0400 (capability), ADR-0151 (server-derived workspace_id), ADR-0287 (ONE emit per
+// ADR-0401 (capability), ADR-0151 (server-derived workspace_id), ADR-0287 (ONE emit per
 // gated mutation — here: ONE emit per successful parse), L-0177 (fail-fast on workspace
 // resolution), L-0176 (body written before docstring).
 import { z } from 'zod';
@@ -1264,10 +1269,10 @@ export const parseSpreadsheetTool: SmartoutTool<AgentToolContext> = {
   name: 'parse_spreadsheet',
   description:
     'Read-only: download a previously uploaded spreadsheet from the workspace-scoped storage ' +
-    'bucket, validate MIME (CSV only in Sortie A — xlsx ships Sortie B per ADR-0401), parse ' +
+    'bucket, validate MIME (CSV only in Sortie A — xlsx ships Sortie B per ADR-0402), parse ' +
     'rows, and return parsed sheets + a suggested header→canonical-field mapping. Does NOT ' +
     'write to import_run — that happens in Sortie B preview_batch. Authority: suggest, ' +
-    'chat-only, manager+ per ADR-0400. PII-adjacent: file contents reach this tool, but ' +
+    'chat-only, manager+ per ADR-0401. PII-adjacent: file contents reach this tool, but ' +
     'no DB writes occur. Compliance verified against L-0151 (server-derived workspace_id), ' +
     'L-0176 (body-before-docstring), L-0177 (fail-fast on auth context).',
   input: parseSpreadsheetInputSchema,
@@ -1283,11 +1288,11 @@ export const parseSpreadsheetTool: SmartoutTool<AgentToolContext> = {
       );
     }
 
-    // Sortie A: CSV-only. xlsx returns explicit rejection (ADR-0401).
+    // Sortie A: CSV-only. xlsx returns explicit rejection (ADR-0402).
     const lower = input.source_storage_path.toLowerCase();
     if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
       throw new Error(
-        'parse_spreadsheet: xlsx/xls parsing ships Sortie B per ADR-0401. Use .csv for Sortie A.',
+        'parse_spreadsheet: xlsx/xls parsing ships Sortie B per ADR-0402. Use .csv for Sortie A.',
       );
     }
     if (!lower.endsWith('.csv')) {
@@ -1406,7 +1411,7 @@ describe('parseSpreadsheetTool', () => {
     ).rejects.toThrow(/does not belong to workspace ws-1/);
   });
 
-  it('rejects xlsx with ADR-0401 reference (Sortie A is CSV-only)', async () => {
+  it('rejects xlsx with ADR-0402 reference (Sortie A is CSV-only)', async () => {
     await expect(
       parseSpreadsheetTool.execute(
         {
@@ -1757,7 +1762,7 @@ Verify every commit header ≤100 chars; scope kebab-case (`bulk-import`); Co-Au
 
 ```bash
 git fetch --all
-for n in 0400 0401 0403; do
+for n in 0401 0402 0404; do
   echo "=== $n ==="
   git log --all --oneline -- "docs/decisions/${n}-*.md" | head -3
 done
@@ -1770,12 +1775,12 @@ Expected: each shows only THIS branch's commit. If any other branch surfaces wit
 Per CLAUDE.md /close-feature step: HANDOFF written automatically by `close-feature.sh`. Prepare bullets for the HANDOFF "Summary / Decisions / Learnings / Known Issues / Next Steps" sections:
 
 - Summary: bulk_import Sortie A foundation shipped — 3 ADRs + 2 migrations + 2 utils + resolver + 1 read-only tool + 1 telemetry registry entry.
-- Decisions registered: 0400/0401/0403.
+- Decisions registered: 0401/0402/0404.
 - Learnings to flag for ADR-grade promotion (queued for Sortie C HANDOFF per spec line 261):
   - L-NEW-A (chair prose vs code-tracer column-name verification) — 3rd occurrence
   - L-NEW-B (capability-layer entity creation across auth.users chain infeasible) — promote to smartout-database-guide trap
   - L-0292 (ADR-0112 enum-lag) — 6th occurrence resolved Sortie 0; promote to mandatory pre-flight check
-  - L-0316 (cross-branch ADR collision) — 6th occurrence resolved Sortie A; renumber dance documented in 0400 ADR Context
+  - L-0316 (cross-branch ADR collision) — 6th AND 7th occurrences resolved Sortie A within hours of each other (wt-5 + wt-1); renumber dance documented in 0401 ADR Context. Promote to mandatory pre-Task-1 re-check (already runs Step 1 of every ADR task; codify in writing-plans skill).
 - Known issues / debt: Authority seed migration column names verified at implementation (engine_authority_config schema match); if seed migration adjusted, note exactly which column names were used.
 - Next steps: Sortie B (preview_batch + resolve_ambiguity + composer UI) depends on this sortie green + ADR-0401 review-and-accept gate before xlsx adoption.
 
@@ -1784,9 +1789,9 @@ Per CLAUDE.md /close-feature step: HANDOFF written automatically by `close-featu
 ## Self-Review (run before handing to executor)
 
 **1. Spec coverage scan (lines 88–104):**
-- ADR-0400 written → Task 1 ✓
+- ADR-0401 written → Task 1 ✓
 - ADR-0401 written → Task 2 ✓
-- ADR-0403 written → Task 3 ✓
+- ADR-0404 written → Task 3 ✓
 - Foundation migration (pg_trgm, GIN, import_run, fn_fuzzy_match_entity, ALTER CHECK) → Task 4 ✓
 - Skeleton capability → already shipped Sortie 0; tools array updated in Task 11 ✓
 - `packages/utils/src/spreadsheet/` → Task 7 ✓

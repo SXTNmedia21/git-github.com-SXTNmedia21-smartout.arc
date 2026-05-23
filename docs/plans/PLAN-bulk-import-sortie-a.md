@@ -17,14 +17,14 @@ tags: [plan, pointer, bulk-import, sortie-a]
 
 **Journey:** [`docs/journeys/JOURNEY-bulk-import-sortie-a.md`](../journeys/JOURNEY-bulk-import-sortie-a.md)
 
-**ADRs to write:** 0400 (capability + import_run + cascade-delegation), 0401 (xlsx library policy, proposed), 0403 (schedule_shift.source v3_bulk_import)
+**ADRs to write:** 0401 (capability + import_run + cascade-delegation), 0402 (xlsx library policy, proposed), 0404 (schedule_shift.source v3_bulk_import). Slot 0403 reserved for Sortie C attachment-routing-retroactive. Renumbered 2026-05-23 after L-0316 7th occurrence (wt-1 took 0400 at a9f95d6f4).
 
 **Execution:** per writing-plans skill — 14 tasks. Choose subagent-driven (`superpowers:subagent-driven-development`) or inline (`superpowers:executing-plans`).
 
 ## Acceptance Criteria
 
-- [ ] ADR-0400 / 0401 / 0403 written + registered in `docs/decisions/0000-decision-log.md`
-- [ ] Foundation migration `20260624000000_bulk_import_foundation.sql` applies cleanly (pg_trgm + import_run + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK)
+- [ ] ADR-0401 / 0402 / 0404 written + registered in `docs/decisions/0000-decision-log.md` (slot 0403 reserved for Sortie C attachment-routing-retroactive)
+- [ ] Foundation migration `20260624000000_bulk_import_foundation.sql` applies cleanly (pg_trgm + import_run + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK per ADR-0404)
 - [ ] Authority seed migration `20260624000100_bulk_import_authority_seed.sql` seeds 4 engine_authority_config rows (L-0083 default-deny pre-emption)
 - [ ] `packages/utils/src/spreadsheet/` parseCsv passes vitest
 - [ ] `packages/utils/src/hash/` sha256Hex passes vitest

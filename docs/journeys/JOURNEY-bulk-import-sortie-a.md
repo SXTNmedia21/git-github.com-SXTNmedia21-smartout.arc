@@ -37,7 +37,7 @@ tags: [bulk-import, sortie-a, journey, parse-spreadsheet, fuzzy-match, foundatio
 7. `parseSpreadsheetTool.execute()`:
    - Derives `workspaceId` + `profileId` from auth context via `getProfileContext()` (ADR-0151 + L-0177 fail-fast)
    - Verifies `source_storage_path` starts with `botsson-imports/{workspaceId}/` — else REJECT 4xx
-   - Verifies `.csv` extension (Sortie A is CSV-only per ADR-0401)
+   - Verifies `.csv` extension (Sortie A is CSV-only per ADR-0402)
    - Fetches signed URL from Supabase Storage (1h TTL)
    - Downloads file bytes
    - Computes `excel_sha256` via `sha256Hex(buf)`
@@ -57,7 +57,7 @@ tags: [bulk-import, sortie-a, journey, parse-spreadsheet, fuzzy-match, foundatio
 - **Unauthenticated** → BFF returns 401 at step 1; chat call never happens.
 - **Non-admin role** → BFF upload returns 403 at step 1 (admin-only INSERT policy on storage bucket per Sortie 0 migration).
 - **Path mismatch** (storage path workspace prefix ≠ caller's workspace_id) → `parse_spreadsheet` throws `parse_spreadsheet: storage_path does not belong to workspace {workspace_id}`. Tool surfaces error to user via chat reply. NO silent fallback per L-0177.
-- **xlsx upload** → `parse_spreadsheet` throws `parse_spreadsheet: xlsx/xls parsing ships Sortie B per ADR-0401. Use .csv for Sortie A.`
+- **xlsx upload** → `parse_spreadsheet` throws `parse_spreadsheet: xlsx/xls parsing ships Sortie B per ADR-0402. Use .csv for Sortie A.`
 - **Unsupported extension** (.txt, .json, etc.) → `parse_spreadsheet` throws `parse_spreadsheet: unsupported extension; expected .csv` (Sortie 0 MIME allowlist should already block this at upload, but tool defends in depth).
 - **Storage signed-URL failure** → throws `parse_spreadsheet: failed to sign storage path: {error}` — user sees error in chat.
 - **Download failure** (network, file deleted between upload and parse) → throws `parse_spreadsheet: download {status} from signed URL`.
@@ -133,4 +133,4 @@ When Sortie B starts (`feat/bulk-import-sortie-b`), the following must be green:
 - `resolveEntity()` wrapper exists in `@smartout/ai/resolver`
 - 4 authority rows seeded for parse_spreadsheet / preview_batch / resolve_ambiguity / commit_batch (Sortie B `preview_batch` body lands directly into a pre-authorized slot)
 - Telemetry `bulk_import.batch_parsed` registered with live emit site
-- ADR-0401 reviewed by Pontus + Council → flipped from `proposed` to `accepted` BEFORE Sortie B installs `xlsx` package
+- ADR-0402 reviewed by Pontus + Council → flipped from `proposed` to `accepted` BEFORE Sortie B installs `xlsx` package
