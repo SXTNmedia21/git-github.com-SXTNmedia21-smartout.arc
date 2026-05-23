@@ -1,4 +1,6 @@
--- 20260623101000_fn_create_routine_from_draft.sql
+-- 20260625120100_fn_create_routine_from_draft.sql
+-- Re-timestamped from 20260623101000 to post-governance_status type definition
+-- (20260624130000_routine_brownfield_governance.sql) per L-0042 dep-order fix.
 -- Atomic commit RPC for photo-extracted routine drafts (Procedure Engine 2B).
 -- Single-txn: optional in-txn location create → procedure → routine →
 --   N procedure_steps → routine_team → session_hooks.
