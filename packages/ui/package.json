@@ -3,6 +3,20 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./wizard": {
+      "types": "./src/wizard/index.ts",
+      "default": "./src/wizard/index.ts"
+    },
+    "./wizard/state": {
+      "types": "./src/wizard/state.ts",
+      "default": "./src/wizard/state.ts"
+    }
+  },
   "scripts": {
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
