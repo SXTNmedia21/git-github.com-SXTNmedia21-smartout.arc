@@ -87,6 +87,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "type",
         location: "PARAMETER_LOCATION_BODY",
+        description: 'Must be exactly "inline_confirm_card"',
         required: true,
         schema: {
           type: "string",
@@ -97,6 +98,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "proposal_id",
         location: "PARAMETER_LOCATION_BODY",
+        description: "UUID from the capability tool draft response (= future p_client_message_id)",
         required: true,
         schema: {
           type: "string",
@@ -107,6 +109,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "surface",
         location: "PARAMETER_LOCATION_BODY",
+        description: "Which mutation domain: announcement | message | shift_approve",
         required: true,
         schema: {
           type: "string",
@@ -117,6 +120,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "draft",
         location: "PARAMETER_LOCATION_BODY",
+        description: "Tool-specific draft payload (opaque to UI — passed back on confirm/edit)",
         required: true,
         schema: {
           type: "object",
@@ -126,6 +130,8 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "preview",
         location: "PARAMETER_LOCATION_BODY",
+        description:
+          "UI preview fields: {title, body_excerpt?, recipient_count?, affected_entity?, metadata:[]}",
         required: true,
         schema: {
           type: "object",
@@ -143,6 +149,9 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "actions",
         location: "PARAMETER_LOCATION_BODY",
+        description:
+          "Action objects. confirm+cancel are mandatory. " +
+          'Example: [{id:"confirm",label:"Bekreft",variant:"primary"},{id:"cancel",label:"Avbryt",variant:"destructive"}]',
         required: true,
         schema: {
           type: "array",
@@ -154,6 +163,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "voice_prompt",
         location: "PARAMETER_LOCATION_BODY",
+        description: "Server-controlled voice fallback copy (no client-side interpolation)",
         required: false,
         schema: {
           type: "string",
@@ -163,6 +173,7 @@ export const showProposalCardDefinition: ClientToolDefinition & {
       {
         name: "recipient_preview_available",
         location: "PARAMETER_LOCATION_BODY",
+        description: "Whether the recipient chip is interactive (drills into recipient list)",
         required: false,
         schema: {
           type: "boolean",

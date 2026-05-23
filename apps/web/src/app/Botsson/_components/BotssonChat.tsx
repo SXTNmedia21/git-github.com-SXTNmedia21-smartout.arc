@@ -105,6 +105,14 @@ export type BotssonChatProps = {
   mission?: string;
   /** Additional mission context to pass with the first turn. */
   missionContext?: Record<string, unknown>;
+  /**
+   * Profile ID of the authenticated user for ADR-0134 telemetry (actor_id).
+   * Provided by server components (help/page.tsx) or read from BotssonProvider
+   * context when BotssonChat is mounted inside the arena. If absent from both
+   * sources, makeShowProposalCardImpl throws at invocation — never falls back
+   * to a sentinel (ADR-0134 + L-0177 silent-wrong-identity class).
+   */
+  profileId?: string;
 };
 
 // ── Client-tool roundtrip ───────────────────────────────────────────────────
@@ -223,8 +231,12 @@ export function BotssonChat({
   chatEndpoint = "/api/botsson/chat",
   mission,
   missionContext,
+  profileId: profileIdProp,
 }: BotssonChatProps) {
-  const { currentSessionId, setCurrentSessionId } = useBotsson();
+  const { currentSessionId, setCurrentSessionId, profileId: profileIdFromCtx } = useBotsson();
+  // Resolve profileId: prop wins (server-threaded), then provider context (arena path).
+  // Never falls back to workspaceId sentinel — actorId must be a real profile UUID.
+  const resolvedProfileId = profileIdProp ?? profileIdFromCtx ?? null;
   // Page-registered client-tool implementations — used for client-tool roundtrips (ADR-0327)
   const registeredTools = useRegisteredTools();
   const sessionId = currentSessionId ?? undefined;
@@ -289,19 +301,23 @@ export function BotssonChat({
   // ── Fixed-primitive implementations (L-0331 §BotssonChat-fixed tier) ───
   // show_proposal_card is a shell-fixed primitive — not page-scoped via useRegisteredTools.
   // The merge puts fixedPrimitives LAST so fixed wins on name collision per L-0331 §Precedence.
-  // workspaceId and a placeholder actorId are passed for telemetry; actorId is resolved from
-  // context (session/profile). Using workspaceId directly from props (server-derived in BFF
-  // per ADR-0151; BotssonChat receives it as a prop from the page).
-  // NOTE: actorId is not yet available client-side without an additional context hook —
-  // using workspaceId as a graceful fallback sentinel (actor_id="" would corrupt telemetry,
-  // but nonEmpty() in the impl will throw in dev and use a sentinel in prod, surfacing the gap).
-  // Phase 2 should thread actorId from BotssonProvider (ADR-0151 server-derive path).
+  // resolvedProfileId is threaded from the server (prop from help/page.tsx) or from
+  // BotssonProvider context (arena path via DashboardShell → BotssonHost → BotssonProvider).
+  // If resolvedProfileId is null, the show_proposal_card implementation throws on invocation —
+  // never falls back to workspaceId sentinel (ADR-0134 actor_id + L-0177 silent-wrong-identity).
   const fixedPrimitives: Record<string, ClientToolImplementation> = {
-    show_proposal_card: makeShowProposalCardImpl({
-      pushCard,
-      workspaceId,
-      actorId: workspaceId, // TODO Phase 2: thread real profileId from BotssonProvider
-    }),
+    show_proposal_card: resolvedProfileId
+      ? makeShowProposalCardImpl({
+          pushCard,
+          workspaceId,
+          actorId: resolvedProfileId,
+        })
+      : async (_args) => {
+          throw new Error(
+            "[BotssonChat] actor_id unavailable: profileId not threaded to BotssonChat. " +
+              "Wire profileId from the server component prop or ensure BotssonProvider receives it via BotssonHost.",
+          );
+        },
   };
 
   // Merge: page-registered tools first, fixed-primitives last (fixed wins on collision).
@@ -328,6 +344,14 @@ export function BotssonChat({
       // We send session_id on subsequent turns — no need to replay history from client.
       const currentPage = typeof window !== "undefined" ? window.location.pathname : undefined;
 
+      // Build client_tools array: fixed primitives (show_proposal_card) + page-scoped tools.
+      // Stage-engine guards on `body.client_tools.length > 0` to populate clientToolNames —
+      // omitting this array means show_proposal_card is never dispatched as a client tool (FIX-1).
+      const allClientToolDefs = [
+        showProposalCardDefinition,
+        ...registeredTools.definitions, // page-scoped tools registered via useRegisterTools()
+      ];
+
       const initialBody: Record<string, unknown> = {
         workspaceId,
         userMessage: userText,
@@ -337,6 +361,10 @@ export function BotssonChat({
         primeContext: !sessionId ? primeContext : undefined,
         // Mission context for employee-facing flows (e.g. contract_intake)
         ...(mission && !sessionId ? { mission, missionContext } : {}),
+        // Forward all client-tool definitions so stage-engine populates clientToolNames.
+        // Without this, the LLM never learns about show_proposal_card and client-tool
+        // dispatch is silently skipped (agent-coord Gate 2 finding Q3a).
+        client_tools: allClientToolDefs,
       };
 
       // Phase 3.5: client-tool roundtrip — if server emits client_tool_calls, we resolve
