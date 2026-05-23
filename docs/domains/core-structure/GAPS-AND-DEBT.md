@@ -6,7 +6,7 @@ last_verified: 2026-05-23
 updated: 2026-05-23
 created: 2026-05-23
 domain: core-structure
-tags: [domain, core-structure, gaps, debt, delta]
+tags: [domain, core-structure, gaps, debt, delta, rls, billing, scaling]
 ---
 
 # Core Structure — Gaps and Debt
@@ -73,6 +73,14 @@ tags: [domain, core-structure, gaps, debt, delta]
 - **Code reality:** `position` table live. Used via `schedule_shift.position_id`. No `/dashboard/organization/positions` route. Position management may be embedded in department detail but no dedicated CRUD surface confirmed.
 - **Priority:** LOW (positions seeded by I1 bootstrap; direct management low-frequency)
 
+### G-10 — Aspirational MODULE_13 auth-schema RLS helpers not implemented
+
+- **MODULE_13 claim (§3.4):** Proposed `auth.user_profile_ids()`, `auth.user_workspace_ids()`, `auth.has_role(ws_id, min_role)`, `auth.in_department(dept_id)` functions in the `auth` schema (not `public`).
+- **Code reality:** Only `public.get_workspace_ids_for_user()` and `public.is_admin_in_workspace()` exist (verified `00004_rls_policies.sql:28-42`). No `auth.*` schema helpers. No `has_role()` or `in_department()` functions.
+- **Impact:** Some advanced per-department RLS patterns described in MODULE_13 §3.2 (e.g. `auth.in_department()` for department-scoped read policies) are not built. Current RLS uses simpler workspace-level patterns.
+- **Action:** If per-department RLS becomes required, implement as `public.*` functions consistent with existing pattern. Do NOT create `auth` schema functions (Supabase reserves `auth` schema for GoTrue).
+- **Priority:** LOW (current workspace-level RLS is sufficient for V1)
+
 ## §Deviations
 
 ### D-01 — Zones and assets ARE surfaced in V1 (module docs claimed schema-only)
@@ -122,3 +130,25 @@ tags: [domain, core-structure, gaps, debt, delta]
 - **Year-wheel / scheduling** domain (not yet a named domain) owns `season` table, `planning_event` (D4), and the year-wheel UI.
 - **Seam:** `season.planning_cycle_id` FK links season to planning_cycle. `planning_cycle` is structural/temporal; `season` is operational/D4-5. The boundary is fuzzy because no "scheduling" domain exists yet.
 - **Recommendation:** core-structure keeps `planning_cycle`. When a scheduling/year-wheel domain is defined, `planning_event` (D4) should move there. `planning_cycle` may split out then too — flag for that future domain's `pre` run.
+
+### O-05 — MODULE_13 §6 Stripe/billing → belongs billing domain
+
+- **MODULE_13 claim (§6):** Proposed `stripe_subscription` table with plan tiers (trial/starter/professional/enterprise), `max_workspaces`, `max_profiles_per_workspace`, `active_modules`, and Stripe webhook handler.
+- **Code reality:** No `stripe_subscription` table exists (verified: grep supabase/migrations — no match). The plan-gate columns live directly on `workspace`: `workspace.active_modules text[]` and `workspace.max_profiles integer` (`00001_identity_tables.sql:91-92`). Billing domain owns `stripe_invoice`, `billing_integration_type` enum, and payment infrastructure (`docs/domains/billing/`).
+- **Disposition:** MODULE_13 §6 billing content belongs to **billing** domain's future Stripe integration sortie. Core-structure documents only the `workspace.active_modules` and `workspace.max_profiles` columns as plan-gate metadata (read-only from core-structure's perspective). Billing owns enforcement.
+- **Action:** Future billing sortie should absorb MODULE_13 §6 (plan tiers, Stripe webhook, profile count enforcement). Billing domain's `pre` run should be updated.
+- **Priority for billing domain:** MEDIUM
+
+### O-06 — MODULE_13 §5 Performance/scaling → cross-cutting infra concern
+
+- **MODULE_13 claim (§5):** Indexing strategy, data volume estimates, caching strategy (in-memory + Supabase Realtime), Realtime connection scaling, Edge Function latency estimates.
+- **Code reality:** Indexes on `workspace_id` are already specified in migrations per-table. The specific composite indexes (`idx_session_task_session_status`, etc.) are operational decisions confirmed in their respective domain migrations — not core-structure.
+- **Disposition:** Indexing patterns are an infra/cross-cutting concern. The core-structure domain documents `workspace_id` indexing as a universal requirement. Per-table composite indexes are documented in the owning domain. Caching, Realtime scaling, and EF latency are not domain-level concerns.
+- **Action:** No core-structure spine update needed. If a performance governance doc is needed, it belongs in `docs/cross-cutting/`.
+
+### O-07 — MODULE_13 §7 Data retention → cross-cutting GDPR concern
+
+- **MODULE_13 claim (§7):** Archival timelines per data type (session tasks 12m, chat 12m, notifications 3m, HACCP 24m), subscription cancellation flow (read-only → archive → delete).
+- **Code reality:** No retention policy tables or archival job migrations exist yet. GDPR compliance is in `docs/cross-cutting/`.
+- **Disposition:** Data retention is cross-cutting, not core-structure. The subscription cancellation workspace-deactivation pattern (`workspace.is_active = false`) is relevant to core-structure's `is_active` flag on workspace, but the retention schedule and deletion logic belong to a future GDPR/compliance sortie.
+- **Action:** No core-structure spine update needed. Future GDPR sortie should absorb MODULE_13 §7.

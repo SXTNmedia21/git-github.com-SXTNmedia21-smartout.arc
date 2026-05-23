@@ -88,51 +88,13 @@ function buildRows(sections: QueueSection[]): Row[] {
   return rows;
 }
 
-/** Placeholder sections mirroring the prototype. Phase 4.1 replaces this
- *  with real hooks once the desk-grouping query shape lands. */
-function getPlaceholderSections(): QueueSection[] {
-  const now = Date.now();
-  const iso = (minutesAgo: number) => new Date(now - minutesAgo * 60_000).toISOString();
-  const mk = (
-    id: string,
-    name: string,
-    summary: string,
-    minutesAgo: number,
-    status: QueueRowTicket["status"],
-  ): QueueRowTicket => ({
-    ticket_id: id,
-    channel_id: `placeholder-${id}`,
-    status,
-    summary,
-    opened_at: iso(minutesAgo),
-    requester: { profile_id: id, display_name: name, avatar_url: null },
-  });
-  return [
-    {
-      id: "lonn",
-      label: "#lønn · privat skranke",
-      highlightFirstWaiting: true,
-      tickets: [
-        mk("1", "Linn Andersen", "Kan jeg jobbe i romjula?", 14, "waiting"),
-        mk("2", "Kari Holm", "Har ikke fått lønn for fredag vakt — kan du sjekke?", 72, "active"),
-      ],
-    },
-    {
-      id: "hms",
-      label: "#hms · offentlig skranke",
-      tickets: [
-        mk("3", "Ola Hansen", "Hvor finner jeg sjekkliste for åpning av kjøkken?", 180, "active"),
-      ],
-    },
-  ];
-}
-
 export function QueueScreen({ sections, onTicketPress, onFilterPress }: QueueScreenProps) {
   const theme = useTheme();
   const styles = useStyles();
   const { t } = useTranslation("helpdesk");
 
-  const effectiveSections = sections ?? getPlaceholderSections();
+  // No mock fallback — render real sections or an empty queue.
+  const effectiveSections = sections ?? [];
   const rows = useMemo(() => buildRows(effectiveSections), [effectiveSections]);
 
   const openCount = useMemo(

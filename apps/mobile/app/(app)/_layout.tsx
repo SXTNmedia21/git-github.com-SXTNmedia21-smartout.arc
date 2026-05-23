@@ -15,7 +15,8 @@
  * Each tab screen manages its own header.
  */
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "expo-router";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
@@ -33,6 +34,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { getProfileContext } from "@/lib/profile-context";
+import { getOnboardingState } from "@/lib/onboarding-bff";
 
 // Initial route = (home) — 3-screen pager (Pre/On/Post shift).
 // Supersedes the ADR-0268 anchor decision (was (calendar)).
@@ -71,6 +73,55 @@ export default function AppLayout() {
 
   const { data: profile } = useMyProfile();
   const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
+  const pathname = usePathname();
+
+  // Track whether the onboarding state check has resolved. We render the layout
+  // immediately (no blocking spinner) and redirect only AFTER the fetch settles.
+  // This prevents the flash: layout mounts → redirect. If the fetch fails (network
+  // error), we fall back to profile-only check so incomplete users still get guided.
+  const [onboardingStateChecked, setOnboardingStateChecked] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  // Redirect to onboarding wizard when the employee has not completed welcome flow.
+  //
+  // Two-phase guard:
+  //   Phase 1 (sync): profile.is_welcome_complete must be false, not undefined
+  //                   (=== false, never falsy — undefined = still loading).
+  //   Phase 2 (async): consult employee_onboarding_state via GET /state BFF.
+  //                    If status='dismissed', skip redirect — employee dismissed the
+  //                    wizard intentionally and will resume via CompleteProfileCard CTA.
+  //                    The GET handler calls recordWelcomeResume() on next open, which
+  //                    clears dismissed_at + flips status='in_progress' (Sortie A fix).
+  //
+  // Guard pathname to avoid a replace-to-self loop (already on /onboarding).
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.is_welcome_complete !== false) return;
+
+    // Fetch onboarding state once to check for dismissed status.
+    // Layout is already visible — this is a post-render side-effect only.
+    getOnboardingState()
+      .then((state) => {
+        setIsDismissed(state.status === "dismissed");
+        setOnboardingStateChecked(true);
+      })
+      .catch(() => {
+        // Network error or unauthenticated — fall back to profile-only check.
+        // Treat as not dismissed so incomplete users still reach onboarding.
+        setIsDismissed(false);
+        setOnboardingStateChecked(true);
+      });
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.is_welcome_complete !== false) return;
+    if (!onboardingStateChecked) return;
+    if (isDismissed) return;
+    if (pathname === "/onboarding") return;
+
+    router.replace("/(app)/onboarding");
+  }, [profile, onboardingStateChecked, isDismissed, pathname, router]);
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const addSheetRef = useRef<AddSheetHandle>(null);
@@ -180,12 +231,16 @@ export default function AppLayout() {
 
           {/* ── Hidden — Calendar still reachable but not in tab bar ────── */}
           <Tabs.Screen name="(calendar)" options={{ href: null }} />
+          {/* Onboarding wizard — full-screen modal, never appears in tab bar */}
+          <Tabs.Screen name="onboarding" options={{ href: null }} />
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />
-          <Tabs.Screen name="journey" options={{ href: null }} />
-          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
+          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak.
+              (No bare "journey" route exists — only the [id]/guided screen.) */}
           <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
+          {/* Routine review — navigated to from BotssonSheet after draft extraction. */}
+          <Tabs.Screen name="routine-review" options={{ href: null }} />
         </Tabs>
 
         {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}

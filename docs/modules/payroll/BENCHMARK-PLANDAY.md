@@ -1,11 +1,14 @@
 ---
 title: Benchmark — Planday
-status: in_progress
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [benchmark, planday, competitor, payroll, scheduling, norway, hospitality]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Benchmark — Planday
 

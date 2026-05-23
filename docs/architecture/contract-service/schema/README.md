@@ -1,3 +1,15 @@
+---
+title: "Schema — Contracts Module (mirror:source)"
+status: in_progress
+updated: 2026-05-23
+created: 2026-04-29
+domain: contracts
+mirror: source
+tags: [contracts, schema, reference, sql-snapshot]
+---
+
+> **DRIFT WARNING (2026-05-23):** These SQL files are pre-ADR design snapshots. They do NOT match current production schema. Example: `03-employment_contract.sql` uses `id` as PK; real migration `supabase/migrations/00012_profile_logs_and_contracts.sql:57` uses `contract_id`. Use `supabase/migrations/` as authoritative source. See `docs/domains/contracts/GAPS-AND-DEBT.md §Debt-1`.
+
 # Schema — Contracts Module
 
 Per-table reference DDL for Contracts-modulen. **Disse filene er dokumentasjon, ikke deploy-artefakter.**

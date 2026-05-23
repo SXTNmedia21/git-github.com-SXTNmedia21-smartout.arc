@@ -1,5 +1,6 @@
 // packages/ai/src/types.ts
 import type { z } from "zod";
+import type { ToolSurfaceConstraints } from "./harness/types.js";
 
 /**
  * Framework-agnostic tool definition.
@@ -16,9 +17,19 @@ export type SmartoutTool<TCtx = unknown, TSchema extends z.ZodType = z.ZodType> 
    * Used by toVercelTools adapter for auto-emit telemetry routing (ADR-0116).
    */
   capability?: string;
+  /**
+   * ADR-0399 — Surface constraints declared at definition time.
+   * Optional — absent means unconstrained (both channels, both platforms).
+   * Harness pre-filter reads this when building ClientToolDefinition for a session.
+   * See {@link ToolSurfaceConstraints} in packages/ai/src/harness/types.ts.
+   */
+  surfaceConstraints?: ToolSurfaceConstraints;
   schema: TSchema;
   execute: (params: z.infer<TSchema>, ctx: TCtx) => Promise<string>;
 };
+
+// Re-export so capability authors can import ToolSurfaceConstraints from the same module.
+export type { ToolSurfaceConstraints };
 
 /**
  * Type-safe tool definition helper.

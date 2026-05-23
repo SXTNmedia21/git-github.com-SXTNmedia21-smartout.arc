@@ -111,7 +111,11 @@ export default async function HelpPage() {
             Corner orb (Runtime B) docked when hero is visible per design spec §Botsson dual-surface. */}
         {/* TODO Task 10: replace stub with full BotssonChatHero implementation */}
         <section id="chat-hero">
-          <BotssonChatHero firstName={ctx.firstName ?? "deg"} workspaceId={ctx.workspaceId} />
+          <BotssonChatHero
+            firstName={ctx.firstName ?? "deg"}
+            workspaceId={ctx.workspaceId}
+            profileId={ctx.profileId}
+          />
         </section>
 
         {/* Tier 2: Quick-Path Cards — 4 role-personalized navigation cards.

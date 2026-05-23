@@ -78,10 +78,10 @@ tags: [domain, communication, channels, messaging, voice, helpdesk]
    pipeline does NOT read it to govern Botsson's per-channel participation. Any code that claims
    "policy enforced" without a verified agent-router code path is aspirational.
 
-8. **Announcements are owned by the Announcements sub-domain** (`docs/modules/announcments/`).
+8. **Announcements are owned by the Announcements domain** (`docs/domains/announcements/`).
    They are a `channel_message` subtype with `message_type='announcement'` in a `news` channel.
-   Communication domain owns the channel/message infrastructure; the Announcements folder owns
-   the business logic, composers, and UI for the Nyheter surface.
+   Communication domain owns the channel/message infrastructure; the Announcements domain owns
+   the business logic, composers, `announcement_meta` sidecar, `publish_announcement_atomic` RPC, and UI for the Nyheter surface.
 
 ---
 
@@ -98,7 +98,7 @@ tags: [domain, communication, channels, messaging, voice, helpdesk]
 
 | Adjacent domain | Shared surface | Resolution |
 |---|---|---|
-| announcements (`docs/modules/announcments/`) | `channel_message` with `message_type='announcement'` in `news` channel | **keep** — communication owns channel/message infra; announcements owns Nyheter composers + UI. Seam: `message_type` discriminator. |
+| announcements (`docs/domains/announcements/`) | `channel_message` with `message_type='announcement'` in `news` channel; M5 trigger guard | **keep** — communication owns channel/message infra + schema; announcements owns Nyheter composers, UI, `announcement_meta` sidecar, and `publish_announcement_atomic` RPC. Seam: `message_type='announcement'` discriminator + trigger guard. |
 | notifications (future) | Delivery of messages to push/SMS/email | **keep** — communication CREATES the channel_message; notifications DELIVERS externally. `channel_notification_policy` is the seam table. |
 | day-session | `session_id` FK on `channel` — session channel auto-created per `department_session` | **keep** — day-session creates container; communication owns the channel runtime. |
 | botsson / AI | `channel_ai_policy`, AI member participation, `channel_type='ai'` | **keep** — communication owns the channel schema + policy rows; botsson domain will own the runtime behavior when built. Current state: policy tables dead (gap). |

@@ -1,11 +1,17 @@
 ---
 title: Stage Engine — Sessions, Guardian, Whispers
-status: in_progress
-updated: 2026-05-04
+status: archived
+updated: 2026-05-23
 created: 2026-05-04
 module: stage-engine
 tags: [architecture, stage-engine, guardian, whispers, sessions, agent-runtime]
+mirror: source
+superseded_by: "docs/domains/agent-harness/ARCHITECTURE.md"
 ---
+
+> **✅ ARCHIVED — 2026-05-23 (ADR-0392).** This compiled stage-engine doc (verified vs code @ 3f6e657f, 2026-05-04) has been superseded by `docs/domains/agent-harness/ARCHITECTURE.md` (L2 section). Content preserved for historical reference. Do NOT use as canonical — CODE wins, domain spine is more current.
+>
+> **Classification: compiled doc (factual snapshot as of 2026-05-04).** Absorbed into agent-harness domain spine during ADR-0392 `pre` run.
 
 # Stage Engine
 

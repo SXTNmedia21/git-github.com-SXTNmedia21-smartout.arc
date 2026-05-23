@@ -1,11 +1,14 @@
 ---
 title: Dynamic Supplements — Admin-Authored Tillegg Rules
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [payroll, supplements, tillegg, dynamic-rules, supplement-rule, evaluator]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Dynamic Supplements
 

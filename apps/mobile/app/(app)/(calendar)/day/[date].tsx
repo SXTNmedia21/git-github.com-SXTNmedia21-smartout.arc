@@ -44,6 +44,11 @@ import { useDayLineItems } from "@/hooks/queries/use-day-line-items";
 import { getProfileContext } from "@/lib/profile-context";
 import type { CalendarItem } from "@/components/calendar/types";
 import type { DayLineItem } from "@/hooks/queries/use-day-line-items";
+import {
+  DetailSheet,
+  type DetailSheetHandle,
+  type CalendarItemExtended,
+} from "@/components/calendar/DetailSheet";
 
 /** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
 const FALLBACK_TZ = "Europe/Oslo";
@@ -178,14 +183,18 @@ function TimeBlock({ item, startH, endH, colOffset, onPress, themeColors }: Time
 type DayLineItemRowProps = {
   item: DayLineItem;
   themeColors: ReturnType<typeof useTheme>["colors"];
+  onPress: () => void;
 };
 
-function DayLineItemRow({ item, themeColors }: DayLineItemRowProps) {
+function DayLineItemRow({ item, themeColors, onPress }: DayLineItemRowProps) {
   const isDone = item.status === "done" || item.status === "completed";
   const isOverdue = item.status === "overdue";
   return (
-    <View
+    <Pressable
       testID={`day-line-item-${item.id}`}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
       style={[
         styles.dayLineItemRow,
         {
@@ -229,7 +238,7 @@ function DayLineItemRow({ item, themeColors }: DayLineItemRowProps) {
           </Text>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -362,6 +371,55 @@ export default function CalendarDayScreen() {
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
+
+  // DetailSheet ref — opened on item tap. Reuses the same drawer the calendar
+  // index uses, so day-view taps open the identical detail surface.
+  const detailSheetRef = useRef<DetailSheetHandle>(null);
+
+  // Tap → open detail. Shifts route to the dedicated screen (same as the
+  // calendar index); task / booking / deviation / note open the shared
+  // DetailSheet drawer.
+  const openItem = useCallback(
+    (item: CalendarItem) => {
+      void emitItemViewed(item);
+      if (item.type === "shift") {
+        const shiftId = item.id.startsWith("shift-") ? item.id.slice("shift-".length) : item.id;
+        router.push({ pathname: "/(app)/(shifts)/[id]", params: { id: shiftId } });
+        return;
+      }
+      detailSheetRef.current?.open(item as CalendarItemExtended);
+    },
+    [emitItemViewed, router],
+  );
+
+  // Session-task rows (ADR-0367) are tasks — open them in the same DetailSheet.
+  // session_task.status is a free string; coerce to the CalendarItem union.
+  const openSessionTask = useCallback(
+    (item: DayLineItem) => {
+      const status: CalendarItem["status"] = (
+        ["todo", "done", "completed", "overdue"] as const
+      ).includes(item.status as never)
+        ? (item.status as CalendarItem["status"])
+        : "todo";
+      const mapped: CalendarItemExtended = {
+        id: item.id,
+        type: "task",
+        date: displayDate.getDate(),
+        title: item.title,
+        time: item.scheduled_at
+          ? new Date(item.scheduled_at).toLocaleTimeString("nb-NO", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : undefined,
+        dept: "kjokken",
+        status,
+      };
+      void emitItemViewed(mapped);
+      detailSheetRef.current?.open(mapped);
+    },
+    [displayDate, emitItemViewed],
+  );
 
   const handleBack = useCallback(() => {
     void emitViewChanged();
@@ -525,7 +583,12 @@ export default function CalendarDayScreen() {
                   </Text>
                 ) : (
                   sectionItems.map((item) => (
-                    <DayLineItemRow key={item.id} item={item} themeColors={theme.colors} />
+                    <DayLineItemRow
+                      key={item.id}
+                      item={item}
+                      themeColors={theme.colors}
+                      onPress={() => openSessionTask(item)}
+                    />
                   ))
                 )}
               </View>
@@ -580,7 +643,7 @@ export default function CalendarDayScreen() {
                 startH={startH}
                 endH={endH}
                 colOffset={(idx % 2) * 6}
-                onPress={() => void emitItemViewed(item)}
+                onPress={() => openItem(item)}
                 themeColors={theme.colors}
               />
             ))}
@@ -613,6 +676,9 @@ export default function CalendarDayScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* DetailSheet — overlays full screen; opened by item taps above. */}
+      <DetailSheet ref={detailSheetRef} />
     </SafeAreaView>
   );
 }

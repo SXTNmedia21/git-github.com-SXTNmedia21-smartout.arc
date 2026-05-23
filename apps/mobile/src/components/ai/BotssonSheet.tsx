@@ -600,4 +600,39 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.background,
     fontSize: 20,
   },
+  // Image attach button — sits to the left of the send button in the text row
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  // Routine draft card — appears above transcript after photo extraction
+  draftCard: {
+    marginHorizontal: theme.spacing.card,
+    marginTop: theme.spacing.element,
+    paddingHorizontal: theme.spacing.element,
+    paddingVertical: theme.spacing.element,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: theme.spacing.tight,
+  },
+  draftTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.foreground,
+  },
+  draftSub: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+  },
+  draftCta: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+  },
 }));

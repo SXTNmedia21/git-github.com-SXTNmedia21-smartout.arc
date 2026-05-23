@@ -1,11 +1,14 @@
 ---
 title: Announcements — User Flows
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, user-flows, journeys, admin, employee, web, mobile, v2, kind, tier, entity-link]
 ---
+
+> **ARCHIVED 2026-05-23.** See `docs/domains/announcements/USER-FLOWS.md`.
 
 # Announcements — User Flows
 

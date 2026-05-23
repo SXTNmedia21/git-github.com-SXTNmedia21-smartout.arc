@@ -12,7 +12,7 @@ tags: [handoff, notifications, push, onesignal, email, mailpit, deep-link, task-
 
 > Branch: `feat/onesignal-push` (worktree `~/dev/smartout.ai-wt-5`) — 28 commits.
 > Spec: `docs/superpowers/specs/2026-05-21-notification-system-design.md`.
-> Module docs: `docs/modules/notifications/` (11 files incl. ROADMAP).
+> Domain docs: `docs/domains/notifications/` (supersedes the old modules/notifications folder, now archived).
 
 ## Summary — what was built
 
@@ -24,7 +24,7 @@ Started as "send push to mobile PWA via OneSignal" (Expo push is dead in a PWA),
 3. **Deep-link landing** — shared `apps/mobile/src/lib/deep-link.ts` (`mobileRouteForActionUrl`) maps web `/dashboard/*` paths → mobile Expo Router routes; catch-all `apps/mobile/app/dashboard/[...rest].tsx` redirects OneSignal `url` landings; NotificationScreen refactored to reuse the mapper. **Fixed a pre-existing routing bug** (contract events used `/dashboard/people/contracts` → landed on Team).
 4. **Task-deadline notifications** — `task.due_soon` + `task.overdue` events + `task-due-reminder` pg_cron (every 15m) scanning `due_at` on `personal_task` + `emma_task`. (`session_task`/`schedule_day_task` excluded — DATE-only, no per-task time; their real-time push is day-line-push.)
 5. **Email channel resurrected** — two latent bugs fixed (see below). Dev SMTP bridge to local Inbucket/Mailpit when `SENDGRID_API_KEY` absent.
-6. **Module docs** — `docs/modules/notifications/` (README, MODULE_NOTIFICATIONS, ARCHITECTURE, DATA-MODEL, API, CONTRACTS, USER-FLOWS, E2E-COVERAGE, GAPS-AND-DEBT, BLUEPRINT, ROADMAP).
+6. **Module docs** — built during this sortie (README, MODULE_NOTIFICATIONS, ARCHITECTURE, DATA-MODEL, API, CONTRACTS, USER-FLOWS, E2E-COVERAGE, GAPS-AND-DEBT, BLUEPRINT, ROADMAP); subsequently absorbed into `docs/domains/notifications/` by domain-steward pre (2026-05-23) — old modules folder archived.
 7. **1Password + env** — `onesignal` item in `smartout_ai` (dev vault), `.env.template` keys, prod Supabase Cloud secrets set + verified.
 
 ## Decisions (ADRs / key)
@@ -55,7 +55,7 @@ Started as "send push to mobile PWA via OneSignal" (Expo push is dead in a PWA),
 - **task-due cron in prod** — registered in migration; local skips (no pg_cron locally). Verify in prod after deploy.
 - **Email subject template interpolation** — process-notifications resolves from event-config templates; demo metadata didn't fill `{date}`/`{start_time}` so they showed raw. Real events carry the vars — confirm with a real event.
 
-## Known gaps / debt (also in `docs/modules/notifications/GAPS-AND-DEBT.md`)
+## Known gaps / debt (also in `docs/domains/notifications/GAPS-AND-DEBT.md`)
 - **2 Expo push senders still bypass push-dispatch** → dead in PWA: `engine-dispatch/handlers/day-line-push.ts` (ADR-0367 day-line) + `apps/web/.../platform-admin/communications/push/send/route.ts` (broadcast). Deferred (spec D2).
 - **Two parallel deep-link mappers** — native `push.ts` uses `resolveDeepLink` from `@smartout/notifications/deep-links`; OneSignal web uses the new `lib/deep-link.ts`. Unify later.
 - **Coarse preferences** — 3 modes + global channel toggles; per-mode×channel matrix is P2.

@@ -11,8 +11,8 @@ export type { OfflineQueuePillProps } from "./OfflineQueuePill";
 export { StepSyncIndicator } from "./StepSyncIndicator";
 export type { StepSyncIndicatorProps, SyncState } from "./StepSyncIndicator";
 
-export { WizardHeader } from "./WizardHeader";
-export type { WizardHeaderProps } from "./WizardHeader";
+export { WizardHeader } from "@/components/ui/WizardHeader";
+export type { WizardHeaderProps } from "@/components/ui/WizardHeader";
 
 export { UnsavedChangesSheet } from "./UnsavedChangesSheet";
 export type { UnsavedChangesSheetProps } from "./UnsavedChangesSheet";

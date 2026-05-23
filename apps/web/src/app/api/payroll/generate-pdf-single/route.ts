@@ -149,12 +149,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "period_not_found" }, { status: 404 });
   }
 
-  if (period.status !== "locked") {
+  // A lønnsgrunnlag PDF can be generated from any period at or past lock — the
+  // data is frozen once locked, and the employee's payslip list surfaces
+  // approved/exported periods (use-payslips SETTLED_STATUSES). Gating on
+  // 'locked' only meant a settled payslip could never produce its own PDF.
+  const PDF_ELIGIBLE_STATUSES = ["locked", "approved", "exported"] as const;
+  if (!PDF_ELIGIBLE_STATUSES.includes(period.status as (typeof PDF_ELIGIBLE_STATUSES)[number])) {
     return NextResponse.json(
       {
         ok: false,
         error: "period_not_locked",
-        detail: `Periode er ${String(period.status)} — PDF-generering krever låst periode.`,
+        detail: `Periode er ${String(period.status)} — PDF-generering krever låst (eller senere) periode.`,
       },
       { status: 409 },
     );

@@ -92,10 +92,10 @@ No new ADR drafted. ADR-0250 callout + memory addendum are the load-bearing reco
 |---|---|---|
 | `tax_municipality_code` missing from `LonnsprofilSection` form (type-gen lag) | follow-up sortie post-merge | low — capability tool accepts it; UI can't yet |
 | e2e Phase 5 reveal spec skipped — needs PII seed helper | e2e infra sortie | medium — manual test runbook covers gap |
-| 267 stale Skatteetaten doc-refs across `docs/modules/payroll/`, `docs/architecture/contract-service/`, ADRs 0241/0001/0251/0252 | doc-sync sortie post-merge | low — historical refs, not load-bearing |
+| 267 stale Skatteetaten doc-refs across `docs/domains/payroll/`, `docs/architecture/contract-service/`, ADRs 0241/0001/0251/0252 | doc-sync sortie post-merge | low — historical refs, not load-bearing |
 | ADR-0241 §Consequences point 2 says "Skatteetaten go-live-blocker" — now stale | doc-sync | low |
 | Schema classification 'derived' with comment "Manuell overstyring kun i Fase 0" — manual entry now permanent | doc-sync | low |
-| `docs/modules/payroll/README.md:49` lists ADR-0250 as Proposed (now Deferred) | quick fix in doc-sync | trivial |
+| `docs/domains/payroll/README.md:49` lists ADR-0250 as Proposed (now Deferred) | quick fix in doc-sync | trivial |
 | Pontus out-of-band action: assess whether Phase 7 Tripletex sync should overwrite manually-entered tax fields, or merge | Phase 7 plan | medium — Phase 7 scope decision |
 | `personal_number` + `bank_account` plaintext (no pgsodium) — pre-existing tech debt | future `feat/payroll-pii-pgsodium-encryption` sortie | low (audit-trail compensates per ADR-0077) |
 | Mobile own-data PII reveal absent by design — if Pontus changes the boundary, build mobile reveal screens | future product decision | not debt — current state is correct |

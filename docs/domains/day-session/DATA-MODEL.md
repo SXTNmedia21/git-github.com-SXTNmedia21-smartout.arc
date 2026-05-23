@@ -2,8 +2,8 @@
 title: "Day Session — Data Model"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-22
-updated: 2026-05-22
+last_verified: 2026-05-23
+updated: 2026-05-23
 created: 2026-05-22
 domain: day-session
 tags: [domain, day-session, data-model, schema, d6, tri-layer, adr-0367, rls, telemetry]
@@ -62,9 +62,19 @@ CREATE TYPE settlement_source_type AS ENUM ('pos', 'terminal', 'z_report', 'cash
 ```
 
 ### `session_hook_type` (hook type)
-**Migration:** `supabase/migrations/20260412100300_session_infrastructure.sql`
+**Migration:** `supabase/migrations/20260412100000_session_enums.sql`
 
-Values: `opening`, `closing`, `scheduled`, `timer`. Maps to design hook types: `pre_open`, `open`, `scheduled`, `pre_close`, `close`.
+```sql
+CREATE TYPE session_hook_type AS ENUM (
+  'pre_open',
+  'open',
+  'scheduled',
+  'pre_close',
+  'close'
+);
+```
+
+**DRIFT CORRECTION (2026-05-23):** Legacy design docs (MODULE_4_OPERATIONS) used the names `opening`, `closing`, `timer`. The actual shipped enum is `pre_open`, `open`, `scheduled`, `pre_close`, `close`. These ARE the design hook types — they were renamed to match the design intent at implementation time. The old value names (`opening/closing/timer`) no longer exist in code.
 
 ---
 
@@ -169,7 +179,7 @@ Trigger-populated by `20260620130100_day_line_back_populate_trigger.sql` — joi
 | `linked_routine_id` | UUID FK routine | optional |
 | `is_active` | bool DEFAULT true | soft toggle |
 
-**Constraint:** `UNIQUE (workspace_id, department_id, hook_type)` added per ADR-0367 Rule 1b (`20260620120100_day_line_session_enums.sql`).
+**Constraint:** `UNIQUE (workspace_id, department_id, hook_type)` — constraint name `uq_session_hook_template` added in `supabase/migrations/20260620120600_day_line_child_fks.sql:25` (NOT in `20260620120100` as previously claimed — corrected 2026-05-23).
 
 **Key:** `session_hook` is a TEMPLATE, not a per-session row. Does NOT receive `day_line_id`. The `session_task` rows materialised by `session-hook-executor` at fire time DO inherit `day_line_id` via `fn_resolve_single_day_line`.
 
@@ -224,15 +234,20 @@ Trigger-populated by `20260620130100_day_line_back_populate_trigger.sql` — joi
 **RLS:** jwt_read (workspace member), jwt_manage (admin/owner/manager), jwt_leader_write (duty leader UPDATE wizard_state), service_role.
 
 ### 2.8 `settlement_image` — OCR source
-**Migration:** same as 2.7
+**Migration:** `supabase/migrations/20260304200100_daily_reconciliation.sql:114` + extensions in `20260328120000_financial_close_extensions.sql`
 
 | Key columns | Notes |
 |---|---|
 | `reconciliation_id` FK NOT NULL | parent |
 | `source_type` | `settlement_source_type` |
+| `image_type` | `close_image_type` enum — added by `20260328120000` (values: `isettle_settlement`, `pos_closing_screen`, `z_report`, `cash_drawer`, `receipt_bundle`, `other`) |
 | `storage_path` | Supabase Storage path |
 | `ocr_raw_text` / `ocr_parsed` JSONB / `ocr_confidence` REAL | OCR output |
+| `parse_status` | `'pending' \| 'success' \| 'failed' \| 'manual'` — added by `20260328120000` |
+| `captured_by` | UUID FK profile — added by `20260328120000` |
 | `uploaded_by` FK profile | |
+
+Also in `daily_reconciliation` (added by `20260328120000`): `closed_by` (FK profile), `cash_counted` (numeric), `cash_expected` (numeric), `cash_difference` (numeric) — employee-initiated settlement columns per financial-esp-alignment spec. Separate RLS policies `shift_employee_can_settle` + `shift_employee_can_create_settlement` allow on-shift employees to submit.
 
 **EF:** `process-settlement-image` — Norwegian-language regex parser for POS/terminal output. Confidence computed from how many fields extracted.
 
@@ -260,7 +275,49 @@ Columns: `pos_total`, `terminal_total`, `difference`, `difference_percent`, `wit
 
 **GAP:** Schema exists; no confirmed UI to configure these values from the web dashboard. See GAPS §G10.
 
-### 2.11 `timeline_template` — saved day-line programs (ADR-0335)
+### 2.11 `session_note` — session information notes
+**Migration:** `supabase/migrations/20260412100300_session_infrastructure.sql:120`
+
+Simplified information-capture table for handoff/closing/general notes on a session. NOT the full rich `session_note` model proposed in MODULE_4_OPERATIONS design (categories, visibility, actionable flag, priority) — the shipped schema is minimal:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `workspace_id` | UUID FK → workspace | |
+| `department_session_id` | UUID FK → department_session ON DELETE CASCADE | |
+| `note_type` | `session_note_type` | `'handoff' \| 'closing' \| 'general'` |
+| `content` | TEXT NOT NULL | |
+| `created_by` | UUID FK profile NOT NULL | |
+| `created_at` | timestamptz NOT NULL | |
+
+No `target_date`, `visibility`, `category`, `is_actionable`, or `priority` columns — those are aspirational (see GAPS §G12).
+
+**RLS:** workspace member SELECT + INSERT; service_role ALL.
+
+### 2.12 `waste_log` — food waste tracking
+**Migration:** `supabase/migrations/20260407200001_waste_log_table.sql`
+
+| Column | Type | Notes |
+|---|---|---|
+| `waste_log_id` | UUID PK | |
+| `workspace_id` | UUID FK → workspace | |
+| `department_id` | UUID FK → department | |
+| `session_id` | UUID FK → department_session | optional link |
+| `category` | `waste_category` enum | food-safety category classification |
+| `item_description` | TEXT NOT NULL | |
+| `quantity` | NUMERIC(10,3) | |
+| `unit` | TEXT DEFAULT `'kg'` | |
+| `estimated_cost` | NUMERIC(10,2) | |
+| `reason` | TEXT | |
+| `recorded_by` | UUID FK profile | |
+| `recorded_at` | timestamptz NOT NULL | |
+| `created_at` / `updated_at` | timestamptz NOT NULL | |
+
+**Note:** This is a simpler version than the MODULE_4_OPERATIONS / MODULE_14 design. No `production_session_id`, no `dish_id`, no `ingredient_id` FKs (production module not built). See GAPS §G13.
+
+**RLS:** jwt_read (workspace member), jwt_manage (workspace member).
+
+### 2.13 `timeline_template` — saved day-line programs (ADR-0335)
 **Migration:** `supabase/migrations/` (ADR-0335 migration set)
 
 | Key columns | Notes |
@@ -274,7 +331,7 @@ Columns: `pos_total`, `terminal_total`, `difference`, `difference_percent`, `wit
 
 Applied at session creation via `day_line.instantiate_template` capability.
 
-### 2.12 Adjacent tables (read-joins)
+### 2.14 Adjacent tables (read-joins)
 
 | Table | What day-session reads | Migration |
 |---|---|---|

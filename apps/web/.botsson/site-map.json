@@ -5,11 +5,11 @@
   "routes": [
     {
       "path": "/dashboard",
-      "purpose": "Daily operations console — open/close session, manage roster, track tasks, surface deviations, broadcast messages, swap variant views.",
+      "purpose": "Daily operations console — session, roster, tasks, deviations. Mounts WelcomeWizard (8 steps) for new employees until is_welcome_complete.",
       "module": "Core",
       "tier": 1,
       "access": ["owner", "admin", "manager", "employee"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-23",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -131,7 +131,10 @@
         "Start dagen",
         "Vis avvik",
         "Lås gårsdagen",
-        "Vis strategisk oversikt"
+        "Vis strategisk oversikt",
+        "Fullfør velkomst-veiviseren",
+        "Gjenoppta velkomst-veiviseren",
+        "Hopp over velkomst-veiviseren"
       ]
     },
     {

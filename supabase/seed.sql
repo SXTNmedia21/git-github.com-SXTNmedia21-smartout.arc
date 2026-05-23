@@ -3393,3 +3393,78 @@ WHERE NOT EXISTS (
   WHERE n.recipient_id = 'f0000000-0000-0000-0000-000000000000'
     AND n.title = v.title
 );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DEV PAYROLL SEED (local only) — gives the admin (f0000000…0) real numbers in
+-- Min Tid / lønn surfaces so they aren't empty. NOT a migration → never reaches
+-- prod. Fixtures only; real figures come from the calc-engine in production.
+-- Workspace b0000000…0. Relative dates so it's always "recent".
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Vacation absence type (none seeded otherwise) + the admin's yearly quota.
+INSERT INTO payroll.absence_type (id, workspace_id, category, name, name_no, is_paid, affects_payroll)
+VALUES ('fa110000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-000000000000',
+        'vacation', 'Ferie', 'Ferie', true, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- remaining_days is GENERATED (entitled + adjusted + carried_over − used − paid_out − expired) → omit.
+INSERT INTO payroll.absence_quota
+  (workspace_id, profile_id, absence_type_id, year, entitled_days, used_days, carried_over_days)
+VALUES ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000',
+        'fa110000-0000-0000-0000-0000000000a1', EXTRACT(YEAR FROM CURRENT_DATE)::int, 25, 7, 0)
+ON CONFLICT DO NOTHING;
+
+-- Timebank: +12.5 t accrued.
+INSERT INTO payroll.timebank_entry
+  (workspace_id, profile_id, entry_type, hours, effective_date, account_type, value_amount, value_unit, description)
+VALUES ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000',
+        'accrual', 12.5, CURRENT_DATE - 5, 'toil', 12.5, 'hours', 'Opptjent avspasering (seed)')
+ON CONFLICT DO NOTHING;
+
+-- Two settled (exported) periods + one representative monthly calc each → payslip list + SISTE LØNN.
+-- Period 1 = previous month, Period 2 = month before that.
+INSERT INTO payroll.period (id, workspace_id, start_date, end_date, status, exported_at)
+VALUES
+  ('fa110000-0000-0000-0000-0000000000d1'::uuid, 'b0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date,
+   (date_trunc('month', CURRENT_DATE) - INTERVAL '1 day')::date,
+   'exported', date_trunc('month', CURRENT_DATE) + INTERVAL '11 days'),
+  ('fa110000-0000-0000-0000-0000000000d2'::uuid, 'b0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '2 month')::date,
+   (date_trunc('month', CURRENT_DATE - INTERVAL '1 month') - INTERVAL '1 day')::date,
+   'exported', date_trunc('month', CURRENT_DATE - INTERVAL '1 month') + INTERVAL '11 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- One representative admin shift per period (anchor for the calc; per-shift schema).
+INSERT INTO schedule_shift
+  (schedule_shift_id, workspace_id, employee_id, shift_date, role, start_time, end_time, work_hours, day_category, is_published)
+VALUES
+  ('fa110000-0000-0000-0000-0000000000c1'::uuid, 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date + 9,
+   'Daglig leder', '09:00', '17:00', 7.5, 'midday', true),
+  ('fa110000-0000-0000-0000-0000000000c2'::uuid, 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '2 month')::date + 9,
+   'Daglig leder', '09:00', '17:00', 7.5, 'midday', true)
+ON CONFLICT (schedule_shift_id) DO NOTHING;
+
+-- Internally-consistent monthly calc: net_minutes/60 * base_rate = base_pay = total_pay.
+INSERT INTO payroll.calculation
+  (workspace_id, period_id, schedule_shift_id, profile_id, shift_date,
+   scheduled_start, scheduled_end, gross_minutes, net_working_minutes,
+   base_rate, base_pay, total_supplements, total_deductions, total_pay)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'fa110000-0000-0000-0000-0000000000d1'::uuid,
+   'fa110000-0000-0000-0000-0000000000c1'::uuid, 'f0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date + 9,
+   date_trunc('month', CURRENT_DATE - INTERVAL '1 month') + INTERVAL '9 days 9 hours',
+   date_trunc('month', CURRENT_DATE - INTERVAL '1 month') + INTERVAL '9 days 17 hours',
+   8850, 8850, 220, 32450, 0, 0, 32450),
+  ('b0000000-0000-0000-0000-000000000000', 'fa110000-0000-0000-0000-0000000000d2'::uuid,
+   'fa110000-0000-0000-0000-0000000000c2'::uuid, 'f0000000-0000-0000-0000-000000000000',
+   date_trunc('month', CURRENT_DATE - INTERVAL '2 month')::date + 9,
+   date_trunc('month', CURRENT_DATE - INTERVAL '2 month') + INTERVAL '9 days 9 hours',
+   date_trunc('month', CURRENT_DATE - INTERVAL '2 month') + INTERVAL '9 days 17 hours',
+   7662, 7662, 220, 28094, 0, 0, 28094)
+ON CONFLICT DO NOTHING;

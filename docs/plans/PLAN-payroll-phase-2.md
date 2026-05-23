@@ -1,7 +1,7 @@
 ---
 title: "Plan — payroll-phase-2"
 feature: payroll-phase-2
-spec: docs/modules/payroll/PHASES.md
+spec: docs/domains/payroll/PHASES.md
 status: done
 updated: 2026-05-08
 created: 2026-05-07
@@ -13,9 +13,9 @@ tags: [plan, payroll, phase-2, manual-supplements, line-override, recalc-trigger
 
 > Branch: `feat/payroll-payroll-phase-2` | Worktree: `/home/sxtnl/dev/smartout.ai-payroll-wt-1` | Base: `campaign/payroll` | Module: payroll
 
-**Spec:** [Phase 2 — Manual Supplements + Line Override](../modules/payroll/PHASES.md#phase-2--manual-supplements--line-override)
+**Spec:** [Phase 2 — Manual Supplements + Line Override](../domains/payroll/PHASES.md#phase-2--manual-supplements--line-override)
 
-**Design mockup:** `docs/modules/payroll/design/Payroll Prototype.html` (Sprint 3 i IMPLEMENTATION.md). UI-implementasjon FØLGER mockup 1:1 — Sofia/produkt-team har godkjent flow + visuelt. Kanonisk JSX-kilde i `docs/modules/payroll/design/source/`.
+**Design mockup:** `docs/domains/payroll/design/Payroll Prototype.html` (Sprint 3 i IMPLEMENTATION.md). UI-implementasjon FØLGER mockup 1:1 — Sofia/produkt-team har godkjent flow + visuelt. Kanonisk JSX-kilde i `docs/domains/payroll/design/source/`.
 
 ## Journeys (the contract)
 
@@ -43,7 +43,7 @@ Manager kan legge til manuelle tillegg via Screen 06-modal, foreslå override p�
 ### B. UI surfaces (Sofia Sprint 3 mockup-fidelity)
 
 - **Screen 06 — ManualSupplementForm modal** (`apps/web/src/app/dashboard/payroll/[periodId]/_components/ManualSupplementForm.tsx`)
-  - Source: `docs/modules/payroll/design/source/payroll-supplement-form.jsx`
+  - Source: `docs/domains/payroll/design/source/payroll-supplement-form.jsx`
   - Fields: ansatt-selector, type (Bonus/Forskudd/Trekk/Annet), beløp, lønnskode, beskrivelse, taxable-toggle, dato
   - Trigger: button "+ Manuelt tillegg" på `/dashboard/payroll/[periodId]` header + i LineDrawer
   - Action: server-action calls `add_manual_supplement` capability tool

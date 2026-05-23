@@ -15,6 +15,8 @@ import type {
 } from "@smartout/agent-sdk";
 import type { ContentViewType } from "./types";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { showProposalCardDefinition } from "./inline-confirm-card-tool";
+
 /* ━━━ View actions ref — set by BotssonProvider ━━━ */
 
 export type ViewActions = {
@@ -886,6 +888,12 @@ export function buildBotssonToolKit(
       setTaskPriorityDef,
       setTaskDeadlineDef,
       reorderTaskDef,
+      // BotssonChat-fixed primitive — definition registered here so stage-engine's LLM
+      // knows the tool exists. Implementation lives in BotssonChat's fixed-primitives record
+      // (NOT here) per L-0331 §BotssonChat-fixed tier. Voice is blocked by surfaceConstraints
+      // (channel_constraint:["chat"]) so this definition is safe to include in the global kit
+      // — the harness pre-filter strips it before the voice LLM ever sees it (ADR-0399).
+      showProposalCardDefinition,
     ],
     implementations,
   };

@@ -146,7 +146,9 @@ Specified in ADR-0162. Four tools planned: `create_desk_query`, `assign_represen
 
 **Realtime:** `channel_message` INSERT subscriptions filtered by `channel_id` (Supabase Realtime postgres_changes). Typing/presence via Supabase broadcast channels `chat-typing:{channelId}` and `chat-presence:{channelId}` (ADR-0334).
 
-**LiveKit voice:** `@smartout/walkie-talkie` package wraps LiveKit Cloud EU-region. Token minted by Supabase Edge Function; room name = `channel_{channelId}`. ADR-0282 locks LiveKit as sole WebRTC engine.
+**LiveKit voice:** `@smartout/walkie-talkie` package wraps LiveKit Cloud EU-region. Token minted by `supabase/functions/livekit-token/index.ts`; room name = `channel_{channelId}`. ADR-0282 locks LiveKit as sole WebRTC engine.
+
+**LiveKit webhook:** `supabase/functions/livekit-webhook/index.ts` — receives LiveKit room/participant lifecycle events. Uses `WebhookReceiver` (HMAC-validated via `livekit-server-sdk`). Writes `channel_call_participant` joined/left timestamps, finalizes `channel_call_session` on room close, creates missed-call notifications (`20260422310200`/`20260422310300` triggers also fire on `channel_call_session` status changes). F-WH-02: fail-closed on missing env vars (`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`).
 
 **Storage:** Attachments at `{workspace_id}/chat/{channel_id}/` in Supabase Storage. RLS: channel members only.
 

@@ -8,12 +8,14 @@
  * 4. Footer — payment info + download PDF button
  */
 
-import React, { useMemo } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { supabase } from "@/lib/supabase";
+import { getWebApiUrl } from "@/lib/web-api";
 import {
   ChevronLeft,
   Download,
@@ -101,6 +103,51 @@ export default function PayslipDetailScreen() {
   const workHours = (workMinutes / 60).toFixed(1);
   const hourlyRate = workMinutes > 0 ? Math.round(basePay / (workMinutes / 60)) : 0;
   const periodName = payslip ? formatPeriodName(payslip.period.start_date) : "";
+
+  // ── PDF download ──────────────────────────────────────────────────────────
+  // POST the BFF generate-pdf-single route (Bearer, ADR-0132). The route
+  // derives identity server-side (ADR-0151) and allows employee self-download.
+  // Returns a signed URL we open in the browser / new tab.
+  const [downloading, setDownloading] = useState(false);
+  const handleDownload = useCallback(async () => {
+    const workspaceId = profile?.workspace_id;
+    const profileId = profile?.profile_id;
+    if (!workspaceId || !profileId || !periodId) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDownloading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Ikke innlogget");
+      const res = await fetch(`${getWebApiUrl()}/api/payroll/generate-pdf-single`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          workspace_id: workspaceId,
+          period_id: periodId,
+          profile_id: profileId,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        signed_url?: string;
+        error?: string;
+        detail?: string;
+      };
+      if (!res.ok || !json.ok || !json.signed_url) {
+        throw new Error(json.detail ?? json.error ?? `Serverfeil (${res.status})`);
+      }
+      await Linking.openURL(json.signed_url);
+    } catch (e) {
+      Alert.alert("Kunne ikke laste ned", e instanceof Error ? e.message : "Ukjent feil");
+    } finally {
+      setDownloading(false);
+    }
+  }, [profile?.workspace_id, profile?.profile_id, periodId]);
 
   if (!periodId) {
     return (
@@ -275,11 +322,24 @@ export default function PayslipDetailScreen() {
             </Text>
 
             <Pressable
-              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-              style={({ pressed }) => [styles.downloadButton, pressed && styles.downloadPressed]}
+              onPress={handleDownload}
+              disabled={downloading}
+              style={({ pressed }) => [
+                styles.downloadButton,
+                (pressed || downloading) && styles.downloadPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Last ned lønnsgrunnlag som PDF"
+              accessibilityState={{ disabled: downloading, busy: downloading }}
             >
-              <Download size={20} color="#ffffff" strokeWidth={2} />
-              <Text style={styles.downloadText}>Download PDF Payslip</Text>
+              {downloading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Download size={20} color="#ffffff" strokeWidth={2} />
+              )}
+              <Text style={styles.downloadText}>
+                {downloading ? "Genererer PDF…" : "Last ned lønnsgrunnlag (PDF)"}
+              </Text>
             </Pressable>
           </Animated.View>
         </ScrollView>

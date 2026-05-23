@@ -82,6 +82,10 @@
       "types": "./dist/primitives/input-request/index.d.ts",
       "default": "./dist/primitives/input-request/index.js"
     },
+    "./primitives/inline-confirm-card": {
+      "types": "./dist/primitives/inline-confirm-card/index.d.ts",
+      "default": "./dist/primitives/inline-confirm-card/index.js"
+    },
     "./tools/report": {
       "types": "./dist/tools/report/index.d.ts",
       "default": "./dist/tools/report/index.js"
@@ -189,6 +193,14 @@
     "./capabilities/tips/calculate": {
       "types": "./dist/capabilities/tips/calculate.d.ts",
       "default": "./dist/capabilities/tips/calculate.js"
+    },
+    "./capabilities/routine/draft-schema": {
+      "types": "./dist/capabilities/routine/draft-schema.d.ts",
+      "default": "./dist/capabilities/routine/draft-schema.js"
+    },
+    "./router/attachment-dispatch": {
+      "types": "./dist/router/attachment-dispatch.d.ts",
+      "default": "./dist/router/attachment-dispatch.js"
     },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",

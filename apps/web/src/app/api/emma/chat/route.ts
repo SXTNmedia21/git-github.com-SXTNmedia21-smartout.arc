@@ -268,6 +268,11 @@ export async function POST(request: NextRequest) {
               workforce_context: ctx.workforce,
             }
           : {}),
+        // Sortie 0 bulk_import: forward signed-URL attachments to stage-engine
+        // so MIME-deterministic dispatch (Wave 2 Track 5) can route .xlsx/.csv
+        // to bulk_import capability without LLM intent-classification roundtrip.
+        // BFF already validated + wrote these to chat_message.attachments (line 350).
+        attachments: body.userMessageAttachments ?? [],
       }),
     });
 

@@ -8,3 +8,5 @@ export { Input } from "./Input";
 export { Badge } from "./Badge";
 export { BottomSheet } from "./BottomSheet";
 export { EmptyState } from "./EmptyState";
+export { WizardHeader } from "./WizardHeader";
+export type { WizardHeaderProps } from "./WizardHeader";

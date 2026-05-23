@@ -181,7 +181,7 @@ D1 is permanent, slow-moving. Changes here cascade to D6 production via ADR-0367
 
 ### Modules
 - `docs/domains/day-session/` — direct consumer of `(location, department)` pair
-- `docs/modules/payroll/` — consumes `department_session` (untouched)
+- `docs/domains/payroll/` — consumes `department_session` (untouched)
 - `docs/modules/MODULE_YEAR_WHEEL_PRD.md` — D4 planning per area+dept
 
 ### Code locations

@@ -6,7 +6,11 @@ created: 2026-03-30
 module: meta
 tags: [roadmap, event-motor, autonomy, implementation, vision, cascade]
 language: en
+migration_status: pending
+planned_domain: meta
 ---
+
+> **📋 Meta doc (ADR-0392).** This is the master roadmap of legacy MODULE_* files. Not a domain itself — it tracks the migration of all the others. Retained as cross-cutting reference.
 
 ## Cascade Mapping
 

@@ -9,17 +9,22 @@
     "dev": "npx tsc --watch",
     "lint": "eslint src/",
     "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "@smartout/types": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
     "date-fns": "^4.1.0",
+    "papaparse": "^5.4.1",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "typescript": "^5.9.0"
+    "@types/papaparse": "^5.3.14",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
   }
 }

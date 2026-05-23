@@ -1,11 +1,14 @@
 ---
 title: Announcements — Data Model
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, data-model, schema, channel-message, rls, telemetry]
 ---
+
+> **ARCHIVED 2026-05-23.** See `docs/domains/announcements/DATA-MODEL.md` (includes Wave B `announcement_meta` schema).
 
 # Announcements — Data Model
 

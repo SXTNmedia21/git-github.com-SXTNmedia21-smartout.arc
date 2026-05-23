@@ -35,6 +35,12 @@ export type CapabilityName =
   | "shift_lifecycle"
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
+  /** Sortie 0 — drag-drop Excel/CSV bulk-import of shifts (vaktliste) and daily-plan tasks (kjøreplan).
+   *  Admin+ only; chat-only (ADR-0078); web-only Compose verb (ADR-0133).
+   *  Skeleton in Sortie 0; tools populated in Sorties A/B/C.
+   *  Spec: docs/superpowers/specs/2026-05-23-bulk-import-design.md
+   *  Council: 2026-05-23 APPROVE WITH CHANGES */
+  | "bulk_import" // Sortie 0 — xlsx/csv bulk-import capability skeleton
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
   | "engine_world" // engine_world reader (Phase 0) — shared world model for agent fleet
   | "page_takeover.help.panic_bar_human_button" // ADR-0228 — granular per-target page-takeover authority, default-deny (M3.2 v1)

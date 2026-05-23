@@ -304,7 +304,11 @@ export async function addShiftAction(
       status: "created" as const,
       is_published: true,
       indicator: "blue",
-      source: "manual_admin",
+      // ADR-0108 provenance discriminator — row-level value is constrained to
+      // operational | bubble_migration | v3_engine. A manually-created admin
+      // shift is operational. The "manual_admin" audit provenance is recorded
+      // on the telemetry emit below (→ activity_trail), not on the row.
+      source: "operational",
       notes: parsed.data.reason,
     })
     .select("schedule_shift_id")

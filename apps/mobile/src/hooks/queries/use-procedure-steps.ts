@@ -39,19 +39,23 @@ async function fetchProcedureSteps(procedureId: string): Promise<ProcedureWithSt
 
   if (stepsError) throw stepsError;
 
-  // Fetch knowledge test linked to the same protocol
-  const { data: knowledgeTest } = await supabase
-    .from("knowledge_test")
-    .select("*")
-    .eq("protocol_id", procedure.protocol_id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  // Fetch knowledge test linked to the same protocol.
+  // Brownfield (ADR-0393): procedure.protocol_id is now nullable — an ungoverned
+  // procedure has no protocol, hence no knowledge test.
+  const { data: knowledgeTest } = procedure.protocol_id
+    ? await supabase
+        .from("knowledge_test")
+        .select("*")
+        .eq("protocol_id", procedure.protocol_id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
 
   return {
     procedure,
     steps: steps ?? [],
-    knowledgeTest: knowledgeTest ?? null,
+    knowledgeTest,
   };
 }
 

@@ -1,11 +1,14 @@
 ---
 title: Announcements — Architecture
-status: in_progress
-updated: 2026-05-18
+status: archived
+superseded_by: docs/domains/announcements/
+updated: 2026-05-23
 created: 2026-05-18
 module: announcements
 tags: [module, announcements, architecture, code-map, web, mobile, capabilities, composer]
 ---
+
+> **ARCHIVED 2026-05-23.** See `docs/domains/announcements/ARCHITECTURE.md`.
 
 # Announcements — Architecture
 

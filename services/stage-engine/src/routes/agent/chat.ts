@@ -156,7 +156,7 @@ const workforceContextSchema = z
 const clientToolParameterSchema = z.object({
   name: z.string(),
   location: z.string(),
-  description: z.string(),
+  description: z.string().optional(),
   required: z.boolean().optional(),
   schema: z.union([
     z.object({ type: z.literal("string"), enum: z.array(z.string()).optional() }),
@@ -232,6 +232,25 @@ const chatSchema = z.object({
    *  tool_call_id values MUST match tool_call_ids from the previous response's
    *  client_tool_calls array. */
   client_tool_results: z.array(clientToolCallResultSchema).optional(),
+  /** Sortie 0 bulk_import: files uploaded via /api/botsson/imports/upload.
+   *  Each entry carries a signed URL (1h TTL) + storage path for the file.
+   *  MIME-deterministic routing — agent-router checks these BEFORE LLM intent
+   *  classification (Wave 2 Track 5). Optional — existing callers unaffected. */
+  attachments: z
+    .array(
+      z.object({
+        storage_path: z.string(),
+        signed_url: z.string().url(),
+        mime: z.string(),
+        size_bytes: z.number().int().positive(),
+        filename: z.string(),
+        expires_at: z.string().datetime(),
+      }),
+    )
+    .optional()
+    .describe(
+      "Files uploaded via /api/botsson/imports/upload; signed URLs (1h TTL). MIME-deterministic routing.",
+    ),
 });
 
 // -- POST /agent/chat --
@@ -669,6 +688,8 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       routeContext: body.route_context,
       bundle: resolvedBundle,
       clientToolNames,
+      // Sortie 0: forward file attachments for MIME-deterministic dispatch (Wave 2 Track 5).
+      attachments: body.attachments ?? [],
     });
 
     // Append assistant turn

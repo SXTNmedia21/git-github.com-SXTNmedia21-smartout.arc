@@ -2,8 +2,8 @@
 title: "Day Session — Roadmap"
 status: in_progress
 mirror: aspirational
-last_verified: 2026-05-22
-updated: 2026-05-22
+last_verified: 2026-05-23
+updated: 2026-05-23
 created: 2026-05-22
 domain: day-session
 tags: [domain, day-session, roadmap, adr-0367, forward-plan]
@@ -78,6 +78,11 @@ ADR-0297 workforce snapshot bootstraps D2+D6 facts into voice + chat at session 
 
 ### P7 — Signoff flow / dagsgodkjenning journey unification
 The design spec's `pending_signoff → closed → locked` flow spans two surfaces (WebDayControl SignoffTab + /dashboard/reconciliation). A single unified journey narrative is missing. Write `JOURNEY-day-session-close-and-approve.md`.
+
+### P9 — Production Module (future separate domain — not day-session)
+MODULE_14_PRODUCTION describes the full food production data model: ingredients, recipes, dishes, menus, bookings, production_session, calculation engine, waste tracking. This is a major future initiative. `production_session` uses `department_session` as a container, but the domain entities are independent.
+
+**Recommendation:** When prioritized, run `domain-steward pre production` (or `menu-production`) as a NEW domain, not an extension of day-session. The seam is `production_session.session_id → department_session`. Day-session provides the operational container; production owns the food/production data model. See GAPS §G15.
 
 ### P8 — `DuringShiftViewV2` feature-flag graduation
 `DuringShiftViewV2` (M4 gradient-hero redesign) is behind `EXPO_PUBLIC_DURING_SHIFT_V2=true` feature flag. Design intent: graduate to default after A/B testing. Pending product decision.

@@ -6,14 +6,42 @@ last_verified: 2026-05-23
 updated: 2026-05-23
 created: 2026-05-23
 domain: core-structure
-tags: [domain, core-structure, data-model, schema, d1]
+tags: [domain, core-structure, data-model, schema, d1, identity, rls]
 ---
 
 # Core Structure — Data Model
 
 > Actual schema. **Code wins** — verified against migrations + `database.types.ts`. All tables verified against code.
 
-## Tables
+## Identity layer (pre-workspace)
+
+Core-structure DOES NOT own these tables — they live below the workspace boundary. They are documented here for orientation because every D1 table is scoped to `workspace_id`, which is defined in the identity layer.
+
+| Table | Migration | Notes |
+|---|---|---|
+| `user_identity` | `00001_identity_tables.sql:23` | Global user record. `is_godmode boolean` = platform admin bypass (renamed from `is_super_admin` in `20260301120000_rename_is_super_admin_to_is_godmode.sql`). No `workspace_id`. |
+| `company` | `00001_identity_tables.sql:46` | Legal entity. `company_id PK`, `org_number`, `industry`, `country`. No `workspace_id`. |
+| `company_member` | `00001_identity_tables.sql:146` | Bridge `user_id ↔ company_id`. `role company_member_role ('owner','admin','member')`. No `workspace_id`. |
+| `workspace` | `00001_identity_tables.sql:74` | Tenant root. `workspace_id PK`, `company_id FK`, `active_modules text[]`, `max_profiles integer`. D1 tables all carry `workspace_id NOT NULL FK → workspace`. |
+| `profile` | `00001_identity_tables.sql:107` | D2 resource (operational; no PII). `workspace_id FK`, `company_id FK`, `user_id FK → user_identity`. `role profile_role`, `status profile_status`. One per user per workspace. |
+
+### Scoping hierarchy
+
+```
+Company (legal entity — company_member bridges user ↔ company)
+  └── Workspace (tenant root — workspace_id on every D1–D6 row)
+        └── Profile (one per user per workspace — the RLS anchor)
+```
+
+Tables without `workspace_id` (the only 3): `user_identity`, `company`, `company_member`. Everything else is strictly workspace-scoped.
+
+### Godmode (platform admin)
+
+`user_identity.is_godmode boolean DEFAULT false` — bypasses all workspace-scoped RLS. Used by Smartout internal team for support/debugging. Pattern: `EXISTS (SELECT 1 FROM public.user_identity WHERE user_id = auth.uid() AND is_godmode = true)`. Verified: `20260301120000_rename_is_super_admin_to_is_godmode.sql` + `packages/supabase/src/database.types.ts:20372`.
+
+---
+
+## D1 tables (domain-owned)
 
 | Table | Migration | workspace-scoped | Notes |
 |---|---|---|---|
@@ -236,6 +264,41 @@ All D1 tables use the standard dual-policy pattern:
 - **Service role**: full access for I1 bootstrap and migration scripts.
 
 `department_location` RLS verified: `20260620120500_department_location_junction.sql` — INSERT `WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id))`, DELETE same.
+
+### Implemented RLS helper functions (`00004_rls_policies.sql`)
+
+Two helper functions are implemented and in production use. MODULE_13 proposed additional `auth.*` schema helpers — those are NOT implemented (see GAPS §G-10).
+
+```sql
+-- Returns workspace IDs where user has an active profile
+CREATE OR REPLACE FUNCTION public.get_workspace_ids_for_user(uid uuid)
+RETURNS SETOF uuid AS $$
+  SELECT workspace_id FROM public.profile WHERE user_id = uid AND is_active = true;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Returns true if user has admin or owner role in workspace
+CREATE OR REPLACE FUNCTION public.is_admin_in_workspace(uid uuid, wid uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE user_id = uid AND workspace_id = wid
+      AND role IN ('admin', 'owner') AND is_active = true
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+```
+
+Both functions: `SECURITY DEFINER STABLE` — PostgreSQL caches within a transaction, critical for RLS performance.
+
+### Identity-layer RLS policies (informational)
+
+The identity tables have their own simpler RLS patterns (not owned by core-structure, documented for reference):
+
+- `user_identity`: users read/update own row — `auth.uid() = user_id`
+- `company`: users read companies where they have a `company_member` row
+- `company_member`: users read own membership row — `user_id = auth.uid()`
+- `workspace`: users read workspaces via `get_workspace_ids_for_user(auth.uid())`
+
+All of these are in `00004_rls_policies.sql`.
 
 ## Telemetry events
 

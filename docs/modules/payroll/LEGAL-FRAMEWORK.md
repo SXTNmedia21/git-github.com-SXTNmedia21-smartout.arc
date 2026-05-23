@@ -1,12 +1,15 @@
 ---
 title: Payroll Legal Framework — Norwegian Hospitality
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 author: lovsen
 tags: [payroll, legal, arbeidsrett, riksavtalen, ferieloven, otp, a-melding, bokføringsloven]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Payroll Legal Framework
 

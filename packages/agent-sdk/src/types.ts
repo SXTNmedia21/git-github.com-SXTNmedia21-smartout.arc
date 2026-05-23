@@ -50,6 +50,14 @@ export type DebugEntry = {
 export type ClientToolParameter = {
   name: string;
   location: "PARAMETER_LOCATION_BODY";
+  /**
+   * Top-level parameter description.
+   * Required by BFF (ClientToolParameterSchema in /api/botsson/chat/route.ts:49)
+   * and stage-engine Zod schemas. Optional here for backward compat with existing
+   * callers that set description only inside `schema`. New definitions MUST set this
+   * (Zod will reject at BFF if absent). Matches @smartout/ai/harness/types.ts:ClientToolParameter.
+   */
+  description?: string;
   schema: Record<string, unknown>;
   required?: boolean;
 };
