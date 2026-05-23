@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface SignalRow {
   id: string;
@@ -35,6 +34,7 @@ interface GuardianLogRow {
 export async function handleGetSignals(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -52,7 +52,7 @@ export async function handleGetSignals(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: guardian:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -95,12 +95,13 @@ export async function handleGetSignals(
 
   const rows = await executeWithWorkspaceContext<SignalRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ signals: rows, limit, offset });
+  return jsonOk({ signals: rows, limit, offset }, cors);
 }
 
 export async function handleGetGuardianLog(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -118,7 +119,7 @@ export async function handleGetGuardianLog(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: guardian:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -152,5 +153,5 @@ export async function handleGetGuardianLog(
 
   const rows = await executeWithWorkspaceContext<GuardianLogRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ guardian_log: rows, limit, offset });
+  return jsonOk({ guardian_log: rows, limit, offset }, cors);
 }

@@ -1,10 +1,11 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveAuth } from "../_shared/auth-middleware.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   try {
@@ -13,7 +14,7 @@ Deno.serve(async (req) => {
     if (!auth) {
       return new Response(
         JSON.stringify({ valid: false, error: "Invalid or missing credentials" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 401, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
 
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ valid: false, error: "Rate limit exceeded" }), {
         status: 429,
         headers: {
-          ...corsHeaders,
+          ...cors,
           "Content-Type": "application/json",
           "X-RateLimit-Remaining": String(rl.remaining),
           "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
         workspace_id: auth.workspaceId,
         scopes: auth.scopes,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     return new Response(
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
         valid: false,
         error: error instanceof Error ? error.message : String(error),
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
 });

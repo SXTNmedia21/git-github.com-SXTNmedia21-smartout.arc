@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface ProfileRow {
   profile_id: string;
@@ -20,6 +19,7 @@ interface ProfileRow {
 export async function handleGetProfiles(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -37,7 +37,7 @@ export async function handleGetProfiles(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: profiles:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -73,5 +73,5 @@ export async function handleGetProfiles(
 
   const rows = await executeWithWorkspaceContext<ProfileRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ profiles: rows, limit, offset });
+  return jsonOk({ profiles: rows, limit, offset }, cors);
 }
