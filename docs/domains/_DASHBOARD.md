@@ -232,3 +232,13 @@ tags: [domain, dashboard, status, source-of-truth]
 **8 retro-absorb candidates** — all 8 processed as of 2026-05-23 (MODULE_4, MODULE_4.5, MODULE_10, MODULE_13, MODULE_14, MODULE_18, MODULE_AGENT_SDK, MODULE_12_AI). All marked `partially_absorbed` or `split_absorbed`/`fully_absorbed`. Inventory sweep complete.
 
 **10 fresh future-domain candidates** = legitimately waiting for their `pre` run.
+
+## Migration Backlog
+
+Tracks council-driven spine reconciliation that has been QUEUED but not yet RUN. Populated by `run-council` Phase 7 when a council verdict ships and the affected `domain-steward update <name>` dispatch is deferred (typically: usage-limit, parallel sortie conflict, or explicit user-defer). Drained by running the update.
+
+| Date | Council topic | Affected domain | Verdict | ADR | Status |
+|------|---------------|-----------------|---------|-----|--------|
+| _empty — no pending council-reconciliation debt_ | | | | | |
+
+Add a row whenever a council Phase 7 dispatch is deferred. Remove the row when the targeted `update` ships. Two unresolved rows for the same domain = process gap → log in `council_meta.md`.

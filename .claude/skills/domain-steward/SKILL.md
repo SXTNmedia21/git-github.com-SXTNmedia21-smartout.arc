@@ -143,3 +143,11 @@ The RED baseline punted: it wrote *"to fill the gap, run `SELECT enum_range(...)
 ## Skill maintenance
 
 This skill was built RED→GREEN→REFACTOR (writing-skills). RED baseline: `general-purpose` agent on `billing` without the skill invented its own 3-file set, used no `mirror:` status, folded gaps into a section, punted DB verification, never built a dashboard, left the old doc alive. The spine + High-Confidence Rule + "actually run it" + dashboard requirements each close one of those failures.
+
+### Asymmetric skill location (known risk)
+
+This skill lives at `.claude/skills/domain-steward/` — **project-local**, committed to the Smartout repo. Its counterpart `run-council` lives at `~/.claude/skills/run-council/` — **user-global**, NOT in any repo. The two skills reference each other (council Phase 7 → domain-steward update; domain-steward `update` triggers → council). The pairing is load-bearing for ADR-0392 compiled-truth discipline.
+
+**Failure mode:** if `run-council` is invoked from a project that does NOT have a `.claude/skills/domain-steward/`, Phase 7 dispatch will fail to load this skill — the council ships a verdict without spine reconciliation. The Phase 7 sub-agent now guards against this (uses `$(git rev-parse --show-toplevel)/.claude/skills/domain-steward/SKILL.md` + stops if absent), but the absent state is silent for the user.
+
+**Recommended mitigation:** if Pontus starts using run-council in another project that should have domain-spine discipline, copy this skill there as project-local OR promote both skills to a shared location. Until then, only this repo gets the full council ↔ spine bridge.
