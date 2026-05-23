@@ -363,7 +363,99 @@ export async function saveAvailability(input: SaveAvailabilityInput): Promise<Ac
   return { ok: true };
 }
 
-// ─── Step 6: Complete ─────────────────────────────────────────────────────────
+// ─── Step 7: Consent ─────────────────────────────────────────────────────────
+
+// Document version constants — V1 hardcoded; ROADMAP: per-workspace
+// versioning catalog so admins can update consent text without code change.
+export const HANDBOOK_DOCUMENT_VERSION = "handbook-v1";
+export const GDPR_DOCUMENT_VERSION = "gdpr-v1";
+export const TARIFF_DOCUMENT_VERSION = "tariff-v1";
+
+const SaveConsentInput = z.object({
+  handbook: z.literal(true),
+  gdpr: z.literal(true),
+  tariff: z.boolean().optional(),
+});
+export type SaveConsentInput = z.infer<typeof SaveConsentInput>;
+
+/**
+ * Wizard step 7. Inserts one consent_acceptance row per accepted
+ * consent_type. All-or-nothing: if tariff checkbox is required by
+ * payroll.workspace_settings.is_tariff_bound and missing, returns an error.
+ *
+ * INSERT requires service-role (no JWT INSERT policy on consent_acceptance —
+ * audit-trail immutability enforced at RLS level). Uses createAdminClient()
+ * per pattern established in other wizard steps (saveContact, saveAddress, etc).
+ *
+ * Auth: server-derived per ADR-0151. Fail-fast on missing profile per L-0177.
+ */
+export async function saveConsent(input: SaveConsentInput): Promise<ActionResult> {
+  const parsed = SaveConsentInput.safeParse(input);
+  if (!parsed.success) return badInput(parsed.error.issues);
+
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const admin = createAdminClient();
+
+  // Workspace tariff binding gate — read from payroll.workspace_settings
+  // (is_tariff_bound lives in payroll schema, not public.workspace).
+  const { data: ws } = await admin
+    .schema("payroll")
+    .from("workspace_settings")
+    .select("is_tariff_bound")
+    .eq("workspace_id", profile.workspaceId)
+    .maybeSingle();
+  const tariffRequired = ws?.is_tariff_bound === true;
+  if (tariffRequired && parsed.data.tariff !== true) {
+    return { ok: false, error: "tariff_consent_required" };
+  }
+
+  const rows: Array<{
+    workspace_id: string;
+    profile_id: string;
+    consent_type: "handbook" | "gdpr" | "tariff";
+    document_version: string;
+  }> = [
+    {
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "handbook",
+      document_version: HANDBOOK_DOCUMENT_VERSION,
+    },
+    {
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "gdpr",
+      document_version: GDPR_DOCUMENT_VERSION,
+    },
+  ];
+  if (parsed.data.tariff === true) {
+    rows.push({
+      workspace_id: profile.workspaceId,
+      profile_id: profile.profileId,
+      consent_type: "tariff",
+      document_version: TARIFF_DOCUMENT_VERSION,
+    });
+  }
+
+  const { error } = await admin.from("consent_acceptance").insert(rows);
+  if (error) return { ok: false, error: error.message };
+
+  void emit({
+    event: "profile welcome_wizard_step_completed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      data: { step: 7, step_name: "consent" },
+    },
+  });
+
+  return { ok: true };
+}
+
+// ─── Step 8: Complete ─────────────────────────────────────────────────────────
 
 export async function completeWelcome(): Promise<ActionResult> {
   const profile = await resolveCurrentProfile();
