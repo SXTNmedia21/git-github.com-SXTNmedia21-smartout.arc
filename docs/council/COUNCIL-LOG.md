@@ -2382,3 +2382,46 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Out of scope (named):** ADR-0367 Rule 2 per-area fan-out; push/notification (receiver pulls — FINDINGS G16); web per-employee shift-tasks view (ADR-0133 mobile-executes); full Min dag UI port (separate plan).
 **ADR created:** none (executes under ADR-0367/0298/0317; ADR-0367 single-area-V1 clarification noted in migration header — formal amendment optional, deferred).
 **Learning created:** L-0328 (TanStack v5 enabled:false returns cached data — gate on result not enabled). Meta: verify-skill GUI-undriven seam caught by council (sibling L-0325).
+
+## 2026-05-23 — Arena Inline-Proposal Cards (HITL UI primitive for Botsson chat)
+**Type:** architecture + feature (pre-implementation)
+**Verdict:** APPROVE WITH CHANGES — Phase 1 ships `publish_announcement` rework + `InlineConfirmCard` + `show_proposal_card` client-tool under ADR-0398 + ADR-0399; Phase 2 (`send_message`, `approve_shift`) defers to ADR-0400/0401 (reserved) own sortier
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), botsson-harness-builder, frontend-designer (5/5 responded — FULL council) + Phase 2.5 fact-check 15/15 VERIFIED
+**Prior verdict held?** n/a (first council on Botsson HITL UI primitive surface)
+**Key decisions (9 convergence points + 1 resolved architecture conflict):**
+1. **Architecture B only** — Code-Tracer proved Architecture A (descriptor interception) does not exist: `services/stage-engine/src/core/agent-router.ts:889-906` is name-keyed (`call.toolName ∈ clientToolNames`), `packages/ai/src/adapters/vercel-ai.ts:54-80` returns raw verbatim. LLM MUST explicitly call `show_proposal_card` after draft tool result.
+2. **Symbol `ProposalCard` banned** — 2 existing component sites: `ChangeProposalsPanel.tsx:50` + `ProposedPlanClient.tsx:238`. Component = `InlineConfirmCard`; tool name = `show_proposal_card` (agent-contract space).
+3. **Discriminator `type: "inline_confirm_card"`** — mirrors BIR field-name convention (NOT `kind`).
+4. **Stateless `proposal_id`** = existing `publish_announcement_atomic.p_client_message_id` UUID already generated at `publish-announcement.ts:238`. No new persistence. RPC UNIQUE constraint = single arbiter.
+5. **BotssonChat-fixed client-tool sub-pattern** (NEW, ADR-0398 §Registration Sub-Pattern) — `show_proposal_card` registers as BotssonChat-shell-fixed implementation, NOT page-scoped via `useRegisteredTools()`. Fixed wins on name collision.
+6. **Two orthogonal descriptor axes** (ADR-0399) — `channel_constraint: ("chat"|"voice")[]` + `platforms: ("web"|"mobile")[]`. Defense-in-depth: harness pre-filter (primary) + tool body guard + result-descriptor guard + render-time guard.
+7. **Phase-1 scope `publish_announcement` only** — eneste tool med eksisterende parser, minste blast radius. send_message + approve_shift defer (each needs own ADR per Phase 2 protocol).
+8. **Mobile parity day-1** — schema in `packages/ai/src/primitives/inline-confirm-card/`. Same React component on mobile in Phase 2 (NOT native sheet — fragments conversational metaphor).
+9. **System-prompt update mandatory** — `mr-botsson.ts` 10-line block teaching LLM to call `show_proposal_card` after every `phase: "draft"` return.
+
+**Frontend Designer's 4 mandated descriptor additions absorbed:** `voice_prompt?: string` (server-controlled voice copy), `recipient_preview_available?: boolean` (interactive vs static chip), `mode: idle|editing|resolved|error` local state contract, token names mandated in ADR-0398 prose (`bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `text-destructive`, `ring-ring`). Motion: spring stiffness:35 damping:22 mass:2.2 (NOT Framer default). `useReducedMotion` → 150ms opacity-fade. WCAG: `role="region"` + container `role="status" aria-live="polite"` + `focus-visible:ring-2 ring-ring` on ALL buttons. Tab order Bekreft → Endre → Avbryt. ESC = Cancel (parity with help-takeover-kit).
+
+**Chair self-reversal check:** NO reversal — Phase 3 stance HELD-WITH-REFINEMENT. ProposalCard collision count went from 1 (Steward Phase 3) → 2 (Supervisor grep) → confirmed 2 (Phase 5 synthesis grep). Collisions expand, not contract.
+
+**Agent Trust Gate (per-tool):**
+
+| Tool | Phase | gate_action precheck | client_message_id idempotency | emit() server-side | Trust Gate |
+|---|---|---|---|---|---|
+| `publish_announcement` (modified) | 1 | **MUST ADD** (blocking condition #1) | EXISTS | EXISTS | CONDITIONAL PASS |
+| `show_proposal_card` (new) | 1 | N/A (UI primitive) | N/A | N/A | CONDITIONAL PASS (blocking #2: fixed-impl pattern in ADR) |
+| `send_message` (modified) | 2 | DEFERRED | not yet | TBD | DEFERRED — ADR-0400 reserved |
+| `approveShift` (modified) | 2 | EXISTS | EXISTS | EXISTS | DEFERRED — ADR-0401 reserved (must answer four_eyes interaction) |
+
+**Phase 2.5 fact-check caught stale briefing claim:** "ADR head is 0397" was actually 0394 at time of briefing; by Phase 8 close, 0395+0396+0397 had ALL landed via onesignal-push + adr-0396 + adr-0397 commits. Re-reserved Phase 1 slots 0398+0399 (collision avoided per Phase 8 Step 0 protocol; **5th+ occurrence of cross-branch ADR-slot collision** — promoted to mandatory `git log --all` check). Phase 2 slots 0400+0401 reserved now.
+
+**Blocking conditions before Phase 1 merge:**
+1. `gate_action` precheck added to `publish-announcement.ts` draft branch (avoid dead-end UX).
+2. BotssonChat-fixed registration sub-pattern verified in ADR-0398 before code lands.
+3. Telemetry registry entries `inline_confirm_card.{shown,confirmed,cancelled,edited}` paired with file:line emit call-sites (anti-phantom per L-NEW-1).
+4. System-prompt 10-line block landed in `mr-botsson.ts` and verified via 3-turn dialog test.
+
+**ADRs created:** ADR-0398 (Inline Confirm Card Primitive), ADR-0399 (Channel + Platform Descriptors on Tool Contract).
+**ADRs reserved (Phase 2):** ADR-0400 (`send_message` confirm pattern), ADR-0401 (`approve_shift` × four_eyes_pending interaction).
+**Learnings created:** L-0329 (collision-grep-globally before reserving symbol), L-0330 (stateless-default from existing UUID), L-0331 (BotssonChat-fixed client-tool sub-pattern), L-0332 (harness-builder mandatory in Phase 3 for Botsson surfaces — promotion candidate after 2nd occurrence).
+**Process improvements promoted to SKILL.md:** none this session; L-0332 candidate for amendment to existing Botsson-harness inclusion rule (add phase-classification question to Harness Builder's brief template).
+**Phase 9 self-improvement:** see council_meta.md.

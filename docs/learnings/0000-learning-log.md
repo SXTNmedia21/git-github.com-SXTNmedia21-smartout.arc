@@ -1,7 +1,7 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-04-23
+updated: 2026-05-23
 last-reconciled: 2026-04-23
 updated: 2026-05-05
 last-reconciled: 2026-05-05
