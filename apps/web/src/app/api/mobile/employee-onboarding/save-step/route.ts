@@ -34,6 +34,11 @@ import { z } from "zod";
 import { resolveMobileActor } from "@/app/api/mobile/_shared/actor";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import {
+  HANDBOOK_DOCUMENT_VERSION,
+  GDPR_DOCUMENT_VERSION,
+  TARIFF_DOCUMENT_VERSION,
+} from "@/app/dashboard/_actions/welcome-wizard-constants";
 
 export const runtime = "nodejs";
 
@@ -277,13 +282,13 @@ export async function POST(req: NextRequest) {
           workspace_id: actor.workspaceId,
           profile_id: actor.profileId,
           consent_type: "handbook",
-          document_version: "handbook-v1",
+          document_version: HANDBOOK_DOCUMENT_VERSION,
         },
         {
           workspace_id: actor.workspaceId,
           profile_id: actor.profileId,
           consent_type: "gdpr",
-          document_version: "gdpr-v1",
+          document_version: GDPR_DOCUMENT_VERSION,
         },
       ];
       if (v.data.tariff === true) {
@@ -291,7 +296,7 @@ export async function POST(req: NextRequest) {
           workspace_id: actor.workspaceId,
           profile_id: actor.profileId,
           consent_type: "tariff",
-          document_version: "tariff-v1",
+          document_version: TARIFF_DOCUMENT_VERSION,
         });
       }
 

@@ -2,7 +2,9 @@
 title: "ADR-0396: Identity-layer columns belong on user_identity, not profile"
 status: accepted
 date: 2026-05-23
+updated: 2026-05-23
 deciders: pontus + council 2026-05-23 (employee-onboarding-wizard R1→R2)
+amended: 2026-05-23 (Sortie C — added address columns to §Exceptions legacy carve-out)
 tags: [adr, schema, identity, cascade]
 ---
 
@@ -44,6 +46,17 @@ This includes:
 they were placed there before the identity layer was formalized. They
 stay on `profile` for now (out-of-scope migration). New columns of this
 class go on `user_identity`.
+
+`address_line_1`, `address_line_2`, `postal_code`, `city`, `country` are
+currently on `profile` for the same reason as `personal_number` — placed
+there before the identity layer was formalized. They stay on `profile` for
+now (out-of-scope migration). A future ADR will track migration to
+`user_identity` once consumer paths are mapped. New identity-class features
+that need address must read from `profile` for legacy users + write through
+`user_identity` for new placements (TBD when that ADR lands).
+
+**Note:** If implementation conflicts with this list, amend the ADR or
+migrate — never accept silent drift.
 
 ## Enforcement
 
