@@ -42,7 +42,12 @@ export {
   type BIRSensitivity,
   type BIRValidation,
 } from "./components/botsson-input-request";
-export { InlineConfirmCard, type InlineConfirmCardProps } from "./components/inline-confirm-card";
+export {
+  InlineConfirmCard,
+  type InlineConfirmCardProps,
+  type InlineConfirmCardDescriptor,
+  type InlineConfirmCardResult,
+} from "./components/inline-confirm-card";
 export { cn } from "./lib/utils";
 export * from "./wizard";
 export * from "./flow-player";
