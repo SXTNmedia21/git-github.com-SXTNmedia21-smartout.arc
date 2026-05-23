@@ -49,7 +49,7 @@ attachment-routing ADR). Total drift from V1 reservation: +3 slots.
 
 - No capability exists for bulk spreadsheet migration; the surface (admin drag-drop, irreversible writes, large payload) is architecturally distinct from all frozen-4 capabilities.
 - `change_proposal` diverges on payload size, lifetime, idempotency pattern, and RLS — extending it would conflate governance (C4) with migration tooling semantics.
-- Cross-namespace writes (schedule_shift, session_task, profile) require delegation pattern to preserve ADR-0173 frozen-4 boundary.
+- Cross-namespace writes (schedule_shift, schedule_day_task, profile) require delegation pattern to preserve ADR-0173 frozen-4 boundary.
 - Profile stub creation via SQL-only capability is structurally impossible (FK chain requires Auth Admin API).
 - Voice and mobile surface bans apply: irreversible writes (ADR-0288) + Compose verb (ADR-0133).
 
