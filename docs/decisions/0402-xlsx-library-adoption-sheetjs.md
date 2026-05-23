@@ -45,7 +45,7 @@ or are less actively maintained.
 
 ### 1. License
 
-Adopt **SheetJS Community Edition only** (`xlsx@latest-stable` from npm, Apache-2.0). The
+Adopt **SheetJS Community Edition only** (`xlsx@^0.18.5` from npm, Apache-2.0). The
 Apache-2.0 license is compatible with Smartout's SaaS model — no copyleft, no CDN requirement,
 no per-seat fee.
 
@@ -86,10 +86,11 @@ archive is the first defense line. Malicious files exceeding 10 MB are rejected 
 code runs.
 
 **Layer 2 — SheetJS read options:**
-Read calls MUST pass `dense: true` and `sheetRows`:
+Read calls MUST pass `dense: true` and `sheetRows` (binding names match the §2 dynamic-import
+destructure — `read` + `utils` — so snippets compose without rewrites):
 
 ```typescript
-const workbook = xlsx.read(buf, {
+const workbook = read(buf, {
   dense: true,      // materializes only cells, not formula AST
   sheetRows: 10000, // hard cap on rows materialized per sheet
 });
@@ -109,7 +110,7 @@ const COL_CAP = 256; // XLS max columns; xlsx supports more but we cap here
 
 for (const sheetName of workbook.SheetNames) {
   const sheet = workbook.Sheets[sheetName];
-  const range = xlsx.utils.decode_range(sheet['!ref'] ?? 'A1:A1');
+  const range = utils.decode_range(sheet['!ref'] ?? 'A1:A1');
   const rows = range.e.r - range.s.r + 1;
   const cols = range.e.c - range.s.c + 1;
   if (rows * cols > ROW_CAP * COL_CAP) {
@@ -146,7 +147,7 @@ Pin the **major version** in `package.json`:
 "xlsx": "^0.18.5"
 ```
 
-(The major version at time of adoption; Sortie B records the exact version after install.)
+(Pinned at `0.18.x` — Sortie B records the exact installed patch version after install.)
 
 **Renovate auto-bump EXCLUDED** until a future ADR explicitly re-enables it. Rationale: xlsx
 parses potentially hostile binary inputs. A silent minor-version upgrade that changes the parser's
@@ -194,7 +195,7 @@ statement MUST NOT appear in any Sortie A commit.
 Because status is `proposed`, these questions are resolved by Pontus + Council before the ADR
 flips to `accepted` at the start of Sortie B:
 
-**Q1 — Actual bundle size:** Will `xlsx@latest-stable` stay within 120 KB gzip after install and
+**Q1 — Actual bundle size:** Will `xlsx@^0.18.5` stay within 120 KB gzip after install and
 build? Sortie B measures this. If over budget, dynamic import is mandatory (§2 above). Outcome
 updates §2 of this ADR.
 
