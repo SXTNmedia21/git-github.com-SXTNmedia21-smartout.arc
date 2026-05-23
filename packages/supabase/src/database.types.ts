@@ -8028,6 +8028,64 @@ export type Database = {
           },
         ]
       }
+      employee_onboarding_state: {
+        Row: {
+          completed_at: string | null
+          current_step_index: number
+          dismissed_at: string | null
+          profile_id: string
+          started_at: string
+          status: string
+          step_data: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step_index?: number
+          dismissed_at?: string | null
+          profile_id: string
+          started_at?: string
+          status?: string
+          step_data?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step_index?: number
+          dismissed_at?: string | null
+          profile_id?: string
+          started_at?: string
+          status?: string
+          step_data?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_onboarding_state_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       employee_payroll_profile: {
         Row: {
           agreed_weekly_hours: number
