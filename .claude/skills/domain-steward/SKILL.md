@@ -55,6 +55,14 @@ domain-steward dryrun [name|all]   preview-only: removal/consolidation plan + co
 4. Bump `mirror:` + `last_verified:` + `updated:`.
 5. Refresh the dashboard row.
 
+**Recognized triggers for `update`:**
+- **Council verdict** — Phase 7 of `run-council` MUST dispatch `update` for every affected domain. The council briefing is the context; reconcile in **targeted** mode (only re-grep the claims the council touched). See `run-council/SKILL.md` Phase 7 "Domain spine reconciliation".
+- **Post-sortie closure** — `/close-feature` should trigger `update` if the sortie touched a domain spine (use `post` mode for full re-verification; `update` for targeted drift-fix).
+- **Routine drift-check** — periodic heartbeat or manual `update <name>` to catch silent code-vs-spine drift.
+- **Pre-sortie scope-check** — when a new sortie is being planned, `update` confirms spine reflects current code so the plan isn't built on stale assumptions.
+
+Council-driven `update` is **mandatory not optional** — skipping it creates 2-source-of-truth drift (council decided X, spine still says ¬X). See `_DASHBOARD.md` Migration Backlog for any pending council-reconciliation debt.
+
 ### post — close out after a sortie
 1. Capture what the sortie changed; update `ARCHITECTURE`/`DATA-MODEL`/`E2E-COVERAGE`.
 2. Move closed gaps out of `GAPS-AND-DEBT`; add any new debt with code citation.
