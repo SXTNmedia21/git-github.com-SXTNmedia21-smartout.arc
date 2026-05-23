@@ -2382,3 +2382,41 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Out of scope (named):** ADR-0367 Rule 2 per-area fan-out; push/notification (receiver pulls — FINDINGS G16); web per-employee shift-tasks view (ADR-0133 mobile-executes); full Min dag UI port (separate plan).
 **ADR created:** none (executes under ADR-0367/0298/0317; ADR-0367 single-area-V1 clarification noted in migration header — formal amendment optional, deferred).
 **Learning created:** L-0328 (TanStack v5 enabled:false returns cached data — gate on result not enabled). Meta: verify-skill GUI-undriven seam caught by council (sibling L-0325).
+
+## 2026-05-23 — Employee Onboarding Wizard Design Spec (R1 → R2)
+**Type:** spec (pre-implementation)
+**Verdict:** REJECT (R1) → REVISED-AND-APPROVED-FOR-PLAN (R2 in same session)
+**Agents consulted:** system-steward (chair, Phase 3 + 5), supervisor, system-agent-coordinator, frontend-designer
+**Prior verdict held?** n/a (first council on topic)
+**Convergence:** 4/4 do-not-proceed on R1; user (Pontus) approved REJECT verdict and instructed inline R2 revision
+
+**Chair self-reversals (L-0147 protocol, 10th precedent):**
+1. Phase 3 "AnimatedWizardShell does not exist" → REVERSED. File exists at `apps/web/src/components/wizard/AnimatedWizardShell.tsx`. Falsifying evidence: Phase 2.5 fact-check + supervisor reference. Root cause: chair grep scoped to `welcome-wizard/` + `onboarding/`, missed `wizard/`. Sibling of L-NEW-2 + Chat-WhatsApp + HMS R1 grep-wrong-scope-key (3rd cross-session occurrence).
+2. Phase 3 "consent_acceptance conflicts with ADR-0311" → REVERSED. ADR-0311 governs payroll trekk-samtykke (Aml. §14-15) in payroll-domain; identity-layer onboarding consent is a separate concern. Cascade invariant 2 actually FORBIDS reusing payroll.consent_document for onboarding.
+3. Phase 3 "ADR-0133 boundary violation" → REFINED (not reversed). ADR-0133 R2 covers D1-D5 authoring; identity-layer / pre-cascade flows are not classified. Real issue: surface duplication with existing mobile `complete-data.tsx` (L-0178 dual-surface). Addressed in R2 §D9.
+
+**Key decision:** Strategy A (extend existing `apps/web/src/components/welcome-wizard/`); no new identity columns on `profile`; reuse `submit_own_pii` RPC + existing Server Actions; reuse `profile welcome_wizard_*` event family (preserve engine_event destination).
+
+**Blockers resolved in R2:**
+1. (R1) Migration strategy A/B/C declared → A
+2. (R2) No new profile columns → identity stays on `user_identity`
+3. (R3) `submit_own_pii` reused (not bypassed)
+4. (R4) Surface ownership vs mobile `complete-data.tsx` declared
+5. (R5) Telemetry reuses existing namespace + preserves engine_event
+6. (R6) Component contract table added (§S_components)
+7. (R7) A11y section added (§S_a11y, WCAG 2.2 AA)
+8. (R8) UX fixes: toggle inversion + PII reveal toggle
+9. (R9) Deep-import discipline `@smartout/ui/wizard/state` + ESLint rule
+10. (R10) Channel guard declared (cookie/Bearer only; no agent capability V1)
+
+**ADR slots reserved:** ADR-0396 (identity-on-user_identity invariant), ADR-0397 (employee onboarding wizard architecture). ADR-0398 (consent_acceptance contract) optional, may land in plan instead. All to be drafted in implementation plan.
+
+**ADR created (this session):** none (deferred to plan-writing per spec §S8).
+
+**Learning created:** Two learnings to log:
+- L-NEW (3rd cross-session occurrence — SKILL.md promotion threshold met): Phase 2.5/Phase 3 grep wrong-scope-key. Precedents: Chat-WhatsApp 2026-05-16, HMS R1 2026-05-17, employee-onboarding 2026-05-23. Rule: existence claims require recursive find from project root, not directory-scoped grep. Sibling-count sanity check required.
+- L-NEW (1st occurrence): "Default-by-omission in migration strategy" — when a spec proposes a redesign without naming the existing component, "Option B replace" becomes the silent default. Spec template must require explicit migration-strategy section when touching code paths with prior implementations. Cross-link to L-0098 prior-council-staleness.
+
+**Files committed:**
+- `docs/superpowers/specs/2026-05-23-employee-onboarding-wizard-design.md` (R2 — full rewrite)
+- `docs/council/COUNCIL-LOG.md` (this entry)
