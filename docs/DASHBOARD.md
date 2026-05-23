@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard — campaign:ui-shell
 status: live
-updated: 2026-05-22
+updated: 2026-05-23
 last-reconciled: 2026-05-18T22:25Z
 last-event: ADR-0367 Day 2 — audit full (YELLOW SAFE-TO-PROMOTE) + 5 HIGH closed via 4 parallel sortier; campaign @ 2ea083ca3 (16 commits today)
 module: meta
