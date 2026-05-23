@@ -19,3 +19,4 @@ export {
   type ComplianceValidation,
   type MandatoryClause,
 } from "./resolve-composition";
+export * from "./spreadsheet/index.js";
