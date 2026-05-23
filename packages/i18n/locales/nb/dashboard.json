@@ -1126,6 +1126,12 @@
       "status_rejected": "Avslått"
     }
   },
+  "tidslinje": {
+    "chip_all": "Alle",
+    "empty_state": "Ingen aktivitet for valgte lokasjoner",
+    "loading": "Laster dagens tidslinje…",
+    "tab_label": "Tidslinje"
+  },
   "shell": {
     "header": {
       "active_season": "Aktiv sesong:",
