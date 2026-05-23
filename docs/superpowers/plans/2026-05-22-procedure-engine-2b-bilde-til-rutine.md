@@ -44,7 +44,7 @@ Record: whether `procedure.workspace_id` exists, the exact `location` columns, a
 ## File Structure
 
 **Backend (surface-independent):**
-- `supabase/migrations/20260623100000_routine_brownfield_governance.sql` — nullable protocol_id, `governance_status`, `created_via` + `source_reference`, procedure.workspace_id guard.
+- `supabase/migrations/20260624130000_routine_brownfield_governance.sql` — nullable protocol_id, `governance_status`, `created_via` + `source_reference`, procedure.workspace_id guard.
 - `supabase/migrations/20260623100500_routine_source_storage_bucket.sql` — `routine-source` private bucket + RLS.
 - `supabase/migrations/20260623101000_fn_create_routine_from_draft.sql` — atomic commit RPC.
 - `packages/ai/src/capabilities/routine/draft-schema.ts` — shared `DraftSchema` (Zod).
@@ -80,7 +80,7 @@ Record: whether `procedure.workspace_id` exists, the exact `location` columns, a
 ### Task 1: Brownfield governance migration
 
 **Files:**
-- Create: `supabase/migrations/20260623100000_routine_brownfield_governance.sql`
+- Create: `supabase/migrations/20260624130000_routine_brownfield_governance.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -139,7 +139,7 @@ Expected: `protocol_id | YES`, `governance_status | NO`, `created_via | NO`, `so
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/20260623100000_routine_brownfield_governance.sql
+git add supabase/migrations/20260624130000_routine_brownfield_governance.sql
 git commit -m "feat(procedure-engine): brownfield governance — nullable protocol_id + governance_status
 
 Routines/procedures may be born ungoverned (no protocol). Adds governance_status
