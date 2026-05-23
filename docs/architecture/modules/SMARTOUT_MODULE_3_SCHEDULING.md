@@ -2,13 +2,13 @@
 title: "Module 3: Vaktplanlegging (Shift Planning)"
 id: MODULE_03
 version: "1.1"
-status: canonical
+status: archived
 layer: module
 created: 2026-02-24
-updated: 2026-03-22
+updated: 2026-05-23
 author: pontus
 supersedes: []
-superseded_by: null
+superseded_by: docs/domains/scheduling/
 depends_on:
   - CORE_ARCH_V2
   - MODULE_02
@@ -20,11 +20,15 @@ tags:
   - open-shifts
   - cascade
 changelog:
+  - date: 2026-05-23
+    change: "Archived — superseded by docs/domains/scheduling/"
   - date: 2026-03-21
     change: "Added cascade architecture references, 5 dimensions, resource matching, corrected supplement rates"
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+> **ARCHIVED 2026-05-23** — Superseded by `docs/domains/scheduling/`. See OVERVIEW.md + DATA-MODEL.md + ARCHITECTURE.md for current state. This file is kept for git-blame lineage. Do not edit.
 
 # Modul 3: Vaktplanlegging (Shift Planning)
 

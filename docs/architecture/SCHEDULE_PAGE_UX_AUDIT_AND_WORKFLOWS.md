@@ -2,12 +2,13 @@
 title: "Dashboard Schedule UX Audit and Workflow Design"
 id: SCHED_UX_AUDIT
 version: "1.0"
-status: canonical
+status: archived
 layer: architecture
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-05-23
 author: pontus
 supersedes: []
+superseded_by: docs/domains/scheduling/
 superseded_by: null
 depends_on:
   - CORE_ARCH_V2
@@ -22,6 +23,8 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+> **ARCHIVED 2026-05-23** — Superseded by `docs/domains/scheduling/`. This file is kept for git-blame lineage. Do not edit. See OVERVIEW.md + ARCHITECTURE.md + GAPS-AND-DEBT.md in the scheduling domain for current state.
 
 # Dashboard Schedule UX Audit and Workflow Design
 
