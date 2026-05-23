@@ -20,3 +20,4 @@ export {
   type MandatoryClause,
 } from "./resolve-composition";
 export * from "./spreadsheet/index.js";
+export * from "./hash/index.js";
