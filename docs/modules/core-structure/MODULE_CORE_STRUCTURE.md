@@ -43,7 +43,7 @@ The following are settled for V1:
 | Should "location" be split into property + area + zone? | NO for V1 — keep `location` table semantically as "area". Property + zone surface deferred. | Property only needed for multi-site chains; zone only needed for shift-assignment granularity. Existing schema already supports both — surface them when product needs. |
 | How should department relate to area? | New `department_location` M:N junction. | One dept staffs many areas; one area hosts many depts. |
 | Should `location_type` enum drive hierarchy? | NO. It is **category metadata** for an area, not a hierarchy level. | Existing values (`main`, `outdoor`, `kitchen`, `event`, `storage`, `other`) describe what kind of operational space, not where in a tree it sits. |
-| What anchors a Dagslinje? | `location` (area) + `department` via `department_session`. | See `docs/modules/daytimeline/` + ADR-0367. |
+| What anchors a Dagslinje? | `location` (area) + `department` via `department_session`. | See `docs/domains/day-session/` + ADR-0367. |
 
 ## 3. Schema Snapshot
 
@@ -177,7 +177,7 @@ D1 is permanent, slow-moving. Changes here cascade to D6 production via ADR-0367
 - [ADR-0287](../../decisions/0287-gate-action-mandatory-on-mutation-capability-tools.md) — gate_action
 
 ### Modules
-- `docs/modules/daytimeline/` — direct consumer of `(location, department)` pair
+- `docs/domains/day-session/` — direct consumer of `(location, department)` pair
 - `docs/modules/payroll/` — consumes `department_session` (untouched)
 - `docs/modules/MODULE_YEAR_WHEEL_PRD.md` — D4 planning per area+dept
 
