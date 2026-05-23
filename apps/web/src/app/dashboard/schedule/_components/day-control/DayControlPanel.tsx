@@ -38,6 +38,8 @@ import { DaySessionProvider } from "./DaySessionProvider";
 import { SessionTasksTab } from "./SessionTasksTab";
 import { OkonomiTab } from "./OkonomiTab";
 import { useDaySession } from "./use-day-session";
+import { pinDayControlPanelContextAction } from "@/app/dashboard/_actions/pin-day-control-panel-context";
+import { DayControlToolsBridge } from "./day-control-tools-bridge";
 
 type TabId =
   | "oversikt"
@@ -98,6 +100,56 @@ function DayControlPanelContent({
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id;
 
+  // Resolve first active department so we can source sessionId + departmentName
+  // for the tools-bridge. Mirrors the pattern used in OversiktTab.
+  const supabaseForSession = useMemo(() => createClient(), []);
+  const { data: firstDept } = useQuery({
+    queryKey: ["day-control-panel-dept", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabaseForSession
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", workspaceId!)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data ?? null;
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: activeSessionId } = useQuery({
+    queryKey: ["day-control-panel-session", firstDept?.department_id, date],
+    queryFn: async () => {
+      const { data } = await supabaseForSession
+        .from("department_session")
+        .select("department_session_id")
+        .eq("department_id", firstDept!.department_id)
+        .eq("session_date", date)
+        .maybeSingle();
+      return data?.department_session_id ?? null;
+    },
+    enabled: !!firstDept?.department_id && !!date,
+    staleTime: 60 * 1000,
+  });
+
+  // sessionId, departmentId, departmentName resolved from DB (no snapshot.session shape)
+  const sessionId = activeSessionId ?? null;
+  const departmentId = firstDept?.department_id ?? null;
+  const departmentName = firstDept?.name ?? null;
+
+  // Pin active panel context to engine_memory so Botsson has session grounding
+  useEffect(() => {
+    if (!sessionId || !departmentName) return;
+    void pinDayControlPanelContextAction({
+      sessionId,
+      departmentName,
+      date,
+    });
+  }, [sessionId, departmentName, date]);
+
   // Lightweight check for settlement status — drives the Okonomi tab badge
   const { data: settlementStatus } = useQuery({
     queryKey: ["settlement-status", workspaceId, date],
@@ -147,147 +199,157 @@ function DayControlPanelContent({
   }, [date, handleClose]);
 
   return (
-    <div className="relative flex h-full w-full flex-col">
-      {/* Header */}
-      <div className={`shrink-0 border-b ${isDark ? "border-border" : "border-border"}`}>
-        <div className="flex items-center gap-3 px-5 py-3">
-          {/* Date navigation */}
-          {onNavigate && (
+    <>
+      {sessionId && departmentId && departmentName ? (
+        <DayControlToolsBridge
+          sessionId={sessionId}
+          departmentId={departmentId}
+          departmentName={departmentName}
+          dateISO={date}
+        />
+      ) : null}
+      <div className="relative flex h-full w-full flex-col">
+        {/* Header */}
+        <div className={`shrink-0 border-b ${isDark ? "border-border" : "border-border"}`}>
+          <div className="flex items-center gap-3 px-5 py-3">
+            {/* Date navigation */}
+            {onNavigate && (
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button
+                  onClick={() => onNavigate("prev")}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
+                  title="Forrige dag"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onNavigate("next")}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
+                  title="Neste dag"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
+                Kontrollsenter
+              </span>
+              <h2 className="text-foreground truncate text-sm leading-tight font-black tracking-tight">
+                {dateLabel}
+              </h2>
+            </div>
+
+            {/* Quick stats badges */}
+            <div className="hidden shrink-0 items-center gap-2 sm:flex">
+              <QuickStat
+                icon={<Users className="h-3 w-3" />}
+                value={dayStats.staffCount}
+                label="ansatte"
+              />
+              <QuickStat
+                icon={<Clock className="h-3 w-3" />}
+                value={dayStats.bookingCount}
+                label="bookinger"
+              />
+            </div>
+
+            {/* Actions */}
             <div className="flex shrink-0 items-center gap-0.5">
               <button
-                onClick={() => onNavigate("prev")}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
-                title="Forrige dag"
+                onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-colors"
+                title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
               >
-                <ChevronLeft className="h-4 w-4" />
+                {dayControlFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
               </button>
               <button
-                onClick={() => onNavigate("next")}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
-                title="Neste dag"
+                onClick={handleClose}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-colors"
               >
-                <ChevronRight className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
-          )}
-
-          {/* Title */}
-          <div className="min-w-0 flex-1">
-            <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
-              Kontrollsenter
-            </span>
-            <h2 className="text-foreground truncate text-sm leading-tight font-black tracking-tight">
-              {dateLabel}
-            </h2>
           </div>
 
-          {/* Quick stats badges */}
-          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <QuickStat
+          {/* Tabs */}
+          <div className="no-scrollbar border-border/50 flex gap-0 overflow-x-auto border-t px-5">
+            <TabButton
+              active={activeTab === "oversikt"}
+              onClick={() => setActiveTab("oversikt")}
+              icon={<Info className="h-3 w-3" />}
+              label="Oversikt"
+            />
+            <TabButton
+              active={activeTab === "meldinger"}
+              onClick={() => setActiveTab("meldinger")}
+              icon={<MessageSquare className="h-3 w-3" />}
+              label="Dagsinfo"
+              badge={dayStats.messageCount}
+            />
+            <TabButton
+              active={activeTab === "bookings"}
+              onClick={() => setActiveTab("bookings")}
+              icon={<CalendarCheck className="h-3 w-3" />}
+              label="Reservasjoner"
+              badge={dayStats.bookingCount}
+            />
+            <TabButton
+              active={activeTab === "oppgaver"}
+              onClick={() => setActiveTab("oppgaver")}
+              icon={<ListTodo className="h-3 w-3" />}
+              label="Oppgaver"
+              badge={dayStats.taskCount > 0 ? dayStats.taskCount - dayStats.taskDone : undefined}
+            />
+            <TabButton
+              active={activeTab === "budsjett"}
+              onClick={() => setActiveTab("budsjett")}
+              icon={<DollarSign className="h-3 w-3" />}
+              label="Budsjett"
+            />
+            <TabButton
+              active={activeTab === "bemanning"}
+              onClick={() => setActiveTab("bemanning")}
               icon={<Users className="h-3 w-3" />}
-              value={dayStats.staffCount}
-              label="ansatte"
+              label="Bemanning"
             />
-            <QuickStat
-              icon={<Clock className="h-3 w-3" />}
-              value={dayStats.bookingCount}
-              label="bookinger"
+            <TabButton
+              active={activeTab === "okonomi"}
+              onClick={() => setActiveTab("okonomi")}
+              icon={<DollarSign className="h-3 w-3" />}
+              label="Okonomi"
+              badge={
+                settlementStatus === "submitted"
+                  ? 1
+                  : settlementStatus === "approved" || settlementStatus === "locked"
+                    ? 0
+                    : undefined
+              }
             />
-          </div>
-
-          {/* Actions */}
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-all"
-              title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
-            >
-              {dayControlFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </button>
-            <button
-              onClick={handleClose}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-all"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="no-scrollbar border-border/50 flex gap-0 overflow-x-auto border-t px-5">
-          <TabButton
-            active={activeTab === "oversikt"}
-            onClick={() => setActiveTab("oversikt")}
-            icon={<Info className="h-3 w-3" />}
-            label="Oversikt"
-          />
-          <TabButton
-            active={activeTab === "meldinger"}
-            onClick={() => setActiveTab("meldinger")}
-            icon={<MessageSquare className="h-3 w-3" />}
-            label="Dagsinfo"
-            badge={dayStats.messageCount}
-          />
-          <TabButton
-            active={activeTab === "bookings"}
-            onClick={() => setActiveTab("bookings")}
-            icon={<CalendarCheck className="h-3 w-3" />}
-            label="Reservasjoner"
-            badge={dayStats.bookingCount}
-          />
-          <TabButton
-            active={activeTab === "oppgaver"}
-            onClick={() => setActiveTab("oppgaver")}
-            icon={<ListTodo className="h-3 w-3" />}
-            label="Oppgaver"
-            badge={dayStats.taskCount > 0 ? dayStats.taskCount - dayStats.taskDone : undefined}
-          />
-          <TabButton
-            active={activeTab === "budsjett"}
-            onClick={() => setActiveTab("budsjett")}
-            icon={<DollarSign className="h-3 w-3" />}
-            label="Budsjett"
-          />
-          <TabButton
-            active={activeTab === "bemanning"}
-            onClick={() => setActiveTab("bemanning")}
-            icon={<Users className="h-3 w-3" />}
-            label="Bemanning"
-          />
-          <TabButton
-            active={activeTab === "okonomi"}
-            onClick={() => setActiveTab("okonomi")}
-            icon={<DollarSign className="h-3 w-3" />}
-            label="Okonomi"
-            badge={
-              settlementStatus === "submitted"
-                ? 1
-                : settlementStatus === "approved" || settlementStatus === "locked"
-                  ? 0
-                  : undefined
-            }
-          />
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {activeTab === "oversikt" && <OversiktTab dateId={date} />}
+          {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
+          {activeTab === "bookings" && <BookingsTab dateId={date} />}
+          {activeTab === "oppgaver" && <SessionTasksTab />}
+          {activeTab === "budsjett" && <BudgetTab dateId={date} />}
+          {activeTab === "bemanning" && <StaffingTab dateId={date} />}
+          {activeTab === "okonomi" && <OkonomiTab dateId={date} />}
         </div>
-      </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-5">
-        {activeTab === "oversikt" && <OversiktTab dateId={date} />}
-        {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
-        {activeTab === "bookings" && <BookingsTab dateId={date} />}
-        {activeTab === "oppgaver" && <SessionTasksTab />}
-        {activeTab === "budsjett" && <BudgetTab dateId={date} />}
-        {activeTab === "bemanning" && <StaffingTab dateId={date} />}
-        {activeTab === "okonomi" && <OkonomiTab dateId={date} />}
+        {/* Footer */}
+        <BroadcastFooter dateId={date} />
       </div>
-
-      {/* Footer */}
-      <BroadcastFooter dateId={date} />
-    </div>
+    </>
   );
 }
 
