@@ -45,6 +45,7 @@ import type { ToolBundle } from "@smartout/ai/harness/types";
 import type { ClientToolCall } from "@smartout/ai/harness/types";
 import { emit } from "@smartout/telemetry";
 import { nonEmpty } from "@smartout/telemetry/server";
+import { resolveCapabilityFromAttachments } from "@smartout/ai/router/attachment-dispatch";
 
 /**
  * SMA-301 diagnostic — extracts upstream provider error context from
@@ -414,6 +415,46 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
       });
     } catch {
       // Recorder must never throw into the primary path.
+    }
+  }
+
+  // Step 1c: Deterministic attachment dispatch (Sortie 0) — BEFORE intent classifier.
+  // When a spreadsheet (.xlsx/.xls/.csv) is attached, MIME type is a hard signal:
+  // no LLM roundtrip needed to decide capability. resolveCapabilityFromAttachments
+  // returns non-null → emit telemetry + return Sortie 0 acknowledgement.
+  // Sortie A replaces the stub return with real parse_spreadsheet tool dispatch.
+  {
+    const attachmentRoute = resolveCapabilityFromAttachments(input.attachments);
+    if (attachmentRoute) {
+      // ADR-0377: registry entry + emit() call-site in same commit.
+      // L-0177: non-empty guard — nonEmpty() throws if either ID is empty/null.
+      // workspaceId + profileId are branded NonEmptyString from caller boundary
+      // (chat.ts / sessions.ts per ADR-0193); nonEmpty() re-validates at emit site.
+      await emit({
+        event: "attachment.routed",
+        workspace_id: nonEmpty(workspaceId, "workspaceId"),
+        actor_id: nonEmpty(profileId, "profileId"),
+        properties: {
+          data: {
+            capability: attachmentRoute.capability,
+            source: attachmentRoute.source,
+            filename: attachmentRoute.filename,
+            attachment_count: input.attachments?.length ?? 0,
+          },
+        },
+      });
+      // Sortie 0 skeleton: bulk_import capability has no tools yet (Sortie A wires them).
+      // Return an acknowledgement so the BFF receives a valid AgentChatResponse.
+      // When Sortie A lands, replace this return with full capability tool dispatch.
+      return {
+        session_id: sessionId,
+        response:
+          "Jeg har mottatt filen din og er klar til å importere dataene. Dette vil bli behandlet av bulk-import-systemet.",
+        intent: {
+          capability: attachmentRoute.capability,
+          confidence: 1.0,
+        },
+      };
     }
   }
 

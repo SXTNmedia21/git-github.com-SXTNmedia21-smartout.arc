@@ -4922,6 +4922,24 @@ export interface BotssonAuthorityFiltered extends BaseEvent {
   };
 }
 
+// ─── Attachment Deterministic Routing (Sortie 0) ─────────────────
+// Emitted by:
+//   - stage-engine : agent-router.ts, when MIME-type resolver matches a
+//     spreadsheet attachment (.xlsx/.xls/.csv) BEFORE intent classification.
+//     Forces bulk_import capability; intent-classifier is never called.
+// Routing decision telemetry only — not a user action, no activity_trail.
+export interface AttachmentRouted extends BaseEvent {
+  event: "attachment.routed";
+  properties: {
+    data: {
+      capability: string;
+      source: "deterministic_attachment";
+      filename: string;
+      attachment_count: number;
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -8810,6 +8828,7 @@ export type SmartoutEvent =
   | BotssonSessionCreated
   | BotssonSessionArchived
   | BotssonAuthorityFiltered
+  | AttachmentRouted
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -12834,6 +12853,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "botsson.authority_filtered": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // attachment.routed: MIME-type deterministic capability dispatch fired.
+  // Emitted by: stage-engine agent-router.ts BEFORE intent-classifier.
+  // When a spreadsheet attachment (.xlsx/.xls/.csv) is present, the resolver
+  // short-circuits LLM classification and forces bulk_import capability.
+  // Routing decision only — no user action, no audit trail needed.
+  // Destinations: posthog (adoption analytics) + logger (debugging).
+  "attachment.routed": {
+    destinations: ["posthog", "logger"],
     category: "agent",
   },
 
