@@ -105,7 +105,7 @@ The canvas handles `onPointerDown` for draw-to-create but not drag-to-resize exi
 **Severity:** Low  
 **Source:** Domain-steward pre run, 2026-05-23
 
-`scripts/check-archived-refs.mjs` scans for references to archived folder-form docs (e.g., `docs/modules/daytimeline/`) but does NOT scan for references to archived flat files (e.g., `docs/modules/MODULE_YEAR_WHEEL_PRD.md`). The `MODULE_YEAR_WHEEL_PRD.md` and `SMARTOUT_MODULE_15_SEASON_PLANNING.md` have now been archived, but no CI gate will catch stale refs to them until the lint script is extended.
+`scripts/check-archived-refs.mjs` scans for references to archived folder-form docs (e.g., archived `daytimeline/` under modules) but does NOT scan for references to archived flat files (e.g., `docs/modules/MODULE_YEAR_WHEEL_PRD.md`). The `MODULE_YEAR_WHEEL_PRD.md` and `SMARTOUT_MODULE_15_SEASON_PLANNING.md` have now been archived, but no CI gate will catch stale refs to them until the lint script is extended.
 
 **Resolution path:** Extend `check-archived-refs.mjs` to also scan for flat `.md` file paths in `docs/modules/` that carry `status: archived`.
 
