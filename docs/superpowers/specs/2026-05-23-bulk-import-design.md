@@ -86,9 +86,9 @@ Estimated: 4 days. Depends on Sortie 0.
 Goal: ship the database foundation + skeleton capability + first read-only tool.
 
 Scope:
-- ADR-0398 written: "bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline"
-- ADR-0399 written: "xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation"
-- ADR-0401 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
+- ADR-0400 written: "bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline" (slots 0398+0399 taken cross-branch by wt-5 InlineConfirmCard work — L-0316 6th occurrence, renumbered 2026-05-23)
+- ADR-0401 written: "xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation"
+- ADR-0403 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
 - Migration `20260624000000_bulk_import_foundation.sql`:
   - `CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions`
   - Composite GIN indexes: `(workspace_id, display_name gin_trgm_ops)` on profile; `(workspace_id, name gin_trgm_ops)` on department + location
@@ -133,7 +133,7 @@ Estimated: 5 days. Depends on Sortie B.
 Goal: ship the atomic transactional commit pipeline with cascade-delegated writes.
 
 Scope:
-- ADR-0400 written: "Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch" (retroactive; Sortie 0 patterns codified)
+- ADR-0402 written: "Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch" (retroactive; Sortie 0 patterns codified)
 - `commit_batch` tool — calls SECURITY DEFINER RPC `fn_commit_bulk_import(import_run_id uuid)` for atomic write
 - RPC implementation:
   - Inside single transaction
@@ -251,10 +251,12 @@ SET search_path = public, extensions
 
 | ADR | Title | Sortie | Slot |
 |---|---|---|---|
-| 0398 | bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline | A Task 1 | reserved |
-| 0399 | xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation | A Task 2 | reserved |
-| 0400 | Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch | C Task 1 (retroactive codification) | reserved |
-| 0401 | schedule_shift.source — Add 'v3_bulk_import' Value | A Task 3 | reserved |
+| 0400 | bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline | A Task 1 | reserved (was 0398; renumbered after wt-5 InlineConfirmCard collision — L-0316 6th occurrence) |
+| 0401 | xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation | A Task 2 | reserved (was 0399) |
+| 0402 | Attachment Routing in Stage-Engine — MIME-Type Deterministic Capability Dispatch | C Task 1 (retroactive codification) | reserved (was 0400) |
+| 0403 | schedule_shift.source — Add 'v3_bulk_import' Value | A Task 3 | reserved (was 0401) |
+
+**Cross-branch collision note:** ADR-0398 + ADR-0399 were committed by wt-5 (feat/inline-confirm-card-phase1) for InlineConfirmCard Primitive + Channel Platform Descriptors respectively. Discovered 2026-05-23 end-of-session via cross-branch grep. Reservation check at council Phase 8 Step 0 must include `git log --all` per L-0316 — original reservation passed but wt-5 committed concurrently. Resolution: bulk_import slots shifted up by 2.
 
 ## Learnings to Log (after Sortie C closes)
 
