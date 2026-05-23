@@ -16,6 +16,7 @@
  */
 
 import React, { useCallback, useEffect, useRef } from "react";
+import { usePathname } from "expo-router";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
@@ -71,6 +72,17 @@ export default function AppLayout() {
 
   const { data: profile } = useMyProfile();
   const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
+  const pathname = usePathname();
+
+  // Redirect to onboarding wizard when the employee has not completed welcome flow.
+  // Guard: only fire when profile is loaded (=== false, not falsy — undefined while
+  // loading must NOT trigger). Guard pathname to avoid a replace-to-self loop.
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.is_welcome_complete === false && pathname !== "/onboarding") {
+      router.replace("/(app)/onboarding");
+    }
+  }, [profile, pathname, router]);
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
   const addSheetRef = useRef<AddSheetHandle>(null);
@@ -180,6 +192,8 @@ export default function AppLayout() {
 
           {/* ── Hidden — Calendar still reachable but not in tab bar ────── */}
           <Tabs.Screen name="(calendar)" options={{ href: null }} />
+          {/* Onboarding wizard — full-screen modal, never appears in tab bar */}
+          <Tabs.Screen name="onboarding" options={{ href: null }} />
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />
