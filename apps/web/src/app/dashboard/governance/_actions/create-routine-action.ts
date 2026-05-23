@@ -107,6 +107,11 @@ export async function createRoutineAction(input: CreateRoutineInput): Promise<Cr
 
   if (procError) return { ok: false, error: `Prosedyre-oppslag feilet: ${procError.message}` };
   if (!proc) return { ok: false, error: "Prosedyre ikke funnet." };
+  // L-0177 fail-fast: protocol_id is nullable in schema; refuse orphan procedure
+  // rather than silent-fallback to '' (which would skip the workspace guard below).
+  if (!proc.protocol_id) {
+    return { ok: false, error: "Prosedyre mangler protokoll-binding." };
+  }
   // verify procedure's protocol belongs to the same workspace
   const { data: procProt, error: procProtError } = await admin
     .from("protocol")
