@@ -4,7 +4,7 @@
 // ============================================
 "use client";
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { Megaphone, MessageCircle, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useDaySession } from "./use-day-session";
 
 export function BroadcastFooter({ dateId }: { dateId: string | null }) {
-  const { isDark } = useContext(DashboardContext);
   const { snapshot } = useDaySession();
   const [broadcastType, setBroadcastType] = useState<"push" | "sms" | null>(null);
 
@@ -28,26 +26,30 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
 
   return (
     <>
-      <div
-        className={`shrink-0 border-t px-5 py-3 ${isDark ? "border-border bg-background" : "border-border bg-card"}`}
-      >
+      <div className="border-border bg-card shrink-0 border-t px-5 py-3">
         <div className="flex items-center gap-3">
-          <Megaphone className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+          <Megaphone className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-hidden />
+          {/* Section label — Nordic Split section-label recipe */}
           <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
             Kringkast ({staffCount})
           </span>
           <div className="flex-1" />
+          {/* Chip-pill buttons — Manager Timeline .chip recipe */}
           <button
             onClick={() => setBroadcastType("push")}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "border-border bg-muted/30 text-foreground hover:bg-muted/60" : "border-border bg-muted text-foreground hover:bg-muted/80"}`}
+            className="border-border text-foreground hover:bg-muted focus-visible:ring-ring inline-flex h-8 items-center gap-1.5 rounded-full border bg-transparent px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            aria-label="Send Push-melding til alle pa vakt"
           >
-            <MessageCircle className="text-info h-3.5 w-3.5" /> Push
+            {/* text-blue-400 is an icon-tint with no semantic equivalent — kept as TODO */}
+            <MessageCircle className="h-3.5 w-3.5 text-blue-400" aria-hidden /> Push
           </button>
           <button
             onClick={() => setBroadcastType("sms")}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "border-border bg-muted/30 text-foreground hover:bg-muted/60" : "border-border bg-muted text-foreground hover:bg-muted/80"}`}
+            className="border-border text-foreground hover:bg-muted focus-visible:ring-ring inline-flex h-8 items-center gap-1.5 rounded-full border bg-transparent px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            aria-label="Send SMS til alle pa vakt"
           >
-            <Mail className="text-accent h-3.5 w-3.5" /> SMS
+            {/* text-orange-400 is an icon-tint with no semantic equivalent — kept as TODO */}
+            <Mail className="h-3.5 w-3.5 text-orange-400" aria-hidden /> SMS
           </button>
         </div>
       </div>

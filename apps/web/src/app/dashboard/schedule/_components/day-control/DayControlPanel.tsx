@@ -20,7 +20,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  Clock,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
@@ -53,16 +52,19 @@ type TabId =
   | "bemanning"
   | "okonomi";
 
-const TAB_DEFS: ReadonlyArray<PageTab<TabId>> = [
-  { key: "oversikt", label: "Oversikt", icon: Info },
-  { key: "meldinger", label: "Dagsinfo", icon: MessageSquare },
-  { key: "bookings", label: "Reservasjoner", icon: CalendarCheck },
-  { key: "oppgaver", label: "Oppgaver", icon: ListTodo },
-  { key: "tidslinje", label: "Tidslinje", icon: Activity },
-  { key: "budsjett", label: "Budsjett", icon: DollarSign },
-  { key: "bemanning", label: "Bemanning", icon: Users },
-  { key: "okonomi", label: "Økonomi", icon: DollarSign },
-];
+// TAB_DEFS is now computed inside DayControlPanelContent so badge counts
+// from dayStats and settlementStatus can be passed. Constant-shape tabs
+// are defined here; badge values are injected at render time.
+const BASE_TAB_DEFS = [
+  { key: "oversikt" as TabId, label: "Oversikt", icon: Info },
+  { key: "meldinger" as TabId, label: "Dagsinfo", icon: MessageSquare },
+  { key: "bookings" as TabId, label: "Reservasjoner", icon: CalendarCheck },
+  { key: "oppgaver" as TabId, label: "Oppgaver", icon: ListTodo },
+  { key: "tidslinje" as TabId, label: "Tidslinje", icon: Activity },
+  { key: "budsjett" as TabId, label: "Budsjett", icon: DollarSign },
+  { key: "bemanning" as TabId, label: "Bemanning", icon: Users },
+  { key: "okonomi" as TabId, label: "Økonomi", icon: DollarSign },
+] as const;
 
 /**
  * Hosts the day control panel inside the shared day-session provider.
@@ -183,6 +185,24 @@ function DayControlPanelContent({
 
   const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
+  // Compute Norwegian relative day label for the date stepper sub-label
+  const relativeDayLabel = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+    if (date === todayStr) return "i dag";
+    if (date === tomorrowStr) return "i morgen";
+    if (date === yesterdayStr) return "i gar";
+    const NB_DAY_NAMES = ["sondag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lordag"];
+    const d = new Date(date + "T00:00:00");
+    return NB_DAY_NAMES[d.getDay()] ?? "";
+  }, [date]);
+
   // Count items per tab for badge display
   const dayStats = useMemo(() => {
     const taskCount = snapshot?.summary.taskCount ?? 0;
@@ -195,6 +215,29 @@ function DayControlPanelContent({
       taskDone,
     };
   }, [dayBookings.length, dayMessages.length, snapshot]);
+
+  // Compute tab defs with live badge values — must be inside component body
+  // because dayStats and settlementStatus are in scope here.
+  const tabDefs = useMemo((): ReadonlyArray<PageTab<TabId>> => {
+    const remainingTasks = dayStats.taskCount > 0 ? dayStats.taskCount - dayStats.taskDone : null;
+    return BASE_TAB_DEFS.map((t) => {
+      switch (t.key) {
+        case "meldinger":
+          return { ...t, badge: dayStats.messageCount > 0 ? dayStats.messageCount : null };
+        case "bookings":
+          return { ...t, badge: dayStats.bookingCount > 0 ? dayStats.bookingCount : null };
+        case "oppgaver":
+          return {
+            ...t,
+            badge: remainingTasks != null && remainingTasks > 0 ? remainingTasks : null,
+          };
+        case "okonomi":
+          return { ...t, badge: settlementStatus === "submitted" ? 1 : null };
+        default:
+          return { ...t, badge: null };
+      }
+    });
+  }, [dayStats, settlementStatus]);
 
   const handleClose = useCallback(() => {
     setDayControlFullscreen(false);
@@ -226,68 +269,71 @@ function DayControlPanelContent({
         {/* Header */}
         <div className={`shrink-0 border-b ${isDark ? "border-border" : "border-border"}`}>
           <div className="flex items-center gap-3 px-5 py-3">
-            {/* Date navigation */}
+            {/* Date navigation — Manager Timeline .date-stepper recipe */}
             {onNavigate && (
               <div className="flex shrink-0 items-center gap-0.5">
                 <button
                   onClick={() => onNavigate("prev")}
-                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring h-7 w-7 rounded-full p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                   title="Forrige dag"
+                  aria-label="Forrige dag"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="mx-auto h-4 w-4" />
                 </button>
                 <button
                   onClick={() => onNavigate("next")}
-                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring h-7 w-7 rounded-full p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                   title="Neste dag"
+                  aria-label="Neste dag"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="mx-auto h-4 w-4" />
                 </button>
               </div>
             )}
 
-            {/* Title */}
+            {/* Title — Manager Timeline .date-current + weekday sub-label */}
             <div className="min-w-0 flex-1">
               <span className="text-accent text-[9px] font-bold tracking-widest uppercase">
                 Kontrollsenter
               </span>
-              <h2 className="text-foreground truncate text-sm leading-tight font-black tracking-tight">
-                {dateLabel}
+              <h2 className="text-foreground flex items-baseline gap-1.5 truncate leading-tight">
+                <span className="font-heading text-xl tracking-tight">{dateLabel}</span>
+                <em className="text-muted-foreground font-mono text-[11px] not-italic">
+                  {relativeDayLabel}
+                </em>
               </h2>
             </div>
 
-            {/* Quick stats badges */}
+            {/* Quick stats — Manager Timeline .outlet-pill status-dot recipe */}
             <div className="hidden shrink-0 items-center gap-2 sm:flex">
+              <QuickStat dotColor="bg-foreground/40" value={dayStats.staffCount} label="ansatte" />
               <QuickStat
-                icon={<Users className="h-3 w-3" />}
-                value={dayStats.staffCount}
-                label="ansatte"
-              />
-              <QuickStat
-                icon={<Clock className="h-3 w-3" />}
+                dotColor="bg-foreground/40"
                 value={dayStats.bookingCount}
                 label="bookinger"
               />
             </div>
 
-            {/* Actions */}
+            {/* Actions — Manager Timeline .icon-btn recipe: 36×36 round-full */}
             <div className="flex shrink-0 items-center gap-0.5">
               <button
                 onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-colors"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring h-9 w-9 rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none active:scale-[0.96]"
                 title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
+                aria-label={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
               >
                 {dayControlFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
+                  <Minimize2 className="mx-auto h-4 w-4" />
                 ) : (
-                  <Maximize2 className="h-4 w-4" />
+                  <Maximize2 className="mx-auto h-4 w-4" />
                 )}
               </button>
               <button
                 onClick={handleClose}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1.5 transition-colors"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring h-9 w-9 rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none active:scale-[0.96]"
+                aria-label="Lukk kontrollsenter"
               >
-                <X className="h-4 w-4" />
+                <X className="mx-auto h-4 w-4" />
               </button>
             </div>
           </div>
@@ -295,7 +341,7 @@ function DayControlPanelContent({
           {/* Tabs */}
           <div className="border-border/50 border-t px-5 py-2">
             <PageTabNav
-              tabs={TAB_DEFS}
+              tabs={tabDefs}
               active={activeTab}
               onChange={(k) => setActiveTab(k as TabId)}
               ariaLabel="Kontrollsenter tabs"
@@ -329,20 +375,13 @@ function DayControlPanelContent({
 }
 
 // ── Quick Stat ───────────────────────────────────────────────
+// Manager Timeline .outlet-pill .dot recipe: h-9 pill with status-dot + value + label
 
-function QuickStat({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-}) {
+function QuickStat({ dotColor, value, label }: { dotColor: string; value: number; label: string }) {
   return (
-    <div className="bg-muted/50 text-muted-foreground flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-bold">
-      {icon}
-      <span className="text-foreground/80">{value}</span>
+    <div className="bg-muted/50 text-muted-foreground border-border inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[10px] font-bold">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotColor}`} aria-hidden />
+      <span className="text-foreground/80 tabular-nums">{value}</span>
       <span className="hidden lg:inline">{label}</span>
     </div>
   );
