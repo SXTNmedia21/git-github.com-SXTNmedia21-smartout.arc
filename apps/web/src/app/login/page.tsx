@@ -138,6 +138,11 @@ const brandTextVariant = {
   },
 };
 
+// Module-scope so the OTP-restore mount effect's empty dependency array stays
+// exhaustive (in-component consts would be flagged by react-hooks/exhaustive-deps).
+const OTP_PENDING_KEY = "smartout_otp_pending";
+const OTP_TTL_MS = 30 * 60 * 1000; // 30 min = GoTrue otp_expiry
+
 function LoginContent() {
   const { t } = useTranslation("auth");
   const router = useRouter();
@@ -170,9 +175,42 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // OTP login method state
+  // OTP login method state.
+  // Code-first UX: the OTP tab shows the 6-digit field immediately. Requesting a
+  // code is secondary — `otpEmailEntry` reveals the email input behind the
+  // "Send ny kode" link. `email` (restored from sticky storage on mount) is what
+  // the code verifies against.
   const [authMethod, setAuthMethod] = useState<"password" | "otp">("password");
-  const [otpSent, setOtpSent] = useState(false);
+  const [otpEmailEntry, setOtpEmailEntry] = useState(false);
+
+  // Sticky code screen — persist the OTP email across page refreshes.
+  //
+  // WHY: re-submitting handleSendOtp issues a NEW code to GoTrue, which
+  // immediately invalidates the code already sitting in the user's inbox
+  // ("koden har utløpt" every time). By storing {email, sentAt} in
+  // sessionStorage and restoring `email` on mount, a refresh keeps the
+  // code-entry screen armed for the same code — WITHOUT re-sending.
+  //
+  // TTL matches GoTrue otp_expiry (1800 s). After expiry we clear the key so
+  // the user naturally falls back to the email-entry step.
+  // (OTP_PENDING_KEY / OTP_TTL_MS are module-scope so this effect's [] deps stay exhaustive.)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(OTP_PENDING_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as { email: string; sentAt: number };
+      if (Date.now() - stored.sentAt < OTP_TTL_MS) {
+        setEmail(stored.email);
+        setAuthMethod("otp");
+      } else {
+        sessionStorage.removeItem(OTP_PENDING_KEY);
+      }
+    } catch {
+      // Corrupt value — clean up silently
+      sessionStorage.removeItem(OTP_PENDING_KEY);
+    }
+  }, []);
 
   // Delayed mode switch: let button animation breathe, then start transition
   const switchMode = useCallback((next: Mode) => {
@@ -235,11 +273,14 @@ function LoginContent() {
     }
   }
 
-  // Sends an OTP to the given email. Default Supabase email template carries
-  // both a 6-digit code AND a magic link. The magic link path needs the same
-  // `/api/auth/callback?next=` redirect the password-reset flow uses — without
-  // it, the link lands on `site_url` with `?code=PKCE_CODE` and no handler,
-  // so the click is silently lost. Code-typing path is unaffected.
+  // Sends a pure 6-digit OTP to the given email. We deliberately omit
+  // `emailRedirectTo`: this is a code-only flow. With a redirect set, GoTrue
+  // also renders a magic link in the email, and that link is a one-time token
+  // SHARED with the code — a mail-client/proxy prefetch (or the user clicking
+  // it) burns the token, after which the typed code returns `otp_expired`. No
+  // link in the email = nothing prefetchable = the code stays valid until the
+  // user types it. The OtpVerificationForm verifies with type:"email" to match
+  // the `email` token signInWithOtp mints.
   //
   // Enumeration safety: with `shouldCreateUser: false`, GoTrue returns
   // "Signups not allowed for otp" (code `otp_disabled`) for emails that don't
@@ -256,7 +297,6 @@ function LoginContent() {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
       },
     });
     setLoading(false);
@@ -266,10 +306,15 @@ function LoginContent() {
       setError(t("login.error.otp_send"));
       return;
     }
-    setOtpSent(true);
+    // Persist so a page refresh restores the code screen instead of re-sending.
+    sessionStorage.setItem(OTP_PENDING_KEY, JSON.stringify({ email, sentAt: Date.now() }));
+    // Collapse the email entry — the code field is already visible and now armed.
+    setOtpEmailEntry(false);
   }
 
   function handleOtpVerified() {
+    // Clear the pending key — code has been used successfully.
+    sessionStorage.removeItem(OTP_PENDING_KEY);
     setHasInteracted(true);
     setTimeout(() => setPendingMode("logging-in"), 200);
   }
@@ -560,8 +605,10 @@ function LoginContent() {
                       type="button"
                       onClick={() => {
                         setAuthMethod("password");
-                        setOtpSent(false);
+                        setOtpEmailEntry(false);
                         setError(null);
+                        // User explicitly left the OTP flow — clear sticky state.
+                        sessionStorage.removeItem(OTP_PENDING_KEY);
                       }}
                       className={cn(
                         "flex-1 rounded-lg py-2 text-[0.8125rem] font-medium transition-all duration-200",
@@ -705,50 +752,60 @@ function LoginContent() {
                   </>
                 )}
 
-                {/* OTP method: email input → send code → OTP digit inputs */}
+                {/* OTP method: CODE-FIRST. The 6-digit field shows immediately;
+                    requesting/changing the code lives behind "Send ny kode". */}
                 {authMethod === "otp" && (
                   <motion.div
                     variants={itemVariant}
                     className={!hasInteracted ? "animate-auth-in" : undefined}
                     style={!hasInteracted ? { animationDelay: "80ms" } : undefined}
                   >
-                    {otpSent ? (
-                      <div className="space-y-4">
-                        <p className="text-center text-[0.8125rem] text-[var(--text-dim)]">
-                          {t("otp.ifExists")}
-                        </p>
-                        <OtpVerificationForm
-                          email={email}
-                          context="login"
-                          onVerified={handleOtpVerified}
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-muted-foreground text-[0.8125rem]">
-                          {t("login.otp.description")}
-                        </p>
-                        <AuthIconInput
-                          id="otp-email"
-                          type="email"
-                          autoComplete="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder={t("login.email.placeholder")}
-                          label={t("login.email.label")}
-                          icon={<Mail className="h-4 w-4" />}
-                        />
+                    <div className="space-y-4">
+                      <p className="text-center text-[0.8125rem] text-[var(--text-dim)]">
+                        {t("login.otp.enterCode")}
+                      </p>
+                      {/* Code field first. With no email yet (no prior send), entering a
+                          code calls onNeedEmail → reveals the email/send step below. */}
+                      <OtpVerificationForm
+                        email={email}
+                        context="login"
+                        onVerified={handleOtpVerified}
+                        showResend={false}
+                        onNeedEmail={() => setOtpEmailEntry(true)}
+                      />
+
+                      {otpEmailEntry ? (
+                        <div className="space-y-3 border-t border-[var(--border)] pt-4">
+                          <AuthIconInput
+                            id="otp-email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder={t("login.email.placeholder")}
+                            label={t("login.email.label")}
+                            icon={<Mail className="h-4 w-4" />}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            disabled={loading || !email.includes("@")}
+                            className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {loading ? t("login.otp.loading") : t("login.method.sendCode")}
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          onClick={handleSendOtp}
-                          disabled={loading || !email.includes("@")}
-                          className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                          onClick={() => setOtpEmailEntry(true)}
+                          className="block w-full text-center text-[0.8125rem] text-[var(--text-dim)] underline transition-colors hover:text-[var(--text-mid)]"
                         >
-                          {loading ? t("login.otp.loading") : t("login.method.sendCode")}
+                          {t("login.otp.sendNew")}
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </motion.div>
                 )}
 

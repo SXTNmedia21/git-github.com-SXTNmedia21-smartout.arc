@@ -3,7 +3,8 @@
  *
  * Seeds cascade data for a new workspace: base hours, department classification,
  * department hours with offsets, framework binding, tariff rates, planning cycle,
- * season budget enrichment, day/hour factors, payroll templates, authority config.
+ * season budget enrichment, day/hour factors, payroll templates, authority config,
+ * profession + profession_training (Step 11, hospitality only).
  *
  * Properties: Idempotent. Resumable. Auditable via workspace_bootstrap_run.
  * Auth: Service-role only (called internally from activate-workspace / finalize-workspace).
@@ -105,6 +106,91 @@ const PAYROLL_TEMPLATES = [
     weeklyHours: 37.5,
     tariffCategory: "leder",
     employmentCategory: "fast",
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hospitality role-capability profiles (Step 11 — profession_seed).
+//
+// NOTE: Deno Edge Functions cannot import @smartout/ai (ADR-0084 Deno boundary).
+// This data is inlined from packages/ai/src/industry/packages/hospitality.ts
+// roleCapabilityProfiles. KEEP IN SYNC with that source when adding/removing
+// roles or protocol slug mappings (the TS package is authoritative).
+//
+// Contract (A5 reader): profession.slug == roleSlug is the join key.
+// Protocol slugs must exactly match protocol.name in the governance tables.
+// ─────────────────────────────────────────────────────────────────────────────
+type RoleCapabilityProfile = {
+  roleSlug: string;
+  positionSlugs: string[];
+  mandatoryProtocolSlugs: string[];
+  readySignal: string;
+};
+
+const HOSPITALITY_ROLE_CAPABILITY_PROFILES: RoleCapabilityProfile[] = [
+  {
+    roleSlug: "skiftleder",
+    positionSlugs: ["Skiftleder"],
+    mandatoryProtocolSlugs: [
+      "Apningsrutiner-protokoll",
+      "Stengerutiner-protokoll",
+      "Brannvern og evakuering-protokoll",
+      "Arbeidsmiljo og HMS-protokoll",
+      "Handhygiene-protokoll",
+    ],
+    readySignal: "Can run one full shift cycle without policy-critical misses",
+  },
+  {
+    roleSlug: "servitor",
+    positionSlugs: ["Servitør", "Runner", "Vertinne"],
+    mandatoryProtocolSlugs: [
+      "Allergenhandtering-protokoll",
+      "Handhygiene-protokoll",
+      "Brannvern og evakuering-protokoll",
+    ],
+    readySignal: "Completes full service sequence with correct allergen handling",
+  },
+  {
+    roleSlug: "kokk",
+    positionSlugs: [
+      "Kokk",
+      "Sous Chef",
+      "Kjøkkenassistent",
+      "Kjøkkensjef",
+      "Gardemanger",
+      "Patissier",
+      "Oppvaskhjelp",
+    ],
+    mandatoryProtocolSlugs: [
+      "Temperaturkontroll-protokoll",
+      "Allergenhandtering-protokoll",
+      "Handhygiene-protokoll",
+      "Varemottak og lagring-protokoll",
+      "Temperaturovervaking-protokoll",
+      "Hygiene og renhold-protokoll",
+      "Sporbarhet og avvik-protokoll",
+    ],
+    readySignal: "Executes prep + service tasks with compliant temperature and hygiene behavior",
+  },
+  {
+    roleSlug: "bartender",
+    positionSlugs: ["Bartender", "Barback", "Barsjef"],
+    mandatoryProtocolSlugs: [
+      "Skjenkekontroll-protokoll",
+      "Handhygiene-protokoll",
+      "Brannvern og evakuering-protokoll",
+    ],
+    readySignal: "Handles bar service and age checks without compliance breaches",
+  },
+  {
+    roleSlug: "renhold",
+    positionSlugs: ["Renholder", "Renholdsansvarlig"],
+    mandatoryProtocolSlugs: [
+      "Handhygiene-protokoll",
+      "Hygiene og renhold-protokoll",
+      "Arbeidsmiljo og HMS-protokoll",
+    ],
+    readySignal: "Completes hygiene controls with verifiable checklist quality",
   },
 ];
 
@@ -744,6 +830,59 @@ Deno.serve(async (req) => {
       }
 
       await completeStep("authority_config");
+    }
+
+    // ============================================================
+    // Step 11: profession_seed (hospitality only)
+    //
+    // Upserts profession rows and wires profession_training mappings
+    // for each roleCapabilityProfile in the hospitality package.
+    //
+    // Industry gate: only runs when the hospitality framework binding
+    // exists for this workspace (hospitality.no.default.v1), which is
+    // the same condition the rest of this function assumes.  Non-hospitality
+    // workspaces will never have this binding → step is skipped cleanly.
+    //
+    // Best-effort: protocol slugs that have no matching protocol row are
+    // silently skipped.  Full mappings light up once governance protocols
+    // are seeded (ADR-0379b).  The RPC returns a summary count.
+    // ============================================================
+    if (!isCompleted("profession_seed")) {
+      await updateStep("profession_seed");
+
+      // Industry gate: hospitality framework binding presence
+      const { data: hospitalityBinding } = await adminClient
+        .from("workspace_framework_binding")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+
+      if (hospitalityBinding) {
+        const { data: seedResult, error: seedError } = await adminClient.rpc(
+          "fn_seed_profession_training",
+          {
+            p_workspace_id: workspaceId,
+            p_profiles: HOSPITALITY_ROLE_CAPABILITY_PROFILES as unknown as Record<string, unknown>[],
+          },
+        );
+
+        if (seedError) {
+          console.error("profession_seed RPC error:", seedError);
+          warnings.push({
+            step: "profession_seed",
+            message: `fn_seed_profession_training failed: ${seedError.message}`,
+          });
+        } else {
+          console.log("profession_seed result:", JSON.stringify(seedResult));
+        }
+      } else {
+        // Non-hospitality workspace — skip cleanly, no warning needed
+        console.log("profession_seed: no hospitality framework binding — skipping");
+      }
+
+      await completeStep("profession_seed");
     }
 
     // ============================================================

@@ -1,11 +1,14 @@
 ---
 title: Day Timeline — Gaps & Debt
-status: in_progress
+status: archived
+superseded_by: docs/domains/day-session/
 updated: 2026-05-18
 created: 2026-05-17
 module: daytimeline
 tags: [module, daytimeline, gaps, debt, audit, area-anchored, adr-0367]
 ---
+
+> **ARCHIVED 2026-05-22** — This module has been absorbed into `docs/domains/day-session/`. Do not update this file — update the day-session domain spine instead.
 
 # Day Timeline — Gaps & Debt
 

@@ -1,11 +1,14 @@
 ---
 title: Day Timeline Module — Blueprint Index
-status: in_progress
-updated: 2026-05-17
+status: archived
+superseded_by: docs/domains/day-session/
+updated: 2026-05-22
 created: 2026-05-17
 module: daytimeline
-tags: [module, daytimeline, dagslinjen, blueprint, source-of-truth, d6-production]
+tags: [module, daytimeline, dagslinjen, blueprint, source-of-truth, d6-production, archived]
 ---
+
+> **ARCHIVED 2026-05-22** — This module has been absorbed into `docs/domains/day-session/`. The daytimeline module was the `active`-phase surface (Dagslinjen tab) of the same `department_session` domain. All content is now unified in the day-session domain spine. Do not update this folder — update `docs/domains/day-session/` instead.
 
 # Day Timeline Module — Blueprint & Source of Truth
 

@@ -9,6 +9,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { logoutOneSignal } from "@/lib/onesignal";
 import { useAuth } from "@/providers/auth-provider";
 import { useTheme, withOpacity } from "@/theme";
 
@@ -72,6 +73,7 @@ export default function Pending() {
   }, [user, router, checkStatus]);
 
   async function handleSignOut() {
+    await logoutOneSignal();
     await supabase.auth.signOut();
     router.replace("/(auth)/welcome");
   }

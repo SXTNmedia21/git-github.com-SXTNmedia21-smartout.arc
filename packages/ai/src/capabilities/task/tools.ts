@@ -568,6 +568,47 @@ export const createSession = defineTool({
       },
     });
 
+    // Emit "session_task.assigned" when an assignee was explicitly set (ADR-0298 Sortie 3).
+    // Reuses the existing registry event "session_task.assigned" (line 1206 registry.ts).
+    // Emitted ONLY when assignee_profile_id is explicitly provided — not on self-assignment
+    // or unassigned tasks (those are covered by the "task created" event above).
+    if (params.assignee_profile_id && !assignedToSelf) {
+      await emit({
+        event: "session_task.assigned",
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
+        properties: {
+          entity: {
+            entity_type: "session_task",
+            entity_id: inserted.id,
+            entity_label: params.title,
+          },
+          metadata: {
+            source: "task.create_session",
+            assigned_to: params.assignee_profile_id,
+          },
+        },
+      });
+
+      // Notify the assignee via notification_outbox (notification_engine pattern).
+      // The assignee is already verified to be a workspace member (resolveAssigneeWorkspaceMembership above).
+      await (ctx.supabaseAdmin as SupabaseClient).from("notification_outbox").insert({
+        workspace_id: ctx.workspaceId,
+        recipient_id: params.assignee_profile_id,
+        mode: "work",
+        priority: 1,
+        title: "Ny oppgave tildelt deg",
+        body: params.title,
+        action_url: `/dashboard/session/${session.department_session_id}`,
+        metadata: {
+          event_key: "session_task.assigned",
+          task_id: inserted.id,
+          assigned_by: ctx.profileId,
+        },
+        allowed_channels: ["push", "email"],
+      });
+    }
+
     // 30-day alias emit — keeps WebDayControl callers green (ADR-0298 §7 alias-window).
     await emit({
       event: "task.added_manual",

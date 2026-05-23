@@ -3,18 +3,22 @@
 /**
  * Reset Password page — requests a password-reset email.
  *
- * This route is now SINGLE-MODE. The previous dual-mode implementation (request
- * email OR set new password based on URL hash) was split per council Q9=a in
- * docs/superpowers/specs/2026-04-20-auth-invitation-implementation-plan.md §4.2.
- * The update-password form lives at /update-password (commit 76d93688), and
- * the middleware force_password_reset gate routes there (commit 4bd734f6).
+ * SINGLE-MODE: this page only REQUESTS the email. Setting the new password
+ * happens on /update-password (council Q9=a, split commit 76d93688).
  *
- * Entry points here:
- *  - User clicks "Glemt passord?" on /login
- *  - User lands here directly from a bookmark
+ * Flow (token_hash, robust SSR — ADR auth-token-hash 2026-05-21):
+ *   email input → resetPasswordForEmail(email) → GoTrue sends the recovery
+ *   email whose template links to /api/auth/callback?token_hash=…&type=recovery
+ *   &next=/update-password. The user clicks it; the callback verifies the
+ *   token_hash SERVER-SIDE (no PKCE code_verifier cookie required → works across
+ *   email clients/devices) and lands them on /update-password with a live
+ *   recovery session. We deliberately pass NO `redirectTo` here — the template
+ *   owns the destination, and a redirectTo would re-introduce the fragile
+ *   PKCE `?code=` link.
  *
- * Flow: email input → supabase.auth.resetPasswordForEmail with redirectTo
- * pointing at /update-password → success toast → user checks inbox.
+ * Entry points:
+ *  - "Glemt passord?" on /login
+ *  - direct bookmark
  */
 
 import { useState } from "react";
@@ -43,6 +47,7 @@ async function hashEmail(email: string): Promise<string> {
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const handleRequestReset = async (e: React.FormEvent) => {
@@ -51,13 +56,10 @@ export default function ResetPasswordPage() {
     setMessage(null);
 
     const supabase = createClient();
-    // redirectTo points at the PKCE callback so the `?code=` exchange happens
-    // server-side; callback then forwards to /update-password with a live
-    // session cookie. Direct redirect to /update-password breaks under PKCE
-    // (the page only inspects `#access_token`, never the `?code=` query).
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
-    });
+    // No `redirectTo`: the email template owns the destination via a
+    // token_hash link to /api/auth/callback (see file header). redirectTo
+    // would mint the fragile PKCE `?code=` link instead.
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     setIsLoading(false);
 
@@ -66,15 +68,15 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    setSent(true);
     setMessage({
       type: "success",
-      text: "Hvis kontoen finnes, har vi sendt en lenke for å tilbakestille passordet.",
+      text: "Hvis kontoen finnes, har vi sendt en lenke for å sette et nytt passord. Sjekk e-posten din.",
     });
 
     // Emit auth password_reset_requested (registry:263). SHA-256 hash only — never raw email.
-    // user_exists is conservatively false here: Supabase hides account existence client-side for
-    // enumeration-safety, so we cannot determine it from this surface. Server-side enumeration
-    // check (if added later) should emit a richer event from an Edge Function or Server Action.
+    // user_exists is conservatively false: Supabase hides account existence client-side for
+    // enumeration-safety, so we cannot determine it from this surface.
     try {
       const email_hash = await hashEmail(email);
       void emit({
@@ -109,10 +111,12 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-[400px]">
           <div className="animate-auth-in mb-8" style={{ animationDelay: "100ms" }}>
             <h1 className="font-heading text-foreground text-[2rem] leading-[1.1] tracking-tight">
-              Glemt passord?
+              {sent ? "Sjekk e-posten" : "Glemt passord?"}
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Vi sender deg en lenke for å sette et nytt.
+              {sent
+                ? "Klikk lenken i e-posten for å sette et nytt passord."
+                : "Vi sender deg en lenke for å sette et nytt passord."}
             </p>
           </div>
 
@@ -134,39 +138,55 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          <form
-            onSubmit={handleRequestReset}
-            className="animate-auth-in space-y-4"
-            style={{ animationDelay: "160ms" }}
-          >
-            <AuthIconInput
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="navn@bedrift.no"
-              label="E-post"
-              icon={<Mail className="h-4 w-4" />}
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+          {sent ? (
+            <div className="animate-auth-in space-y-4" style={{ animationDelay: "160ms" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSent(false);
+                  setMessage(null);
+                }}
+                className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Bruk en annen e-post
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleRequestReset}
+              className="animate-auth-in space-y-4"
+              style={{ animationDelay: "160ms" }}
             >
-              <Send className="h-4 w-4" />
-              {isLoading ? "Sender..." : "Send lenke"}
-            </button>
-            <Link
-              href="/login"
-              className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Tilbake til innlogging
-            </Link>
-          </form>
+              <AuthIconInput
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="navn@bedrift.no"
+                label="E-post"
+                icon={<Mail className="h-4 w-4" />}
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-cta-sm)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[var(--shadow-cta-md)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                {isLoading ? "Sender..." : "Send lenke"}
+              </button>
+              <Link
+                href="/login"
+                className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Tilbake til innlogging
+              </Link>
+            </form>
+          )}
 
           <p className="border-border/60 text-muted-foreground mt-8 border-t pt-5 text-center text-sm">
             Husker du passordet?{" "}

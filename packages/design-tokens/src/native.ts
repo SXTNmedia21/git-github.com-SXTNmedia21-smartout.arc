@@ -109,7 +109,27 @@ export const nativeTheme = {
     inactive: "#717171",
     offboarding: "#c18200",
   },
-  radius: { sm: 6, md: 8, lg: 10, xl: 14, full: 9999 },
+  // Task lifecycle status — RN uses hex (oklch() unsupported in RN StyleSheet).
+  // Web/skill use OKLCH tokens; these are the hex equivalents for mobile.
+  taskStatus: {
+    todo: "#64748B",
+    inprogress: "#2563EB",
+    awaiting: "#A855F7",
+    overdue: "#DC2626",
+    done: "#10B981",
+  },
+  // Task origin badge — fg + bg pair (Rutine/Ad-hoc/Protokoll/Avvik).
+  taskOrigin: {
+    sessionFg: "#2563EB",
+    sessionBg: "#DBEAFE",
+    adhocFg: "#7C3AED",
+    adhocBg: "#EDE9FE",
+    protocolFg: "#0F766E",
+    protocolBg: "#CCFBF1",
+    deviationFg: "#DC2626",
+    deviationBg: "#FEE2E2",
+  },
+  radius: { sm: 6, md: 8, lg: 10, xl: 14, card: 16, full: 9999 },
   spacing: { page: 32, section: 24, card: 20, element: 12, tight: 8 },
   /**
    * Nordic Split motion tokens — shared between RN shift timeline surfaces.

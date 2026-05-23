@@ -18,6 +18,7 @@ import {
   type PushRegistrationResult,
   type PushRegistrationStatus,
 } from "@/lib/push";
+import { loginOneSignal } from "@/lib/onesignal";
 
 type UsePushTokenState = {
   token: string | null;
@@ -57,6 +58,7 @@ export function usePushToken(profileId: string | null | undefined): UsePushToken
           error: err instanceof Error ? err : new Error(String(err)),
         });
       });
+    void loginOneSignal(profileId);
 
     return () => {
       cancelled = true;

@@ -169,7 +169,11 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3050"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai"]
+# NOTE (ADR-0390): mobile reset redirect target must be allow-listed by EXACT path —
+# the host-glob `https://*.smartout.ai` does NOT cover the `/m/update-password` path,
+# so GoTrue would silently default `.RedirectTo` to site_url. Prod dashboard Redirect
+# URLs must include the same entry, or the recovery email degrades to the web branch.
+additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai", "https://app.smartout.ai/m/update-password"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -228,6 +232,13 @@ secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
+# ⚠️ CONTRACT (ADR-0389): MUST stay 6 and MUST equal OTP_LENGTH in
+# apps/web/src/components/auth/OtpVerificationForm.tsx. The login code field
+# renders exactly this many boxes; if GoTrue mints a longer code the user can
+# only type part of it → verify returns 403 even on a valid code (prod outage
+# 2026-05-22, GoTrue dashboard was set to 8). PROD must match: Supabase
+# dashboard → Authentication → Email → OTP Length = 6. checked by
+# `node scripts/check-otp-coherence.mjs`.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 1800
@@ -548,6 +559,11 @@ verify_jwt = false
 [functions.session-watchdog-demoter]
 verify_jwt = false
 
+# Cron-only: transitions session_task status → 'overdue' + notifies assignee/managers.
+# Auth via WATCHDOG_CRON_SECRET bearer token. No user JWT. ADR-0298.
+[functions.session-task-overdue-cron]
+verify_jwt = false
+
 [functions.session-hook-executor]
 verify_jwt = false
 
@@ -620,7 +636,7 @@ verify_jwt = false
 [functions.note-fanout-scheduler]
 verify_jwt = false
 
-# ADR-0372 — Hourly pg_cron birthday auto-publish pipe.
+# ADR-0389 — Hourly pg_cron birthday auto-publish pipe.
 # Filters workspaces in 06:00-07:00 local window, calls fn_birthday_cohort_for_workspace,
 # publishes celebration announcement via publish_announcement_atomic. GDPR-safe: DOB never
 # leaves the DB function boundary. Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET.

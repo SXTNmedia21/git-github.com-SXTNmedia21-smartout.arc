@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
-type OtpContext = "login" | "workspace_entry";
+type OtpContext = "login" | "workspace_entry" | "recovery";
 
 interface OtpVerificationFormProps {
   email: string;
@@ -18,7 +18,44 @@ interface OtpVerificationFormProps {
   onVerified: () => void;
   workspaceId?: string;
   actorId?: string;
+  /**
+   * Called when a code is entered but no email is known yet (code-first login
+   * screen). The parent reveals its email-entry / "send new code" affordance.
+   */
+  onNeedEmail?: () => void;
+  /**
+   * Show the built-in resend countdown button. Login owns its own "Send ny kode"
+   * affordance (which re-collects the email), so it passes false to avoid two
+   * competing resend controls.
+   */
+  showResend?: boolean;
 }
+
+// GoTrue verifies an emailed code against a token of a SPECIFIC type. A login /
+// workspace-entry code is an `email` token (signInWithOtp); a password-reset
+// code is a `recovery` token (resetPasswordForEmail). Verifying a recovery
+// token with type:"email" makes GoTrue answer `otp_expired` — its misleading
+// generic for "no matching token of THIS type" — even though the token is live.
+// So the verify type MUST track the flow that issued the code.
+const VERIFY_TYPE: Record<OtpContext, "email" | "recovery"> = {
+  login: "email",
+  workspace_entry: "email",
+  recovery: "recovery",
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// OTP LENGTH CONTRACT (ADR-0389) — DO NOT change without changing GoTrue too.
+//
+// This MUST equal GoTrue's `otp_length`:
+//   • local:  supabase/config.toml  →  [auth.email] otp_length = 6
+//   • prod:   Supabase dashboard → Authentication → Email → OTP Length = 6
+//
+// If GoTrue mints an N-digit code but this field renders fewer boxes, the user
+// can only type part of the code → verify returns 403 otp_expired even though
+// the code is valid. (Prod outage 2026-05-22: GoTrue was set to 8, this field
+// had 6 → every OTP login failed.) `scripts/check-otp-coherence.mjs` (husky
+// pre-push) fails the push if this drifts from config.toml otp_length.
+const OTP_LENGTH = 6;
 
 export function OtpVerificationForm({
   email,
@@ -26,9 +63,11 @@ export function OtpVerificationForm({
   onVerified,
   workspaceId,
   actorId,
+  onNeedEmail,
+  showResend = true,
 }: OtpVerificationFormProps) {
   const { t } = useTranslation("auth");
-  const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
+  const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -59,11 +98,11 @@ export function OtpVerificationForm({
       setDigits(newDigits);
       setError(null);
 
-      if (value && index < 5) {
+      if (value && index < OTP_LENGTH - 1) {
         inputRefs.current[index + 1]?.focus();
       }
 
-      if (newDigits.every((d) => d) && newDigits.join("").length === 6) {
+      if (newDigits.every((d) => d) && newDigits.join("").length === OTP_LENGTH) {
         verifyCode(newDigits.join(""));
       }
     },
@@ -78,7 +117,7 @@ export function OtpVerificationForm({
       if (e.key === "ArrowLeft" && index > 0) {
         inputRefs.current[index - 1]?.focus();
       }
-      if (e.key === "ArrowRight" && index < 5) {
+      if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
         inputRefs.current[index + 1]?.focus();
       }
     },
@@ -88,19 +127,19 @@ export function OtpVerificationForm({
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
       e.preventDefault();
-      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
       if (pasted.length === 0) return;
 
       const newDigits = [...digits];
-      for (let i = 0; i < pasted.length && i < 6; i++) {
+      for (let i = 0; i < pasted.length && i < OTP_LENGTH; i++) {
         newDigits[i] = pasted[i]!;
       }
       setDigits(newDigits);
 
       const nextEmpty = newDigits.findIndex((d) => !d);
-      inputRefs.current[nextEmpty === -1 ? 5 : nextEmpty]?.focus();
+      inputRefs.current[nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty]?.focus();
 
-      if (pasted.length === 6) {
+      if (pasted.length === OTP_LENGTH) {
         verifyCode(pasted);
       }
     },
@@ -108,6 +147,17 @@ export function OtpVerificationForm({
   );
 
   async function verifyCode(code: string) {
+    // Code-first login: the digit field is shown before any email is known.
+    // verifyOtp requires the email the code was issued to — without it GoTrue
+    // can't match the token. Guide the user to request a code instead of
+    // firing a guaranteed-failing verify.
+    if (!email) {
+      setError(t("otp.error.needEmail"));
+      setDigits(Array(OTP_LENGTH).fill(""));
+      onNeedEmail?.();
+      return;
+    }
+
     setIsVerifying(true);
     setAttempts((a) => a + 1);
     const duration = Date.now() - startTimeRef.current;
@@ -115,7 +165,7 @@ export function OtpVerificationForm({
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email,
       token: code,
-      type: "email",
+      type: VERIFY_TYPE[context],
     });
 
     if (verifyError) {
@@ -151,7 +201,7 @@ export function OtpVerificationForm({
         });
       }
 
-      setDigits(Array(6).fill(""));
+      setDigits(Array(OTP_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
       return;
     }
@@ -170,23 +220,25 @@ export function OtpVerificationForm({
   async function handleResend() {
     setCanResend(false);
     setResendCountdown(60);
-    setDigits(Array(6).fill(""));
+    setDigits(Array(OTP_LENGTH).fill(""));
     setError(null);
     setAttempts(0);
     startTimeRef.current = Date.now();
 
-    // Mirror the login page's send-OTP options. The magic link in the same
-    // email needs `emailRedirectTo=/api/auth/callback` to actually log the
-    // user in (PKCE code exchange), otherwise clicking it does nothing.
-    // (handleResend is a click handler in a client component — window is
-    // always defined here, no SSR guard needed.)
-    const { error: resendError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/dashboard`,
-      },
-    });
+    // Re-issue a code through the SAME endpoint that minted the original, so the
+    // resent token type matches what verifyCode() will check (VERIFY_TYPE):
+    //   recovery → resetPasswordForEmail (recovery token)
+    //   login / workspace_entry → signInWithOtp (email token)
+    // No `emailRedirectTo`: we are a pure-code flow. Setting it would make GoTrue
+    // also render a magic link in the email — a one-time link that a mail-client
+    // / proxy prefetch could burn, killing the shared token before the user types
+    // the code. Code-only emails carry nothing prefetchable.
+    // (handleResend is a click handler in a client component — window is always
+    // defined here, no SSR guard needed.)
+    const { error: resendError } =
+      context === "recovery"
+        ? await supabase.auth.resetPasswordForEmail(email)
+        : await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
 
     // Enumeration safety (supabase/auth#1547): with shouldCreateUser:false,
     // GoTrue returns "Signups not allowed for otp" (otp_disabled) for unknown
@@ -210,7 +262,9 @@ export function OtpVerificationForm({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <p className="text-muted-foreground text-sm">{t("otp.subtitle", { email: maskedEmail })}</p>
+      {email && (
+        <p className="text-muted-foreground text-sm">{t("otp.subtitle", { email: maskedEmail })}</p>
+      )}
 
       <div
         role="group"
@@ -261,18 +315,19 @@ export function OtpVerificationForm({
         )}
       </AnimatePresence>
 
-      {canResend ? (
-        <button
-          onClick={handleResend}
-          className="text-muted-foreground hover:text-foreground text-sm underline"
-        >
-          {t("otp.resend")}
-        </button>
-      ) : (
-        <p className="text-muted-foreground font-mono text-sm tabular-nums">
-          {t("otp.resendCountdown", { seconds: resendCountdown })}
-        </p>
-      )}
+      {showResend &&
+        (canResend ? (
+          <button
+            onClick={handleResend}
+            className="text-muted-foreground hover:text-foreground text-sm underline"
+          >
+            {t("otp.resend")}
+          </button>
+        ) : (
+          <p className="text-muted-foreground font-mono text-sm tabular-nums">
+            {t("otp.resendCountdown", { seconds: resendCountdown })}
+          </p>
+        ))}
     </div>
   );
 }

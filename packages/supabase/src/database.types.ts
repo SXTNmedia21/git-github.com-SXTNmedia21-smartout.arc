@@ -15957,7 +15957,9 @@ export type Database = {
           control_list_id: string | null
           control_nth: number | null
           created_at: string
+          executor_type: Database["public"]["Enums"]["routine_executor_type"]
           is_active: boolean
+          location_id: string | null
           name: string
           procedure_id: string
           protocol_id: string
@@ -15965,6 +15967,7 @@ export type Database = {
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           assigned_to_ref: string
@@ -15973,7 +15976,9 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
           is_active?: boolean
+          location_id?: string | null
           name: string
           procedure_id: string
           protocol_id: string
@@ -15981,6 +15986,7 @@ export type Database = {
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           assigned_to_ref?: string
@@ -15989,7 +15995,9 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
           is_active?: boolean
+          location_id?: string | null
           name?: string
           procedure_id?: string
           protocol_id?: string
@@ -15997,6 +16005,7 @@ export type Database = {
           trigger_config?: Json
           trigger_type?: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -16019,6 +16028,77 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
+          },
+          {
+            foreignKeyName: "routine_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      routine_team: {
+        Row: {
+          created_at: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          routine_id?: string
+          team_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_team_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routine"
+            referencedColumns: ["routine_id"]
+          },
+          {
+            foreignKeyName: "routine_team_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -17792,10 +17872,13 @@ export type Database = {
           department_session_id: string
           description: string | null
           evidence: Json | null
+          generated_by: Database["public"]["Enums"]["task_generated_by"] | null
           id: string
           is_compliance_required: boolean
+          origin: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at: string | null
           session_hook_id: string | null
+          source_reference: string | null
           status: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at: string
@@ -17810,10 +17893,13 @@ export type Database = {
           department_session_id: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at?: string
@@ -17828,10 +17914,13 @@ export type Database = {
           department_session_id?: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title?: string
           updated_at?: string
@@ -22259,6 +22348,7 @@ export type Database = {
         }[]
       }
       fn_check_billing_run: { Args: never; Returns: number }
+      fn_cron_jobs_health: { Args: never; Returns: Json }
       fn_generate_company_invoice: {
         Args: {
           p_amount_excl_vat: number
@@ -22326,6 +22416,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      fn_resolve_single_day_line: {
+        Args: { p_department_session_id: string }
+        Returns: string
+      }
+      fn_seed_profession_training: {
+        Args: { p_profiles: Json; p_workspace_id: string }
+        Returns: Json
       }
       gate_action: {
         Args: {
@@ -23142,6 +23240,7 @@ export type Database = {
       remuneration_type_enum: "monthlyWage" | "hourlyWage" | "commissionOnly"
       revenue_source: "ocr" | "manual"
       routine_assigned_to_type: "team" | "role" | "profile"
+      routine_executor_type: "human" | "ai" | "system" | "hybrid"
       schedule_absence_type:
         | "sick_leave"
         | "parental_leave"
@@ -23217,6 +23316,14 @@ export type Database = {
       sync_status: "pending" | "synced" | "failed" | "conflict"
       sync_status_enum: "pending" | "synced" | "divergent" | "not_synced"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
+      task_generated_by: "cron" | "manager" | "agent" | "system"
+      task_origin:
+        | "session"
+        | "adhoc"
+        | "routine"
+        | "procedure"
+        | "projection"
+        | "manual"
       tax_card_type: "percentage" | "table" | "freecard"
       team_type:
         | "operational"
@@ -24842,6 +24949,7 @@ export const Constants = {
       remuneration_type_enum: ["monthlyWage", "hourlyWage", "commissionOnly"],
       revenue_source: ["ocr", "manual"],
       routine_assigned_to_type: ["team", "role", "profile"],
+      routine_executor_type: ["human", "ai", "system", "hybrid"],
       schedule_absence_type: [
         "sick_leave",
         "parental_leave",
@@ -24927,6 +25035,15 @@ export const Constants = {
       sync_status: ["pending", "synced", "failed", "conflict"],
       sync_status_enum: ["pending", "synced", "divergent", "not_synced"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
+      task_generated_by: ["cron", "manager", "agent", "system"],
+      task_origin: [
+        "session",
+        "adhoc",
+        "routine",
+        "procedure",
+        "projection",
+        "manual",
+      ],
       tax_card_type: ["percentage", "table", "freecard"],
       team_type: [
         "operational",
@@ -24984,3 +25101,4 @@ export const Constants = {
     },
   },
 } as const
+

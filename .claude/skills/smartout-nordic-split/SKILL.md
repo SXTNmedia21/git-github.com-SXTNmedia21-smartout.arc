@@ -183,8 +183,58 @@ Lucide React only. No emojis in UI. No other icon libraries.
 - Add: `cd apps/web && npx shadcn@latest add <component>`
 - Config: `apps/web/components.json`
 
+## Task Manager Prototype — North-Star Design Language (2026-05-22)
+
+> Pontus directive: the Task Manager prototype `docs/modules/task-manager/taskmanager-DESIGNE/` is the **north-star** for application surface design. Patterns below are extracted from `styles.css` + `components/*.jsx` and are CANONICAL for new dashboard/admin surfaces. **Port these recipes — do not redesign.**
+> **HARD RULE:** the prototype's mockup uses HEX, but Smartout does NOT — every color is an OKLCH CSS-variable token (ADR-0366 bans OKLCH literals in code; ADR-0361 bans hardcoded color classes). Add the token to `packages/design-tokens/src/tokens.ts` and reference by name — NEVER a hex or raw OKLCH literal in a `.tsx`/`.css`. The OKLCH values below are the canonical token definitions.
+
+### Scales — ALREADY in `packages/design-tokens/src/tokens.ts` (reuse, never inline)
+
+| Scale | Export | Note |
+|-------|--------|------|
+| **Spacing** | `spacing` (page/section/card/element/tight) | ✅ exists, matches proto |
+| **Radius** | `radius` (base/sm/md/lg/xl/full) | ✅ exists. **`card`=16px is the proto signature — add `radius.card`** |
+| **Shadow** | `shadows` (sm/md/lg/glow.orange/glow.blue) | ✅ exists. Orange glow = signature CTA |
+
+- **Density toggle:** `[data-density="compact"]` shrinks card/element spacing. Layouts must survive both.
+- **App shell:** CSS grid `248px 1fr` (sidebar + main). Sidebar sticky, full-height, `sidebar` token surface.
+- **Font feature settings:** `"ss01", "cv11"` on body; `.mono` uses `tabular-nums`.
+
+### Semantic palettes — what EXISTS vs what is NEW
+
+**Department identity** — ✅ ALREADY `department` export (`kitchen/floor/bar/event/storage` + `kjokken/sal` aliases, OKLCH). Reuse it. Do NOT invent new dept values.
+**Priority** — ✅ ALREADY `priority` export (`urgent/high/normal/low`). Proto's "kritisk" = `urgent`. Render via `PriorityDot` (solid dot, color only — no emoji in product; proto emoji are mock-only).
+**Tidslinjen phase tint** — ✅ ALREADY `phase` export (prep/service/winddown) — use for timeline bands.
+
+**NEW tokens this prototype requires (added 2026-05-22):**
+- **`taskStatus`** — task lifecycle (distinct from profile `status`): todo · inprogress · awaiting · overdue · done.
+- **`taskOrigin`** — where a task came from, fg+bg pair, rendered as 9px uppercase badge (letter-spacing 2px, `radius.sm`):
+  | origin | label | tone |
+  |--------|-------|------|
+  | session | **Rutine** | blue |
+  | adhoc | **Ad-hoc** | violet |
+  | protocol | **Protokoll** | teal |
+  | deviation | **Avviks-oppfølging** | red |
+
+### Core component recipes
+
+- **TaskCard:** `--card` bg, 1px `--border`, `--r-card` (16), grid `auto auto minmax(0,1fr) auto` (toggle · origin · body · assignee), 14px gap, transition border-color/transform/shadow. Hover → `--sh-hover`. Elements: status-toggle, OriginBadge, title, deadline (HH:MM + relative text), folder chip, location, subtask progress X/Y, manual icon, evidence icon, Avatar.
+- **Chip:** pill (`--r-full`), 6×12 padding, 12.5px/500, transparent + 1px border + `--muted`; active state fills. Used for filters (Alle/Tildelt meg/Kritisk/Pågår/Ferdig) + metadata.
+- **Btn-primary:** `--orange` bg, white text, **`--sh-glow`** (orange-tinted glow is the signature CTA treatment).
+- **Day-meter:** progress bar + text ("3 av 12 fullført · 3 må løses før 12:00") — the Min dag completion summary.
+- **KPI-strip:** 4-col grid in one `--card`/`--r-card` container, dividers between, no gap.
+- **Drawer:** backdrop + slide-in panel; header-row (origin + status + priority-tinted bg + title + chip row), sections (linked manual · subtasks · evidence capture · activity feed), footer actions. Slide via `motion.spring` (35/22/2.2).
+- **Builder-block** (Manualskaper): per-block confidence dot (high/med/low = green/yellow/red), inline editor per type (text/callout/image/video/checklist/evidence), Botsson action menu. Publish gated on 0 low-confidence blocks.
+- **Guide-step** (Manual-guide, mobile): one-screen-per-step, progress bar, eyebrow + "Steg N av M", interactive checklist + evidence capture. Execution surface, not editor.
+- **Avatar:** circle, user color bg, white initials, size×0.4 font, optional 2px `--bg` border for stacking.
+
+### Origin/status/priority taxonomy is shared with the Task Manager module
+
+These map 1:1 to the 4 task sources + `session_task_status` enum. See `docs/modules/task-manager/MODULE_TASK_MANAGER.md`. UI taxonomy and DB taxonomy must stay aligned — a new origin/status in one requires the other.
+
 ## Reference Files
 
+- **North-star prototype:** `docs/modules/task-manager/taskmanager-DESIGNE/` (styles.css + components/*.jsx) — port, do not redesign
 - Interactive styleguide: `docs/design/ren-og-varm-styleguide.html`
 - Orb generator: `docs/design/orb-generator.html`
 - Design tokens: `packages/design-tokens/src/tokens.ts`

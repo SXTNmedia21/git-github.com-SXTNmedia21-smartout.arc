@@ -1,5 +1,14 @@
 # Supervisor Agent Memory
 
+## Task Tables (Task Ontology)
+- [4 task-table consolidation blast radius](task_table_consolidation.md) — verified 2026-05-22. session_task=65 src files/20 migs (cascade D6, day_line FK, 2 crons); other 3 tiny. PK convention split (id vs {table}_id); 3 incompatible status types; dual union (fn_list_my_tasks RPC + list_mine TS tools.ts:144-207) must co-change. Verdict: approve C2 merge standalone, reject bundled 4→2 (70% cost is code churn unaffected by empty DB), D6 fights ADR-0367.
+
+## Task-Manager / Governance
+- [Auto-assign trigger + policy_scope + template traps](task_manager_governance_review.md) — verified 2026-05-20. Trigger fires AFTER INSERT on profile (profile_position empty); CASE has no ELSE (silent NULL = regression class); template_restaurant_* NOT installed by any migration (dev-showcase only); scope_ref_id is uuid (can't hold profile_role).
+
+## Botsson AI Composer (shared surface)
+- [No precedent for feature buttons in AI composer](botsson_composer_precedent.md) — verified 2026-05-22. procedure-engine-2b was FIRST to add a button (Camera, photo→routine) to BotssonSheet.tsx text-mode row. channel-chat MessageInput.tsx:281 Camera is a DIFFERENT surface (attach-to-message), NOT precedent. Pontus taste-rejected despite spec §6/§14 approval: icon collision + persistent manager-only fixture, no role gate. Adding a button to the AI composer = PATTERN DECISION; require precedent/ADR + role-gate + visual distinction. ADR-0394 authorizes the FLOW, not the placement.
+
 ## Module Docs Location
 - CLAUDE.md references "23 module docs" in `docs/modules/` but most have been moved to `docs/architecture/modules/`. Only `MODULE_YEAR_WHEEL_PRD.md` is in `docs/modules/` currently. 3 remain in `docs/architecture/modules/` (BOTSSON, 0_ROADMAP, AGENT_SDK).
 - MODULE_ naming convention is established but inconsistent in location.

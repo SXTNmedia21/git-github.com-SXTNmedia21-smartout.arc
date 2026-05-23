@@ -1,5 +1,6 @@
 import { createClient } from "@smartout/supabase/server";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { validateReturnTo } from "@/lib/safe-redirect";
@@ -52,6 +53,20 @@ async function scrubOrphanAuthCookies(): Promise<void> {
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}$/;
 
 /**
+ * token_hash verification types we accept on the callback. Mirrors GoTrue's
+ * EmailOtpType. Anything outside this allow-list is rejected — a forged
+ * `?type=` must never reach verifyOtp.
+ */
+const ALLOWED_OTP_TYPES = new Set<EmailOtpType>([
+  "email",
+  "recovery",
+  "magiclink",
+  "signup",
+  "invite",
+  "email_change",
+]);
+
+/**
  * Resolve the post-auth destination.
  *
  * Per ADR-0021 amendment 2026-04-20 (Auth & Invitation Council Q1=b), all auth
@@ -99,9 +114,83 @@ async function resolveContinueDestination(
   };
 }
 
+/**
+ * Shared post-authentication routing. Reached once a session is established —
+ * either by PKCE `exchangeCodeForSession` (OAuth) or `verifyOtp({token_hash})`
+ * (email magic-link / recovery). Decides where the now-authenticated user lands:
+ * recovery → /update-password, existing profile → dashboard/continue-slug,
+ * mid-signup → /join at the saved step.
+ */
+async function routeAfterAuth(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  origin: string,
+  next: string,
+  continueSlug: string | null,
+): Promise<NextResponse> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Session set but user unreadable — fall back to the requested next path.
+  if (!user) return NextResponse.redirect(new URL(next, origin));
+
+  // Password-recovery short-circuit: honour an explicit /update-password target
+  // before profile/signup routing kicks in. The session cookie is already set,
+  // so /update-password sees the user and renders the set-password form.
+  if (next === "/update-password" || next.startsWith("/update-password?")) {
+    return NextResponse.redirect(new URL(next, origin));
+  }
+
+  try {
+    await emit({
+      event: "signup completed",
+      workspace_id: null,
+      actor_id: nonEmpty(user.id, "actor_id"),
+      properties: { data: { user_identity_id: user.id } },
+    });
+  } catch (e) {
+    console.error("[auth/callback] Failed to emit signup.completed:", e);
+  }
+
+  // Existing user with a workspace profile → dashboard (or validated continue-slug).
+  const { data: profiles } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", user.id)
+    .limit(1);
+
+  if (profiles && profiles.length > 0) {
+    const cont = await resolveContinueDestination(supabase, user.id, continueSlug, next);
+    if (cont) return NextResponse.redirect(cont.url);
+    return NextResponse.redirect(new URL(next || "/dashboard", origin));
+  }
+
+  // No profile yet — resume the signup wizard at the saved step.
+  const { data: progress, error: progressError } = await supabase
+    .from("signup_progress")
+    .select("completed, current_step")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (progressError) {
+    return NextResponse.redirect(new URL("/join?step=1", origin));
+  }
+
+  if (progress?.completed) {
+    const cont = await resolveContinueDestination(supabase, user.id, continueSlug, next);
+    if (cont) return NextResponse.redirect(cont.url);
+    return NextResponse.redirect(new URL(next || "/dashboard", origin));
+  }
+
+  const step = progress?.current_step || 1;
+  return NextResponse.redirect(new URL(`/join?step=${step}`, origin));
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const otpType = searchParams.get("type");
   const rawNext = searchParams.get("next") ?? "/dashboard";
   const continueSlug = searchParams.get("continue");
   // Prevent open redirect. A bare `startsWith("/")` check is insufficient:
@@ -110,6 +199,26 @@ export async function GET(request: Request) {
   // rejects `//`, `://`, and backslash — the same guard /login already uses.
   const next = validateReturnTo(rawNext) ?? "/dashboard";
 
+  // ── Path A: token_hash (email magic-link / recovery, robust SSR flow) ──
+  // GoTrue mints a hashed token rendered in the email as {{ .TokenHash }}; the
+  // template links straight here. verifyOtp validates it SERVER-SIDE and writes
+  // the session cookies — no PKCE code_verifier cookie required, so it works
+  // across email clients and devices (unlike the ?code= path below). This is
+  // why magic-link/recovery emails point here with token_hash, not ?code.
+  if (tokenHash && otpType && ALLOWED_OTP_TYPES.has(otpType as EmailOtpType)) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: otpType as EmailOtpType,
+    });
+    if (!error) {
+      return routeAfterAuth(supabase, origin, next, continueSlug);
+    }
+    // Invalid/expired/stale token_hash → send back to login with a clear marker.
+    return NextResponse.redirect(new URL("/login?error=Invalid_link", origin));
+  }
+
+  // ── Path B: PKCE ?code= (OAuth providers — Google) ──
   if (code) {
     // Clear orphan token cookies (see scrubOrphanAuthCookies). MUST run
     // before createClient() so the fresh exchange writes into a clean slot.
@@ -117,79 +226,8 @@ export async function GET(request: Request) {
 
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-
     if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        // Password-recovery short-circuit: when the caller asked to land on
-        // /update-password, honour it before the profile / signup_progress
-        // routing kicks in. Without this, an existing user clicking a recovery
-        // link would be bounced to /join?step=1 (no profile path) or
-        // /dashboard (profile path) — never reaching the update form. The
-        // session cookie is already set above so /update-password sees the
-        // user and renders the form.
-        if (next === "/update-password" || next.startsWith("/update-password?")) {
-          return NextResponse.redirect(new URL(next, origin));
-        }
-
-        // Emit signup completed event
-        try {
-          await emit({
-            event: "signup completed",
-            workspace_id: null,
-            actor_id: nonEmpty(user.id, "actor_id"),
-            properties: {
-              data: {
-                user_identity_id: user.id,
-              },
-            },
-          });
-        } catch (e) {
-          console.error("[auth/callback] Failed to emit signup.completed:", e);
-        }
-
-        // Check if user already has a profile (existing user with workspace)
-        const { data: profiles } = await supabase
-          .from("profile")
-          .select("profile_id")
-          .eq("user_id", user.id)
-          .limit(1);
-
-        if (profiles && profiles.length > 0) {
-          // Existing user with workspace — prefer continue-slug if validated,
-          // else use the (relative) `next` path on the portal origin.
-          const cont = await resolveContinueDestination(supabase, user.id, continueSlug, next);
-          if (cont) return NextResponse.redirect(cont.url);
-          return NextResponse.redirect(new URL(next || "/dashboard", origin));
-        }
-
-        // Check signup progress for resume
-        const { data: progress, error: progressError } = await supabase
-          .from("signup_progress")
-          .select("completed, current_step")
-          .eq("auth_id", user.id)
-          .maybeSingle();
-
-        if (progressError) {
-          return NextResponse.redirect(new URL("/join?step=1", origin));
-        }
-
-        if (progress?.completed) {
-          const cont = await resolveContinueDestination(supabase, user.id, continueSlug, next);
-          if (cont) return NextResponse.redirect(cont.url);
-          return NextResponse.redirect(new URL(next || "/dashboard", origin));
-        }
-
-        // New user — wizard (resume at saved step if any)
-        const step = progress?.current_step || 1;
-        return NextResponse.redirect(new URL(`/join?step=${step}`, origin));
-      }
-
-      // User object missing but session exchange succeeded — fallback
-      return NextResponse.redirect(new URL(next, origin));
+      return routeAfterAuth(supabase, origin, next, continueSlug);
     }
   }
 

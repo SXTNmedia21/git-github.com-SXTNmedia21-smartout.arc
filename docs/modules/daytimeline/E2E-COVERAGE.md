@@ -1,11 +1,14 @@
 ---
 title: Day Timeline — E2E Coverage
-status: in_progress
+status: archived
+superseded_by: docs/domains/day-session/
 updated: 2026-05-17
 created: 2026-05-17
 module: daytimeline
 tags: [module, daytimeline, e2e, testing, web, mobile, playwright, maestro]
 ---
+
+> **ARCHIVED 2026-05-22** — This module has been absorbed into `docs/domains/day-session/`. Do not update this file — update the day-session domain spine instead.
 
 # Day Timeline — E2E Coverage
 

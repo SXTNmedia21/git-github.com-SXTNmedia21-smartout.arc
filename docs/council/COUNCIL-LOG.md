@@ -2313,6 +2313,20 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Trust Gate Phase 5 §2:** Phase A schema must land BEFORE Phase B capability sortie dispatches. Tools cannot promise what data pipeline doesn't carry. Sequencing strictly enforced via close-feature.sh.
 **Process improvement:** Pre-flight fact-check (Phase 2.5) saved this council from `engine_event.entity_id` phantom column proliferation. Promoted run-council Phase 2.5 hard rule: every column reference in spec writes MUST grep `packages/supabase/src/database.types.ts` for existence. Promotion threshold met by 3 sibling traps (L-0190, L-0292, L-0294) — pattern now mandatory step.
 
+## 2026-05-20 — ADR-0379 Role-Mandatory Compliance + Starter Routines into Hospitality Intelligence (I1)
+**Type:** architecture / plan (pre-implementation ADR review)
+**Verdict:** REJECT in current form → SPLIT into ADR-0379a (additive) + ADR-0379b (load-bearing) + remediate
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer (5/5 responded — full council)
+**Prior verdict held?** n/a (first council on task-manager I1 wiring)
+**Key decision:** `profession_training` spine already exists (orphan, `20260421100300:69–80`) → revive it; do NOT build parallel `policy_scope='role'` / `protocol.is_mandatory`. Drop D2+D3. Trigger fires on `profile_position` INSERT (not `profile` — m2m empty at profile-insert). Install `governance.sql` as SECURITY DEFINER RPC before EF call. Rewire `evaluateReadinessGate` to `gate_action` (seeding authority row alone is inert). Backfill governance authority for existing workspaces. Mockup-source hard rule: port task UI from `taskmanager-handoff/`, no redesign.
+**Agent Trust Gate:** FAILED on all 3 promises as drafted (empty-join trigger, inert authority row, uninstalled template RPC) — corrected in revised set.
+**Chair self-reversal:** "fix is primarily schema reconciliation" → REVERSED (dominant risk = feature inert as drafted).
+**Fact-check:** 14/14 briefing claims VERIFIED.
+**ADR created:** ADR-0379 draft (split a/b) — `docs/modules/task-manager/ADR-DRAFT-0379-role-mandatory-compliance-i1.md`; reserve 0379a/0379b vs all branches at accept.
+**Learning created:** schema-orphan-rebuild + authority-seed-inert (sibling L-0083) — captured to steward agent-memory; register in learning log at build close.
+
+> ⚠️ ADR-id collision: `development` already uses ADR-0379 for "Signature-as-C4-Authorization" (entry below). This council's ADR-0379 (role-mandatory-compliance) is still a DRAFT in `docs/modules/task-manager/`; it MUST renumber (0379a/0379b → next free slot) before promotion to `docs/decisions/`.
+
 ## 2026-05-20 — Order/invoice system: does it generate reliably on a cron basis?
 **Type:** post-implementation + architecture (cron reliability)
 **Verdict:** APPROVE WITH CHANGES
@@ -2341,3 +2355,30 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **Key decision:** Cascade non-functional — docuseal webhook raw-inserts engine_event but nothing invokes engine-dispatch → no engine_state, profile never flips. Chair self-reversed Phase 3 HELD → REJECT (≥10th L-0147 precedent). Remediated in feat/contract-activation-remediation (R0 invoke + R1 trainee-guard + R2 fail-loud + R3 ADR text + R4 emit fail-loud + R5 ADR→proposed).
 **ADR created:** none (ADR-0379 reverted accepted→proposed)
 **Learning created:** L-0324 (pgTAP-green ≠ runtime-functional), L-0325 (council coverage-gap voids no-blocker)
+
+## 2026-05-21 — Day-plan (day_line)/location → "Min dag" shift-tasks (5h sortie plan review)
+**Type:** architecture / plan (pre-implementation)
+**Verdict:** APPROVE WITH CONDITIONS
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), botsson-harness-builder, frontend-designer (5/5 responded) + Phase 2.5 fact-check (11/11 VERIFIED)
+**Prior verdict held?** n/a — first council on the shift-tasks/Min-dag surface. Related: ADR-0298, 0317, 0367, 0132/0133.
+**Key decision:** Goal = admin ties task to a location's day_line → employee whose shift operates at that location sees it in Min dag (mobile) → executes there. **Chair self-reversed Q-B (7th L-0147 precedent):** Phase 3 "extend fn_list_my_tasks v3" was FALSE (web uses `resolve_cascade_tasks` not fn_list_my_tasks `use-cascade-tasks.ts:27`; extending ARM1 mutates live mobile consumer + leaks `assigned_to IS NULL` fan-out `v2:96-97`) → REVERSED to **dedicated `fn_list_shift_tasks`, SECURITY DEFINER, no profile_id param (auth.uid())**. Q-A two gates (surface scheduled+clocked_in, execute clocked_in). Q-C single-location attach else NULL. Q-D **A-AUTHOR already shipped** (create_session+add_item accept day_line_id/assignee/scheduled_at) — track deleted. C1 resolver = two-arm OR (assigned_to=me OR day_line∈my-shift). Drop phantom `task.surfaced_on_shift` (read≠mutation). Mobile direct RPC, no new BFF read route.
+**Agent Trust Gate:** PASS — author shipped, complete works, only resolver missing; contract promises only what pipeline keeps.
+**Merge-blockers:** ADR-0317 lockstep guard same sortie; typegen ordering (migration→gen types no op-run→TS→typecheck); e2e second-location-must-not-surface test.
+**ADR created:** none (sortie executes under ADR-0367/0298/0317; no new decision — plan in `docs/modules/task-manager/EXECUTION-PLAN-5h.md`).
+**Learning created:** L-NEW (7th L-0147 self-reversal precedent: "one read surface" ADR-0298 claim doesn't hold when web/mobile consume different RPCs — verify consumers before invoking single-surface invariant) — captured to steward agent-memory.
+
+## 2026-05-21 — Day_line → shift-tasks → Min dag (POST-IMPLEMENTATION review, pre-development-merge)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES → all 3 conditions applied + verified
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), feature-dev:code-reviewer (mobile axis) — 4/4 responded + Phase 2.5 fact-check (6/6 VERIFIED)
+**Prior verdict held?** YES — the dual-perspective overturn (drop `fn_list_shift_tasks`, mobile resolves client-side via `use-shift-session` + `useDayLineItems`) HELD; steward confirmed the read path is sound and the dropped resolver was correct (a parallel read surface would violate ADR-0298). Supersedes the 2026-05-21 5h-plan council's Q-B self-reversal (which the dual-perspective then overturned).
+**What shipped (8 files, 11 commits):** `fn_resolve_single_day_line` SECURITY DEFINER helper (single non-cancelled day_line or NULL on 0/>1); 4 server `session_task` insert sites (hook-executor ×2, engine-dispatch ×2) set `day_line_id`; mobile `isShiftActiveForTasks` status gate + `HomeShiftCard`; 2 pgTAP. EXTEND-EXISTING throughout.
+**3 blocker/condition findings (all fixed):**
+1. (code-reviewer REJECT, 95%) **TanStack v5 `enabled:false` returns cached data** → status gate leaked clocked-in tasks ~30s after clock-out (queryKey omits shiftSessionId, staleTime 30s). FIX `b2759b013`: gate on the RESULT (`items = isShiftActiveForTasks(status) ? rawItems : []`). → L-0328.
+2. (steward C1) **Multi-area semantics vs ADR-0367 Rule 2** — resolver NULL on >1 day_lines silently de-anchors auto-tasks on multi-area days (not a regression — pre-sortie ALL auto-tasks were NULL — but silent). FIX `919aaf153`: `RAISE LOG` on >1 (return contract unchanged) + header documents single-area-V1 scope; Rule 2 per-area fan-out deferred to follow-up. Verified live (LOG fires, returns NULL).
+3. (agent-coord C1) hook-executor dropped RPC error → FIX `6f328549d`: destructure + `console.warn` (parity with engine-dispatch).
+**Agent Trust Gate:** PASS — no new tool/capability; sortie adds a column to existing inserts + a read-side gate; no emit-contract change (EF inserts were already silent pre-sortie — separate ticket).
+**Verification:** SQL resolver driven live (5 probes incl. live-mutated 2-day_line → NULL + LOG); guardrail clean (no readiness/season/fn_list_my_tasks/list_mine); mobile typecheck 0; pgTAP 3+3 ok; jest 3/3.
+**Out of scope (named):** ADR-0367 Rule 2 per-area fan-out; push/notification (receiver pulls — FINDINGS G16); web per-employee shift-tasks view (ADR-0133 mobile-executes); full Min dag UI port (separate plan).
+**ADR created:** none (executes under ADR-0367/0298/0317; ADR-0367 single-area-V1 clarification noted in migration header — formal amendment optional, deferred).
+**Learning created:** L-0328 (TanStack v5 enabled:false returns cached data — gate on result not enabled). Meta: verify-skill GUI-undriven seam caught by council (sibling L-0325).
