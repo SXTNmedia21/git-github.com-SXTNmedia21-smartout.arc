@@ -19,6 +19,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B + apps/admin accountant portal built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak — admin kartotek + avstemming covered) | mixed | 2026-05-22 | 10 |
 | [day-session](./day-session/) | 8/8 | 🟡 partial (dept-anchored + ADR-0367 Phase A+B shipped; Phase C UI + D mobile + E push in flight; admin dagsgodkjenning live; close flow live) | 🟡 partial (Playwright for quickadd + filter + templates; close/approval/settlement: MISSING; mobile: MISSING) | mixed | 2026-05-22 | 11 |
 | [procedure-engine](./procedure-engine/) | 8/8 | 🟡 partial (governance spine + task ontology ADR-0298 live; Phase 1 schema + capability + cron expansion ADR-0391 shipped; Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387a shipped; 0387b council-gated) | 🟡 partial (dagslinjen-quickadd + timeline-templates Playwright exist; routine/Phase-1 capability unit tests pending; mobile shift-tasks tests missing) | mixed | 2026-05-22 | 28 |
+| [onboarding-wizard](./onboarding-wizard/) | 8/8 | 🟡 partial (gate wired; TOTAL_STEPS=8 with Availability+Consent steps; mobile twin shipped; consent_acceptance + employee_onboarding_state migrations live; ADR-0397 accepted; Maestro mobile E2E not shipped) | 🟡 partial (Playwright web 8-step + dismiss-resume; Server Action unit tests 10 total; mobile E2E = manual smoke only) | verified | 2026-05-23 | 5 |
 
 ## Overlap edges (consolidate / split watch)
 
