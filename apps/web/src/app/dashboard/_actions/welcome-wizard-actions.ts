@@ -365,11 +365,15 @@ export async function saveAvailability(input: SaveAvailabilityInput): Promise<Ac
 
 // ─── Step 7: Consent ─────────────────────────────────────────────────────────
 
-// Document version constants — V1 hardcoded; ROADMAP: per-workspace
-// versioning catalog so admins can update consent text without code change.
-export const HANDBOOK_DOCUMENT_VERSION = "handbook-v1";
-export const GDPR_DOCUMENT_VERSION = "gdpr-v1";
-export const TARIFF_DOCUMENT_VERSION = "tariff-v1";
+// Document version constants live in ./welcome-wizard-constants — a
+// non-"use server" sibling. Re-exporting values from this module would
+// fail bundle ("Only async functions are allowed to be exported in a
+// 'use server' file"). Test + future consumers import from constants file.
+import {
+  HANDBOOK_DOCUMENT_VERSION,
+  GDPR_DOCUMENT_VERSION,
+  TARIFF_DOCUMENT_VERSION,
+} from "./welcome-wizard-constants";
 
 const SaveConsentInput = z.object({
   handbook: z.literal(true),

@@ -20,7 +20,12 @@ export const runtime = "nodejs";
 export async function POST(_req: NextRequest) {
   const result = await dismissWelcomeWizard();
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 500 });
+    // Map auth-failure refusal to 401, everything else to 500.
+    // dismissWelcomeWizard returns "Ikke autentisert." when resolveCurrentProfile()
+    // returns null (no session / no profile row). Treating that as 500 leaks
+    // server-error status for what is structurally an auth problem.
+    const status = result.error === "Ikke autentisert." ? 401 : 500;
+    return NextResponse.json({ error: result.error }, { status });
   }
   return NextResponse.json({ ok: true });
 }

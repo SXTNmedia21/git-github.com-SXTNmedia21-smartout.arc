@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { saveConsent } from "../welcome-wizard-actions";
 import {
-  saveConsent,
   HANDBOOK_DOCUMENT_VERSION,
   GDPR_DOCUMENT_VERSION,
   TARIFF_DOCUMENT_VERSION,
-} from "../welcome-wizard-actions";
+} from "../welcome-wizard-constants";
 
 // Mock resolveCurrentProfile from _shared (the actual import source).
 const resolveCurrentProfileMock = vi.fn();
