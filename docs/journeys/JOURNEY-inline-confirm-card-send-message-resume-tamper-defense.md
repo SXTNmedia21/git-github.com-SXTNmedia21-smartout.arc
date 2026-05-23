@@ -25,9 +25,9 @@ tags: [journey, botsson, security, trust-boundary, hitl, send-message, l-0177-de
 ## Adversarial Path → Defense
 
 1. Adversary intercepts POST `/api/botsson/chat` with `client_tool_results` body
-2. Adversary mutates result: `{proposal_id, action:"confirm"}` → `{proposal_id, action:"confirm", patch:{channel_id:"<vakter-w2-uuid>", body:"NEW BODY TARGETING FOREIGN WORKSPACE"}}`
+2. Adversary mutates result: `{proposal_id, action:"confirm"}` → `{proposal_id, action:"confirm", patch:{channel_id:"<vakter-w2-uuid>", content:"NEW BODY TARGETING FOREIGN WORKSPACE"}}`
 3. Stage-engine resumes LLM with tampered result
-4. LLM calls `send_message({channel_id:"<vakter-w2-uuid>", body:"NEW BODY...", confirm:true, proposal_id})`
+4. LLM calls `send_message({channel_id:"<vakter-w2-uuid>", content:"NEW BODY...", confirm:true, proposal_id})`
 5. **DEFENSE 1 — Server re-derives workspace_id from session context (ADR-0151)** — `ctx.workspaceId = W1` from JWT, NEVER body. Even if patch includes `workspace_id`, ignored.
 6. **DEFENSE 2 — Server re-resolves channel via RLS** — query: `supabase.from("channel").select().eq("id", body.channel_id).eq("workspace_id", ctx.workspaceId)`. `vakter-w2-uuid` belongs to W2, RLS returns ZERO rows. Tool returns error: "Kan ikke sende melding — kanal finnes ikke eller er inaktiv".
 7. **DEFENSE 3 — `editable_fields` whitelist (ADR-0398 §Resume-Payload Trust Boundary)** — descriptor's `actions[id="edit"].editable_fields = ["body"]` (channel_id NOT whitelisted). On resume, body-supplied `channel_id` filtered out before commit-phase logic. Channel re-derived from ORIGINAL draft (proposal_id correlation).

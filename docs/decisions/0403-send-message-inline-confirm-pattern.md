@@ -75,17 +75,17 @@ Phase 1 DEFENSE pattern applies verbatim:
 - **DEFENSE 3 (narrowing):** On resume branch (`proposal_id` present in body), body-supplied `channel_id` is IGNORED. Server re-derives `channel_id` from the stored draft state. Phase 2-a uses the stateless-default variant (L-0330): the draft state is the `proposal_id` itself, and the confirmed `channel_id` is re-resolved from the RLS-scoped lookup. This is fragile until Phase 3 ships `engine_memory` persistence, at which point DEFENSE 3 is replaced by server-side draft store lookup.
 - **DEFENSE 4:** `client_message_id` idempotency via the same UUID pattern as ADR-0398 (stateless UUID lifted before the `if (!confirm)` branch). RPC-level deduplication on commit.
 
-### Decision 5: `editable_fields` whitelist = `["body"]`
+### Decision 5: `editable_fields` whitelist = `["content"]`
 
 `publish_announcement` whitelist: `["title", "body"]`. For `send_message`, only message content is user-editable on resume. `channel_id` is NOT in the whitelist (tamper vector — Decision 4). No `linked_entity` field (not in scope for `send_message`).
 
 The `edit` action in the descriptor:
 
 ```ts
-{ id: "edit", label: "Endre", variant: "ghost", editable_fields: ["body"] }
+{ id: "edit", label: "Endre", variant: "ghost", editable_fields: ["content"] }
 ```
 
-Edit flow spawns a BIR for `body` only. The `body` field maps to `params.content` (renamed in descriptor to `body` for human readability; commit branch maps back to `content`).
+Edit flow spawns a BIR for the `content` field only. `content` is the actual schema column on `channel_message` and the Zod param name on `send_message` — no UX-facing rename. The card preview labels it "Melding" / "Message" but the wire-level identifier is `content`.
 
 ### Decision 6: No `four_eyes_pending` interaction
 
@@ -144,7 +144,7 @@ Phase 1 registered `show_proposal_card` as a BotssonChat-fixed client-tool (L-03
 2. Phase 1 `show_proposal_card` BotssonChat-fixed registration verified unchanged — no new `useRegisteredTools()` entry (L-0331).
 3. `emit()` for `inline_confirm_card.shown` + `.confirmed` (+ `.cancelled` on cancel branch) in `send_message` tool body — server-side, file:line cited in PR description (ADR-0398 telemetry maintainer rule; L-NEW-1 phantom-contract prevention).
 4. DEFENSE 3 narrowing implemented in commit branch — body-supplied `channel_id` ignored when `proposal_id` present; `channel_id` re-resolved server-side via RLS-scoped `channel` table lookup with `ctx.workspaceId` (Decision 4).
-5. `editable_fields: ["body"]` enforced on resume — any other field in `patch` is stripped before commit (Decision 5).
+5. `editable_fields: ["content"]` enforced on resume — `channel_id` not editable; any other field in `patch` is stripped before commit (Decision 5).
 
 ## References
 
