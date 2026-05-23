@@ -1,4 +1,4 @@
--- supabase/migrations/20260624000000_bulk_import_foundation.sql
+-- supabase/migrations/20260624120000_bulk_import_foundation.sql
 -- bulk_import Sortie A foundation: pg_trgm + GIN indexes + import_run + RPC + ALTER CHECK
 -- ADRs: 0401 (capability), 0404 (schedule_shift.source)
 -- Council: 2026-05-23

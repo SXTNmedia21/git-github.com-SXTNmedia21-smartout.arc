@@ -1,10 +1,12 @@
--- supabase/migrations/20260624000100_bulk_import_authority_seed.sql
+-- supabase/migrations/20260624120100_bulk_import_authority_seed.sql
 -- bulk_import Sortie A authority seed: 4 engine_authority_config rows per L-0083 default-deny
 -- ADR-0401 (capability) + ADR-0288 (voice forbidden for irreversible writes)
 -- Rows for all 4 tools land NOW; bodies for preview_batch/resolve_ambiguity/commit_batch
 -- ship Sortie B+C. Without these rows, default-deny would block integration tests when
 -- those bodies land.
--- Filename timestamp 20260624000100 strictly > foundation migration 20260624000000 (L-0042).
+-- Filename timestamp 20260624120100 strictly > foundation migration 20260624120000 (L-0042).
+-- Re-timestamped 2026-05-23 from 20260624000100 after close-feature.sh v8 Gate 0.7 caught
+-- collision with dev's 20260624000100_create_employee_onboarding_state.sql.
 --
 -- SCHEMA DEVIATION NOTE (vs task plan template):
 --   The plan specified workspace_id=NULL for "platform-level defaults". The actual

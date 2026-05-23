@@ -24,8 +24,8 @@ tags: [plan, pointer, bulk-import, sortie-a]
 ## Acceptance Criteria
 
 - [ ] ADR-0401 / 0402 / 0404 written + registered in `docs/decisions/0000-decision-log.md` (slot 0403 reserved for Sortie C attachment-routing-retroactive)
-- [ ] Foundation migration `20260624000000_bulk_import_foundation.sql` applies cleanly (pg_trgm + import_run + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK per ADR-0404)
-- [ ] Authority seed migration `20260624000100_bulk_import_authority_seed.sql` seeds 4 engine_authority_config rows (L-0083 default-deny pre-emption)
+- [ ] Foundation migration `20260624120000_bulk_import_foundation.sql` applies cleanly (pg_trgm + import_run + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK per ADR-0404)
+- [ ] Authority seed migration `20260624120100_bulk_import_authority_seed.sql` seeds 4 engine_authority_config rows (L-0083 default-deny pre-emption)
 - [ ] `packages/utils/src/spreadsheet/` parseCsv passes vitest
 - [ ] `packages/utils/src/hash/` sha256Hex passes vitest
 - [ ] `packages/ai/src/resolver/` resolveEntity passes vitest

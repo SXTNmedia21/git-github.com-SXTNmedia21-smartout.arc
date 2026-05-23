@@ -89,7 +89,7 @@ Scope:
 - ADR-0401 written: "bulk_import Capability — Dedicated `import_run` Table + Cascade-Delegated Commit Pipeline" (originally 0398; shifted +2 after wt-5 InlineConfirmCard collision then +1 more after wt-1 Welcome Wizard collision — L-0316 6th + 7th occurrences, renumbered 2026-05-23)
 - ADR-0402 written: "xlsx Library Adoption (SheetJS) — License, Bundle Size, Zip-Bomb Mitigation"
 - ADR-0404 written: "schedule_shift.source — Add 'v3_bulk_import' Value" (extends CHECK constraint)
-- Migration `20260624000000_bulk_import_foundation.sql`:
+- Migration `20260624120000_bulk_import_foundation.sql`:
   - `CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions`
   - GIN indexes (`<name_col> gin_trgm_ops`) on profile.display_name + department.name + location.name, paired with BTREE indexes on workspace_id (two-index strategy: composite UUID-in-GIN is unsupported — btree_gin extension not installed; planner combines via BITMAP scan; correction surfaced by code-quality review of foundation migration, Sortie A 2026-05-23)
   - `CREATE TABLE import_run (...)` — see data model below

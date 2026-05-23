@@ -48,8 +48,8 @@ tags: [plan, sortie, bulk-import, migration, capability, foundation]
 - `docs/decisions/0401-bulk-import-capability-import-run-cascade-delegation.md` — capability + schema + delegation ADR
 - `docs/decisions/0402-xlsx-library-adoption-sheetjs.md` — xlsx library policy (adopted in Sortie B; ADR drafted now per spec lock-in)
 - `docs/decisions/0404-schedule-shift-source-bulk-import-value.md` — extends CHECK constraint
-- `supabase/migrations/20260624000000_bulk_import_foundation.sql` — pg_trgm + GIN indexes + import_run table + RLS + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK
-- `supabase/migrations/20260624000100_bulk_import_authority_seed.sql` — 4 engine_authority_config rows for parse_spreadsheet/preview_batch/resolve_ambiguity/commit_batch (all 4 tools registered in authority now to avoid L-0083 default-deny when later sorties add tool bodies)
+- `supabase/migrations/20260624120000_bulk_import_foundation.sql` — pg_trgm + GIN indexes + import_run table + RLS + fn_fuzzy_match_entity + ALTER schedule_shift.source CHECK
+- `supabase/migrations/20260624120100_bulk_import_authority_seed.sql` — 4 engine_authority_config rows for parse_spreadsheet/preview_batch/resolve_ambiguity/commit_batch (all 4 tools registered in authority now to avoid L-0083 default-deny when later sorties add tool bodies)
 - `packages/utils/src/spreadsheet/index.ts` — papaparse wrapper, returns `Sheet[]`
 - `packages/utils/src/spreadsheet/index.test.ts` — Vitest unit tests
 - `packages/utils/src/hash/index.ts` — sha256 helper (hexdigest)
@@ -390,7 +390,7 @@ EOF
 ## Task 4: Foundation migration — pg_trgm + GIN indexes + import_run + RPC + ALTER CHECK
 
 **Files:**
-- Create: `supabase/migrations/20260624000000_bulk_import_foundation.sql`
+- Create: `supabase/migrations/20260624120000_bulk_import_foundation.sql`
 
 **Pre-work:**
 - Read `.claude/skills/smartout-database-guide` if SKILL.md exists — confirm RLS pattern + naming conventions.
@@ -404,11 +404,11 @@ EOF
 - [ ] **Step 1: Write the migration file**
 
 ```bash
-touch supabase/migrations/20260624000000_bulk_import_foundation.sql
+touch supabase/migrations/20260624120000_bulk_import_foundation.sql
 ```
 
 ```sql
--- supabase/migrations/20260624000000_bulk_import_foundation.sql
+-- supabase/migrations/20260624120000_bulk_import_foundation.sql
 -- bulk_import Sortie A foundation: pg_trgm + GIN indexes + import_run + RPC + ALTER CHECK
 -- ADRs: 0401 (capability), 0404 (schedule_shift.source)
 -- Council: 2026-05-23
@@ -616,7 +616,7 @@ COMMIT;
 - [ ] **Step 2: Lint the migration locally (sanity)**
 
 ```bash
-pnpm exec node scripts/migration-lint.mjs supabase/migrations/20260624000000_bulk_import_foundation.sql 2>&1 || true
+pnpm exec node scripts/migration-lint.mjs supabase/migrations/20260624120000_bulk_import_foundation.sql 2>&1 || true
 ```
 
 If `scripts/migration-lint.mjs` doesn't exist or path differs, locate it:
@@ -627,7 +627,7 @@ Expected: zero issues. If lint complains about `WITH SCHEMA extensions`, check r
 - [ ] **Step 3: Commit migration (Task 4)**
 
 ```bash
-git add supabase/migrations/20260624000000_bulk_import_foundation.sql
+git add supabase/migrations/20260624120000_bulk_import_foundation.sql
 git commit -m "$(cat <<'EOF'
 feat(bulk-import): foundation migration — pg_trgm + import_run + fuzzy-match RPC
 
@@ -647,7 +647,7 @@ EOF
 ## Task 5: Authority seed migration — 4 engine_authority_config rows (L-0083 default-deny)
 
 **Files:**
-- Create: `supabase/migrations/20260624000100_bulk_import_authority_seed.sql`
+- Create: `supabase/migrations/20260624120100_bulk_import_authority_seed.sql`
 
 **Pre-work:**
 - Read `engine_authority_config` schema: `grep -rn "CREATE TABLE engine_authority_config\b" supabase/migrations/ | head`. Confirm columns (workspace_id is typically NULL for platform-level defaults; tool_name TEXT; authority_level TEXT; allowed_channels TEXT[]; etc.).
@@ -665,11 +665,11 @@ Read the matching migration file fully — copy the exact column names + types i
 - [ ] **Step 2: Write authority seed migration**
 
 ```bash
-touch supabase/migrations/20260624000100_bulk_import_authority_seed.sql
+touch supabase/migrations/20260624120100_bulk_import_authority_seed.sql
 ```
 
 ```sql
--- supabase/migrations/20260624000100_bulk_import_authority_seed.sql
+-- supabase/migrations/20260624120100_bulk_import_authority_seed.sql
 -- bulk_import Sortie A authority seed: 4 engine_authority_config rows per L-0083 default-deny
 -- ADR-0401 (capability) + ADR-0288 (voice forbidden for irreversible writes)
 -- Rows for all 4 tools land NOW; bodies for preview_batch/resolve_ambiguity/commit_batch
@@ -730,7 +730,7 @@ COMMIT;
 - [ ] **Step 3: Commit authority seed (Task 5)**
 
 ```bash
-git add supabase/migrations/20260624000100_bulk_import_authority_seed.sql
+git add supabase/migrations/20260624120100_bulk_import_authority_seed.sql
 git commit -m "$(cat <<'EOF'
 feat(bulk-import): authority seed for 4 tools (L-0083 default-deny pre-emption)
 

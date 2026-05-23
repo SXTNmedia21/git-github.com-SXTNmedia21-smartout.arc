@@ -84,11 +84,11 @@ before writers land, then write writers that stamp the new value.
 **Extend `schedule_shift.source` CHECK constraint to allow `v3_bulk_import`.**
 
 The migration lands inside Sortie A foundation migration
-`supabase/migrations/20260624000000_bulk_import_foundation.sql` (Task 4) — the same commit
+`supabase/migrations/20260624120000_bulk_import_foundation.sql` (Task 4) — the same commit
 cluster as the `import_run` table, `fn_fuzzy_match_entity` RPC, and `pg_trgm` extension
 registration. The writer helper ships Sortie C.
 
-### Migration SQL (to be applied in 20260624000000_bulk_import_foundation.sql)
+### Migration SQL (to be applied in 20260624120000_bulk_import_foundation.sql)
 
 ```sql
 -- ADR-0404: Extend schedule_shift.source CHECK to allow 'v3_bulk_import'.
