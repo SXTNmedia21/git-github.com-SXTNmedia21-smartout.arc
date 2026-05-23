@@ -36,6 +36,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | [onboarding-wizard](./onboarding-wizard/) | 8/8 | 🟡 partial (gate wired; TOTAL_STEPS=8 with Availability+Consent steps; mobile twin shipped; consent_acceptance + employee_onboarding_state migrations live; ADR-0397 accepted; Maestro mobile E2E not shipped) | 🟡 partial (Playwright web 8-step + dismiss-resume; Server Action unit tests 10 total; mobile E2E = manual smoke only) | verified | 2026-05-23 | 5 |
 | [scrapling](./scrapling/) | 8/8 | 🟡 partial (Python FastAPI service live — 10 endpoints; BRREG smart-search + Jaro-Winkler scoring; Google Places v1 enrich + Serper fallback; /hospitality-search lead research pipeline; /enrich + /generate orchestrator; 3 onboarding BFF bridge tools; 6 godmode business_intelligence tools (ADR-0270 proposed); /places-cost cost aggregation + heartbeat alert; company.raw_scraped_data migration live; TripAdvisor stub 501; ADR-0270 not yet council-accepted; Phase 6 prod smoke deferred) | 🟡 partial (29 Google Places unit tests; intelligence/extraction/hospitality pytest suites; scrapling-health.spec.ts Playwright; wizard-workspace E2E 2026-04-15; /hospitality-search + godmode tools: no dedicated E2E) | verified | 2026-05-23 | 5 |
 | [lovsen](./lovsen/) | 8/8 | 🟡 partial (5 Python MCP services: NHO Reiseliv (3 tools, 6 pytest), Arbeidstilsynet (2 tools, 4 pytest), Lovdata (5 tools, 7 pytest), Mattilsynet (3 tools, 5 pytest), lovsen-shared (validate_hashes + freshness); legal capability Phase 0c: validate_aml_14_6 real body + validate_aml_14_15 real body; cite_law stub, classify_amendment stub; amendment-classifier.ts pure function complete (9 rules, Riksavtalen §4 carve-out); packages/lovsen-contract/ Zod schemas built; ADR-0350 bridge proposed not built; 13 telemetry events registered; 6 of 9 lovsen.mcp.* events not emitted yet) | 🟡 partial (22 Python pytest files across 4 services — fixture-mode CI green; 2 TS unit test files (tools + amendment-classifier); 1 lovsen-contract schema test; 1 Playwright E2E spec legal-harness-e2e.spec.ts; MCP bridge E2E missing) | mixed | 2026-05-23 | 7 |
+| [reports](./reports/) | 8/8 | 🟡 partial (5-tab analytics page + AI report builder shipped; `custom_report` table + 4 RLS policies; BFF route `/api/reports-agent` + auth+profile guard; Botsson tool bridge 7 tools; ReportInsightDrawer + OverviewDeepInsights; Nordic Split sweep done; specialist AI agent `packages/ai/src/agents/reports.ts` owned by agent-harness — reports links only; zero `reports.*` telemetry events; E2E 0 dedicated specs) | 🔴 none (0 Playwright specs for `/dashboard/reports`; sidebar smoke in sidebar-11-flat.spec.ts only) | mixed | 2026-05-23 | 8 |
 
 ## Overlap edges (consolidate / split watch)
 
@@ -128,6 +129,12 @@ tags: [domain, dashboard, status, source-of-truth]
 | agent-harness | contracts | `contract-intake-engine_process` blueprint (`20260501110000`) wired via engine_process; intake capability tools called by engine-dispatch. | **keep** — contracts domain owns intake capability + blueprint seed; harness motor advances the state machine. | resolved (keep) |
 | agent-harness | billing | `billing_fase2_engine_processes` (`20260511200008`) + `dunning_engine_process` (`20260512000006`) seeded by billing domain. Engine-dispatch advances them. | **keep** — billing domain authors blueprints; harness motor is executor. | resolved (keep) |
 | agent-harness | training | `engine_process_employee_activation` (`20260621100000`) + authority_config seed: training workflow runs through engine motor. | **keep** — training authors activation blueprint; harness motor advances. | resolved (keep) |
+| reports | agent-harness | `packages/ai/src/agents/reports.ts` + `packages/ai/src/tools/report/` (5 tools). Reports BFF delegates to `runReportsAgent`. | **CONSOLIDATE-toward-harness** — harness OWNS specialist agent + tools; reports domain OWNS UI surface + BFF proxy + `custom_report` table. Reports links via README Agent Guardrails. No dual ownership. | resolved (keep boundary — reports links) |
+| reports | core-structure | `/dashboard/reports` child route of dashboard shell (DashboardShell owned by core-structure). Reports reads `profile` (D2) + `department` (D1). | **keep** — core-structure provides D1/D2 envelope + shell; reports is a child read-surface. Never write D1/D2 from reports code. | resolved (keep) |
+| reports | business-intelligence | `packages/ai/src/capabilities/business-intelligence/` (future domain, exists in code) | **SPLIT-pending** — BI capability is a separate pending domain. Reports does NOT absorb it. Seam: if BI tools are added to AI builder, declare explicit ownership boundary. | open (BI pre run pending) |
+| reports | day-session (ops-intelligence) | `packages/ai/src/capabilities/operations-intelligence/` — read-side KPI aggregations; `department_session` read by `use-report-staffing.ts` | **SPLIT** — ops-intelligence belongs to day-session domain (`docs/domains/day-session/ARCHITECTURE.md:185`). Reports reads `department_session` as read-consumer only. | resolved (keep — day-session owns) |
+| reports | payroll | Payroll exports (A-melding/Tripletex) could appear as "see also" in reports UI | **keep** — payroll exports stay in payroll domain. Reports UI may link as "see also" but does NOT absorb payroll export surfaces. | resolved (keep) |
+| reports | botsson | `ReportsToolsBridge` calls `useRegisterTools("reports", tools)` — registers with Botsson tool registry (ADR-0238 `owns_chat_surface=false`) | **keep** — botsson SURFACES tools; reports DEFINES tool implementations. Seam: `useRegisterTools`. ADR-0238 governs chat ownership boundary. | resolved (keep) |
 
 ## Migration backlog (pre-domain sources to absorb)
 
@@ -153,7 +160,8 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/architecture/SHIFT_LIFECYCLE_MAP.md` | scheduling | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_3_SCHEDULING.md` | scheduling | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_6_TRAINING.md` | training | ✅ absorbed + archived (2026-05-23) |
-| `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
+| `docs/architecture/modules/SMARTOUT_MODULE_10_REPORTS.md` | reports | ✅ partially_absorbed + archived (2026-05-23) |
+| `docs/architecture/modules/SMARTOUT_MODULE_*` (remaining others) | various | 🔴 pending |
 | `docs/modules/MODULE_YEAR_WHEEL_PRD.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md` | year-wheel | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/contract-service/PRD-contracts-module.md` | contracts | ✅ absorbed + archived (2026-05-23) |
@@ -197,7 +205,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | SMARTOUT_MODULE_5_HACCP.md | hms | no | — |
 | SMARTOUT_MODULE_6_TRAINING.md | training | no | — |
 | SMARTOUT_MODULE_7_ABSENCE.md | absence | no | — |
-| SMARTOUT_MODULE_10_REPORTS.md | reports | no | — |
+| SMARTOUT_MODULE_10_REPORTS.md | reports | **yes** | **partially_absorbed 2026-05-23**: custom_report builder + 4 tabs confirmed; reconciliation/settlement/deviation scope = DEVIATION (lives in day-session/billing/procedure-engine); MODULE_10 scope narrower than spec. Module flagged status:archived + superseded_by: docs/domains/reports/ |
 | SMARTOUT_MODULE_11_SETTINGS.md | settings | no | — |
 | SMARTOUT_MODULE_12_AI.md | agent-harness | **yes** | 232 lines — **split_absorbed 2026-05-23**: plumbing/harness → agent-harness domain; persona/soul → botsson domain (ADR-0206 v2 scope split); frontmatter → status:archived + superseded_by split |
 | SMARTOUT_MODULE_13_MULTITENANT.md | core-structure | **yes** | 590 lines — **partially_absorbed 2026-05-23**: identity layer + RLS helpers + godmode + cross-workspace patterns absorbed; §5 scaling + §6 billing + §7 GDPR logged as O-05/O-06/O-07 in core-structure GAPS for future sorties |
@@ -207,6 +215,6 @@ tags: [domain, dashboard, status, source-of-truth]
 | SMARTOUT_MODULE_19_MENU_PRODUCTION.md | menu | no | — |
 | SMARTOUT_MODULE_20_INVENTORY.md | inventory | no | — |
 
-**7 retro-absorb candidates** — all 7 processed as of 2026-05-23 (MODULE_4, MODULE_4.5, MODULE_13, MODULE_14, MODULE_18, MODULE_AGENT_SDK, MODULE_12_AI). All marked `partially_absorbed` or `split_absorbed`/`fully_absorbed`. Inventory sweep complete.
+**8 retro-absorb candidates** — all 8 processed as of 2026-05-23 (MODULE_4, MODULE_4.5, MODULE_10, MODULE_13, MODULE_14, MODULE_18, MODULE_AGENT_SDK, MODULE_12_AI). All marked `partially_absorbed` or `split_absorbed`/`fully_absorbed`. Inventory sweep complete.
 
-**11 fresh future-domain candidates** = legitimately waiting for their `pre` run.
+**10 fresh future-domain candidates** = legitimately waiting for their `pre` run.
