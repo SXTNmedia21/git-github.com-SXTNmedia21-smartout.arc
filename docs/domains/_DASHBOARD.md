@@ -141,3 +141,31 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/modules/procedure-engine/` path references in `docs/decisions/` ADRs (0298, 0367, 0317, 0387, 0391 etc.) | Update to `docs/domains/procedure-engine/` in next cleanup sortie | LOW |
 | `docs/modules/core-structure/` path references in ADRs (0367, etc.) | Update to `docs/domains/core-structure/` in next cleanup sortie | LOW |
 | `docs/modules/procedure-engine/` reference in project `CLAUDE.md` | DO NOT EDIT CLAUDE.md — document here only | — |
+
+## Pending domain migrations (ADR-0392 soft-inventory)
+
+17 legacy MODULE_* files at `docs/architecture/modules/` flagged with `migration_status: pending` + `planned_domain:` frontmatter on 2026-05-23. Each waits for its planned domain's `pre` run.
+
+| File | planned_domain | retro_absorb_candidate | Notes |
+|---|---|---|---|
+| MODULE_0_ROADMAP.md | meta | no | Master roadmap; not a domain |
+| MODULE_AGENT_SDK.md | agent-harness | no | — |
+| SMARTOUT_MODULE_1_ONBOARDING.md | onboarding | no | — |
+| SMARTOUT_MODULE_4_OPERATIONS.md | day-session | **yes** | 1770 lines — heavy retro-absorb |
+| SMARTOUT_MODULE_4.5_DAILY_SATTLED.md | day-session | **yes** | 1097 lines — daily reconciliation/OCR |
+| SMARTOUT_MODULE_5_HACCP.md | hms | no | — |
+| SMARTOUT_MODULE_6_TRAINING.md | training | no | — |
+| SMARTOUT_MODULE_7_ABSENCE.md | absence | no | — |
+| SMARTOUT_MODULE_10_REPORTS.md | reports | no | — |
+| SMARTOUT_MODULE_11_SETTINGS.md | settings | no | — |
+| SMARTOUT_MODULE_12_AI.md | agent-harness | no | Likely merges with AGENT_SDK |
+| SMARTOUT_MODULE_13_MULTITENANT.md | core-structure | **yes** | 590 lines — multi-tenancy |
+| SMARTOUT_MODULE_14_PRODUCTION.md | day-session | **yes** | 785 lines — D6 Production |
+| SMARTOUT_MODULE_17_PLATFORM_ADMIN.md | platform-admin | no | — |
+| SMARTOUT_MODULE_18_WEBRTC.md | communication | **yes** | 1045 lines — realtime voice/video |
+| SMARTOUT_MODULE_19_MENU_PRODUCTION.md | menu | no | — |
+| SMARTOUT_MODULE_20_INVENTORY.md | inventory | no | — |
+
+**5 retro-absorb candidates** (`retro_absorb_candidate: true`) = existing domain's `pre` should have absorbed but didn't. Each needs an `update` mode run on the destination domain to merge content + then archive. ~5287 lines total to verify.
+
+**12 fresh future-domain candidates** = legitimately waiting for their `pre` run.
