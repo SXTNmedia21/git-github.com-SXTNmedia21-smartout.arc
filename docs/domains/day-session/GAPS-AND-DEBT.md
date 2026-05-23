@@ -142,17 +142,26 @@ For each item below:
 **Gap:** When manager opens DayControlPanel from `schedule/page.tsx:1207`, `calendar/CalendarPageShell.tsx:419`, or `AdminDashboard.tsx:62`, Botsson Orb has no context anchor — voice/chat queries about "i dag" answer with workspace-default context, not the panel's focused date+dept. This is a pre-existing gap independent of Tidslinje work, but is a Sortie 1 pre-condition for P10.
 **Severity:** MEDIUM (P10 Sortie 1 blocker; pre-existing).
 
+### G16 — CLOSED (2026-05-23, P10 Sortie 1)
+**Resolution:** `pinDayControlPanelContextAction` implemented and wired into `DayControlPanel` — commit `ff78fb9dc` (action) + `9f2328b4b` (wiring).
+
 ### G17 — `DayControlPanel` inline `TabButton` missing tab ARIA (WCAG 4.1.2)
 **Code:** `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx:221-273` renders 7 inline `TabButton` instances (oversikt/meldinger/bookings/oppgaver/budsjett/bemanning/okonomi). Pattern is custom inline `<button>` with onClick, missing `role="tab"`, `aria-selected={active}`, `aria-controls="panel-{id}"`. Tab content area at `:278` lacks `role="tabpanel"` + `aria-labelledby`.
 **Reference comparison:** `apps/web/src/components/day/WebDayControl.tsx:299-309` uses `PageTabNav` shared component with proper ARIA contract.
 **Gap:** Screen readers announce DayControlPanel tabs as generic buttons, not tab controls. Keyboard navigation (`ArrowLeft`/`ArrowRight` within tablist) not supported. Adding any new tab (e.g. Tidslinje per P10) inherits broken contract.
 **Severity:** HIGH (WCAG 4.1.2 fail; P10 Sortie 1 blocker; pre-existing).
 
+### G17 — CLOSED (2026-05-23, P10 Sortie 1)
+**Resolution:** Inline `TabButton` replaced with `PageTabNav` shared component — commit `c9dd3faa3`. axe-core zero violations confirmed via `apps/e2e/tidslinje-tab/tidslinje-tab.axe.spec.ts`.
+
 ### G18 — `DaySessionProvider` carries dead Ultravox voice-tools path post-ADR-0282
 **Code:** `apps/web/src/app/dashboard/schedule/_components/day-control/DaySessionProvider.tsx:97` calls `useVoiceTools()`; `:335-336` calls `setClientTools(mergeVoiceTools(...))`. The `temporaryTool: { modelToolName: ... }` shape used in `day-session-voice-tools.ts` (referenced via `createDaySessionVoiceTools`) is the pre-ADR-0282 Ultravox browser-tool definition pattern. Ultravox was removed in ADR-0282; this code feeds `VoiceAssistant` (dynamic mount in `DashboardShell.tsx:42`) which is the dead Ultravox client.
 **Gap:** Live dead-code orphan. A future developer mistakes the path as active and adds new voice tools to a sink that never fires. Hazard class is "phantom contract" — sibling of L-176 (docstring drift) + L-NEW telemetry-without-emit.
 **Resolution path:** Replace with `useRegisterTools("day-control", ...)` per harness canonical post-ADR-0282 pattern. Grep entire `apps/web/src` for `useVoiceTools|temporaryTool` before claiming complete — may not be the only orphan.
 **Severity:** MEDIUM (P10 Sortie 1 pre-condition; not currently shipping broken behavior but blocks correct tool registration for new surface).
+
+### G18 — CLOSED (2026-05-23, P10 Sortie 1)
+**Resolution:** Dead Ultravox path removed from `DaySessionProvider`; `day-session-voice-tools.ts` deleted; replaced with `DayControlToolsBridge` + `useRegisterTools("day-control", ...)` — commit `a213981c8`.
 
 ### G19 — Three capability tools missing for DnD re-time
 Council 2026-05-23 deferred DnD re-time on Tidslinje surface until capability tools exist. Per Agent-coord code-trace:
