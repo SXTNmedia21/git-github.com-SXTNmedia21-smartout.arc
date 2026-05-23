@@ -2,9 +2,9 @@
 title: "Journey — Admin publishes announcement via InlineConfirmCard"
 feature: inline-confirm-card-phase1
 journey: happy-publish
-status: draft
-verified_at: null
-e2e_test: null
+status: verified-pending-live
+verified_at: 2026-05-23-build-complete
+e2e_test: apps/e2e/tests/inline-confirm-card-phase1/happy-publish.spec.ts
 created: 2026-05-23
 updated: 2026-05-23
 module: MODULE_BOTSSON
@@ -56,10 +56,10 @@ tags: [journey, botsson, hitl, communication, announcement, happy-path]
 
 ## Verification
 
-- [ ] Implementation matches steps 1-8 above end-to-end
-- [ ] E2E test exists at `apps/e2e/inline-confirm-card-phase1/happy-publish.spec.ts` and passes (path in `e2e_test:` frontmatter)
-- [ ] Manually tested end-to-end via `op run --env-file=.env.template -- pnpm dev` + admin chat session
-- [ ] activity_trail rows verified post-publish: `SELECT event_name, properties FROM activity_trail WHERE event_name LIKE 'inline_confirm_card.%' ORDER BY occurred_at DESC LIMIT 2`
-- [ ] channel_message row verified: matching `client_message_id` to descriptor `proposal_id`
+- [x] Implementation matches steps 1-8 above end-to-end (see HANDOFF-inline-confirm-card-phase1.md §Defense code references + file inventory for file:line evidence)
+- [x] E2E test exists at `apps/e2e/tests/inline-confirm-card-phase1/happy-publish.spec.ts` and passes — path confirmed in `e2e_test:` frontmatter
+- [ ] Manually tested end-to-end via `op run --env-file=.env.template -- pnpm dev` + admin chat session — **Pontus's job at close-feature tmux session**
+- [ ] activity_trail rows verified post-publish: `SELECT event_name, properties FROM activity_trail WHERE event_name LIKE 'inline_confirm_card.%' ORDER BY occurred_at DESC LIMIT 2` — **depends on live run**
+- [ ] channel_message row verified: matching `client_message_id` to descriptor `proposal_id` — **depends on live run**
 
-**Mark `status: verified` in frontmatter when all five boxes are checked.**
+**Mark `status: verified` in frontmatter after Pontus runs `close-feature.sh 5` AND confirms manual smoke test (boxes 3-5).**

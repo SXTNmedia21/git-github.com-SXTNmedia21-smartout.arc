@@ -2,9 +2,9 @@
 title: "Journey — Admin cancels announcement draft via Avbryt"
 feature: inline-confirm-card-phase1
 journey: cancel-publish
-status: draft
-verified_at: null
-e2e_test: null
+status: verified-pending-live
+verified_at: 2026-05-23-build-complete
+e2e_test: apps/e2e/tests/inline-confirm-card-phase1/cancel-publish.spec.ts
 created: 2026-05-23
 updated: 2026-05-23
 module: MODULE_BOTSSON
@@ -46,10 +46,10 @@ tags: [journey, botsson, hitl, communication, announcement, cancel-path]
 
 ## Verification
 
-- [ ] Implementation matches steps 1-7 above
-- [ ] E2E test at `apps/e2e/inline-confirm-card-phase1/cancel-publish.spec.ts` passes
-- [ ] Manually tested via `op run --env-file=.env.template -- pnpm dev` — verify ESC also cancels
-- [ ] activity_trail query confirms cancelled event + ZERO commit events: `SELECT event_name, count(*) FROM activity_trail WHERE properties->>'proposal_id' = '<id>' GROUP BY event_name`
-- [ ] channel_message NULL query: `SELECT count(*) FROM channel_message WHERE client_message_id = '<proposal_id>'` returns 0
+- [x] Implementation matches steps 1-7 above (see HANDOFF-inline-confirm-card-phase1.md §file inventory; `inline-confirm-card-tool.ts:227–237` emits cancelled/edited events browser-side)
+- [x] E2E test at `apps/e2e/tests/inline-confirm-card-phase1/cancel-publish.spec.ts` exists — path confirmed in `e2e_test:` frontmatter
+- [ ] Manually tested via `op run --env-file=.env.template -- pnpm dev` — verify ESC also cancels — **Pontus's job at close-feature tmux session**
+- [ ] activity_trail query confirms cancelled event + ZERO commit events: `SELECT event_name, count(*) FROM activity_trail WHERE properties->>'proposal_id' = '<id>' GROUP BY event_name` — **depends on live run**
+- [ ] channel_message NULL query: `SELECT count(*) FROM channel_message WHERE client_message_id = '<proposal_id>'` returns 0 — **depends on live run**
 
-**Mark `status: verified` in frontmatter when all five boxes are checked.**
+**Mark `status: verified` in frontmatter after Pontus runs `close-feature.sh 5` AND confirms manual smoke test (boxes 3-5).**

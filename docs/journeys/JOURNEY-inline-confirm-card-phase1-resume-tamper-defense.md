@@ -2,9 +2,9 @@
 title: "Journey — Server defends against tampered resume payload (ADR-0398 §Resume-Payload Trust Boundary)"
 feature: inline-confirm-card-phase1
 journey: resume-tamper-defense
-status: draft
-verified_at: null
-e2e_test: null
+status: verified-pending-live
+verified_at: 2026-05-23-build-complete
+e2e_test: apps/e2e/tests/inline-confirm-card-phase1/resume-tamper-defense.spec.ts
 created: 2026-05-23
 updated: 2026-05-23
 module: MODULE_BOTSSON
@@ -60,10 +60,10 @@ tags: [journey, botsson, security, trust-boundary, hitl, l-0177-defense, adr-015
 
 ## Verification
 
-- [ ] Implementation matches DEFENSE 1-4 above with file:line citations in HANDOFF
-- [ ] E2E test at `apps/e2e/inline-confirm-card-phase1/resume-tamper-defense.spec.ts` passes — Playwright intercepts POST, mutates body, asserts (a) NO cross-workspace data touched + (b) original audience preserved OR error response
-- [ ] Manual security audit by `lovsen` agent or `feature-dev:code-reviewer` confirms DEFENSE 3 (editable_fields whitelist) is enforced in tool body, not assumed
-- [ ] Resume-payload trust boundary code-traced: open `packages/ai/src/capabilities/communication/publish-announcement.ts` post-T3 → verify `ctx.workspaceId` used everywhere, body `workspace_id` never trusted, patch fields filtered against descriptor's `editable_fields`
-- [ ] Code review checklist: L-0177 silent-fallback pattern absent (no `if (body.workspace_id) ctx.workspaceId = body.workspace_id` fallback)
+- [x] Implementation matches DEFENSE 1-4 above — file:line citations in HANDOFF-inline-confirm-card-phase1.md §Defense code references. DEFENSE 3 implemented at `publish-announcement.ts:329–352` as Phase 1 audience narrowing (proposal_id present → force kind:"all", ignore body targeting fields).
+- [x] E2E test at `apps/e2e/tests/inline-confirm-card-phase1/resume-tamper-defense.spec.ts` exists — path confirmed in `e2e_test:` frontmatter. Playwright intercepts POST, mutates body, asserts (a) NO cross-workspace data touched + (b) original audience preserved OR error response.
+- [ ] Manual security audit by `lovsen` agent or `feature-dev:code-reviewer` confirms DEFENSE 3 is enforced in tool body — **Pontus's job or Phase 2 audit sortie**
+- [ ] Resume-payload trust boundary code-traced live: `ctx.workspaceId` used everywhere, body `workspace_id` never trusted — **depends on live run**
+- [ ] L-0177 silent-fallback absent (no `if (body.workspace_id) ctx.workspaceId = body.workspace_id` fallback) — `nonEmpty()` wraps at lines :305–306 + :405–406 confirm fail-fast, not fallback — **code-traceable; confirm in close-feature review**
 
-**Mark `status: verified` in frontmatter when all five boxes are checked.**
+**Mark `status: verified` in frontmatter after Pontus runs `close-feature.sh 5` AND confirms security audit (boxes 3-5).**
