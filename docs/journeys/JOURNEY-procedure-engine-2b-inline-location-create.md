@@ -2,7 +2,7 @@
 title: "Journey — A new location is created in-txn during commit"
 feature: procedure-engine-2b
 journey: inline-location-create
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-22

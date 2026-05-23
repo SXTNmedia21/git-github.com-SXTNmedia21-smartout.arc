@@ -2,7 +2,7 @@
 title: "Journey — Manager reviews the draft and commits a routine"
 feature: procedure-engine-2b
 journey: review-and-commit
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-22

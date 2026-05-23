@@ -2,7 +2,7 @@
 title: "Journey — Created routine carries image provenance and is ungoverned"
 feature: procedure-engine-2b
 journey: agent-provenance-ungoverned
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-22

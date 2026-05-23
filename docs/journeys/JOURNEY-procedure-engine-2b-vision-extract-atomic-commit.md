@@ -2,7 +2,7 @@
 title: "Journey — Vision extract is read-only, commit is atomic"
 feature: procedure-engine-2b
 journey: vision-extract-atomic-commit
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-22

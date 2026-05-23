@@ -2,7 +2,7 @@
 title: "Journey — Manager captures checklist photo and gets a draft"
 feature: procedure-engine-2b
 journey: photo-to-draft
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-22
