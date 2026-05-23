@@ -82,6 +82,10 @@
       "types": "./dist/primitives/input-request/index.d.ts",
       "default": "./dist/primitives/input-request/index.js"
     },
+    "./primitives/inline-confirm-card": {
+      "types": "./dist/primitives/inline-confirm-card/index.d.ts",
+      "default": "./dist/primitives/inline-confirm-card/index.js"
+    },
     "./tools/report": {
       "types": "./dist/tools/report/index.d.ts",
       "default": "./dist/tools/report/index.js"

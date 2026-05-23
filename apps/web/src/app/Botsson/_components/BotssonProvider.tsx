@@ -177,6 +177,13 @@ type BotssonContextValue = {
   /** Action: load existing session by id, set URL ?session=<id> via router.replace. */
   loadSession: (id: string) => void;
   /**
+   * Profile ID of the currently authenticated user — threaded from server for
+   * telemetry (ADR-0134 actor_id). Null when provider is mounted outside a
+   * workspace context (e.g. onboarding wizard). BotssonChat reads this to supply
+   * actorId to makeShowProposalCardImpl — never uses workspaceId as sentinel.
+   */
+  profileId: string | null;
+  /**
    * ADR-0238 — Domain chat ownership. True when at least one surface has declared
    * ownership via <DomainChatOwnership> or useDeclareDomainChatOwnership().
    * BotssonShell reads this to suppress Orb to passive mode.
@@ -224,6 +231,7 @@ export function BotssonProvider({
   initialBlend = 5,
   userContext,
   workspaceId,
+  profileId = null,
 }: {
   children: ReactNode;
   initialRank?: AgentRank;
@@ -231,6 +239,8 @@ export function BotssonProvider({
   initialBlend?: PersonaRankBlend;
   userContext?: BotssonUserContext;
   workspaceId?: string | null;
+  /** Profile ID of the authenticated user — used by BotssonChat for ADR-0134 actor_id telemetry. */
+  profileId?: string | null;
 }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
   // ── Settings persistence (localStorage) ──
@@ -1096,6 +1106,7 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId: workspaceId ?? null,
+      profileId: profileId ?? null,
       voiceActive,
       setVoiceActive,
       voiceCallStatus,
@@ -1156,6 +1167,7 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId,
+      profileId,
       voiceActive,
       voiceCallStatus,
       voiceActivity,
