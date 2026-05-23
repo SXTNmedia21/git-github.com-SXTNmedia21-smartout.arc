@@ -2,12 +2,13 @@
 // Migrated from legacy chat_* tables to Komm channel_* tables (2026-03-28)
 // Channel context + knowledge search tools merged from tools/channels.ts (2026-04-13)
 import { z } from "zod";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { getQueryEmbedding } from "../../embedding.js";
 import { isAiAllowedInChannel } from "./policy.js";
 import { callGateAction } from "./gate.js";
+import { buildInlineConfirmCard } from "../../primitives/inline-confirm-card/index.js";
 
 export const getConversations = defineTool({
   name: "get_conversations",
@@ -127,7 +128,15 @@ export const getUnreadCount = defineTool({
 
 export const sendMessage = defineTool({
   name: "send_message",
-  description: "Send a text message to a communication channel",
+  description:
+    "Send a text message to a communication channel. " +
+    "Phase 2-a: two-call draft-confirm pattern with InlineConfirmCard (ADR-0398, ADR-0403). " +
+    "confirm=false (default): gate precheck + channel lookup → returns InlineConfirmCardDescriptor " +
+    "surface:'message' via show_proposal_card for HITL confirmation. Do NOT verbalize the draft. " +
+    "confirm=true (after human approval via card): pass proposal_id from draft response → INSERT " +
+    "channel_message + emit. Channel is re-validated via ctx.workspaceId RLS scope on commit " +
+    "(DEFENSE 2 + DEFENSE 3 per ADR-0398 §Resume-Payload Trust Boundary, ADR-0403 §Decision 4). " +
+    "Voice channel is rejected (chat-only).",
   capability: "communication",
   schema: z.object({
     channel_id: z.string().uuid().describe("The channel ID to send the message to"),
@@ -140,6 +149,24 @@ export const sendMessage = defineTool({
         "True when the agent is pushing an unprompted message (auto-reminders, auto-shift-prep). " +
           "False (default) for responses — channel_ai_policy.mention_only channels accept defaults but " +
           "reject proactive sends.",
+      ),
+    confirm: z
+      .boolean()
+      .default(false)
+      .describe(
+        "False (default): resolve channel + gate precheck → return InlineConfirmCardDescriptor for HITL " +
+          "confirmation via show_proposal_card. No INSERT. " +
+          "True: send after human approval. Two-call pattern ensures user sees and confirms the message " +
+          "before it is written to the channel.",
+      ),
+    proposal_id: z
+      .string()
+      .uuid()
+      .optional()
+      .describe(
+        "UUID from the draft phase response (proposal_id field). Pass this back on the " +
+          "confirm=true call to ensure RPC idempotency via client_message_id (L-0330). " +
+          "If omitted on commit, a fresh UUID is generated (idempotency lost but safe).",
       ),
   }),
   execute: async (params, ctx: AgentToolContext) => {
@@ -169,7 +196,116 @@ export const sendMessage = defineTool({
       return `Message blocked by authority gate: ${reason}`;
     }
 
-    // Verify the user is a member of this channel
+    // Lift clientMessageId BEFORE the confirm branch so BOTH draft and commit
+    // phases share the same UUID (L-0330 stateless-default). On commit, prefer
+    // params.proposal_id (from the card result) to preserve client_message_id
+    // idempotency; fall back to fresh UUID if absent.
+    const clientMessageId = !params.confirm
+      ? crypto.randomUUID()
+      : (params.proposal_id ?? crypto.randomUUID());
+
+    // ── Phase: draft ────────────────────────────────────────────────────────
+    // Return InlineConfirmCardDescriptor for HITL confirmation (ADR-0398 Architecture B).
+    if (!params.confirm) {
+      // Channel lookup — RLS-scoped to ctx.workspaceId (DEFENSE 1 + DEFENSE 2).
+      // Cross-workspace channel_id is rejected by the .eq("workspace_id") filter.
+      // Body-supplied workspace_id is NEVER trusted — ctx.workspaceId is authoritative
+      // per ADR-0151 + L-0177 (silent-fallback ban).
+      const { data: channel, error: channelError } = await supabase
+        .from("channel")
+        .select("id, name, channel_type")
+        .eq("id", params.channel_id)
+        .eq("workspace_id", ctx.workspaceId)
+        .is("is_archived", false)
+        .single();
+
+      if (channelError || !channel) {
+        return "Kan ikke sende melding — kanal finnes ikke eller er inaktiv.";
+      }
+
+      // Precheck gate (Blocking Condition #1 per ADR-0398): verify commit-phase will be
+      // allowed BEFORE returning the draft descriptor. Avoids dead-end UX where the user
+      // confirms a draft that the gate then denies. Uses separate actionType "send_message"
+      // (same action — gate evaluates authority for this specific capability action).
+      const precheckGate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+        capability: "communication",
+        actionType: "send_message",
+        channel: ctx.channel ?? "chat",
+        entityId: params.channel_id,
+      });
+      if (!precheckGate.allow) {
+        return `Ikke tillatt: ${precheckGate.reason ?? "manglende autoritet"}`;
+      }
+
+      const descriptor = buildInlineConfirmCard({
+        proposal_id: clientMessageId,
+        surface: "message",
+        draft: {
+          channel_id: params.channel_id,
+          content: params.content,
+          is_proactive: params.is_proactive,
+        },
+        preview: {
+          title: `Send melding til ${channel.name ?? "kanal"}`,
+          body_excerpt: params.content.slice(0, 200) + (params.content.length > 200 ? "…" : ""),
+          metadata: [
+            { label: "Kanal", value: channel.name ?? params.channel_id },
+            {
+              label: "Type",
+              value: channel.channel_type === "direct" ? "Direktemelding" : "Gruppe",
+            },
+          ],
+        },
+        actions: [
+          { id: "confirm", label: "Send", variant: "primary" },
+          {
+            id: "edit",
+            label: "Endre",
+            variant: "ghost",
+            // Per ADR-0403 §Decision 5: ONLY content is editable on resume.
+            // channel_id is NOT editable — tamper-target is the channel itself;
+            // re-resolution via ctx.workspaceId RLS (DEFENSE 3) is the guard.
+            editable_fields: ["content"],
+          },
+          { id: "cancel", label: "Avbryt", variant: "destructive" },
+        ],
+        channel_constraint: ["chat"],
+        platforms: ["web"],
+      });
+
+      // Telemetry: card shown (L-0233 — emit in tool body, server-side, NOT React).
+      // nonEmpty() wraps match ADR-0134 fail-fast on missing IDs.
+      await emit({
+        event: "inline_confirm_card.shown",
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
+        properties: {
+          surface: "message",
+          proposal_id: clientMessageId,
+        },
+      });
+
+      return JSON.stringify({
+        phase: "draft",
+        proposal_id: clientMessageId,
+        descriptor,
+        next_step:
+          "Call show_proposal_card with the inline_confirm_card descriptor. Do not verbalize the draft.",
+      });
+    }
+
+    // ── Phase: commit ────────────────────────────────────────────────────────
+    // TRUST BOUNDARY (ADR-0151 + L-0177): body-supplied workspace_id is NEVER trusted.
+    // ctx.workspaceId is authoritative (JWT-derived, server-side).
+    //
+    // DEFENSE 3 (ADR-0398 §Resume-Payload Trust Boundary, ADR-0403 §Decision 4) — Phase 2-a:
+    // On resume (proposal_id present + confirm=true), body-supplied channel_id is
+    // validated via RLS lookup against ctx.workspaceId. Cross-workspace channel_id
+    // rejected as "Kan ikke sende melding". Content field is implicitly editable per
+    // descriptor's editable_fields=["content"]. Phase 2-b ADR will introduce stateful
+    // audience-fingerprint via engine_memory for channel_id pinning.
+
+    // Verify the user is a member of this channel (membership guard).
     const { data: member, error: memberError } = await supabase
       .from("channel_member")
       .select("id")
@@ -195,7 +331,7 @@ export const sendMessage = defineTool({
       return "AI participation is disabled in this channel per channel_ai_policy.";
     }
 
-    // Insert the message
+    // Insert the message with client_message_id for idempotency.
     const { data, error } = await supabase
       .from("channel_message")
       .insert({
@@ -204,6 +340,7 @@ export const sendMessage = defineTool({
         sender_id: ctx.profileId,
         content: params.content,
         message_type: "text",
+        client_message_id: clientMessageId,
       })
       .select("id, content, created_at")
       .single();
@@ -213,7 +350,7 @@ export const sendMessage = defineTool({
     }
 
     // T1 fix: route via emit() registry — use existing "channel.message.sent"
-    // event name. ADR-0156 / L-0064.
+    // event name. ADR-0156 / L-0064. Preserved from pre-Phase-2-a implementation.
     await emit({
       event: "channel.message.sent",
       workspace_id: ctx.workspaceId,
@@ -227,6 +364,18 @@ export const sendMessage = defineTool({
         channel_id: params.channel_id,
         origin_type: "agent",
         message_type: "text",
+      },
+    });
+
+    // Telemetry: card confirmed (L-0233 — emit in tool body, server-side, NOT React).
+    // nonEmpty() wraps match ADR-0134 fail-fast on missing IDs.
+    await emit({
+      event: "inline_confirm_card.confirmed",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        surface: "message",
+        proposal_id: clientMessageId,
       },
     });
 
