@@ -1,7 +1,7 @@
 ---
 title: "Domains — Status Dashboard"
 status: in_progress
-updated: 2026-05-22
+updated: 2026-05-23
 created: 2026-05-22
 domain: _index
 tags: [domain, dashboard, status, source-of-truth]
@@ -17,6 +17,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | Domain | Spine | Build state | Tested | mirror | last_verified | Open gaps |
 |---|---|---|---|---|---|---|
 | [billing](./billing/) | 8/8 | 🟡 partial (Fase 1-3B + apps/admin accountant portal built; peppol adapter + auto-dunning live + PlatformAdminToolContext missing) | 🟡 partial (schema pgTAP + Vitest strong; Playwright weak — admin kartotek + avstemming covered) | mixed | 2026-05-22 | 10 |
+| [communication](./communication/) | 8/8 | 🟡 partial (channel schema + chat UI + voice/video + announcements + helpdesk Phase 1 + targeted note fanout shipped; channel_ai_policy half-wired; C2 intelligence pipeline not built; helpdesk_query capability not implemented; mobile parity missing) | 🟡 partial (domain-chat-ownership E2E; harness adapter; nyheter partial; core chat flows: MISSING) | mixed | 2026-05-23 | 11 |
 | [core-structure](./core-structure/) | 8/8 | 🟡 partial (dept+location+zone+asset+position+dept_operating_hours+dept_hours_override+workspace_operating_hours+planning_cycle schema+UI live; I1 bootstrap live; zone+asset surfaced in V1; dept_location schema live, no admin UI; onboarding Step 7 bootstrap pipe not wired) | 🟡 partial (season-activation D1 fanout pgTAP; partial E2E; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E) | mixed | 2026-05-23 | 9 |
 | [day-session](./day-session/) | 8/8 | 🟡 partial (dept-anchored + ADR-0367 Phase A+B shipped; Phase C UI + D mobile + E push in flight; admin dagsgodkjenning live; close flow live) | 🟡 partial (Playwright for quickadd + filter + templates; close/approval/settlement: MISSING; mobile: MISSING) | mixed | 2026-05-22 | 11 |
 | [procedure-engine](./procedure-engine/) | 8/8 | 🟡 partial (governance spine + task ontology ADR-0298 live; Phase 1 schema + capability + cron expansion ADR-0391 shipped; Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387a shipped; 0387b council-gated) | 🟡 partial (dagslinjen-quickadd + timeline-templates Playwright exist; routine/Phase-1 capability unit tests pending; mobile shift-tasks tests missing) | mixed | 2026-05-22 | 28 |
@@ -34,6 +35,9 @@ tags: [domain, dashboard, status, source-of-truth]
 | day-session | payroll | Overtime/supplement hours confirmed at close; `shift_cost_snapshot` feeds payroll after `daily_reconciliation.approved_at`. | **keep** — clear author/consumer seam. Day-session confirms hours; payroll reads after approval. | resolved (keep) |
 | day-session | procedure-engine | `session_hook.linked_procedure_id` / `linked_routine_id` — hooks authored by procedure-engine, consumed at runtime by day-session. `session_task` DDL shared: day-session owns session anchor + lifecycle; procedure-engine generates task content + provenance. See procedure-engine GAPS §5a. | **keep** — author/consumer split with shared DDL; seam formally documented. | resolved (keep — seam in GAPS §5a) |
 | day-session | communication | Komm session channel auto-created per `department_session`. BroadcastComposer sends through it. | **keep** — day-session creates container; communication owns routing. | resolved (keep) |
+| communication | announcements (`docs/modules/announcments/`) | `channel_message WHERE message_type='announcement'` in `news` channel | **keep** — communication owns channel/message infra; announcements owns Nyheter composers + UI. Seam: `message_type` discriminator. | resolved (keep) |
+| communication | notifications (future domain) | `channel_notification_policy` table; `notification_outbox` dispatch | **keep boundary** — communication = message creation + channel-level routing rules; future notifications = external delivery (push/SMS/email), quiet hours, rate limiting. | open (notifications domain not yet defined) |
+| communication | botsson (future domain) | `channel_ai_policy`, `channel_member WHERE is_ai=true`, `channel_type='ai'` | **keep** — communication owns AI policy schema; botsson will own runtime behavior. Seam: agent-router integration with channel_ai_policy. | open (botsson domain not yet defined) |
 
 ## Migration backlog (pre-domain sources to absorb)
 
@@ -44,8 +48,10 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/modules/procedure-engine/` (13 files) | procedure-engine | ✅ absorbed + archived (2026-05-22) |
 | `docs/modules/core-structure/` (4 files) | core-structure | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md` | core-structure | ✅ absorbed + archived (2026-05-23) |
+| `docs/modules/MODULE_COMMUNICATION.md` | communication | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/modules/SMARTOUT_MODULE_9_COMMUNICATION.md` | communication | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
-| `docs/modules/MODULE_*.md` (flat, non-billing) | communication / contracts / year-wheel / etc. | 🔴 pending |
+| `docs/modules/MODULE_*.md` (flat, non-communication, non-billing) | contracts / year-wheel / etc. | 🔴 pending |
 
 ## Cross-ref update backlog
 

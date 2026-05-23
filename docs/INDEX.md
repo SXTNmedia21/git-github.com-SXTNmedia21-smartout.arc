@@ -116,6 +116,8 @@ Per ADR-0392 the **domain folder** (`docs/domains/<name>/`, fixed 8-file spine) 
 | id                  | Folder                                  | Status                              |
 | ------------------- | --------------------------------------- | ----------------------------------- |
 | DOM_BILLING         | [domains/billing/](domains/billing/)                 | canonical (Smartout-bills-company)  |
+| DOM_COMMUNICATION   | [domains/communication/](domains/communication/)     | canonical (absorbs MODULE_COMMUNICATION + SMARTOUT_MODULE_9) |
+| DOM_CORE_STRUCTURE  | [domains/core-structure/](domains/core-structure/)   | canonical (absorbs core-structure module) |
 | DOM_DAY_SESSION     | [domains/day-session/](domains/day-session/)         | canonical (absorbs daytimeline)     |
 | DOM_PROCEDURE_ENGINE | [domains/procedure-engine/](domains/procedure-engine/) | canonical (absorbs procedure-engine module) |
 
@@ -126,7 +128,7 @@ Flat module docs + folder-based modules (folder = README index + standard doc se
 | id                       | File                                  | Status                                            |
 | ------------------------ | ------------------------------------- | ------------------------------------------------- |
 | MOD_BILLING              | —                                     | **archived → [domains/billing/](domains/billing/)** |
-| MOD_COMMUNICATION        | modules/MODULE_COMMUNICATION.md       | active                                            |
+| MOD_COMMUNICATION        | —                                     | **archived → [domains/communication/](domains/communication/)** |
 | MOD_YEAR_WHEEL           | modules/MODULE_YEAR_WHEEL_PRD.md      | active                                            |
 | MOD_CONTRACT_COMPONENTS  | modules/MODULE_CONTRACT_COMPONENTS.md | active                                            |
 | MOD_CORE_STRUCTURE       | —                                     | **archived → [domains/core-structure/](domains/core-structure/)** |

@@ -2,13 +2,13 @@
 title: "Module 9: Kommunikasjon (Communication)"
 id: MODULE_09
 version: "1.0"
-status: canonical
+status: archived
 layer: module
 created: 2026-02-24
-updated: 2026-03-22
+updated: 2026-05-23
 author: pontus
 supersedes: []
-superseded_by: null
+superseded_by: "docs/domains/communication/"
 depends_on:
   - CORE_ARCH_V2
 tags:
@@ -30,6 +30,9 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+> **ARCHIVED 2026-05-23** — Absorbed into `docs/domains/communication/`. This file is superseded; do not edit.
+> Single source of truth: `docs/domains/communication/`
 
 ## Cascade Mapping
 
