@@ -1,12 +1,15 @@
 ---
 title: Payroll — Tidskonto-lovgrunnlag + O11/O12 verifisering
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 author: lovsen
 tags: [payroll, legal, ferieloven, TOIL, avspasering, nattillegg, tidskonto, feriekonto, velferdsdager]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Tidskonto-lovgrunnlag + O11/O12 verifisering
 

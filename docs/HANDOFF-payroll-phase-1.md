@@ -91,7 +91,7 @@ INSERT-only audit trail. Every supplement firing persisted with `rule_id`, `tari
 `overtime_mode: "banked"` blocked at tool level if `toil_agreement_signed_at IS NULL`. Both NOK and hours tracked.
 
 ### ADR-0259 — workspace_settings policy defaults
-28 fields with documented defaults per `docs/modules/payroll/WORKSPACE-POLICIES.md`. Engine reads every field at calc time.
+28 fields with documented defaults per `docs/domains/payroll/WORKSPACE-POLICIES.md`. Engine reads every field at calc time.
 
 ### Punch rounding (no ADR — impl-level)
 Server trigger pattern chosen over BFF pattern because: (1) offline-first punch queue writes directly to Supabase, no BFF in path; (2) trigger is atomic with the INSERT; (3) no client change needed. Trigger is idempotent and direction=none is always a no-op guard.

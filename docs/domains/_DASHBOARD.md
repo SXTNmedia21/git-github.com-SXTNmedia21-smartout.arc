@@ -4,6 +4,7 @@ status: in_progress
 updated: 2026-05-23
 created: 2026-05-22
 domain: _index
+last_verified: 2026-05-23
 tags: [domain, dashboard, status, source-of-truth]
 ---
 
@@ -20,6 +21,7 @@ tags: [domain, dashboard, status, source-of-truth]
 | [communication](./communication/) | 8/8 | 🟡 partial (channel schema + chat UI + voice/video + announcements + helpdesk Phase 1 + targeted note fanout shipped; channel_ai_policy half-wired; C2 intelligence pipeline not built; helpdesk_query capability not implemented; mobile parity missing) | 🟡 partial (domain-chat-ownership E2E; harness adapter; nyheter partial; core chat flows: MISSING) | mixed | 2026-05-23 | 11 |
 | [core-structure](./core-structure/) | 8/8 | 🟡 partial (dept+location+zone+asset+position+dept_operating_hours+dept_hours_override+workspace_operating_hours+planning_cycle schema+UI live; I1 bootstrap live; zone+asset surfaced in V1; dept_location schema live, no admin UI; onboarding Step 7 bootstrap pipe not wired) | 🟡 partial (season-activation D1 fanout pgTAP; partial E2E; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E) | mixed | 2026-05-23 | 9 |
 | [day-session](./day-session/) | 8/8 | 🟡 partial (dept-anchored + ADR-0367 Phase A+B shipped; Phase C UI + D mobile + E push in flight; admin dagsgodkjenning live; close flow live) | 🟡 partial (Playwright for quickadd + filter + templates; close/approval/settlement: MISSING; mobile: MISSING) | mixed | 2026-05-22 | 11 |
+| [payroll](./payroll/) | 8/8 | 🟡 partial (Phases 1–5 + 7f DONE: calc engine, 17 tools, CSV export, PDF lønnsgrunnlag, PII reveal, tariff capability tools; Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; mobile read-only components only — no mobile route) | 🟡 partial (calc engine: strong Vitest + golden-month CI; Phase 3–5 Playwright E2E; Phase 2 manual supplements + line override: MISSING; tariff tools: MISSING; mobile: MISSING) | mixed | 2026-05-23 | 10 |
 | [procedure-engine](./procedure-engine/) | 8/8 | 🟡 partial (governance spine + task ontology ADR-0298 live; Phase 1 schema + capability + cron expansion ADR-0391 shipped; Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387a shipped; 0387b council-gated) | 🟡 partial (dagslinjen-quickadd + timeline-templates Playwright exist; routine/Phase-1 capability unit tests pending; mobile shift-tasks tests missing) | mixed | 2026-05-22 | 28 |
 
 ## Overlap edges (consolidate / split watch)
@@ -33,6 +35,10 @@ tags: [domain, dashboard, status, source-of-truth]
 | core-structure | scheduling (future domain) | `planning_cycle` + `planning_event` (D4) — planning_cycle is D1 structural envelope; planning_event is D4 demand signal | **split candidate** — when scheduling domain is defined, `planning_event` (D4) should move there. `planning_cycle` may follow. Flag for that domain's `pre` run. | open (deferred) |
 | day-session | billing | Word "Avstemming" — operational day-approval (`daily_reconciliation`) vs accountant B2B close (`billing.settlement_run`). Different objects, same Norwegian word. | **keep** both — seam is the word. Rename day-session UI label to "Dagsgodkjenning" (see day-session GAPS §6). | open — rename pending |
 | day-session | payroll | Overtime/supplement hours confirmed at close; `shift_cost_snapshot` feeds payroll after `daily_reconciliation.approved_at`. | **keep** — clear author/consumer seam. Day-session confirms hours; payroll reads after approval. | resolved (keep) |
+| payroll | core-structure | `employee_payroll_profile` — lives in `public` schema (D2), payroll domain owns it, core-structure references it as a pointer | **keep** — payroll owns; core-structure acknowledges with pointer in `docs/domains/core-structure/DATA-MODEL.md:227`. | resolved (keep) |
+| payroll | billing | `pricing_terms` read path — payroll reads for tariff/cost context | **keep** — billing owns `pricing_terms`; payroll read is a known FK boundary per `docs/domains/billing/GAPS-AND-DEBT.md:98`. | resolved (keep) |
+| payroll | contracts | `employment_contract` (ansiennitet source) + `employee_payroll_profile` PII boundary (ADR-0242) | **keep** — ADR-0242 governs split: contracts own contract rows; payroll reads for calc + owns PII fields. No dual ownership. | resolved (keep — ADR-0242) |
+| payroll | lovsen-mcp | `tariff_rate_table` data flow — lovsen-mcp authors K1a tariff data; payroll reads it | **keep** — lovsen-mcp is upstream platform seeder; payroll is downstream consumer. Clear author/consumer boundary. | resolved (keep) |
 | day-session | procedure-engine | `session_hook.linked_procedure_id` / `linked_routine_id` — hooks authored by procedure-engine, consumed at runtime by day-session. `session_task` DDL shared: day-session owns session anchor + lifecycle; procedure-engine generates task content + provenance. See procedure-engine GAPS §5a. | **keep** — author/consumer split with shared DDL; seam formally documented. | resolved (keep — seam in GAPS §5a) |
 | day-session | communication | Komm session channel auto-created per `department_session`. BroadcastComposer sends through it. | **keep** — day-session creates container; communication owns routing. | resolved (keep) |
 | communication | announcements (`docs/modules/announcments/`) | `channel_message WHERE message_type='announcement'` in `news` channel | **keep** — communication owns channel/message infra; announcements owns Nyheter composers + UI. Seam: `message_type` discriminator. | resolved (keep) |
@@ -50,6 +56,9 @@ tags: [domain, dashboard, status, source-of-truth]
 | `docs/architecture/modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md` | core-structure | ✅ absorbed + archived (2026-05-23) |
 | `docs/modules/MODULE_COMMUNICATION.md` | communication | ✅ absorbed + archived (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_9_COMMUNICATION.md` | communication | ✅ absorbed + archived (2026-05-23) |
+| `docs/modules/payroll/` (13 compiled files) | payroll | ✅ absorbed + archived (2026-05-23) |
+| `docs/architecture/modules/SMARTOUT_MODULE_8_PAYROLL.md` | payroll | ✅ absorbed + archived (2026-05-23) |
+| `docs/modules/payroll/design/spec/MODULE_PAYROLL.md` | payroll | ✅ merged (lønnsgrunnlag terminology) + git rm (2026-05-23) |
 | `docs/architecture/modules/SMARTOUT_MODULE_*` (others) | various | 🔴 pending |
 | `docs/modules/MODULE_*.md` (flat, non-communication, non-billing) | contracts / year-wheel / etc. | 🔴 pending |
 

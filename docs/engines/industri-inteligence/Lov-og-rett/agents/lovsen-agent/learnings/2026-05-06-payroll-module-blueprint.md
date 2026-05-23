@@ -11,7 +11,7 @@ tags: [learning, payroll, aml, riksavtalen, ferieloven, otp, a-melding, bokføri
 
 # Lovsen Learning — Payroll Module Blueprint Session (2026-05-06)
 
-> Session output: `docs/modules/payroll/` (9 blueprint docs). Lovsen authored `LEGAL-FRAMEWORK.md`. This file captures legal learnings + decisions + open questions surfaced during planning that the Lovsen agent should persist for future invocations.
+> Session output: `docs/domains/payroll/` (9 blueprint docs). Lovsen authored `LEGAL-FRAMEWORK.md`. This file captures legal learnings + decisions + open questions surfaced during planning that the Lovsen agent should persist for future invocations.
 
 ---
 
@@ -99,7 +99,7 @@ These 5 questions ble identifiert som krever advokat eller etat-input før Phase
 | O11 | Nattillegg sats — ikke seeded | Pontus verify mot gjeldende Riksavtalen | Phase 1 |
 | O12 | Delt vakt terskel + sats | Pontus + NHO Reiseliv | Phase 1 |
 
-Full liste: `docs/modules/payroll/OPEN-QUESTIONS.md`. Lovsen escalates disse ved relevant invocation.
+Full liste: `docs/domains/payroll/OPEN-QUESTIONS.md`. Lovsen escalates disse ved relevant invocation.
 
 ---
 
@@ -168,8 +168,8 @@ Add to `__tests__/test-corpus/` candidates:
 
 When new payroll work is committed, Lovsen sub-agent should be aware of:
 
-- `docs/modules/payroll/` — primary blueprint folder
-- `docs/modules/payroll/LEGAL-FRAMEWORK.md` — Lovsen-authored, update on new ADRs
+- `docs/domains/payroll/` — primary blueprint folder
+- `docs/domains/payroll/LEGAL-FRAMEWORK.md` — Lovsen-authored, update on new ADRs
 - `docs/decisions/0250-skatteetaten-integration.md` — Skatteetaten-cert flow
 - `docs/decisions/0251-shift-pay-calculation-audit-module.md` — audit + retention
 - `docs/decisions/0252-riksavtalen-versjonering-migration-policy.md` — tariff-versjon flow

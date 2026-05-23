@@ -206,10 +206,10 @@ After ADR-0341 4-seat council surfaced the code-tracer gap, Pontus directed this
 ### Docs (docs/)
 
 - `HANDOFF-payroll-phase-1-closeout.md` — this file
-- `modules/payroll/PHASES.md` — F1 doc cleanup + G1-G8 gap section
-- `modules/payroll/golden-month-worksheet/00-shift-inventory.md` — 43-shift inventory
-- `modules/payroll/golden-month-worksheet/01-pontus-compute-worksheet.md` — 12 profiles × 158 cells
-- `modules/payroll/golden-month-worksheet/02-citation-lookup.md` — Lovsen certification table (E3 pending)
+- `domains/payroll/PHASES.md` — F1 doc cleanup + G1-G8 gap section
+- `domains/payroll/golden-month-worksheet/00-shift-inventory.md` — 43-shift inventory
+- `domains/payroll/golden-month-worksheet/01-pontus-compute-worksheet.md` — 12 profiles × 158 cells
+- `domains/payroll/golden-month-worksheet/02-citation-lookup.md` — Lovsen certification table (E3 pending)
 - `PLAN-payroll-phase-1.md` — re-baselined as done
 
 ---
@@ -228,5 +228,5 @@ After ADR-0341 4-seat council surfaced the code-tracer gap, Pontus directed this
 - **COUNCIL-LOG — B2/B3/B4 fixture truth** (session 2026-05-16c): 4-seat. B3 L-0147 5th precedent. B2 3-way split → synthesised formula
 - **council_meta.md entry** — Session 2026-05-16b Phase 9 self-improvement: code-tracer-mandatory pattern promoted to run-council SKILL.md hard rule (schema-locking ADRs)
 - **L-0147 precedents:** 4th = ADR-0341 ADR review council (chair reversal on type mismatch); 5th = B3 fixture council (chair reversal on Skjærtorsdag date)
-- **Worksheet files:** `docs/modules/payroll/golden-month-worksheet/` (00, 01, 02)
+- **Worksheet files:** `docs/domains/payroll/golden-month-worksheet/` (00, 01, 02)
 - **HANDOFF-payroll-phase-1.md** — Phase 1 code-ship HANDOFF (the record of what was built before this session)

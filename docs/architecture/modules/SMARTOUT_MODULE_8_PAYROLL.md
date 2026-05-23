@@ -2,10 +2,10 @@
 title: "Module 8: Lønn & Økonomi (Payroll & Finance)"
 id: MODULE_08
 version: "2.0"
-status: in_progress
+status: archived
 layer: module
 created: 2026-02-24
-updated: 2026-03-22
+updated: 2026-05-23
 author: pontus
 supersedes: []
 superseded_by: null
@@ -34,6 +34,8 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Module 8: Lønn & Økonomi (Payroll & Finance)
 

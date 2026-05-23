@@ -28,7 +28,7 @@ This module captures the **structural axes** of a Smartout workspace: where oper
 ## Out of scope (lives in other modules)
 
 - Day-of-operations runtime — see `docs/domains/day-session/`
-- Payroll — see `docs/modules/payroll/`
+- Payroll — see `docs/domains/payroll/`
 - Scheduling — see `docs/modules/MODULE_YEAR_WHEEL_PRD.md`
 - Communication — see `docs/modules/MODULE_COMMUNICATION.md`
 
@@ -47,7 +47,7 @@ This module captures the **structural axes** of a Smartout workspace: where oper
 
 ### Modules
 - `docs/domains/day-session/` — direct consumer; `day_line` anchors on `location`
-- `docs/modules/payroll/` — consumes `department_session` (aggregate, untouched by ADR-0367)
+- `docs/domains/payroll/` — consumes `department_session` (aggregate, untouched by ADR-0367)
 - `docs/modules/MODULE_YEAR_WHEEL_PRD.md` — D4 planning that fans out per `(location, department)`
 
 ### Code

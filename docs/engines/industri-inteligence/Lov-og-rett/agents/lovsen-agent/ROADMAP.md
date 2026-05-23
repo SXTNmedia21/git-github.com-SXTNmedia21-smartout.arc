@@ -39,7 +39,7 @@ Tier 1+2 levert som spec:
 
 ## v0.2.x — Payroll Engine integrasjon (2026-05-06 +)
 
-Etter payroll-module-blueprint sortie (`docs/modules/payroll/`):
+Etter payroll-module-blueprint sortie (`docs/domains/payroll/`):
 
 - **Compliance-gate-validator** — kjør W01–W12 sjekk per shift/calc, returner severity + paragraf
 - **Constructive-dismissal-flagger** — auto-flag MATERIAL ≥5% reduksjon (D3 default policy fra learning 2026-05-06)
@@ -99,4 +99,4 @@ Krever ekstern advisory før resolution:
 - **O12** Delt vakt terskel + sats (Pontus + NHO Reiseliv)
 - **O13** Forskuddstrekk-forskyvning fra januar 2026 — Tripletex-håndtert eller Smartout-trigger?
 
-Full liste: `docs/modules/payroll/OPEN-QUESTIONS.md`.
+Full liste: `docs/domains/payroll/OPEN-QUESTIONS.md`.

@@ -1,7 +1,7 @@
 ---
 title: "Plan — payroll-phase-3 (CSV Export)"
 feature: payroll-phase-3
-spec: docs/modules/payroll/PHASES.md#phase-3--csv-export
+spec: docs/domains/payroll/PHASES.md#phase-3--csv-export
 status: done
 updated: 2026-05-08
 created: 2026-05-08
@@ -14,7 +14,7 @@ tags: [plan, payroll, phase-3, csv-export, audit, masking, nb-NO]
 
 > Branch: `feat/payroll-payroll-phase-2` (continued — combined Phase 2+3 PR) | Worktree: `/home/sxtnl/dev/smartout.ai-payroll-wt-1` | Module: payroll
 
-**Spec:** [Phase 3 — CSV Export](../modules/payroll/PHASES.md#phase-3--csv-export)
+**Spec:** [Phase 3 — CSV Export](../domains/payroll/PHASES.md#phase-3--csv-export)
 
 ## Journeys (the contract)
 
