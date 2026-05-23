@@ -27,7 +27,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useScheduleUI } from "../schedule-ui-context";
 import { formatDateLabel } from "./shared";
-import { TabButton } from "./shared";
+import { PageTabNav, type PageTab } from "@/components/dashboard/PageTabNav";
 import { OversiktTab } from "./OversiktTab";
 import { MeldingerTab } from "./MeldingerTab";
 import { BookingsTab } from "./BookingsTab";
@@ -49,6 +49,16 @@ type TabId =
   | "budsjett"
   | "bemanning"
   | "okonomi";
+
+const TAB_DEFS: ReadonlyArray<PageTab<TabId>> = [
+  { key: "oversikt", label: "Oversikt", icon: Info },
+  { key: "meldinger", label: "Dagsinfo", icon: MessageSquare },
+  { key: "bookings", label: "Reservasjoner", icon: CalendarCheck },
+  { key: "oppgaver", label: "Oppgaver", icon: ListTodo },
+  { key: "budsjett", label: "Budsjett", icon: DollarSign },
+  { key: "bemanning", label: "Bemanning", icon: Users },
+  { key: "okonomi", label: "Økonomi", icon: DollarSign },
+];
 
 /**
  * Hosts the day control panel inside the shared day-session provider.
@@ -279,64 +289,24 @@ function DayControlPanelContent({
           </div>
 
           {/* Tabs */}
-          <div className="no-scrollbar border-border/50 flex gap-0 overflow-x-auto border-t px-5">
-            <TabButton
-              active={activeTab === "oversikt"}
-              onClick={() => setActiveTab("oversikt")}
-              icon={<Info className="h-3 w-3" />}
-              label="Oversikt"
-            />
-            <TabButton
-              active={activeTab === "meldinger"}
-              onClick={() => setActiveTab("meldinger")}
-              icon={<MessageSquare className="h-3 w-3" />}
-              label="Dagsinfo"
-              badge={dayStats.messageCount}
-            />
-            <TabButton
-              active={activeTab === "bookings"}
-              onClick={() => setActiveTab("bookings")}
-              icon={<CalendarCheck className="h-3 w-3" />}
-              label="Reservasjoner"
-              badge={dayStats.bookingCount}
-            />
-            <TabButton
-              active={activeTab === "oppgaver"}
-              onClick={() => setActiveTab("oppgaver")}
-              icon={<ListTodo className="h-3 w-3" />}
-              label="Oppgaver"
-              badge={dayStats.taskCount > 0 ? dayStats.taskCount - dayStats.taskDone : undefined}
-            />
-            <TabButton
-              active={activeTab === "budsjett"}
-              onClick={() => setActiveTab("budsjett")}
-              icon={<DollarSign className="h-3 w-3" />}
-              label="Budsjett"
-            />
-            <TabButton
-              active={activeTab === "bemanning"}
-              onClick={() => setActiveTab("bemanning")}
-              icon={<Users className="h-3 w-3" />}
-              label="Bemanning"
-            />
-            <TabButton
-              active={activeTab === "okonomi"}
-              onClick={() => setActiveTab("okonomi")}
-              icon={<DollarSign className="h-3 w-3" />}
-              label="Okonomi"
-              badge={
-                settlementStatus === "submitted"
-                  ? 1
-                  : settlementStatus === "approved" || settlementStatus === "locked"
-                    ? 0
-                    : undefined
-              }
+          <div className="border-border/50 border-t px-5 py-2">
+            <PageTabNav
+              tabs={TAB_DEFS}
+              active={activeTab}
+              onChange={(k) => setActiveTab(k as TabId)}
+              ariaLabel="Kontrollsenter tabs"
             />
           </div>
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div
+          id={`tab-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`tab-btn-${activeTab}`}
+          tabIndex={0}
+          className="flex-1 overflow-y-auto p-5"
+        >
           {activeTab === "oversikt" && <OversiktTab dateId={date} />}
           {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
           {activeTab === "bookings" && <BookingsTab dateId={date} />}
