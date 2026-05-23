@@ -13,6 +13,7 @@ import {
   MessageSquare,
   CalendarCheck,
   ListTodo,
+  Activity,
   DollarSign,
   Maximize2,
   Minimize2,
@@ -37,6 +38,7 @@ import { BroadcastFooter } from "./BroadcastFooter";
 import { DaySessionProvider } from "./DaySessionProvider";
 import { SessionTasksTab } from "./SessionTasksTab";
 import { OkonomiTab } from "./OkonomiTab";
+import { TidslinjeTab } from "./TidslinjeTab";
 import { useDaySession } from "./use-day-session";
 import { pinDayControlPanelContextAction } from "@/app/dashboard/_actions/pin-day-control-panel-context";
 import { DayControlToolsBridge } from "./day-control-tools-bridge";
@@ -46,6 +48,7 @@ type TabId =
   | "meldinger"
   | "bookings"
   | "oppgaver"
+  | "tidslinje"
   | "budsjett"
   | "bemanning"
   | "okonomi";
@@ -55,6 +58,7 @@ const TAB_DEFS: ReadonlyArray<PageTab<TabId>> = [
   { key: "meldinger", label: "Dagsinfo", icon: MessageSquare },
   { key: "bookings", label: "Reservasjoner", icon: CalendarCheck },
   { key: "oppgaver", label: "Oppgaver", icon: ListTodo },
+  { key: "tidslinje", label: "Tidslinje", icon: Activity },
   { key: "budsjett", label: "Budsjett", icon: DollarSign },
   { key: "bemanning", label: "Bemanning", icon: Users },
   { key: "okonomi", label: "Økonomi", icon: DollarSign },
@@ -311,6 +315,7 @@ function DayControlPanelContent({
           {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
           {activeTab === "bookings" && <BookingsTab dateId={date} />}
           {activeTab === "oppgaver" && <SessionTasksTab />}
+          {activeTab === "tidslinje" && <TidslinjeTab />}
           {activeTab === "budsjett" && <BudgetTab dateId={date} />}
           {activeTab === "bemanning" && <StaffingTab dateId={date} />}
           {activeTab === "okonomi" && <OkonomiTab dateId={date} />}
