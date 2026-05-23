@@ -129,7 +129,7 @@ Flat module docs + folder-based modules (folder = README index + standard doc se
 | MOD_COMMUNICATION        | modules/MODULE_COMMUNICATION.md       | active                                            |
 | MOD_YEAR_WHEEL           | modules/MODULE_YEAR_WHEEL_PRD.md      | active                                            |
 | MOD_CONTRACT_COMPONENTS  | modules/MODULE_CONTRACT_COMPONENTS.md | active                                            |
-| MOD_CORE_STRUCTURE       | modules/core-structure/README.md      | active                                            |
+| MOD_CORE_STRUCTURE       | —                                     | **archived → [domains/core-structure/](domains/core-structure/)** |
 | MOD_DAYTIMELINE          | —                                     | **archived → [domains/day-session/](domains/day-session/)** |
 | MOD_ANNOUNCEMENTS        | modules/announcments/README.md        | active                                            |
 | MOD_PAYROLL              | modules/payroll/README.md             | active                                            |
