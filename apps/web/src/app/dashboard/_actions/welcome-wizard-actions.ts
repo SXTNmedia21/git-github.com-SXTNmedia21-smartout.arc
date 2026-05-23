@@ -294,6 +294,75 @@ export async function skipOptional(): Promise<ActionResult> {
   return { ok: true };
 }
 
+// ─── Step 5b: Availability ────────────────────────────────────────────────────
+
+const WeekdayCode = z.enum(["MO", "TU", "WE", "TH", "FR", "SA", "SU"]);
+export type WeekdayCode = z.infer<typeof WeekdayCode>;
+
+const SaveAvailabilitySchema = z.object({
+  unavailableDays: z.array(WeekdayCode),
+});
+export type SaveAvailabilityInput = z.infer<typeof SaveAvailabilitySchema>;
+
+/**
+ * Wizard step 5b. Writes one row per unavailable weekday into
+ * `employee_availability` (preference_type='unavailable', RRULE weekly).
+ * Idempotent: deletes prior 'onboarding-wizard'-provenance rows for this
+ * profile before inserting the current selection.
+ * Auth: server-derived per ADR-0151. Fail-fast on missing profile per L-0177.
+ */
+export async function saveAvailability(input: SaveAvailabilityInput): Promise<ActionResult> {
+  const parsed = SaveAvailabilitySchema.safeParse(input);
+  if (!parsed.success) return badInput(parsed.error.issues);
+
+  const profile = await resolveCurrentProfile();
+  if (!profile) return { ok: false, error: "Ikke autentisert." };
+
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Idempotent: clear prior wizard-provenance rows.
+  const { error: delErr } = await supabase
+    .from("employee_availability")
+    .delete()
+    .eq("workspace_id", profile.workspaceId)
+    .eq("profile_id", profile.profileId)
+    .eq("reason", "onboarding-wizard");
+  if (delErr) return { ok: false, error: delErr.message };
+
+  if (parsed.data.unavailableDays.length === 0) {
+    return { ok: true };
+  }
+
+  const rows = parsed.data.unavailableDays.map((day) => ({
+    workspace_id: profile.workspaceId,
+    profile_id: profile.profileId,
+    valid_from: today,
+    valid_to: null as string | null,
+    rrule: `FREQ=WEEKLY;BYDAY=${day}`,
+    preference_type: "unavailable" as const,
+    reason: "onboarding-wizard",
+    created_by: profile.profileId,
+  }));
+
+  const { error: insErr } = await supabase.from("employee_availability").insert(rows);
+  if (insErr) return { ok: false, error: insErr.message };
+
+  await emit({
+    event: "profile welcome_wizard_step_completed",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profile.profileId },
+      // step 6 = availability (5=optional, 6=availability per wizard step numbering).
+      // unavailable_count omitted — registry schema only allows { step, step_name }.
+      data: { step: 6, step_name: "availability" },
+    },
+  });
+
+  return { ok: true };
+}
+
 // ─── Step 6: Complete ─────────────────────────────────────────────────────────
 
 export async function completeWelcome(): Promise<ActionResult> {
