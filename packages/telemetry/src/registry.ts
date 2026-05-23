@@ -13122,12 +13122,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["activity_trail", "engine_event", "posthog"],
     category: "operations",
   },
-  // Space-form alias for parity.test.ts convention (activity_trail uses
-  // space-separated event names; dot-form key above is the TS type anchor).
-  "session_task overdue": {
-    destinations: ["activity_trail", "engine_event", "posthog"],
-    category: "operations",
-  },
   "task.added_manual": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
