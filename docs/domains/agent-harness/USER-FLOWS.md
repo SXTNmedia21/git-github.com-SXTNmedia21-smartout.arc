@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-05-23
 created: 2026-05-23
 domain: agent-harness
-mirror: n/a
+mirror: verified
 last_verified: 2026-05-23
 tags: [domain, agent-harness, user-flows, plumbing, upstream-links]
 ---
