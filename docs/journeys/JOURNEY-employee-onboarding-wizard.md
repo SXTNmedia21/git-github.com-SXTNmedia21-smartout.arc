@@ -1,7 +1,8 @@
 ---
 title: "Journey — Employee Onboarding Wizard"
 feature: employee-onboarding-wizard
-status: draft
+status: verified
+verified_at: 2026-05-23
 created: 2026-05-23
 updated: 2026-05-23
 module: onboarding
