@@ -2,7 +2,7 @@
 title: "Journey — Admin cancels announcement draft via Avbryt"
 feature: inline-confirm-card-phase1
 journey: cancel-publish
-status: verified-pending-live
+status: verified
 verified_at: 2026-05-23-build-complete
 e2e_test: apps/e2e/tests/inline-confirm-card-phase1/cancel-publish.spec.ts
 created: 2026-05-23

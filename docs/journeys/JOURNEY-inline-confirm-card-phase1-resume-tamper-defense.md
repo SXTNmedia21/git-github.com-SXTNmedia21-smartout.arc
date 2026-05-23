@@ -2,7 +2,7 @@
 title: "Journey — Server defends against tampered resume payload (ADR-0398 §Resume-Payload Trust Boundary)"
 feature: inline-confirm-card-phase1
 journey: resume-tamper-defense
-status: verified-pending-live
+status: verified
 verified_at: 2026-05-23-build-complete
 e2e_test: apps/e2e/tests/inline-confirm-card-phase1/resume-tamper-defense.spec.ts
 created: 2026-05-23
