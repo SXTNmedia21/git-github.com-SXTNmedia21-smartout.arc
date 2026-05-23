@@ -5,7 +5,9 @@
  */
 import "react-native-reanimated";
 import "react-native-gesture-handler";
+import { useEffect } from "react";
 import { Platform } from "react-native";
+import { initOneSignal } from "@/lib/onesignal";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
@@ -40,6 +42,10 @@ import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 
 export default function RootLayout() {
+  useEffect(() => {
+    void initOneSignal();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryProvider>

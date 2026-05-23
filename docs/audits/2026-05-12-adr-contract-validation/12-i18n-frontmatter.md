@@ -65,7 +65,7 @@ Key signal: 61 `.tsx` files contain Norwegian strings with **zero i18n imports/c
 
 49 files sampled from `docs/` (all subdirectories, excluding `archive/`). 2 missing frontmatter:
 
-1. `docs/modules/payroll/design/IMPLEMENTATION.md` — Starts with `# Smartout · Payroll Phase 1 — Implementation Handoff` prose, no YAML block.
+1. `docs/domains/payroll/design/IMPLEMENTATION.md` — Starts with `# Smartout · Payroll Phase 1 — Implementation Handoff` prose, no YAML block.
 2. `docs/superpowers/plans/completed/2026-03-28-entity-drawer-phase2.md` — Starts with `# Entity Drawer Phase 2 — Implementation Plan` prose, no YAML block.
 
 Sample rate: **2 / 49 = 4 %** missing frontmatter. Extrapolated to full corpus (2170 files): ~87 files likely missing frontmatter — but sampling confidence is limited given subdirectory distribution is non-uniform (decisions/ and learnings/ have near-100 % compliance; older plan/handoff directories have higher miss rate).
@@ -90,7 +90,7 @@ Sample rate: **2 / 49 = 4 %** missing frontmatter. Extrapolated to full corpus (
 | F12-01 | HIGH | 61 `.tsx` files (zero i18n refs) | 61 files contain Norwegian UI strings with no i18n infrastructure at all. Core offenders: `CreateChannel.tsx`, `DayList.tsx`, `SeasonCard.tsx`, many `day/tabs/*.tsx`. |
 | F12-02 | MEDIUM | `LineDrawer.tsx:181,546,807,887` | UI labels and tooltip text hardcoded Norwegian alongside legal-text (which is intentional). Mixed — only UI labels need remediation. |
 | F12-03 | MEDIUM | `ActivityView.tsx:44` | `"Bårdshaug Vegkro"` hardcoded workspace name in production activity-stream component. |
-| F12-04 | LOW | `docs/modules/payroll/design/IMPLEMENTATION.md` | Missing YAML frontmatter. |
+| F12-04 | LOW | `docs/domains/payroll/design/IMPLEMENTATION.md` | Missing YAML frontmatter. |
 | F12-05 | LOW | `docs/superpowers/plans/completed/2026-03-28-entity-drawer-phase2.md` | Missing YAML frontmatter. |
 
 **Not flagged (confirmed intentional):** `AgentControlPanel.tsx` system prompts (dev panel), `LineDrawer.tsx` Riksavtalen citation tooltips.

@@ -12,6 +12,7 @@
 import { useState, useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import {
   Bell,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
 import { useTranslation } from "@smartout/i18n";
 import { ChatPanelContext } from "./ChatPanel";
+import { DashboardContext } from "./DashboardShell";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — one icon per notification icon_type                */
@@ -68,10 +70,14 @@ function createTimeAgo(t: (key: string, params?: Record<string, string | number>
 }
 
 /* ------------------------------------------------------------------ */
-/*  Spring animation constants (design system: Ren og Varm)           */
+/*  Motion (design system: Nordic Split — see @smartout/design-tokens)*/
 /* ------------------------------------------------------------------ */
 
-const SPRING = { type: "spring" as const, stiffness: 35, damping: 22, mass: 2 };
+/** Badge pop uses the snappy spring (badge feedback per nordic-split). */
+const BADGE_SPRING = { type: "spring" as const, ...motionTokens.springSnappy };
+/** Bespoke notification-glow choreography (pulse + icon shake) — not a standard fade. */
+const GLOW_PULSE_S = 1.5;
+const GLOW_SHAKE_S = 0.6;
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
@@ -87,11 +93,16 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
   const { t } = useTranslation("notifications");
   const timeAgo = createTimeAgo(t);
 
+  // Workspace context drives telemetry identity (ADR-0134): emit() in the
+  // mark-read mutations is skipped unless workspace_id + actor_id are supplied.
+  const { workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id;
+
   // Data hooks
   const { data: unreadCount = 0 } = useUnreadCount(profileId);
   const { data: notificationsData } = useNotifications(profileId);
-  const markAsRead = useMarkAsRead();
-  const markAllAsRead = useMarkAllAsRead(profileId);
+  const markAsRead = useMarkAsRead(workspaceId, profileId);
+  const markAllAsRead = useMarkAllAsRead(profileId, workspaceId, profileId);
 
   // Realtime subscription — invalidates queries + glow on new INSERT
   const { isGlowing } = useNotificationRealtime(profileId);
@@ -162,14 +173,20 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
               : { boxShadow: "0 0 0 0 rgba(255, 107, 53, 0)" }
           }
           transition={
-            isGlowing ? { duration: 1.5, repeat: 1, ease: "easeInOut" } : { duration: 0.3 }
+            isGlowing
+              ? { duration: GLOW_PULSE_S, repeat: 1, ease: "easeInOut" }
+              : { duration: motionTokens.exitMs / 1000 }
           }
           className="hover:bg-muted relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
           aria-label={t("bell.label")}
         >
           <motion.div
             animate={isGlowing ? { rotate: [0, -12, 12, -8, 8, 0] } : { rotate: 0 }}
-            transition={isGlowing ? { duration: 0.6, ease: "easeInOut" } : { duration: 0.2 }}
+            transition={
+              isGlowing
+                ? { duration: GLOW_SHAKE_S, ease: "easeInOut" }
+                : { duration: motionTokens.exitMs / 1000 }
+            }
           >
             <Bell
               className={isGlowing ? "h-5 w-5 text-[#FF6B35]" : "text-muted-foreground h-5 w-5"}
@@ -184,7 +201,7 @@ export function NotificationBell({ profileId }: NotificationBellProps) {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
-                transition={SPRING}
+                transition={BADGE_SPRING}
                 className="bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
               >
                 {unreadCount > 99 ? "99+" : unreadCount}

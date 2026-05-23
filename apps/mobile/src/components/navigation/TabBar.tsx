@@ -70,6 +70,7 @@ export function TabBar({
     "(queue)", // helpdesk-queue auto-leak (route dir exists, no href:null on _layout)
     "journey", // legacy hidden per ADR-0268 5-tab canonical
     "journey/[id]/guided", // dynamic-route auto-leak
+    "routine-review", // 2B push-screen auto-leak — href:null not honored by custom tabBar
   ]);
   const visibleRoutes = state.routes.filter((r) => {
     const options = descriptors[r.key]?.options;

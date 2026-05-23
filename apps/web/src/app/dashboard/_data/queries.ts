@@ -89,7 +89,14 @@ export const getFirstProfile = cache((userId: string) =>
     const { data } = await supabase
       .from("profile")
       .select(
-        "workspace_id, profile_id, status, role, workspace:workspace!inner(onboarding_completed)",
+        // Disambiguate the profile→workspace embed by FK constraint name.
+        // profile↔workspace has TWO relationships: fk_profile_workspace
+        // (profile.workspace_id→workspace) AND workspace.signatory_profile_id
+        // →profile. A bare `workspace!inner` is ambiguous → PostgREST PGRST201
+        // → data=null → this fallback returns null → /dashboard↔/onboarding
+        // redirect loop. Only the no-slug fallback path hits it (local dev +
+        // E2E); prod uses the slug path. Pin the FK explicitly.
+        "workspace_id, profile_id, status, role, workspace:workspace!fk_profile_workspace(onboarding_completed)",
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })

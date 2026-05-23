@@ -1,11 +1,21 @@
 ---
 title: Scrapling API Reference
 status: done
-updated: 2026-03-10
+updated: 2026-05-23
 created: 2026-03-03
 module: onboarding
-tags: [api, scraping, microservice, python, droplet]
+domain: scrapling
+mirror: source
+last_verified: 2026-03-10
+tags: [api, scraping, microservice, python, droplet, reference]
 ---
+
+<!-- NOTE (2026-05-23): This reference doc predates the scrapling domain spine and is partially stale.
+     Auth section does not reflect Bearer token. Missing endpoints: /brreg-search, /brreg-lookup,
+     /hospitality-search, /enrich, /generate, /places-cost.
+     Canonical compiled view: docs/domains/scrapling/ (ARCHITECTURE.md for endpoint inventory).
+     mirror: source — do not move this file; cross-reference only. -->
+
 
 # Scrapling API Reference
 

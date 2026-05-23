@@ -35,6 +35,12 @@ export type CapabilityName =
   | "shift_lifecycle"
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
+  /** Sortie 0 — drag-drop Excel/CSV bulk-import of shifts (vaktliste) and daily-plan tasks (kjøreplan).
+   *  Admin+ only; chat-only (ADR-0078); web-only Compose verb (ADR-0133).
+   *  Skeleton in Sortie 0; tools populated in Sorties A/B/C.
+   *  Spec: docs/superpowers/specs/2026-05-23-bulk-import-design.md
+   *  Council: 2026-05-23 APPROVE WITH CHANGES */
+  | "bulk_import" // Sortie 0 — xlsx/csv bulk-import capability skeleton
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
   | "engine_world" // engine_world reader (Phase 0) — shared world model for agent fleet
   | "page_takeover.help.panic_bar_human_button" // ADR-0228 — granular per-target page-takeover authority, default-deny (M3.2 v1)
@@ -141,7 +147,13 @@ export type CapabilityName =
   /** ADR-0367 — Org-structure area-management capability. update_dept_areas tool.
    *  Links/unlinks department_location records.
    *  Admin+, confirm authority. Chat-only V1. */
-  | "org"; // ADR-0367
+  | "org" // ADR-0367
+  /** ADR-0407 Phase 1 — workspace_bootstrap_gate capability. Three tools:
+   *  list_bootstrap_gates (read_only, admin+, chat+voice),
+   *  close_bootstrap_gate (suggest, admin+, chat+voice),
+   *  skip_bootstrap_gate (suggest, admin+, chat-only).
+   *  Authority seeded per-workspace by bootstrap-cascade EF Step 10. */
+  | "bootstrap"; // ADR-0407
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

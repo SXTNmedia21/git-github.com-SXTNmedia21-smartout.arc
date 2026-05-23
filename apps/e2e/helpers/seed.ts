@@ -676,6 +676,154 @@ export async function seedObligation(opts: {
   return { obligation_id: data.id };
 }
 
+// ---------------------------------------------------------------------------
+// Welcome Wizard E2E seed helpers — Sortie D
+// ---------------------------------------------------------------------------
+//
+// seedWizardUser creates a fresh auth.users row + profile with
+// is_welcome_complete=false, scoped to the default seed workspace.
+// cleanupWizardUser removes the auth.users row (CASCADE handles profile /
+// employee_onboarding_state rows).
+//
+// Email is unique per call: wizard-e2e-<timestamp>-<rand>@smartout.local
+// Password meets Supabase Local default policy (≥12 chars, mixed).
+
+export type SeedWizardUserResult = {
+  email: string;
+  password: string;
+  userId: string;
+  profileId: string;
+  workspaceId: string;
+};
+
+/**
+ * Creates a fresh auth.users row (email_confirm=true) + profile row with
+ * is_welcome_complete=false, scoped to the default seed workspace.
+ *
+ * Strategy: look up workspace by slug 'hq-workspace' first; fall back to
+ * first row from workspace table. Captures workspace_id + company_id.
+ *
+ * Returns credentials + IDs for teardown. Throws with the PostgREST error
+ * message on any step failure — never swallows errors.
+ *
+ * Requires SUPABASE_SERVICE_ROLE_KEY (module-guard in helpers/seed.ts).
+ */
+export async function seedWizardUser(): Promise<SeedWizardUserResult> {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `wizard-e2e-${suffix}@smartout.local`;
+  const password = `WizardE2E!${Date.now()}`;
+
+  // 1. Resolve seed workspace — prefer slug 'hq-workspace', fall back to first row.
+  const { data: wsRows, error: wsErr } = await supabase
+    .from("workspace")
+    .select("workspace_id, company_id")
+    .eq("slug", "hq-workspace")
+    .limit(1);
+
+  if (wsErr) throw new Error(`seedWizardUser: workspace lookup failed: ${wsErr.message}`);
+
+  let workspaceRow = wsRows?.[0] ?? null;
+
+  if (!workspaceRow) {
+    const { data: fallback, error: fallbackErr } = await supabase
+      .from("workspace")
+      .select("workspace_id, company_id")
+      .limit(1)
+      .single();
+    if (fallbackErr || !fallback) {
+      throw new Error(
+        `seedWizardUser: no workspace found: ${fallbackErr?.message ?? "empty table"}`,
+      );
+    }
+    workspaceRow = fallback;
+  }
+
+  const workspaceId = workspaceRow.workspace_id;
+  const companyId = workspaceRow.company_id as string | null;
+
+  // 2. Create auth.users row — trigger auto-inserts user_identity.
+  const { data: created, error: authErr } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (authErr || !created.user) {
+    throw new Error(
+      `seedWizardUser: auth.admin.createUser failed: ${authErr?.message ?? "no user returned"}`,
+    );
+  }
+  const userId = created.user.id;
+
+  // 3. Insert company_member if company is known + not already present
+  //    (uq_company_member_user_company prevents duplicate).
+  if (companyId) {
+    const { data: existingMember } = await supabase
+      .from("company_member")
+      .select("company_member_id")
+      .eq("user_id", userId)
+      .eq("company_id", companyId)
+      .limit(1)
+      .single();
+
+    if (!existingMember) {
+      const { error: memberErr } = await supabase
+        .from("company_member")
+        .insert({ user_id: userId, company_id: companyId, role: "member" });
+      if (memberErr) {
+        // Not fatal — profile can exist without company_member in dev.
+        // Log but don't throw so the rest of the fixture proceeds.
+        console.warn(`seedWizardUser: company_member insert warning: ${memberErr.message}`);
+      }
+    }
+  }
+
+  // 4. Insert profile row with is_welcome_complete=false.
+  const { data: profile, error: profileErr } = await supabase
+    .from("profile")
+    .insert({
+      workspace_id: workspaceId,
+      company_id: companyId,
+      user_id: userId,
+      display_name: "Wizard E2E",
+      profile_code: `WZ-${suffix}`,
+      role: "employee",
+      status: "active",
+      is_active: true,
+      is_welcome_complete: false,
+    })
+    .select("profile_id")
+    .single();
+
+  if (profileErr || !profile) {
+    // Cleanup auth user before throwing so we don't leave orphaned rows.
+    await supabase.auth.admin.deleteUser(userId).catch(() => {});
+    throw new Error(
+      `seedWizardUser: profile insert failed: ${profileErr?.message ?? "no row returned"}`,
+    );
+  }
+
+  return {
+    email,
+    password,
+    userId,
+    profileId: profile.profile_id,
+    workspaceId,
+  };
+}
+
+/**
+ * Removes the auth.users row created by seedWizardUser.
+ * CASCADE on user_identity should drop profile / employee_onboarding_state rows.
+ * Best-effort — leftover rows are harmless for E2E.
+ */
+export async function cleanupWizardUser(userId: string): Promise<void> {
+  try {
+    await supabase.auth.admin.deleteUser(userId);
+  } catch {
+    // best-effort
+  }
+}
+
 /**
  * Delete test employment_contract rows + profiles created by seedEmployeeBatch
  * (matched by profile_code prefix BATCH-), plus their auth.users rows.

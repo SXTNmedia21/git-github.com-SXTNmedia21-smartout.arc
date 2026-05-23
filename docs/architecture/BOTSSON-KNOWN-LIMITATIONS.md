@@ -1,13 +1,16 @@
 ---
 title: "Botsson — Known Limitations"
-status: canonical
+status: archived
+superseded_by: docs/domains/botsson/
+updated: 2026-05-23
 created: 2026-05-10
-updated: 2026-05-10
 verified_against_code: 2026-05-10
 verified_against_db: 2026-05-10
 module: MODULE_BOTSSON
 tags: [botsson, limitations, blockers, recovery]
 ---
+
+> ⚠️ **ARCHIVED 2026-05-23** — Superseded by `docs/domains/botsson/`. All open limitations (G3–G16) compiled into `docs/domains/botsson/GAPS-AND-DEBT.md` §Gaps. Closed limitations remain here as historical record. Do not update this file — update GAPS-AND-DEBT.md.
 
 # Botsson — Known Limitations
 

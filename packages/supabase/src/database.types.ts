@@ -5517,6 +5517,64 @@ export type Database = {
           },
         ]
       }
+      consent_acceptance: {
+        Row: {
+          accepted_at: string
+          client_ip: string | null
+          client_user_agent: string | null
+          consent_type: string
+          document_version: string
+          id: string
+          profile_id: string
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          client_ip?: string | null
+          client_user_agent?: string | null
+          consent_type: string
+          document_version: string
+          id?: string
+          profile_id: string
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string
+          client_ip?: string | null
+          client_user_agent?: string | null
+          consent_type?: string
+          document_version?: string
+          id?: string
+          profile_id?: string
+          source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_acceptance_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "consent_acceptance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "consent_acceptance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       contract: {
         Row: {
           audit_log_url: string | null
@@ -7754,6 +7812,8 @@ export type Database = {
           due_at: string | null
           id: string
           mission: string | null
+          notified_due_soon_at: string | null
+          notified_overdue_at: string | null
           position: number
           priority: string
           profile_id: string
@@ -7770,6 +7830,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id: string
@@ -7786,6 +7848,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           position?: number
           priority?: string
           profile_id?: string
@@ -7963,6 +8027,64 @@ export type Database = {
           },
           {
             foreignKeyName: "employee_availability_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      employee_onboarding_state: {
+        Row: {
+          completed_at: string | null
+          current_step_index: number
+          dismissed_at: string | null
+          profile_id: string
+          started_at: string
+          status: string
+          step_data: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step_index?: number
+          dismissed_at?: string | null
+          profile_id: string
+          started_at?: string
+          status?: string
+          step_data?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step_index?: number
+          dismissed_at?: string | null
+          profile_id?: string
+          started_at?: string
+          status?: string
+          step_data?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_onboarding_state_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_state_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -10408,6 +10530,110 @@ export type Database = {
           },
           {
             foreignKeyName: "hour_factor_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      import_run: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          created_at: string
+          created_by: string
+          excel_sha256: string
+          failure_reason: string | null
+          import_run_id: string
+          initiator: Database["public"]["Enums"]["cascade_initiator"]
+          notes: string | null
+          parsed_rows: Json
+          pending_rows: Json
+          ready_to_assign: Json
+          rejected_rows: Json
+          resolver_decisions: Json
+          row_hashes: string[]
+          source_filename: string
+          source_kind: string
+          source_storage_path: string
+          status: string
+          updated_at: string
+          user_overrides: Json
+          workspace_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by: string
+          excel_sha256: string
+          failure_reason?: string | null
+          import_run_id?: string
+          initiator?: Database["public"]["Enums"]["cascade_initiator"]
+          notes?: string | null
+          parsed_rows: Json
+          pending_rows?: Json
+          ready_to_assign?: Json
+          rejected_rows?: Json
+          resolver_decisions?: Json
+          row_hashes?: string[]
+          source_filename: string
+          source_kind: string
+          source_storage_path: string
+          status?: string
+          updated_at?: string
+          user_overrides?: Json
+          workspace_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by?: string
+          excel_sha256?: string
+          failure_reason?: string | null
+          import_run_id?: string
+          initiator?: Database["public"]["Enums"]["cascade_initiator"]
+          notes?: string | null
+          parsed_rows?: Json
+          pending_rows?: Json
+          ready_to_assign?: Json
+          rejected_rows?: Json
+          resolver_decisions?: Json
+          row_hashes?: string[]
+          source_filename?: string
+          source_kind?: string
+          source_storage_path?: string
+          status?: string
+          updated_at?: string
+          user_overrides?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_run_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "import_run_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "import_run_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "import_run_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -13438,6 +13664,8 @@ export type Database = {
           created_at: string
           due_at: string | null
           id: string
+          notified_due_soon_at: string | null
+          notified_overdue_at: string | null
           priority: string
           profile_id: string
           status: string
@@ -13449,6 +13677,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           priority?: string
           profile_id: string
           status?: string
@@ -13460,6 +13690,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          notified_due_soon_at?: string | null
+          notified_overdue_at?: string | null
           priority?: string
           profile_id?: string
           status?: string
@@ -15003,13 +15235,14 @@ export type Database = {
           name: string
           procedure_id: string
           procedure_type: Database["public"]["Enums"]["procedure_type"]
-          protocol_id: string
+          protocol_id: string | null
           provenance: Json
           skill_requirements: Json | null
           sort_order: number | null
           updated_at: string
           valid_from: string | null
           valid_to: string | null
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -15018,13 +15251,14 @@ export type Database = {
           name: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id: string
+          protocol_id?: string | null
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -15033,13 +15267,14 @@ export type Database = {
           name?: string
           procedure_id?: string
           procedure_type?: Database["public"]["Enums"]["procedure_type"]
-          protocol_id?: string
+          protocol_id?: string | null
           provenance?: Json
           skill_requirements?: Json | null
           sort_order?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -15957,14 +16192,20 @@ export type Database = {
           control_list_id: string | null
           control_nth: number | null
           created_at: string
+          created_via: string
+          executor_type: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status: Database["public"]["Enums"]["governance_status"]
           is_active: boolean
+          location_id: string | null
           name: string
           procedure_id: string
-          protocol_id: string
+          protocol_id: string | null
           routine_id: string
+          source_reference: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           assigned_to_ref: string
@@ -15973,14 +16214,20 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          created_via?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
+          location_id?: string | null
           name: string
           procedure_id: string
-          protocol_id: string
+          protocol_id?: string | null
           routine_id?: string
+          source_reference?: string | null
           trigger_config: Json
           trigger_type: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           assigned_to_ref?: string
@@ -15989,14 +16236,20 @@ export type Database = {
           control_list_id?: string | null
           control_nth?: number | null
           created_at?: string
+          created_via?: string
+          executor_type?: Database["public"]["Enums"]["routine_executor_type"]
+          governance_status?: Database["public"]["Enums"]["governance_status"]
           is_active?: boolean
+          location_id?: string | null
           name?: string
           procedure_id?: string
-          protocol_id?: string
+          protocol_id?: string | null
           routine_id?: string
+          source_reference?: string | null
           trigger_config?: Json
           trigger_type?: Database["public"]["Enums"]["trigger_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -16019,6 +16272,77 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
+          },
+          {
+            foreignKeyName: "routine_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      routine_team: {
+        Row: {
+          created_at: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          routine_id: string
+          team_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          routine_id?: string
+          team_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_team_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routine"
+            referencedColumns: ["routine_id"]
+          },
+          {
+            foreignKeyName: "routine_team_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "routine_team_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -17792,10 +18116,13 @@ export type Database = {
           department_session_id: string
           description: string | null
           evidence: Json | null
+          generated_by: Database["public"]["Enums"]["task_generated_by"] | null
           id: string
           is_compliance_required: boolean
+          origin: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at: string | null
           session_hook_id: string | null
+          source_reference: string | null
           status: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at: string
@@ -17810,10 +18137,13 @@ export type Database = {
           department_session_id: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title: string
           updated_at?: string
@@ -17828,10 +18158,13 @@ export type Database = {
           department_session_id?: string
           description?: string | null
           evidence?: Json | null
+          generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
           is_compliance_required?: boolean
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           scheduled_at?: string | null
           session_hook_id?: string | null
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["session_task_status"]
           title?: string
           updated_at?: string
@@ -20750,6 +21083,94 @@ export type Database = {
           },
         ]
       }
+      workspace_bootstrap_gate: {
+        Row: {
+          capability_slug: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_via: string | null
+          created_at: string
+          depends_on: Json
+          description: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata: Json
+          required: boolean
+          skip_reason: string | null
+          status: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day: number | null
+          updated_at: string
+          workspace_bootstrap_gate_id: string
+          workspace_id: string
+        }
+        Insert: {
+          capability_slug?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_via?: string | null
+          created_at?: string
+          depends_on?: Json
+          description?: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata?: Json
+          required?: boolean
+          skip_reason?: string | null
+          status?: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day?: number | null
+          updated_at?: string
+          workspace_bootstrap_gate_id?: string
+          workspace_id: string
+        }
+        Update: {
+          capability_slug?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_via?: string | null
+          created_at?: string
+          depends_on?: Json
+          description?: string | null
+          display_label_en?: string
+          display_label_no?: string
+          gate_slug?: string
+          industry_source?: string
+          metadata?: Json
+          required?: boolean
+          skip_reason?: string | null
+          status?: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day?: number | null
+          updated_at?: string
+          workspace_bootstrap_gate_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bootstrap_gate_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workspace_bootstrap_gate_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_bootstrap_gate_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       workspace_bootstrap_run: {
         Row: {
           completed_at: string | null
@@ -22216,6 +22637,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      enqueue_task_due_notifications: { Args: never; Returns: undefined }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
@@ -22259,6 +22681,45 @@ export type Database = {
         }[]
       }
       fn_check_billing_run: { Args: never; Returns: number }
+      fn_close_bootstrap_gate: {
+        Args: {
+          p_gate_slug: string
+          p_profile_id: string
+          p_via: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      fn_create_routine_from_draft: {
+        Args: {
+          p_actor_profile_id: string
+          p_location_id?: string
+          p_new_location?: Json
+          p_protocol_id?: string
+          p_routine_name: string
+          p_source_reference: string
+          p_steps: Json
+          p_team_ids?: string[]
+          p_trigger_config: Json
+          p_trigger_type: Database["public"]["Enums"]["trigger_type"]
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      fn_cron_jobs_health: { Args: never; Returns: Json }
+      fn_fuzzy_match_entity: {
+        Args: {
+          p_entity_type: string
+          p_raw_name: string
+          p_threshold?: number
+          p_workspace_id: string
+        }
+        Returns: {
+          confidence: number
+          matched_id: string
+          matched_name: string
+        }[]
+      }
       fn_generate_company_invoice: {
         Args: {
           p_amount_excl_vat: number
@@ -22301,6 +22762,36 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      fn_list_open_bootstrap_gates: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          capability_slug: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_via: string | null
+          created_at: string
+          depends_on: Json
+          description: string | null
+          display_label_en: string
+          display_label_no: string
+          gate_slug: string
+          industry_source: string
+          metadata: Json
+          required: boolean
+          skip_reason: string | null
+          status: Database["public"]["Enums"]["bootstrap_gate_status"]
+          suggested_day: number | null
+          updated_at: string
+          workspace_bootstrap_gate_id: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workspace_bootstrap_gate"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
       fn_normalize_session_task_status: {
         Args: { p_raw: string }
@@ -22326,6 +22817,23 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      fn_resolve_single_day_line: {
+        Args: { p_department_session_id: string }
+        Returns: string
+      }
+      fn_seed_profession_training: {
+        Args: { p_profiles: Json; p_workspace_id: string }
+        Returns: Json
+      }
+      fn_skip_bootstrap_gate: {
+        Args: {
+          p_gate_slug: string
+          p_profile_id: string
+          p_reason: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       gate_action: {
         Args: {
@@ -22732,6 +23240,12 @@ export type Database = {
         | "stripe_invoice"
       billing_integration_type: "fiken" | "tripletex" | "stripe" | "placeholder"
       booking_status: "confirmed" | "pending" | "cancelled"
+      bootstrap_gate_status:
+        | "open"
+        | "in_progress"
+        | "closed"
+        | "skipped"
+        | "blocked"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
       budget_status: "draft" | "active" | "locked"
       cascade_initiator:
@@ -22935,6 +23449,7 @@ export type Database = {
         | "manual_override"
         | "framework_rule_change"
         | "external_sync"
+      governance_status: "unassigned" | "attached"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
       invite_type: "email" | "sms" | "link"
@@ -23142,6 +23657,7 @@ export type Database = {
       remuneration_type_enum: "monthlyWage" | "hourlyWage" | "commissionOnly"
       revenue_source: "ocr" | "manual"
       routine_assigned_to_type: "team" | "role" | "profile"
+      routine_executor_type: "human" | "ai" | "system" | "hybrid"
       schedule_absence_type:
         | "sick_leave"
         | "parental_leave"
@@ -23217,6 +23733,14 @@ export type Database = {
       sync_status: "pending" | "synced" | "failed" | "conflict"
       sync_status_enum: "pending" | "synced" | "divergent" | "not_synced"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
+      task_generated_by: "cron" | "manager" | "agent" | "system"
+      task_origin:
+        | "session"
+        | "adhoc"
+        | "routine"
+        | "procedure"
+        | "projection"
+        | "manual"
       tax_card_type: "percentage" | "table" | "freecard"
       team_type:
         | "operational"
@@ -24385,6 +24909,13 @@ export const Constants = {
       ],
       billing_integration_type: ["fiken", "tripletex", "stripe", "placeholder"],
       booking_status: ["confirmed", "pending", "cancelled"],
+      bootstrap_gate_status: [
+        "open",
+        "in_progress",
+        "closed",
+        "skipped",
+        "blocked",
+      ],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],
       cascade_initiator: [
@@ -24611,6 +25142,7 @@ export const Constants = {
         "framework_rule_change",
         "external_sync",
       ],
+      governance_status: ["unassigned", "attached"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
       invite_type: ["email", "sms", "link"],
@@ -24842,6 +25374,7 @@ export const Constants = {
       remuneration_type_enum: ["monthlyWage", "hourlyWage", "commissionOnly"],
       revenue_source: ["ocr", "manual"],
       routine_assigned_to_type: ["team", "role", "profile"],
+      routine_executor_type: ["human", "ai", "system", "hybrid"],
       schedule_absence_type: [
         "sick_leave",
         "parental_leave",
@@ -24927,6 +25460,15 @@ export const Constants = {
       sync_status: ["pending", "synced", "failed", "conflict"],
       sync_status_enum: ["pending", "synced", "divergent", "not_synced"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
+      task_generated_by: ["cron", "manager", "agent", "system"],
+      task_origin: [
+        "session",
+        "adhoc",
+        "routine",
+        "procedure",
+        "projection",
+        "manual",
+      ],
       tax_card_type: ["percentage", "table", "freecard"],
       team_type: [
         "operational",
@@ -24984,3 +25526,4 @@ export const Constants = {
     },
   },
 } as const
+

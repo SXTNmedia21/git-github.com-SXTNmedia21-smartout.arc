@@ -46,7 +46,7 @@ const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
 const ClientToolParameterSchema = z.object({
   name: z.string(),
   location: z.string(),
-  description: z.string(),
+  description: z.string().optional(),
   required: z.boolean().optional(),
   schema: z.union([
     z.object({ type: z.literal("string"), enum: z.array(z.string()).optional() }),

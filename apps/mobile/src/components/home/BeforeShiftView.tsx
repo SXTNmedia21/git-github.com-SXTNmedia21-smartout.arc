@@ -22,8 +22,10 @@ import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
+import { CompleteProfileCard } from "@/components/onboarding/CompleteProfileCard";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
+import { useClockIn } from "@/hooks/queries/use-shift-session";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
@@ -43,6 +45,20 @@ type BeforeShiftViewProps = {
    * - "late"    → IKKE STEMPLET INN (shift in progress, no punch)
    */
   variant?: "before" | "late";
+  /**
+   * shift_session_id for the employee's runtime session row (ADR-0367).
+   * When provided and variant='late', the primary CTA also fires the BFF
+   * clock-in mutation (shift_session.status → clocked_in) in addition to
+   * navigating to punch-clock. If null/undefined the CTA still navigates
+   * (graceful degradation — session may not yet be materialised).
+   */
+  shiftSessionId?: string | null;
+  /**
+   * Called after a successful BFF clock-in so the parent can react
+   * (e.g. invalidate queries). Optional — the mutation handles its own
+   * TanStack Query invalidation internally.
+   */
+  onClockIn?: (sessionId: string) => void;
 };
 
 const DAY_SHORT = ["SØN", "MAN", "TIR", "ONS", "TOR", "FRE", "LØR"];
@@ -129,12 +145,18 @@ export function BeforeShiftView({
   colleagues = [],
   dayInfo,
   variant = "before",
+  shiftSessionId = null,
+  onClockIn,
 }: BeforeShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
   const { data: profile } = useMyProfile();
   const { data: myShifts } = useMyShifts();
+
+  // Date for query-key invalidation on clock-in (shift.shift_date is YYYY-MM-DD).
+  const clockIn = useClockIn(profile?.profile_id ?? null, shift.shift_date);
+  const isClockingIn = clockIn.isPending;
 
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
   const isLate = variant === "late";
@@ -153,6 +175,9 @@ export function BeforeShiftView({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Onboarding CTA — hidden once wizard is complete (spec §S5) */}
+      <CompleteProfileCard />
+
       {/* Phase header */}
       <Animated.View entering={FadeIn.delay(50).duration(500)} style={styles.header}>
         <View style={styles.phasePill}>
@@ -249,20 +274,31 @@ export function BeforeShiftView({
           {/* Primary CTA varies by phase — late = stempel inn, before = se detaljer */}
           {isLate ? (
             <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              disabled={isClockingIn}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                // Fire BFF clock-in when a shift_session is linked (ADR-0367).
+                // Navigation to punch-clock happens regardless — the BFF call is
+                // best-effort; the punch-clock screen owns the time_entry write.
+                if (shiftSessionId) {
+                  const result = await clockIn.mutateAsync(shiftSessionId);
+                  if (result.ok) {
+                    onClockIn?.(shiftSessionId);
+                  }
+                  // If the BFF fails we still navigate — punch-clock handles recovery.
+                }
                 router.push("/(app)/(home)/punch-clock");
               }}
               style={({ pressed }) => [
                 styles.cardButton,
                 { backgroundColor: phaseColor, borderColor: phaseColor },
-                pressed && styles.pressed,
+                (pressed || isClockingIn) && styles.pressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Stemple inn nå"
+              accessibilityLabel={isClockingIn ? "Stempler inn..." : "Stemple inn nå"}
             >
               <Text style={[styles.cardButtonText, { color: theme.colors.primaryForeground }]}>
-                Stemple inn nå
+                {isClockingIn ? "Stempler inn..." : "Stemple inn nå"}
               </Text>
               <ChevronRight size={16} color={theme.colors.primaryForeground} strokeWidth={1.8} />
             </Pressable>

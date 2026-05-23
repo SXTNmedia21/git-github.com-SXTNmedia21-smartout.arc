@@ -355,6 +355,49 @@ jobs:
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           echo "::endgroup::"
 
+      - name: Seed cron secrets into Vault (ADR-0388)
+        # The 27 pg_cron http_post jobs read secrets via public.get_secret(name)
+        # → vault.decrypted_secrets. (GUCs are NOT usable: Supabase blocks
+        # ALTER ROLE/DATABASE SET for the postgres role — 42501. Vault IS
+        # writable by postgres.) Upsert the 5 secrets from GH secrets each main
+        # deploy (idempotent). Connect as postgres via the session-mode pooler.
+        # Values GH-masked in logs; no -x/-e echo.
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPA_URL: ${{ secrets.SUPABASE_PROD_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_PROD_SERVICE_ROLE_KEY }}
+          WATCHDOG_CRON_SECRET: ${{ secrets.WATCHDOG_CRON_SECRET }}
+          PROCESS_NOTIFICATIONS_SECRET: ${{ secrets.PROCESS_NOTIFICATIONS_SECRET }}
+          MORNING_DIGEST_SECRET: ${{ secrets.MORNING_DIGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WATCHDOG_CRON_SECRET:-}" ]; then
+            echo "::error::WATCHDOG_CRON_SECRET GH secret missing — cron http jobs 401. Add it + PROCESS_NOTIFICATIONS_SECRET + MORNING_DIGEST_SECRET to repo secrets. (ADR-0388)"
+            exit 1
+          fi
+          PSQL="psql -v ON_ERROR_STOP=1 -h aws-0-eu-west-1.pooler.supabase.com -p 5432 -U postgres.${SUPABASE_PROJECT_REF} -d postgres"
+          # Single session: env vars expand into stdin SQL (not argv). Idempotent
+          # upsert per secret. \$up\$ escapes the dollar-quote from the shell.
+          $PSQL <<SQL
+          DO \$up\$
+          DECLARE sid uuid;
+          BEGIN
+            SELECT id INTO sid FROM vault.secrets WHERE name='supabase_url';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$SUPA_URL','supabase_url','cron'); ELSE PERFORM vault.update_secret(sid,'$SUPA_URL'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='service_role_key';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$SERVICE_ROLE_KEY','service_role_key','cron'); ELSE PERFORM vault.update_secret(sid,'$SERVICE_ROLE_KEY'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='watchdog_cron_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$WATCHDOG_CRON_SECRET','watchdog_cron_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$WATCHDOG_CRON_SECRET'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='process_notifications_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$PROCESS_NOTIFICATIONS_SECRET','process_notifications_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$PROCESS_NOTIFICATIONS_SECRET'); END IF;
+            SELECT id INTO sid FROM vault.secrets WHERE name='morning_digest_secret';
+            IF sid IS NULL THEN PERFORM vault.create_secret('$MORNING_DIGEST_SECRET','morning_digest_secret','cron'); ELSE PERFORM vault.update_secret(sid,'$MORNING_DIGEST_SECRET'); END IF;
+          END
+          \$up\$;
+          SQL
+          echo "✓ cron secrets upserted into Vault (next pg_cron firing reads them)"
+
   # ── Migration state poller (ADR-0262) ──────────────────────────
   # On main push: assert prod's last applied migration timestamp matches the
   # latest local migration file. Catches MIGRATIONS_FAILED state immediately.

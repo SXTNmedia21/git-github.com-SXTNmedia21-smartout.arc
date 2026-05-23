@@ -23,9 +23,20 @@ import type { ReactNode } from "react";
 import { BotssonProvider } from "./BotssonProvider";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
-export function BotssonHost({ children }: { children: ReactNode }) {
+export function BotssonHost({
+  children,
+  profileId = null,
+}: {
+  children: ReactNode;
+  /** Profile ID of the authenticated user — threaded from DashboardShell for ADR-0134 actor_id telemetry. */
+  profileId?: string | null;
+}) {
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? null;
 
-  return <BotssonProvider workspaceId={workspaceId}>{children}</BotssonProvider>;
+  return (
+    <BotssonProvider workspaceId={workspaceId} profileId={profileId}>
+      {children}
+    </BotssonProvider>
+  );
 }

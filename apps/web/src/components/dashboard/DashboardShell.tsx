@@ -1800,7 +1800,7 @@ function DashboardShellInner({
                               sibling under the same provider. Together they let
                               DomainChatOwnership consumers in children share one provider
                               with the Orb (ADR-0238 + ADR-0337 + ADR-0362). */}
-                            <BotssonHost>
+                            <BotssonHost profileId={profileId}>
                               {children}
                               <EmmaOverlay />
                             </BotssonHost>

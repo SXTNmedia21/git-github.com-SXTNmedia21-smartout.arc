@@ -36,9 +36,11 @@ import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 import { schedulerCapability } from "./scheduler/index.js";
 import { timelineTemplateCapability } from "./timeline-template/index.js";
 import { cascadeCapability } from "./cascade/index.js";
+import { bulkImportCapability } from "./bulk_import/index.js";
 import { dayLineCapability } from "./day-line/index.js";
 import { routineCapability } from "./routine/index.js";
 import { orgCapability } from "./org/index.js";
+import { bootstrapCapability } from "./bootstrap/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -155,6 +157,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Both the caller gate AND the cascade gate fire independently per ADR-0356 §"Gate convention".
   // emitPrefix='cascade'. Authority seeded at autonomous by 20260618200000.
   cascade: cascadeCapability,
+  // bulk_import capability — Sortie 0 skeleton. MIME-type deterministic routing:
+  // xlsx/xls/csv files dropped in chat bypass intent-classifier and route here.
+  // Tools populated in Sorties A (parse_spreadsheet), B (preview_batch, resolve_ambiguity),
+  // C (commit_batch). chat-only (ADR-0078); toolAuthPattern=direct_admin (service_role).
+  // Spec: docs/superpowers/specs/2026-05-23-bulk-import-design.md
+  bulk_import: bulkImportCapability,
   // Day-line capability — ADR-0367. D6 Production dag-linje lifecycle.
   // 4 tools: create (manager+, chat-only), add_item (delegating: task+routine, manager+),
   // instantiate_template (routine alias, manager+), update_hours (manager+, chat-only).
@@ -171,6 +179,14 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Links/unlinks department_location records. Own namespace — no delegation needed.
   // Admin+, confirm, chat-only V1. emitPrefix='org'. Authority seeded in BT0 Phase A migration.
   org: orgCapability,
+  // Bootstrap capability — ADR-0407 Phase 1. 3 tools:
+  //   list_bootstrap_gates (read_only, admin+, chat+voice — fn_list_open_bootstrap_gates RPC),
+  //   close_bootstrap_gate (suggest, admin+, chat+voice — fn_close_bootstrap_gate RPC),
+  //   skip_bootstrap_gate  (suggest, admin+, chat-only V1 — fn_skip_bootstrap_gate RPC).
+  // Gate registry sourced from K1a industry-package (getBootstrapGates()).
+  // Hospitality: 11 gates (incl. Mattilsynet + alcohol). Default: 6 gates.
+  // Authority seeded in migration 20260625120000_workspace_bootstrap_gate.sql.
+  bootstrap: bootstrapCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

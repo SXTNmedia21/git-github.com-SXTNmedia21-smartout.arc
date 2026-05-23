@@ -9,6 +9,7 @@ import React, {
   forwardRef,
   useCallback,
   useImperativeHandle,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,6 +23,7 @@ import {
   type TextInputProps,
   type DimensionValue,
 } from "react-native";
+import { useTheme } from "@/theme";
 
 /* ---------- Types ---------- */
 
@@ -58,30 +60,45 @@ export type BottomSheetRef = {
 };
 
 const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function BottomSheet(
-  { children, snapPoints, index = -1, onChange, onClose, enablePanDownToClose, style, ...rest },
+  {
+    children,
+    snapPoints,
+    index = -1,
+    onChange,
+    onClose,
+    enablePanDownToClose,
+    style,
+    backgroundStyle,
+    handleIndicatorStyle,
+    // Destructured out so they never leak onto the DOM node via {...rest}.
+    backdropComponent: _backdropComponent,
+    ...rest
+  },
   ref,
 ) {
+  const theme = useTheme();
   const [visible, setVisible] = useState(index >= 0);
 
-  // Callbacks only fire on real open↔close transitions. Native
-  // @gorhom/bottom-sheet is idempotent; matching that prevents a
-  // re-entrant close() → onClose → onDismiss → close() loop that
-  // blows the stack in BotssonSheet.
+  // Re-entrancy guard via a ref — NOT the setVisible updater. Side effects
+  // (onChange/onClose) MUST run outside the updater: onClose → onDismiss can
+  // call close() again synchronously, and a nested updater sees the pre-commit
+  // `wasVisible` (still true), so an updater-based guard fails and the stack
+  // blows. The ref flips synchronously, so the re-entrant call no-ops.
+  const visibleRef = useRef(index >= 0);
+
   const open = useCallback(() => {
-    setVisible((wasVisible) => {
-      if (wasVisible) return wasVisible;
-      onChange?.(0);
-      return true;
-    });
+    if (visibleRef.current) return;
+    visibleRef.current = true;
+    setVisible(true);
+    onChange?.(0);
   }, [onChange]);
 
   const close = useCallback(() => {
-    setVisible((wasVisible) => {
-      if (!wasVisible) return wasVisible;
-      onChange?.(-1);
-      onClose?.();
-      return false;
-    });
+    if (!visibleRef.current) return;
+    visibleRef.current = false;
+    setVisible(false);
+    onChange?.(-1);
+    onClose?.();
   }, [onChange, onClose]);
 
   useImperativeHandle(ref, () => ({
@@ -94,18 +111,35 @@ const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(function Bottom
 
   if (!visible) return null;
 
-  const height = snapPoints?.[0]
-    ? typeof snapPoints[0] === "string"
-      ? (snapPoints[0] as DimensionValue)
-      : snapPoints[0]
-    : ("50%" as DimensionValue);
+  // Fit content, hard-capped at 85% of the screen. The panel is only as tall as
+  // its content; if content exceeds the cap, the inner ScrollView scrolls. No
+  // fixed height → no empty space, mostly static per content.
+  const largest = snapPoints?.length ? snapPoints[snapPoints.length - 1] : "85%";
+  const largestPct =
+    typeof largest === "string" && largest.endsWith("%") ? parseFloat(largest) : 85;
+  const maxHeight =
+    `${Math.min(Number.isFinite(largestPct) ? largestPct : 85, 85)}%` as DimensionValue;
 
   return (
     <View style={webStyles.overlay}>
       <Pressable style={webStyles.backdrop} onPress={enablePanDownToClose ? close : undefined} />
-      <View style={[webStyles.sheet, { height }, style]} {...rest}>
+      <View
+        style={[
+          webStyles.sheet,
+          { maxHeight, backgroundColor: theme.colors.card },
+          backgroundStyle,
+          style,
+        ]}
+        {...rest}
+      >
         <View style={webStyles.handleContainer}>
-          <View style={webStyles.handle} />
+          <View
+            style={[
+              webStyles.handle,
+              { backgroundColor: theme.colors.border },
+              handleIndicatorStyle,
+            ]}
+          />
         </View>
         {children}
       </View>
@@ -201,7 +235,6 @@ const webStyles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: "hidden",
@@ -215,6 +248,5 @@ const webStyles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#ccc",
   },
 });

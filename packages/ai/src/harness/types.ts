@@ -33,6 +33,31 @@ export type ClientToolParameter = {
     | { type: "array"; items?: unknown };
 };
 
+/**
+ * ADR-0399 — Surface constraints for tool descriptors.
+ *
+ * Two orthogonal axes:
+ * - channel_constraint: which channels can invoke + render this tool's results (ADR-0078)
+ * - platforms: which platforms (web/mobile) this tool is available on (ADR-0133)
+ *
+ * Defaults (absent field = unconstrained):
+ * - channel_constraint: ["chat", "voice"]
+ * - platforms: ["web", "mobile"]
+ *
+ * Enforcement is multi-layer (per ADR-0399 §Enforcement Layers):
+ * 1. Harness pre-filter (primary) — strips tools before LLM sees them
+ * 2. Tool-body guard — belt-and-suspenders
+ * 3. Result-descriptor guard — stage-engine inspects ClientToolCall before BFF emit
+ * 4. Render-time guard — BotssonChat checks before mounting
+ *
+ * Phase 1 callers: `publish_announcement` sets channel_constraint=["chat"], platforms=["web"].
+ * Phase 2 will adopt this for send_message + approve_shift via ADR-0400/0401.
+ */
+export type ToolSurfaceConstraints = {
+  channel_constraint?: ("chat" | "voice")[];
+  platforms?: ("web" | "mobile")[];
+};
+
 export type ClientToolDefinition = {
   temporaryTool: {
     modelToolName: string;
@@ -40,6 +65,14 @@ export type ClientToolDefinition = {
     dynamicParameters: ClientToolParameter[];
     client: Record<string, never>;
   };
+  /**
+   * ADR-0399 — Surface constraints. See {@link ToolSurfaceConstraints}.
+   *
+   * Optional — absent means unconstrained (equivalent to
+   * `{ channel_constraint: ["chat", "voice"], platforms: ["web", "mobile"] }`).
+   * Harness pre-filter reads this field before the LLM sees the tool.
+   */
+  surfaceConstraints?: ToolSurfaceConstraints;
 };
 
 export type ClientToolImplementation = (

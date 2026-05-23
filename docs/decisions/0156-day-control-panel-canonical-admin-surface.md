@@ -94,10 +94,34 @@ Implications for §43-49 of this ADR:
 
 This amendment is a SCOPE CHANGE, not a reversal. The Day Control Panel remains the canonical admin surface — just with a richer per-area decomposition.
 
+## Amendment — 2026-05-23 (Surface duplication clarification, council 2026-05-23-tidslinje-surface-boundary)
+
+Council 2026-05-23 reviewed surface-boundary question: should `DayControlPanel` (schedule bottom-sheet at `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx`, mounted from `schedule/page.tsx:1207` + `calendar/CalendarPageShell.tsx:419` + `AdminDashboard.tsx:62`) get a new "Tidslinje" tab, OR be consolidated into `WebDayControl`?
+
+Chair Phase 3 verdict was REJECT-port + RECOMMEND-consolidate, reading §Rejected Option B as forbidding any two admin day-control surfaces. Phase 5 REVERSED on L-0147 protocol (10th precedent) after 3 reviewers (Supervisor + Agent-coord + Harness) provided code-trace evidence:
+
+- `EntityDrawerProvider` mounts globally at `DashboardShell.tsx:1138` — both panels inherit drawer + cascade pipeline
+- `day-line` capability (4 tools) PASS Trust Gate — both panels would consume identical capability surface
+- DayControlPanel and WebDayControl have **legitimately distinct UX contexts** (route-anchored full-page vs ephemeral bottom-sheet for date-click drill-down)
+
+**Clarified reading of §Rejected Option B:** "Two overlapping admin surfaces fragments authority" forbids **fragmented authority** (two surfaces with different rules writing to overlapping state via different capability paths or different gate_action semantics). It does NOT forbid **differentiated chrome over the same cascade pipeline** — two views consuming the same capability with the same authority model is permitted and is the trigger for ADR-0156 Phase 2 packages-extraction.
+
+**Discriminating test for surface duplication:**
+1. Do both surfaces call the same capability tools? → YES = permitted differentiated chrome
+2. Do both apply the same C4 authority governance to writes? → YES = permitted
+3. Do they share the same data layer (provider/hook)? → YES = permitted
+4. If any answer is NO → forbidden fragmentation; consolidate or carve out
+
+Sortie P10 in `docs/domains/day-session/ROADMAP.md` codifies the implementation path: slim purpose-built `TidslinjeTab` in DayControlPanel sharing `day-line` capability + `DaySessionProvider` with WebDayControl. 3 pre-conditions (G16 pin-context, G17 TabButton ARIA, G18 dead Ultravox removal) gate the build.
+
+This amendment is a SCOPE CLARIFICATION, not a reversal. The Day Control Panel remains the canonical admin surface; ADR-0156 now explicitly permits multi-host mounting when the discriminating test passes.
+
 ## References
 
 - Council session 2026-04-19 — `docs/council/COUNCIL-LOG.md`
 - Council session 2026-05-18 — Day Line Area-Anchored Runtime (ADR-0367)
+- Council session 2026-05-23 — Tidslinje surface boundary (this amendment)
+- Learning L-0338 — Surface duplication ≠ authority fragmentation (discriminating test codified)
 - Design spec — `DESIGN_DAY_INFORMATION_2026_04_19`
 - Implementation spec — `SPEC_WEB_DAY_CONTROL_IMPL_2026_04_19`
 - Implementation spec — `docs/superpowers/specs/2026-05-18-dagslinje-area-anchored-design.md`

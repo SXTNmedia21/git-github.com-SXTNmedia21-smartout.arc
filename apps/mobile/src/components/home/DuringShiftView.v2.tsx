@@ -37,6 +37,7 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
+import { useDayLineItems } from "@/hooks/queries/use-shift-session";
 import { Avatar } from "@/components/common/Avatar";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
@@ -49,6 +50,13 @@ type DuringShiftViewProps = {
   timeEntry: TimeEntry;
   tasks?: MyTaskRow[];
   leaderPhone?: string | null;
+  /**
+   * shift_session_id (ADR-0367 tri-layer).
+   * When provided, the component renders a DAGENS OPPGAVER timeline section
+   * sourced from session_task rows via the day_line chain.
+   * Null → section is hidden (graceful degradation).
+   */
+  shiftSessionId?: string | null;
 };
 
 const HOURLY_RATE_FALLBACK = 220;
@@ -101,10 +109,14 @@ export function DuringShiftViewV2({
   timeEntry,
   tasks = [],
   leaderPhone,
+  shiftSessionId = null,
 }: DuringShiftViewProps) {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
+
+  // Day-line task timeline (ADR-0367 tri-layer: shift_session → day_line → session_task).
+  const { data: dayLineTasks = [] } = useDayLineItems(shiftSessionId);
 
   const { data: profile } = useMyProfile();
   const { data: colleagues } = useShiftColleagues(
@@ -302,6 +314,83 @@ export function DuringShiftViewV2({
               Se alle oppgaver ({activeTasks.length})
             </Text>
           </Pressable>
+        </View>
+      ) : null}
+
+      {/* Dagens oppgaver — day-line task timeline (ADR-0367 tri-layer) */}
+      {shiftSessionId ? (
+        <View style={styles.card}>
+          <Text style={styles.cardEyebrow}>DAGENS OPPGAVER</Text>
+          {dayLineTasks.length === 0 ? (
+            <Text style={styles.taskDesc}>Ingen oppgaver for i dag.</Text>
+          ) : (
+            <View style={{ gap: 8, marginTop: 4 }}>
+              {dayLineTasks.map((item, idx) => {
+                const isLast = idx === dayLineTasks.length - 1;
+                const timeLabel = item.scheduled_at
+                  ? `kl ${clockFromIso(item.scheduled_at)}`
+                  : null;
+                const isCompliance = item.is_compliance_required;
+                return (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.dayLineItem,
+                      !isLast && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: withOpacity(theme.colors.border, 0.3),
+                        paddingBottom: 8,
+                      },
+                    ]}
+                  >
+                    <View style={styles.dayLineTimeCol}>
+                      {timeLabel ? (
+                        <Text style={[styles.dayLineTime, { color: theme.colors.brandOrange }]}>
+                          {timeLabel}
+                        </Text>
+                      ) : (
+                        <View
+                          style={[
+                            styles.dayLineDot,
+                            { backgroundColor: theme.colors.mutedForeground },
+                          ]}
+                        />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={styles.dayLineTitle} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        {isCompliance ? (
+                          <View
+                            style={[
+                              styles.complianceBadge,
+                              { backgroundColor: withOpacity(theme.colors.destructive, 0.12) },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.complianceBadgeText,
+                                { color: theme.colors.destructive },
+                              ]}
+                            >
+                              HMS
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      {item.description ? (
+                        <Text style={styles.taskDesc} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
       ) : null}
 
@@ -584,6 +673,47 @@ const useStyles = createStyles((theme) => ({
   teamName: { fontSize: 13, fontWeight: "500", color: theme.colors.foreground },
   teamMeta: { fontSize: 11, color: theme.colors.mutedForeground, marginTop: 1 },
   teamDot: { width: 6, height: 6, borderRadius: 9999 },
+
+  // Day-line task timeline
+  dayLineItem: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  dayLineTimeCol: {
+    width: 46,
+    alignItems: "flex-end",
+    paddingTop: 2,
+  },
+  dayLineTime: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  dayLineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 4,
+  },
+  dayLineTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+    flex: 1,
+  },
+  complianceBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  complianceBadgeText: {
+    fontFamily: "GeistMono-Regular",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
 
   // Quick actions
   quickGrid: { flexDirection: "row", gap: 10 },

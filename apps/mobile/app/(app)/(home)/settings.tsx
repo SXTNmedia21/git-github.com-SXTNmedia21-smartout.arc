@@ -42,6 +42,7 @@ import {
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import { supabase } from "@/lib/supabase";
+import { logoutOneSignal } from "@/lib/onesignal";
 import { cacheClearAll } from "@/lib/cache/mmkv";
 import { getDb } from "@/lib/sync/db";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
@@ -112,6 +113,7 @@ export default function SettingsScreen() {
         const db = await getDb();
         await db.runAsync("DELETE FROM pending_writes");
       } catch {}
+      await logoutOneSignal();
       await supabase.auth.signOut({ scope: "local" });
     } catch {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
@@ -173,6 +175,7 @@ export default function SettingsScreen() {
         const db = await getDb();
         await db.runAsync("DELETE FROM pending_writes");
       } catch {}
+      await logoutOneSignal();
       await supabase.auth.signOut();
     } catch {
       Alert.alert(strings.common.error, strings.me.deleteAccountError);

@@ -1,11 +1,14 @@
 ---
 title: Payroll Exports — CSV, PDF, A-melding, Tripletex
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [payroll, exports, csv, pdf, a-melding, tripletex, lønnsgrunnlag]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Payroll Exports
 

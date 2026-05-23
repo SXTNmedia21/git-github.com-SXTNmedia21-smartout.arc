@@ -1,7 +1,7 @@
 ---
 title: "Plan — payroll-phase-5 (PII Reveal)"
 feature: payroll-phase-5
-spec: docs/modules/payroll/PHASES.md#phase-5--pii-reveal
+spec: docs/domains/payroll/PHASES.md#phase-5--pii-reveal
 status: done
 updated: 2026-05-08
 created: 2026-05-08
@@ -13,7 +13,7 @@ tags: [plan, payroll, phase-5, pii-reveal, audit, revealable-field, mobile-parit
 
 > Branch: `feat/payroll-payroll-phase-2` (continued — combined Phase 2+3+4+5 PR) | Worktree: `/home/sxtnl/dev/smartout.ai-payroll-wt-1` | Module: payroll
 
-**Spec:** [Phase 5 — PII Reveal](../modules/payroll/PHASES.md#phase-5--pii-reveal)
+**Spec:** [Phase 5 — PII Reveal](../domains/payroll/PHASES.md#phase-5--pii-reveal)
 
 ## Critical positioning (load-bearing)
 

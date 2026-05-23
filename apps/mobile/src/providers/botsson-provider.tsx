@@ -187,6 +187,10 @@ type BotssonContextValue = {
   /** Error message if status is "error" */
   error: string | null;
   /**
+   * Routine draft extracted from a photo — set by the image button in
+   * BotssonSheet after upload + BFF extraction. Cleared on endSession().
+   */
+  /**
    * D2: True when voice session start failed due to OS mic permission denial.
    * BotssonSheet renders `MicPermissionDialog` when this is true.
    * Cleared on next `startVoiceSession()` attempt or explicit `endSession()`.

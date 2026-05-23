@@ -1,11 +1,14 @@
 ---
 title: Payroll Architecture
-status: draft
-updated: 2026-05-06
+status: archived
+updated: 2026-05-23
 created: 2026-05-06
 module: payroll
 tags: [payroll, architecture, c3, derivation-pipeline, event-engine]
+superseded_by: docs/domains/payroll/
 ---
+> Archived 2026-05-23 — see [payroll domain](../../domains/payroll/).
+
 
 # Payroll Architecture
 

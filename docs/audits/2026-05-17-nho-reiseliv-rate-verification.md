@@ -14,7 +14,7 @@ related_tasks: [task-63]
 
 ## Purpose
 
-This audit is trust-gate blocker #2 for ADR-0347 (Lovdata as canonical source) and ADR-0349 (paragraph-ref translation map). The golden-month worksheet `docs/modules/payroll/golden-month-worksheet/01-pontus-compute-worksheet.md` cites six supplement rates as "Riksavtalen §6 2026". This audit attempts to verify or refute each against publicly accessible web sources, with particular focus on the 2025 mellomoppgjør adjusted rates (effective 1 April 2025) — the most recent publicly confirmed update before the unresolved 2026 lønnsoppgjør.
+This audit is trust-gate blocker #2 for ADR-0347 (Lovdata as canonical source) and ADR-0349 (paragraph-ref translation map). The golden-month worksheet `docs/domains/payroll/golden-month-worksheet/01-pontus-compute-worksheet.md` cites six supplement rates as "Riksavtalen §6 2026". This audit attempts to verify or refute each against publicly accessible web sources, with particular focus on the 2025 mellomoppgjør adjusted rates (effective 1 April 2025) — the most recent publicly confirmed update before the unresolved 2026 lønnsoppgjør.
 
 The worksheet lists kveldstillegg = 42.41 kr/t. Lovsen council Phase 3 established that the Lovdata base text (2024-2026) shows 15.65 kr/t, raising the hypothesis that 42.41 is a post-2025 mellomoppgjør adjusted value. This audit resolves that hypothesis.
 

@@ -25,6 +25,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { supabase } from "@/lib/supabase";
+import { logoutOneSignal } from "@/lib/onesignal";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useThemeStore } from "@/hooks/stores/use-theme-store";
@@ -160,7 +161,10 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
             router.push("/(app)/(me)/payroll/payslip");
             break;
           case "logout":
-            supabase.auth.signOut();
+            void (async () => {
+              await logoutOneSignal();
+              await supabase.auth.signOut();
+            })();
             break;
           default:
             break;

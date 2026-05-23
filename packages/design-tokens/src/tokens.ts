@@ -156,6 +156,39 @@ export const phase = {
   phaseWindDown: "oklch(0.93 0.05 30)",
 } as const;
 
+// ─── Task Manager — Status & Origin (north-star prototype, 2026-05-22) ─────────
+// Task lifecycle status — distinct from profile `status` (trainee/active/…).
+// Theme-agnostic foreground colors (render on both light + dark). Maps to
+// taskmanager-DESIGNE/data.js STATUS + smartout-nordic-split SKILL.md.
+export const taskStatus = {
+  todo: "oklch(0.55 0.03 257)", // slate — ikke startet
+  inprogress: "oklch(0.55 0.21 264)", // blue — pågår
+  awaiting: "oklch(0.65 0.23 303)", // violet — venter godkjenning
+  overdue: "oklch(0.58 0.22 27)", // red — forsinket
+  done: "oklch(0.70 0.15 162)", // green — ferdig
+} as const;
+
+// Task origin badge — fg + light-mode bg pair. Maps 1:1 to the 4 task sources
+// (session=Rutine, adhoc=Ad-hoc, protocol=Protokoll, deviation=Avvik).
+export const taskOrigin = {
+  sessionFg: "oklch(0.55 0.21 264)",
+  sessionBg: "oklch(0.93 0.04 264)",
+  adhocFg: "oklch(0.53 0.24 293)",
+  adhocBg: "oklch(0.94 0.03 293)",
+  protocolFg: "oklch(0.48 0.10 178)",
+  protocolBg: "oklch(0.95 0.05 174)",
+  deviationFg: "oklch(0.58 0.22 27)",
+  deviationBg: "oklch(0.94 0.03 17)",
+} as const;
+
+// Dark-mode surface tint for the origin badge (fg unchanged from taskOrigin).
+export const taskOriginDark = {
+  sessionBg: "oklch(0.28 0.06 264)",
+  adhocBg: "oklch(0.28 0.07 293)",
+  protocolBg: "oklch(0.27 0.05 178)",
+  deviationBg: "oklch(0.28 0.06 17)",
+} as const;
+
 // ─── Spacing ──────────────────────────────────────────
 export const spacing = {
   page: "2rem",
@@ -172,6 +205,7 @@ export const radius = {
   md: "calc(0.625rem - 2px)",
   lg: "0.625rem",
   xl: "calc(0.625rem + 4px)",
+  card: "1rem", // 16px — north-star TaskCard signature radius
   full: "9999px",
 } as const;
 

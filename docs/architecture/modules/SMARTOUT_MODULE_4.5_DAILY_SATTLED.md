@@ -5,7 +5,29 @@ updated: 2026-03-22
 created: 2026-03-05
 module: operations
 tags: [settlement, daily-close, ocr, reconciliation, cascade]
+migration_status: partially_absorbed
+planned_domain: day-session
+retro_absorb_candidate: true
+absorbed_at: 2026-05-23
+sections_absorbed:
+  - §1 Core Insight → OVERVIEW.md §2 (cascade placement D6→C1 boundary confirmed)
+  - §5.5 financial_close_config → DATA-MODEL.md §2.10 (verified vs code)
+  - §2 Lifecycle model → GAPS §G14 (aspirational daily_financial_close state machine — not built)
+  - settlement_image extensions → DATA-MODEL.md §2.8 (close_image_type, captured_by, parse_status, cash columns — verified 20260328120000)
+sections_deferred:
+  - §5.1 daily_financial_close table → GAPS §G14 (aspirational — not in migrations)
+  - §5.2 close_image table → GAPS §G14 (aspirational — settlement_image is the built equivalent)
+  - §5.3 close_task table → GAPS §G14 (aspirational — not built; session_task used instead)
+  - §5.4 close_deviation table → GAPS §G14 (aspirational — deviation table used instead)
+  - §5.6 pos_template table → GAPS §G14 (aspirational — not built)
+  - §7 OCR pipeline detail → ROADMAP references existing EFs; full pipeline aspirational
+  - §8 Validation engine code → ARCHITECTURE references validate-settlement EF (simplified)
+  - §9 Gatekeeper/checkout guard → GAPS §G14 (check_financial_close_gate not built)
+  - §10–15 Manager approval UI detail, fraud prevention, success metrics → aspirational
+superseded_by: docs/domains/day-session/
 ---
+
+> **Partially absorbed 2026-05-23 — see [day-session domain](../../domains/day-session/).** Core insights, settled columns, and built schema absorbed via `domain-steward update day-session` retro-absorb pass. Aspirational `daily_financial_close` state machine and related tables (close_image, close_task, close_deviation, pos_template) are NOT built — logged in `docs/domains/day-session/GAPS-AND-DEBT.md §G14`. Settlement_image extension columns verified: `close_image_type`, `captured_by`, `parse_status`, cash fields (migration `20260328120000`). This file retained as historical design reference for the aspirational financial close engine.
 
 # Module 4.5: Sättelfunktion — Daily Financial Close Engine
 

@@ -30,7 +30,36 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ActionBar } from "@/components/navigation/ActionBar";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
+import { usePayslips } from "@/hooks/queries/use-payslips";
 import { strings } from "@/constants/strings";
+
+/** Format a NOK amount with Norwegian thousands separators. */
+function fmtKr(n: number): string {
+  return Math.round(n).toLocaleString("nb-NO");
+}
+
+const MONTHS_NB = [
+  "januar",
+  "februar",
+  "mars",
+  "april",
+  "mai",
+  "juni",
+  "juli",
+  "august",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
+
+/** "2026-02-01" → "Februar 2026" */
+function monthLabel(dateStr: string): string {
+  const [y, m] = dateStr.split("-");
+  const name = MONTHS_NB[Number(m) - 1] ?? "";
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`;
+}
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -40,17 +69,19 @@ function getGreeting(): string {
   return strings.home.goodNight;
 }
 
-const PAYSLIPS = [
-  { id: "1", month: "Februar 2026", date: "Utbetalt 12.02.2026", amount: "32 450" },
-  { id: "2", month: "Januar 2026", date: "Utbetalt 12.01.2026", amount: "28 100" },
-  { id: "3", month: "Desember 2025", date: "Utbetalt 12.12.2025", amount: "35 200" },
-];
-
 export default function MeScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const router = useRouter();
   const { data: profile } = useMyProfile();
+  const { data: pay } = usePayrollSummary();
+  const { data: payslipData } = usePayslips();
+
+  // Real payroll figures — no mock numbers. Empty/zero until payroll is run.
+  const lastPay = pay?.lastSettledPay ?? null;
+  const timebankHours = pay?.timebankHours ?? null;
+  const absenceRemaining = (pay?.absenceBalances ?? []).reduce((sum, b) => sum + b.remaining, 0);
+  const payslips = payslipData?.payslips ?? [];
 
   const displayName = profile?.display_name ?? "";
   const firstName = displayName.split(" ")[0] || "";
@@ -85,9 +116,7 @@ export default function MeScreen() {
           <Text style={styles.welcomeTitle}>
             {greeting}, {firstName}
           </Text>
-          <Text style={styles.welcomeSubtitle}>
-            Her er din oversikt for mars og kommende perioder.
-          </Text>
+          <Text style={styles.welcomeSubtitle}>Lønn, timebank og fravær på ett sted.</Text>
         </Animated.View>
 
         {/* Stats Grid — Row 1: Lønn | Timebank, Row 2: Saldo | Nytt fravær */}
@@ -102,11 +131,11 @@ export default function MeScreen() {
           >
             <View style={styles.statHeader}>
               <Banknote size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
-              <Text style={styles.statLabel}>LØNN MAR</Text>
+              <Text style={styles.statLabel}>SISTE LØNN</Text>
             </View>
             <View style={styles.statBottom}>
-              <Text style={styles.statValue}>24</Text>
-              <Text style={styles.statUnit}>timer</Text>
+              <Text style={styles.statValue}>{lastPay ? fmtKr(lastPay.amount) : "–"}</Text>
+              <Text style={styles.statUnit}>{lastPay ? "kr" : ""}</Text>
             </View>
           </Pressable>
 
@@ -123,7 +152,9 @@ export default function MeScreen() {
               <Text style={styles.statLabel}>TIMEBANK</Text>
             </View>
             <View style={styles.statBottom}>
-              <Text style={[styles.statValue, styles.statValueAccent]}>+12.5</Text>
+              <Text style={[styles.statValue, styles.statValueAccent]}>
+                {timebankHours == null ? "0" : `${timebankHours > 0 ? "+" : ""}${timebankHours}`}
+              </Text>
               <Text style={styles.statUnit}>t</Text>
             </View>
           </Pressable>
@@ -141,7 +172,7 @@ export default function MeScreen() {
               <Text style={styles.statLabel}>SALDO</Text>
             </View>
             <View style={styles.statBottom}>
-              <Text style={styles.statValue}>18</Text>
+              <Text style={styles.statValue}>{absenceRemaining}</Text>
               <Text style={styles.statUnit}>dager igjen</Text>
             </View>
           </Pressable>
@@ -178,30 +209,42 @@ export default function MeScreen() {
               <Text style={styles.seeAll}>Se alle</Text>
             </Pressable>
           </View>
-          {PAYSLIPS.map((slip) => (
-            <Pressable
-              key={slip.id}
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push("/(app)/(me)/payroll/payslip");
-              }}
-              style={({ pressed }) => [styles.payslipRow, pressed && styles.cardPressed]}
-            >
-              <View style={styles.payslipLeft}>
-                <View style={styles.payslipIcon}>
-                  <FileText size={18} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+          {payslips.length === 0 ? (
+            <View style={styles.payslipRow}>
+              <Text style={styles.payslipDate}>Ingen lønnsgrunnlag ennå.</Text>
+            </View>
+          ) : (
+            payslips.map((slip) => (
+              <Pressable
+                key={slip.period.id}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  router.push("/(app)/(me)/payroll/payslip");
+                }}
+                style={({ pressed }) => [styles.payslipRow, pressed && styles.cardPressed]}
+              >
+                <View style={styles.payslipLeft}>
+                  <View style={styles.payslipIcon}>
+                    <FileText size={18} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+                  </View>
+                  <View>
+                    <Text style={styles.payslipMonth}>{monthLabel(slip.period.start_date)}</Text>
+                    <Text style={styles.payslipDate}>
+                      {slip.period.exported_at
+                        ? `Utbetalt ${new Date(slip.period.exported_at).toLocaleDateString("nb-NO")}`
+                        : "Ikke utbetalt"}
+                    </Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.payslipMonth}>{slip.month}</Text>
-                  <Text style={styles.payslipDate}>{slip.date}</Text>
+                <View style={styles.payslipRight}>
+                  <Text style={styles.payslipAmount}>
+                    {slip.calculation ? fmtKr(slip.calculation.total_pay) : "–"}
+                  </Text>
+                  <Text style={styles.payslipCurrency}>kr</Text>
                 </View>
-              </View>
-              <View style={styles.payslipRight}>
-                <Text style={styles.payslipAmount}>{slip.amount}</Text>
-                <Text style={styles.payslipCurrency}>kr</Text>
-              </View>
-            </Pressable>
-          ))}
+              </Pressable>
+            ))
+          )}
         </View>
 
         {/* Quick Access */}

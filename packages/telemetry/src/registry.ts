@@ -60,7 +60,8 @@ export type EventCategory =
   | "cost" // ui-shell-cost-polish — Cost overview telemetry
   | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
   | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
-  | "people"; // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "people" // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
+  | "bulk_import"; // ADR-0401 — bulk_import capability (Sortie A: parse_spreadsheet)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -208,7 +209,9 @@ export type EntityType =
   // ─── Day-Line Runtime (ADR-0367, BT0-FOUNDATION 2026-05-18) ─────────────────
   | "day_line"
   | "shift_session"
-  | "day_line_item";
+  | "day_line_item"
+  // ─── Bootstrap Gate (ADR-0407, Phase 1) ──────────────────────────────────
+  | "workspace_bootstrap_gate";
 
 export type ActionVerb =
   | "created"
@@ -661,6 +664,22 @@ export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { step: number };
+  };
+}
+
+export interface ProfileWelcomeWizardDismissed extends BaseEvent {
+  event: "profile welcome_wizard_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardResumed extends BaseEvent {
+  event: "profile welcome_wizard_resumed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
   };
 }
 
@@ -1208,6 +1227,36 @@ export interface SessionTaskAssigned extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: { source: string; assigned_to: string };
+  };
+}
+
+/**
+ * session_task.overdue — A session_task crossed its due_at threshold without
+ * being completed. Emitted by `session-task-overdue-cron` (Deno Edge Function)
+ * when it flips status → 'overdue'. One emit per affected task per run.
+ *
+ * Destinations: activity_trail (audit) + engine_event (workflow reactions e.g.
+ * auto-escalate or re-assign) + posthog (analytics: overdue rate per workspace).
+ *
+ * actor_id: SYSTEM_ACTOR_ID (00000000-0000-0000-0000-000000000001) — cron actor.
+ * workspace_id: non-null (all session_task rows are workspace-scoped).
+ */
+export interface SessionTaskOverdue extends BaseEvent {
+  event: "session_task.overdue";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      /** Profile that was assigned to the task (null if unassigned). */
+      assigned_to: string | null;
+      /** ISO-8601 original due_at from session_task. */
+      due_at: string;
+      /** Minutes elapsed past the due_at threshold. */
+      elapsed_minutes: number;
+      /** department_session_id the task belongs to. */
+      department_session_id: string;
+      /** Whether the task is compliance-required (HACCP, HMS, etc.). */
+      is_compliance_required: boolean;
+    };
   };
 }
 
@@ -4427,6 +4476,68 @@ export interface AnnouncementTierOverridden extends BaseEvent {
   };
 }
 
+// ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ────────────────
+//
+// Four events covering the full HITL lifecycle for Botsson mutations rendered
+// as an InlineConfirmCard. Emitted server-side (tool body) per L-0233 — voice
+// context is separate and must not receive card descriptors.
+//
+// inline_confirm_card.shown
+//   Emitted in publish_announcement.ts draft branch when capability returns
+//   {phase:"draft"} and proposal_id. Call-site: T3 (parallel).
+//
+// inline_confirm_card.confirmed
+//   Emitted in publish_announcement.ts commit branch after atomic RPC succeeds.
+//   Call-site: T3 (parallel).
+//
+// inline_confirm_card.cancelled
+//   Emitted when browser returns action:"cancel" via ClientToolCallResult roundtrip.
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// inline_confirm_card.edited
+//   Emitted when browser returns action:"edit" with patch. edited_field_count
+//   counts whitelisted editable_fields modified in the patch (per ADR-0398 §resume-payload).
+//   Call-site: T4 (deferred — BotssonChat client-tool impl).
+//
+// Destinations: posthog + logger + activity_trail.
+//   engine_event EXCLUDED — these are UI telemetry events, NOT workflow triggers.
+//   (Sibling pattern: channel.message.sent — posthog + logger + activity_trail.)
+//
+export interface InlineConfirmCardShown extends BaseEvent {
+  event: "inline_confirm_card.shown";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string; // = p_client_message_id passed to atomic RPC
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardConfirmed extends BaseEvent {
+  event: "inline_confirm_card.confirmed";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    recipient_count?: number;
+  };
+}
+
+export interface InlineConfirmCardCancelled extends BaseEvent {
+  event: "inline_confirm_card.cancelled";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+  };
+}
+
+export interface InlineConfirmCardEdited extends BaseEvent {
+  event: "inline_confirm_card.edited";
+  properties: {
+    surface: "announcement" | "message" | "shift_approve";
+    proposal_id: string;
+    edited_field_count: number; // count of whitelisted editable_fields present in patch
+  };
+}
+
 // ─── Website Factory Events ────────────────────
 export interface WebsiteCreated extends BaseEvent {
   event: "website created";
@@ -4892,6 +5003,24 @@ export interface BotssonAuthorityFiltered extends BaseEvent {
   };
 }
 
+// ─── Attachment Deterministic Routing (Sortie 0) ─────────────────
+// Emitted by:
+//   - stage-engine : agent-router.ts, when MIME-type resolver matches a
+//     spreadsheet attachment (.xlsx/.xls/.csv) BEFORE intent classification.
+//     Forces bulk_import capability; intent-classifier is never called.
+// Routing decision telemetry only — not a user action, no activity_trail.
+export interface AttachmentRouted extends BaseEvent {
+  event: "attachment.routed";
+  properties: {
+    data: {
+      capability: string;
+      source: "deterministic_attachment";
+      filename: string;
+      attachment_count: number;
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -5336,6 +5465,21 @@ export interface MobileVoicePolicyFlipped extends BaseEvent {
       /** HTTP status from BFF that indicated policy denial (typically 403). */
       status_code: number;
       device_type: "mobile";
+    };
+  };
+}
+
+// ─── Mobile Routine Events ───────────────────────────────────────────────────
+// Emitted by useRoutineExtract hook (apps/mobile) after a photo-to-routine
+// extraction succeeds. Routing: posthog + logger (no audit trail needed for
+// a draft extraction — commit is the auditable action).
+export interface MobileRoutinePhotoExtracted extends BaseEvent {
+  event: "mobile.routine.photo_extracted";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      /** Number of steps returned in the draft */
+      step_count: number;
     };
   };
 }
@@ -8375,6 +8519,80 @@ export interface UiDemoShown extends BaseEvent {
   };
 }
 
+// ─── Bulk Import Events (ADR-0401, Sortie A — parse_spreadsheet) ──────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// Emitted by:
+//   - packages/ai : bulk_import capability parse_spreadsheet tool, on successful
+//     CSV parse. ONE emit per parse per ADR-0287.
+// Routing: posthog (adoption analytics) + logger (debugging) + activity_trail
+//   (audit — file parse is an auditable import action, workspace-scoped).
+// No engine_event — Sortie A is read-only; no DB write = no workflow trigger.
+export interface BulkImportBatchParsed extends BaseEvent {
+  event: "bulk_import.batch_parsed";
+  properties: {
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      source_kind: "vaktliste" | "kjoreplan" | "mixed";
+      sheet_count: number;
+      row_count: number;
+      excel_sha256: string;
+      /** Fraction 0–1 of canonical fields auto-mapped from headers. */
+      suggested_mapping_completeness: number;
+    };
+  };
+}
+
+// ─── Bootstrap Gate Events (ADR-0407, Phase 1) ──────────────────────────────
+// bootstrap.gates_listed — activity_trail only (read, no mutation).
+// bootstrap.gate_closed  — posthog + logger + activity_trail + engine_event.
+// bootstrap.gate_skipped — posthog + logger + activity_trail + engine_event.
+export interface BootstrapGatesListed extends BaseEvent {
+  event: "bootstrap.gates_listed";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      open_gate_count: number;
+    };
+  };
+}
+
+export interface BootstrapGateClosed extends BaseEvent {
+  event: "bootstrap.gate_closed";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      gate_slug: string;
+      closed_via: string;
+      gate_evaluation_id?: string;
+    };
+  };
+}
+
+export interface BootstrapGateSkipped extends BaseEvent {
+  event: "bootstrap.gate_skipped";
+  properties: {
+    entity: {
+      entity_type: "workspace_bootstrap_gate";
+      entity_id: string;
+      entity_label?: string;
+    };
+    metadata: {
+      gate_slug: string;
+      skip_reason: string;
+      gate_evaluation_id?: string;
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -8719,6 +8937,11 @@ export type SmartoutEvent =
   | AnnouncementLinkFollowed
   | AnnouncementKindChanged
   | AnnouncementTierOverridden
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  | InlineConfirmCardShown
+  | InlineConfirmCardConfirmed
+  | InlineConfirmCardCancelled
+  | InlineConfirmCardEdited
   | WebsiteCreated
   | WebsitePublished
   | WebsiteUnpublished
@@ -8780,6 +9003,7 @@ export type SmartoutEvent =
   | BotssonSessionCreated
   | BotssonSessionArchived
   | BotssonAuthorityFiltered
+  | AttachmentRouted
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -8845,6 +9069,7 @@ export type SmartoutEvent =
   | TelegramBridgeMessageRelayed
   | SessionTaskCreated
   | SessionTaskAssigned
+  | SessionTaskOverdue
   | TaskAddedManual
   | CommunicationBroadcastSent
   | AuthOtpSent
@@ -9095,6 +9320,8 @@ export type SmartoutEvent =
   | ProfileWelcomeWizardStepCompleted
   | ProfileWelcomeWizardCompleted
   | ProfileWelcomeWizardSkippedOptional
+  | ProfileWelcomeWizardDismissed
+  | ProfileWelcomeWizardResumed
   | LegalAml146Validated
   | LegalLawCited
   | LegalAmendmentClassified
@@ -9265,6 +9492,11 @@ export type SmartoutEvent =
   | ShiftSessionClockedIn
   | ShiftSessionClockedOut
   | RoutineAttached
+  | RoutineCreated
+  | RoutineCreatedFromImage
+  | RoutineGovernanceUnassigned
+  | RoutineAssignedToLocation
+  | ProcedureStepAdded
   | OrgDeptAreasUpdated
   | ShiftSessionItemLeakDetected
   | CelebrationAutoPublished
@@ -9297,7 +9529,14 @@ export type SmartoutEvent =
   | MobileVoiceMicPermissionDenied
   | MobileVoiceDisconnectRecovered
   | MobileVoiceDisconnectFailed
-  | MobileVoicePolicyFlipped;
+  | MobileVoicePolicyFlipped
+  | MobileRoutinePhotoExtracted
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  | BulkImportBatchParsed
+  // ─── Bootstrap Gate Events (ADR-0407, Phase 1) ───────────────────────────
+  | BootstrapGatesListed
+  | BootstrapGateClosed
+  | BootstrapGateSkipped;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -11135,6 +11374,83 @@ export interface RoutineAttached extends BaseEvent {
   };
 }
 
+// ─── Procedure Engine Phase 1 Events (procedure-engine-phase1, 2026-05-22) ───
+//
+// routine.created: 4 destinations — admin C4 act creating a routine template.
+//   engine_event: downstream workflows may react to a new routine being registered.
+// routine.assigned_to_location: 4 destinations — scoping act (manager+, C4 confirm).
+//   engine_event: session_hook wiring is a workflow-driving mutation.
+// procedure_step.added: 3 destinations — content authoring by admin/manager.
+//   No engine_event: step additions are authoring acts, not workflow state inputs.
+
+export interface RoutineCreated extends BaseEvent {
+  event: "routine.created";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      name: string;
+      procedure_id: string;
+      protocol_id: string;
+      trigger_type: string;
+      executor_type: string;
+    };
+  };
+}
+
+export interface RoutineCreatedFromImage extends BaseEvent {
+  event: "routine.created_from_image";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      procedure_id: string;
+      location_id: string;
+      governance_status: "unassigned" | "attached";
+      step_count: number;
+      source_reference: string;
+    };
+  };
+}
+
+export interface RoutineGovernanceUnassigned extends BaseEvent {
+  event: "routine.governance_unassigned";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: { routine_id: string; source_reference: string };
+  };
+}
+
+export interface RoutineAssignedToLocation extends BaseEvent {
+  event: "routine.assigned_to_location";
+  properties: {
+    entity: { entity_type: "routine"; entity_id: string };
+    data: {
+      routine_id: string;
+      location_id: string;
+      team_ids: string[];
+      /** Number of session_hook rows upserted. */
+      hooks_upserted: number;
+    };
+  };
+}
+
+export interface ProcedureStepAdded extends BaseEvent {
+  event: "procedure_step.added";
+  properties: {
+    entity: { entity_type: "procedure"; entity_id: string };
+    data: {
+      step_id: string;
+      procedure_id: string;
+      title: string;
+      step_order: number;
+      is_required: boolean;
+      /** routine_id that initiated the step addition, if delegated via routine.add_step */
+      source_routine_id?: string;
+    };
+  };
+}
+
 export interface OrgDeptAreasUpdated extends BaseEvent {
   event: "org.dept_areas_updated";
   properties: {
@@ -12749,6 +13065,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
 
+  // attachment.routed: MIME-type deterministic capability dispatch fired.
+  // Emitted by: stage-engine agent-router.ts BEFORE intent-classifier.
+  // When a spreadsheet attachment (.xlsx/.xls/.csv) is present, the resolver
+  // short-circuits LLM classification and forces bulk_import capability.
+  // Routing decision only — no user action, no audit trail needed.
+  // Destinations: posthog (adoption analytics) + logger (debugging).
+  "attachment.routed": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
   // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
   // All four destinations: PostHog (analytics), logger (debugging),
   // activity_trail (audit), engine_event (drives observability dashboards).
@@ -13027,6 +13354,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session_task.assigned": {
+    destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "session_task.overdue": {
     destinations: ["activity_trail", "engine_event", "posthog"],
     category: "operations",
   },
@@ -14133,6 +14464,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "onboarding",
   },
+  // dismissed: posthog (funnel exit) + logger + activity_trail (audit — who
+  //   dismissed and at which step). No engine_event (only _completed triggers
+  //   downstream flows). Emit sites land in T11 (dismissWelcomeWizard Server Action).
+  "profile welcome_wizard_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  // resumed: posthog (re-engagement funnel) + logger + activity_trail (audit).
+  //   No engine_event. Emit sites land in T11 (resumeWelcomeWizard Server Action).
+  "profile welcome_wizard_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
 
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────────────────
   // Platform-scoped: workspace_id null. Destinations: logger + engine_event
@@ -14872,6 +15216,29 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
+  // routine.created: 4 destinations — admin C4 act; engine_event for workflow reactions.
+  "routine.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.created_from_image": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "routine.governance_unassigned": {
+    destinations: ["logger", "activity_trail"],
+    category: "scheduling",
+  },
+  // routine.assigned_to_location: 4 destinations — scoping + hook-wiring act.
+  "routine.assigned_to_location": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  // procedure_step.added: 3 destinations — authoring act, no state-machine reaction.
+  "procedure_step.added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
   "org.dept_areas_updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "org_structure",
@@ -15027,6 +15394,70 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "mobile.voice.policy_flipped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "mobile.routine.photo_extracted": {
+    destinations: ["posthog", "logger"],
+    category: "scheduling",
+  },
+
+  // ─── Bulk Import Events (ADR-0401, Sortie A) ────────────────────────────
+  // bulk_import.batch_parsed: ONE emit per successful CSV parse (ADR-0287).
+  // posthog (import-funnel analytics) + logger (debugging) + activity_trail
+  // (workspace-scoped audit for import actions). No engine_event — Sortie A
+  // is read-only; no DB write = no workflow state transition.
+  "bulk_import.batch_parsed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "bulk_import",
+  },
+
+  // ─── Bootstrap Gate Events (ADR-0407, Phase 1) ───────────────────────────
+  // bootstrap.gates_listed: read-only audit (activity_trail only — no PostHog/engine_event
+  // for list reads per convention). Call-site: listBootstrapGates tool body.
+  //
+  // bootstrap.gate_closed: full 4-destination routing.
+  //   posthog (setup-funnel analytics — track which gates get closed and when),
+  //   logger (debugging), activity_trail (workspace audit of setup actions),
+  //   engine_event (workflow trigger — coordinator phase 2 reads this to advance
+  //   next-gate suggestion).
+  // Call-site: closeBootstrapGate tool body (one emit per close).
+  //
+  // bootstrap.gate_skipped: full 4-destination routing (same rationale).
+  //   skip_reason logged to activity_trail for audit compliance.
+  // Call-site: skipBootstrapGate tool body (one emit per skip).
+  "bootstrap.gates_listed": {
+    destinations: ["activity_trail"],
+    category: "agent",
+  },
+  "bootstrap.gate_closed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "bootstrap.gate_skipped": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────
+  // All 4 events route to posthog + logger + activity_trail.
+  // engine_event EXCLUDED — these are UI telemetry for the HITL gate, NOT
+  // workflow triggers. Pattern: channel.message.sent (same 3 destinations).
+  // Call-sites: shown + confirmed → T3 (publish-announcement.ts, parallel).
+  //             cancelled + edited → T4 (inline-confirm-card-tool.ts, deferred).
+  "inline_confirm_card.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "inline_confirm_card.edited": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

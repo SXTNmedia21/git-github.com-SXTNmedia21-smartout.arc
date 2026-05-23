@@ -114,7 +114,7 @@ type ProfileRow = {
 /** Supabase join shape for position → department */
 type PositionRow = {
   department: {
-    id: string;
+    department_id: string;
     slug: string;
     name: string;
     color: string | null;
@@ -200,7 +200,7 @@ async function fetchTeamShifts(
       ),
       position:position_id (
         department:department_id (
-          id,
+          department_id,
           slug,
           name,
           color

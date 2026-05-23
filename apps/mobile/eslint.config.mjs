@@ -32,6 +32,9 @@ export default [
     rules: {
       // L-0083 enforcement (ADR-0134 Invariant 2). Mobile-only error severity.
       "smartout/no-empty-string-identifier-fallback": "error",
+      // Metro bundle guard: wizard barrel pulls lucide-react + framer-motion.
+      // Mobile must import from "@smartout/ui/wizard/state" (deep entry only).
+      "smartout/no-wizard-barrel-import": "error",
     },
   },
 ];

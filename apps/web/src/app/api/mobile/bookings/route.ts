@@ -19,7 +19,6 @@
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { z } from "zod";
 import { addBookingAction } from "@/app/dashboard/_actions/add-booking-action";
@@ -36,15 +35,22 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  // Auth: Bearer token from mobile. createClient() reads the Authorization
-  // header via Supabase's SSR helper — returns the user from the JWT.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  // Auth: Bearer JWT only (mobile has no SSR cookie). Validate the token with
+  // the admin client — the SSR createClient() reads cookies, never the
+  // Authorization header, so it would 401 every mobile call. Mirrors the
+  // sibling routes (deviations, day-info, shifts).
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const admin = createAdminClient();
+  const { data: userData, error: userErr } = await admin.auth.getUser(token);
+  if (userErr || !userData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const user = userData.user;
 
   // Validate request body.
   const body = await request.json().catch(() => null);
@@ -55,7 +61,6 @@ export async function POST(request: NextRequest) {
 
   // Derive workspace_id and profile_id server-side from the authenticated JWT.
   // Never accepted from the body (ADR-0151).
-  const admin = createAdminClient();
   const { data: profileRow } = await admin
     .from("profile")
     .select("profile_id, workspace_id, role")
