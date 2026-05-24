@@ -1,7 +1,7 @@
 ---
 title: Journey Sweep — Bug List (2026-05-23/24)
 status: complete
-updated: 2026-05-24
+updated: 2026-05-24 (BUG-16/17 fixed in hotfix/mech-fixes-bug-16-17-22)
 created: 2026-05-24
 module: meta
 tags: [bugs, journey-verification, playwright]
@@ -118,17 +118,19 @@ tags: [bugs, journey-verification, playwright]
 - **Impact:** Orb should suppress when domain chat declares ownership — appears broken across 4 specs
 - **Fix:** Trace `useDomainChatOwnership` hook + BotssonProvider scope detection. Matches L-0178 in MEMORY.md.
 
-### BUG-16 — Contracts-compliance: ALL 11 tests auth-fail with `Invalid login credentials` 🔴 CRITICAL
+### BUG-16 — Contracts-compliance: ALL 11 tests auth-fail with `Invalid login credentials` 🔴 CRITICAL — **FIXED in PR hotfix/mech-fixes-bug-16-17-22**
 - **Where:** `tests/contracts-compliance*/*.spec.ts` (5 spec files)
 - **Evidence:** `run-34` + `run-38-rerun` (consistent — not cascade)
 - **Impact:** Fixture pre-check succeeds for `admin@smartout.local`; spec-level auth path fails
-- **Fix:** Trace `loginAsAdmin` variant used by these specs vs fixture; check for GoTrue rate-limit OR password drift
+- **Root cause:** `journey-a-singular-bypass.spec.ts` used `anna@strommatabar.local`/`testpassword123` (stale seed domain). `journey-d-pdf-gate-bypass.spec.ts` used `testpassword123` for admin. Both now aligned to `anna@smartout.local`/`password123` and `password123` respectively.
+- **Fix:** Credential mismatch fixed in both specs.
 
-### BUG-17 — HMS suite broad regression (11/13 fail)
+### BUG-17 — HMS suite broad regression (11/13 fail) — **PARTIAL FIX in PR hotfix/mech-fixes-bug-16-17-22** (strict-mode locator)
 - **Where:** `tests/hms-{avvik,drift,oversikt,signoff}.spec.ts`
 - **Evidence:** `run-41-hms`
 - **Impact:** Broad HMS surface failure — likely related to recent ui-shell-hms-cluster-polish + r2-fixup work (MEMORY.md)
-- **Fix:** Inspect specific failure causes; likely testid drift after polish sortie
+- **Mechanical fix applied:** `hms-drift.spec.ts` `page.locator("text=2026")` → `.first()` — resolves strict-mode: both "Vinter 2026" season chip and date bar match "2026".
+- **Remaining:** Other HMS failures (avvik/oversikt/signoff) are product-level regressions, not mechanical harness issues. Need separate investigation.
 
 ### BUG-18 — Day-line: 2 tests fail + 8 skip
 - **Where:** `tests/day-line/{create,attach-routine,edit-hours}.spec.ts`

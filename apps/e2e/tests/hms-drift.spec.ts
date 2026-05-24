@@ -40,8 +40,9 @@ test.describe("HMS Drift", () => {
     await page.goto("/dashboard/hms/drift");
     await page.waitForLoadState("networkidle");
 
-    // Find the date display — uses nb-NO long format, match the year
-    const dateDisplay = page.locator("text=2026");
+    // Find the date display — uses nb-NO long format, match the year.
+    // .first() resolves strict-mode: "Vinter 2026" season chip + date bar both contain "2026" (BUG-17).
+    const dateDisplay = page.locator("text=2026").first();
     await expect(dateDisplay).toBeVisible({ timeout: 5000 });
 
     // Click previous day
