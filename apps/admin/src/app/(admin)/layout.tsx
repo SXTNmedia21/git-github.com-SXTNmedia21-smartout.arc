@@ -13,6 +13,7 @@ import { AdminTopbar } from "./_components/AdminTopbar";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Throws redirect("/auth/login") if no session.
   // Throws notFound() if authed but no active grants.
+  // Godmode users short-circuit per ADR-0410 (is_godmode=true → all companies).
   const { userId, companyIds } = await requireAccountant();
 
   return (
