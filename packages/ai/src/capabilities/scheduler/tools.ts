@@ -61,11 +61,16 @@ async function loadSolverContext(
   supabase: SupabaseClient,
   workspaceId: string,
   planningCycleId: string,
+  departmentId: string,
 ): Promise<SolverInput> {
   // ── D1: planning cycle envelope ──────────────────────────────────────────
+  // L-0348 fix #5: planning_cycle schema reality —
+  // - columns are start_date + end_date (DATE), NOT starts_at + ends_at (TIMESTAMPTZ)
+  // - planning_cycle is workspace-scoped, NOT department-scoped (no department_id)
+  // - departmentId is passed as separate param by caller (propose_plan schema)
   const { data: cycle, error: cycleErr } = await supabase
     .from("planning_cycle")
-    .select("planning_cycle_id, department_id, starts_at, ends_at")
+    .select("planning_cycle_id, start_date, end_date")
     .eq("workspace_id", workspaceId)
     .eq("planning_cycle_id", planningCycleId)
     .maybeSingle();
@@ -73,6 +78,10 @@ async function loadSolverContext(
   if (cycleErr || !cycle) {
     throw new Error(`planning_cycle not found or not in workspace: ${planningCycleId}`);
   }
+
+  // Convert DATE strings to ISO timestamps for SolverInput consumption.
+  const cycleStartsAt = `${cycle.start_date}T00:00:00Z`;
+  const cycleEndsAt = `${cycle.end_date}T23:59:59Z`;
 
   // ── D4: demand buckets via day_factor + hour_factor ──────────────────────
   // Schema reality (L-0348 fix): day_factor + hour_factor are keyed per
@@ -82,8 +91,8 @@ async function loadSolverContext(
   //
   // Real-time POS demand (ADR-0305) deferred to V2 — day_factor is the
   // production-ready fallback per ADR-0307 spec.
-  const cycleStartDate = cycle.starts_at.slice(0, 10);
-  const cycleEndDate = cycle.ends_at.slice(0, 10);
+  const cycleStartDate = cycle.start_date;
+  const cycleEndDate = cycle.end_date;
 
   // Resolve active season overlapping the cycle window.
   // season has start_date + end_date (nullable for open-ended) + status enum.
@@ -134,8 +143,8 @@ async function loadSolverContext(
   const BASELINE_HEADCOUNT = 2;
   const demand_buckets: DemandBucket[] = [];
 
-  const startDate = new Date(cycle.starts_at);
-  const endDate = new Date(cycle.ends_at);
+  const startDate = new Date(cycleStartsAt);
+  const endDate = new Date(cycleEndsAt);
 
   for (let d = new Date(startDate); d < endDate; d.setUTCDate(d.getUTCDate() + 1)) {
     const dateStr = d.toISOString().slice(0, 10);
@@ -157,11 +166,11 @@ async function loadSolverContext(
       const endHour = `${dateStr}T${String(h + 1).padStart(2, "0")}:00:00Z`;
 
       demand_buckets.push({
-        department_id: cycle.department_id,
+        department_id: departmentId,
         start_at: startHour,
         end_at: endHour,
         score,
-        position_id: cycle.department_id, // V1: position_id = department_id (V2 uses positions table)
+        position_id: departmentId, // V1: position_id = department_id (V2 uses positions table)
         role: "employee", // V1 default role; V2 uses position.role
       });
     }
@@ -191,7 +200,7 @@ async function loadSolverContext(
     .from("schedule_shift")
     .select("schedule_shift_id, employee_id, start_time, end_time, shift_date")
     .eq("workspace_id", workspaceId)
-    .eq("department_id", cycle.department_id)
+    .eq("department_id", departmentId)
     .gte("shift_date", cycleStartDate)
     .lte("shift_date", cycleEndDate)
     .not("employee_id", "is", null);
@@ -201,8 +210,8 @@ async function loadSolverContext(
     .from("schedule_absence")
     .select("absence_id, profile_id, start_at, end_at")
     .eq("workspace_id", workspaceId)
-    .gte("end_at", cycle.starts_at)
-    .lte("start_at", cycle.ends_at);
+    .gte("end_at", cycleStartsAt)
+    .lte("start_at", cycleEndsAt);
 
   // ── D3: framework rules for scheduling ───────────────────────────────────
   const { data: frameworkRuleRows } = await supabase
@@ -288,9 +297,9 @@ async function loadSolverContext(
     workspace_id: workspaceId,
     planning_cycle: {
       planning_cycle_id: cycle.planning_cycle_id,
-      department_id: cycle.department_id,
-      starts_at: cycle.starts_at,
-      ends_at: cycle.ends_at,
+      department_id: departmentId,
+      starts_at: cycleStartsAt,
+      ends_at: cycleEndsAt,
     },
     demand_buckets,
     profiles,
@@ -317,6 +326,12 @@ export const proposePlan = defineTool({
       .string()
       .uuid()
       .describe("The planning cycle to schedule. Solver reads D2+D3+D4+D6 context for this cycle."),
+    department_id: z
+      .string()
+      .uuid()
+      .describe(
+        "Department to schedule. planning_cycle is workspace-scoped; department is required to scope D2/D6 reads + bucket scoring.",
+      ),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
@@ -329,7 +344,12 @@ export const proposePlan = defineTool({
     // ── Load cascade context (workspace-scoped per Law 1) ─────────────────
     let solverInput: SolverInput;
     try {
-      solverInput = await loadSolverContext(supabase, ctx.workspaceId, params.planning_cycle_id);
+      solverInput = await loadSolverContext(
+        supabase,
+        ctx.workspaceId,
+        params.planning_cycle_id,
+        params.department_id,
+      );
     } catch (err) {
       return `Feil ved lasting av planleggingskontekst: ${err instanceof Error ? err.message : String(err)}`;
     }

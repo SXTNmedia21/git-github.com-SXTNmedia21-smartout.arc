@@ -56,9 +56,8 @@ function makeRecordingSupabase(selectCalls: SelectCall[], orCalls: string[]) {
   // Per-table data overrides for tables that need shape
   const planningCycleData = {
     planning_cycle_id: CYCLE_ID,
-    department_id: "dept-001",
-    starts_at: "2026-06-15T00:00:00Z",
-    ends_at: "2026-06-22T00:00:00Z",
+    start_date: "2026-06-15",
+    end_date: "2026-06-22",
   };
 
   function makeChain(table: string, data: unknown): unknown {
@@ -113,6 +112,35 @@ beforeEach(() => {
 });
 
 describe("loadSolverContext column-coverage (L-0348 regression)", () => {
+  it("queries planning_cycle by (start_date, end_date), NOT (starts_at, ends_at, department_id)", async () => {
+    const selectCalls: SelectCall[] = [];
+    const supabase = makeRecordingSupabase(selectCalls, []);
+    mockMutateWithGate.mockResolvedValue({
+      ok: true,
+      result: "prop-x",
+      gateEvaluationId: "ge-1",
+      correlationId: "c-1",
+    });
+
+    await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      makeCtx(supabase),
+    );
+
+    const cycleCall = selectCalls.find((c) => c.table === "planning_cycle");
+    expect(cycleCall, "planning_cycle query must run").toBeDefined();
+    expect(cycleCall!.columns).toContain("start_date");
+    expect(cycleCall!.columns).toContain("end_date");
+    expect(
+      cycleCall!.columns,
+      "planning_cycle.starts_at does NOT exist — must use start_date (DATE)",
+    ).not.toContain("starts_at");
+    expect(
+      cycleCall!.columns,
+      "planning_cycle has no department_id column — workspace-scoped; dept resolved via tool param",
+    ).not.toContain("department_id");
+  });
+
   it("queries day_factor by (season_budget_id, weekday, factor) — NOT (date, department_id)", async () => {
     const selectCalls: SelectCall[] = [];
     const orCalls: string[] = [];
@@ -124,7 +152,10 @@ describe("loadSolverContext column-coverage (L-0348 regression)", () => {
       correlationId: "c-1",
     });
 
-    await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, makeCtx(supabase));
+    await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      makeCtx(supabase),
+    );
 
     // When seasonBudgetId resolves to null (no active season), day_factor is NOT queried.
     // To ensure the query path exists & uses correct columns when season_budget IS resolved,
@@ -146,7 +177,10 @@ describe("loadSolverContext column-coverage (L-0348 regression)", () => {
       correlationId: "c-1",
     });
 
-    await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, makeCtx(supabase));
+    await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      makeCtx(supabase),
+    );
 
     const seasonCall = selectCalls.find((c) => c.table === "season");
     expect(seasonCall, "season query must run to resolve active season").toBeDefined();
@@ -169,7 +203,10 @@ describe("loadSolverContext column-coverage (L-0348 regression)", () => {
       correlationId: "c-1",
     });
 
-    await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, makeCtx(supabase));
+    await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      makeCtx(supabase),
+    );
 
     const profileCall = selectCalls.find((c) => c.table === "profile");
     expect(profileCall, "profile query must run").toBeDefined();
@@ -190,7 +227,10 @@ describe("loadSolverContext column-coverage (L-0348 regression)", () => {
       correlationId: "c-1",
     });
 
-    await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, makeCtx(supabase));
+    await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      makeCtx(supabase),
+    );
 
     const shiftCall = selectCalls.find((c) => c.table === "schedule_shift");
     expect(shiftCall, "schedule_shift query must run").toBeDefined();
