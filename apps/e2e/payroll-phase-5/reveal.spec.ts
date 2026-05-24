@@ -34,9 +34,12 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../helpers/auth";
 
-// ─── Seed constants (replace with actual UUIDs from payroll-phase-5 seed helper) ───
-const SEED_EMPLOYEE_ID = "REPLACE_ME_SEED_EMPLOYEE_UUID";
-const SEED_WORKSPACE_B_PROFILE_ID = "REPLACE_ME_WORKSPACE_B_PROFILE_UUID";
+// ─── Seed constants — populated by supabase/seed-payroll.sql (ENV-3) ─────────
+// Anna Olsen: profile_id f0000000-...-0001, workspace b0000000-...-0000 (HQ).
+// personal_number='12345678901', bank_account='12345678903', tax_card_type='percentage'.
+const SEED_EMPLOYEE_ID = "f0000000-0000-0000-0000-000000000001";
+// Cross-workspace profile in Payroll E2E Workspace B (seed-payroll.sql §3).
+const SEED_WORKSPACE_B_PROFILE_ID = "f0000000-0000-0000-0000-0000000000b1";
 
 // ─── Group A — Admin reveals personal number ─────────────────────────────────
 
