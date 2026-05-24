@@ -52,6 +52,11 @@ pnpm typecheck
 # See scripts/check-tool-name-collisions.ts + docs/decisions/0348-l-0258-collision-detector-mandatory-ci.md
 pnpm lint:tool-collisions
 
+# ADR-0408: CORS pattern gate — blocks re-introduction of the deprecated static
+# corsHeaders constant (hardcoded https://smartout.ai) which breaks workspace
+# subdomain CORS. Any EF must use getCorsHeaders(req) from _shared/cors.ts.
+node scripts/check-cors-pattern.mjs
+
 # ADR-0389: OTP length coherence — the login code field box count (OTP_LENGTH)
 # MUST equal GoTrue otp_length in supabase/config.toml. A mismatch silently
 # breaks OTP login (valid code, 403). Prod dashboard OTP Length must also match.
