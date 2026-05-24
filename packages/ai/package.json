@@ -22,6 +22,10 @@
       "types": "./dist/capabilities/communication/emit-announcement-events.d.ts",
       "default": "./dist/capabilities/communication/emit-announcement-events.js"
     },
+    "./capabilities/communication/pin-message": {
+      "types": "./dist/capabilities/communication/pin-message.d.ts",
+      "default": "./dist/capabilities/communication/pin-message.js"
+    },
     "./industry": {
       "types": "./dist/industry/index.d.ts",
       "default": "./dist/industry/index.js"
