@@ -150,6 +150,7 @@ export default async function DashboardLayout({
     "/dashboard/season",
     "/dashboard/year-wheel",
     "/dashboard/schedule",
+    "/dashboard/oppgaver",
     "/dashboard/website",
     "/dashboard/reconciliation",
     "/dashboard/onboarding-assistant",
