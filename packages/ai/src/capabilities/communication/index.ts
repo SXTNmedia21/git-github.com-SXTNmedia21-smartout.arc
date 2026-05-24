@@ -12,6 +12,7 @@ import { composeShiftBriefing } from "./briefing.js";
 import { compileDayBrief } from "./compile-day-brief.js";
 import { compilePreclose } from "./compile-preclose.js";
 import { publishAnnouncement } from "./publish-announcement.js";
+import { pinMessage } from "./pin-message.js";
 
 const allTools = [
   getConversations,
@@ -23,6 +24,7 @@ const allTools = [
   compileDayBrief,
   compilePreclose,
   publishAnnouncement,
+  pinMessage,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [
@@ -35,7 +37,7 @@ const readOnlyTools = [
   compilePreclose,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
-const suggestTools = [sendMessage, publishAnnouncement] as unknown as ReadonlyArray<
+const suggestTools = [sendMessage, publishAnnouncement, pinMessage] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
 
