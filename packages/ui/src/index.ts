@@ -49,6 +49,7 @@ export {
   type InlineConfirmCardResult,
 } from "./components/inline-confirm-card";
 export { SegmentGroup, type Segment, type SegmentGroupProps } from "./components/segment-group";
+export { FilterChip, type FilterChipProps } from "./components/filter-chip";
 export { cn } from "./lib/utils";
 export * from "./wizard";
 export * from "./flow-player";
