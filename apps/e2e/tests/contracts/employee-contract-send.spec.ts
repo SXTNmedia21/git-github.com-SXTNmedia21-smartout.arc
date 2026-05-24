@@ -56,6 +56,9 @@ async function seedDraftContract(): Promise<{ contract_id: string; profile_id: s
       status: "draft",
       position_title: "E2E Test Position",
       employment_category: "fast",
+      // BUG-12: employment_form is NOT NULL — migration added constraint after seed helpers written.
+      // Enum values: permanent | temporary | apprentice | practice | freelance
+      employment_form: "permanent",
       employment_percentage: 100,
       start_date: new Date().toISOString().slice(0, 10),
       created_by: ADMIN_PROFILE_ID,
