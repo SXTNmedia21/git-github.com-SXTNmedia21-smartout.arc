@@ -83,7 +83,7 @@ The full item table:
 | Slot | Item | Default route | Daily / Weekly / Period | Indicator |
 |---|---|---|---|---|
 | 1 | Oversikt | `/dashboard` | daily | — |
-| 2 | Oppgaver | `/dashboard/tasks` | daily | count of own tasks due today |
+| 2 | Oppgaver | `/dashboard/oppgaver` | daily | count of own tasks due today |
 | 3 | Planlegging | `/dashboard/planning` | weekly | — |
 | 4 | Vaktplan | `/dashboard/schedule` | daily | open shifts count (optional) |
 | 5 | Ansatte | `/dashboard/people` | weekly | trainee count (optional) |
