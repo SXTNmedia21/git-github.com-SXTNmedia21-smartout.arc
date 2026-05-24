@@ -16,7 +16,13 @@ const mobileBaseUrl = `http://localhost:${localMobilePort}`;
  */
 export default defineConfig({
   testDir: ".",
-  testMatch: /\.(spec|test)\.ts$/,
+  /* Narrow testMatch to exclude db/ and runners/__tests__/ subdirs, which
+   * contain vitest specs. The prior broad /\.(spec|test)\.ts$/ caused
+   * Playwright to require() those files and fail: "Vitest cannot be imported
+   * in a CommonJS module" — blocking any --grep or root-glob sweep. HARNESS-1
+   * (2026-05-23 journey-sweep BUGS.md); diagnosed in chair Phase 5 synthesis.
+   * Negative lookahead on the absolute path prevents file discovery entirely. */
+  testMatch: /^(?!.*\/(?:db|runners\/__tests__)\/)\S+\.(spec|test)\.ts$/,
   /* Runs once before any spec. Two gates: (1) L-0107 fixture provisioning
    * + self-verify, (2) recorder C4 authority re-seed for the botsson-
    * recorder suite. See global-setup.ts for why both live in one entry. */
