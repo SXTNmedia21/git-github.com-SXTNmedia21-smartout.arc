@@ -48,6 +48,7 @@ export {
   type InlineConfirmCardDescriptor,
   type InlineConfirmCardResult,
 } from "./components/inline-confirm-card";
+export { SegmentGroup, type Segment, type SegmentGroupProps } from "./components/segment-group";
 export { cn } from "./lib/utils";
 export * from "./wizard";
 export * from "./flow-player";
