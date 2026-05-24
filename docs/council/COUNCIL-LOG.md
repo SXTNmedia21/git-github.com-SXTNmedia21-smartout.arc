@@ -2529,3 +2529,16 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 - `docs/learnings/0340-telemetry-registered-without-emit-3rd-occurrence.md`
 - `docs/learnings/0341-l0147-tenth-precedent-chair-self-reversal.md`
 - This entry
+
+---
+
+## 2026-05-24 — Domain-skill ↔ structure governance audit
+
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator
+**Prior verdict held?** n/a — first council on this audit (predecessor: 2026-05-23 run-council ↔ domain-steward bridge, commit 503c06272)
+**Key decision:** Ship A+B+C(revised)+F(reversed via L-0147)+G(revised). Defer E (per-push lint already covers). Reject `governance` pre-domain (meta-circular).
+**ADR created:** none — F reversal removed the need for ADR-0240-class boundary change; mechanical staleness check (C) removed the need for ADR-0392 §Rules amendment
+**Learning created:** L-0342 (chair over-gating with new-ADR when precedent exists) + L-0343 (heartbeat sweeps duplicate per-push lints when lint has --max-stale-days)
+**L-0147 precedent count:** 7th whole-verdict reversal on Fix F (chair DEFER→REVERSED; evidence: botsson-harness-builder.md:11-21 + supervisor.md:24-33)

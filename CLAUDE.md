@@ -21,6 +21,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
    2.5. **docs/STATE-SUMMARY.md** → current priorities + active gaps (lightweight; full STATE.md for deep dives)
 3. **docs/decisions/** → accepted ADRs (code-review reviewed, in git blame)
 4. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
+   4.5. **`docs/domains/<name>/`** → compiled-truth spine per ADR-0392 (19 domains, 8-file spine each, `_DASHBOARD.md` is the index). Code-wins precedence, but the `mirror:` column (`verified` | `aspirational` | `mixed`) tells you what's safe to trust without re-verifying. When this mirror disagrees with code, code wins and the spine is patched.
 5. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
 6. **docs/modules/** → business logic (23 module docs)
 7. **docs/architecture/** → system design decisions

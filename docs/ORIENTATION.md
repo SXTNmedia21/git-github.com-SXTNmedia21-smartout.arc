@@ -1,7 +1,7 @@
 ---
 title: "Orientation — Where to Look for What (ADR-0075)"
 status: canonical
-updated: 2026-04-20
+updated: 2026-05-24
 created: 2026-04-07
 module: meta
 tags: [orientation, north-star, adr-0075]
@@ -47,6 +47,7 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 | **WebDayControl** (D6 admin canonical surface per ADR-0156) | `apps/web/src/components/day/WebDayControl.tsx`; widgets staged in `apps/web/` → `packages/ui/` (Phase 2 extraction). |
 | **Dual-platform UI primitives** (web + native via `.tsx` + `.native.tsx`) | `packages/ui/src/helpdesk/`, `packages/ui/src/shift-timeline/`. Strategy: ADR-0158 (proposed). |
 | **ADR + contract audit** (parallel-agent compliance check) | Skill: `~/.claude/skills/adr-contract-audit/`. Triggers: `/audit`, `/audit smoke`, `/audit pr`, `/audit test <baseline>`. Outputs to `docs/audits/<date>-adr-contract-validation/`. Self-test framework with 5 git-baseline checkpoints (pre-audit, post-sortie-1/2/3, current). See skill TESTING.md + test-runs/ for history. |
+| Per-domain status (build state, mirror, last_verified, open gaps, overlap edges) | `docs/domains/_DASHBOARD.md` (19 domains) | ADR-0392 |
 
 ## The Trust Hierarchy
 
