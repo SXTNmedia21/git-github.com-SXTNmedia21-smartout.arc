@@ -35,6 +35,8 @@ export type TimelineTask = {
   flagged?: boolean;
   recurring?: string | null;
   emp?: string | null;
+  /** Area (department) id — used by AreaBand to filter tasks per band. */
+  area?: string | null;
 };
 
 type Props = {
