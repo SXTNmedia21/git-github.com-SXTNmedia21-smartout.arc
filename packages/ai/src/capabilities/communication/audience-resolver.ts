@@ -60,10 +60,12 @@ export async function resolveAudience(
     // SAFETY: timesheet schema FK joins to public.profile fail in PostgREST,
     // so we query time_entry rows then dedupe profile_ids in JS.
     // Mirrors the canonical pattern from use-broadcast-recipients.ts:37-58.
+    // workspace_id scoping required here — same as all/department/role branches.
     const { data, error } = await supabase
       .schema("timesheet")
       .from("time_entry")
       .select("profile_id")
+      .eq("workspace_id", workspaceId)
       .is("punch_out", null)
       .limit(500);
     if (error) throw new Error(`resolveAudience(on_duty) failed: ${error.message}`);
