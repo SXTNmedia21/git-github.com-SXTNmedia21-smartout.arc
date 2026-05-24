@@ -19,18 +19,26 @@ Fix replaces 4 column families (day_factor, hour_factor, schedule_shift, profile
 
 | Component | File | Change |
 |---|---|---|
-| Solver loader | `packages/ai/src/capabilities/scheduler/tools.ts:77-249` | 3-place column rewrite + season_budget resolver + weekday convention mapping |
-| Regression test | `packages/ai/src/capabilities/scheduler/__tests__/load-solver-context.test.ts` (NEW) | 4 column-spy tests lock fix against future drift |
+| Solver loader | `packages/ai/src/capabilities/scheduler/tools.ts:60-260` | 5-column-family rewrite + season_budget resolver + weekday convention mapping + dept param threading |
+| Tool schema | `packages/ai/src/capabilities/scheduler/tools.ts:propose_plan` | NEW required `department_id` UUID param (planning_cycle is workspace-scoped per real schema) |
+| Regression test | `packages/ai/src/capabilities/scheduler/__tests__/load-solver-context.test.ts` (NEW) | 5 column-spy tests lock fix against future drift |
 | Mock chain | `packages/ai/src/capabilities/scheduler/__tests__/tools.test.ts:73-83` | extended with `.or()` + `.order()` + `.limit()` for season-budget resolver chain |
 
-## What changed (schema reality)
+## BREAKING change
+
+`scheduler.propose_plan` tool schema now requires `department_id: UUID` in addition to `planning_cycle_id`. Pre-fix tool was structurally broken (queried non-existent `planning_cycle.department_id`); breaking-change cost acceptable for fix-sortie scope. Consumers (intent classifier prose, mr-botsson/shift-assistant mission system prompts, any chat UX) must surface dept selection.
+
+## What changed (schema reality — 5 column families)
 
 | Was queried | Is queried |
 |---|---|
+| `planning_cycle.starts_at` + `ends_at` + `department_id` (NONE exist) | `planning_cycle.start_date` + `end_date` (DATE) — workspace-scoped (no dept; resolved via tool param) |
 | `day_factor.date` + `department_id` (NONE exist) | `day_factor.weekday` + `season_budget_id` (per migration `20260306100000:95`) |
 | `hour_factor.hour_of_day` + `department_id` (NONE exist) | `hour_factor.hour` + `season_budget_id` (per migration `:140`) |
 | `schedule_shift.date` + `profile_id` (NONE exist) | `schedule_shift.shift_date` + `employee_id` (per migration `20260301300000`) |
 | `profile.employment_status` (does NOT exist) | `profile.status` (profile_status enum) |
+
+**Briefing-precision learning:** Council 2026-05-25 code-tracer Layer 2 surfaced 4 of 5 column families. 5th (planning_cycle) caught during /verify. Sibling to L-0350 briefing tool-count off-by-one.
 
 Weekday convention: `day_factor.weekday` uses 0=Mon..6=Sun (Norwegian). JS `Date.getUTCDay()` returns 0=Sun..6=Sat. Conversion: `weekday = (jsDay + 6) % 7`.
 
@@ -58,7 +66,7 @@ Active season_budget resolution: SELECT `season` WHERE `workspace_id` + `status=
 |---|---|
 | `pnpm typecheck` 0 errors in @smartout/ai | ✓ 7/7 turbo tasks successful |
 | Integration test against seeded local Supabase | ⚠️ REPLACED with column-spy unit test (4 tests in `load-solver-context.test.ts`) — see decisions table. Live integration deferred to manual /verify. |
-| `propose_plan` against demo workspace produces real `gap_count` | ⚠️ NEEDS MANUAL VERIFY — run `/verify` post-merge on dev w/ seeded workspace + active season + planning_cycle |
+| `propose_plan` against demo workspace produces real `gap_count` | ✓ LIVE E2E PASS via throwaway Node script. Seeded planning_cycle `780638bd-9702-4fd6-b82c-d8b97790fbc3` (2026-06-21→27) on demo workspace. Invoked `proposePlan.execute({ planning_cycle_id, department_id: Kitchen })`. Result: `change_proposal ce82af89-36c4-4644-a48d-34f3d03b45d6`, kind=`scheduler_bundle`, `gap_count=168` (7d × 24h buckets), `proposed_shift_count=0` (D2 seed concern — demo has 0 active employment_contract; NOT L-0348). gate_evaluated allow=true, `scheduler.proposal.proposed` emit fired. |
 | No regression in existing scheduler unit tests | ✓ 34/34 green (4 + 9 + 13 + 8) |
 | HANDOFF doc | ✓ this file |
 
