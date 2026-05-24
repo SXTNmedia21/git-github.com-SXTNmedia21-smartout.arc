@@ -23,6 +23,10 @@
     "./telemetry": {
       "types": "./src/telemetry/index.ts",
       "default": "./src/telemetry/index.ts"
+    },
+    "./day-session": {
+      "types": "./src/day-session/index.ts",
+      "default": "./src/day-session/index.ts"
     }
   },
   "scripts": {
@@ -32,7 +36,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@smartout/supabase": "workspace:*",
     "zod": "^3.23.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": "^18 || ^19"
   },
   "devDependencies": {
     "@smartout/typescript-config": "workspace:*",
