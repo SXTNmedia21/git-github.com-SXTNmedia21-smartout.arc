@@ -1,13 +1,13 @@
 ---
 title: "OPS-1 WSL2 OOM cliff mitigation -- 4-layer strategy"
-id: ADR-0408
+id: ADR-0412
 status: accepted
 layer: decision
 created: 2026-05-24
 updated: 2026-05-24
 ---
 
-# ADR-0408: OPS-1 WSL2 OOM cliff mitigation -- 4-layer strategy
+# ADR-0412: OPS-1 WSL2 OOM cliff mitigation -- 4-layer strategy
 
 ## Context and Problem Statement
 
