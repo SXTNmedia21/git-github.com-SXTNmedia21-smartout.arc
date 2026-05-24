@@ -150,7 +150,9 @@ export function SelectWorkspaceClient({
 
   useEffect(() => {
     if (hasAny) return; // Only fetch when user is in the empty state
-    fetchPendingInvites(userEmail).then(setPendingInvites).catch(() => setPendingInvites([]));
+    fetchPendingInvites(userEmail)
+      .then(setPendingInvites)
+      .catch(() => setPendingInvites([]));
   }, [hasAny, userEmail]);
 
   // Check if a Google-OAuth invite handoff came through ?invite= query param.
@@ -227,7 +229,7 @@ export function SelectWorkspaceClient({
       {/* Ambient warm orb — single, bottom-right, subtle */}
       <div
         aria-hidden
-        className="pointer-events-none fixed right-[-15%] bottom-[-20%] h-[60vh] w-[60vh] rounded-full opacity-[0.12] blur-[140px]"
+        className="pointer-events-none fixed bottom-[-20%] right-[-15%] h-[60vh] w-[60vh] rounded-full opacity-[0.12] blur-[140px]"
         style={{ backgroundColor: "var(--brand-orange-warm)" }}
       />
 
@@ -246,7 +248,7 @@ export function SelectWorkspaceClient({
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-brand-orange/40 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-brand-orange/40 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             <LogOut className="h-4 w-4" aria-hidden />
             Logg ut
@@ -318,7 +320,7 @@ export function SelectWorkspaceClient({
                   className="border-border/40 mt-10 border-t pt-6"
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                       Uferdig onboarding ({staleWorkspaces.length})
                     </p>
                     <ArchiveOnboardingButton
@@ -392,9 +394,7 @@ export function SelectWorkspaceClient({
                 </div>
               )}
 
-              {acceptError && (
-                <p className="text-destructive mb-4 text-xs">{acceptError}</p>
-              )}
+              {acceptError && <p className="text-destructive mb-4 text-xs">{acceptError}</p>}
 
               <div className="flex flex-col gap-3">
                 <Link

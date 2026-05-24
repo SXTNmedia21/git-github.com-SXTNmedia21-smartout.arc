@@ -49,9 +49,7 @@ async function consumeInviteAfterAuth(
 
   if (efInvokeError || (efData as { error?: string } | null)?.error) {
     const msg =
-      (efData as { error?: string } | null)?.error ??
-      efInvokeError?.message ??
-      "Ukjent feil";
+      (efData as { error?: string } | null)?.error ?? efInvokeError?.message ?? "Ukjent feil";
     return {
       redirectTo: "/select-workspace",
       efError: `Invitasjonen ble ikke aktivert: ${msg}. Du er innlogget — ta kontakt med admin.`,
@@ -335,7 +333,8 @@ function LoginContent() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin + `/api/auth/callback?next=${encodeURIComponent(nextUrl)}`,
+          redirectTo:
+            window.location.origin + `/api/auth/callback?next=${encodeURIComponent(nextUrl)}`,
         },
       });
       if (oauthError) {
@@ -535,7 +534,7 @@ function LoginContent() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.tagline")}
                     <br />
                     <span className="text-brand-orange-light">{t("login.brand.ready")}</span>{" "}
@@ -554,7 +553,7 @@ function LoginContent() {
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.2rem] font-bold leading-[1.1] tracking-tight text-white">
                     {t("login.brand.signup_heading")}
                     <br />
                     <span className="text-brand-orange-light">{t("login.brand.signup_team")}</span>
@@ -573,7 +572,7 @@ function LoginContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.lets_go")}
                     <br />
                     <span className="text-brand-orange-light">
@@ -589,7 +588,7 @@ function LoginContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.welcome_back")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
@@ -623,7 +622,7 @@ function LoginContent() {
       >
         {/* Edge line — hidden when swapped */}
         <motion.div
-          className="absolute top-0 left-0 hidden h-full w-px bg-gradient-to-b from-transparent via-black/6 to-transparent lg:block"
+          className="via-black/6 absolute left-0 top-0 hidden h-full w-px bg-gradient-to-b from-transparent to-transparent lg:block"
           animate={{ opacity: isSwapped || isLoggingIn ? 0 : 1 }}
           transition={{ duration: 0.3 }}
         />
@@ -663,7 +662,7 @@ function LoginContent() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[var(--foreground)]">
+                    <h1 className="font-heading text-[2rem] font-bold leading-[1.15] tracking-tight text-[var(--foreground)]">
                       {t("login.heading")}
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[var(--text-dim)]">
@@ -957,7 +956,7 @@ function LoginContent() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[var(--foreground)]">
+                    <h1 className="font-heading text-[2.2rem] font-bold leading-[1.1] tracking-tight text-[var(--foreground)]">
                       {t("login.signup.heading")}
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[var(--text-dim)]">
