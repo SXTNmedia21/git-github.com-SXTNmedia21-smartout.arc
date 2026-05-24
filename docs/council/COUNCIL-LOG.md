@@ -2543,3 +2543,69 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **ADR created:** none — F reversal removed the need for ADR-0240-class boundary change; mechanical staleness check (C) removed the need for ADR-0392 §Rules amendment
 **Learning created:** L-0342 (chair over-gating with new-ADR when precedent exists) + L-0343 (heartbeat sweeps duplicate per-push lints when lint has --max-stale-days)
 **L-0147 precedent count:** 7th whole-verdict reversal on Fix F (chair DEFER→REVERSED; evidence: botsson-harness-builder.md:11-21 + supervisor.md:24-33)
+
+---
+
+## 2026-05-25 — Restaurant-Week + Hotel-Wedding + Festival Sim Verification
+
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (frontend-designer skipped — no UI in deliverable; narrator skipped — orchestrator inline per skill error recovery)
+**Prior verdict held?** n/a — first council on the 11-agent sim synthesis (sim itself completed pre-council, this council verifies its findings)
+**Key decision:** Sim synthesis structurally sound. 3 bug mechanisms need patching (BUG-SIM-01 root cause WORSE than briefed = silent volunteer→permanent coercion, BUG-SIM-13 emit ordering wrong, BUG-SIM-22 INVALIDATE — `platform_metrics_daily` exists at `00013_*:126`). Pattern 1 reframed as Contract-Promise-Without-Fulfillment meta-pattern. C2 pipeline path: NOT new capability — extends existing `communication` capability via new `invoke_capability_tool` action-type + `engine_process('shift_briefing_pipeline')` blueprint. X03 event-entity proposal collides with ADR-0367 — resolved via D5 parameterization (ADR-0426). 10 sortie waves (A→K) over ~6 weeks. 3 reviewers + Phase 2.5 → no degraded mode.
+
+**ADRs created:** ADR-0421 (Declared Contract Fulfillment Rule), ADR-0422 (not_implemented antipattern ban), ADR-0423 (workspace_id read-side parity), ADR-0424 (invoke_capability_tool action-type), ADR-0425 (Phase 2.5 fact-check methodology), ADR-0426 (event entity via D5 parameterization, proposed)
+
+**ADR redundancy noted:** ADR-NEW-B (Capability Registration Completeness) DROPPED — covered by ADR-0413 (Pontus's prior hotfix branch). L-0354 references ADR-0413 as the invariant; sortie A extends with 13-capability sweep scope.
+
+**Learnings created:** L-0352 (Chair Self-Reversal #6 + Phase 2.5 grep-methodology #3), L-0353 (Contract-Promise-Without-Fulfillment meta-pattern), L-0354 (capability registry seed CVE-class), L-0355 (C2 reframing — surface vs depth), L-0356 (ADR-0367 tri-layer D6 collision risk), L-0357 (not_implemented LLM-callable skeleton antipattern)
+
+**L-0147 precedent count:** 6th L-0147 chair self-reversal precedent (BUG-SIM-01 SET NOT NULL — Phase 2.5 false-negative reversed by Supervisor + Steward + Chair re-grep). Sub-axis vs whole-verdict counting ambiguity still active per L-0294 — counting it as 6th by Steward's own classification.
+
+**Phase 9 self-improvement:** Phase 2.5 grep-methodology promoted from advisory to ADR-grade enforcement (ADR-0425) after 3rd occurrence in 6 weeks. council_meta.md to be updated with session entry + promotion record.
+
+**Files committed (this Phase 8 capture):**
+- `docs/decisions/0421-declared-contract-fulfillment-rule.md`
+- `docs/decisions/0422-not-implemented-antipattern-ban.md`
+- `docs/decisions/0423-workspace-id-read-side-parity.md`
+- `docs/decisions/0424-invoke-capability-tool-action-type.md`
+- `docs/decisions/0425-phase25-fact-check-methodology.md`
+- `docs/decisions/0426-event-entity-d5-parameterization.md` (status: proposed)
+- `docs/learnings/0352-chair-self-reversal-6-phase25-grep-3.md`
+- `docs/learnings/0353-contract-promise-without-fulfillment-meta-pattern.md`
+- `docs/learnings/0354-capability-registry-seed-cve-class.md`
+- `docs/learnings/0355-c2-reframing-surface-vs-engine-process-depth.md`
+- `docs/learnings/0356-adr-0367-tri-layer-d6-collision-risk.md`
+- `docs/learnings/0357-not-implemented-llm-callable-skeleton-antipattern.md`
+- `docs/decisions/0000-decision-log.md` (6 row inserts)
+- `docs/learnings/0000-learning-log.md` (6 row appends)
+- This entry
+
+**Implementation plan (10 sortie waves):**
+- P1: Verify BUG-SIM-11 exploitability (30min — P0 hotfix gate)
+- P2: Confirm ADR-0250 amendment prereq (30min)
+- A: Communication registry seed + 12 sibling CVE sweep (4h)
+- B: HelpDesk→openTicket rewire (4h, closes baseline BUG-20 + BUG-SIM-05)
+- C: GPS phantom wire (1d, closes BUG-SIM-10 + telemetry honesty)
+- D: audience-resolver workspace_id filter (30min, closes BUG-SIM-11)
+- E: schedule tool PK fix (10min, closes BUG-SIM-08/09)
+- F: `invoke_capability_tool` action-type implementation (1d)
+- G: C2 campaign — ops-day-brief refactor (3d, eliminates duplicate logic)
+- H: ADR-0367 collision resolution / D5 parameterization spec (1d)
+- I: X03 family — 4 ADRs (event D5, room D1, event_settlement C3, event_tip_pool C3) (5d)
+- J: X06 campaign Bistro→honest-100% with compliance gates (10d)
+- K: ADR-0298 6th task source decision (deferred, separate council)
+
+**Sim deliverables on `feat/restaurant-week-sim`:**
+- `docs/test-runs/2026-05-25-restaurant-week-sim/INDEX.md`
+- `docs/test-runs/2026-05-25-restaurant-week-sim/SIMULATION-PLAN.md` + `HOTEL-WEDDING-PLAN.md` + `CONCERT-FESTIVAL-PLAN.md`
+- `docs/test-runs/2026-05-25-restaurant-week-sim/findings/agent-{1..11}-*.md` (~2700 lines raw)
+- `docs/test-runs/2026-05-25-restaurant-week-sim/BUGS.md` (28 NEW; minus BUG-SIM-22 invalidated)
+- `docs/test-runs/2026-05-25-restaurant-week-sim/GAPS.md` (47 NEW)
+- `docs/test-runs/2026-05-25-restaurant-week-sim/SYNTHESIS.md`
+- `docs/journeys/JOURNEY-restaurant-week-sim.md`
+- `docs/HANDOFF-restaurant-week-sim.md`
+
+**Trust Gate (CONDITIONAL PASS):**
+- Sortie A condition: 13-capability seed at preserves-current-behavior authority level + per-row audit log
+- Sortie F condition: handler MUST `gate_action()` BEFORE tool body + propagate `delegated_via='engine_process:...'` per ADR-0356
