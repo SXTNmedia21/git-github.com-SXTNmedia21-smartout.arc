@@ -33,8 +33,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* OPS-1 WSL2 OOM cliff mitigation (ADR-0408, 2026-05-24).
+   * WSL2 has swap=0B; concurrent Playwright workers + chromium tabs +
+   * Next.js 16 dev server together peak > 15 Gi RAM and trigger OOM kills.
+   * 4x documented in 2026-05-23 journey sweep (BUGS.md OPS-1).
+   * - CI: 1 worker (unchanged -- GitHub Actions runner has dedicated RAM)
+   * - Local default: 1 worker to prevent concurrent chromium + next-server OOM
+   * Override: E2E_WORKERS env var (e.g. E2E_WORKERS=2 for machines with swap).
+   * See docs/protocols/WSL2-SWAP-CONFIG.md to add swap and safely increase. */
+  workers: process.env.CI ? 1 : Number(process.env.E2E_WORKERS ?? 1),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
     ? [["html"], ["github"], ["./reporters/journey-reporter.ts"]]
