@@ -76,6 +76,11 @@ function makeSelectChain(data: unknown[] | unknown, single = false) {
     lte: () => chainable,
     in: leafResult,
     not: () => chainable,
+    // L-0348 fix: loadSolverContext now uses .or() / .order() / .limit()
+    // for resolving active season_budget by date-range overlap.
+    or: () => chainable,
+    order: () => chainable,
+    limit: () => chainable,
     maybeSingle: single ? leafResult : async () => ({ data: null, error: null }),
     then: async (resolve: (v: unknown) => unknown) =>
       resolve({ data: Array.isArray(data) ? data : [], error: null }),
