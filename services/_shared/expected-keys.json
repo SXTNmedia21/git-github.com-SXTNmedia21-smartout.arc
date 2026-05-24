@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Contract Service",
+    "service_dir": "services/contract-service",
+    "op_path": "op://smartout_ai_prod/Contract-Service/api_key",
+    "key_type": "service",
+    "environment": "live",
+    "scopes": ["contracts:read", "contracts:write", "webhooks:write"],
+    "key_prefix_pattern": "smo_svc_live_"
+  },
+  {
+    "name": "Stage Engine",
+    "service_dir": "services/stage-engine",
+    "op_path": "op://smartout_ai_prod/Stage-Engine/api_key",
+    "key_type": "service",
+    "environment": "live",
+    "scopes": [
+      "events:read",
+      "events:write",
+      "sessions:read",
+      "sessions:write",
+      "tasks:read",
+      "tasks:write"
+    ],
+    "key_prefix_pattern": "smo_svc_live_"
+  },
+  {
+    "name": "Shift MCP",
+    "service_dir": "services/shift-mcp",
+    "op_path": "op://smartout_ai_prod/Shift-MCP/api_key",
+    "key_type": "service",
+    "environment": "live",
+    "scopes": ["schedules:read", "schedules:write", "shifts:read", "shifts:write"],
+    "key_prefix_pattern": "smo_svc_live_"
+  }
+]
