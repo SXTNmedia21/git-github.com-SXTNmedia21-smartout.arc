@@ -11,18 +11,15 @@
  *
  * Output: per-task `col` index plus `totalCols` count for grid sizing.
  *
- * NOT a design token — pure geometry. Inline `hmToMin` here (Task 3.2 dedups
- * into shared timeMath helper).
+ * NOT a design token — pure geometry. `hmToMin` imported from sibling
+ * `timeMath` module.
  */
+
+import { hmToMin } from "./timeMath";
 
 export type LayoutInput = { id: string; start: string; end: string };
 export type LayoutItem = { task: LayoutInput; col: number };
 export type LayoutResult = { items: LayoutItem[]; totalCols: number };
-
-function hmToMin(hm: string): number {
-  const [h, m] = hm.split(":").map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
-}
 
 export function layoutOverlap(tasks: ReadonlyArray<LayoutInput>): LayoutResult {
   const sorted = [...tasks].sort((a, b) => {
