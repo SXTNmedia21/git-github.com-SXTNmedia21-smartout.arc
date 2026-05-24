@@ -18,6 +18,7 @@
     "check:domains": "node scripts/domain-lint.mjs --changed",
     "check:identity-on-profile": "node scripts/check-identity-on-profile.mjs",
     "check:archived-refs": "node scripts/check-archived-refs.mjs",
+    "check:cascade-fk": "node scripts/check-workspace-fk-cascade.mjs",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

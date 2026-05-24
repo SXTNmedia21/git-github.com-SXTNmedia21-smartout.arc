@@ -74,3 +74,8 @@ node scripts/domain-lint.mjs --changed
 # ADR-0392: Archived-module migration debt — refs FROM live docs TO an archived
 # module folder must point to its superseded_by domain instead. Catches drift.
 node scripts/check-archived-refs.mjs
+
+# ADR-0409: Workspace FK CASCADE convention — any new migration file that declares
+# workspace_id REFERENCES workspace(workspace_id) must include ON DELETE CASCADE.
+# Prevents recurrence of BUG-8 (87 missing CASCADE across 46 migrations).
+node scripts/check-workspace-fk-cascade.mjs
