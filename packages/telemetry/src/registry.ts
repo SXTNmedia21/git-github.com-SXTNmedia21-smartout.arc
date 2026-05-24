@@ -72,6 +72,7 @@ export interface EntityRef {
 
 export type EntityType =
   | "company"
+  | "user_identity"
   | "workspace"
   | "profile"
   | "department"
