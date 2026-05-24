@@ -18,7 +18,7 @@ export default function NotFound() {
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">Siden finnes ikke eller du har ikke tilgang.</p>
           <Button asChild variant="default">
-            <Link href="/workspaces">Gå til ordrer</Link>
+            <Link href="/orders">Gå til ordrer</Link>
           </Button>
         </CardContent>
       </Card>
