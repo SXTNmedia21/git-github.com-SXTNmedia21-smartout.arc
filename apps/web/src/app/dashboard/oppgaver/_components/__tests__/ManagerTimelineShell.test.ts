@@ -22,4 +22,16 @@ describe("ManagerTimelineShell", () => {
   it("is a client component", () => {
     expect(SHELL.split("\n")[0]).toMatch(/^["']use client["']/);
   });
+
+  it("wires useDayLinesForDate, useSessionTasksForDate, useRolesForPositions", () => {
+    expect(SHELL).toMatch(/useDayLinesForDate/);
+    expect(SHELL).toMatch(/useSessionTasksForDate/);
+    expect(SHELL).toMatch(/useRolesForPositions/);
+  });
+
+  it("renders TimelineTopBar, TimelineToolbar, ManagerTimelineChart", () => {
+    expect(SHELL).toMatch(/TimelineTopBar/);
+    expect(SHELL).toMatch(/TimelineToolbar/);
+    expect(SHELL).toMatch(/ManagerTimelineChart/);
+  });
 });

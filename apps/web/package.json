@@ -43,6 +43,7 @@
     "@smartout/billing": "workspace:*",
     "@smartout/botsson-sdk": "workspace:^",
     "@smartout/contracts": "workspace:*",
+    "@smartout/data": "workspace:*",
     "@smartout/design-tokens": "workspace:^",
     "@smartout/hms": "workspace:*",
     "@smartout/i18n": "workspace:^",
