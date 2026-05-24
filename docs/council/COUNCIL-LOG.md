@@ -2543,3 +2543,18 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
 **ADR created:** none — F reversal removed the need for ADR-0240-class boundary change; mechanical staleness check (C) removed the need for ADR-0392 §Rules amendment
 **Learning created:** L-0342 (chair over-gating with new-ADR when precedent exists) + L-0343 (heartbeat sweeps duplicate per-push lints when lint has --max-stale-days)
 **L-0147 precedent count:** 7th whole-verdict reversal on Fix F (chair DEFER→REVERSED; evidence: botsson-harness-builder.md:11-21 + supervisor.md:24-33)
+
+---
+
+## 2026-05-25 — Botsson "Sett opp juni for meg" gap analysis
+
+**Type:** architecture (gap analysis prior to capability-stack sortier)
+**Verdict:** REJECT-monolithic-10-gap, APPROVE-phased-reduced (4-phase sequence with 3 critical pre-work bug fixes)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer Layer 2+4), botsson-harness-builder (L1-L5 pipe reality)
+**NOT DEGRADED** — 4/4 reviewers responded substantively (frontend-designer skipped; analysis-only, no UI in scope)
+**Prior verdict held?** n/a — first council on this topic. Sibling sessions: 2026-05-23 Tidslinje surface boundary (10th L-0147 precedent), 2026-05-24 domain-skill governance (7th whole-verdict reversal).
+**Key decision:** Ship 4 phases — Pre-work (C1 solver column drift L-0348 + C2 G10 TZ + C3 G9 profile_id) → Phase 1 (diagnose_turnus_disabled + wire timeline_template into mr-botsson) → Phase 2 (create_planning_cycle + list/apply_week_template + set_day/hour_factor) → Phase 3 (publish_week, ADR-first, highest risk). Drop gaps 5+6 (already shipped). Promote gaps 9+10 to separate solver sortie. Disambiguate gaps 3+4 with `*_week_template` naming.
+**ADR created:** ADR-0417 (template_apply as change_proposal kind extends ADR-0309), ADR-0418 (D5 Concept kr→headcount-hours OUTSIDE solver scoring), ADR-0419 (trainee paired-only solver eligibility), ADR-0420 (publish_week irreversible bulk-write semantics + push-storm mitigation). All status: draft.
+**Learning created:** L-0348 (CRITICAL solver column drift loadSolverContext queries non-existent columns silent-empty), L-0349 (spine DEV-4 voice-bypass claim FALSE — voice tools publish events not DB writes per ADR-0289), L-0350 (briefing tool-count off-by-one schedule has 7 not 6), L-0351 (naming collision timeline_template.apply_template vs schedule.apply_week_template)
+**L-0147 precedent count:** 12th — chair Phase 3 brief claim "10 gaps to close" REVERSED to "6 new tools + 2 solver-internal + 4 pre-work bug fixes" after 4-reviewer code-trace (gaps 5+6 already shipped in scheduler/tools.ts:260,385,549; gaps 9+10 are solver-internal not capability tools; gaps 3+4 need disambiguating names per L-0351 collision; gap 2 BLOCKED on L-0348 column drift). Classification: REVERSED per L-0147 canonical format. Falsifying evidence: scheduler/tools.ts:260,385,549 + L-0348 schema drift verification + L-0351 timeline_template.apply_template existence.
+**Domains affected:** scheduling (primary — 4 new ADRs), agent-harness (DEV-4 spine reclassification per L-0349), year-wheel (gap 2 set_factors deferred), season (gap 2 + H2 silent-emit debt). Spine reconciliation deferred — verdict approved but no sortier shipped; will run domain-steward update mode when first phase sortie lands.
