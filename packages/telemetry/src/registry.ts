@@ -61,7 +61,8 @@ export type EventCategory =
   | "hms" // ui-shell-hms-cluster-polish-read — HMS module read-surface telemetry
   | "cascade" // ADR-0356 — cascade-namespace delegation tools (cross-namespace writes)
   | "people" // SM-2-followup-training 2026-05-19 — People hub read-surface telemetry
-  | "bulk_import"; // ADR-0401 — bulk_import capability (Sortie A: parse_spreadsheet)
+  | "bulk_import" // ADR-0401 — bulk_import capability (Sortie A: parse_spreadsheet)
+  | "oppgaver"; // P11 — Oppgaver read-surface telemetry (task board view + interaction events)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -8620,6 +8621,76 @@ export interface BootstrapGateSkipped extends BaseEvent {
   };
 }
 
+// ─── Oppgaver Read-surface Events (P11 oppgaver-page) ───────────────────────
+// Task board view + interaction events.
+// No engine_event on any: read-path telemetry and UI state changes do NOT
+// drive downstream workflow state-machine transitions.
+// oppgaver.context_pinned: posthog + logger + activity_trail — pinning a
+//   context is a user-intent signal worth auditing (manager chose focus point).
+// All others: posthog + logger only — UI view/filter/focus events.
+
+export interface OppgaverViewOpened extends BaseEvent {
+  event: "oppgaver.view_opened";
+  properties: {
+    data: {
+      date_iso: string;
+      viewer_role: "owner" | "admin" | "manager";
+    };
+  };
+}
+
+export interface OppgaverViewModeChanged extends BaseEvent {
+  event: "oppgaver.view_mode_changed";
+  properties: {
+    data: {
+      from: "area" | "role" | "person";
+      to: "area" | "role" | "person";
+      triggered_by: "ui" | "tool";
+    };
+  };
+}
+
+export interface OppgaverAreaFilterChanged extends BaseEvent {
+  event: "oppgaver.area_filter_changed";
+  properties: {
+    data: {
+      active_area_count: number;
+      triggered_by: "ui" | "tool";
+    };
+  };
+}
+
+export interface OppgaverDateChanged extends BaseEvent {
+  event: "oppgaver.date_changed";
+  properties: {
+    data: {
+      from_date: string;
+      to_date: string;
+      triggered_by: "ui" | "tool";
+    };
+  };
+}
+
+export interface OppgaverTaskFocused extends BaseEvent {
+  event: "oppgaver.task_focused";
+  properties: {
+    data: {
+      task_id: string;
+      area_id: string | null;
+    };
+  };
+}
+
+export interface OppgaverContextPinned extends BaseEvent {
+  event: "oppgaver.context_pinned";
+  properties: {
+    data: {
+      date_iso: string;
+      active_view: "area" | "role" | "person";
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9568,7 +9639,14 @@ export type SmartoutEvent =
   // ─── Bootstrap Gate Events (ADR-0407, Phase 1) ───────────────────────────
   | BootstrapGatesListed
   | BootstrapGateClosed
-  | BootstrapGateSkipped;
+  | BootstrapGateSkipped
+  // ─── Oppgaver Read-surface (P11 oppgaver-page) ──────────────────────────
+  | OppgaverViewOpened
+  | OppgaverViewModeChanged
+  | OppgaverAreaFilterChanged
+  | OppgaverDateChanged
+  | OppgaverTaskFocused
+  | OppgaverContextPinned;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -15563,5 +15641,40 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "inline_confirm_card.edited": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // ─── Oppgaver Read-surface (P11 oppgaver-page) ──────────────────────────────
+  // View + interaction events for the task board (/dashboard/oppgaver).
+  // No engine_event on any: read-path telemetry and UI state transitions do NOT
+  // drive downstream workflow state-machine steps.
+  // oppgaver.context_pinned: 3 destinations (posthog + logger + activity_trail) —
+  //   context pinning is a user-intent signal that represents a deliberate manager
+  //   focus choice; worth auditing alongside other manager-readiness surface events.
+  //   Mirrors hms.umbrella.viewed / people.training.viewed routing rationale.
+  // All others: posthog + logger only — UI view/filter/focus events without
+  //   data-mutation or compliance-audit requirements.
+  "oppgaver.view_opened": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  "oppgaver.view_mode_changed": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  "oppgaver.area_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  "oppgaver.date_changed": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  "oppgaver.task_focused": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  "oppgaver.context_pinned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "oppgaver",
   },
 };
