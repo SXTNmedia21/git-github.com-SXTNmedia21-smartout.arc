@@ -1,7 +1,7 @@
 ---
 title: Journey Sweep — Bug List (2026-05-23/24)
 status: complete
-updated: 2026-05-24 (BUG-16/17 fixed in hotfix/mech-fixes-bug-16-17-22; BUG-21 fixed in hotfix/bug-21-channel-is-active)
+updated: 2026-05-24 (BUG-16/17 fixed in hotfix/mech-fixes-bug-16-17-22)
 created: 2026-05-24
 module: meta
 tags: [bugs, journey-verification, playwright]
@@ -150,12 +150,11 @@ tags: [bugs, journey-verification, playwright]
 - **Impact:** All SLA auto-escalation flows broken
 - **Fix:** Likely cascade from BUG-1 (engine_authority_config family) + `engine_delayed_trigger` cron not running locally
 
-### BUG-21 — Journey-help suite: 11/24 fail + 13 DNR ✅ fixed-in-hotfix/bug-21-channel-is-active
+### BUG-21 — Journey-help suite: 11/24 fail + 13 DNR
 - **Where:** `tests/journey-help-*.spec.ts` (8 specs — active-ticket variants + tour variants + v1)
 - **Evidence:** `run-46-journey-help`
 - **Impact:** Heavy fail — systematic help-surface regression OR cascade
-- **Root cause:** `channel.is_active` column never created in schema. Tests queried `.eq("is_active", true)` and inserted `is_active: true` but column does not exist on the `channel` table (has `is_archived` but not `is_active`). All `beforeAll` hooks failed → cascaded to 11 fail + 13 DNR.
-- **Fix:** Path A — migration `20260625130000_channel_is_active_column.sql` adds `is_active boolean NOT NULL DEFAULT true` + partial index `idx_channel_helpdesk_active`.
+- **Fix:** Rerun isolated to disambiguate; investigate Help v1 page first
 
 ### BUG-22 — Journey-shift: 6/16 fail
 - **Where:** `tests/journey-shift-{clock,session-spine,temporal-lock}.spec.ts`
@@ -172,6 +171,9 @@ tags: [bugs, journey-verification, playwright]
 - **Error:** `Vitest cannot be imported in a CommonJS module using require()`
 - **Impact:** Blocks any `--grep` or root-glob sweep (forced explicit-path runs throughout this sweep)
 - **Fix:** Move to separate `vitest` project OR exclude from `testMatch` in `playwright.config.ts`
+- **Status: fixed-in-PR** — `hotfix/playwright-testmatch-narrow` narrows `testMatch` regex to use a
+  negative lookahead (`/^(?!.*\/(?:db|runners\/__tests__)\/)\S+\.(spec|test)\.ts$/`) that prevents
+  Playwright from discovering files in those subdirs. Verified 0 Vitest errors in `--list` output.
 
 ### HARNESS-2 — `apps/e2e/admin/*.spec.ts` hardcode `http://localhost:3070`
 - **Where:** All `apps/e2e/admin/*.spec.ts`
