@@ -18,15 +18,22 @@ the affected suites, and the minimal fix required to unblock.
 
 **Suite:** `apps/e2e/admin/`
 **Affected specs:** `admin/avstemming.spec.ts` (10/11 tests skip), `admin/kartotek.spec.ts` (8/8 pass — no block here), `admin/orders.spec.ts` (5/5 pass — no block here)
-**Blocks:** `admin/avstemming.spec.ts` requires an `accountant`-role user with a valid `platform_admin`-scoped session. The seed (`supabase/seed.sql`) provides only `admin@smartout.local` (godmode) and employee-tier users. No accountant-email or accountant-grant row exists.
+**Blocks:** `admin/avstemming.spec.ts` requires an `accountant`-role user with a valid `platform_admin`-scoped session. The seed (`supabase/seed.sql`) provides only `admin@smartout.local` (godmode) and employee-tier users. No accountant-email or accountant-grant row existed.
 
-**Fix:** Add an accountant user to `supabase/seed.sql`:
+**Status: seeded in `supabase/seed-admin.sql` (2026-05-24)**
 
-1. Insert a `auth.users` row with email `accountant@smartout.local` and bcrypt password (`password123`), role `authenticated`.
-2. Insert a matching `user_identity` row with `is_godmode = false`.
-3. Add an `accountant_grant` row (or equivalent platform-admin grant) linking that user to the accountant scope.
-4. Update `apps/e2e/helpers/auth.ts` to export `loginAsAccountant(page)` using `accountant@smartout.local` / `password123`.
-5. Remove `test.skip(true, "M8: needs deployed env + accountant seed")` guards in `admin/avstemming.spec.ts` once the helper is in place.
+Rows inserted:
+
+- 1 × `auth.users` — `accountant@smartout.local` / `password123`, UUID `e0000000-0000-0000-0000-00000000000a`
+- 1 × `auth.identities` — email provider identity for the accountant user
+- 1 × `public.user_identity` — auto via trigger; explicit insert as fallback
+- 1 × `public.company_member` — links accountant to Smartout AS (`a0000000-...-0000`) with role `member`
+- 1 × `billing.accountant_company_grant` — `full_kartotek` scope, `grant_id = ac000000-...-0001`
+
+Auth helper added: `loginAsAccountant(page, baseUrl?)` in `apps/e2e/helpers/auth.ts`.
+
+**Remaining step:** Remove `test.skip(true, "M8: needs deployed env + accountant seed")` guards in
+`admin/avstemming.spec.ts` after verifying the auth helper works against the admin app on port 3070.
 
 ---
 
@@ -34,18 +41,27 @@ the affected suites, and the minimal fix required to unblock.
 
 **Suite:** `apps/e2e/payroll-phase-5/`
 **Affected specs:** `payroll-phase-5/reveal.spec.ts` (6/6 skipped)
-**Blocks:** All tests call `test.skip(...)` at spec level. They require:
+**Blocks:** All tests call `test.skip(...)` at spec level. They require a seeded employee with
+`personal_number`, `bank_account`, and `tax_card_type` set, plus an active `employee_payroll_profile`
+row, for a known profile UUID.
 
-- A seeded `employee_payroll_profile` row with populated `personnummer` (hashed/masked) and `bank_account` columns for a known profile UUID.
-- The existing `apps/e2e/helpers/seed.ts` helpers do NOT seed PII columns (`personnummer`, `bank_account`, `tax_card`).
-- No `payroll-phase-5` seed helper exists.
+**Status: seeded in `supabase/seed-payroll.sql` (2026-05-24)**
 
-**Fix:**
+Rows inserted / updated:
 
-1. Add a `seedPayrollProfile(workspaceId, profileId)` function to `apps/e2e/helpers/seed.ts` that inserts an `employee_payroll_profile` row with: test personnummer (`12345678901`), test bank account (`12345678903`), and a percentage tax card (`20`).
-2. Export `PAYROLL_PHASE5_PROFILE_ID` constant from a `apps/e2e/payroll-phase-5/fixtures.ts` file, populated from the seed helper.
-3. Update `payroll-phase-5/reveal.spec.ts` to call `seedPayrollProfile` in `beforeAll` and remove all `test.skip` guards.
-4. Add teardown: delete the seeded row in `afterAll` using the service-role client.
+- UPDATE `public.profile` (Anna Olsen, `f0000000-...-0001`): `personal_number='12345678901'`, `bank_account='12345678903'`, `tax_card_type='percentage'`, `tax_percentage=20.00`, `tax_card_year=2026`
+- 1 × `public.employee_payroll_profile` for Anna (defensive no-op — seed.sql already inserts it)
+- 1 × `public.workspace` — Payroll E2E Workspace B (`b0000000-...-0000b1`)
+- 1 × `public.profile` in Workspace B (`f0000000-...-0000b1`) for cross-workspace rejection test
+
+Seed constants in `reveal.spec.ts` updated:
+
+- `SEED_EMPLOYEE_ID = "f0000000-0000-0000-0000-000000000001"` (Anna Olsen, HQ)
+- `SEED_WORKSPACE_B_PROFILE_ID = "f0000000-0000-0000-0000-0000000000b1"` (Workspace B)
+
+**Remaining step:** Remove all `test.skip(...)` guards in `payroll-phase-5/reveal.spec.ts` after
+verifying the complete-data route (`/dashboard/people/{id}/complete-data`) renders correctly and
+the reveal API (`POST /api/payroll/reveal-pii`) is wired end-to-end.
 
 ---
 
@@ -57,20 +73,32 @@ the affected suites, and the minimal fix required to unblock.
 
 ### ENV-4a: `dispatch_engine_action` RPC missing from schema cache
 
-`engine-dispatch.spec.ts` calls `supabase.rpc("dispatch_engine_action", ...)` and receives `PGRST202: Could not find the function public.dispatch_engine_action`. This indicates the local Supabase instance has not been reset and migrated to the latest state. The function is defined in a migration but the schema cache is stale or the migration was never applied locally.
+`engine-dispatch.spec.ts` calls `supabase.rpc("dispatch_engine_action", ...)` and receives
+`PGRST202: Could not find the function public.dispatch_engine_action`. This indicates the local
+Supabase instance has not been reset and migrated to the latest state.
 
-**Fix:** Run `npx supabase db reset` (from repo root) to apply all pending migrations and flush the PostgREST schema cache. Re-run the suite after reset.
+**Status: outside seed scope — requires operator action**
+
+**Fix:** Run `npx supabase db reset` (from repo root) to apply all pending migrations and flush
+the PostgREST schema cache. Re-run the suite after reset. No SQL seed can fix a stale schema cache.
 
 ### ENV-4b: `admin profile not found in seeded workspace`
 
-`observer-request.spec.ts` fixture `resolveFixture()` queries `profile` for an `owner`-role row in the seeded workspace, then throws `"admin profile not found in seeded workspace"`. This blocks the happy-path POST 201 test, causing 7 downstream tests to DNR.
+`observer-request.spec.ts` fixture `resolveFixture()` queries `profile` for a row matching
+`user_id = adminUser.id` (admin@smartout.local) and `workspace_id` (first workspace from DB).
+The error occurs when a billing demo workspace is inserted before HQ in heap order, causing
+`.limit(1).single()` to return the wrong workspace.
 
-The seeded workspace (`seed.sql`) does include an admin profile; the fixture queries by `workspace_id` but the local DB may be in a reset-pending state (stale data), or the query filter (`role = 'owner'`) does not match the seed's role assignment.
+**Status: seeded in `supabase/seed-governance.sql` (2026-05-24)**
 
-**Fix:**
+Rows inserted:
 
-1. Run `npx supabase db reset` to ensure seed is applied cleanly.
-2. If the issue persists after reset, verify that `seed.sql` inserts a profile row with `role = 'owner'` (not just `role = 'admin'`) for the default workspace, or update the `resolveFixture` query to match the actual seeded role column value.
+- `public.workspace` HQ (`b0000000-...-0000`) — no-op if already exists (anchors heap order)
+- `public.profile` admin (`f0000000-...-0000`) — no-op if already exists
+- 3 × `public.engine_authority_config` — `observer_request.create/claim/approve`, level=confirm, min_role=manager (pre-seeds so spec's `upsert` is idempotent)
+
+**Remaining step:** Run `npx supabase db reset` (ENV-4a) before running the governance suite.
+After reset + seed, both engine-dispatch and observer-request should pass without further changes.
 
 ---
 
@@ -79,6 +107,7 @@ The seeded workspace (`seed.sql`) does include an admin profile; the fixture que
 **Suite:** `apps/e2e/tests/contracts-compliance/`
 **Affected specs:** `journey-a-singular-bypass.spec.ts`, `journey-d-pdf-gate-bypass.spec.ts`
 **Issue:** Specs hardcode `anna@strommatabar.local` / `testpassword123` but `supabase/seed.sql` seeds `anna@smartout.local` / `password123` (bcrypt). Auth via `signInWithPassword` fails with auth error.
+**Status:** open — not addressed by this PR (outside ENV-2/3/4 scope)
 
 **Fix:** Update the spec constants to match seed credentials:
 
