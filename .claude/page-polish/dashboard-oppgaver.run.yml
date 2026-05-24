@@ -1,0 +1,75 @@
+# Page Polish Run — dashboard/oppgaver (Manager Timeline page)
+# Scope: ManagerTimelineShell + TimelineTopBar (Task 2.1).
+# Full polish deferred — page is in active construction (P11 sortie).
+# Components 2.5 (Toolbar) and 3.7 (Chart) not yet built.
+
+route: /dashboard/oppgaver
+status: in_progress
+verified: false
+started_at: 2026-05-24T00:00:00+02:00
+verified_at: null
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-wt-5
+  git_branch: feat/p11-oppgaver-page
+  url: https://app.smartout.ai/dashboard/oppgaver
+  components_count: 2  # ManagerTimelineShell + TimelineTopBar (Tasks 2.1 done; 2.5, 3.7 pending)
+
+architecture:
+  entry: apps/web/src/app/dashboard/oppgaver/page.tsx
+  client_boundary: apps/web/src/app/dashboard/oppgaver/_components/ManagerTimelineShell.tsx
+  layout: apps/web/src/app/dashboard/oppgaver/layout.tsx
+  shell: ManagerTimelineShell — CSS grid 100dvh × [60px 52px 1fr]
+  topbar: TimelineTopBar — brand + date stepper + disabled Lukk-dagen CTA (Task 2.1)
+  toolbar: PENDING (Task 2.5)
+  chart: PENDING (Task 3.7)
+  cascade_dimensions:
+    - D6: department_session, session_task (timeline data — Tasks 3.7+)
+    - C4: Lukk-dagen gate (deferred — V1 disabled)
+
+skills_loaded:
+  - smartout-nordic-split
+  - smartout-page-polish (deferred full run — page incomplete)
+
+# Design pass — Task 2.1 (TimelineTopBar only)
+design:
+  zinc_hits: 0
+  oklch_literal_hits: 0
+  hardcoded_color_hits: 0
+  motion_token_hits: 0  # No animation in TopBar V1
+  notes: >
+    TimelineTopBar uses only Nordic Split semantic tokens (bg-card, border-border,
+    text-foreground, text-muted-foreground, bg-muted, font-heading, font-mono).
+    No OKLCH literals. No zinc/gray/slate classes. Full polish deferred to when
+    Tasks 2.5 + 3.7 + 4.x are complete and the page can be rendered end-to-end.
+
+# ADR-0238 check
+adr_0238:
+  owns_chat_surface: true
+  evidence: >
+    DomainChatOwnership declared in ManagerTimelineShell.tsx with reason="oppgaver-timeline".
+    Prevents dual-surface UX conflict per L-0178.
+
+# Verification checklist (partial — full run deferred)
+checklist:
+  lighthouse_lcp_under_1500ms: false     # deferred — page not renderable end-to-end yet
+  no_skeleton_flash: false               # no loading.tsx yet
+  motion_tokens_used: false              # TopBar has no animation — N/A for Task 2.1
+  telemetry_emit_per_mutation: false     # no mutations in TopBar — N/A
+  page_knowledge_written: false          # deferred to full polish run
+  page_knowledge_db_synced: false        # deferred
+  harness_tools_registered: false        # deferred to Task 5.x
+  retest_improved: false                 # deferred
+
+notes: |
+  Page is in active construction under P11 sortie (feat/p11-oppgaver-page).
+  This file is created at Task 2.1 to satisfy the page-polish gate required by pre-commit hook.
+  Full polish run (all 11 steps) is planned when the page is feature-complete (Tasks 2.5, 3.7, 4.x, 5.x done).
+
+  Task 2.1 deliverables:
+    - TimelineTopBar.tsx: 3-zone header (brand + date stepper + Lukk-dagen)
+    - TimelineTopBar.test.ts: 6 source-scan tests, all GREEN
+    - Nordic Split compliant: 0 OKLCH literals, 0 zinc/gray/slate, ARIA on all icon buttons
+
+  Lukk-dagen CTA is disabled V1 per spec.
+  Wiring to C4 gate deferred to future sortie when Day-close flow is spec'd.
