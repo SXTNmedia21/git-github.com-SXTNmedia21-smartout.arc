@@ -42,9 +42,11 @@ import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnersh
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { completeSessionTaskAction } from "@/app/dashboard/_actions/complete-session-task-action";
 import { OppgaverToolsBridge } from "../_tools/oppgaver-tools-bridge";
 import { TimelineTopBar } from "./TimelineTopBar";
 import { TimelineToolbar } from "./TimelineToolbar";
+import { TaskEditModal } from "./TaskEditModal";
 import { ManagerTimelineChart } from "../_chart/ManagerTimelineChart";
 import type { Band } from "../_chart/AreaBand";
 import type { Employee } from "../_chart/PersonLane";
@@ -88,8 +90,8 @@ export function ManagerTimelineShell() {
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [deviationsOnly, setDeviationsOnly] = useState(false);
   const [zoom, setZoom] = useState<number>(48); // pxPerHour
-  // Track focused task for oppgaver.task_focused emit (Phase 6 modal).
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  // Track focused task for oppgaver.task_focused emit + TaskEditModal (Phase 6 modal).
+  const [selectedTask, setSelectedTask] = useState<TimelineTask | null>(null);
 
   // Stable ref for prev values used in from/to payloads.
   const prevDateRef = useRef<string>(dateISO);
@@ -202,21 +204,20 @@ export function ManagerTimelineShell() {
     [workspaceId, profileId],
   );
 
-  /** focusTask — emits oppgaver.task_focused when a task is highlighted. */
+  /** focusTask — opens TaskEditModal + emits oppgaver.task_focused. */
   const handleFocusTask = useCallback(
-    (taskId: string) => {
-      setSelectedTaskId(taskId);
+    (task: TimelineTask) => {
+      setSelectedTask(task);
       // L-0177: skip emit if either id is missing/empty.
       if (!workspaceId || !profileId) return; // L-0177
-      // Resolve the area for the focused task from current tasks list.
       void emit({
         event: "oppgaver.task_focused",
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
         actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
-            task_id: taskId,
-            area_id: null, // resolved by chart in Phase 6 — null is valid per registry spec
+            task_id: task.id,
+            area_id: task.area ?? null, // resolved from task object per Phase 6 spec
           },
         },
       });
@@ -298,15 +299,34 @@ export function ManagerTimelineShell() {
   const managerName = wsCtx?.workspace.name ?? "—";
   const deviationsCount = tasks.filter((t) => t.status === "missed").length;
 
+  // handleComplete — delegates to completeSessionTaskAction.
+  // actor is derived from profileId + workspaceId resolved at call time (L-0177 fail-fast).
+  const handleComplete = useCallback(
+    async (taskId: string) => {
+      if (!workspaceId || !profileId) return; // L-0177: skip if ids missing
+      await completeSessionTaskAction(
+        taskId,
+        { userId: "", profileId, workspaceId, role: null },
+        "chat",
+      );
+    },
+    [workspaceId, profileId],
+  );
+
   // Stable uiActions for the bridge — avoids re-creation on every render.
+  // Bridge still expects focusTask: (taskId: string) => void (its tool contract).
+  // We look up the full task from filteredTasks to open the modal with full data.
   const bridgeUiActions = useMemo(
     () => ({
       setDate: (iso: string) => setDateISO(iso),
       setViewMode,
       toggleArea: handleToggleArea,
-      focusTask: handleFocusTask,
+      focusTask: (taskId: string) => {
+        const t = filteredTasks.find((x) => x.id === taskId) ?? null;
+        if (t) handleFocusTask(t);
+      },
     }),
-    [setDateISO, setViewMode, handleToggleArea, handleFocusTask],
+    [setDateISO, setViewMode, handleToggleArea, handleFocusTask, filteredTasks],
   );
 
   return (
@@ -324,8 +344,11 @@ export function ManagerTimelineShell() {
         tasks={filteredTasks}
         uiActions={bridgeUiActions}
       />
-      {/* Suppress unused selectedTaskId lint — Phase 6 modal will consume it */}
-      {selectedTaskId && null}
+      <TaskEditModal
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onComplete={handleComplete}
+      />
       <div
         className="bg-background grid h-[100dvh] grid-rows-[60px_52px_1fr] overflow-hidden"
         role="region"
@@ -360,6 +383,7 @@ export function ManagerTimelineShell() {
           pxPerHour={zoom}
           nowMinutes={nowMinutes()}
           dimmedBandIds={dimmedBandIds}
+          onTaskClick={handleFocusTask}
         />
       </div>
     </>
