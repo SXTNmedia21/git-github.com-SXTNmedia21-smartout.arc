@@ -1,7 +1,7 @@
 # Page Polish Run — dashboard/oppgaver (Manager Timeline page)
 # Scope: ManagerTimelineShell + TimelineTopBar (Task 2.1).
 # Full polish deferred — page is in active construction (P11 sortie).
-# Components 2.5 (Toolbar) and 3.7 (Chart) not yet built.
+# Component 2.5 (Toolbar) done. 3.7 (Chart) still pending.
 
 route: /dashboard/oppgaver
 status: in_progress
@@ -13,7 +13,7 @@ locate:
   pwd: /home/sxtnl/dev/smartout.ai-wt-5
   git_branch: feat/p11-oppgaver-page
   url: https://app.smartout.ai/dashboard/oppgaver
-  components_count: 2  # ManagerTimelineShell + TimelineTopBar (Tasks 2.1 done; 2.5, 3.7 pending)
+  components_count: 3  # ManagerTimelineShell + TimelineTopBar (Task 2.1) + TimelineToolbar (Task 2.5); 3.7 pending
 
 architecture:
   entry: apps/web/src/app/dashboard/oppgaver/page.tsx
@@ -21,7 +21,7 @@ architecture:
   layout: apps/web/src/app/dashboard/oppgaver/layout.tsx
   shell: ManagerTimelineShell — CSS grid 100dvh × [60px 52px 1fr]
   topbar: TimelineTopBar — brand + date stepper + disabled Lukk-dagen CTA (Task 2.1)
-  toolbar: PENDING (Task 2.5)
+  toolbar: TimelineToolbar — view-mode SegmentGroup + area chips + filter chips + zoom (Task 2.5)
   chart: PENDING (Task 3.7)
   cascade_dimensions:
     - D6: department_session, session_task (timeline data — Tasks 3.7+)
@@ -38,10 +38,12 @@ design:
   hardcoded_color_hits: 0
   motion_token_hits: 0  # No animation in TopBar V1
   notes: >
-    TimelineTopBar uses only Nordic Split semantic tokens (bg-card, border-border,
-    text-foreground, text-muted-foreground, bg-muted, font-heading, font-mono).
-    No OKLCH literals. No zinc/gray/slate classes. Full polish deferred to when
-    Tasks 2.5 + 3.7 + 4.x are complete and the page can be rendered end-to-end.
+    TimelineTopBar (Task 2.1): bg-card, border-border, text-foreground,
+    text-muted-foreground, bg-muted, font-heading, font-mono — all semantic tokens.
+    TimelineToolbar (Task 2.5): bg-card, border-border, bg-border, text-muted-foreground,
+    hover:text-foreground — all semantic tokens. SegmentGroup + FilterChip from @smartout/ui
+    use semantic tokens internally. No OKLCH literals. No zinc/gray/slate classes.
+    Full polish deferred to when Task 3.7 (Chart) + 4.x + 5.x are complete.
 
 # ADR-0238 check
 adr_0238:
@@ -71,5 +73,14 @@ notes: |
     - TimelineTopBar.test.ts: 6 source-scan tests, all GREEN
     - Nordic Split compliant: 0 OKLCH literals, 0 zinc/gray/slate, ARIA on all icon buttons
 
+  Task 2.5 deliverables:
+    - TimelineToolbar.tsx: view-mode SegmentGroup + wrapping area chips + onlyOpen/deviations FilterChips + zoom cluster
+    - TimelineToolbar.test.ts: 8 source-scan tests, all GREEN
+    - Nordic Split compliant: 0 OKLCH literals, 0 zinc/gray/slate, ARIA on zoom buttons
+    - Imports SegmentGroup + FilterChip from @smartout/ui (Tasks 2.2 + 2.3 primitives)
+    - Destructive tone wired on Avvik/deviations chip per spec
+
   Lukk-dagen CTA is disabled V1 per spec.
   Wiring to C4 gate deferred to future sortie when Day-close flow is spec'd.
+  Full page-polish run deferred to Task 3.7 completion (page not renderable end-to-end until chart is built).
+  SKIP_PAGE_POLISH=1 bypass used: page is explicitly in active construction, documented in this file.
