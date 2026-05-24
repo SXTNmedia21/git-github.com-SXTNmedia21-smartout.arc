@@ -47,7 +47,7 @@ Added `.eq("workspace_id", workspaceId)` / `.eq("workspace_id", wsId)` to the
 Aligns with ADR-0151 (server-derived workspace_id) and L-0177 (no silent
 cross-tenant fallback).
 
-**Fixed in commit:** <!-- SHA inserted after commit -->
+**Fixed in commit:** `809ad0c94`
 
 ### Verification
 
