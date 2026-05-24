@@ -21,8 +21,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3060";
 
 // Employee credentials from seed.sql
-const EMPLOYEE_EMAIL = "anna@strommatabar.local";
-const EMPLOYEE_PASSWORD = "testpassword123";
+const EMPLOYEE_EMAIL = "anna@smartout.local";
+const EMPLOYEE_PASSWORD = "password123";
 
 // A dummy contract ID — the route should 403 before loading the row
 const DUMMY_CONTRACT_ID = "00000000-0000-0000-0000-000000000099";
