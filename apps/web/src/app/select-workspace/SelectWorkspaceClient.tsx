@@ -13,10 +13,16 @@
  * subdomain (production) or `/dashboard?ws=<id>` (local dev). Middleware sets
  * `x-workspace-slug` from the subdomain so downstream code resolves the right
  * workspace. We do NOT invent a new switching mechanism.
+ *
+ * Safety net (ADR-0409 / BUG-005):
+ * If the user has no workspaces AND there are pending invitations matching their
+ * email, a rescue CTA is shown to accept the invitation without needing to re-click
+ * the invite link. This covers users who went through the reset-password flow and
+ * lost the invite token in the redirect.
  */
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
@@ -24,6 +30,53 @@ import Link from "next/link";
 import { createClient } from "@smartout/supabase/client";
 import { WorkspaceCard } from "@/components/auth/WorkspaceCard";
 import { ArchiveOnboardingButton } from "./ArchiveOnboardingButton";
+
+// ── Invite-token UUID guard (mirrors login/page.tsx) ──
+function isUUID(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+type PendingInvite = {
+  invitation_id: string;
+  workspace_name: string;
+  token: string;
+};
+
+/** Query pending invitations for the signed-in user's email. RLS-safe — returns own rows only. */
+async function fetchPendingInvites(userEmail: string): Promise<PendingInvite[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("invitation")
+    .select("invitation_id, token, workspace:workspace_id(name)")
+    .eq("email", userEmail.toLowerCase())
+    .eq("status", "pending");
+
+  if (error || !data) return [];
+  return data.map((row) => ({
+    invitation_id: row.invitation_id as string,
+    workspace_name: (row.workspace as { name: string } | null)?.name ?? "Arbeidsflate",
+    token: row.token as string,
+  }));
+}
+
+/** Accept a pending invite via the accept-invitation EF (ADR-0409). */
+async function acceptPendingInvite(
+  token: string,
+  firstName: string,
+  lastName: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.functions.invoke("accept-invitation", {
+    body: { token, first_name: firstName || "Bruker", last_name: lastName || "" },
+  });
+  if (error || (data as { error?: string } | null)?.error) {
+    return {
+      success: false,
+      error: (data as { error?: string } | null)?.error ?? error?.message ?? "Ukjent feil",
+    };
+  }
+  return { success: true };
+}
 
 type WorkspaceRow = {
   workspace_id: string;
@@ -37,6 +90,8 @@ type WorkspaceRow = {
 
 type Props = {
   userEmail: string;
+  /** Display name from user_identity/user_metadata, used when calling accept-invitation. */
+  displayName?: string | null;
   workspaces: WorkspaceRow[];
   staleWorkspaces: WorkspaceRow[];
   rootDomain: string;
@@ -72,6 +127,7 @@ function workspaceHref(
 
 export function SelectWorkspaceClient({
   userEmail,
+  displayName,
   workspaces,
   staleWorkspaces,
   rootDomain,
@@ -79,9 +135,65 @@ export function SelectWorkspaceClient({
   shouldShowWelcome,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const supabase = createClient();
+
+  // ── Safety-net: pending invite rescue (ADR-0409 / BUG-005) ──────────────
+  // If the user has no workspaces, query pending invitations by email.
+  // Shown as one-click accept CTAs in the empty-state box.
+  const hasAny = workspaces.length > 0 || staleWorkspaces.length > 0;
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [acceptingToken, setAcceptingToken] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hasAny) return; // Only fetch when user is in the empty state
+    fetchPendingInvites(userEmail).then(setPendingInvites).catch(() => setPendingInvites([]));
+  }, [hasAny, userEmail]);
+
+  // Check if a Google-OAuth invite handoff came through ?invite= query param.
+  // This happens when Google OAuth is used from /login?invite=<token>:
+  // the redirectTo carries the token via /select-workspace?invite=<token>.
+  const rawInviteParam = searchParams.get("invite") ?? "";
+  const oauthInviteToken = rawInviteParam && isUUID(rawInviteParam) ? rawInviteParam : null;
+
+  useEffect(() => {
+    if (!oauthInviteToken) return;
+    // Silently consume the OAuth-carried invite token on mount.
+    const nameParts = (displayName ?? "Bruker").split(" ");
+    const firstName = nameParts[0] ?? "Bruker";
+    const lastName = nameParts.slice(1).join(" ");
+    acceptPendingInvite(oauthInviteToken, firstName, lastName).then((result) => {
+      if (!result.success) {
+        setAcceptError(
+          `Invitasjonen ble ikke aktivert automatisk: ${result.error}. Prøv igjen nedenfor.`,
+        );
+      } else {
+        // Refresh to reload workspace list now that profile exists.
+        router.refresh();
+      }
+    });
+    // Run only on initial mount when token present — token is stable from URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oauthInviteToken]);
+
+  async function handleAcceptInvite(token: string) {
+    setAcceptingToken(token);
+    setAcceptError(null);
+    const nameParts = (displayName ?? "Bruker").split(" ");
+    const firstName = nameParts[0] ?? "Bruker";
+    const lastName = nameParts.slice(1).join(" ");
+    const result = await acceptPendingInvite(token, firstName, lastName);
+    if (!result.success) {
+      setAcceptError(`Kunne ikke akseptere invitasjonen: ${result.error}`);
+      setAcceptingToken(null);
+    } else {
+      // Reload to pick up the newly created profile.
+      router.refresh();
+    }
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -108,7 +220,6 @@ export function SelectWorkspaceClient({
     });
   }
 
-  const hasAny = workspaces.length > 0 || staleWorkspaces.length > 0;
   const hasSingle = workspaces.length === 1 && staleWorkspaces.length === 0;
 
   return (
@@ -244,7 +355,7 @@ export function SelectWorkspaceClient({
               </div>
             </>
           ) : (
-            /* Empty state */
+            /* Empty state — with invite rescue (ADR-0409 / BUG-005) */
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -254,6 +365,37 @@ export function SelectWorkspaceClient({
               <p className="text-muted-foreground mb-6 text-sm leading-relaxed">
                 Ingen arbeidsflater ennå. Be en admin om å invitere deg — eller opprett din egen.
               </p>
+
+              {/* Pending invitation rescue CTAs — shown when user has pending invites by email */}
+              {pendingInvites.length > 0 && (
+                <div className="border-border bg-muted mb-6 rounded-xl border p-4 text-left">
+                  <p className="text-foreground mb-3 text-sm font-medium">
+                    {pendingInvites.length === 1
+                      ? "Du har en ventende invitasjon:"
+                      : `Du har ${pendingInvites.length} ventende invitasjoner:`}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {pendingInvites.map((invite) => (
+                      <button
+                        key={invite.invitation_id}
+                        type="button"
+                        onClick={() => handleAcceptInvite(invite.token)}
+                        disabled={acceptingToken === invite.token}
+                        className="bg-brand-orange inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                      >
+                        {acceptingToken === invite.token
+                          ? "Aksepterer…"
+                          : `Bli med i ${invite.workspace_name}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {acceptError && (
+                <p className="text-destructive mb-4 text-xs">{acceptError}</p>
+              )}
+
               <div className="flex flex-col gap-3">
                 <Link
                   href="/onboarding"
