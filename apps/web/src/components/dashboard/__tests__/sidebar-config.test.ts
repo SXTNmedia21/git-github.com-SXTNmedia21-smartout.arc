@@ -39,13 +39,13 @@ describe("SIDEBAR_GROUPS_ADMIN", () => {
     ]);
   });
 
-  it("Oppgaver has status not-yet-built, disabled true, href /dashboard/tasks", () => {
+  it("Oppgaver has status live, href /dashboard/oppgaver, no disabled flag", () => {
     const oppgaver = SIDEBAR_GROUPS_ADMIN.find((g) => g.labelKey === "sidebar.group_oppgaver");
     expect(oppgaver).toBeDefined();
-    const item = oppgaver!.items.find((i) => i.href === "/dashboard/tasks");
+    const item = oppgaver!.items.find((i) => i.href === "/dashboard/oppgaver");
     expect(item).toBeDefined();
-    expect(item!.status).toBe("not-yet-built");
-    expect(item!.disabled).toBe(true);
+    expect(item!.status).toBe("live");
+    expect(item!.disabled).toBeUndefined();
   });
 
   it("HMS group has /dashboard/hms with compositeActive containing /dashboard/handbook", () => {

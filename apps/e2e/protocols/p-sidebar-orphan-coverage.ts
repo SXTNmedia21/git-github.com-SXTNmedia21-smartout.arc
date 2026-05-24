@@ -17,9 +17,11 @@
  *   2. Each of the 20 linked-orphan routes in SIDEBAR_GROUPS_ADMIN returns HTTP
  *      < 500 — verified by navigating and asserting the URL stayed at the target
  *      path (not redirected to /error or /500).
- *   3. The two disabled (not-yet-built) placeholder items
- *      (/dashboard/tasks Rutiner + /dashboard/manuals Manualer) render with
+ *   3. The one disabled (not-yet-built) placeholder item
+ *      (/dashboard/manuals Manualer) renders with
  *      data-disabled="true" and no anchor href.
+ *      NOTE: /dashboard/oppgaver (Rutiner) is now status=live as of P11 Task 1.1 —
+ *      it is no longer a disabled placeholder and is excluded from this check.
  *
  * Gate strategy:
  *   - Route reachability uses `url_match` (URL stays at expected path = no 500/redirect).
@@ -40,8 +42,7 @@
  *   - [data-testid="sidebar-group-integrasjoner"] needed in SidebarGroup.tsx
  *   - [data-testid="sidebar-group-ai-botsson"] needed in SidebarGroup.tsx
  *   - [data-testid="sidebar-group-veiledning"] needed in SidebarGroup.tsx
- *   - [data-testid="sidebar-disabled-tasks"] needed in apps/web/src/components/dashboard/SidebarGroup.tsx
- *     (DisabledNavItem for href=/dashboard/tasks — enables placeholder gate)
+ *   - [data-testid="sidebar-disabled-tasks"] REMOVED — /dashboard/oppgaver is now live (P11 Task 1.1)
  *   - [data-testid="sidebar-disabled-manuals"] needed in apps/web/src/components/dashboard/SidebarGroup.tsx
  *     (DisabledNavItem for href=/dashboard/manuals — enables placeholder gate)
  *
@@ -499,28 +500,27 @@ export const P_SIDEBAR_ORPHAN_COVERAGE: JourneyIR = {
     // /dashboard and stay there) instead of a direct disabled-element assertion.
     //
     // BLOCKED on MISSING TESTIDS:
-    //   [data-testid="sidebar-disabled-tasks"]   — DisabledNavItem href=/dashboard/tasks
+    //   [data-testid="sidebar-disabled-tasks"]   — REMOVED: /dashboard/oppgaver is now live (P11 Task 1.1)
     //   [data-testid="sidebar-disabled-manuals"] — DisabledNavItem href=/dashboard/manuals
     //
-    // Once those testids are added (frontend-designer / supervisor), replace
-    // the url_match gate here with:
-    //   gate: { type: "ui_state", testid: "sidebar-disabled-tasks", visible: true }
+    // Once sidebar-disabled-manuals testid is added (frontend-designer / supervisor), replace
+    // the url_match gate for step 23 with:
+    //   gate: { type: "ui_state", testid: "sidebar-disabled-manuals", visible: true }
     // and confirm the element has no <a> child via a separate Playwright assertion.
     // -------------------------------------------------------------------------
     {
       key: "22_placeholder_tasks",
       order: 22,
-      title: "Disabled: Rutiner (/dashboard/tasks) — ikke-klikkbar placeholder",
+      title: "Oppgaver (/dashboard/oppgaver) — nu live, verifiser at lenke er klikkbar",
       action:
-        "Naviger til /dashboard (med sidebar synlig). Verifiser at Rutiner-elementet er til stede " +
-        "men ikke-klikkbart (data-disabled='true', ingen <a>-tag).",
+        "Naviger til /dashboard (med sidebar synlig). Verifiser at Oppgaver-elementet er en aktiv " +
+        "lenke til /dashboard/oppgaver (status=live, ingen data-disabled).",
       assertion:
-        "URL forblir /dashboard. Rutiner-placeholder finnes i DOM med data-disabled='true'. " +
-        "BLOKKERT: mangler data-testid='sidebar-disabled-tasks' for direkte gate-sjekk.",
+        "URL kan navigere til /dashboard/oppgaver. Oppgaver-elementet har ingen data-disabled='true'. " +
+        "MERKNAD: Rutiner-slot er aktivert som live i P11 Task 1.1 — ikke lenger en disabled placeholder.",
       description:
-        "Sidebar disabled-placeholder smoke for /dashboard/tasks (Rutiner, status=not-yet-built). " +
-        "Gate is url_match on /dashboard because the ui_state gate requires data-testid which " +
-        "does not yet exist on DisabledNavItem. See MISSING TESTIDS in file header.",
+        "Smoke-verifisering at /dashboard/oppgaver sidebar-slot er aktivert som live etter P11 Task 1.1. " +
+        "Tidligere disabled placeholder (status=not-yet-built) er nå status=live med href=/dashboard/oppgaver.",
       actions: [
         { type: "navigate", url: "/dashboard" },
         { type: "settle", ms: 2_000 },
