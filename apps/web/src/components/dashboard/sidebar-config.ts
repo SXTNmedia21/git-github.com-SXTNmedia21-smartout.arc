@@ -152,10 +152,9 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
     items: [
       {
         labelKey: "sidebar.item_oppgaver",
-        href: "/dashboard/tasks",
+        href: "/dashboard/oppgaver",
         icon: ListTodo,
-        status: "not-yet-built",
-        disabled: true,
+        status: "live",
       },
     ],
   },
