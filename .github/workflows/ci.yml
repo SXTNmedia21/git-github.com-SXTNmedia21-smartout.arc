@@ -90,6 +90,9 @@ jobs:
         # Access-Control-Allow-Origin: https://... fails with exit 1.
         run: pnpm check:cors
 
+      - name: Workspace FK CASCADE check (ADR-0409)
+        run: node scripts/check-workspace-fk-cascade.mjs
+
   # ── Vitest (packages with unit/integration tests) ───────────────
   # Any PR that breaks a capability, hook, or telemetry-registry test blocks merge.
   # Covered by turbo test pipeline: packages/ai, packages/schedule, packages/telemetry,
