@@ -34,4 +34,9 @@ describe("ManagerTimelineShell", () => {
     expect(SHELL).toMatch(/TimelineToolbar/);
     expect(SHELL).toMatch(/ManagerTimelineChart/);
   });
+
+  it("opens TaskEditModal on chart task click + emits task_focused", () => {
+    expect(SHELL).toMatch(/TaskEditModal/);
+    expect(SHELL).toMatch(/onTaskClick/);
+  });
 });
