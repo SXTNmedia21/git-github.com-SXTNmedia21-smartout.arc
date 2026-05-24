@@ -82,7 +82,9 @@ function UnassignedLane({
 
   const { items, totalCols } = useMemo(
     () => layoutOverlap(unassignedTasks),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentional: depend on length + areaId only to avoid re-sorting on task
+    // object identity changes — same pattern as layoutOverlap in PersonLane.
+    // eslint-disable-next-line -- exhaustive-deps intentionally partial
     [unassignedTasks.length, areaId],
   );
   const colByTaskId = new Map(items.map(({ task, col }) => [task.id, col]));
@@ -101,7 +103,7 @@ function UnassignedLane({
       role="group"
       aria-label={`Ikke tildelt – ${areaId}`}
       className={cn(
-        "relative w-full overflow-hidden border-t border-dashed border-border",
+        "border-border relative w-full overflow-hidden border-t border-dashed",
         dimmed && "opacity-50",
       )}
       style={{ height: pxPerHour * 20 }}
@@ -110,7 +112,7 @@ function UnassignedLane({
       {/* Label */}
       <span
         aria-hidden="true"
-        className="absolute left-2 top-1 text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground"
+        className="text-muted-foreground absolute top-1 left-2 text-[0.6rem] font-medium tracking-wide uppercase"
       >
         Ikke tildelt
       </span>
@@ -156,19 +158,14 @@ export function AreaBand({
   // mode="area": filter by area id. mode="role"/"person": all tasks passed in
   // are already pre-filtered by the chart composer (Task 3.7).
   const areaTasks = useMemo(
-    () =>
-      mode === "area"
-        ? tasks.filter((t) => t.area === band.id)
-        : tasks,
+    () => (mode === "area" ? tasks.filter((t) => t.area === band.id) : tasks),
     [tasks, band.id, mode],
   );
 
   // ── Overlap layout for role/person single-column modes ────────────────────
   const { items: overlapItems, totalCols } = useMemo(
     () =>
-      mode === "role" || mode === "person"
-        ? layoutOverlap(areaTasks)
-        : { items: [], totalCols: 1 },
+      mode === "role" || mode === "person" ? layoutOverlap(areaTasks) : { items: [], totalCols: 1 },
     [areaTasks, mode],
   );
   const colByTaskId = new Map(overlapItems.map(({ task, col }) => [task.id, col]));
@@ -199,30 +196,23 @@ export function AreaBand({
 
   return (
     <div
-      className={cn(
-        "flex flex-col border-r border-border",
-        dimmed && "opacity-50",
-      )}
-      style={
-        { "--area-color": areaColorVar } as React.CSSProperties
-      }
+      className={cn("border-border flex flex-col border-r", dimmed && "opacity-50")}
+      style={{ "--area-color": areaColorVar } as React.CSSProperties}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background px-3 py-2">
+      <div className="border-border bg-background sticky top-0 z-10 border-b px-3 py-2">
         <div className="flex items-baseline gap-2">
           {/* Band name */}
-          <span className="text-sm font-semibold text-foreground truncate">
-            {band.name}
-          </span>
+          <span className="text-foreground truncate text-sm font-semibold">{band.name}</span>
 
           {/* Employees-on-shift count badge */}
-          <span className="text-[0.65rem] font-medium text-muted-foreground whitespace-nowrap">
+          <span className="text-muted-foreground text-[0.65rem] font-medium whitespace-nowrap">
             {onShiftEmployees.length}/{employees.length} på vakt
           </span>
 
           {/* Open / close times — mono font for time alignment */}
           {band.open && band.close && (
-            <span className="ml-auto font-mono text-[0.65rem] text-muted-foreground whitespace-nowrap">
+            <span className="text-muted-foreground ml-auto font-mono text-[0.65rem] whitespace-nowrap">
               {band.open}–{band.close}
             </span>
           )}
@@ -245,9 +235,7 @@ export function AreaBand({
                 tasks={empTasks}
                 dimmed={false} // dimmed applied on band root, not per-lane
                 onLaneClick={
-                  onLaneClick
-                    ? (args) => onLaneClick({ ...args, empId: args.empId })
-                    : undefined
+                  onLaneClick ? (args) => onLaneClick({ ...args, empId: args.empId }) : undefined
                 }
                 onTaskClick={onTaskClick}
               />
