@@ -7,6 +7,7 @@
 // keystroke — no round-trip needed for a list this size (≤200 rows).
 //
 // Click on a row → navigate to /workspaces/<id>.
+// isGodmode=true → each row shows a "Gå til" button (ADR-0410).
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ import { WorkspaceCard } from "./WorkspaceCard";
 
 type Props = {
   workspaces: WorkspaceListItem[];
+  isGodmode?: boolean;
 };
 
 /** Format a numeric NOK amount as a Norwegian locale string. */
@@ -35,7 +37,7 @@ function formatDate(iso: string | null): string {
   return new Intl.DateTimeFormat("nb-NO", { dateStyle: "short" }).format(new Date(iso));
 }
 
-export function WorkspaceList({ workspaces }: Props) {
+export function WorkspaceList({ workspaces, isGodmode = false }: Props) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -80,6 +82,7 @@ export function WorkspaceList({ workspaces }: Props) {
                 <TableHead className="text-right">Utstående beløp</TableHead>
                 <TableHead>Sist faktura</TableHead>
                 <TableHead>Sist betalt</TableHead>
+                {isGodmode && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,6 +93,7 @@ export function WorkspaceList({ workspaces }: Props) {
                   onNavigate={() => router.push(`/workspaces/${workspace.workspace_id}`)}
                   formatNok={formatNok}
                   formatDate={formatDate}
+                  isGodmode={isGodmode}
                 />
               ))}
             </TableBody>

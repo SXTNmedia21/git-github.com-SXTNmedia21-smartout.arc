@@ -72,6 +72,7 @@ export interface EntityRef {
 
 export type EntityType =
   | "company"
+  | "user_identity"
   | "workspace"
   | "profile"
   | "department"
@@ -5628,6 +5629,32 @@ export interface AdminPiiReveal extends BaseEvent {
   };
 }
 
+// godmode.admin_access — audit every protected admin route visit by a godmode user.
+// Per ADR-0410: every godmode route access must land in activity_trail.
+export interface GodmodeAdminAccess extends BaseEvent {
+  event: "godmode.admin_access";
+  properties: {
+    entity: EntityRef;
+    data: {
+      route: string;
+    };
+  };
+}
+
+// godmode.workspace_joined — godmode user auto-joined a workspace as admin.
+// Per ADR-0410: profile insert + audit trail. Idempotent (returns existing if already member).
+export interface GodmodeWorkspaceJoined extends BaseEvent {
+  event: "godmode.workspace_joined";
+  properties: {
+    entity: EntityRef;
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      was_existing: boolean;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -9014,6 +9041,8 @@ export type SmartoutEvent =
   | RecorderSessionForceStopped
   | RecorderUserFlagSubmitted
   | AdminPiiReveal
+  | GodmodeAdminAccess
+  | GodmodeWorkspaceJoined
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -13189,6 +13218,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "admin.pii_reveal": {
     // Break-glass reveal — MUST land in activity_trail for audit (ADR-0185).
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
+  "godmode.admin_access": {
+    // Per ADR-0410: every godmode admin route visit MUST land in activity_trail.
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
+  "godmode.workspace_joined": {
+    // Per ADR-0410: godmode workspace auto-join — audit mandatory.
     destinations: ["logger", "activity_trail"],
     category: "security",
   },

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
 import type { AudienceFilter } from "@/components/platform-admin/audience-selector";
+import { GoToWorkspaceButton } from "./go-to-workspace-button";
 
 import { OverviewTab } from "./tabs/OverviewTab";
 import type { WorkspaceData, CompanyData } from "./tabs/OverviewTab";
@@ -95,7 +96,7 @@ export function WorkspaceDetailClient({
 
   return (
     <div>
-      {/* Page header — workspace name + status badges */}
+      {/* Page header — workspace name + status badges + godmode jump button */}
       <div className="mb-6 flex items-center gap-3">
         <h1 className="text-2xl font-semibold">{currentWorkspace.name}</h1>
         {currentCompany && <StatusBadge status={currentCompany.subscriptionStatus} />}
@@ -104,6 +105,14 @@ export function WorkspaceDetailClient({
             Inactive
           </Badge>
         )}
+        {/* Godmode-only — page is already gated by getSuperAdminId() on the
+            server, so reaching this client is proof of godmode (ADR-0410). */}
+        <div className="ml-auto">
+          <GoToWorkspaceButton
+            workspaceId={currentWorkspace.workspaceId}
+            workspaceName={currentWorkspace.name}
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="overview">
