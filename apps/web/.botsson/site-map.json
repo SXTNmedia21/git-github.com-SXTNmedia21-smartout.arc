@@ -2202,6 +2202,50 @@
         "Vis tarifffastlagte satser",
         "Hva er gjeldende overenskomst?"
       ]
+    },
+    {
+      "path": "/dashboard/oppgaver",
+      "purpose": "Manager Timeline — full-day Gantt across areas and employees. Read-only V1; click-to-edit delegates to existing capability tools.",
+      "module": "DaySession",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "pending",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "common_intents": [
+        "Vis dagsplan",
+        "Hvem er på kjøkken i dag?",
+        "Hva er forsinket?",
+        "Vis tidslinje for X",
+        "Gå til i går",
+        "Fokuser på Y"
+      ],
+      "tools": [
+        {
+          "name": "getOppgaverSnapshot",
+          "description": "Full Gantt snapshot for active date — bands, employees, tasks. Use when manager asks any broad question about today's plan."
+        },
+        {
+          "name": "getTasksForDate",
+          "description": "List all session_task rows for the active date with status + assignment. Use when manager wants a task list view."
+        },
+        {
+          "name": "getAreasOverview",
+          "description": "Staffing + task load summary per area. Use when manager asks how each area is doing right now."
+        },
+        {
+          "name": "getActiveFilters",
+          "description": "Inspect the current view-mode + area filters + only-open + deviations-only state. Use when chat needs to know what manager is looking at."
+        },
+        {
+          "name": "focusTask",
+          "description": "Open click-to-edit modal for one task. Use when manager asks to inspect or edit a specific task."
+        },
+        {
+          "name": "navigateDate",
+          "description": "Switch active date (ISO YYYY-MM-DD or relative 'today'/'yesterday'/'tomorrow'). Use when manager wants to look at a different day."
+        }
+      ]
     }
   ]
 }
