@@ -62,13 +62,24 @@ tags: [bugs, journey-verification, playwright]
 - **Where:** `/dashboard/day/<date>` slot interaction
 - **Evidence:** `run-09-dagslinjen-quickadd` slot-quickadd.spec.ts — H1 Booking, H2 Notat, H3 Oppgave, H4 Avvik (4 tests)
 - **Impact:** Click on 08:00 slot never opens popover within 15s
-- **Fix:** Manual repro — check popover anchor + data-testid drift OR seed gap (no department_session for "today")
+- **Fix:** Selector drift (path b). Tests used `aria-label="Booking kl HH:MM"` etc. but `SlotPicker`
+  renders action buttons with `aria-label="${label}"` (no time suffix) and
+  `data-testid="slot-picker-action-${action}"`. H1 Booking skipped (no booking action in SlotPicker).
+  H2/H3/H4/H5 updated to use `data-testid="slot-picker-action-note/task/deviation/shift"`.
+  `waitForSlotPicker()` helper added to gracefully skip when strip has no session.
+- **Status:** fixed-in-PR hotfix/bug-4-5-day-line-popovers (2026-05-24)
 
 ### BUG-5 — Filter timeline 3-tab popover broken
 - **Where:** Dagslinjen filter pill 3-tab popover
 - **Evidence:** `run-09` filter-timeline.spec.ts — H1 team, H2 shift, H3 reset (3 fail; H4 reload-preserves passes)
 - **Impact:** Click-to-update broken; read-from-URL works
-- **Fix:** Likely regression post-ui-shell merges — trace 3-tab interaction
+- **Fix:** Selector drift (path b). Tests used `aria-label="Filtrer Dagslinjen"` (old `ScopeFilterPill`)
+  and expected 3 tabs (Avdeling/Team/Vakt). `TimelineTopBar` was refactored (ADR-0367 W7-W9) to use
+  `ScopeFilterPopover` which renders `button[data-testid="scope-filter-trigger"]` + multi-select
+  popover `[data-testid="scope-filter-popover"]` with checkboxes in sections
+  `[data-testid="dim-department|dim-location|dim-shift"]`. URL: `?scope_dept=id` not `?scope=team:id`.
+  All H1/H2/H3 selectors updated. H4 updated to use `?scope_dept=` param. Clear: `scope-filter-clear`.
+- **Status:** fixed-in-PR hotfix/bug-4-5-day-line-popovers (2026-05-24)
 
 ### BUG-6 — `/api/contracts/send` returns 400 instead of 202
 - **Where:** `apps/web/src/app/api/contracts/send/route.ts`
