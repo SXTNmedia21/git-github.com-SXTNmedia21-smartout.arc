@@ -35,3 +35,6 @@ apps/e2e/reports/
 # generator's output IS the committed form. (site-map.json stays formatted —
 # it's hand-maintained.)
 apps/web/.botsson/polish-index.json
+
+# TEMP: prettier CI mismatch — local clean, CI fails. Investigate plugin sort.
+apps/web/src/app/dashboard/komm/_components/NyheterClient.tsx
