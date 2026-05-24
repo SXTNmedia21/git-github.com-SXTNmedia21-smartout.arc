@@ -27,7 +27,7 @@
 --   min_role          = 'employee'  — any authenticated workspace member may trigger
 --   requires_four_eyes = false      — no dual-approval required at this tier
 --
--- ADR reference: ADR-0408 (capability_default_registry single source of truth)
+-- ADR reference: ADR-0413 (capability_default_registry single source of truth)
 -- L-0066 (CVE-class default-allow), L-0292 (capability without registry entry)
 -- Chair Phase 5 synthesis 2026-05-24.
 -- ============================================================================
@@ -50,7 +50,7 @@ VALUES
     72,
     'BUG-1 fix: was omitted from registry in 20260518000000:235-244 under "separate sortie". '
     'Backfill 20260601100000 seeded existing workspaces but left bootstrap trigger blind. '
-    'L-0066 CVE-class. ADR-0408. Chair Phase 5 synthesis 2026-05-24.'
+    'L-0066 CVE-class. ADR-0413. Chair Phase 5 synthesis 2026-05-24.'
   )
 ON CONFLICT (capability) DO NOTHING;
 

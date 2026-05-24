@@ -1,13 +1,13 @@
 ---
 title: "capability_default_registry as single source of truth for workspace bootstrap"
-id: ADR-0408
+id: ADR-0413
 status: accepted
 layer: decision
 created: 2026-05-24
 updated: 2026-05-24
 ---
 
-# ADR-0408: capability_default_registry as Single Source of Truth for Workspace Bootstrap
+# ADR-0413: capability_default_registry as Single Source of Truth for Workspace Bootstrap
 
 ## Context and Problem Statement
 
