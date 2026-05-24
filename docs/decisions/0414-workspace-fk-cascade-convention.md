@@ -1,13 +1,13 @@
 ---
 title: "All workspace_id foreign keys must declare ON DELETE CASCADE"
-id: ADR-0409
+id: ADR-0414
 status: accepted
 layer: decision
 created: 2026-05-24
 updated: 2026-05-24
 ---
 
-# ADR-0409: Workspace FK CASCADE Convention
+# ADR-0414: Workspace FK CASCADE Convention
 
 ## Context and Problem Statement
 

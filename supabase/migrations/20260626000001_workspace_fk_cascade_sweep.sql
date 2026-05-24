@@ -14,12 +14,12 @@
 -- SCOPE:
 --   Every table with  workspace_id REFERENCES workspace(workspace_id)
 --   that does NOT already declare ON DELETE CASCADE.
---   Tables with ON DELETE RESTRICT intentionally change to CASCADE per ADR-0409
+--   Tables with ON DELETE RESTRICT intentionally change to CASCADE per ADR-0414
 --   (workspace lifecycle supersedes record preservation for most tables;
 --    exceptions are explicitly noted inline).
 --
 -- EXCEPTIONS (NOT touched here — deliberate RESTRICT preserved):
---   None identified. ADR-0409 mandates CASCADE for all workspace-child tables.
+--   None identified. ADR-0414 mandates CASCADE for all workspace-child tables.
 --   For accounting tables (shift_pay_calculation_event, billing.settlement_period,
 --   supplement_rule_match) the previous RESTRICT was overly conservative;
 --   workspace deletion is an operator-gated event with full audit trail.
@@ -35,7 +35,7 @@
 --     <table>_workspace_id_fkey   (or target_workspace_id_fkey for platform_impersonation_log)
 --   Named constraints from DDL are preserved as-is.
 --
--- ADR reference: ADR-0409 (workspace-FK CASCADE convention)
+-- ADR reference: ADR-0414 (workspace-FK CASCADE convention)
 -- BUG-8, chair Phase 5 synthesis 2026-05-24.
 -- ============================================================================
 
@@ -907,7 +907,7 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ─── 20260519100100_contracts_module_foundation: pension_scheme ───────────────
--- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0409.
+-- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0414.
 -- Pension schemes are workspace-scoped config, not independent accounting records.
 DO $$ BEGIN
   ALTER TABLE public.pension_scheme DROP CONSTRAINT IF EXISTS pension_scheme_workspace_id_fkey;
@@ -920,7 +920,7 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ─── 20260519100100_contracts_module_foundation: contract_amendment ────────────
--- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0409.
+-- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0414.
 DO $$ BEGIN
   ALTER TABLE public.contract_amendment DROP CONSTRAINT IF EXISTS contract_amendment_workspace_id_fkey;
   ALTER TABLE public.contract_amendment
@@ -932,7 +932,7 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ─── 20260522000000_billing_settlement_schema: billing.settlement_period ───────
--- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0409.
+-- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0414.
 SET search_path TO billing, public, extensions;
 DO $$ BEGIN
   ALTER TABLE billing.settlement_period
@@ -947,7 +947,7 @@ END $$;
 SET search_path TO public, extensions;
 
 -- ─── 20260527100600_payroll_phase1_dynamic_supplements: supplement_rule_match ──
--- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0409.
+-- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0414.
 DO $$ BEGIN
   ALTER TABLE public.supplement_rule_match
     DROP CONSTRAINT IF EXISTS supplement_rule_match_workspace_id_fkey;
@@ -960,7 +960,7 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ─── 20260527100700_payroll_phase1_audit_event: shift_pay_calculation_event ───
--- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0409.
+-- Was ON DELETE RESTRICT — changed to CASCADE per ADR-0414.
 -- Comment in original: "accounting records outlive workspace soft-close" —
 -- this applies to soft-close. Hard workspace delete (operator action) should
 -- cascade. Operator gate in ADR-0265 HOP B checklist ensures intentionality.
