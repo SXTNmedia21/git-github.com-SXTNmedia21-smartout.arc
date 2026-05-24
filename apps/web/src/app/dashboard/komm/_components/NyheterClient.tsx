@@ -259,7 +259,7 @@ function NewsCard({
       {/* Pin marker — top-right, visible only when pinned */}
       {message.is_pinned && (
         <Pin
-          className="absolute top-4 right-12 h-4 w-4"
+          className="absolute right-12 top-4 h-4 w-4"
           style={{ color: "var(--color-pin)" }}
           aria-hidden="true"
         />
@@ -291,7 +291,7 @@ function NewsCard({
 
       {/* Body */}
       {body && (
-        <p className="text-foreground/80 mb-3 text-sm leading-relaxed whitespace-pre-wrap">
+        <p className="text-foreground/80 mb-3 whitespace-pre-wrap text-sm leading-relaxed">
           {body}
         </p>
       )}
@@ -313,7 +313,7 @@ function NewsCard({
             channelId={channelId}
           />
           {message.message_type === "announcement" && (
-            <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-[0.16em] uppercase">
+            <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]">
               {t("nyheter.operational_badge")}
             </span>
           )}
@@ -529,7 +529,6 @@ export function NyheterClient({ profileId }: { profileId: string }) {
       messageId,
       channelId,
       pin: !currentlyPinned,
-      profileId,
     });
   }
 

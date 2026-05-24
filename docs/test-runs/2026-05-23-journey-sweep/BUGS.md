@@ -54,8 +54,9 @@ tags: [bugs, journey-verification, playwright]
 ### BUG-3 — Pin/unpin announcement DB shape wrong
 - **Where:** `pin_announcement` capability
 - **Evidence:** `run-08` `journey-3-pin-unpin-realtime.spec.ts:145, 185`
-- **Impact:** After pin, `pinned_by` + `pinned_at` columns undefined
-- **Fix:** Trace capability — verify it writes both columns atomically
+- **Impact:** After pin, `pinned_by` + `pinned_at` columns undefined; client-side emit races with page unload
+- **Fix:** New `pin_message` capability tool in `packages/ai/src/capabilities/communication/pin-message.ts` writes `is_pinned + pinned_by + pinned_at` atomically with awaited emit (ADR-0415 Path A). Server Action thin-wraps tool. Hook fire-and-forget emit removed.
+- **Status:** fixed-in-PR — hotfix/pin-message-capability-bug-3-v2
 
 ### BUG-4 — Slot quickadd popover broken (4 click timeouts)
 - **Where:** `/dashboard/day/<date>` slot interaction
