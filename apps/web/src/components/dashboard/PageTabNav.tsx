@@ -9,6 +9,12 @@ export type PageTab<K extends string = string> = {
   key: K;
   label: string;
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  /**
+   * Optional badge value. Renders a compact pill after the tab label when
+   * non-null and non-zero. Pass null/undefined to hide. Pass 0 to hide.
+   * Accepts numbers (counts) or strings (e.g. "✓" for status).
+   */
+  badge?: number | string | null;
 };
 
 export type PageTabNavVariant = "pill" | "route";
@@ -78,6 +84,14 @@ export function PageTabNav<K extends string>({
           <>
             {t.icon ? <t.icon className="h-3.5 w-3.5" aria-hidden /> : null}
             <span className="hidden sm:inline">{t.label}</span>
+            {t.badge != null && t.badge !== 0 ? (
+              <span
+                className="bg-foreground text-background ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                aria-label={`${t.badge} varsler`}
+              >
+                {t.badge}
+              </span>
+            ) : null}
           </>
         );
 

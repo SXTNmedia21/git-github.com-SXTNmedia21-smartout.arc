@@ -73,13 +73,13 @@ export function StaffingTab({ dateId }: { dateId: string | null }) {
 
       {/* Open shifts warning */}
       {dayData.openCount > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+        <div className="border-warning/30 bg-warning/10 flex items-center gap-3 rounded-xl border p-3">
+          <AlertTriangle className="text-warning h-4 w-4 shrink-0" />
           <div>
             <p className="text-foreground text-xs font-bold">{dayData.openCount} åpne vakter</p>
             <p className="text-muted-foreground text-[10px]">Disse vaktene mangler ansatte</p>
           </div>
-          <button className="ml-auto flex items-center gap-1 rounded-lg bg-amber-500/20 px-3 py-1.5 text-[10px] font-bold text-amber-500 transition-colors hover:bg-amber-500/30">
+          <button className="bg-warning/20 text-warning hover:bg-warning/30 ml-auto flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-colors">
             <UserPlus className="h-3 w-3" /> Tildel
           </button>
         </div>
@@ -165,7 +165,7 @@ function HourlyStaffChart({ dayShifts }: { dayShifts: Shift[] }) {
             style={{ height: "100%" }}
           >
             <div
-              className="w-full rounded-t-sm bg-indigo-500/60 transition-all group-hover:bg-indigo-500"
+              className="bg-accent/60 group-hover:bg-accent w-full rounded-t-sm transition-colors"
               style={{ height: `${pct}%`, minHeight: count > 0 ? 4 : 0 }}
             />
             <span className="text-muted-foreground mt-1 text-[8px]">{h}</span>

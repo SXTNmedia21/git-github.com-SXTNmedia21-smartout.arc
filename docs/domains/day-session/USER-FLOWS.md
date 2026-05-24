@@ -36,6 +36,11 @@ tags: [domain, day-session, user-flows, journeys, index]
 | F17 | Admin locks week | Admin | closed → locked (reconciliation) | _(no dedicated journey file yet)_ | shipped (code), journey: GAP |
 | F18 | Employee mobile home — before/during/after shift | Employee | all | _(no dedicated journey file yet)_ | shipped (code), journey: GAP |
 | F19 | Settlement image OCR (omsetning capture) | Manager / Shift leader | pending_signoff | _(no dedicated journey file yet)_ | shipped (code), journey: GAP |
+| F20 | Manager planlegger morgendagen i DayControlPanel Tidslinje | Manager | upcoming (T-1 evening) | [JOURNEY-tidslinje-manager-plan-tomorrow](../../journeys/JOURNEY-tidslinje-manager-plan-tomorrow.md) | draft (P10 Sortie 3) |
+| F21 | Manager sjekker live-status under lunsj-rush (Tidslinje tab) | Manager | active | [JOURNEY-tidslinje-manager-live-status](../../journeys/JOURNEY-tidslinje-manager-live-status.md) | draft (P10 Sortie 3) |
+| F22 | Ansatt sjekker hva som skjer i dag (mobile mirror) | Employee | active | [JOURNEY-tidslinje-employee-mobile-mirror](../../journeys/JOURNEY-tidslinje-employee-mobile-mirror.md) | draft (P10 Sortie 3, mobile V2) |
+| F23 | Manager re-planlegger etter avbestilling via Botsson voice | Manager | active | [JOURNEY-tidslinje-manager-botsson-reschedule](../../journeys/JOURNEY-tidslinje-manager-botsson-reschedule.md) | draft (P10 Sortie 3, V2 tools) |
+| F24 | Manager bootstrapper tom dag fra mal (Tidslinje empty-state) | Manager | upcoming (no session) | [JOURNEY-tidslinje-manager-empty-day-bootstrap](../../journeys/JOURNEY-tidslinje-manager-empty-day-bootstrap.md) | draft (P10 Sortie 3, V2 CTA) |
 
 ---
 

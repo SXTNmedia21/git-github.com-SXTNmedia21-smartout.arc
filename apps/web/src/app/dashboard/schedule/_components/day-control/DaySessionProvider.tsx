@@ -16,11 +16,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { useVoiceTools } from "@/components/voice-tools-context";
 import type { DayTask } from "../schedule-types";
 import type { DaySessionEvidenceDraft } from "../../_hooks/day-session-model";
-import type { DaySessionAgentToolSet } from "./day-session-agent-tools";
-import { createDaySessionVoiceTools, mergeVoiceTools } from "./day-session-voice-tools";
 import { useDaySessionData } from "../../_hooks/use-day-session-data";
 import {
   useCreateDayTask,
@@ -94,13 +91,10 @@ function getNextTaskStatus(current: DayTask["status"]): DayTask["status"] {
  */
 export function DaySessionProvider({ dateId, children }: DaySessionProviderProps) {
   const { weekStart } = useWeekRange();
-  const { clientTools, setClientTools } = useVoiceTools();
   const [evidenceDrafts, setEvidenceDrafts] = useState<Record<string, DaySessionEvidenceDraft>>({});
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
   const [events, setEvents] = useState<DaySessionEvent[]>([]);
-  const baseVoiceToolsRef = useRef<typeof clientTools>(null);
-  const hasRegisteredVoiceToolsRef = useRef(false);
 
   const data = useDaySessionData(dateId, evidenceDrafts);
   const snapshotRef = useRef(data.snapshot);
@@ -314,39 +308,6 @@ export function DaySessionProvider({ dateId, children }: DaySessionProviderProps
     },
     [recordEvent],
   );
-
-  const daySessionAgentTools = useMemo(
-    (): DaySessionAgentToolSet => ({
-      getDaySessionState: getLatestSnapshot,
-      focusTask: (taskId) => focusTask(taskId, "agent"),
-      focusField: (fieldId) => focusField(fieldId, "agent"),
-      updateEvidenceDraft: (taskId, patch) => updateEvidenceDraft(taskId, patch, "agent"),
-    }),
-    [focusField, focusTask, getLatestSnapshot, updateEvidenceDraft],
-  );
-
-  useEffect(() => {
-    if (!clientTools || hasRegisteredVoiceToolsRef.current) {
-      return;
-    }
-
-    baseVoiceToolsRef.current = clientTools;
-    hasRegisteredVoiceToolsRef.current = true;
-    const additiveVoiceTools = createDaySessionVoiceTools(daySessionAgentTools);
-    setClientTools(mergeVoiceTools(clientTools, additiveVoiceTools));
-  }, [clientTools, daySessionAgentTools, setClientTools]);
-
-  useEffect(() => {
-    return () => {
-      if (!hasRegisteredVoiceToolsRef.current) {
-        return;
-      }
-
-      setClientTools(baseVoiceToolsRef.current);
-      hasRegisteredVoiceToolsRef.current = false;
-      baseVoiceToolsRef.current = null;
-    };
-  }, [setClientTools]);
 
   const value = useMemo<DaySessionContextValue>(
     () => ({

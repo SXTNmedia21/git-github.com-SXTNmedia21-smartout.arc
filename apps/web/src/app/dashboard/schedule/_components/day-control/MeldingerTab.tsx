@@ -87,7 +87,7 @@ export function MeldingerTab({ dateId }: { dateId: string | null }) {
           placeholder="Skriv beskjed til ansatte her..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className={`border-input mb-3 block h-24 w-full resize-none rounded-xl border bg-transparent p-3 text-xs focus:border-blue-500/50 focus:outline-none`}
+          className="border-input focus-visible:ring-ring mb-3 block h-24 w-full resize-none rounded-xl border bg-transparent p-3 text-xs focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
         />
         <div className="flex flex-col justify-between gap-2 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ export function MeldingerTab({ dateId }: { dateId: string | null }) {
           </div>
           <button
             onClick={handlePublish}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/20 px-3 py-1.5 text-[10px] font-bold text-blue-400 transition-all hover:bg-blue-500/30"
+            className="border-info/30 bg-info/20 text-info hover:bg-info/30 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-colors"
           >
             <Plus className="h-3 w-3" /> Publiser
           </button>

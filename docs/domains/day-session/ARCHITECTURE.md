@@ -225,3 +225,28 @@ Channel restrictions (ADR-0078): `task.complete` + `task.list_mine` on chat+voic
 | `apps/web/src/components/day/_hooks/use-day-lines.ts` | Loads `day_line` rows for multi-strip stack. |
 | `supabase/migrations/20260621200103_fn_resolve_single_day_line.sql` | RPC `fn_resolve_single_day_line(session_id, dept_id)` — returns single `day_line_id` for a session. Used by `session-hook-executor`. |
 | `apps/web/src/app/dashboard/_hooks/use-day-timeline-events.ts` | Merges all event types (shifts, hooks, tasks, deviations, bookings, notes) into `DayEvent[]` for the strip. |
+
+---
+
+## Bottom-Sheet Variant — DayControlPanel + TidslinjeTab (P10, 2026-05-23)
+
+`DayControlPanel` (`apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx`) is the bottom-sheet variant of the day-control surface. Mounted from:
+- `apps/web/src/components/dashboard/AdminDashboard.tsx:62`
+- `apps/web/src/app/dashboard/schedule/page.tsx:1207`
+- `apps/web/src/app/dashboard/calendar/_components/CalendarPageShell.tsx:419`
+
+Shares cascade pipeline with `WebDayControl` (canonical full-page surface per ADR-0156): same `day-line` capability, same `DaySessionProvider` data layer, same `EntityDrawer`. Differentiation is chrome only — bottom-sheet 75vh ephemeral inspection vs full-page route. Permitted per ADR-0156 amendment 2026-05-23 (discriminating test: same capability + same authority + same data layer = differentiated chrome OK).
+
+### Tools registration
+- `apps/web/src/app/dashboard/schedule/_components/day-control/day-control-tools-bridge.tsx` — registers tools under `useRegisterTools("day-control", ...)` per ADR-0282
+- `apps/web/src/app/dashboard/_actions/pin-day-control-panel-context.ts` — pins context to engine_memory with `via DayControlPanel` discriminator (TTL 24h)
+
+### Tab inventory (8 tabs as of P10)
+oversikt, meldinger, bookings, oppgaver, **tidslinje** (new), budsjett, bemanning, okonomi
+
+### TidslinjeTab specifics
+- `TidslinjeTab.tsx` — slim purpose-built (NOT a port of WebDayControl's TimelineTab; 75vh budget would be exceeded per L-0339)
+- `TidslinjeChipBar.tsx` — multi-select location filter, local useState (URL not used in ephemeral sheet)
+- `TidslinjeRow.tsx` — compact card per Task Manager prototype north-star
+- Read-only V1; mutations route through `day-line` capability via stage-engine (G19a/b/c reschedule tools deferred to separate sortie)
+- Telemetry: `tidslinje_tab_opened`, `tidslinje_filter_changed` (registered + emit'd with L-0177 fail-fast per L-0340)

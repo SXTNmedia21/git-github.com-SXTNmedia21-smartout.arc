@@ -1,6 +1,14 @@
 "use client";
 
-import { Calendar, CheckCircle2, AlertTriangle, StickyNote, LogIn, LogOut } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  StickyNote,
+  LogIn,
+  LogOut,
+  Bell,
+} from "lucide-react";
 import { cn } from "@smartout/ui";
 import type { DayEvent, DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
 
@@ -35,6 +43,11 @@ const TYPE_META: Record<DayEventType, { icon: typeof Calendar; tone: string; lab
     tone: "text-muted-foreground",
     label: "Utsjekk",
   },
+  hook: {
+    icon: Bell,
+    tone: "text-cyan-500/80 dark:text-cyan-400/80",
+    label: "Sesjonshook",
+  },
 };
 
 const VERB: Record<DayEventType, (e: DayEvent) => string> = {
@@ -44,6 +57,7 @@ const VERB: Record<DayEventType, (e: DayEvent) => string> = {
   deviation: (e) => e.title,
   checkin: (e) => `${e.title} stemplet inn`,
   checkout: (e) => `${e.title} stemplet ut`,
+  hook: (e) => e.title,
 };
 
 const SEVERITY_PILL: Record<NonNullable<DayEvent["severity"]>, string> = {
