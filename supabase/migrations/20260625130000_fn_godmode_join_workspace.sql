@@ -1,8 +1,5 @@
 -- Migration: fn_godmode_join_workspace
--- Created: 2026-06-25 (re-stamped 20260626000000 on cherry-pick into development
---                       from hotfix/admin-godmode-and-goto-workspace, where it
---                       lived at 20260625130000 — collides with
---                       channel_is_active_column on this branch.)
+-- Created: 2026-06-25
 -- ADR: ADR-0410 — Godmode Workspace Auto-Join
 --
 -- Exposes an RPC that lets a godmode platform admin auto-join any workspace

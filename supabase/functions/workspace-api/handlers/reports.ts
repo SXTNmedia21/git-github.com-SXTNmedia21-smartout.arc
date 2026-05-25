@@ -1,11 +1,11 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 export async function handleGetReconciliations(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -23,7 +23,7 @@ export async function handleGetReconciliations(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: reports:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -75,12 +75,13 @@ export async function handleGetReconciliations(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
 
-  return jsonOk({ reconciliations: rows, limit, offset });
+  return jsonOk({ reconciliations: rows, limit, offset }, cors);
 }
 
 export async function handleGetShiftApprovals(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -98,7 +99,7 @@ export async function handleGetShiftApprovals(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: reports:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -134,12 +135,13 @@ export async function handleGetShiftApprovals(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
 
-  return jsonOk({ shift_approvals: rows, limit, offset });
+  return jsonOk({ shift_approvals: rows, limit, offset }, cors);
 }
 
 export async function handleGetKpiTargets(
   auth: { workspaceId: string; scopes: string[] },
   _url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -157,7 +159,7 @@ export async function handleGetKpiTargets(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: reports:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -169,12 +171,13 @@ export async function handleGetKpiTargets(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, [auth.workspaceId]);
 
-  return jsonOk({ kpi_targets: rows });
+  return jsonOk({ kpi_targets: rows }, cors);
 }
 
 export async function handleGetBudgets(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -192,7 +195,7 @@ export async function handleGetBudgets(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: reports:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -228,5 +231,5 @@ export async function handleGetBudgets(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
 
-  return jsonOk({ budgets: rows, limit, offset });
+  return jsonOk({ budgets: rows, limit, offset }, cors);
 }

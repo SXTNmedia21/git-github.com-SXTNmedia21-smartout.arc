@@ -116,6 +116,68 @@ DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/pos
 export DATABASE_URL
 
 # ────────────────────────────────────────────────────────────────────────────
+# OPS-1 memory pre-flight gate (ADR-0408, 2026-05-24).
+# WSL2 host: swap=0B, 15 Gi total RAM. Next.js 16 tsc/build peaks ~5 GB.
+# Playwright chromium workers add another 2-4 GB under concurrent load.
+# 4x OOM-kills documented in 2026-05-23 journey sweep -- each kill cascades
+# ERR_NETWORK_CHANGED across 5-15 tests (~30% sweep overhead).
+# Gate: abort with actionable message if available RAM < 6500 Mi.
+# Skill-promotion candidate: MEMORY.md learning_wsl2_oom_3rd_occurrence_2026_05_23.md
+# Override: CI_LOCAL_SKIP_MEMORY_CHECK=1 (skips; records in marker).
+# ────────────────────────────────────────────────────────────────────────────
+check_memory() {
+  if [ "${CI_LOCAL_SKIP_MEMORY_CHECK:-0}" = "1" ]; then
+    echo "  CI_LOCAL_SKIP_MEMORY_CHECK=1 -- memory pre-flight skipped."
+    return 0
+  fi
+
+  # Parse 'free -h' available column. Handles Gi and Mi units.
+  local avail_raw
+  avail_raw=$(free -h 2>/dev/null | awk '/^Mem:/ {print $7}')
+  if [ -z "$avail_raw" ]; then
+    echo "  WARNING: 'free -h' unavailable -- memory pre-flight skipped."
+    return 0
+  fi
+
+  # Convert to Mi for comparison.
+  local avail_mi=0
+  if echo "$avail_raw" | grep -q 'Gi'; then
+    local gi
+    gi=$(echo "$avail_raw" | sed 's/Gi//')
+    avail_mi=$(awk "BEGIN {printf \"%d\", $gi * 1024}")
+  elif echo "$avail_raw" | grep -q 'Mi'; then
+    avail_mi=$(echo "$avail_raw" | sed 's/Mi//')
+  fi
+
+  echo "  Available RAM: ${avail_raw} (${avail_mi} Mi)"
+
+  local threshold=6500
+  if [ "$avail_mi" -lt "$threshold" ] 2>/dev/null; then
+    echo ""
+    echo -e "${RED}  x MEMORY PRE-FLIGHT FAILED${NC}"
+    echo "  Available: ${avail_raw} -- threshold: ${threshold} Mi"
+    echo "  Next.js 16 tsc/build peaks ~5 GB; Playwright chromium adds 2-4 GB more."
+    echo "  OOM will kill the web dev server mid-sweep (OPS-1, 4x documented 2026-05-23)."
+    echo ""
+    echo "  Top 5 RAM consumers right now:"
+    ps aux --sort=-%mem 2>/dev/null | awk 'NR>1 && NR<7 {printf "    PID %-6s %s %s %s\n", $2, $4"%", $1, $11}' || true
+    echo ""
+    echo "  Options:"
+    echo "    1. Free RAM: close Expo Metro, sibling tsc runs, Claude sessions."
+    echo "    2. Add WSL2 swap: see docs/protocols/WSL2-SWAP-CONFIG.md"
+    echo "    3. Skip (risky): CI_LOCAL_SKIP_MEMORY_CHECK=1 pnpm ci:local"
+    echo ""
+    return 1
+  fi
+
+  echo -e "${GREEN}  Memory OK (${avail_raw} available >= ${threshold} Mi threshold)${NC}"
+  return 0
+}
+if ! check_memory; then
+  exit 1
+fi
+
+# ────────────────────────────────────────────────────────────────────────────
 # baseline-check — reads last 20 runs from .ci-local/runs.jsonl, computes
 # baseline (avg duration per gate, failure rate, gate-stability). Surfaces
 # outliers BEFORE the run so operator knows what to watch. Never FAILs the

@@ -76,6 +76,11 @@ function makeSelectChain(data: unknown[] | unknown, single = false) {
     lte: () => chainable,
     in: leafResult,
     not: () => chainable,
+    // L-0348 fix: loadSolverContext now uses .or() / .order() / .limit()
+    // for resolving active season_budget by date-range overlap.
+    or: () => chainable,
+    order: () => chainable,
+    limit: () => chainable,
     maybeSingle: single ? leafResult : async () => ({ data: null, error: null }),
     then: async (resolve: (v: unknown) => unknown) =>
       resolve({ data: Array.isArray(data) ? data : [], error: null }),
@@ -85,11 +90,12 @@ function makeSelectChain(data: unknown[] | unknown, single = false) {
 
 function buildPlanningCycleFrom(table: string) {
   if (table === "planning_cycle") {
+    // L-0348 fix #5: planning_cycle real schema is start_date + end_date
+    // (DATE, NOT TIMESTAMPTZ) + no department_id (workspace-scoped).
     const cycleData = {
       planning_cycle_id: CYCLE_ID,
-      department_id: "dept-001",
-      starts_at: "2026-06-15T00:00:00Z",
-      ends_at: "2026-06-22T00:00:00Z",
+      start_date: "2026-06-15",
+      end_date: "2026-06-22",
     };
 
     // Must return maybeSingle with the cycle data
@@ -142,7 +148,10 @@ describe("propose_plan", () => {
     });
 
     const ctx = makeCtx("chat");
-    const result = await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, ctx);
+    const result = await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      ctx,
+    );
 
     expect(result).toContain("Planforslag opprettet");
     expect(result).toContain(PROPOSAL_ID);
@@ -158,14 +167,20 @@ describe("propose_plan", () => {
     );
 
     const ctx = makeCtx("chat");
-    const result = await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, ctx);
+    const result = await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      ctx,
+    );
     expect(result).toContain("Ikke tillatt");
     expect(result).toContain("propose_plan");
   });
 
   it("voice-channel — returns chat-only guard message, mutateWithGate not called", async () => {
     const ctx = makeCtx("voice");
-    const result = await proposePlan.execute({ planning_cycle_id: CYCLE_ID }, ctx);
+    const result = await proposePlan.execute(
+      { planning_cycle_id: CYCLE_ID, department_id: "dept-00000000-0000-0000-0000-000000000001" },
+      ctx,
+    );
     expect(result).toContain("bare tilgjengelig i chat");
     expect(result).toContain("ADR-0288");
     expect(mockMutateWithGate).not.toHaveBeenCalled();

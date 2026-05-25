@@ -24,7 +24,12 @@ import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { emit } from "@smartout/telemetry";
-import { startOfOsloDay, endOfOsloDay, enrichShiftRowWithOsloTime } from "./oslo-time.js";
+import {
+  startOfOsloDay,
+  endOfOsloDay,
+  enrichShiftRowWithOsloTime,
+  osloWeekdayFromDateStr,
+} from "./oslo-time.js";
 
 /**
  * Get the current employee's upcoming shifts for the next N days.
@@ -102,9 +107,12 @@ export const getMyShifts = defineTool({
       department: row.department,
       location: row.location,
       local: {
-        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
-          weekday: "long",
-        }),
+        // G10 fix (2026-05-25): osloWeekdayFromDateStr() anchors to noon UTC
+        // so the Oslo Intl formatter always resolves the correct calendar day.
+        // Do NOT use new Date(`${date}T00:00:00+02:00`) — hardcodes CEST offset
+        // and is wrong during winter (CET = +01:00).
+        // Timezone contract: Europe/Oslo (hardcoded V1; V2 reads workspace.timezone).
+        weekday: osloWeekdayFromDateStr(row.shift_date),
         date: row.shift_date,
         start: `${row.shift_date} ${row.start_time}`,
         end: `${row.shift_date} ${row.end_time}`,
@@ -133,7 +141,7 @@ export const getShiftColleagues = defineTool({
     const { data: shift, error: shiftError } = await supabase
       .from("schedule_shift")
       .select("start_time, end_time, department_id")
-      .eq("id", params.shift_id)
+      .eq("schedule_shift_id", params.shift_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
@@ -143,7 +151,9 @@ export const getShiftColleagues = defineTool({
     // Find overlapping shifts in the same department
     const { data, error } = await supabase
       .from("schedule_shift")
-      .select("id, profile:profile_id(display_name, profile_id), position, start_time, end_time")
+      .select(
+        "schedule_shift_id, profile:profile_id(display_name, profile_id), position, start_time, end_time",
+      )
       .eq("workspace_id", ctx.workspaceId)
       .eq("department_id", shift.department_id)
       .lt("start_time", shift.end_time)
@@ -205,7 +215,9 @@ export const getTodaySchedule = defineTool({
 
     const { data, error } = await supabase
       .from("schedule_shift")
-      .select("id, start_time, end_time, position, status, profile:profile_id(display_name)")
+      .select(
+        "schedule_shift_id, start_time, end_time, position, status, profile:profile_id(display_name)",
+      )
       .eq("workspace_id", ctx.workspaceId)
       .eq("department_id", deptId)
       .gte("start_time", todayStart.toISOString())
@@ -238,9 +250,9 @@ export const getShiftDetail = defineTool({
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "id, start_time, end_time, position, status, notes, department:department_id(name), location:location_id(name), profile:profile_id(display_name)",
+        "schedule_shift_id, start_time, end_time, position, status, notes, department:department_id(name), location:location_id(name), profile:profile_id(display_name)",
       )
-      .eq("id", params.shift_id)
+      .eq("schedule_shift_id", params.shift_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
@@ -343,9 +355,9 @@ export const getWorkspaceSchedule = defineTool({
       location: row.location,
       profile: row.profile,
       local: {
-        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
-          weekday: "long",
-        }),
+        // G10 fix (2026-05-25): see getMyShifts comment above.
+        // Timezone contract: Europe/Oslo (hardcoded V1).
+        weekday: osloWeekdayFromDateStr(row.shift_date),
         date: row.shift_date,
         start: `${row.shift_date} ${row.start_time}`,
         end: `${row.shift_date} ${row.end_time}`,
@@ -421,9 +433,9 @@ export const getDateScheduleForMe = defineTool({
       department: row.department,
       location: row.location,
       local: {
-        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
-          weekday: "long",
-        }),
+        // G10 fix (2026-05-25): see getMyShifts comment above.
+        // Timezone contract: Europe/Oslo (hardcoded V1).
+        weekday: osloWeekdayFromDateStr(row.shift_date),
         date: row.shift_date,
         start: `${row.shift_date} ${row.start_time}`,
         end: `${row.shift_date} ${row.end_time}`,

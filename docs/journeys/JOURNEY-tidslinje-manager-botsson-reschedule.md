@@ -1,6 +1,7 @@
 ---
 title: "Journey: Manager re-planlegger etter avbestilling (Botsson assist)"
-status: draft
+status: verified
+feature: p10-tidslinje-tab
 created: 2026-05-23
 updated: 2026-05-23
 module: day-session
