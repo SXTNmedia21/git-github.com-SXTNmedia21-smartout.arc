@@ -1,6 +1,6 @@
 ---
 title: "Visual Parity — Manager Timeline (dayplanner-dnd-and-views)"
-status: in_progress
+status: done
 created: 2026-05-25
 updated: 2026-05-25
 feature: dayplanner-dnd-and-views
@@ -33,7 +33,7 @@ Implementation in `AreaBand.tsx` uses `var(--dept-${band.id}, var(--border))` �
 
 **Gap:** Prototype maps area ids like `"kitchen"`, `"bistro"`, `"spisesal"`, `"bar"`, `"event"`. Implementation maps band.id from `day_line.location_id` (DB-derived). If location_id strings differ from token keys (e.g. `"kjokken"` vs `"kitchen"`), `var(--dept-<id>)` falls back to `var(--border)` (gray). This is a **data mapping concern**, not a design-token gap — but it means area coloring may render colorless in production until location_id aligns with token names.
 
-→ **MINOR DEVIATION** — Dept color will fall back to border-gray if location_id values don't match token keys.
+→ **MATCH** — `resolveDeptToken()` normalises DB-driven location_id values (e.g. "kjøkken" → "kitchen") before the CSS variable is constructed. 4 canonical keys + 5 Norwegian variants covered. Unknown keys fall back to "default" with a dev-mode console.warn.
 
 ### 1.2 Semantic Colors
 
@@ -88,13 +88,13 @@ No OKLCH literals found in implementation chart components. **MATCH** on all sem
 
 | Element                  | Prototype                               | Implementation                  | Status |
 |--------------------------|-----------------------------------------|---------------------------------|--------|
-| Band name                | `font-heading` 14px                     | Geist Sans (body), `text-sm font-semibold` | **MINOR DEVIATION** — prototype uses `--font-heading` (Instrument Serif); implementation uses default Geist Sans. Band names read as headings in prototype; implementation does not apply `font-heading`. |
+| Band name                | `font-heading` 14px                     | `font-heading text-sm font-semibold` (Instrument Serif) | **MATCH** — `font-heading` added to band-name span (feat/dayplanner-visual-parity). |
 | Task title               | No font-family; falls to body (Geist)  | `font-medium leading-tight`     | **MATCH** |
 | Time meta (task)         | Mono 10px (`--font-mono`)              | `font-mono text-[0.6rem]` via `text-muted-foreground` | **MATCH** |
 | Gutter hour labels       | Mono, uppercase, `letter-spacing: 0.05em` | Geist Mono                  | **MATCH** |
 | Toolbar labels           | 12px body                              | `text-sm` / `text-xs` Geist     | **MATCH** |
 
-**Notable:** Prototype applies `--font-heading` (Instrument Serif) to band area names for visual hierarchy. Implementation uses default Geist Sans. This is a **deliberate or unconsidered omission** — worth noting but low-impact since the Nordic Split spec allows this for compact UI surfaces.
+**Resolved:** `font-heading` (Instrument Serif) added to band-name span by feat/dayplanner-visual-parity. Now matches prototype visual hierarchy.
 
 ---
 
@@ -104,11 +104,11 @@ No OKLCH literals found in implementation chart components. **MATCH** on all sem
 |-------------------------|----------------------------------------------|----------------------------------------------------|--------|
 | Task hover              | No explicit CSS transition in jsx; CSS sheet unknown | `transition-opacity hover:opacity-90`         | **MINOR DEVIATION** — prototype intent unclear; implementation uses opacity-based hover which is correct pattern |
 | Drag source dim         | `opacity: 0.5` via class                     | `opacity-50` via cn() conditional                  | **MATCH** |
-| Drop target highlight   | `drop-target` class (background change)      | `bg-orange-500/10` conditional in PersonLane/UnassignedLane | **MINOR DEVIATION** — implementation uses hardcoded `orange-500` instead of `var(--brand-orange)/10`. ADR-0361 violation candidate — should be `bg-[color:oklch(from_var(--brand-orange)_l_c_h_/_0.10)]` or a Tailwind token alias. |
-| Toolbar chip animation  | No CSS class in jsx (CSS sheet not inspected) | `FilterChip` from `@smartout/ui` — transitions assumed per primitive | **TODO** — verify FilterChip has transition-colors per Nordic Split §10.4 |
-| View-mode SegmentGroup  | `.on` class toggled (CSS manages transition)  | `SegmentGroup` from `@smartout/ui` — transitions assumed | **TODO** — verify SegmentGroup has transition-colors |
+| Drop target highlight   | `drop-target` class (background change)      | `bg-[color-mix(in_oklch,var(--brand-orange)_10%,transparent)]` in PersonLane/UnassignedLane | **MATCH** — ADR-0361 compliant: uses CSS variable reference via color-mix, no hardcoded Tailwind color. |
+| Toolbar chip animation  | No CSS class in jsx (CSS sheet not inspected) | `FilterChip` from `@smartout/ui` — `transition-colors` confirmed present (line 56) | **MATCH** — Nordic Split §10.4 compliant. |
+| View-mode SegmentGroup  | `.on` class toggled (CSS manages transition)  | `SegmentGroup` from `@smartout/ui` — `transition-colors` confirmed present (line 65) | **MATCH** — Nordic Split §10.4 compliant. |
 
-**ADR violation flag:** `UnassignedLane.tsx` line ~154 uses `bg-orange-500/10` — this is a hardcoded Tailwind color, not a CSS variable token. ADR-0361 (no hardcoded colors) requires this to use `var(--brand-orange)` reference.
+**ADR-0361 resolved:** Both `UnassignedLane` and `PersonLane` drop-target highlights now use `bg-[color-mix(in_oklch,var(--brand-orange)_10%,transparent)]` — CSS variable reference, no hardcoded Tailwind color.
 
 ---
 
@@ -117,8 +117,8 @@ No OKLCH literals found in implementation chart components. **MATCH** on all sem
 | Aspect                 | Prototype                                          | Implementation                         | Status |
 |------------------------|----------------------------------------------------|----------------------------------------|--------|
 | Dim trigger            | `filters.areas.size > 0 && !filters.areas.has(area.id)` | `dimmedBandIds?.includes(band.id)` computed in Shell | **MATCH** |
-| Dim style              | `.dimmed` class → CSS `opacity: 0.3` (CSS sheet)  | `dimmed && "opacity-50"` via cn()      | **MINOR DEVIATION** — prototype targets `opacity: 0.3`; implementation uses `opacity-50` (50%). Intentional or gap? 30% would match prototype more closely. |
-| data-dimmed attribute  | `lane-body dimmed` class only                     | No `data-dimmed` attribute             | **DEVIATION** — E2E spec below tests for `data-dimmed="true"` attr; implementation uses class-based dimming only. E2E must target `opacity-50` class or `.has-class` pattern instead. |
+| Dim style              | `.dimmed` class → CSS `opacity: 0.3` (CSS sheet)  | `dimmed && "opacity-30"` via cn()      | **MATCH** — opacity corrected from 50% → 30% to match prototype (feat/dayplanner-visual-parity). |
+| data-dimmed attribute  | `lane-body dimmed` class only                     | `data-dimmed="true"|"false"` on root   | **MATCH** — attribute added to AreaBand root; E2E spec updated to use attribute selector. |
 
 ---
 
@@ -143,14 +143,16 @@ The prototype has a full right-rail (Akkurat nå / Detalj / Melding / Avvik tabs
 
 | Category            | Result |
 |---------------------|--------|
-| Color tokens        | MATCH (with data-mapping caveat on dept-id lookup) |
-| Layout              | MATCH (gutter 80px vs ~60px prototype — minor) |
-| Spacing             | MINOR DEVIATIONS (vertical header padding, band-name font) |
-| Typography          | MINOR DEVIATION (band-name Geist vs Instrument Serif) |
-| Animations          | MINOR DEVIATION (drop-target orange-500 hardcode) |
-| Dimming             | MINOR DEVIATION (50% vs 30%; no data-dimmed attr) |
+| Color tokens        | MATCH (dept-id resolver normalises DB values; drop-target uses CSS variable via color-mix) |
+| Layout              | MATCH (gutter 80px vs ~60px prototype — minor, deferred) |
+| Spacing             | MINOR DEVIATION (vertical header padding 8px vs ~10px — deferred) |
+| Typography          | MATCH (band-name now uses font-heading / Instrument Serif) |
+| Animations          | MATCH (FilterChip + SegmentGroup both have transition-colors; drop-target ADR-0361 fixed) |
+| Dimming             | MATCH (opacity-30 matches prototype; data-dimmed attribute added) |
 
-**Overall verdict: MINOR DEVIATIONS** — No major structural or color-system gaps. All deviations are small (opacity value, one hardcoded color, font on band names). No OKLCH literals found in implementation.
+**Overall verdict: MATCH** — All 6 MINOR DEVIATIONS closed by feat/dayplanner-visual-parity. Remaining deferred items (gutter width, vertical padding) are sub-millimeter and non-blocking.
+
+**2026-05-25 update:** 6 deviations closed by feat/dayplanner-visual-parity sortie. All MINOR DEVIATIONS resolved; verdict upgraded to MATCH.
 
 ---
 

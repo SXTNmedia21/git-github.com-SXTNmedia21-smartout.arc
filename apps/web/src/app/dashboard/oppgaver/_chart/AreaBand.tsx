@@ -29,6 +29,7 @@ import type { TimelineTask } from "./TaskBlock";
 import { layoutOverlap } from "./layoutOverlap";
 import { useChartDrag } from "./ChartDragContext";
 import type { DragDropResult } from "./useDragRetiming";
+import { resolveDeptToken } from "./dept-token-resolver";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,8 +150,8 @@ function UnassignedLane({
       aria-label={`Ikke tildelt – ${areaId}`}
       className={cn(
         "border-border relative w-full overflow-hidden border-t border-dashed transition-colors",
-        dimmed && "opacity-50",
-        isDragOver && "bg-orange-500/10",
+        dimmed && "opacity-30",
+        isDragOver && "bg-[color-mix(in_oklch,var(--brand-orange)_10%,transparent)]",
       )}
       style={{ height: pxPerHour * 20 }}
       onClick={handleClick}
@@ -246,19 +247,25 @@ export function AreaBand({
   // ── CSS custom-prop: --area-color ─────────────────────────────────────────
   // Reference the dept token by id. `var(--dept-<id>)` is a CSS variable chain
   // that resolves at paint time — NOT an OKLCH literal (ADR-0366 compliant).
+  // resolveDeptToken normalises DB-driven location_id values (e.g. "kjokken" →
+  // "kitchen") so `var(--dept-kitchen)` resolves to the correct design token.
   // Falls back to `var(--border)` when no dept token exists for this id.
-  const areaColorVar = `var(--dept-${band.id}, var(--border))`;
+  const deptKey = resolveDeptToken(band.id);
+  const areaColorVar = `var(--dept-${deptKey}, var(--border))`;
 
   return (
     <div
-      className={cn("border-border flex flex-col border-r", dimmed && "opacity-50")}
+      className={cn("border-border flex flex-col border-r", dimmed && "opacity-30")}
+      data-dimmed={dimmed ? "true" : "false"}
       style={{ "--area-color": areaColorVar } as React.CSSProperties}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="border-border bg-background sticky top-0 z-10 border-b px-3 py-2">
         <div className="flex items-baseline gap-2">
-          {/* Band name */}
-          <span className="text-foreground truncate text-sm font-semibold">{band.name}</span>
+          {/* Band name — font-heading (Instrument Serif) per prototype visual hierarchy */}
+          <span className="text-foreground font-heading truncate text-sm font-semibold">
+            {band.name}
+          </span>
 
           {/* Employees-on-shift count badge */}
           <span className="text-muted-foreground text-[0.65rem] font-medium whitespace-nowrap">
