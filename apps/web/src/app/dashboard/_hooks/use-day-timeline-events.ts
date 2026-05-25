@@ -40,6 +40,15 @@ export type DayEvent = {
   source: string;
   /** Done-state for tasks (lets list show check). */
   done?: boolean;
+  /**
+   * Location anchor for chip-bar filtering. Resolved natively where the row
+   * carries one (schedule_shift.location_id, schedule_day_booking → day_line).
+   * Null/undefined for sources that have no native 1:1 location anchor today
+   * (session_note, session_task, session_hook, deviation) — those derive in
+   * a follow-up sortie once policy for session→day_line 1:N is pinned.
+   * See SMA-374 §C2.
+   */
+  location_id?: string | null;
 };
 
 function hhmm(d: Date): string {
@@ -105,15 +114,17 @@ export function useDayTimelineEvents(args: {
       const events: DayEvent[] = [];
 
       // Bookings (workspace-scoped, by date)
+      // location_id resolved natively via day_line FK join (SMA-374 §C2).
       const { data: bookings } = await supabase
         .from("schedule_day_booking")
         .select(
-          "schedule_day_booking_id, title, booking_time, guest_count, status, is_vip, location, notes, contact_person",
+          "schedule_day_booking_id, title, booking_time, guest_count, status, is_vip, location, notes, contact_person, day_line:day_line_id(location_id)",
         )
         .eq("workspace_id", wsId!)
         .eq("shift_date", dateISO);
 
       for (const b of bookings ?? []) {
+        const dayLineJoin = b.day_line as unknown as { location_id: string | null } | null;
         events.push({
           id: `booking-${b.schedule_day_booking_id}`,
           type: "booking",
@@ -126,6 +137,7 @@ export function useDayTimelineEvents(args: {
           tone: b.is_vip ? "warning" : "info",
           refId: b.schedule_day_booking_id,
           source: "schedule_day_booking",
+          location_id: dayLineJoin?.location_id ?? null,
         });
       }
 
@@ -289,9 +301,12 @@ export function useDayTimelineEvents(args: {
       // Until that join lands, surface ALL workspace check-ins on the day so
       // the user actually sees their punch on Dagslinjen.
       {
+        // location_id pulled natively for chip-bar filter (SMA-374 §C2).
         let shiftQuery = supabase
           .from("schedule_shift")
-          .select("schedule_shift_id, employee_id, team_id, profile:employee_id(display_name)")
+          .select(
+            "schedule_shift_id, employee_id, team_id, location_id, profile:employee_id(display_name)",
+          )
           .eq("workspace_id", wsId!)
           .eq("shift_date", dateISO);
 
@@ -318,9 +333,15 @@ export function useDayTimelineEvents(args: {
               return [s.schedule_shift_id, p?.display_name ?? "Ukjent"] as const;
             }),
           );
+          // location lookup per shift — keeps both punch events anchored to
+          // the same chip filter axis (SMA-374 §C2).
+          const locationByShift = new Map(
+            (shifts ?? []).map((s) => [s.schedule_shift_id, s.location_id ?? null] as const),
+          );
 
           for (const e of entries ?? []) {
             const name = nameByShift.get(e.shift_id) ?? "Ukjent";
+            const locId = locationByShift.get(e.shift_id) ?? null;
             if (e.punch_in) {
               const t = new Date(e.punch_in);
               events.push({
@@ -334,6 +355,7 @@ export function useDayTimelineEvents(args: {
                 tone: "success",
                 refId: e.shift_id,
                 source: "time_entry.punch_in",
+                location_id: locId,
               });
             }
             if (e.punch_out) {
@@ -349,6 +371,7 @@ export function useDayTimelineEvents(args: {
                 tone: "muted",
                 refId: e.shift_id,
                 source: "time_entry.punch_out",
+                location_id: locId,
               });
             }
           }
