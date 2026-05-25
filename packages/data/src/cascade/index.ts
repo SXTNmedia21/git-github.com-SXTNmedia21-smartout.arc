@@ -7,7 +7,7 @@ export {
   isCascadeInput,
   isGovernanceGated,
   isContentEntity,
-} from "./classify.js";
+} from "./classify";
 
 export {
   type EvaluationOutcome,
@@ -21,4 +21,4 @@ export {
   EvaluationConfigSchema,
   evaluateFrameworkRules,
   ruleSeverityToOutcome,
-} from "./evaluate-rules.js";
+} from "./evaluate-rules";

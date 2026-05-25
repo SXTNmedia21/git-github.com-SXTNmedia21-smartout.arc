@@ -5,6 +5,6 @@
  * `@smartout/data/day-session` or via the root `@smartout/data` barrel.
  */
 
-export * from "./use-day-lines-for-date.js";
-export * from "./use-session-tasks-for-date.js";
-export * from "./use-roles-for-positions.js";
+export * from "./use-day-lines-for-date";
+export * from "./use-session-tasks-for-date";
+export * from "./use-roles-for-positions";

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { useDayLinesForDate } from "../use-day-lines-for-date.js";
+import { useDayLinesForDate } from "../use-day-lines-for-date";
 
 describe("useDayLinesForDate", () => {
   it("exists and is callable as a function", () => {
