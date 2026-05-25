@@ -430,6 +430,7 @@ export function ManagerTimelineShell() {
         }}
         onComplete={handleComplete}
         editMode={editModalMode}
+        dateISO={dateISO}
         onTaskUpdated={() => {
           if (workspaceId) {
             void queryClient.invalidateQueries({

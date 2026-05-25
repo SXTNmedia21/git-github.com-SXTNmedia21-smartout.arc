@@ -34,7 +34,7 @@
  * References: ADR-0238, ADR-0298, ADR-0361, ADR-0366.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { CheckCircle2, Clock, User, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -73,6 +73,12 @@ type Props = {
   editMode?: boolean;
   /** Called after a successful edit save — parent should refresh data. */
   onTaskUpdated?: () => void;
+  /**
+   * ISO date string (YYYY-MM-DD) of the day currently visible in the timeline.
+   * Used to build the correct scheduled_at ISO when saving — avoids defaulting
+   * to today when the manager is viewing a past or future day (MEDIUM-1).
+   */
+  dateISO: string;
 };
 
 // ─── Status helpers ────────────────────────────────────────────────────────────
@@ -115,6 +121,7 @@ export function TaskEditModal({
   onComplete,
   editMode = false,
   onTaskUpdated,
+  dateISO,
 }: Props) {
   const { t } = useTranslation("oppgaver");
 
@@ -122,10 +129,17 @@ export function TaskEditModal({
   const t_ = task;
   const canComplete = t_ !== null && t_.status !== "done";
 
-  // Edit form state — initialised from task when editMode opens
-  const [editTime, setEditTime] = useState<string>("");
+  // Edit form state — initialised from task.start so the field is pre-filled
+  // on open (HIGH-1: unconditional "" caused blank field + disabled Save).
+  const [editTime, setEditTime] = useState<string>(() => task?.start ?? "");
   const [editAssignee, setEditAssignee] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  // Sync editTime when task changes while the modal stays mounted (e.g. the
+  // user navigates to a different task without closing the Sheet).
+  useEffect(() => {
+    if (task && editMode) setEditTime(task.start);
+  }, [task, editMode]);
 
   async function handleComplete() {
     if (!task) return;
@@ -137,10 +151,16 @@ export function TaskEditModal({
     if (!task || !editTime) return;
     setSaving(true);
     try {
-      // editTime is HH:MM from the <input type="time"> — combine with task date
-      // The task doesn't carry a date directly; we parse scheduled_at or default today.
-      const datePart = new Date().toISOString().slice(0, 10);
-      const isoScheduledAt = `${datePart}T${editTime}:00.000Z`;
+      // editTime is HH:MM from the <input type="time">. Combine with the
+      // timeline's dateISO (MEDIUM-1: was new Date() → wrong day on past/future
+      // views). Use local setHours so the resulting ISO reflects Norwegian wall
+      // clock, not UTC (HIGH-2: plain string interpolation stored UTC Z offsets
+      // causing a ±2 h display shift). Matches useDragRetiming.ts baseDate.setHours
+      // pattern.
+      const [hh, mm] = editTime.split(":").map(Number);
+      const d = new Date(dateISO + "T00:00:00");
+      d.setHours(hh!, mm!, 0, 0);
+      const isoScheduledAt = d.toISOString();
 
       const res = await updateTaskScheduledAtAction({
         task_id: task.id,
@@ -219,7 +239,6 @@ export function TaskEditModal({
                     value={editTime}
                     onChange={(e) => setEditTime(e.target.value)}
                     className="h-8 font-mono text-sm"
-                    defaultValue={t_ ? task.start : ""}
                     aria-describedby="edit-time-hint"
                   />
                 </div>
