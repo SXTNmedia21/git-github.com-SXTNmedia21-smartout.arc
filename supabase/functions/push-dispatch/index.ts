@@ -10,7 +10,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { sendSms } from "../_shared/twilio.ts";
 import { sendOneSignalPush } from "../_shared/onesignal.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 /** Events that warrant SMS fallback when push token is unavailable */
 const CRITICAL_EVENTS = new Set([
@@ -33,9 +33,10 @@ type PushRequest = {
 
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // Validate bearer token — this function is called from DB triggers, not users
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     console.error("PUSH_DISPATCH_SECRET not configured");
     return new Response(JSON.stringify({ error: "Server misconfigured" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
   if (token !== expectedSecret) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
         error:
           "Missing required fields: event, profile_id, workspace_id, payload.title, payload.body",
       }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
 
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
     console.error("Profile not found:", profile_id, profileError?.message);
     return new Response(JSON.stringify({ error: "Profile not found" }), {
       status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -114,7 +115,7 @@ Deno.serve(async (req) => {
     console.error("OneSignal not configured");
     return new Response(JSON.stringify({ error: "Server misconfigured" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -140,7 +141,7 @@ Deno.serve(async (req) => {
       sms_fallback: isCritical && (!result.ok || result.recipients === 0),
       error: result.error,
     }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
   );
 });
 

@@ -25,6 +25,7 @@ You are:
 
 Before answering ANY question or reviewing ANY agent output:
 
+0. **If task names a Smartout domain** (check `docs/domains/_DASHBOARD.md` for the list of 19): read that domain's `OVERVIEW.md` + `GAPS-AND-DEBT.md` first. Spine is compiled-truth per ADR-0392; code wins over spine if `last_verified` is stale. Conditional — skip if task is not domain-relevant.
 1. Read `docs/STATE.md` → Current system state, gaps, weekly plan
 2. Read `CLAUDE.md` → Conventions, rules, stack, data model
 3. Read the relevant module doc → Business logic for the domain in question

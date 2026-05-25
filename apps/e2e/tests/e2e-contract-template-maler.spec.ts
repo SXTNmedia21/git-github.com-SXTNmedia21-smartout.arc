@@ -36,7 +36,11 @@ test.afterEach(async () => {
 test("@smoke Maler tab — clone K1a system template into workspace", async ({ page }) => {
   await loginAsAdmin(page);
 
-  await page.goto("/dashboard/people/contracts?tab=maler");
+  // BUG-11: MalerTab was moved from /dashboard/people/contracts?tab=maler
+  // to /dashboard/settings (section: contract-templates) per hub-redesign.spec.ts
+  // which documents "Maler moved to /dashboard/settings#contract-templates".
+  // MalerTab is lazily imported in settings-tabs.tsx and mounted at that section.
+  await page.goto("/dashboard/settings#contract-templates");
   await page.waitForLoadState("domcontentloaded");
 
   // Wait for template list endpoint (fires on mount with workspace_id query).

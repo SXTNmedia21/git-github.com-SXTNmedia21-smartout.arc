@@ -2,9 +2,10 @@
 
 // ============================================
 // schedule-voice-tools-bridge.tsx
-// Registers schedule voice tools inside the shared voice tools context.
-// Exists to keep schedule/page.tsx free from inline registration lifecycle code.
-// Connected to: use-schedule-voice-tools.ts and voice-tools-context.tsx.
+// Registers schedule voice tools via the canonical useRegisterTools harness
+// (ADR-0282). Exists to keep schedule/page.tsx free from inline registration
+// lifecycle code.
+// Connected to: use-schedule-voice-tools.ts and @smartout/agent-sdk types.
 // ============================================
 
 import { useEffect, useContext } from "react";

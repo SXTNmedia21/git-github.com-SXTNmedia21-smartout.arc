@@ -203,3 +203,23 @@ export async function loginAsEmployee(
   await page.waitForTimeout(1000);
   await skipOnboardingIfPresent(page);
 }
+
+/**
+ * Authenticates as the seeded accountant user (admin app / platform-admin scope).
+ *
+ * Credentials seeded by supabase/seed-admin.sql:
+ *   email:    accountant@smartout.local
+ *   password: password123
+ *   scope:    billing.accountant_company_grant → full_kartotek → Smartout AS
+ *
+ * Unblocks: apps/e2e/admin/avstemming.spec.ts (ENV-2)
+ */
+export async function loginAsAccountant(page: Page, baseUrl?: string): Promise<void> {
+  const url = baseUrl ?? process.env.ADMIN_E2E_BASE_URL ?? "http://localhost:3070";
+  await page.goto(url + "/login");
+  await dismissDevOverlay(page);
+  await page.locator('input[type="email"]').fill("accountant@smartout.local");
+  await page.locator('input[type="password"]').fill("password123");
+  await submitLoginAndWait(page);
+  await page.waitForTimeout(1000);
+}

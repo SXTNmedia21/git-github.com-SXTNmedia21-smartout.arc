@@ -84,6 +84,14 @@ jobs:
           echo "Checking $(echo "$FILES" | wc -l) files:"
           echo "$FILES"
           echo "$FILES" | xargs pnpm exec prettier --check
+      - name: CORS pattern gate (ADR-0408)
+        # Blocks re-introduction of the deprecated static corsHeaders constant.
+        # Any EF file importing corsHeaders from _shared/cors.ts or hardcoding
+        # Access-Control-Allow-Origin: https://... fails with exit 1.
+        run: pnpm check:cors
+
+      - name: Workspace FK CASCADE check (ADR-0409)
+        run: node scripts/check-workspace-fk-cascade.mjs
 
   # ── Vitest (packages with unit/integration tests) ───────────────
   # Any PR that breaks a capability, hook, or telemetry-registry test blocks merge.
@@ -397,6 +405,34 @@ jobs:
           \$up\$;
           SQL
           echo "✓ cron secrets upserted into Vault (next pg_cron firing reads them)"
+
+      - name: Verify service-key seed (BUG-009)
+        # Guards against the BUG-009 class: platform_api_key empty after db-reset
+        # → all service-to-service calls fail silently with 401.
+        # Uses same pooler + credentials as cron-seed step above.
+        # Fix when failing: run infra/scripts/seed-prod-service-keys.sh (ADR-0411)
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          PSQL="psql -v ON_ERROR_STOP=1 -h aws-1-eu-west-1.pooler.supabase.com -p 5432 -U postgres.${SUPABASE_PROJECT_REF} -d postgres"
+          ACTUAL=$($PSQL -tAc "select count(*) from public.platform_api_key where environment='live' and revoked_at is null and key_type='service'" 2>/dev/null || echo "")
+          if [ -z "$ACTUAL" ]; then
+            echo "::warning::Could not query platform_api_key (auth or connectivity). Skipping service-key check."
+            exit 0
+          fi
+          REGISTRY="services/_shared/expected-keys.json"
+          if [ ! -f "$REGISTRY" ]; then
+            echo "::error::$REGISTRY not found — required by ADR-0411"
+            exit 1
+          fi
+          EXPECTED=$(cat "$REGISTRY" | jq '. | length')
+          if [ "$ACTUAL" -lt "$EXPECTED" ]; then
+            echo "::error::platform_api_key has $ACTUAL live service rows; expected >= $EXPECTED. Run infra/scripts/seed-prod-service-keys.sh (BUG-009 / ADR-0411)"
+            exit 1
+          fi
+          echo "✓ platform_api_key: $ACTUAL >= $EXPECTED required service keys"
 
   # ── Migration state poller (ADR-0262) ──────────────────────────
   # On main push: assert prod's last applied migration timestamp matches the

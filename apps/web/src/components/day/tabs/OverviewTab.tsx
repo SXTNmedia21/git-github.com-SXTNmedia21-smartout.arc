@@ -131,9 +131,9 @@ export function OverviewTab({
 
   return (
     <div className="h-full min-h-0 overflow-hidden">
-      <div className="flex min-h-0 flex-col gap-5 overflow-hidden">
-        {/* KPI Strip */}
-        <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="flex min-h-0 flex-col gap-5 overflow-hidden lg:grid lg:grid-cols-5 lg:grid-rows-1">
+        {/* Section A — KPI Strip (4-col inner grid, cols 1-4 of outer). */}
+        <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-4 lg:auto-rows-fr lg:grid-cols-4">
           <KpiAccentTile
             title="På vakt"
             icon={Users}
@@ -203,8 +203,8 @@ export function OverviewTab({
           />
         </div>
 
-        {/* Må gjøre nå — full width below KPI strip (Aktivitetslogg + right sidebar removed). */}
-        <div className="min-h-0 flex-1">
+        {/* Section B — Må gjøres nå (moved up, col 5 of outer grid, stretches full height beside A). */}
+        <div className="min-h-0 flex-1 lg:col-start-5 lg:h-full lg:flex-none">
           <MustDoCard items={mustDoItems} />
         </div>
       </div>

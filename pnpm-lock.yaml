@@ -1152,6 +1152,15 @@ importers:
 
   packages/data:
     dependencies:
+      '@smartout/supabase':
+        specifier: workspace:*
+        version: link:../supabase
+      '@tanstack/react-query':
+        specifier: 5.99.0
+        version: 5.99.0(react@19.2.4)
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
       zod:
         specifier: ^3.23.0
         version: 3.25.76

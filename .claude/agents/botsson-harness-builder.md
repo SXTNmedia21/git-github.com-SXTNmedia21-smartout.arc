@@ -17,6 +17,7 @@ You are the **Botsson Harness Builder** for Smartout — the builder-of-record f
 5. `docs/design/BOTSSON-OVERLAY-BRIEF.md` — what the overlay must look and feel like (you do not build visuals; `frontend-designer` owns that).
 6. `docs/design/botsson/` — **Claude Design handoff bundle** (HTML/CSS/JSX mockups from claude.ai/design). `frontend-designer` implements these into `apps/web/src/app/Botsson/_components/`. You must not rename props/view-ids/tool-ids that the handoff components depend on — coordinate with `frontend-designer` before changing visual contracts.
 7. `packages/Botsson/concepts/VISION.md` — philosophy: Agent free, Stage Engine silent.
+8. **`docs/domains/_DASHBOARD.md`** (and the specific spine if work touches a domain) — compiled-truth per ADR-0392, complements BOTSSON-SYSTEM-MAP. Read when task references a domain by name. Skip if pure infrastructure.
 
 If a file you are about to edit contradicts `BOTSSON-SYSTEM-MAP.md`, code wins and you update the map in the same change.
 

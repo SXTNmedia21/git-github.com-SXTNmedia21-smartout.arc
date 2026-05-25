@@ -13,7 +13,7 @@
  * Cleanup: each test should pass a workspace_id (random UUID) into the
  * setup helpers in beforeEach + use cleanWorkspace(workspace_id) in
  * afterEach. The cleanup helper cascades through every table the fixtures
- * touched.
+ * touched (including auth.users rows created for profile FKs).
  */
 
 import { randomUUID } from "node:crypto";
@@ -29,6 +29,8 @@ export type HelpdeskSlaFixture = {
   rep_profile_id: string;
   observer_profile_id: string;
   authority_id: string;
+  /** Auth user IDs created for rep + observer — must be deleted in cleanWorkspace. */
+  _auth_user_ids: string[];
 };
 
 export type SeedBreachedTicketArgs = {
@@ -53,12 +55,17 @@ export type SeededTicket = {
  * a manager (broadcast-fallback observer), and an engine_authority_config row
  * for `helpdesk_query` with observer_escalation_hours=72.
  *
- * The rep + manager are profile-only (no user_identity / login). UI tests
- * that need to LOG IN as the rep / manager should use loginAsPlatformAdmin
- * (admin can act as observer with godmode for visibility) — see auth gap
- * note in spec headers.
+ * BUG-20 fix: profile.user_id is NOT NULL (FK → user_identity → auth.users).
+ * The rep + manager each need a backing auth.users row created via the service-role
+ * admin client. The created user_ids are tracked in _auth_user_ids so cleanWorkspace
+ * can delete them alongside the profile rows.
+ *
+ * UI tests that need to LOG IN as rep/manager should use loginAsPlatformAdmin
+ * (godmode visibility) — these profiles have auth rows but no dashboard access.
  */
 export async function seedHelpdeskWithObserver(workspace_id: string): Promise<HelpdeskSlaFixture> {
+  const _auth_user_ids: string[] = [];
+
   // Workspace
   const { error: wsErr } = await supabase.from("workspace").insert({
     workspace_id,
@@ -73,13 +80,25 @@ export async function seedHelpdeskWithObserver(workspace_id: string): Promise<He
   if (wsErr) throw new Error(`workspace insert: ${wsErr.message}`);
 
   // Rep (responsible_profile_id — the desk owner)
+  // BUG-20: profile.user_id is NOT NULL — create a backing auth user first.
+  const repSuffix = rep_profile_id_prefix();
+  const { data: repAuth, error: repAuthErr } = await supabase.auth.admin.createUser({
+    email: `e2e-sla-rep-${repSuffix}@smartout.local`,
+    password: "test-password-1234",
+    email_confirm: true,
+  });
+  if (repAuthErr || !repAuth.user) {
+    throw new Error(`rep auth.admin.createUser failed: ${repAuthErr?.message ?? "no user"}`);
+  }
+  _auth_user_ids.push(repAuth.user.id);
+
   const rep_profile_id = randomUUID();
   const { error: repErr } = await supabase.from("profile").insert({
     profile_id: rep_profile_id,
     workspace_id,
     display_name: "Rep Repsen",
     profile_code: `rep-${rep_profile_id.slice(0, 6)}`,
-    user_id: null,
+    user_id: repAuth.user.id,
     role: "employee",
     status: "active",
     is_active: true,
@@ -87,13 +106,25 @@ export async function seedHelpdeskWithObserver(workspace_id: string): Promise<He
   if (repErr) throw new Error(`rep insert: ${repErr.message}`);
 
   // Observer (manager — broadcast fallback per ADR-0229)
+  // BUG-20: profile.user_id is NOT NULL — create a backing auth user first.
+  const obsSuffix = obs_profile_id_prefix();
+  const { data: obsAuth, error: obsAuthErr } = await supabase.auth.admin.createUser({
+    email: `e2e-sla-mgr-${obsSuffix}@smartout.local`,
+    password: "test-password-1234",
+    email_confirm: true,
+  });
+  if (obsAuthErr || !obsAuth.user) {
+    throw new Error(`observer auth.admin.createUser failed: ${obsAuthErr?.message ?? "no user"}`);
+  }
+  _auth_user_ids.push(obsAuth.user.id);
+
   const observer_profile_id = randomUUID();
   const { error: obsErr } = await supabase.from("profile").insert({
     profile_id: observer_profile_id,
     workspace_id,
     display_name: "Mona Manager",
     profile_code: `mgr-${observer_profile_id.slice(0, 6)}`,
-    user_id: null,
+    user_id: obsAuth.user.id,
     role: "manager",
     status: "active",
     is_active: true,
@@ -131,7 +162,16 @@ export async function seedHelpdeskWithObserver(workspace_id: string): Promise<He
     rep_profile_id,
     observer_profile_id,
     authority_id,
+    _auth_user_ids,
   };
+}
+
+// Unique suffix helpers — short random hex so email stays well under 254 chars.
+function rep_profile_id_prefix(): string {
+  return randomUUID().slice(0, 8);
+}
+function obs_profile_id_prefix(): string {
+  return randomUUID().slice(0, 8);
 }
 
 // ---------------------------------------------------------------------------
@@ -331,8 +371,14 @@ export async function invokeFireDelayedTriggers(): Promise<{
  * Best-effort cleanup. Order matters: child tables first, then parent.
  * Errors are swallowed (cleanup is best-effort — if a table doesn't exist
  * or rows already cascaded, that's OK).
+ *
+ * Pass _auth_user_ids from the HelpdeskSlaFixture to also clean up the
+ * backing auth.users rows created by BUG-20 fix (profile.user_id NOT NULL).
  */
-export async function cleanWorkspace(workspace_id: string): Promise<void> {
+export async function cleanWorkspace(
+  workspace_id: string,
+  auth_user_ids: string[] = [],
+): Promise<void> {
   const tables = [
     "notification_outbox",
     "activity_trail",
@@ -348,6 +394,15 @@ export async function cleanWorkspace(workspace_id: string): Promise<void> {
   for (const t of tables) {
     try {
       await supabase.from(t).delete().eq("workspace_id", workspace_id);
+    } catch {
+      // ignore — best effort
+    }
+  }
+
+  // Clean up backing auth.users rows (created for profile.user_id NOT NULL constraint).
+  for (const uid of auth_user_ids) {
+    try {
+      await supabase.auth.admin.deleteUser(uid);
     } catch {
       // ignore — best effort
     }

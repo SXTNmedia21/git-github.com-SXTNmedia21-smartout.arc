@@ -89,6 +89,7 @@ still in flight:
 12. **`onboarding_completed` is not a generic UI flag.** If a plan uses
     `workspace.onboarding_completed` to drive unrelated setup-guide visibility,
     treat that as a likely ownership bug and verify it against the actual flow.
+13. **`docs/domains/<name>/`** — compiled-truth spine per ADR-0392. `_DASHBOARD.md` is the index. When a task names a Smartout domain, read its spine first; code wins over spine if `last_verified` is stale. Conditional load — skip if task is not domain-relevant.
 
 ### Key Reference Files
 
