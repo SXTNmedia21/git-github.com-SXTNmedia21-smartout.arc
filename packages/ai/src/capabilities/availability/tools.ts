@@ -235,7 +235,6 @@ export const queryOthersAvailability = defineTool({
     "Query colleagues' availability preferences within a date window. Chat-only (per ADR-0202 — reveals second-party data).",
   capability: CAPABILITY_QUERY_OTHERS,
   schema: z.object({
-    workspace_id: z.string().uuid().describe("Workspace scope (must match caller's workspace)."),
     start_date: z.string().describe("ISO-8601 date — start of the query window (inclusive)."),
     end_date: z.string().describe("ISO-8601 date — end of the query window (inclusive)."),
     profile_ids: z
@@ -247,6 +246,11 @@ export const queryOthersAvailability = defineTool({
     const supabase = ctx.supabaseAdmin;
     const channel = normaliseChannel(ctx.channel);
 
+    // ADR-0151: workspace_id is server-derived from ctx (no longer in schema).
+    // Earlier versions accepted workspace_id as a tool parameter with a
+    // post-hoc mismatch check; LLM tool-call could still hint cross-workspace
+    // intent in payloads. Audit 2026-05-25 (cap-tools H-5) flagged this.
+    //
     // ADR-0202 layer 2: defence-in-depth channel guard. The capability-level
     // allowedChannels (["chat"]) also blocks at router-time; this inline
     // check covers the case where a tool is invoked outside the normal router
@@ -256,14 +260,6 @@ export const queryOthersAvailability = defineTool({
         ok: false as const,
         reason: "voice_forbidden" as const,
         detail: "Availability of colleagues is only queryable over chat. Bytt til chat.",
-      });
-    }
-
-    // Workspace scope check — reject cross-workspace queries early.
-    if (params.workspace_id !== ctx.workspaceId) {
-      return JSON.stringify({
-        ok: false as const,
-        reason: "workspace_mismatch" as const,
       });
     }
 
