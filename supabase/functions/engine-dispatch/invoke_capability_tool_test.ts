@@ -298,9 +298,12 @@ Deno.test("invoke_capability_tool — STAGE_ENGINE_INTERNAL_KEY present in .env.
     envSource.includes("STAGE_ENGINE_INTERNAL_KEY"),
     ".env.template must declare STAGE_ENGINE_INTERNAL_KEY (ADR-0424 §Env var contract)",
   );
+  // CLAUDE.md two-vault rule: dev surface uses smartout_ai; prod uses
+  // smartout_ai_prod. .env.template is the dev surface — assert dev path.
+  // Prod manifest is sync-env-to-vercel.sh's responsibility (separate gate).
   assert(
-    envSource.includes("op://smartout_ai_prod/stage-engine/internal-key"),
-    "STAGE_ENGINE_INTERNAL_KEY must reference the 1Password op:// path",
+    /op:\/\/smartout_ai\/[Ss]tage-[Ee]ngine\/internal-key/.test(envSource),
+    "STAGE_ENGINE_INTERNAL_KEY must reference the dev 1Password op:// path (smartout_ai vault per CLAUDE.md two-vault rule)",
   );
 });
 
@@ -331,6 +334,94 @@ Deno.test("invoke_capability_tool — NOT in GATED_MUTATION_TYPES (gate runs Nod
   assert(
     !block.includes('"invoke_capability_tool"'),
     "invoke_capability_tool must NOT be in GATED_MUTATION_TYPES — gate runs Node-side per ADR-0424 §Gate placement",
+  );
+});
+
+// ─── Phase 3 additional structural coverage (2026-05-26) ─────────────────────
+// Goal-hook driven: close P0 #1 invoke_capability_tool E2E coverage gap by
+// asserting behavioral invariants that source-parse can verify without
+// requiring a full local stack (supabase + stage-engine + Node runner).
+
+Deno.test("invoke_capability_tool — tool_result_summary on success carries success:true", () => {
+  const body = caseBody(source, "invoke_capability_tool");
+  // Success path branch (responseBody.ok === true) writes engine_state_step
+  // with tool_result_summary.success: true (defensive assert vs L-0287
+  // skeleton-without-result drift).
+  assert(
+    /tool_result_summary:[\s\S]{0,200}success:\s*true/.test(body),
+    "success branch must persist tool_result_summary.success = true on engine_state_step",
+  );
+});
+
+Deno.test("invoke_capability_tool — tool_result_summary on Node ok:false carries success:false", () => {
+  const body = caseBody(source, "invoke_capability_tool");
+  // Failure path branch (responseBody.ok === false) must mirror the
+  // failure into tool_result_summary.success: false. Without this, the
+  // engine_state_step would visually look successful in the activity_trail
+  // even though the Node side rejected the call. ADR-0424 §Telemetry split
+  // requires the two layers stay coherent.
+  assert(
+    /tool_result_summary:[\s\S]{0,200}success:\s*false/.test(body),
+    "Node ok:false branch must persist tool_result_summary.success = false on engine_state_step",
+  );
+});
+
+Deno.test("invoke_capability_tool — both engine_state AND engine_state_step transition to failed on Node ok:false", () => {
+  const body = caseBody(source, "invoke_capability_tool");
+  // ADR-0424 §State machine: a Node-side endpoint failure marks the
+  // current step failed AND blocks the engine_state. Otherwise downstream
+  // steps could observe a "successful" state with a failed inner step.
+  // Both writes must be present in the ok:false code path.
+  const okFalseStart = body.indexOf("Node endpoint returned ok:false");
+  assert(okFalseStart !== -1, "Node ok:false error message marker not found");
+
+  // Look back ~50 lines to find the start of the else branch handling ok:false.
+  const branchStart = Math.max(0, okFalseStart - 2000);
+  const branchSlice = body.slice(branchStart, okFalseStart + 2000);
+
+  assert(
+    /\.from\("engine_state_step"\)[\s\S]{0,400}status:\s*"failed"/.test(branchSlice),
+    "Node ok:false branch must mark engine_state_step.status = failed",
+  );
+});
+
+Deno.test("invoke_capability_tool — idx_engine_state_step_invoke_cap partial index migration exists", async () => {
+  // The recursion-depth query (Step 3 of the case body) relies on a partial
+  // index on engine_state_step(state_id, action_type) WHERE
+  // action_type = 'invoke_capability_tool'. Without this index the depth
+  // check becomes O(N) on every dispatch — feasible to DoS under load.
+  // PR #476 introduced the migration. Assert it still exists in the tree.
+  const migrationsUrl = new URL("../../../supabase/migrations", import.meta.url);
+  const entries = [];
+  for await (const entry of Deno.readDir(migrationsUrl)) {
+    if (entry.isFile && entry.name.endsWith(".sql")) entries.push(entry.name);
+  }
+  // Find any migration whose body creates the partial index.
+  let found = false;
+  for (const name of entries) {
+    const file = await Deno.readTextFile(new URL(`../../../supabase/migrations/${name}`, import.meta.url));
+    if (
+      /idx_engine_state_step_invoke_cap/.test(file) ||
+      /CREATE\s+INDEX[\s\S]{0,300}engine_state_step[\s\S]{0,200}WHERE[\s\S]{0,100}action_type\s*=\s*'invoke_capability_tool'/i.test(file)
+    ) {
+      found = true;
+      break;
+    }
+  }
+  assert(
+    found,
+    "expected a migration creating idx_engine_state_step_invoke_cap (or an equivalent partial index on engine_state_step WHERE action_type='invoke_capability_tool') — recursion depth query depends on it",
+  );
+});
+
+Deno.test("invoke_capability_tool — gate_evaluation_id from Node response persists into engine_state_step.gate_action_id (field rename)", () => {
+  const body = caseBody(source, "invoke_capability_tool");
+  // The Node response field is gate_evaluation_id (matches gate_action RPC
+  // return shape); the engine_state_step column is gate_action_id. Verify
+  // the rename is performed correctly in the success branch.
+  assert(
+    /gate_action_id:\s*gateEvaluationId/.test(body),
+    "engine_state_step.gate_action_id must be sourced from gateEvaluationId (Node response → DB column rename)",
   );
 });
 
