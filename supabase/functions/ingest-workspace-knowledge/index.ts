@@ -189,51 +189,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // M2.3 — source-targeted DELETE path. When governance Server Action emits
-    // governance.content_updated with trigger='delete', engine-dispatch routes
-    // here. Remove all chunks for the (source_type, source_id) tuple. No
-    // re-embed needed — the source row is gone (or about to be).
-    if (trigger === "delete" && source_type && source_id) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, serviceKey);
-
-      const { error: delErr } = await supabase
-        .from("workspace_doc_chunk")
-        .delete()
-        .eq("workspace_id", workspace_id)
-        .eq("source_type", source_type)
-        .eq("source_id", source_id);
-
-      if (delErr) {
-        return new Response(
-          JSON.stringify({ status: "error", error: delErr.message }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 500,
-          },
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          status: "ok",
-          mode: "delete",
-          source_type,
-          source_id,
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        },
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // --- Auth validation ---
-    // Accept service_role directly, otherwise validate user has workspace access
+    // --- Auth validation (must run BEFORE any branch that mutates data) ---
+    // Previously the trigger='delete' branch executed BEFORE this block, which
+    // meant any caller with a non-empty Authorization header + known
+    // (workspace_id, source_type, source_id) tuple could delete RAG knowledge
+    // chunks. Auth gate now precedes ALL mutation paths in this function.
+    // Accept service_role directly, otherwise validate user has workspace access.
     const callerToken = authHeader.replace("Bearer ", "");
     const isServiceRole = callerToken === serviceKey;
 
@@ -269,6 +233,43 @@ Deno.serve(async (req) => {
 
     // Use service role for all subsequent DB operations — we've already validated access
     const supabase = createClient(supabaseUrl, serviceKey);
+
+    // M2.3 — source-targeted DELETE path. When governance Server Action emits
+    // governance.content_updated with trigger='delete', engine-dispatch routes
+    // here. Remove all chunks for the (source_type, source_id) tuple. No
+    // re-embed needed — the source row is gone (or about to be).
+    // Auth has been verified above — safe to proceed.
+    if (trigger === "delete" && source_type && source_id) {
+      const { error: delErr } = await supabase
+        .from("workspace_doc_chunk")
+        .delete()
+        .eq("workspace_id", workspace_id)
+        .eq("source_type", source_type)
+        .eq("source_id", source_id);
+
+      if (delErr) {
+        return new Response(
+          JSON.stringify({ status: "error", error: delErr.message }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500,
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          mode: "delete",
+          source_type,
+          source_id,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
+    }
 
     // --- Fetch source records from the 3 tables ---
     // M2.3: when source_type + source_id are provided (governance.content_updated
