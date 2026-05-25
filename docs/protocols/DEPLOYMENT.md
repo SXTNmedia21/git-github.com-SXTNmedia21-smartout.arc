@@ -1,7 +1,7 @@
 ---
 title: "Deployment Topology"
 status: canonical
-updated: 2026-05-17
+updated: 2026-05-24
 created: 2026-03-29
 module: cross-cutting
 tags: [deployment, ci, vercel, supabase, docker]
@@ -125,7 +125,57 @@ through pre-flight checks, env sync, migrations, and post-deploy verification.
 
 ---
 
-## 8. Related
+## 8. Service-Key Seeding (post-cutover)
+
+> **Requirement (ADR-0411):** After any prod db-reset or first cutover, service keys in
+> `platform_api_key` must be seeded. Skipping this step silently breaks all service-to-service
+> auth (contract-service, stage-engine, shift-mcp will return 401). This was BUG-009, live for
+> 10 days before discovery (2026-05-13 → 2026-05-23).
+
+### When to run
+
+Run `infra/scripts/seed-prod-service-keys.sh` after:
+
+1. Any prod db-reset (empty `platform_api_key` = every service-to-service call fails)
+2. Adding a new service to `services/_shared/expected-keys.json`
+3. Rotating a service API key in 1Password (old hash won't match the new key)
+4. After deploying the `validate-api-key` Edge Function if its auth contract changes
+
+### How to run
+
+```bash
+# Authenticates to smartout_ai_prod vault, hashes each key, upserts idempotently
+op run --env-file=.env.template -- ./infra/scripts/seed-prod-service-keys.sh
+
+# Dry-run (no writes — shows what would be inserted)
+op run --env-file=.env.template -- ./infra/scripts/seed-prod-service-keys.sh --dry-run
+```
+
+Requirements: `op` CLI authenticated, `psql`, `jq`, `openssl`, `SUPABASE_PROJECT_REF` + `PGPASSWORD` set (provided by `op run --env-file=.env.template`).
+
+### Automatic guards
+
+- **CI gate** (`Migration Deploy` job, step "Verify service-key seed (BUG-009)"): fails
+  immediately on every `main` push if `count(live service rows) < count(expected-keys.json)`.
+- **Drift-check** (Check 5, nightly heartbeat): alerts via Telegram if count drops below expected.
+  Drift-check alert resolves automatically after you re-run the seed script.
+
+### Adding a new service
+
+1. Add an entry to `services/_shared/expected-keys.json` (PR to `development` → merge flow).
+2. Create the corresponding 1Password item in `smartout_ai_prod` vault.
+3. Run the seed script after the next prod db-reset or immediately on prod.
+
+### Registry
+
+`services/_shared/expected-keys.json` — authoritative list of services that need keys.
+Current entries: Contract Service, Stage Engine, Shift MCP (3 total).
+
+See: [ADR-0411](../decisions/0411-service-key-seeding-prod-discipline.md)
+
+---
+
+## 9. Related
 
 | Document                                   | Purpose                                          |
 | ------------------------------------------ | ------------------------------------------------ |
@@ -138,3 +188,6 @@ through pre-flight checks, env sync, migrations, and post-deploy verification.
 | `infra/scripts/sync-env-to-vercel.sh`      | Vercel env sync (NUKE-AND-REPLACE)               |
 | `infra/scripts/sync-env-to-droplet.sh`     | Droplet env sync                                 |
 | `.claude/commands/promote-preview.md`      | `/promote-preview` slash command                 |
+| `infra/scripts/seed-prod-service-keys.sh`  | Service-key seeder (ADR-0411, BUG-009)          |
+| `services/_shared/expected-keys.json`      | Service-key registry (ADR-0411)                  |
+| `docs/decisions/0411-service-key-seeding-prod-discipline.md` | ADR-0411            |

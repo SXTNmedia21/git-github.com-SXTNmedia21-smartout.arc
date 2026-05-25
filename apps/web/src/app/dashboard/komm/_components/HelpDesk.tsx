@@ -50,13 +50,23 @@ const QUICK_ACTIONS = [
 
 type Props = {
   profileId: string;
+  /**
+   * The helpdesk-enabled channel to route new tickets to. When undefined,
+   * the "Rapporter problem" submit button is disabled — the workspace has
+   * not configured a helpdesk channel yet.
+   *
+   * ADR-0173: this ID is forwarded to `openPrivateTicket` Server Action,
+   * never to a direct table write. The capability tool owns gate_action +
+   * telemetry.
+   */
+  deskChannelId?: string;
   onClose: () => void;
 };
 
-export function HelpDesk({ profileId, onClose }: Props) {
+export function HelpDesk({ profileId, deskChannelId, onClose }: Props) {
   const { t } = useTranslation("komm");
-  const { data: requests, isLoading } = useHelpRequests();
-  const createRequest = useCreateHelpRequest(profileId);
+  const { data: requests, isLoading } = useHelpRequests(profileId);
+  const createRequest = useCreateHelpRequest(profileId, deskChannelId);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -118,7 +128,7 @@ export function HelpDesk({ profileId, onClose }: Props) {
               <Button
                 size="sm"
                 onClick={handleCreateRequest}
-                disabled={!title.trim() || createRequest.isPending}
+                disabled={!title.trim() || createRequest.isPending || !deskChannelId}
               >
                 {t("helpdesk.submit")}
               </Button>

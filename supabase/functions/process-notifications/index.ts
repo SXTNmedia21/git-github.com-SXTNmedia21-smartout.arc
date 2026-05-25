@@ -7,7 +7,7 @@
  */
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendSms } from "../_shared/twilio.ts";
 import { getEventConfig, interpolateTemplate } from "../_shared/event-config.ts";
 
@@ -110,8 +110,9 @@ async function sendDevSmtp(opts: SmtpOptions): Promise<void> {
 // ── Main handler ─────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   const authHeader = req.headers.get("authorization");
@@ -128,14 +129,14 @@ Deno.serve(async (req) => {
   try {
     const result = await handleRequest(supabase);
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("process-notifications fatal:", msg);
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 });

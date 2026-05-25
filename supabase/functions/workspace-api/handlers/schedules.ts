@@ -1,11 +1,11 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 export async function handleGetShifts(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -23,7 +23,7 @@ export async function handleGetShifts(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: schedules:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -74,12 +74,13 @@ export async function handleGetShifts(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
 
-  return jsonOk({ shifts: rows, limit, offset });
+  return jsonOk({ shifts: rows, limit, offset }, cors);
 }
 
 export async function handleGetAbsences(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -97,7 +98,7 @@ export async function handleGetAbsences(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: schedules:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -133,5 +134,5 @@ export async function handleGetAbsences(
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
 
-  return jsonOk({ absences: rows, limit, offset });
+  return jsonOk({ absences: rows, limit, offset }, cors);
 }

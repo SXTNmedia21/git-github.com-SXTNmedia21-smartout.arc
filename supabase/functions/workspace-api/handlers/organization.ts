@@ -1,10 +1,14 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 import { type AuthContext } from "../../_shared/auth-middleware.ts";
 
-function scopeGuard(scopes: string[], workspaceId: string, required: string): Response | null {
+function scopeGuard(
+  scopes: string[],
+  workspaceId: string,
+  required: string,
+  cors: Record<string, string>,
+): Response | null {
   const ctx: AuthContext = {
     method: "api_key",
     scopes,
@@ -17,7 +21,7 @@ function scopeGuard(scopes: string[], workspaceId: string, required: string): Re
   if (!requireScope(ctx, required)) {
     return new Response(JSON.stringify({ error: `Missing scope: ${required}` }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
   return null;
@@ -26,8 +30,9 @@ function scopeGuard(scopes: string[], workspaceId: string, required: string): Re
 export async function handleGetDepartments(
   auth: { workspaceId: string; scopes: string[] },
   _url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read");
+  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read", cors);
   if (denied) return denied;
 
   const rows = await executeWithWorkspaceContext(
@@ -36,14 +41,15 @@ export async function handleGetDepartments(
      FROM department WHERE workspace_id = $1 ORDER BY name`,
     [auth.workspaceId],
   );
-  return jsonOk({ departments: rows });
+  return jsonOk({ departments: rows }, cors);
 }
 
 export async function handleGetTeams(
   auth: { workspaceId: string; scopes: string[] },
   _url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read");
+  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read", cors);
   if (denied) return denied;
 
   const rows = await executeWithWorkspaceContext(
@@ -53,14 +59,15 @@ export async function handleGetTeams(
      FROM team WHERE workspace_id = $1 ORDER BY name`,
     [auth.workspaceId],
   );
-  return jsonOk({ teams: rows });
+  return jsonOk({ teams: rows }, cors);
 }
 
 export async function handleGetLocations(
   auth: { workspaceId: string; scopes: string[] },
   _url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read");
+  const denied = scopeGuard(auth.scopes, auth.workspaceId, "profiles:read", cors);
   if (denied) return denied;
 
   const rows = await executeWithWorkspaceContext(
@@ -70,5 +77,5 @@ export async function handleGetLocations(
      FROM location WHERE workspace_id = $1 ORDER BY name`,
     [auth.workspaceId],
   );
-  return jsonOk({ locations: rows });
+  return jsonOk({ locations: rows }, cors);
 }

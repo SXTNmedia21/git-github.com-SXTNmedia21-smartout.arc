@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface SupplierRow {
   supplier_id: string;
@@ -37,6 +36,7 @@ interface SupplierOrderRow {
 export async function handleGetSuppliers(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -54,7 +54,7 @@ export async function handleGetSuppliers(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: suppliers:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -83,12 +83,13 @@ export async function handleGetSuppliers(
 
   const rows = await executeWithWorkspaceContext<SupplierRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ suppliers: rows, limit, offset });
+  return jsonOk({ suppliers: rows, limit, offset }, cors);
 }
 
 export async function handleGetSupplierOrders(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -106,7 +107,7 @@ export async function handleGetSupplierOrders(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: suppliers:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -148,5 +149,5 @@ export async function handleGetSupplierOrders(
 
   const rows = await executeWithWorkspaceContext<SupplierOrderRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ orders: rows, limit, offset });
+  return jsonOk({ orders: rows, limit, offset }, cors);
 }

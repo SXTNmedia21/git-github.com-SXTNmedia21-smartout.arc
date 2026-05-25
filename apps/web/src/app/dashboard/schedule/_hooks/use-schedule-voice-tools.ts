@@ -4,8 +4,8 @@ import { useMemo, useRef, useEffect } from "react";
 import type {
   ClientToolDefinition,
   ClientToolImplementation,
-  ClientTools,
-} from "@/components/voice-tools-context";
+  ClientToolKit,
+} from "@smartout/agent-sdk";
 import { SCHEDULE_TOOL_DEFINITIONS } from "./schedule-tool-definitions";
 import { createClient } from "@smartout/supabase/client";
 import { resolveEffectiveHours } from "@/lib/cascade/resolve-hours";
@@ -42,7 +42,7 @@ type ScheduleVoiceToolsInput = {
 };
 
 // Tool definitions imported from @smartout/ai — single source of truth.
-// Cast to mutable array for ClientTools compatibility.
+// Cast to mutable array for ClientToolKit compatibility.
 const TOOL_DEFINITIONS: ClientToolDefinition[] = [...SCHEDULE_TOOL_DEFINITIONS];
 const AVG_BOOKING_REVENUE_PER_GUEST = 525;
 const LABOR_BUDGET_TARGET_RATIO = 0.33;
@@ -157,7 +157,7 @@ function isShiftLockedMutationError(err: unknown): boolean {
 
 // -- Hook -----------------------------------------------------------------
 
-export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientTools {
+export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToolKit {
   const dataRef = useRef(input);
   // Intentionally no deps — keeps ref fresh on every render so stable tool
   // implementations (created once via useMemo) always read the latest data.

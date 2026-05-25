@@ -44,27 +44,28 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fix:** Add partial index `WHERE payroll_period_id IS NULL AND status = 'paid'`, or change FK to `ON DELETE RESTRICT`.
 
-### BUG-SIM-04 — `channel.is_active` migration staged but agent `sendMessage` still filters on `is_archived` 🟡 MEDIUM
+### BUG-SIM-04 — `channel.is_active` migration staged but agent `sendMessage` still filters on `is_archived` 🟡 MEDIUM ✅ FIXED
 
 - **Where:** Staged migration `supabase/migrations/20260625130000_channel_is_active_column.sql` (per `git status`); consumer `packages/ai/src/capabilities/communication/tools.ts:219`
 - **Evidence:** A3 / NEW-FIND-K + A4 / BUG-A4-03 — `is_active` is orthogonal to `is_archived` per migration comment, but `sendMessage` draft phase guards only on `is_archived=false`. `helpdesk_query/tools.ts:372` already uses `is_active=true`. Drift between two channel-state semantics.
 - **Impact:** Deactivated-but-not-archived channels will pass `sendMessage` guard. Announcement fan-out may silently target dead channels.
 - **Severity:** MEDIUM
 - **Fix:** Update `tools.ts:219` to additionally filter `.eq("is_active", true)`. Audit all channel selects in capabilities for the same drift before applying the migration.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-04). Audit of other capability tools found no other channel selects missing is_active.
 
 ---
 
 ## PRODUCT bugs (real UI / API / capability logic regressions)
 
-### BUG-SIM-05 — `HelpDesk.tsx` + `use-help-requests.ts` write to DEPRECATED `help_request` table 🔴 CRITICAL
+### BUG-SIM-05 — `HelpDesk.tsx` + `use-help-requests.ts` write to DEPRECATED `help_request` table 🔴 CRITICAL ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/komm/_components/HelpDesk.tsx`; `apps/web/src/.../use-help-requests.ts:49-60` (insert) + `:26-39` (read)
 - **Evidence:** A4 / BUG-A4-08 — `supabase/migrations/20260519110000_deprecate_help_request_table.sql` explicitly DEPRECATED this table ("DO NOT WRITE"). New tickets must spawn `engine_state(process_id='helpdesk_query_lifecycle')`. UI never migrated.
 - **Impact:** Cascade of failures: no engine_state row, no `engine_delayed_trigger`, no SLA breach, `useMinKo` queue returns empty, `QueueSheet` empty, no escalation. This is the deep root cause of baseline **BUG-20** (helpdesk SLA 0/4 pass). Even fixing `engine_authority_config` for `communication` won't help — the UI never reaches the new code path.
 - **Severity:** CRITICAL
-- **Fix:** Rewire `HelpDesk.tsx` to call `helpdesk_query.open_ticket` capability tool via Server Action OR a new BFF route. Remove writes to `help_request`.
+- **Fixed in:** feat/helpdesk-rewire-openticket (see git log). `use-help-requests.ts` rewired to `openPrivateTicket` Server Action; reads from `engine_state`; telemetry + gate_action now correct.
 
-### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH
+### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH — ✅ FIXED in commit 668d13bf9
 
 - **Where:** `apps/web/src/app/dashboard/schedule/_components/batch-action-bar.tsx:39-50`
 - **Evidence:** A2 / BUG-A2-1 — calls `publishShifts.mutate(draftIds)` directly. Skips `PublishOverviewDialog` → `usePublishValidation` → `evaluateFrameworkRules`. The proper dialog path in `page.tsx:750-774` uses `setOnPublishAll`.
@@ -72,61 +73,61 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH
 - **Fix:** Route `handlePublishAll` through the gated `PublishOverviewDialog` (same path as `DashboardShell`'s `onPublishAll`).
 
-### BUG-SIM-07 — `absence-popover` writes `new Date().toISOString()` (TIMESTAMPTZ) into `DATE` columns → off-by-one after 22:00 UTC 🟠 HIGH
+### BUG-SIM-07 — `absence-popover` writes `new Date().toISOString()` (TIMESTAMPTZ) into `DATE` columns → off-by-one after 22:00 UTC 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/schedule/_components/absence-popover.tsx:62-70`
 - **Evidence:** A2 / BUG-A2-2 — `nowStr` passed to `createAbsence.mutate()` as `startDate`+`endDate`. Mapper writes to `schedule_absence.start_date`/`end_date` (`DATE NOT NULL`, `20260301600003_schedule_persistence_tables.sql:48-49`). Postgres coerces in UTC — sick-call at 00:30 Oslo (22:30 UTC) lands on yesterday.
 - **Impact:** Absence date wrong-day for any registration after ~22:00 Oslo. Disappears from the correct week grid; SLA + payroll read wrong date.
 - **Severity:** HIGH
-- **Fix:** Replace `nowStr` with `absencePopover.dateId` for both start and end.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-07). dateId uses Date.getFullYear/Month/Date local methods → already YYYY-MM-DD in user timezone.
 
-### BUG-SIM-08 — `getShiftColleagues` uses wrong PK column (`id` not `schedule_shift_id`) — always returns `shift_not_found` 🟠 HIGH
+### BUG-SIM-08 — `getShiftColleagues` uses wrong PK column (`id` not `schedule_shift_id`) — always returns `shift_not_found` 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/schedule/tools.ts:136` (and select at `:146`)
 - **Evidence:** A2 / BUG-A2-3 — `.eq("id", params.shift_id)` against table whose PK is `schedule_shift_id`. Compare `getWorkspaceSchedule` (line 312) which uses the correct column.
 - **Impact:** Botsson `get_shift_colleagues` tool silently returns `{"error":"shift_not_found"}` for every call. Maria asking "hvem jobber med meg?" never gets a useful answer.
 - **Severity:** HIGH
-- **Fix:** `.eq("schedule_shift_id", params.shift_id)` + `select("schedule_shift_id, ...")`.
+- **Fixed in:** feat/schedule-pk-fix (see commit for BUG-SIM-08). `.eq("schedule_shift_id", ...)` + `select("schedule_shift_id, ...")`.
 
-### BUG-SIM-09 — `getShiftDetail` uses wrong PK column — always returns `shift_not_found` 🟠 HIGH
+### BUG-SIM-09 — `getShiftDetail` uses wrong PK column — always returns `shift_not_found` 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/schedule/tools.ts:241,243`
 - **Evidence:** A2 / BUG-A2-4 — same class as BUG-SIM-08 (`id` vs `schedule_shift_id`).
 - **Impact:** Manager Botsson queries for a specific shift always error.
 - **Severity:** HIGH
-- **Fix:** As BUG-SIM-08.
+- **Fixed in:** feat/schedule-pk-fix (same commit as BUG-SIM-08).
 
-### BUG-SIM-10 — `useGPSGuard` built but never invoked; telemetry hardcodes `gps_verified: false` 🟠 HIGH
+### BUG-SIM-10 — `useGPSGuard` built but never invoked; telemetry hardcodes `gps_verified: false` 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/mobile/src/hooks/shift-clock/useGPSGuard.ts:75` (full implementation); `apps/mobile/src/hooks/mutations/use-punch.ts:44-87` (does NOT call `getPosition`)
 - **Evidence:** A3 / NEW-BUG-A — `usePunch.punchIn()` enqueues at `:59` directly; `punch_in_location` set to `null`; emit at `:87` hardcodes `gps_verified: false, gps_distance_meters: null`. `PunchAnimation.tsx:60` shows "Sjekker GPS" UI step — purely cosmetic. Confirmed in `docs/domains/shift-clock/GAPS-AND-DEBT.md:G1-G2`.
 - **Impact:** Workers can punch in from anywhere; audit trail falsely claims GPS was not checked. Silent compliance gap — workspaces that "have GPS required" actually do not.
 - **Severity:** HIGH (mis-promises compliance to operator)
-- **Fix:** Call `useGPSGuard.getPosition()` before `enqueue("punch_in", ...)`; pass the snapshot to the payload; set `gps_verified: true` when within geofence. Requires `shift_clock_config.gps_reference_lat/lng` seed from department location.
+- **Fixed in:** feat/gps-phantom-wire-punch, commit d9f0f5712. GPS guard wired; `gps_verified` + `gps_distance_meters` carry actual verdict. Follow-up: DB column persistence pending separate migration sortie.
 
-### BUG-SIM-11 — `audience-resolver.ts` `on_duty` branch missing `workspace_id` filter (service-role bypasses RLS) 🟠 HIGH
+### BUG-SIM-11 — `audience-resolver.ts` `on_duty` branch missing `workspace_id` filter (service-role bypasses RLS) 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/communication/audience-resolver.ts:59-73`; `apps/web/src/app/dashboard/komm/_hooks/use-audience-resolver.ts:46-61`
 - **Evidence:** A4 / BUG-A4-07 — both queries select `timesheet.time_entry WHERE punch_out IS NULL LIMIT 500` with NO `workspace_id` filter. Service-role bypasses RLS. Comment at audience-resolver.ts:38 explicitly notes "tool layer is responsible" — `callGateAction` does not filter audience.
 - **Impact:** Cross-workspace data bleed. An "on_duty" audience may include clocked-in employees from OTHER tenants. Compliance + GDPR risk. Same class as ADR-0151 forgeable-IDs / L-0177 silent fallback.
 - **Severity:** HIGH (multi-tenancy)
-- **Fix:** Add `.eq("workspace_id", workspaceId)` filter on both call-sites; join through `profile` if needed.
+- **Fixed in:** feat/audience-resolver-wsid-filter, commit 809ad0c94. `.eq("workspace_id", workspaceId)` added to both call-sites.
 
-### BUG-SIM-12 — `cancelInvitation` emits with `workspace_id: null` (telemetry contract violation, ADR-0134) 🟡 MEDIUM
+### BUG-SIM-12 — `cancelInvitation` emits with `workspace_id: null` (telemetry contract violation, ADR-0134) 🟡 MEDIUM ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/people/_actions/people-actions.ts:311-319`
 - **Evidence:** A1 / BUG-A1-5 — `workspace_id: null` is explicit (line 313). `resendInvitation` in same file correctly resolves from row (`:493`). Violates CLAUDE.md mandate "every mutation emits non-null, non-empty workspace_id."
 - **Impact:** `activity_trail` engine_event routing drops the event or routes to wrong workspace. Admin audit trail for cancelled invites is silent.
 - **Severity:** MEDIUM
-- **Fix:** Fetch `workspace_id` from the invitation row before emitting (mirror `resendInvitation` pattern).
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-12).
 
-### BUG-SIM-13 — `publish-announcement` emit timestamp set AFTER emit → engine_state poll can miss spawn (race) 🟡 MEDIUM
+### BUG-SIM-13 — `publish-announcement` emit timestamp set AFTER emit → engine_state poll can miss spawn (race) 🟡 MEDIUM ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/helpdesk_query/tools.ts:186-205`
 - **Evidence:** A4 / BUG-A4-09 — `emitTimestamp = new Date().toISOString()` set after `emit()`. Polling uses `.gte("started_at", emitTimestamp)` — if dispatcher completed synchronously before the `new Date()` call, the just-spawned row is missed.
 - **Impact:** Tool returns `{ ticket_id: null, note: "Ticket is opening" }` even on success. Manager may double-click → second `engine_state` spawned → double-ticket for one sick-call.
 - **Severity:** MEDIUM
-- **Fix:** Set `emitTimestamp = new Date(Date.now() - 50).toISOString()` BEFORE the emit call.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-13). Timestamp set to `Date.now() - 50ms` BEFORE the emit call.
 
 ### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH
 
@@ -160,7 +161,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (UX semantic mismatch + functional miss)
 - **Fix:** Add `on_shift` audience kind that queries `schedule_shift` for a configurable window; keep `on_duty` as currently-clocked-in subset. Update audience picker UI + `AudienceKind` union + tool schema.
 
-### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM
+### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM — ✅ FIXED in commit bac824b6f
 
 - **Where:** `apps/web/src/app/platform-admin/billing/invoices/_components/ad-hoc-invoice-drawer.tsx:120-130`
 - **Evidence:** A5 / GAP-A5-08 — `canSubmit` checks description/quantity/unit_price/vat_rate; never compares `periodFrom`/`periodTo`. Pontus can create an invoice with reversed period.
@@ -168,7 +169,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (legal compliance)
 - **Fix:** Add `periodFrom <= periodTo` predicate to `canSubmit`; mirror in `CreateAdHocInvoiceInputSchema` (Zod refine).
 
-### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM
+### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM — ✅ FIXED in commit eea18b9e7
 
 - **Where:** `apps/mobile/src/components/home/AfterShiftView.tsx:51,128`; `apps/mobile/src/components/home/DuringShiftView.v2.tsx:62,160`
 - **Evidence:** A3 / NEW-GAP-D — `HOURLY_RATE_FALLBACK = 220` used unconditionally. No query to `employee_payroll_profile.hourly_rate` or `tariff_rate_table`.
@@ -184,13 +185,13 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (compliance silence)
 - **Fix:** On Step03→Step04 transition, if `|variance| > tolerance_value`, auto-create `deviation` row (domain=`material`, severity by magnitude) via existing `report_deviation` capability.
 
-### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH
+### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/layout.tsx:177-185` + `_components/WelcomeWizardGate.tsx:21-23`
 - **Evidence:** A1 / BUG-A1-2 — `showWelcomeWizard = profile.is_welcome_complete === false` with NO role discriminator. `WelcomeWizard` has no role prop. The 8-step wizard is employee-shaped.
 - **Impact:** Erik (manager) invited Monday → completes employee wizard, not the workspace setup wizard at `/dashboard/setup/`. Workspace gates (departments, hours, seasons) remain open. Bella Vista cannot schedule shifts on Tuesday.
 - **Severity:** HIGH (blocks every new manager invite)
-- **Fix:** Branch by role in `layout.tsx`: `employee`/`trainee` → existing wizard; `manager`/`admin`/`owner` → redirect to `/dashboard/setup` if setup-guide not complete.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-21). Redirect to /dashboard/setup when setup_guide_completed=false; skip wizard silently if setup already done.
 
 ### BUG-SIM-22 — `platform_metrics_daily` queried but no migration creates it → MRR chart silently empty 🟡 MEDIUM
 
@@ -216,7 +217,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fix:** Cascade scheduling engine must expand multi-day events to the full date range when computing day_factor.
 
-### BUG-SIM-25 — `approve_tip_pool` raises `workspace_mismatch` for inactive actors (misleading error class) 🟢 LOW
+### BUG-SIM-25 — `approve_tip_pool` raises `workspace_mismatch` for inactive actors (misleading error class) 🟢 LOW — ⏸ DEFERRED migration-only (see ec356140d)
 
 - **Where:** `supabase/migrations/20260429010000_approve_tip_pool_rpc.sql:66-75`
 - **Evidence:** A8 / BUG-A8-01 — `NOT FOUND` on the workspace check fires when actor's profile row is `is_active = false`, not on actual workspace mismatch. Error message misleads operator.
@@ -232,7 +233,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (hotel vertical)
 - **Fix:** Drop UNIQUE in favor of `(workspace_id, department_id, session_date, service_window)` where `service_window` is a discriminator (`breakfast` | `dinner` | `event` | etc.) OR introduce `event_session` as a sibling to `department_session`.
 
-### BUG-SIM-27 — Schedule temporal lock function uses `v_local_now::date` → traps 02:00–02:30 post-midnight checkouts 🟠 HIGH
+### BUG-SIM-27 — Schedule temporal lock function uses `v_local_now::date` → traps 02:00–02:30 post-midnight checkouts 🟠 HIGH — ⏸ DEFERRED migration-only (see ec356140d)
 
 - **Where:** `supabase/migrations/20260428130000_schedule_shift_temporal_lock.sql:43`
 - **Evidence:** A7 / GAP-4 — `RETURN p_shift_date < v_local_now::date OR v_shift_start_local <= v_local_now;` — date rolls at midnight Oslo. Any shift with `shift_date = N` that runs past midnight cannot be approved at 02:30 (now date N+1).
@@ -314,3 +315,108 @@ The sim re-encountered (and provided NEW evidence for the ROOT CAUSE of) the fol
 All finding files: `docs/test-runs/2026-05-25-restaurant-week-sim/findings/agent-{1..11}-*.md`
 Plans: `INDEX.md`, `SIMULATION-PLAN.md`, `HOTEL-WEDDING-PLAN.md`, `CONCERT-FESTIVAL-PLAN.md`
 Baseline: `docs/test-runs/2026-05-23-journey-sweep/BUGS.md`
+
+---
+
+## SECURITY bugs — CVE-class capability registry gaps (ADR-0421 sub-check C-G)
+
+Council session 2026-05-25. ADR-0421 sub-check C-G identified 13 capabilities
+lacking `capability_default_registry` entries. All 13 create a CVE-class
+default-allow security hole on every new workspace created after 2026-06-01
+(L-0066 pattern: gate_action silently allows any caller when no authority row
+exists for the capability).
+
+Source: `supabase/migrations/20260518000000_contract_authority_seed_upsert_and_bootstrap.sql`
+lines 235-244.
+
+### BUG-A4-02 — `kb_query` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066 default-allow on new workspaces)
+- **Effect:** Bootstrap trigger skips → no `engine_authority_config` row → `gate_action` default-allows all callers.
+- **Fixed in:** `supabase/migrations/20260701000000_capability_registry_seed_sweep.sql` Part A cap 1. Authority: `read_only / employee`.
+
+### BUG-A4-03 — `schedule` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** New workspaces have no authority row → default-allow on all shift queries.
+- **Fixed in:** Migration `20260701000000` Part A cap 2. Authority: `read_only / employee`.
+
+### BUG-A4-04 — `training` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** Default-allow on `getTeamReadiness` (team-level PII) without any gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 3. Authority: `suggest / employee`.
+
+### BUG-A4-05 — `operations` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `createDeviation` write bypasses gate_action authority check on new workspaces.
+- **Fixed in:** Migration `20260701000000` Part A cap 4. Authority: `suggest / employee`.
+
+### BUG-A4-06 — `profile` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `searchProfilesByName` (team PII) and `getContractStatus` exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 5. Authority: `read_only / employee`.
+
+### BUG-A4-07 — `memory` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `saveMemoryTool` write bypasses authority tier-unlock on new workspaces.
+- **Fixed in:** Migration `20260701000000` Part A cap 6. Authority: `suggest / employee`.
+
+### BUG-A4-08 — `ui` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** All UI tools (navigate, fill, highlight, showPanel, toast) exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 7. Authority: `suggest / employee`.
+
+### BUG-A4-09 — `contract_intake` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class HIGH (L-0066 + PII)
+- **Effect:** `submitFieldGroup` (collects personnummer + bank account) and `declineIntake` bypass authority gate — highest severity in sweep.
+- **Fixed in:** Migration `20260701000000` Part A cap 8. Authority: `confirm / employee`.
+
+### BUG-A4-10 — `shift_swap` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `requestSwap`, `respondToSwap`, `cancelSwap`, `overrideSwapPipeline` bypass authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 9. Authority: `suggest / employee`.
+
+### BUG-A4-11 — `shift_lifecycle` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `publishShift` and `approveShift` (manager-level mutations) bypass authority tier check.
+- **Fixed in:** Migration `20260701000000` Part A cap 10. Authority: `suggest / manager`.
+
+### BUG-A4-12 — `governance` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `checkReadiness` (employee PII) exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 11. Authority: `read_only / employee`.
+
+### BUG-A4-13 — `communication` registry gap (cross-reference) ✅ FIXED SEPARATELY
+
+- **Severity:** CVE-class (L-0066) — fixed in ADR-0413 / migration `20260626000000`.
+
+### BUG-A4-14 — `payroll` registry gap (cross-reference) ✅ FIXED SEPARATELY
+
+- **Severity:** CVE-class (L-0066) — fixed in migration `20260519160000` (ADR-0234).
+
+### CVE sweep summary
+
+| Bug | Capability | Authority | Migration |
+|---|---|---|---|
+| BUG-A4-02 | `kb_query` | read_only / employee | 20260701000000 |
+| BUG-A4-03 | `schedule` | read_only / employee | 20260701000000 |
+| BUG-A4-04 | `training` | suggest / employee | 20260701000000 |
+| BUG-A4-05 | `operations` | suggest / employee | 20260701000000 |
+| BUG-A4-06 | `profile` | read_only / employee | 20260701000000 |
+| BUG-A4-07 | `memory` | suggest / employee | 20260701000000 |
+| BUG-A4-08 | `ui` | suggest / employee | 20260701000000 |
+| BUG-A4-09 | `contract_intake` | confirm / employee | 20260701000000 |
+| BUG-A4-10 | `shift_swap` | suggest / employee | 20260701000000 |
+| BUG-A4-11 | `shift_lifecycle` | suggest / manager | 20260701000000 |
+| BUG-A4-12 | `governance` | read_only / employee | 20260701000000 |
+| BUG-A4-13 | `communication` | suggest / employee | 20260626000000 (ADR-0413) |
+| BUG-A4-14 | `payroll` | confirm / admin | 20260519160000 (ADR-0234) |

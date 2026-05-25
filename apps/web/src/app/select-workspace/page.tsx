@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@smartout/supabase/server";
 import { SelectWorkspaceClient } from "./SelectWorkspaceClient";
 
@@ -73,14 +74,26 @@ export default async function SelectWorkspacePage() {
   const withinFreshWindow = createdAtMs > 0 && Date.now() - createdAtMs < 24 * 60 * 60 * 1000;
   const shouldShowWelcome = !welcomeShownAt && withinFreshWindow;
 
+  // Display name for invite-acceptance calls (ADR-0409 safety-net).
+  // Prefer user_metadata set at signup; fall back to profile display_name.
+  const firstProfileName = (profiles ?? [])[0]?.display_name ?? null;
+  const metaName =
+    (user.user_metadata?.full_name as string | undefined) ??
+    (user.user_metadata?.name as string | undefined) ??
+    null;
+  const displayName = metaName ?? firstProfileName ?? null;
+
   return (
-    <SelectWorkspaceClient
-      userEmail={user.email ?? ""}
-      workspaces={workspaces}
-      staleWorkspaces={staleWorkspaces}
-      rootDomain={rootDomain}
-      isProduction={isProduction}
-      shouldShowWelcome={shouldShowWelcome}
-    />
+    <Suspense fallback={<div className="bg-background min-h-screen" />}>
+      <SelectWorkspaceClient
+        userEmail={user.email ?? ""}
+        displayName={displayName}
+        workspaces={workspaces}
+        staleWorkspaces={staleWorkspaces}
+        rootDomain={rootDomain}
+        isProduction={isProduction}
+        shouldShowWelcome={shouldShowWelcome}
+      />
+    </Suspense>
   );
 }

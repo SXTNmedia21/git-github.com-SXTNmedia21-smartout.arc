@@ -208,6 +208,9 @@ test.describe("Journey 2 — Admin sender kontrakt (API-level)", () => {
         target_profile_id: ANNA_PROFILE_ID,
         blocks_acknowledged: allAckBlocks(),
         existing_contract_id: empId,
+        // BUG-6: ADR-0310 server-enforced gate requires pdf_preview_viewed_at
+        // to be set before /api/contracts/send accepts the request (returns 400 without it).
+        pdf_preview_viewed_at: new Date().toISOString(),
       },
     });
 

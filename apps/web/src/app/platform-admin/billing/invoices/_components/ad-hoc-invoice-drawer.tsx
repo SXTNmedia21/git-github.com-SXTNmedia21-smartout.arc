@@ -117,8 +117,13 @@ export function AdHocInvoiceDrawer({
     );
   }, [lines]);
 
+  // BUG-SIM-18: period_from must be <= period_to (Regnskapsloven §7-2).
+  // Reversed periods would land as-is once the invoice is issued (immutable after issuance).
+  const periodValid = periodFrom <= periodTo;
+
   const canSubmit =
     companyId !== null &&
+    periodValid &&
     lines.length > 0 &&
     lines.every(
       (l) =>
@@ -267,27 +272,38 @@ export function AdHocInvoiceDrawer({
             </Popover>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="period_from">Periode fra</Label>
-              <Input
-                id="period_from"
-                type="date"
-                value={periodFrom}
-                onChange={(e) => setPeriodFrom(e.target.value)}
-                required
-              />
+          <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="period_from">Periode fra</Label>
+                <Input
+                  id="period_from"
+                  type="date"
+                  value={periodFrom}
+                  onChange={(e) => setPeriodFrom(e.target.value)}
+                  required
+                  aria-describedby={!periodValid ? "period-error" : undefined}
+                  className={!periodValid ? "border-destructive" : undefined}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="period_to">Periode til</Label>
+                <Input
+                  id="period_to"
+                  type="date"
+                  value={periodTo}
+                  onChange={(e) => setPeriodTo(e.target.value)}
+                  required
+                  aria-describedby={!periodValid ? "period-error" : undefined}
+                  className={!periodValid ? "border-destructive" : undefined}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="period_to">Periode til</Label>
-              <Input
-                id="period_to"
-                type="date"
-                value={periodTo}
-                onChange={(e) => setPeriodTo(e.target.value)}
-                required
-              />
-            </div>
+            {!periodValid ? (
+              <p id="period-error" className="text-destructive text-xs">
+                Fra-dato må være lik eller før til-dato.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-3 gap-3">
