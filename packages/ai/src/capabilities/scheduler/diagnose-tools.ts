@@ -321,8 +321,8 @@ async function runDiagnose(
     .from("schedule_shift")
     .select("schedule_shift_id")
     .eq("workspace_id", workspaceId)
-    .gte("start_time", `${startDate}T00:00:00Z`)
-    .lte("start_time", `${endDate}T23:59:59Z`);
+    .gte("shift_date", startDate)
+    .lte("shift_date", endDate);
 
   if (!shiftsErr && Array.isArray(existingShifts)) {
     shiftsInWeek = existingShifts.length;
