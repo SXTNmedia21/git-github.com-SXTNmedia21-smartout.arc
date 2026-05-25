@@ -129,7 +129,7 @@ async function runDiagnose(
   // Filter by department_id if provided; otherwise check any row in workspace.
   let dohQuery = supabase
     .from("department_operating_hours")
-    .select("department_operating_hours_id")
+    .select("id")
     .eq("workspace_id", workspaceId)
     .limit(1);
 
@@ -157,7 +157,7 @@ async function runDiagnose(
   // ── D2 check: active employment contracts in workspace ───────────────────
   const { data: contractRows, error: contractErr } = await supabase
     .from("employment_contract")
-    .select("employment_contract_id")
+    .select("contract_id")
     .eq("workspace_id", workspaceId)
     .eq("status", "active")
     .limit(1);
@@ -175,40 +175,26 @@ async function runDiagnose(
     });
   }
 
-  // ── D3 check: framework_rule rows accessible for workspace ───────────────
-  // Workspace-specific OR platform-level (workspace_id IS NULL).
-  const { data: wsRules, error: wsRulesErr } = await supabase
-    .from("framework_rule")
-    .select("framework_rule_id")
-    .eq("workspace_id", workspaceId)
+  // ── D3 check: active regulatory_framework exists (K1a platform-level) ─────
+  // framework_rule belongs to regulatory_framework (no workspace_id column).
+  // K1a frameworks are platform-level — check that at least one is active.
+  const { data: frameworks, error: fwErr } = await supabase
+    .from("regulatory_framework")
+    .select("framework_id")
+    .eq("is_active", true)
     .limit(1);
 
-  if (wsRulesErr) {
-    throw new Error(`D3 framework_rule (workspace) query error: ${wsRulesErr.message}`);
+  if (fwErr) {
+    throw new Error(`D3 regulatory_framework query error: ${fwErr.message}`);
   }
 
-  let hasRules = Array.isArray(wsRules) && wsRules.length > 0;
-
-  if (!hasRules) {
-    // Check platform-level rules (NULL workspace_id).
-    const { data: platformRules, error: platformRulesErr } = await supabase
-      .from("framework_rule")
-      .select("framework_rule_id")
-      .is("workspace_id", null)
-      .limit(1);
-
-    if (platformRulesErr) {
-      throw new Error(`D3 framework_rule (platform) query error: ${platformRulesErr.message}`);
-    }
-
-    hasRules = Array.isArray(platformRules) && platformRules.length > 0;
-  }
+  const hasRules = Array.isArray(frameworks) && frameworks.length > 0;
 
   if (!hasRules) {
     missing.push({
       dimension: "D3",
-      reason: "Ingen regelverksrammer (framework_rule) funnet",
-      fix_hint: "Legg til tariff/regelverkrammer under /dashboard/settings → Regelverkrammer",
+      reason: "Ingen aktive regelverksrammer (regulatory_framework) funnet",
+      fix_hint: "Kontakt Smartout-support — plattformens regelverkrammer mangler.",
     });
   }
 
@@ -294,11 +280,13 @@ async function runDiagnose(
     }
   }
 
-  // ── D5 check: workspace.niche populated ──────────────────────────────────
-  // V1 lightweight — only checks that niche is set. Full D5 validation deferred to V2.
-  const { data: workspace, error: wsErr } = await supabase
+  // ── D5 check: workspace exists + is active ───────────────────────────────
+  // V1 lightweight — checks workspace row exists and is_active=true.
+  // Full D5 niche/parameter validation deferred to V2 (workspace.niche column
+  // does not exist in current schema — spec aspirational).
+  const { data: workspaceRow, error: wsErr } = await supabase
     .from("workspace")
-    .select("niche")
+    .select("workspace_id, is_active")
     .eq("workspace_id", workspaceId)
     .maybeSingle();
 
@@ -306,11 +294,11 @@ async function runDiagnose(
     throw new Error(`D5 workspace query error: ${wsErr.message}`);
   }
 
-  if (!workspace?.niche) {
+  if (!workspaceRow?.is_active) {
     missing.push({
       dimension: "D5",
-      reason: "Arbeidsplass mangler nisje-konfigurasjon (workspace.niche er null)",
-      fix_hint: "Sett bransjetype under /dashboard/settings → Arbeidsplasskonfigurasjon",
+      reason: "Arbeidsplassen er ikke aktiv (workspace.is_active = false)",
+      fix_hint: "Aktiver arbeidsplassen under /dashboard/settings → Arbeidsplass",
     });
   }
 
