@@ -90,6 +90,44 @@ Deno.serve(async (req) => {
     });
   }
 
+  // 1b. ADR-0151 ownership check — verify the caller actually owns the
+  // body-supplied profile_id within the shift's workspace.
+  // Previously: profile_id was trusted blindly from the body. Any
+  // authenticated employee could query another employee's rest-period,
+  // weekly-hours, and GPS compliance by supplying that profile_id —
+  // a timesheet data leak (audit 2026-05-25 EF-H-01).
+  // Fix: validate via userClient (RLS-bound to auth.uid()) that
+  // (workspace_id, user_id, profile_id) match.
+  {
+    const callerToken = authHeader.replace("Bearer ", "");
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, callerToken);
+    const {
+      data: { user },
+    } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: ownedProfile } = await userClient
+      .from("profile")
+      .select("profile_id")
+      .eq("workspace_id", shift.workspace_id)
+      .eq("user_id", user.id)
+      .eq("profile_id", profile_id)
+      .maybeSingle();
+    if (!ownedProfile) {
+      return new Response(
+        JSON.stringify({ error: "profile_id does not match authenticated user" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
   // 2. Fetch ShiftClock config with cascading priority: team+dept > dept-only > workspace-only.
   //    Most specific config wins so individual teams can have tighter GPS requirements.
   const orParts = [
