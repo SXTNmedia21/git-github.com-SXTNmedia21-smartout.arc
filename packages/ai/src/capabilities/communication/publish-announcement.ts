@@ -67,11 +67,12 @@ export const publishAnnouncement = defineTool({
       title: z.string().min(1).max(120).describe("Announcement title (first line)"),
       body: z.string().min(1).max(1600).describe("Announcement body text"),
       audience_kind: z
-        .enum(["all", "on_duty", "department", "role", "individuals"])
+        .enum(["all", "on_duty", "on_shift", "department", "role", "individuals"])
         .describe(
           "Audience targeting kind. " +
             "'all' = all active workspace members. " +
-            "'on_duty' = members currently clocked in. " +
+            "'on_duty' = members currently clocked in (punch_out IS NULL). " +
+            "'on_shift' = members with a scheduled shift within ±2h of now — use for pre-shift announcements. " +
             "'department' = supply department_ids. " +
             "'role' = supply roles. " +
             "'individuals' = supply profile_ids.",
@@ -220,16 +221,20 @@ export const publishAnnouncement = defineTool({
     }
 
     // Build AudienceInput from params
+    // BUG-SIM-17: on_shift queries schedule_shift (shifts in current window),
+    // distinct from on_duty (currently clocked in).
     const audience: AudienceInput =
       params.audience_kind === "all"
         ? { kind: "all" }
         : params.audience_kind === "on_duty"
           ? { kind: "on_duty" }
-          : params.audience_kind === "department"
-            ? { kind: "department", departmentIds: params.department_ids ?? [] }
-            : params.audience_kind === "role"
-              ? { kind: "role", roles: params.roles ?? [] }
-              : { kind: "individuals", profileIds: params.profile_ids ?? [] };
+          : params.audience_kind === "on_shift"
+            ? { kind: "on_shift" }
+            : params.audience_kind === "department"
+              ? { kind: "department", departmentIds: params.department_ids ?? [] }
+              : params.audience_kind === "role"
+                ? { kind: "role", roles: params.roles ?? [] }
+                : { kind: "individuals", profileIds: params.profile_ids ?? [] };
 
     // Server-side audience resolution — no profile IDs leak to the agent
     let resolved: { profileIds: string[]; count: number; label: string };

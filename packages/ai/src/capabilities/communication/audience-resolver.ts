@@ -16,11 +16,16 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type AudienceKind = "all" | "on_duty" | "department" | "role" | "individuals";
+export type AudienceKind = "all" | "on_duty" | "on_shift" | "department" | "role" | "individuals";
 
 export type AudienceInput =
   | { kind: "all" }
   | { kind: "on_duty" }
+  | {
+      kind: "on_shift";
+      /** Minutes before/after NOW to include shifts. Defaults to 120 (2h window). */
+      windowMinutes?: number;
+    }
   | { kind: "department"; departmentIds: string[] }
   | { kind: "role"; roles: string[] }
   | { kind: "individuals"; profileIds: string[] };
@@ -73,6 +78,35 @@ export async function resolveAudience(
       new Set((data ?? []).map((e: { profile_id: string }) => e.profile_id).filter(Boolean)),
     );
     return { profileIds: ids, count: ids.length, label: `På vakt (${ids.length})` };
+  }
+
+  if (input.kind === "on_shift") {
+    // BUG-SIM-17 fix: 'on_shift' queries schedule_shift for shifts that overlap
+    // the current time window — the natural intent for pre-shift announcements
+    // ("send to tonight's crew"). Distinct from 'on_duty' (currently clocked in).
+    //
+    // window = [NOW - windowMinutes, NOW + windowMinutes], defaulting to ±120 min
+    // so managers can target the incoming shift ~2h before it starts.
+    const windowMs = (input.windowMinutes ?? 120) * 60_000;
+    const now = Date.now();
+    const windowStart = new Date(now - windowMs).toISOString();
+    const windowEnd = new Date(now + windowMs).toISOString();
+
+    const { data, error } = await supabase
+      .from("schedule_shift")
+      .select("profile_id")
+      .eq("workspace_id", workspaceId)
+      .lte("start_time", windowEnd)
+      .gte("end_time", windowStart);
+    if (error) throw new Error(`resolveAudience(on_shift) failed: ${error.message}`);
+    const ids = Array.from(
+      new Set((data ?? []).map((s: { profile_id: string }) => s.profile_id).filter(Boolean)),
+    );
+    return {
+      profileIds: ids,
+      count: ids.length,
+      label: `På vakt nå/snart (${ids.length})`,
+    };
   }
 
   if (input.kind === "department") {

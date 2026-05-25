@@ -155,13 +155,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (governance debt)
 - **Fix:** Add `emit({ event: "payroll period locked client", ... })` in `onSuccess`.
 
-### BUG-SIM-17 — `audience-resolver` `on_duty` semantically equates "clocked in" with "on shift" 🟠 HIGH
+### BUG-SIM-17 — `audience-resolver` `on_duty` semantically equates "clocked in" with "on shift" 🟠 HIGH ✅ FIXED
 
 - **Where:** Same files as BUG-SIM-11 (resolver + hook)
 - **Evidence:** A4 / BUG-A4-01 — at 15:00 before a 16:00 shift, `punch_out IS NULL` returns 0 rows. "Send to people on tonight's shift" is the natural manager intent; resolver targets only those physically punched in. There is no `on_shift` audience kind that consults `schedule_shift`.
 - **Impact:** Wrong default behavior for pre-shift announcements (the single most common comms use case in hospitality). Maria + crew never receive the summer-menu announcement until they clock in.
 - **Severity:** HIGH (UX semantic mismatch + functional miss)
 - **Fix:** Add `on_shift` audience kind that queries `schedule_shift` for a configurable window; keep `on_duty` as currently-clocked-in subset. Update audience picker UI + `AudienceKind` union + tool schema.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` BUG-SIM-17 commit. `on_shift` added to `AudienceKind` union in both `audience-resolver.ts` (capability) and `use-audience-resolver.ts` (web hook). Queries `schedule_shift` for shifts within ±120 min window. `publish_announcement` tool schema updated with `on_shift` enum value. Audience picker UI update deferred to frontend-designer.
 
 ### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM — ✅ FIXED in commit bac824b6f
 
