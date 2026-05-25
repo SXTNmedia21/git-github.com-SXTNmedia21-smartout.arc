@@ -179,7 +179,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, { ...validBody, depth: 1 });
     expect(res.status).toBe(400);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
     expect(json.error).toBe("DEPTH_EXCEEDED");
   });
 
@@ -189,7 +189,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(404);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
     expect(json.error).toBe("TOOL_NOT_FOUND");
   });
 
@@ -202,7 +202,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(400);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
     expect(json.error).toBe("WORKSPACE_MISMATCH");
   });
 
@@ -220,13 +220,15 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(200);
-    const json = await res.json() as { ok: boolean; error: string; gate_evaluation_id: string };
+    const json = (await res.json()) as { ok: boolean; error: string; gate_evaluation_id: string };
     expect(json.ok).toBe(false);
     expect(json.error).toBe("GATE_DENIED");
     expect(json.gate_evaluation_id).toBe("gate-eval-denied");
     // telemetry must fire for denied path
     expect(emitMock).toHaveBeenCalledOnce();
-    const emitArg = emitMock.mock.calls[0]?.[0] as { properties: { data: { tool_status: string } } };
+    const emitArg = emitMock.mock.calls[0]?.[0] as {
+      properties: { data: { tool_status: string } };
+    };
     expect(emitArg.properties.data.tool_status).toBe("denied");
   });
 
@@ -235,7 +237,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(200);
-    const json = await res.json() as {
+    const json = (await res.json()) as {
       ok: boolean;
       result: string;
       gate_evaluation_id: string;
@@ -247,7 +249,9 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     expect(typeof json.duration_ms).toBe("number");
     // telemetry emitted with success status
     expect(emitMock).toHaveBeenCalledOnce();
-    const emitArg = emitMock.mock.calls[0]?.[0] as { properties: { data: { tool_status: string } } };
+    const emitArg = emitMock.mock.calls[0]?.[0] as {
+      properties: { data: { tool_status: string } };
+    };
     expect(emitArg.properties.data.tool_status).toBe("success");
   });
 
@@ -262,11 +266,13 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(500);
-    const json = await res.json() as { ok: boolean; error: string };
+    const json = (await res.json()) as { ok: boolean; error: string };
     expect(json.ok).toBe(false);
     expect(json.error).toContain("DB_ERROR");
     // telemetry emitted with error status
-    const emitArg = emitMock.mock.calls[0]?.[0] as { properties: { data: { tool_status: string } } };
+    const emitArg = emitMock.mock.calls[0]?.[0] as {
+      properties: { data: { tool_status: string } };
+    };
     expect(emitArg.properties.data.tool_status).toBe("error");
   });
 
@@ -289,7 +295,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp(["bff:proxy"]);
     const res = await post(app, validBody);
     expect(res.status).toBe(401);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
     expect(json.error).toBe("SCOPE_INSUFFICIENT");
   });
 
@@ -299,7 +305,7 @@ describe("POST /internal/engine-dispatch/invoke-capability-tool", () => {
     const app = buildApp();
     const res = await post(app, validBody);
     expect(res.status).toBe(400);
-    const json = await res.json() as { error: string };
+    const json = (await res.json()) as { error: string };
     expect(json.error).toBe("ENGINE_STATE_NOT_FOUND");
   });
 });
