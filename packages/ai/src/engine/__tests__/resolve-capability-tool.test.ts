@@ -15,14 +15,18 @@ import type { AgentToolContext } from "../../capabilities/types.js";
 // 1. Known capability + known tool → returns ResolvedCapabilityTool
 // ---------------------------------------------------------------------------
 describe("resolveCapabilityTool — known capability + known tool", () => {
-  it("returns a ResolvedCapabilityTool with matching names (schedule / get_my_shifts)", {
-    timeout: 30_000,
-  }, async () => {
-    const resolved = resolveCapabilityTool("schedule", "get_my_shifts");
-    expect(resolved).not.toBeNull();
-    expect(resolved!.capabilityName).toBe("schedule");
-    expect(resolved!.toolName).toBe("get_my_shifts");
-  });
+  it(
+    "returns a ResolvedCapabilityTool with matching names (schedule / get_my_shifts)",
+    {
+      timeout: 30_000,
+    },
+    async () => {
+      const resolved = resolveCapabilityTool("schedule", "get_my_shifts");
+      expect(resolved).not.toBeNull();
+      expect(resolved!.capabilityName).toBe("schedule");
+      expect(resolved!.toolName).toBe("get_my_shifts");
+    },
+  );
 
   it("exposes an inputSchema that is a Zod type", { timeout: 30_000 }, () => {
     const resolved = resolveCapabilityTool("schedule", "get_my_shifts");
@@ -51,10 +55,14 @@ describe("resolveCapabilityTool — known capability + known tool", () => {
 // 2. Known capability + unknown tool → returns null
 // ---------------------------------------------------------------------------
 describe("resolveCapabilityTool — known capability + unknown tool", () => {
-  it("returns null for a tool name that does not exist in the capability", { timeout: 30_000 }, () => {
-    const resolved = resolveCapabilityTool("schedule", "nonexistent_tool_xyz");
-    expect(resolved).toBeNull();
-  });
+  it(
+    "returns null for a tool name that does not exist in the capability",
+    { timeout: 30_000 },
+    () => {
+      const resolved = resolveCapabilityTool("schedule", "nonexistent_tool_xyz");
+      expect(resolved).toBeNull();
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -81,9 +89,8 @@ describe("resolveCapabilityTool — execute() callable", () => {
     // We bypass the real DB call by mocking the module BEFORE import.
     vi.resetModules();
     vi.doMock("../../capabilities/schedule/tools.js", async (importOriginal) => {
-      const original = await importOriginal<
-        typeof import("../../capabilities/schedule/tools.js")
-      >();
+      const original =
+        await importOriginal<typeof import("../../capabilities/schedule/tools.js")>();
       return {
         ...original,
         getMyShifts: {
@@ -93,9 +100,7 @@ describe("resolveCapabilityTool — execute() callable", () => {
       };
     });
 
-    const { resolveCapabilityTool: freshResolve } = await import(
-      "../resolve-capability-tool.js"
-    );
+    const { resolveCapabilityTool: freshResolve } = await import("../resolve-capability-tool.js");
 
     const resolved = freshResolve("schedule", "get_my_shifts");
     expect(resolved).not.toBeNull();
@@ -116,9 +121,7 @@ describe("resolveCapabilityTool — execute() callable", () => {
     // Pass a number to trigger Zod parse failure.
     vi.resetModules();
     // No mock needed — just pass bad input; execute() validates internally.
-    const { resolveCapabilityTool: freshResolve } = await import(
-      "../resolve-capability-tool.js"
-    );
+    const { resolveCapabilityTool: freshResolve } = await import("../resolve-capability-tool.js");
 
     const resolved = freshResolve("helpdesk_query", "open_ticket");
     expect(resolved).not.toBeNull();
@@ -137,9 +140,8 @@ describe("resolveCapabilityTool — execute() callable", () => {
   it("execute() returns { ok: false, error } when the underlying tool throws", async () => {
     vi.resetModules();
     vi.doMock("../../capabilities/helpdesk_query/tools.js", async (importOriginal) => {
-      const original = await importOriginal<
-        typeof import("../../capabilities/helpdesk_query/tools.js")
-      >();
+      const original =
+        await importOriginal<typeof import("../../capabilities/helpdesk_query/tools.js")>();
       return {
         ...original,
         listMyQueue: {
@@ -151,9 +153,7 @@ describe("resolveCapabilityTool — execute() callable", () => {
       };
     });
 
-    const { resolveCapabilityTool: freshResolve } = await import(
-      "../resolve-capability-tool.js"
-    );
+    const { resolveCapabilityTool: freshResolve } = await import("../resolve-capability-tool.js");
 
     const resolved = freshResolve("helpdesk_query", "list_my_queue");
     expect(resolved).not.toBeNull();
