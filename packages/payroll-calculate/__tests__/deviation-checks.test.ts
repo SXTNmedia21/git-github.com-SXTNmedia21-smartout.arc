@@ -252,7 +252,11 @@ describe("W09 — OT pre-approval", () => {
     });
     const w09 = deviations.filter((d) => d.check_id === "W09");
     expect(w09.length).toBe(1);
-    expect(w09[0]!.severity).toBe("warning");
+    // BUG-SIM-15: W09 severity was downgraded from 'warning' to 'info' in
+    // src/deviation-checks.ts:421 until the ot_preapproval table + UI flow
+    // lands (GAP-A5-02). Test asserts the current advisory-only behavior.
+    // Restore to 'warning' when the pre-approval UI ships.
+    expect(w09[0]!.severity).toBe("info");
   });
 
   it("does NOT fire W09 when shift is pre-approved", () => {
