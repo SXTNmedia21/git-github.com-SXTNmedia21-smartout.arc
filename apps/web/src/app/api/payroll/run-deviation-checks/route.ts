@@ -273,6 +273,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     forced_break_threshold_minutes: 330, // Aml. §10-9: 5.5h = 330 min
   };
 
+  // BUG-SIM-14 fix: populate punchOutMissingShiftIds from calcRows where
+  // actual_end IS NULL — the calculation step substituted the scheduled end
+  // when no punch-out was recorded. W08 fires for these shifts so Erik can
+  // see which employees had their hours auto-filled.
+  const punchOutMissingShiftIds = new Set<string>(
+    [...latestByShift.values()]
+      .filter((c) => c.actual_end === null)
+      .map((c) => c.schedule_shift_id),
+  );
+
+  // BUG-SIM-15 fix: manager_pre_approved_ot column does not exist in schema yet
+  // (ot_preapproval table pending separate ADR). Until the pre-approval UI lands,
+  // W09 is advisory-only (info) — operator must ack but it is not a blocking error.
+  // preApprovedShiftIds remains empty; severity downgrade is in deviation-checks.ts.
+  const preApprovedShiftIds = new Set<string>();
+
   const deviationInput: DeviationChecksInput = {
     aggregated,
     shifts,
@@ -282,6 +298,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     tariffRates,
     periodStartDate: period.start_date,
     evaluationYear: new Date().getFullYear(),
+    punchOutMissingShiftIds,
+    preApprovedShiftIds,
   };
 
   const deviations = runDeviationChecks(deviationInput);

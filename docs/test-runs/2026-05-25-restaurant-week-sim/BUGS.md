@@ -129,21 +129,23 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-13). Timestamp set to `Date.now() - 50ms` BEFORE the emit call.
 
-### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH
+### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/api/payroll/run-deviation-checks/route.ts:280-285`
 - **Evidence:** A5 / BUG-A5-06 — `DeviationChecksInput.punchOutMissingShiftIds` defaults to empty Set; route never derives the set from interpreted shifts where `actual_end` was substituted from scheduled end.
 - **Impact:** W08 ("Punch-out missing") never fires. Erik sees clean hours but no visibility into which shifts had punch-out auto-filled. Compounds with Friday POS-down scenario.
 - **Severity:** HIGH (compliance silence)
 - **Fix:** Build `punchOutMissingShiftIds` from `payroll.calculation` rows where `actual_end IS NULL` before passing to `DeviationChecks`.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` — BUG-SIM-14+SIM-15 commit. `punchOutMissingShiftIds` built from `latestByShift` entries where `actual_end === null`; W08 now fires for each such shift.
 
-### BUG-SIM-15 — `run-deviation-checks` never populates `preApprovedShiftIds` → W09 false-positive blocks every OT shift 🟠 HIGH
+### BUG-SIM-15 — `run-deviation-checks` never populates `preApprovedShiftIds` → W09 false-positive blocks every OT shift 🟠 HIGH ✅ FIXED (option b)
 
 - **Where:** `apps/web/src/app/api/payroll/run-deviation-checks/route.ts:280-285`
 - **Evidence:** A5 / GAP-A5-02 — `preApprovedShiftIds` is optional, defaults to empty Set; with `overtime_requires_pre_approval=true`, EVERY OT shift fires W09. Erik faces ~72 manual acks/period for a 18-staff bistro.
 - **Impact:** W09 becomes noise instead of signal. Forces operator to ack every OT shift as "verbally approved" — defeats the gate's purpose. Practical blocker.
 - **Severity:** HIGH (operational dead-end)
 - **Fix:** Either (a) build `ot_preapproval` table + UI flow at schedule-publish, OR (b) downgrade W09 to `info` and document as advisory-only until (a) lands.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` — option (b) applied. W09 severity downgraded to `info` in `deviation-checks.ts`; message updated to "(adviserende)". `preApprovedShiftIds` stays empty in BFF; restore to `warning` when `ot_preapproval` table + UI ships (GAP-A5-02).
 
 ### BUG-SIM-16 — `useLockPeriod` mutation has no `emit()` in `onSuccess` (ADR-0193 violation) 🟡 MEDIUM
 
@@ -153,13 +155,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (governance debt)
 - **Fix:** Add `emit({ event: "payroll period locked client", ... })` in `onSuccess`.
 
-### BUG-SIM-17 — `audience-resolver` `on_duty` semantically equates "clocked in" with "on shift" 🟠 HIGH
+### BUG-SIM-17 — `audience-resolver` `on_duty` semantically equates "clocked in" with "on shift" 🟠 HIGH ✅ FIXED
 
 - **Where:** Same files as BUG-SIM-11 (resolver + hook)
 - **Evidence:** A4 / BUG-A4-01 — at 15:00 before a 16:00 shift, `punch_out IS NULL` returns 0 rows. "Send to people on tonight's shift" is the natural manager intent; resolver targets only those physically punched in. There is no `on_shift` audience kind that consults `schedule_shift`.
 - **Impact:** Wrong default behavior for pre-shift announcements (the single most common comms use case in hospitality). Maria + crew never receive the summer-menu announcement until they clock in.
 - **Severity:** HIGH (UX semantic mismatch + functional miss)
 - **Fix:** Add `on_shift` audience kind that queries `schedule_shift` for a configurable window; keep `on_duty` as currently-clocked-in subset. Update audience picker UI + `AudienceKind` union + tool schema.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` BUG-SIM-17 commit. `on_shift` added to `AudienceKind` union in both `audience-resolver.ts` (capability) and `use-audience-resolver.ts` (web hook). Queries `schedule_shift` for shifts within ±120 min window. `publish_announcement` tool schema updated with `on_shift` enum value. Audience picker UI update deferred to frontend-designer.
 
 ### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM — ✅ FIXED in commit bac824b6f
 
@@ -177,13 +180,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (trust + accuracy)
 - **Fix:** Fetch `employee_payroll_profile.hourly_rate` (or tariff floor via D3 resolution). Add "Estimat" disclaimer regardless.
 
-### BUG-SIM-20 — `cash_count_variance` from Step03 never auto-creates `deviation` row 🟡 MEDIUM
+### BUG-SIM-20 — `cash_count_variance` from Step03 never auto-creates `deviation` row 🟡 MEDIUM ✅ FIXED
 
 - **Where:** `Step03Kontanttelling.tsx:58-63` (computes variance) + `Step04Avvik.tsx` (receives pre-fetched list, does not infer)
 - **Evidence:** A3 / NEW-GAP-E — wizard transition computes variance but no trigger reads `financial_close_config.tolerance_value` to spawn a deviation. `AdminOverrideSheet.tsx:25` lists `no_cash_count` and `open_deviation` as distinct blocker codes — system distinguishes states but doesn't auto-link.
 - **Impact:** Friday 340 kr cash discrepancy passes silently. Manager sign-off step (spec'd) never fires because no deviation exists.
 - **Severity:** MEDIUM (compliance silence)
 - **Fix:** On Step03→Step04 transition, if `|variance| > tolerance_value`, auto-create `deviation` row (domain=`material`, severity by magnitude) via existing `report_deviation` capability.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` BUG-SIM-20 commit. In `save-wizard-step-action.ts`: on `03_kontanttelling` step save, reads `financial_close_config.cash_tolerance_value` (fallback 20 kr), compares `|cash_count_variance|`, auto-inserts `deviation` row with domain=`material`, subcategory=`cash_variance`, severity scaled by magnitude (low/medium/high). Emit `deviation reported` on success. Best-effort: deviation-insert failure does not fail the wizard step.
 
 ### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH ✅ FIXED
 

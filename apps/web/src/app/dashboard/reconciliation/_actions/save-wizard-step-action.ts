@@ -196,6 +196,78 @@ export async function saveWizardStepAction(
     return { ok: false, error: "Kunne ikke lagre steg." };
   }
 
+  // BUG-SIM-20 fix: When Step 03 (kontanttelling) completes, compare the
+  // cash_count_variance against financial_close_config.cash_tolerance_value.
+  // If |variance| exceeds the threshold, auto-create a 'material' deviation row
+  // so the manager sign-off flow has something to review in Step 04.
+  // This is a best-effort side-effect — deviation insert failure is logged but
+  // does NOT fail the wizard step (soft: leader should not be blocked by a
+  // missing config row).
+  if (parsed.data.stepId === "03_kontanttelling") {
+    const rawVariance = parsed.data.stepData["cash_count_variance"];
+    const variance = typeof rawVariance === "number" ? rawVariance : null;
+    if (variance !== null && variance !== 0) {
+      // Fetch cash tolerance from financial_close_config (fallback to default 20 kr).
+      const { data: fcc } = await admin
+        .from("financial_close_config")
+        .select("cash_tolerance_value")
+        .eq("workspace_id", session.workspace_id)
+        .maybeSingle();
+      const toleranceValue: number =
+        typeof fcc?.cash_tolerance_value === "number" ? fcc.cash_tolerance_value : 20;
+
+      if (Math.abs(variance) > toleranceValue) {
+        const absVariance = Math.abs(variance);
+        const sign = variance > 0 ? "+" : "-";
+        const severity = absVariance >= 500 ? "high" : absVariance >= 100 ? "medium" : "low";
+
+        // Resolve department_id from session for proper deviation context.
+        const { data: sessionDept } = await admin
+          .from("department_session")
+          .select("department_id")
+          .eq("department_session_id", parsed.data.sessionId)
+          .maybeSingle();
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { error: devInsertErr } = await admin.from("deviation").insert({
+          workspace_id: session.workspace_id,
+          department_id: sessionDept?.department_id ?? null,
+          session_id: parsed.data.sessionId,
+          reconciliation_id: reconId,
+          domain: "material" as const,
+          subcategory: "cash_variance",
+          severity,
+          title: `Kassaavvik ${sign}${absVariance.toLocaleString("nb-NO")} kr`,
+          description:
+            `Automatisk opprettet ved kontanttelling (steg 03). ` +
+            `Avvik: ${sign}${absVariance.toLocaleString("nb-NO")} kr — ` +
+            `grense: ${toleranceValue.toLocaleString("nb-NO")} kr. ` +
+            `Krever lederbehandling.`,
+          reported_by: null, // system-generated per schema comment
+          status: "open" as const,
+        });
+
+        if (!devInsertErr) {
+          // Emit telemetry for the auto-created cash deviation.
+          await emit({
+            event: "deviation reported",
+            workspace_id: nonEmpty(session.workspace_id, "workspace_id"),
+            actor_id: nonEmpty(profile.profileId, "actor_id"),
+            properties: {
+              data: {
+                reconciliation_id: reconId,
+                session_id: parsed.data.sessionId,
+                subcategory: "cash_variance",
+                variance,
+                tolerance_value: toleranceValue,
+              },
+            },
+          });
+        }
+      }
+    }
+  }
+
   await emit({
     event: "reconciliation step_completed",
     workspace_id: nonEmpty(session.workspace_id, "workspace_id"),

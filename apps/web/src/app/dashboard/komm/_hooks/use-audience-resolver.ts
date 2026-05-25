@@ -4,11 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 
-export type AudienceKind = "all" | "on_duty" | "department" | "role" | "individuals";
+export type AudienceKind = "all" | "on_duty" | "on_shift" | "department" | "role" | "individuals";
 
 export type AudienceInput =
   | { kind: "all" }
   | { kind: "on_duty" }
+  | {
+      kind: "on_shift";
+      /** Minutes before/after NOW to include shifts. Defaults to 120 (2h window). */
+      windowMinutes?: number;
+    }
   | { kind: "department"; departmentIds: string[] }
   | { kind: "role"; roles: string[] }
   | { kind: "individuals"; profileIds: string[] };
@@ -61,6 +66,26 @@ export function useAudienceResolver(input: AudienceInput) {
           new Set((entries ?? []).map((e: { profile_id: string }) => e.profile_id).filter(Boolean)),
         );
         return { kind: "on_duty", profileIds: ids, count: ids.length };
+      }
+
+      if (input.kind === "on_shift") {
+        // BUG-SIM-17: on_shift queries schedule_shift for shifts overlapping the
+        // current window (NOW ± windowMinutes). Distinct from on_duty (clocked in).
+        const windowMs = (input.windowMinutes ?? 120) * 60_000;
+        const now = Date.now();
+        const windowStart = new Date(now - windowMs).toISOString();
+        const windowEnd = new Date(now + windowMs).toISOString();
+        const { data, error } = await supabase
+          .from("schedule_shift")
+          .select("profile_id")
+          .eq("workspace_id", wsId)
+          .lte("start_time", windowEnd)
+          .gte("end_time", windowStart);
+        if (error) throw error;
+        const ids = Array.from(
+          new Set((data ?? []).map((s: { profile_id: string }) => s.profile_id).filter(Boolean)),
+        );
+        return { kind: "on_shift", profileIds: ids, count: ids.length };
       }
 
       if (input.kind === "department") {
