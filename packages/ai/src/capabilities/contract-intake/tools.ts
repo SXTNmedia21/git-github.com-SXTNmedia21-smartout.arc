@@ -15,6 +15,11 @@ import { validatePersonnummer, validateNorwegianBankAccount } from "@smartout/ut
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 
 // Address fields are folded into 'identity' group per Phase 1 alignment.
 // Two field groups remain: identity (personnummer + address) and banking.
@@ -130,100 +135,110 @@ export const submitFieldGroup = defineTool({
       }
     }
 
-    // ADR-0099 / Phase A1: call gate_action BEFORE any mutation. The
-    // employee is the data subject, so entity_id = profileId. This lets
-    // ADR-0101 four-eyes scope approvals per-profile (one approval
-    // doesn't cover every employee's PII intake).
-    const channel = normaliseChannel(ctx.channel);
-    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY,
-      channel,
-      actionType: "submit_field_group",
-      entityId: ctx.profileId,
-    });
-
-    // Four-eyes path (ADR-0101): surface approver-needed, do NOT mutate.
-    if (!gate.allow && gate.requiresFourEyes === true) {
-      const result: FourEyesPendingOutcome = {
-        allowed: false,
-        outcome: "four_eyes_pending",
-        reason: "four_eyes_required",
-        approvers_needed: gate.approversNeeded,
-        approvers_present: gate.approversPresent,
-        user_message: FOUR_EYES_MESSAGE,
-      };
-      return toJson(result);
-    }
-
-    // Downgrade path (level='suggest'): the user must confirm before the
-    // PII actually lands. Return a confirmation-required result without
-    // mutating. The LLM should ask for explicit confirmation and then
-    // retry the tool when the user agrees (confirmation retry is handled
-    // by the prompt template, not by the tool).
-    if (gate.allow === false && gate.downgradeTo === "suggest") {
-      const result: SuggestDowngradeOutcome = {
-        allowed: false,
-        outcome: "confirmation_required",
-        reason: "downgraded_to_suggest",
-        user_message: DOWNGRADE_MESSAGE,
-      };
-      return toJson(result);
-    }
-
-    // Any other deny — block without mutating.
-    if (!gate.allow) {
-      const blockReason = gate.reason ?? "denied";
-      const result: BlockOutcome = {
-        allowed: false,
-        outcome: "blocked",
-        reason: blockReason,
-        user_message: BLOCK_MESSAGE(blockReason),
-      };
-      return toJson(result);
-    }
-
-    // PII writes MUST use employee-scoped client so auth.uid() resolves correctly.
-    // Using service role would make auth.uid() return NULL, breaking submit_own_pii.
+    // PII writes MUST use employee-scoped client so auth.uid() resolves
+    // correctly. service role would make auth.uid() return NULL, breaking
+    // submit_own_pii. Validate up-front so we don't burn a gate decision
+    // on a request that can't write.
     const userClient = ctx.supabaseUser;
     if (!userClient) {
       return "Intern feil: mangler brukerautentisering for PII-lagring. Prøv igjen.";
     }
 
-    // Identity group may contain both personnummer and address fields.
-    // submit_own_pii handles identity fields (personal_number) in one call.
-    // Address fields need a separate call with field_group='address'.
-    if (group === "identity") {
-      // Submit personal_number if present
-      if (values.personal_number) {
-        const { error: idError } = await userClient.rpc("submit_own_pii", {
-          p_workspace_id: ctx.workspaceId,
-          p_field_group: "identity",
-          p_values: { personal_number: values.personal_number },
-        });
-        if (idError) return `Feil ved lagring av personnummer: ${idError.message}`;
-      }
-
-      // Submit address fields if present
-      const addressFields: Record<string, string> = {};
-      for (const key of ["address_line_1", "address_line_2", "postal_code", "city"]) {
-        if (values[key]) addressFields[key] = values[key];
-      }
-      if (Object.keys(addressFields).length > 0) {
-        const { error: addrError } = await userClient.rpc("submit_own_pii", {
-          p_workspace_id: ctx.workspaceId,
-          p_field_group: "address",
-          p_values: addressFields,
-        });
-        if (addrError) return `Feil ved lagring av adresse: ${addrError.message}`;
-      }
-    } else {
-      // Banking group — single RPC call
-      const { error } = await userClient.rpc("submit_own_pii", {
-        p_workspace_id: ctx.workspaceId,
-        p_field_group: group,
-        p_values: values,
+    // ADR-0204 §3: gate_action (Pathway A) + cascade_gate_write (Pathway B)
+    // + submit_own_pii RPC composed in one correlated audit chain.
+    // The wrapper-passed admin client runs the gate RPCs; inside exec we
+    // explicitly use userClient for submit_own_pii because the RPC reads
+    // auth.uid() server-side and needs the employee JWT (admin client
+    // would auth.uid()=NULL → write rejected).
+    //
+    // The employee is the data subject, so targetId = ctx.profileId
+    // (lets ADR-0101 four-eyes scope per-profile).
+    const channel = normaliseChannel(ctx.channel);
+    try {
+      await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY,
+        actionType: "submit_field_group",
+        channel,
+        targetId: ctx.profileId,
+        exec: async () => {
+          // Identity group may contain both personnummer and address fields.
+          // submit_own_pii handles identity (personal_number) in one call.
+          // Address fields need a separate call with field_group='address'.
+          if (group === "identity") {
+            if (values.personal_number) {
+              const { error: idError } = await userClient.rpc("submit_own_pii", {
+                p_workspace_id: ctx.workspaceId,
+                p_field_group: "identity",
+                p_values: { personal_number: values.personal_number },
+              });
+              if (idError) throw new Error(`Feil ved lagring av personnummer: ${idError.message}`);
+            }
+            const addressFields: Record<string, string> = {};
+            for (const key of ["address_line_1", "address_line_2", "postal_code", "city"]) {
+              if (values[key]) addressFields[key] = values[key];
+            }
+            if (Object.keys(addressFields).length > 0) {
+              const { error: addrError } = await userClient.rpc("submit_own_pii", {
+                p_workspace_id: ctx.workspaceId,
+                p_field_group: "address",
+                p_values: addressFields,
+              });
+              if (addrError) throw new Error(`Feil ved lagring av adresse: ${addrError.message}`);
+            }
+          } else {
+            // Banking group — single RPC call.
+            const { error } = await userClient.rpc("submit_own_pii", {
+              p_workspace_id: ctx.workspaceId,
+              p_field_group: group,
+              p_values: values,
+            });
+            if (error) throw new Error(`Feil ved lagring: ${error.message}`);
+          }
+          return {};
+        },
       });
-      if (error) return `Feil ved lagring: ${error.message}`;
+    } catch (err) {
+      // Map mutateWithGate deny outcomes to the existing typed result
+      // shapes (FourEyesPendingOutcome / SuggestDowngradeOutcome /
+      // BlockOutcome) so the prompt-side retry logic stays intact.
+      if (err instanceof MutateWithGateDenied) {
+        if (err.fourEyesRequired) {
+          const result: FourEyesPendingOutcome = {
+            allowed: false,
+            outcome: "four_eyes_pending",
+            reason: "four_eyes_required",
+            approvers_needed: err.approversNeeded ?? 2,
+            approvers_present: err.approversPresent ?? [ctx.profileId],
+            user_message: FOUR_EYES_MESSAGE,
+          };
+          return toJson(result);
+        }
+        if (err.downgradedTo === "suggest") {
+          const result: SuggestDowngradeOutcome = {
+            allowed: false,
+            outcome: "confirmation_required",
+            reason: "downgraded_to_suggest",
+            user_message: DOWNGRADE_MESSAGE,
+          };
+          return toJson(result);
+        }
+        const blockReason = err.message || "denied";
+        const result: BlockOutcome = {
+          allowed: false,
+          outcome: "blocked",
+          reason: blockReason,
+          user_message: BLOCK_MESSAGE(blockReason),
+        };
+        return toJson(result);
+      }
+      if (err instanceof MutateWithGateError) {
+        return `Intern feil: gate utilgjengelig (${err.code}). Prøv igjen.`;
+      }
+      // exec-side errors (submit_own_pii failures) — preserve the
+      // Norwegian user-facing messages thrown above.
+      return err instanceof Error ? err.message : "Feil ved lagring.";
     }
 
     void emit({
@@ -299,69 +314,75 @@ export const declineIntake = defineTool({
       return "Avvisning av intake må skje via chat. Bytt til chat og prøv igjen.";
     }
 
-    // ADR-0099 / Phase A1: call gate_action BEFORE any mutation.
+    // ADR-0204 §3: gate_action (Pathway A) + cascade_gate_write (Pathway B)
+    // + decline_contract_intake RPC composed in one correlated audit chain.
     // Decline flips contract status + emits a signalling event — both
     // are governance-visible state transitions that deserve an audit row.
     const channel = normaliseChannel(ctx.channel);
-    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
-      capability: CAPABILITY,
-      channel,
-      actionType: "decline_intake",
-      entityId: ctx.profileId,
-    });
-
-    if (!gate.allow && gate.requiresFourEyes === true) {
-      const result: FourEyesPendingOutcome = {
-        allowed: false,
-        outcome: "four_eyes_pending",
-        reason: "four_eyes_required",
-        approvers_needed: gate.approversNeeded,
-        approvers_present: gate.approversPresent,
-        user_message: FOUR_EYES_MESSAGE,
-      };
-      return toJson(result);
-    }
-
-    if (gate.allow === false && gate.downgradeTo === "suggest") {
-      const result: SuggestDowngradeOutcome = {
-        allowed: false,
-        outcome: "confirmation_required",
-        reason: "downgraded_to_suggest",
-        user_message: DOWNGRADE_MESSAGE,
-      };
-      return toJson(result);
-    }
-
-    if (!gate.allow) {
-      const blockReason = gate.reason ?? "denied";
-      const result: BlockOutcome = {
-        allowed: false,
-        outcome: "blocked",
-        reason: blockReason,
-        user_message: BLOCK_MESSAGE(blockReason),
-      };
-      return toJson(result);
-    }
-
-    // Call decline_contract_intake RPC to update contract status + insert event
-    const { error } = await ctx.supabaseAdmin.rpc("decline_contract_intake", {
-      p_profile_id: ctx.profileId,
-      p_workspace_id: ctx.workspaceId,
-      p_reason: reason_text ?? reason_code,
-    });
-
-    if (error) return `Feil ved avvisning: ${error.message}`;
-
-    // If running inside an engine process, mark the step as failed
-    if (ctx.engineStateId) {
-      await ctx.supabaseAdmin
-        .from("engine_state_step")
-        .update({
-          status: "failed",
-          result: { declined: true, reason_code, reason_text },
-        })
-        .eq("engine_state_id", ctx.engineStateId)
-        .eq("status", "active");
+    try {
+      await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: CAPABILITY,
+        actionType: "decline_intake",
+        channel,
+        targetId: ctx.profileId,
+        exec: async (db) => {
+          const { error } = await db.rpc("decline_contract_intake", {
+            p_profile_id: ctx.profileId,
+            p_workspace_id: ctx.workspaceId,
+            p_reason: reason_text ?? reason_code,
+          });
+          if (error) throw new Error(`Feil ved avvisning: ${error.message}`);
+          // If running inside an engine process, mark the step as failed.
+          if (ctx.engineStateId) {
+            await db
+              .from("engine_state_step")
+              .update({
+                status: "failed",
+                result: { declined: true, reason_code, reason_text },
+              })
+              .eq("engine_state_id", ctx.engineStateId)
+              .eq("status", "active");
+          }
+          return {};
+        },
+      });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        if (err.fourEyesRequired) {
+          const result: FourEyesPendingOutcome = {
+            allowed: false,
+            outcome: "four_eyes_pending",
+            reason: "four_eyes_required",
+            approvers_needed: err.approversNeeded ?? 2,
+            approvers_present: err.approversPresent ?? [ctx.profileId],
+            user_message: FOUR_EYES_MESSAGE,
+          };
+          return toJson(result);
+        }
+        if (err.downgradedTo === "suggest") {
+          const result: SuggestDowngradeOutcome = {
+            allowed: false,
+            outcome: "confirmation_required",
+            reason: "downgraded_to_suggest",
+            user_message: DOWNGRADE_MESSAGE,
+          };
+          return toJson(result);
+        }
+        const blockReason = err.message || "denied";
+        const result: BlockOutcome = {
+          allowed: false,
+          outcome: "blocked",
+          reason: blockReason,
+          user_message: BLOCK_MESSAGE(blockReason),
+        };
+        return toJson(result);
+      }
+      if (err instanceof MutateWithGateError) {
+        return `Intern feil: gate utilgjengelig (${err.code}). Prøv igjen.`;
+      }
+      return err instanceof Error ? err.message : "Feil ved avvisning.";
     }
 
     void emit({
