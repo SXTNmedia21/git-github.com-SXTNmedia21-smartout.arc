@@ -48,8 +48,8 @@ import { resolveMobileActor } from "../../_shared/actor";
 import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
 import { gateAction } from "@/app/dashboard/_actions/_shared";
 
-// ── Capability + action literal (must match capability tools.ts) ─────────────
-const CAP = "shift_marketplace";
+// ── Action literal (capability passed as string literal at call-site
+//    so authority-seed-parity ADR-0189 can statically verify the seed) ──
 const ACTION_CLAIM = "shift_marketplace.claim";
 
 // ── Request schema ───────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // P0.6); the gate_action RPC itself does not throw it.
   const gate = await gateAction({
     workspaceId,
-    capability: CAP,
+    capability: "shift_marketplace",
     channel: "chat", // ADR-0288: claim is chat-only; mobile surface = chat
     actorProfileId: profileId,
     actionType: ACTION_CLAIM,

@@ -41,8 +41,8 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
 import { gateAction } from "@/app/dashboard/_actions/_shared";
 
-// ── Capability + action literals (must match capability tools.ts) ────────────
-const CAP = "shift_marketplace";
+// ── Action literals (capability passed as string literal at call-site
+//    so authority-seed-parity ADR-0189 can statically verify the seed) ──
 const ACTION_APPROVE = "shift_marketplace.approve_claim";
 const ACTION_CANCEL = "shift_marketplace.cancel_offer";
 
@@ -215,7 +215,7 @@ async function handleApproveClaim(
   // ── Gate (ADR-0099, routes via canonical orchestrator per ADR-0204 §3) ───
   const gate = await gateAction({
     workspaceId,
-    capability: CAP,
+    capability: "shift_marketplace",
     channel: "chat",
     actorProfileId: profileId,
     actionType: ACTION_APPROVE,
@@ -329,7 +329,7 @@ async function handleCancelOffer(
   // ── Gate (ADR-0099, routes via canonical orchestrator per ADR-0204 §3) ───
   const gate = await gateAction({
     workspaceId,
-    capability: CAP,
+    capability: "shift_marketplace",
     channel: "chat",
     actorProfileId: profileId,
     actionType: ACTION_CANCEL,

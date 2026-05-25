@@ -387,23 +387,40 @@ function extractSeededCapabilities(migrationsDir: string): Set<string> {
   //      SELECT column list of each matching INSERT..SELECT statement that are
   //      allowlisted (single-word allowlist or dotted form).
 
-  const DOTTED_RE = /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)+$/;
+  // Allow hyphens in both top-level identifier and dotted segments — ADR-0367
+  // introduced hyphen-form capability names ("day-line"). Predates the dotted-
+  // form convention's strict `_` alphabet, but ships as canonical literal.
+  const DOTTED_RE = /^[a-z_][a-z0-9_-]*(\.[a-z_][a-z0-9_-]*)+$/;
   // Legacy single-word capabilities that predate dotted-form convention (ADR-0195/0201/0298).
   // Migration to dotted form is deferred to a follow-up architectural sortie. Until then,
   // these capabilities are seeded via single-word literals in migrations and must be
   // allowlisted so the parity gate doesn't false-positive them.
   const SINGLE_WORD_ALLOWLIST = new Set([
     "billing_query",
+    // ADR-0407 K1a bootstrap-gate capability.
+    "bootstrap",
     "contract",
+    // ADR-0367 D6 dag-linje lifecycle (hyphen in literal — see DOTTED_RE).
+    "day-line",
     "handbook_chapter",
     "helpdesk_query",
     "memory",
+    // ADR-0367 BT2 org-structure area-management.
+    "org",
     "payroll",
     "policy",
     "protocol",
+    // ADR-0367 BT2 routine attachment.
+    "routine",
+    // ADR-0306 open-shift marketplace — top-level capability literal at call-sites
+    // (e.g. apps/web/src/app/api/marketplace/action/route.ts). Sub-actions
+    // shift_marketplace.override are also seeded as dotted.
+    "shift_marketplace",
     "task",
   ]);
-  const CAP_LIT = /'([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)'/g;
+  // Capability literal regex — same alphabet as DOTTED_RE for consistency.
+  // Allows hyphen in both the head and any dotted segment.
+  const CAP_LIT = /'([a-z_][a-z0-9_-]*(?:\.[a-z_][a-z0-9_-]*)*)'/g;
 
   function accept(candidate: string): boolean {
     return DOTTED_RE.test(candidate) || SINGLE_WORD_ALLOWLIST.has(candidate);
