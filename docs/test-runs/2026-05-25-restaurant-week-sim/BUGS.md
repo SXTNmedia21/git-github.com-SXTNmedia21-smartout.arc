@@ -57,13 +57,13 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 
 ## PRODUCT bugs (real UI / API / capability logic regressions)
 
-### BUG-SIM-05 — `HelpDesk.tsx` + `use-help-requests.ts` write to DEPRECATED `help_request` table 🔴 CRITICAL
+### BUG-SIM-05 — `HelpDesk.tsx` + `use-help-requests.ts` write to DEPRECATED `help_request` table 🔴 CRITICAL ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/komm/_components/HelpDesk.tsx`; `apps/web/src/.../use-help-requests.ts:49-60` (insert) + `:26-39` (read)
 - **Evidence:** A4 / BUG-A4-08 — `supabase/migrations/20260519110000_deprecate_help_request_table.sql` explicitly DEPRECATED this table ("DO NOT WRITE"). New tickets must spawn `engine_state(process_id='helpdesk_query_lifecycle')`. UI never migrated.
 - **Impact:** Cascade of failures: no engine_state row, no `engine_delayed_trigger`, no SLA breach, `useMinKo` queue returns empty, `QueueSheet` empty, no escalation. This is the deep root cause of baseline **BUG-20** (helpdesk SLA 0/4 pass). Even fixing `engine_authority_config` for `communication` won't help — the UI never reaches the new code path.
 - **Severity:** CRITICAL
-- **Fix:** Rewire `HelpDesk.tsx` to call `helpdesk_query.open_ticket` capability tool via Server Action OR a new BFF route. Remove writes to `help_request`.
+- **Fixed in:** feat/helpdesk-rewire-openticket (see git log). `use-help-requests.ts` rewired to `openPrivateTicket` Server Action; reads from `engine_state`; telemetry + gate_action now correct.
 
 ### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH
 
@@ -79,40 +79,39 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Evidence:** A2 / BUG-A2-2 — `nowStr` passed to `createAbsence.mutate()` as `startDate`+`endDate`. Mapper writes to `schedule_absence.start_date`/`end_date` (`DATE NOT NULL`, `20260301600003_schedule_persistence_tables.sql:48-49`). Postgres coerces in UTC — sick-call at 00:30 Oslo (22:30 UTC) lands on yesterday.
 - **Impact:** Absence date wrong-day for any registration after ~22:00 Oslo. Disappears from the correct week grid; SLA + payroll read wrong date.
 - **Severity:** HIGH
-- **Fix:** Replace `nowStr` with `absencePopover.dateId` for both start and end.
 - **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-07). dateId uses Date.getFullYear/Month/Date local methods → already YYYY-MM-DD in user timezone.
 
-### BUG-SIM-08 — `getShiftColleagues` uses wrong PK column (`id` not `schedule_shift_id`) — always returns `shift_not_found` 🟠 HIGH
+### BUG-SIM-08 — `getShiftColleagues` uses wrong PK column (`id` not `schedule_shift_id`) — always returns `shift_not_found` 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/schedule/tools.ts:136` (and select at `:146`)
 - **Evidence:** A2 / BUG-A2-3 — `.eq("id", params.shift_id)` against table whose PK is `schedule_shift_id`. Compare `getWorkspaceSchedule` (line 312) which uses the correct column.
 - **Impact:** Botsson `get_shift_colleagues` tool silently returns `{"error":"shift_not_found"}` for every call. Maria asking "hvem jobber med meg?" never gets a useful answer.
 - **Severity:** HIGH
-- **Fix:** `.eq("schedule_shift_id", params.shift_id)` + `select("schedule_shift_id, ...")`.
+- **Fixed in:** feat/schedule-pk-fix (see commit for BUG-SIM-08). `.eq("schedule_shift_id", ...)` + `select("schedule_shift_id, ...")`.
 
-### BUG-SIM-09 — `getShiftDetail` uses wrong PK column — always returns `shift_not_found` 🟠 HIGH
+### BUG-SIM-09 — `getShiftDetail` uses wrong PK column — always returns `shift_not_found` 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/schedule/tools.ts:241,243`
 - **Evidence:** A2 / BUG-A2-4 — same class as BUG-SIM-08 (`id` vs `schedule_shift_id`).
 - **Impact:** Manager Botsson queries for a specific shift always error.
 - **Severity:** HIGH
-- **Fix:** As BUG-SIM-08.
+- **Fixed in:** feat/schedule-pk-fix (same commit as BUG-SIM-08).
 
-### BUG-SIM-10 — `useGPSGuard` built but never invoked; telemetry hardcodes `gps_verified: false` 🟠 HIGH
+### BUG-SIM-10 — `useGPSGuard` built but never invoked; telemetry hardcodes `gps_verified: false` 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/mobile/src/hooks/shift-clock/useGPSGuard.ts:75` (full implementation); `apps/mobile/src/hooks/mutations/use-punch.ts:44-87` (does NOT call `getPosition`)
 - **Evidence:** A3 / NEW-BUG-A — `usePunch.punchIn()` enqueues at `:59` directly; `punch_in_location` set to `null`; emit at `:87` hardcodes `gps_verified: false, gps_distance_meters: null`. `PunchAnimation.tsx:60` shows "Sjekker GPS" UI step — purely cosmetic. Confirmed in `docs/domains/shift-clock/GAPS-AND-DEBT.md:G1-G2`.
 - **Impact:** Workers can punch in from anywhere; audit trail falsely claims GPS was not checked. Silent compliance gap — workspaces that "have GPS required" actually do not.
 - **Severity:** HIGH (mis-promises compliance to operator)
-- **Fix:** Call `useGPSGuard.getPosition()` before `enqueue("punch_in", ...)`; pass the snapshot to the payload; set `gps_verified: true` when within geofence. Requires `shift_clock_config.gps_reference_lat/lng` seed from department location.
+- **Fixed in:** feat/gps-phantom-wire-punch, commit d9f0f5712. GPS guard wired; `gps_verified` + `gps_distance_meters` carry actual verdict. Follow-up: DB column persistence pending separate migration sortie.
 
-### BUG-SIM-11 — `audience-resolver.ts` `on_duty` branch missing `workspace_id` filter (service-role bypasses RLS) 🟠 HIGH
+### BUG-SIM-11 — `audience-resolver.ts` `on_duty` branch missing `workspace_id` filter (service-role bypasses RLS) 🟠 HIGH ✅ FIXED
 
 - **Where:** `packages/ai/src/capabilities/communication/audience-resolver.ts:59-73`; `apps/web/src/app/dashboard/komm/_hooks/use-audience-resolver.ts:46-61`
 - **Evidence:** A4 / BUG-A4-07 — both queries select `timesheet.time_entry WHERE punch_out IS NULL LIMIT 500` with NO `workspace_id` filter. Service-role bypasses RLS. Comment at audience-resolver.ts:38 explicitly notes "tool layer is responsible" — `callGateAction` does not filter audience.
 - **Impact:** Cross-workspace data bleed. An "on_duty" audience may include clocked-in employees from OTHER tenants. Compliance + GDPR risk. Same class as ADR-0151 forgeable-IDs / L-0177 silent fallback.
 - **Severity:** HIGH (multi-tenancy)
-- **Fix:** Add `.eq("workspace_id", workspaceId)` filter on both call-sites; join through `profile` if needed.
+- **Fixed in:** feat/audience-resolver-wsid-filter, commit 809ad0c94. `.eq("workspace_id", workspaceId)` added to both call-sites.
 
 ### BUG-SIM-12 — `cancelInvitation` emits with `workspace_id: null` (telemetry contract violation, ADR-0134) 🟡 MEDIUM ✅ FIXED
 
@@ -120,8 +119,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Evidence:** A1 / BUG-A1-5 — `workspace_id: null` is explicit (line 313). `resendInvitation` in same file correctly resolves from row (`:493`). Violates CLAUDE.md mandate "every mutation emits non-null, non-empty workspace_id."
 - **Impact:** `activity_trail` engine_event routing drops the event or routes to wrong workspace. Admin audit trail for cancelled invites is silent.
 - **Severity:** MEDIUM
-- **Fix:** Fetch `workspace_id` from the invitation row before emitting (mirror `resendInvitation` pattern).
-- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-12)
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-12).
 
 ### BUG-SIM-13 — `publish-announcement` emit timestamp set AFTER emit → engine_state poll can miss spawn (race) 🟡 MEDIUM ✅ FIXED
 
@@ -129,8 +127,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Evidence:** A4 / BUG-A4-09 — `emitTimestamp = new Date().toISOString()` set after `emit()`. Polling uses `.gte("started_at", emitTimestamp)` — if dispatcher completed synchronously before the `new Date()` call, the just-spawned row is missed.
 - **Impact:** Tool returns `{ ticket_id: null, note: "Ticket is opening" }` even on success. Manager may double-click → second `engine_state` spawned → double-ticket for one sick-call.
 - **Severity:** MEDIUM
-- **Fix:** Set `emitTimestamp = new Date(Date.now() - 50).toISOString()` BEFORE the emit call.
-- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-13)
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-13). Timestamp set to `Date.now() - 50ms` BEFORE the emit call.
 
 ### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH
 
@@ -194,7 +191,6 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Evidence:** A1 / BUG-A1-2 — `showWelcomeWizard = profile.is_welcome_complete === false` with NO role discriminator. `WelcomeWizard` has no role prop. The 8-step wizard is employee-shaped.
 - **Impact:** Erik (manager) invited Monday → completes employee wizard, not the workspace setup wizard at `/dashboard/setup/`. Workspace gates (departments, hours, seasons) remain open. Bella Vista cannot schedule shifts on Tuesday.
 - **Severity:** HIGH (blocks every new manager invite)
-- **Fix:** Branch by role in `layout.tsx`: `employee`/`trainee` → existing wizard; `manager`/`admin`/`owner` → redirect to `/dashboard/setup` if setup-guide not complete.
 - **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-21). Redirect to /dashboard/setup when setup_guide_completed=false; skip wizard silently if setup already done.
 
 ### BUG-SIM-22 — `platform_metrics_daily` queried but no migration creates it → MRR chart silently empty 🟡 MEDIUM
