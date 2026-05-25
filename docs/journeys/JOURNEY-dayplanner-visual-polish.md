@@ -1,6 +1,7 @@
 ---
 title: "Journey: Manager åpner Oppgaver-siden og ser pixel-parity mot prototypen"
-status: draft
+status: verified
+verified: 2026-05-25
 feature: dayplanner-visual-parity
 created: 2026-05-25
 updated: 2026-05-25
