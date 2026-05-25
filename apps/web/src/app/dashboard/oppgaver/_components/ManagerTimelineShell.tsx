@@ -246,13 +246,22 @@ export function ManagerTimelineShell() {
 
   const bands: Band[] = useMemo(() => {
     const rows = dayLinesQ.data ?? [];
-    return rows.map((dl) => ({
-      id: dl.day_line_id,
-      name: dl.location_name || dl.location_id,
-      short: (dl.location_name || dl.location_id).slice(0, 3).toUpperCase(),
-      open: dl.planned_open.slice(0, 5),
-      close: dl.planned_close.slice(0, 5),
-    }));
+    // Multiple day_line rows per (location, date) — one per department per
+    // ADR-0367 §4.1. Use department_name as the chip label so each band is
+    // distinguishable. Location is shown in the band's secondary slot only
+    // when more than one location is present on the day.
+    const locationCount = new Set(rows.map((r) => r.location_id)).size;
+    return rows.map((dl) => {
+      const dept = dl.department_name || dl.department_id;
+      const label = locationCount > 1 && dl.location_name ? `${dl.location_name} · ${dept}` : dept;
+      return {
+        id: dl.day_line_id,
+        name: label,
+        short: dept.slice(0, 3).toUpperCase(),
+        open: dl.planned_open.slice(0, 5),
+        close: dl.planned_close.slice(0, 5),
+      };
+    });
   }, [dayLinesQ.data]);
 
   const tasks: TimelineTask[] = useMemo(() => {
