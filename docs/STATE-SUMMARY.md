@@ -35,7 +35,7 @@ Sortie pool entirely free. No active sub-sorties.
 - **Drift-check:** PASS — 56-entry Vercel manifest matches baseline, env.ts traced, droplet env aligned
 - **Dev ahead of preview:** 159 commits (promotion window open)
 
-## Today's Shipped Fixes (2026-05-25 session-end)
+## Today's Shipped Fixes (2026-05-25 → 2026-05-26 session-end)
 
 | Commit | What |
 |---|---|
@@ -46,6 +46,16 @@ Sortie pool entirely free. No active sub-sorties.
 | `f2568d762` | `fix(security)`: inline SET search_path on SECURITY DEFINER billing fns (2 HIGH audit findings) |
 | `ca97b8485` | `docs(audit)`: 2026-05-25 smoke summary + 3 slice reports |
 | `79e383c33` | `fix(security)`: verify caller owns profile_id in shift-clock-compliance (1 HIGH audit finding) |
+| `17a3750aa` | `docs(state-summary)`: refresh from 2026-05-06 to 2026-05-25 |
+| `de98f16d1` | `fix(security)`: server-derive workspace_id in queryOthersAvailability (HIGH ADR-0151) |
+| `59d157bb3` | `fix(telemetry)`: add emit() to guardian/acknowledgeSignal (HIGH ADR-0358) |
+| `e513b2cfa` | `fix(security)`: gate getTeamReadiness against workspace-wide PII leak (HIGH ADR-0099 §2) |
+| `c7f145363` | `feat(payroll)`: approve-period BFF + Godkjenn UI — **closes P0 GAP-SIM-B02** (Bokf §13) |
+| `fa09f2158` | `fix(tips)`: hide not_implemented stubs from LLM router — **closes P0 ADR-0422 conflict** |
+| `c33c1437c` | `fix(tooling)`: WSL2 OOM pre-flight gate in close-feature.sh — **closes P0 ADR-0412 mitigation** |
+
+**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 3 P0 blockers (#3 payroll-approve-period, #5 tips-stubs, #8 WSL2-OOM).
+**Audit verified-overstated:** schedule "zero gates" (has inline role-check), schedule "phantom events" (both emit), helpdesk engine_trigger orphan (row exists, dispatcher dual-key).
 
 ## Top Priority Gaps
 
@@ -62,13 +72,13 @@ Sortie pool entirely free. No active sub-sorties.
    - 1 edge-functions: call-command body workspaceId across 4 handlers (ADR-0151)
    - Recommend remediation sortie wave H (capability ADR-0204 + telemetry) + wave I (ADR-0151 sweep).
 
-5. **`tips` capability — 4 tools return `not_implemented` (L-0357 / ADR-0422)** — DB schema complete, capability registered, tools in intent classifier — all 4 tool bodies are stubs. ADR-0422 (`not_implemented` antipattern ban) mandates tools ship with bodies or are hidden from LLM.
+5. ✅ **CLOSED 2026-05-26 (`fa09f2158`)** — `tips` capability 4 not_implemented stubs hidden from LLM router. Tool defs kept in tools.ts for Sortie 2/3 to fill bodies. ADR-0196 (no phantom emit) + ADR-0422 (no phantom-tool antipattern) both satisfied.
 
-6. **`payroll.period_status='approved'` has no BFF route — GAP-SIM-B02 (CRITICAL compliance)** — Enum + `approved_by` column exist, NO `POST /api/payroll/approve-period`, NO Godkjenn CTA. Bokf. §13 audit needs recorded approver. 1 sortie.
+6. ✅ **CLOSED 2026-05-26 (`c7f145363`)** — payroll `approve-period` BFF + Godkjenn UI shipped. POST /api/payroll/approve-period with gate_action + status-must-be-locked hard-gate + payroll.period_approved emit. UI: Godkjenn button visible when status="locked".
 
-7. **Phase 0 helpdesk_query_lifecycle engine_trigger row still missing** — Two bugs in `supabase/migrations/20260515130200`: (a) `action_payload.event_type` key mismatch; (b) no engine_trigger maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`. Lifecycle never spawns. Helpdesk campaign worktree appears removed; needs investigation.
+7. ✅ **VERIFIED RESOLVED (audit was stale 2026-05-25)** — Phase 0 helpdesk_query_lifecycle engine_trigger row exists; dispatcher accepts both action_payload.event_type AND payload.event_type keys.
 
-8. **WSL2 OOM endemic (L-0412 / ADR-0412)** — 5th+ occurrence 2026-05-25. Mitigation: TURBO_CONCURRENCY=1 + verify RAM ≥ 7Gi before any heavy build. `close-feature.sh` pre-flight `free -h ≥6500Mi` gate codified.
+8. ✅ **CLOSED 2026-05-26 (`c33c1437c`)** — WSL2 OOM `close-feature.sh` pre-flight gate codified. Warns when MemAvailable<6500MiB + TURBO_CONCURRENCY=1 default. Environmental mitigation only — endemic root cause is WSL2 swap=0B × Next.js 16 tsc ~5GB peak.
 
 ### P1 — Active Campaigns
 
