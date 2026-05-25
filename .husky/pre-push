@@ -5,17 +5,27 @@
 # ============================================================
 
 protected_branch=""
+ref_total=0
+delete_total=0
+zero_sha="0000000000000000000000000000000000000000"
 while read local_ref local_sha remote_ref remote_sha; do
+  ref_total=$((ref_total + 1))
+  if [ "$local_sha" = "$zero_sha" ]; then
+    delete_total=$((delete_total + 1))
+  fi
   case "$remote_ref" in
     refs/heads/main)
-      # NEVER allow direct push to main
+      # NEVER allow direct push to main (incl. --delete)
       protected_branch="main"
       ;;
     refs/heads/preview)
       # Allow fast-forward from development only
       # Fetch latest first to compare against current development
       git fetch origin development --quiet 2>/dev/null || true
-      if git merge-base --is-ancestor "$local_sha" origin/development 2>/dev/null; then
+      if [ "$local_sha" = "$zero_sha" ]; then
+        # --delete on preview is blocked (only Pontus promotes)
+        protected_branch="preview"
+      elif git merge-base --is-ancestor "$local_sha" origin/development 2>/dev/null; then
         # This commit is on development — fast-forward is allowed
         :
       else
@@ -41,6 +51,13 @@ if [ -n "$protected_branch" ]; then
   echo ""
   echo "If you absolutely must bypass: --no-verify (NOT recommended)."
   exit 1
+fi
+
+# Delete-only push: skip quality gates (no tree change).
+# Pipeline protection above still blocks --delete on main/preview.
+if [ "$ref_total" -gt 0 ] && [ "$ref_total" = "$delete_total" ]; then
+  echo "pre-push: delete-only push detected ($delete_total ref(s)); skipping quality gates."
+  exit 0
 fi
 
 # Standard quality gates
