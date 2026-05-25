@@ -17,10 +17,10 @@
  * Gate: tests skip when E2E_OPPGAVER env var is absent (CI smoke without live DB).
  *
  * Implementation note on dimming:
- *   AreaBand uses `dimmed && "opacity-50"` (Tailwind class). The prototype targets
- *   opacity: 0.3 but implementation intentionally uses 50% for legibility
- *   (visual-parity doc — MINOR DEVIATION, accepted). Tests assert class presence,
- *   not computed style, to stay resilient to value changes.
+ *   AreaBand emits `data-dimmed="true"|"false"` on its root element (feat/dayplanner-visual-parity).
+ *   Tests assert the attribute value, not an opacity class, so they stay resilient to opacity-value
+ *   changes. The opacity value was also corrected from 50% → 30% to match prototype (visual-parity
+ *   doc — MINOR DEVIATION, now MATCH).
  *
  * References: JOURNEY-dayplanner-area-filter.md, PLAN-dayplanner-dnd-and-views.md Phase C.5.
  */
@@ -83,31 +83,26 @@ test.describe("Journey 1 — area-filter dim (Wave 2 Phase C)", () => {
     // After activation: aria-pressed should be "true"
     await expect(firstChip).toHaveAttribute("aria-pressed", "true");
 
-    // Non-matching AreaBand wrappers should get opacity-50 class.
-    // AreaBand root div carries the `opacity-50` class when dimmed prop is true.
-    // We assert that at least one band has the opacity-50 class (a non-matching band).
-    const dimmedBands = page.locator(".opacity-50");
+    // Non-matching AreaBand wrappers carry `data-dimmed="true"` (feat/dayplanner-visual-parity).
+    // We assert at least one band is marked dimmed.
+    const dimmedBands = page.locator('[data-dimmed="true"]');
     await expect(dimmedBands.first()).toBeVisible({ timeout: 3_000 });
 
-    // The band matching firstChipLabel should NOT be dimmed.
-    // Band headers contain the area name in a <span class="...">name</span>.
-    // We look for a parent that contains the chip label text and verify no opacity-50 on it.
-    // NOTE: This test can only verify count-based assertion since we don't control
-    // the exact band-id ↔ chip-label mapping in the E2E seed.
+    // The matching band should remain at data-dimmed="false".
     // At minimum, not ALL bands should be dimmed (the active one should remain).
-    const allBands = page.locator('[class*="area-band"], [data-testid="area-band"]');
+    const allBands = page.locator("[data-dimmed]");
     const totalBands = await allBands.count();
-    const allDimmed = await dimmedBands.count();
+    const allDimmedCount = await dimmedBands.count();
     if (totalBands > 0) {
       // At least one band should NOT be dimmed
-      expect(allDimmed).toBeLessThan(totalBands);
+      expect(allDimmedCount).toBeLessThan(totalBands);
     }
 
     // Deactivate: click the chip again to toggle off (restore "Alle")
     await firstChip.click();
     await expect(firstChip).toHaveAttribute("aria-pressed", "false");
 
-    // All opacity-50 classes should be gone
+    // All data-dimmed attributes should be "false" after reset
     await expect(dimmedBands).toHaveCount(0, { timeout: 3_000 });
 
     // Log context for debugging
@@ -137,7 +132,7 @@ test.describe("Journey 1 — area-filter dim (Wave 2 Phase C)", () => {
     await expect(chip).toHaveAttribute("aria-pressed", "false");
 
     // No dimmed bands after full toggle cycle
-    const dimmedBands = page.locator(".opacity-50");
+    const dimmedBands = page.locator('[data-dimmed="true"]');
     await expect(dimmedBands).toHaveCount(0, { timeout: 2_000 });
   });
 

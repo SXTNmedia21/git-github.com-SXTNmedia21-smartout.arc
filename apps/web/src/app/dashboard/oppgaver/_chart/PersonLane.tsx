@@ -151,8 +151,8 @@ export function PersonLane({
         // Lane total height: 20 hours × pxPerHour — set by chart via inline style
         // Dimmed when a sibling area/lane is the focus
         dimmed && "opacity-50",
-        // Drop-zone visual — orange-500/10 per Nordic Split accent (Deliverable 4)
-        isDragOver && "bg-orange-500/10",
+        // Drop-zone visual — brand-orange/10 via color-mix per ADR-0361 (no hardcoded Tailwind colors)
+        isDragOver && "bg-[color-mix(in_oklch,var(--brand-orange)_10%,transparent)]",
       )}
       style={{ height: pxPerHour * 20 }}
       onClick={handleClick}
