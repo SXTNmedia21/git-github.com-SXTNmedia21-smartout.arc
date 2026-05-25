@@ -19,6 +19,11 @@
  * TimeGutter (which reads it) and RoutineStrips / NowLine / PastDim (which use
  * `pxPerMin = pxPerHour / 60`) all share the same timing unit.
  *
+ * Wave 1 Phase A.4: ChartDragContext is provided here so all descendants
+ * (TaskBlock, PersonLane, UnassignedLane) share one useDragRetiming instance
+ * without prop drilling. onDrop is forwarded up to ManagerTimelineShell which
+ * owns the TanStack Query cache update + action dispatch.
+ *
  * ADR-0366: no OKLCH literals. ADR-0361: no hardcoded zinc/gray/slate.
  * All colors via CSS variable tokens (bg-background, bg-muted, etc.).
  */
@@ -32,6 +37,9 @@ import { AreaBand } from "./AreaBand";
 import type { Band } from "./AreaBand";
 import type { Employee } from "./PersonLane";
 import type { TimelineTask } from "./TaskBlock";
+import { ChartDragContext } from "./ChartDragContext";
+import { useDragRetiming } from "./useDragRetiming";
+import type { DragDropResult } from "./useDragRetiming";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +67,22 @@ type Props = {
   onLaneClick?: (args: { empId: string | null; areaId: string; minutes: number }) => void;
   /** Called when the user activates a TaskBlock. */
   onTaskClick?: (task: TimelineTask) => void;
+  /**
+   * Called when a DnD drop completes. Parent (ManagerTimelineShell) owns
+   * the optimistic update + action dispatch.
+   * empId is the new assignee (null = drop onto UnassignedLane).
+   */
+  onTaskDrop?: (empId: string | null, result: DragDropResult) => void;
+  /**
+   * YYYY-MM-DD date for the day currently displayed — forwarded to TaskBlock
+   * so it can compose an absolute ISO datetime on drag start.
+   */
+  dateISO?: string;
+  /**
+   * Called when keyboard-edit (Enter on a TaskBlock) is triggered.
+   * Opens TaskEditModal in edit mode (Deliverable 5).
+   */
+  onKeyboardEdit?: (task: TimelineTask) => void;
 };
 
 // ─── ManagerTimelineChart ─────────────────────────────────────────────────────
@@ -67,6 +91,9 @@ type Props = {
  * Root chart composer. Renders a two-column CSS grid: hour gutter (80px fixed)
  * + scrollable chart body (1fr). All overlay primitives are stacked inside the
  * body via absolute positioning; AreaBand rows flow in document order below them.
+ *
+ * Provides ChartDragContext with a useDragRetiming instance so descendants can
+ * coordinate drag state without prop drilling.
  */
 export function ManagerTimelineChart({
   bands,
@@ -78,48 +105,57 @@ export function ManagerTimelineChart({
   dimmedBandIds,
   onLaneClick,
   onTaskClick,
+  onTaskDrop,
+  dateISO,
+  onKeyboardEdit,
 }: Props) {
   const pxPerMin = pxPerHour / 60;
+  const retimer = useDragRetiming();
 
   return (
-    <div className="grid h-full grid-cols-[80px_1fr] overflow-hidden">
-      {/* Left column — hour ruler */}
-      <TimeGutter />
+    <ChartDragContext.Provider value={retimer}>
+      <div className="grid h-full grid-cols-[80px_1fr] overflow-hidden">
+        {/* Left column — hour ruler */}
+        <TimeGutter />
 
-      {/* Right column — scrollable chart body */}
-      <div
-        className="bg-background relative overflow-y-auto focus-visible:outline-none"
-        // --hour-h lets TimeGutter (and any CSS descendant) read the same unit
-        // without prop drilling. Dynamic-color carve-out: runtime layout value,
-        // not a color token — string interpolation is allowed here.
-        style={{ "--hour-h": `${pxPerHour}px` } as React.CSSProperties}
-        aria-label="Gantt timeline"
-        tabIndex={0}
-      >
-        {/* Layer 0 — phase background strips (absolute, non-interactive) */}
-        <RoutineStrips pxPerMin={pxPerMin} />
+        {/* Right column — scrollable chart body */}
+        <div
+          className="bg-background relative overflow-y-auto focus-visible:outline-none"
+          // --hour-h lets TimeGutter (and any CSS descendant) read the same unit
+          // without prop drilling. Dynamic-color carve-out: runtime layout value,
+          // not a color token — string interpolation is allowed here.
+          style={{ "--hour-h": `${pxPerHour}px` } as React.CSSProperties}
+          aria-label="Gantt timeline"
+          tabIndex={0}
+        >
+          {/* Layer 0 — phase background strips (absolute, non-interactive) */}
+          <RoutineStrips pxPerMin={pxPerMin} />
 
-        {/* Layer 1 — past-time dim overlay (absolute, above strips) */}
-        <PastDim currentMin={nowMinutes} pxPerMin={pxPerMin} />
+          {/* Layer 1 — past-time dim overlay (absolute, above strips) */}
+          <PastDim currentMin={nowMinutes} pxPerMin={pxPerMin} />
 
-        {/* Layer 2 — area band rows (flow layout, stacked vertically) */}
-        {bands.map((band) => (
-          <AreaBand
-            key={band.id}
-            band={band}
-            mode={mode}
-            employees={employees.filter((e) => e.area === band.id)}
-            tasks={tasks}
-            pxPerHour={pxPerHour}
-            dimmed={dimmedBandIds?.includes(band.id)}
-            onLaneClick={onLaneClick}
-            onTaskClick={onTaskClick}
-          />
-        ))}
+          {/* Layer 2 — area band rows (flow layout, stacked vertically) */}
+          {bands.map((band) => (
+            <AreaBand
+              key={band.id}
+              band={band}
+              mode={mode}
+              employees={employees.filter((e) => e.area === band.id)}
+              tasks={tasks}
+              pxPerHour={pxPerHour}
+              dimmed={dimmedBandIds?.includes(band.id)}
+              onLaneClick={onLaneClick}
+              onTaskClick={onTaskClick}
+              onDrop={onTaskDrop}
+              dateISO={dateISO}
+              onKeyboardEdit={onKeyboardEdit}
+            />
+          ))}
 
-        {/* Layer 3 — now-line overlay (absolute, top-most z-index) */}
-        <NowLine currentMin={nowMinutes} pxPerMin={pxPerMin} />
+          {/* Layer 3 — now-line overlay (absolute, top-most z-index) */}
+          <NowLine currentMin={nowMinutes} pxPerMin={pxPerMin} />
+        </div>
       </div>
-    </div>
+    </ChartDragContext.Provider>
   );
 }

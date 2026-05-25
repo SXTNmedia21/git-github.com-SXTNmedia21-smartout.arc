@@ -20,13 +20,15 @@
  *  - UnassignedLane: inline sub-component for area-anchored tasks with no emp.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PersonLane } from "./PersonLane";
 import type { Employee } from "./PersonLane";
 import { TaskBlock } from "./TaskBlock";
 import type { TimelineTask } from "./TaskBlock";
 import { layoutOverlap } from "./layoutOverlap";
+import { useChartDrag } from "./ChartDragContext";
+import type { DragDropResult } from "./useDragRetiming";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +51,15 @@ type Props = {
   dimmed?: boolean;
   onLaneClick?: (args: { empId: string | null; areaId: string; minutes: number }) => void;
   onTaskClick?: (task: TimelineTask) => void;
+  /**
+   * Called when a DnD drop lands on any lane in this band.
+   * Parent owns action dispatch + optimistic update.
+   */
+  onDrop?: (empId: string | null, result: DragDropResult) => void;
+  /** YYYY-MM-DD for the current day — forwarded to TaskBlock for ISO composition. */
+  dateISO?: string;
+  /** Keyboard-edit callback forwarded to TaskBlock. */
+  onKeyboardEdit?: (task: TimelineTask) => void;
 };
 
 // ─── UnassignedLane ───────────────────────────────────────────────────────────
@@ -67,6 +78,9 @@ function UnassignedLane({
   dimmed,
   onLaneClick,
   onTaskClick,
+  onDrop,
+  dateISO,
+  onKeyboardEdit,
 }: {
   areaId: string;
   tasks: ReadonlyArray<TimelineTask>;
@@ -74,6 +88,9 @@ function UnassignedLane({
   dimmed?: boolean;
   onLaneClick?: (args: { empId: string | null; areaId: string; minutes: number }) => void;
   onTaskClick?: (task: TimelineTask) => void;
+  onDrop?: (empId: string | null, result: DragDropResult) => void;
+  dateISO?: string;
+  onKeyboardEdit?: (task: TimelineTask) => void;
 }) {
   // Only tasks with no employee assignment (emp == null / undefined)
   const unassignedTasks = tasks.filter(
@@ -89,6 +106,9 @@ function UnassignedLane({
   );
   const colByTaskId = new Map(items.map(({ task, col }) => [task.id, col]));
 
+  const drag = useChartDrag();
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onLaneClick) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -98,16 +118,46 @@ function UnassignedLane({
     onLaneClick({ empId: null, areaId, minutes: snapped });
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!drag?.state.draggedTaskId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = e.currentTarget.getBoundingClientRect();
+    drag.onDragOver(`${areaId}__unassigned`, e.clientY, rect.top, pxPerHour);
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!drag?.state.draggedTaskId) return;
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => setIsDragOver(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!drag) return;
+    const result = drag.onDragEnd(null); // null = unassign
+    if (result) onDrop?.(null, result);
+    drag.reset();
+  };
+
   return (
     <div
       role="group"
       aria-label={`Ikke tildelt – ${areaId}`}
       className={cn(
-        "border-border relative w-full overflow-hidden border-t border-dashed",
+        "border-border relative w-full overflow-hidden border-t border-dashed transition-colors",
         dimmed && "opacity-50",
+        isDragOver && "bg-orange-500/10",
       )}
       style={{ height: pxPerHour * 20 }}
       onClick={handleClick}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {/* Label */}
       <span
@@ -126,6 +176,8 @@ function UnassignedLane({
           col={colByTaskId.get(task.id) ?? 0}
           totalCols={totalCols}
           onClick={onTaskClick}
+          dateISO={dateISO}
+          onKeyboardEdit={onKeyboardEdit}
         />
       ))}
     </div>
@@ -153,6 +205,9 @@ export function AreaBand({
   dimmed = false,
   onLaneClick,
   onTaskClick,
+  onDrop,
+  dateISO,
+  onKeyboardEdit,
 }: Props) {
   // ── Tasks relevant to this band ───────────────────────────────────────────
   // mode="area": filter by area id. mode="role"/"person": all tasks passed in
@@ -238,6 +293,9 @@ export function AreaBand({
                   onLaneClick ? (args) => onLaneClick({ ...args, empId: args.empId }) : undefined
                 }
                 onTaskClick={onTaskClick}
+                onDrop={onDrop ? (empId, result) => onDrop(empId, result) : undefined}
+                dateISO={dateISO}
+                onKeyboardEdit={onKeyboardEdit}
               />
             );
           })}
@@ -250,6 +308,9 @@ export function AreaBand({
             dimmed={false}
             onLaneClick={onLaneClick}
             onTaskClick={onTaskClick}
+            onDrop={onDrop}
+            dateISO={dateISO}
+            onKeyboardEdit={onKeyboardEdit}
           />
         </div>
       ) : (
@@ -268,6 +329,8 @@ export function AreaBand({
               col={colByTaskId.get(task.id) ?? 0}
               totalCols={totalCols}
               onClick={onTaskClick}
+              dateISO={dateISO}
+              onKeyboardEdit={onKeyboardEdit}
             />
           ))}
         </div>
