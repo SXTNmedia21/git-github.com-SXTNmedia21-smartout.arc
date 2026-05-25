@@ -45,7 +45,7 @@ Consequences:
 codebase. `ShiftClockView` passed no GPS config to `punchIn()`, which had no `gpsConfig`
 parameter and no guard invocation.
 
-### Fix — Sortie C, commit [sha to be filled post-commit]
+### Fix — Sortie C, commit d9f0f5712
 
 **Files changed:**
 
