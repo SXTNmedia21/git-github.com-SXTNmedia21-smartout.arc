@@ -9131,6 +9131,7 @@ export type SmartoutEvent =
   | EngineCrossStateWriteBlocked
   // ─── Engine Dispatch Action Invocation (ADR-0424) ──────────────────
   | EngineActionInvokedInvokeCapabilityTool
+  | EngineDispatchBridgeInvoked
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
