@@ -188,13 +188,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (compliance silence)
 - **Fix:** On Step03→Step04 transition, if `|variance| > tolerance_value`, auto-create `deviation` row (domain=`material`, severity by magnitude) via existing `report_deviation` capability.
 
-### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH
+### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/layout.tsx:177-185` + `_components/WelcomeWizardGate.tsx:21-23`
 - **Evidence:** A1 / BUG-A1-2 — `showWelcomeWizard = profile.is_welcome_complete === false` with NO role discriminator. `WelcomeWizard` has no role prop. The 8-step wizard is employee-shaped.
 - **Impact:** Erik (manager) invited Monday → completes employee wizard, not the workspace setup wizard at `/dashboard/setup/`. Workspace gates (departments, hours, seasons) remain open. Bella Vista cannot schedule shifts on Tuesday.
 - **Severity:** HIGH (blocks every new manager invite)
 - **Fix:** Branch by role in `layout.tsx`: `employee`/`trainee` → existing wizard; `manager`/`admin`/`owner` → redirect to `/dashboard/setup` if setup-guide not complete.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-21). Redirect to /dashboard/setup when setup_guide_completed=false; skip wizard silently if setup already done.
 
 ### BUG-SIM-22 — `platform_metrics_daily` queried but no migration creates it → MRR chart silently empty 🟡 MEDIUM
 
