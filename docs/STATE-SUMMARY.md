@@ -53,8 +53,9 @@ Sortie pool entirely free. No active sub-sorties.
 | `c7f145363` | `feat(payroll)`: approve-period BFF + Godkjenn UI — **closes P0 GAP-SIM-B02** (Bokf §13) |
 | `fa09f2158` | `fix(tips)`: hide not_implemented stubs from LLM router — **closes P0 ADR-0422 conflict** |
 | `c33c1437c` | `fix(tooling)`: WSL2 OOM pre-flight gate in close-feature.sh — **closes P0 ADR-0412 mitigation** |
+| `5a982ce57` | `fix(authority)`: seed 5 missing caps + shift_marketplace backfill — **closes P0 #3 (CVE-class)** |
 
-**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 3 P0 blockers (#3 payroll-approve-period, #5 tips-stubs, #8 WSL2-OOM).
+**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 4 P0 blockers (#3 capability_default_registry, #5 tips-stubs, #6 payroll-approve-period, #8 WSL2-OOM).
 **Audit verified-overstated:** schedule "zero gates" (has inline role-check), schedule "phantom events" (both emit), helpdesk engine_trigger orphan (row exists, dispatcher dual-key).
 
 ## Top Priority Gaps
@@ -65,7 +66,7 @@ Sortie pool entirely free. No active sub-sorties.
 
 2. **`employment_form` NOT NULL conflict — BUG-SIM-01 (CRITICAL schema landmine)** — Migration `20260519150000:160` adds NOT NULL; migration `20260515100100:38` uses NULL = volunteer. Any workspace with volunteer contracts pre-Wave-3 fails forward migration. Documented in `docs/test-runs/2026-05-25-restaurant-week-sim/SCHEMA-BUGS-TRIAGE.md`. Forward-only migration required (ADR-0427 doctrine).
 
-3. **`capability_default_registry` seed gap = new-workspace CVE-class** — L-0354 + ADR-0413. New workspaces silently get no `engine_authority_config` row for excluded capabilities → `gate_action` default-allows all callers. PR #469 partially addressed; verify `communication` is now in registry.
+3. ✅ **CLOSED 2026-05-26 (`5a982ce57`)** — `capability_default_registry` seed gap closed. 6 missing caps (bootstrap, day-line, org, routine, schedule.view_preference.write, shift_marketplace) seeded with ADR-defined authority. CI parity script extended to detect hyphen literals. `scripts/authority-seed-parity.ts` exits 0 (was exit 1 with 5 missing).
 
 4. **6 HIGH audit findings still open** (per 2026-05-25 smoke):
    - 5 capability-tools: journey/contract/contract-intake gatedMutation Pathway B gap (ADR-0204); guardian/acknowledgeSignal telemetry bypass; training PII without gate; schedule capability zero gates + 2 phantom events (ADR-0358); availability/queryOthersAvailability body workspace_id (ADR-0151)
