@@ -1,6 +1,6 @@
 ---
 title: "STATE Summary — Quick Session Start"
-updated: 2026-05-06
+updated: 2026-05-25
 derived-from: docs/STATE.md (817 lines full version)
 ---
 
@@ -8,136 +8,172 @@ derived-from: docs/STATE.md (817 lines full version)
 
 > Read this instead of STATE.md at session start. For deep dives, use semantic search on STATE.md.
 
-## Active Work (2026-04-20)
+## Active Work (2026-05-25)
 
-| Worktree | Branch | Status | Notes |
-|----------|--------|--------|-------|
-| main repo | `development` | clean | `79092d31` — helpdesk Phase 1 merged + dashboard cleaned |
-| `~/dev/smartout.ai-helpdesk` | `campaign/helpdesk` | active | Phase 1 UI shipped; open for Phase 1.1 + Phase 2 |
-| `~/dev/smartout.ai-year-wheel` | `campaign/year-wheel` | active | Shell-replacement spec approved (ADR-0164), implementation in progress |
-| `~/dev/smartout.ai-botsson-arena` | `campaign/botsson-arena` | active | Agent observability stream |
+| Worktree | Branch | HEAD | Status | Notes |
+|---|---|---|---|---|
+| main repo | `development` | `79e383c33` | clean | 6 fixes shipped today (security + tests + tokens) |
+| `~/dev/smartout.ai-botsson-arena` | `campaign/botsson-arena` | `5ef8ab203` | clean | Sync-only ahead of dev |
+| `~/dev/smartout.ai-bubble-migration` | `campaign/bubble-migration` | `35803937f` | clean | 126 commits ahead dev; G7-readiness council passed; blocked on T9–T13 |
+| `~/dev/smartout.ai-daily-operation` | `campaign/daily-operation` | `c7ba770dc` | 1 untracked | Sync-only ahead |
+| `~/dev/smartout.ai-mobile` | `campaign/mobile` | `ace36c7f5` | clean | Sync-only ahead |
+| `~/dev/smartout.ai-payroll` | `campaign/payroll` | `d4cc83f54` | clean | Sync-only ahead |
+| `~/dev/smartout.ai-ui-shell` | `campaign/ui-shell` | `fd569c0d1` | clean | Sync-only ahead |
+| `~/dev/smartout.ai-ui-shell-followup` | `campaign/ui-shell-followup` | `932e91ec0` | clean | Sync-only ahead |
+| `~/dev/smartout.ai-world-best-wfm` | `campaign/world-best-wfm` | `84902705e` | clean | Sync-only ahead |
 
-No active sub-sorties (helpdesk wt-1/2/3 removed after PR #225 merge). Sortie pool (wt-1–wt-20) entirely free.
+Open PRs (2026-05-25 evening):
+- **PR #486** — setup-flow redirect-loop guard + storage godmode bypass — 22 pass, 0 fail, 3 pending (essentially merge-ready)
+- **PR #488** — DashboardShell sub-header `min-h-16` (oppgaver redesign Track A) — 18 pass, 1 lint-fail (local exit 0, CI exit 1 — known dev-debt divergence)
 
-See `docs/DASHBOARD.md` for live git state.
+Sortie pool entirely free. No active sub-sorties.
+
+## Production / Preview State (2026-05-25)
+
+- **Production smoke:** GREEN (Vercel web 200, landing 200, Supabase REST alive, EFs alive, droplet reachable)
+- **Preview smoke:** GREEN (Vercel preview SSO-gated, Supabase Branch DB intentionally absent per ADR-0360)
+- **Drift-check:** PASS — 56-entry Vercel manifest matches baseline, env.ts traced, droplet env aligned
+- **Dev ahead of preview:** 159 commits (promotion window open)
+
+## Today's Shipped Fixes (2026-05-25 session-end)
+
+| Commit | What |
+|---|---|
+| `ea36f17e1` | `test(payroll-calculate)`: align W09 severity expectation with code (BUG-SIM-15) — unblocks vitest CI gate for all PRs |
+| `3d5e2f07f` | `chore(env)`: fix stage-engine vault reference smartout_ai_dev → smartout_ai |
+| `fd2824c1a` | `fix(security)`: auth before delete in ingest-workspace-knowledge — CRITICAL audit finding |
+| `03d62f25d` | `test(oppgaver)`: align grep tests with PR-487 + DnD merged state (5 stale assertions) |
+| `f2568d762` | `fix(security)`: inline SET search_path on SECURITY DEFINER billing fns (2 HIGH audit findings) |
+| `ca97b8485` | `docs(audit)`: 2026-05-25 smoke summary + 3 slice reports |
+| `79e383c33` | `fix(security)`: verify caller owns profile_id in shift-clock-compliance (1 HIGH audit finding) |
 
 ## Top Priority Gaps
 
 ### P0 — Blockers
 
-1. **Phase 0 helpdesk_query_lifecycle never spawns** — upgraded from dispatcher-mismatch claim by 2026-04-20 verification council (agent-coord Layer 4). Two compounding bugs in `supabase/migrations/20260515130200`: (a) both `wait_for_event` steps use `action_payload.event_type` key while `engine-dispatch/index.ts:419` matches on `action_payload.event`; (b) **no `engine_trigger` row maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`** — the process blueprint is orphan. Consequence: lifecycle doesn't even spawn, let alone progress. UI writes direct to engine_state via Server Action / mobile mutation; that IS the only live path. Seed migration comments (lines 10-19) acknowledged the deferral at ship time. Fix before any Phase 2 work.
-2. ~~**Season tools + `cascade_budget_engine_process` are orphaned** (L-0061)~~ — RESOLVED 2026-04-28. `seasonCapability` registered (`registry.ts:23`, M3.2 ADR-0201, 2026-04-23). Producer `→` engine_event chain verified end-to-end: telemetry hooks emit space-format (`"season_budget updated"`), `engine-event.ts:15` `toDotNotation()` translates to `season_budget.updated`, engine_trigger rows match, engine-dispatch handles `cascade_budget_propagation` action_type at `index.ts:1118`. L-0061 second clause was stale — pipe is wired.
-3. ~~**`workspace.active_contract_id` FK audit**~~ — RESOLVED 2026-04-28 by migration `20260519100000_workspace_active_contract_id_fk.sql`. Target disambiguated to `public.contract(contract_id)` (sole writer is docuseal webhook SaaS branch; employee branch goes to `employment_contract`). FK with `ON DELETE SET NULL`, defensive NULL backfill, applied locally — 0 orphans found.
+1. **`invoke_capability_tool` Phase 3 E2E tests pending** — ADR-0424 Phase 1.5 + 2-A + 2-B all shipped. Phase 3 E2E is the outstanding gate before Sortie G (ops-day-brief refactor). New env var `STAGE_ENGINE_INTERNAL_KEY` must be in 1Password + Vercel + Supabase + droplet manifest before any HOP A. `docs/plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md` deferred supersession path.
 
-### P1 — Active Campaign Follow-ups
+2. **`employment_form` NOT NULL conflict — BUG-SIM-01 (CRITICAL schema landmine)** — Migration `20260519150000:160` adds NOT NULL; migration `20260515100100:38` uses NULL = volunteer. Any workspace with volunteer contracts pre-Wave-3 fails forward migration. Documented in `docs/test-runs/2026-05-25-restaurant-week-sim/SCHEMA-BUGS-TRIAGE.md`. Forward-only migration required (ADR-0427 doctrine).
 
-**Helpdesk Phase 1.1** (in `campaign/helpdesk`):
-- 15 UI telemetry events from Spec §4.3 (page/dialog/row views — 6 helpdesk events total registered today: 3 desk + 3 query. The 15 UI-specific events still pending.)
-- **Reassign is full-stack, not UI-only** (agent-coord 2026-04-20): `helpdesk.query.reassigned` event registered in telemetry + referenced by engine_process step 2, but has NO producer — no `reassignTicket` capability tool, no Server Action, no mobile hook. Phase 1.1 must ship capability tool + action + hook BEFORE the UI dropdown is meaningful.
-- Conditional queue-tab visibility (only show `(queue)` tab for profiles with `responsible_profile_id` on any desk)
-- Mobile ticket message embed (extract existing `(app)/(chat)/[id].tsx` body into shared component)
-- Fix Phase 0 seed dispatcher (item #1 above) — engine_trigger row + `event`-key rewrite
+3. **`capability_default_registry` seed gap = new-workspace CVE-class** — L-0354 + ADR-0413. New workspaces silently get no `engine_authority_config` row for excluded capabilities → `gate_action` default-allows all callers. PR #469 partially addressed; verify `communication` is now in registry.
 
-**Year Wheel** (in `campaign/year-wheel`):
-- Shell-replacement implementation per ADR-0164
-- Deferred Phase 1.1: activation-gate, missing-checklist, Activate/Archive/Duplicate buttons, Goals tab, Procedures tab (logged in spec §11.5 per L-0074)
+4. **6 HIGH audit findings still open** (per 2026-05-25 smoke):
+   - 5 capability-tools: journey/contract/contract-intake gatedMutation Pathway B gap (ADR-0204); guardian/acknowledgeSignal telemetry bypass; training PII without gate; schedule capability zero gates + 2 phantom events (ADR-0358); availability/queryOthersAvailability body workspace_id (ADR-0151)
+   - 1 edge-functions: call-command body workspaceId across 4 handlers (ADR-0151)
+   - Recommend remediation sortie wave H (capability ADR-0204 + telemetry) + wave I (ADR-0151 sweep).
 
-**Botsson Arena** (in `campaign/botsson-arena`):
-- Ongoing agent observability work. See campaign plan for details.
-- **engine_world Phase 1+2 shipped (2026-05-06, feat/engine-world-phase-1):** `report_observation` tool (gatedMutation + ADR-0204), channel split (chat+voice reads, chat+system writes), stage-engine reader/writer integration, heartbeat publisher (12 surfaces), ADR-0281 accepted, ADR-0290 accepted. Phase 2: `activity_trail` nullable platform-actor schema (actor_kind discriminator), per-workspace session writer via session-event-bus, ci-incident-conductor + deploy-conductor both wired to `engine_world_observe_platform` RPC. E2E specs written (3 journeys, Phase 2E commit pending). Branch ready for close-feature.
+5. **`tips` capability — 4 tools return `not_implemented` (L-0357 / ADR-0422)** — DB schema complete, capability registered, tools in intent classifier — all 4 tool bodies are stubs. ADR-0422 (`not_implemented` antipattern ban) mandates tools ship with bodies or are hidden from LLM.
 
-### P1.5 — Build Performance (2026-04-29)
+6. **`payroll.period_status='approved'` has no BFF route — GAP-SIM-B02 (CRITICAL compliance)** — Enum + `approved_by` column exist, NO `POST /api/payroll/approve-period`, NO Godkjenn CTA. Bokf. §13 audit needs recorded approver. 1 sortie.
 
-Webpack-flag bypass since 2026-02-28 (commit `5b063f78`) blocks Turbopack on Vercel. Build is 5-10x slower than necessary. Sentry config also misconfigured for Next 16 — emits 4 warnings/build, server SDK never inits.
+7. **Phase 0 helpdesk_query_lifecycle engine_trigger row still missing** — Two bugs in `supabase/migrations/20260515130200`: (a) `action_payload.event_type` key mismatch; (b) no engine_trigger maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`. Lifecycle never spawns. Helpdesk campaign worktree appears removed; needs investigation.
 
-**Wave 1 — easy wins (~1h) — DONE 2026-04-29:**
-1. ~~Drop `--webpack` flag from `apps/web/package.json` + `apps/landing/package.json`~~ — DONE
-2. ~~Rewrite Sentry config: create `apps/web/instrumentation.ts` (server+edge) + `apps/web/instrumentation-client.ts`. Delete `sentry.{server,edge,client}.config.ts`~~ — DONE
-3. ~~Gate Sentry source-map upload on `process.env.VERCEL_ENV === 'production'`~~ — DONE (`next.config.ts` bottom)
-4. ~~Rename `apps/web/src/middleware.ts` → `apps/web/src/proxy.ts` + rename exported `middleware()` → `proxy()`~~ — DONE
+8. **WSL2 OOM endemic (L-0412 / ADR-0412)** — 5th+ occurrence 2026-05-25. Mitigation: TURBO_CONCURRENCY=1 + verify RAM ≥ 7Gi before any heavy build. `close-feature.sh` pre-flight `free -h ≥6500Mi` gate codified.
 
-**⚠️ Wave 1 follow-up (BLOCKER for Turbopack switch):** `apps/web/next.config.ts:72-134` has webpack-only `config.resolve.alias` block hardcoding 12 `@smartout/ai/*` subpath aliases (the original 2026-02-28 fix). With `--webpack` flag dropped, those aliases NO LONGER FIRE in Turbopack builds. Three paths forward:
-- (a) Test Turbopack on Next 16.1.6 — subpath-exports may just work now (preferred);
-- (b) Port aliases to `turbopack.resolveAlias` config;
-- (c) Re-add `--webpack` flag until verified.
+### P1 — Active Campaigns
 
-First Vercel preview deploy after this change will confirm which path is needed.
+**bubble-migration** (in `campaign/bubble-migration`):
+- G7-readiness council passed; 126 commits ahead of development (189 files, +32k lines).
+- Blocked on 5 remediation sorties: T9 consumer patches, T10 RPC hardening, T11 ADR rebase + ADR-0380, T12 T3 pre-live, T13 weekend bucket. All blockers for T6 re-emit.
 
-**Wave 2 — medium (~3h, after Wave 1 measured):**
-5. Audit `next.config.ts` — `optimizePackageImports` whitelist exact pkgs.
-6. Pin `transpilePackages` to actual cross-pkg consumers.
-7. Turbo remote cache: `turbo login` + `turbo link` (cuts CI cold-start).
-8. `pnpm dedupe` — many duplicate React/types versions in lock?
+**world-best-wfm** (in `campaign/world-best-wfm`):
+- Phase 1 turnus shipped: `diagnose_turnus_disabled` + `list_week_template` + `apply_week_template` + `accept_proposal` kind=template_apply + mr-botsson classifier wiring (ADR-0417). Scheduler: 54/54 tests pass.
+- Phase 2 (`create_planning_cycle`, `set_day/hour_factor`) queued. Phase 3 (`publish_week`) deferred ADR-first.
 
-**Wave 3 — hard (~1d, only if 1+2 not enough):**
-9. Verify `apps/web` / `apps/landing` / `services/*` are independent Vercel projects.
-10. TS project references — split typecheck per package.
-11. Move heavy deps (`@remotion/*`, `framer-motion`, `@sentry/nextjs`) behind `next/dynamic`.
+**payroll** (in `campaign/payroll`):
+- Tips leader flows + tip-divider shipped (36-commit merge 2026-05-01). Phase 7f capability tools unblocked.
+- Period-approve BFF route (GAP-SIM-B02) is next blocker for production completeness.
 
-**Verification gate after Wave 1:** Vercel preview deploy must succeed end-to-end. Original Turbopack-on-Vercel block was workspace subpath exports in `@smartout/ai` (7+ subpaths: `./industry`, `./agents/onboarding`, `./tools/onboarding`, `./adapters/vercel-ai`, ...). Two months of Next 16.x patches since — retest, don't assume.
+**botsson-arena** (in `campaign/botsson-arena`):
+- `engine_world` Phase 1+2 shipped (ADR-0281 + ADR-0290). "Sett opp juni for meg" 4-phase plan approved. Phase 1 shipped to development. Phase 2 queued.
 
-### P2 — Queued (documented, not started)
+**helpdesk** (NO ACTIVE WORKTREE — needs investigation):
+- Phase 1.1 work (reassign capability tool, conditional queue-tab, Phase 0 engine_trigger fix) has no active campaign. Either merge to development first or restart campaign worktree.
 
-- **Gatedwrite Wave 2A — Season wizard migration** (council 2026-04-18, APPROVE WITH CHANGES) — 5 items: SeasonSetupStep → Server Action, telemetry fix, `gatedUpdate` `entityIdColumn` required, tests rewrite, new gate-client contract.
-- **Waves 2B (capability dual-gate) and 2C (schedule TanStack)** — blocked on prereqs; schedule already uses TanStack per ADR-0032 (WP5 claim in old STATE-SUMMARY was wrong).
-- **Phase F (External Adapters)** — Tripletex first target. Placeholder adapter + schema enum exist; no active integration code yet.
-- **Mobile Trust Freeze Week 1** (council 2026-04-17, 12-week remediation plan). Trust Gate REJECTED for new mobile mutations until 3 gates pass (telemetry contract test, Zod at enqueue, Botsson bridge ADR+stub). Weeks 1-2 stop-the-bleeding.
-- **Strike-MCP Verification Phase B** (live MCP smoke tests, 9 tools × happy+edge path).
-- **Tripletex-Ready Schema** — Wrightegaarden pilot cutover prep (135 profiles, 2750 shifts); 2 upstream gaps identified (STYRK-08 code, employment_form).
+### P1.5 — Structural Gaps from Restaurant-Week Sim (2026-05-25, 28 bugs, 47 gaps)
+
+- **C2 intelligence pipeline gap (GAP-A4-12)** — `compile-day-brief.ts` + `briefing.ts` capability tools designed but no Event Engine process invokes them. `supabase/functions/ops-day-brief/index.ts` runs daily 05:00 but does not call `compileDayBrief`. Highest-leverage single change. Sortie G (ops-day-brief refactor) target.
+
+- **`event` entity missing at D4/D6 boundary (ADR-0426 proposed)** — Hotel wedding (3+ depts, 3 days) + festival (multi-vendor, multi-zone) require first-class `event` entity above `department_session`. ADR-0426 (proposed) must resolve collision with ADR-0367 tri-layer D6 before implementation. Pattern 2 (tip_pool UNIQUE blocks cross-dept) and BUG-SIM-02 (daily_reconciliation UNIQUE blocks multi-zone) depend on this ADR.
+
+- **`employment_form_enum` missing 3 Norwegian categories** — `volunteer`, `tilkalling` (on-call), `dagarbeid`/event-only. Five independent agents flagged this. BUG-SIM-01 schema conflict is immediate fix; enum extension is structural fix. NHO Reiseliv tilkallingsvakt has separate OT thresholds — currently misclassified.
+
+### P2 — Queued
+
+- `invoke_capability_tool` Phase 3 E2E tests
+- Sortie G — ops-day-brief refactor (C2 pipeline)
+- Period approve BFF route (GAP-SIM-B02)
+- W-feriepenger deviation check (GAP-SIM-B03)
+- GPS guard wire to usePunch verification (PR #470 partial)
+- `communication` authority seed (sortie A from sim council)
+- Capability registry seed CVE sweep verify (ADR-0413 + L-0354)
+- Gatedwrite Wave 2A — Season wizard migration
+- Bubble-migration T9–T13 remediation sorties
+- ADR-0422 `not_implemented` audit sweep
 
 ### Deferred / Blocked
 
-- **Helpdesk Phase 2** — Auto-assign + SLA via `engine_delayed_trigger` reuse. Needs Phase 1.1 cleanup first.
-- **Helpdesk Phase 3** — Call recording via LiveKit. BLOCKED on ADR-0135 (`mobile-voice-via-livekit-not-ultravox`) reaching `accepted`.
-- **Parked branches** — neither `chore/pin-tanstack-query-5-90-21` nor `fix/mobile-chat-web-stub-errors` exist locally or on origin as of 2026-04-20 verification. Either pruned silently or never pushed (2026-04-19 cleanup council extracted them but they seem to have been dropped). Status: **resolved/unknown**, remove from tracking.
-- **Reconciliation ADR still missing** (open since 2026-04-16 Web Perf council): capability tools call old `gate_action` RPC; Server Actions call new `cascade_gate_write` via `gatedUpdate`. Same logical mutation, two gates. No ADR yet. 8 Server Action sites vs 3+ capability sites confirmed.
+- Helpdesk Phase 2 (auto-assign + SLA) — needs Phase 1.1 cleanup + engine_trigger fix + campaign worktree resurrection
+- Helpdesk Phase 3 (call recording via LiveKit) — blocked on ADR-0135 acceptance
+- `event` D4/D6 entity family (X03 ADRs) — ADR-0426 proposed
+- B6 engine-dispatch Node migration — deferred per ADR-0424 §Future evolution
+- Reconciliation ADR (dual-gate cleanup) — open since 2026-04-16
+- Build performance Wave 2/3
 
-## Cascade Status (~85% complete)
+## Cascade Status (~88% complete)
 
 - **Phase A (Schema):** DONE
 - **Phase B (Pure Functions):** DONE — 10 functions, 8 test files
-- **Phase C (Bootstrap):** DONE — framework seeded, I1 wired, rates corrected, 10 verification tests
-- **Phase D (Operational Layer):** DONE — hooks, panels, engine actions, publish validation all wired
-- **Phase E (Control Planes / C4 governance):** PARTIALLY SHIPPED (verified 2026-04-20 per L-0078)
-  - WP1 `engine_authority_config` schema + pilot RPC — SHIPPED
-  - WP2 `cascade_gate_write` RPC + `gate-client.ts` wrapper — SHIPPED (migrations `20260512100000` + `20260512100200`). **14 production Server Action call sites** across 2 files (`apps/web/src/app/dashboard/setup/_actions/season-actions.ts` + `people/_actions/people-actions.ts`); 63 occurrences including test files.
-  - WP3 Wave 2A Server Actions — SHIPPED at `apps/web/src/app/dashboard/setup/_actions/season-actions.ts` + `people/_actions/people-actions.ts` (not `season/_actions/` — no such directory).
-  - WP4 Wave 2B capability dual-gate — not started; no attempt yet
-  - WP5 Wave 2C schedule — `/dashboard/schedule` already uses TanStack per ADR-0032; not a migration target
-  - Known dual-gate risk: agent tools call old `gate_action`, Server Actions call new `cascade_gate_write` — same mutation via different paths may yield different outcomes. Needs reconciliation ADR.
-- **Phase F (External Adapters):** NOT STARTED — Tripletex first target
+- **Phase C (Bootstrap):** DONE — framework seeded, I1 wired
+- **Phase D (Operational Layer):** DONE
+- **Phase E (Control Planes / C4 governance):** MOSTLY DONE
+  - WP1–WP3 shipped
+  - WP4 (Wave 2B capability dual-gate): not started
+  - WP5: N/A (schedule uses TanStack per ADR-0032)
+  - Dual-gate risk: agent tools call old `gate_action`, Server Actions call `cascade_gate_write`. No reconciliation ADR yet.
+- **Phase F (External Adapters):** NOT STARTED — Tripletex first target.
 
-## Recent Merges (last 7 days)
+## Recent Merges (2026-05-13 → 2026-05-25)
 
-- **2026-04-20 — Helpdesk Phase 1 UI** (PR #225): desks admin + ticket conversation + mobile queue. 13 commits; 3 new learnings (L-0079/0080/0081).
-- **2026-04-17 — Mobile BFF bridge** (PR #220): Botsson chat reaches stage-engine on mobile (ADR-0132 wiring).
-- **2026-04-17 — Mobile trust-freeze gates 1-3** (PR #219): Mobile Trust Gate prereqs closed (telemetry contract, Zod at enqueue, Botsson bridge stub). Unblocks new mobile mutations per 2026-04-17 council.
-- **2026-04-19 — Botsson-arena test verification** (PR #224) + campaign milestone merge (PR #223).
-- **2026-04-19 — Overview v2** (PR #222): WebDayControl as canonical D6 admin surface (ADR-0156).
-- **2026-04-18 — Dashboard-fix** (PR #221).
-- **2026-04-17 — Week 1 audit remediation** (PR #218): FK + barrel removal + next/image + ADR-0029 amendment cross-link.
-- **2026-04-17 — Ultrareview correctness** (PR #217): 5 non-blocker bugs.
-- **2026-04-17 — Ultrareview blockers** (PR #216): gate_action p_entity_id + rate-limit fail-closed.
-- **2026-04-17 — Billing engine Phase 3 + 3b** (usage_snapshot, invoice tables, basis_drift_event, dispatch rule evaluation).
-- **2026-04-14 — Training Module 6** (admin assignment CRUD, mobile training wiring, readiness dashboard).
+| Date | PR / Branch | What |
+|---|---|---|
+| 2026-05-25 | PR #487 | Oppgaver page fixes (i18n bundle + chip dedup + seed-tasks + emit-fix) |
+| 2026-05-25 | PR #485 | Sim fast-wins batch 3 |
+| 2026-05-25 | PR #482 | Sortie F Phase 2-B EF thin proxy |
+| 2026-05-25 | PR #483 | ADR-0424 status flip + B6 stub |
+| 2026-05-25 | PR #484 | Sim schema bug triage |
+| 2026-05-25 | PR #481 | Sortie F Phase 2-A Node endpoint |
+| 2026-05-25 | PR #480 | ADR-0424 §Transport amendment |
+| 2026-05-25 | PR #475 | Restaurant-week sim (28 bugs + 47 gaps) |
+| 2026-05-25 | PR #474 | Sim fast-wins batch 2 |
+| 2026-05-25 | PR #471 | Sim fast-wins batch 1 (HelpDesk deprecated table fix) |
+| 2026-05-25 | PR #470 | GPS guard wired to usePunch |
+| 2026-05-25 | PR #469 | Capability registry seed sweep (ADR-0413) |
+| 2026-05-24 | feat/v0-1-walking-skeleton | V0-1 walking skeleton |
+| 2026-05-23 | campaign/tier0-polish | Roadmap + motion tokens (merged + removed) |
+| 2026-05-23 | feat/procedure-engine-2b | Procedure engine 2b photo→routine extract (49 commits) |
+| ~2026-05-20 | campaign/payroll | Tips leader flows + tip-divider (36 commits) |
+| ~2026-05-13 | First prod release | PR #381 squash-merged 1229 commits |
 
 ## Process Hardening (recent councils)
 
-- **L-0079 / L-0080 / L-0081 (2026-04-20 Helpdesk final merge council)**:
-  - UI terminal `engine_state` transitions must stamp `completed_at` (mirror dispatcher invariant).
-  - Reassignment mutations must demote prior holder (ghost accretion trap).
-  - Supabase chainable-proxy mocks echo column names — 3rd occurrence, promote to process rule: code-tracer role must verify `.select(...)` columns against generated `Database` types.
-- **L-0076 / L-0077 / L-0078 (2026-04-20 hybrid council)**:
-  - Established-pattern bypass (new hook ignored `useWorkspaceOptional`).
-  - ADR fail-closed enforcement requires per-consumer retrofit plan before acceptance (ADR-0163 saga).
-  - PLAN-file decay — `PLAN-cascade-gate-write.md` stayed `exploration` while WP2 shipped; 4th occurrence.
-- **L-0042 / L-0043 / L-0040 (2026-04-17)**: migration timestamp causality, Phase 2.5 identity-claim verification, pre-workspace Edge Function ADR.
+- **L-0147 precedent count: 14** (as of 2026-05-25 PM)
+- **ADR-0421 (2026-05-25)** — Declared Contract Fulfillment Rule — accepted
+- **ADR-0422 (2026-05-25)** — `not_implemented` antipattern ban — accepted
+- **ADR-0423 (2026-05-25)** — workspace_id read-side parity — accepted
+- **ADR-0425 (2026-05-25)** — Phase 2.5 Fact-Check Methodology — accepted
+- **ADR-0427 (2026-05-25)** — Forward-only repair for timestamp-collision class — accepted
+- **L-0354 (2026-05-25)** — Capability registry seed gap = CVE-class
+- **L-0357 (2026-05-25)** — `not_implemented` LLM-callable antipattern (sibling L-0176)
+- **L-0358 / L-0359** — Forward-only doctrine extension
+- **L-0361 (2026-05-25)** — ADR-missing-cross-runtime-dimension (3rd occurrence, promotion-grade)
 
 ## Quick References
 
-- **163 ADRs** on disk (gap at ADR-0159, renumbered mid-session to 0160 per 2026-04-19 kanaler-som-helpdesk council; slot intentionally reserved — see decision-log).
-- **12 proposed** (not yet accepted): ADR-0053, 0122, 0123, 0124, 0135, 0136, 0151, 0152, 0153, 0154, 0155, 0158.
-- **82 Learnings** (L-0001 through L-0081; L-0082/0083/0084 to be added from today's verification council).
+- **421 ADRs** on disk (latest: ADR-0427; gap at 0159 + 0368 reserved)
+- **361 Learnings** (L-0001 → L-0361)
 - Canonical cascade spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
-- Full state: `docs/STATE.md` | Worktrees: `docs/DASHBOARD.md` | Boot cheat sheet: `docs/ORIENTATION.md`
+- Full state: `docs/STATE.md` | Worktrees: `docs/DASHBOARD.md`
 - Council log: `docs/council/COUNCIL-LOG.md`
+- Audit reports: `docs/audits/2026-05-25-adr-contract-validation-smoke/`
+- Sim findings: `docs/test-runs/2026-05-25-restaurant-week-sim/`
