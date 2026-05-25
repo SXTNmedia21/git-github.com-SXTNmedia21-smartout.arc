@@ -22,7 +22,9 @@ describe("TaskEditModal", () => {
   });
   it("uses t() for labels via @smartout/i18n", () => {
     expect(SRC).toMatch(/useTranslation/);
-    expect(SRC).toMatch(/t\(["']oppgaver\.task_modal/);
+    // PR #487 stripped the "oppgaver." prefix — useTranslation("oppgaver") scopes
+    // the bundle, so keys are looked up relative to the namespace root.
+    expect(SRC).toMatch(/t\(["']task_modal/);
   });
   it("has no OKLCH literals", () => expect(SRC).not.toMatch(/oklch\(/));
   it("has no hardcoded zinc/gray/slate", () => expect(SRC).not.toMatch(/\b(zinc|gray|slate)-\d/));

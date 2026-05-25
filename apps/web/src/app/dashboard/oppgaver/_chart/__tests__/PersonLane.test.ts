@@ -27,8 +27,10 @@ describe("PersonLane", () => {
     expect(SRC).toMatch(/dimmed/);
     expect(SRC).toMatch(/opacity-50/);
   });
-  it("has no drag handlers (V1 deferred)", () => {
-    expect(SRC).not.toMatch(/onDragStart|onDragOver|onDrop|draggable/);
+  it("has drag handlers wired (V2 — DnD shipped)", () => {
+    // V1 deferred DnD; V2 (dayplanner-dnd-and-views, merged 2026-05-25) shipped
+    // onDragOver + onDrop on the lane container for task re-time via drop.
+    expect(SRC).toMatch(/onDragOver|onDrop/);
   });
   it("declares role=group + aria-label", () => {
     expect(SRC).toMatch(/role=["']group["']/);
