@@ -215,7 +215,7 @@ export function HoursOverridePopover({ departmentId, dateId, onClose }: Props) {
               variant="ghost"
               onClick={handleDelete}
               disabled={isSaving}
-              className="h-7 w-full text-[11px] font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive/70 h-7 w-full text-[11px] font-semibold"
             >
               {deleteOverride.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
               Fjern unntak

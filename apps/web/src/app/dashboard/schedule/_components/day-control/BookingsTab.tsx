@@ -35,14 +35,14 @@ export function BookingsTab({ dateId }: { dateId: string | null }) {
             Reservasjoner ({bookings.length})
           </h4>
           {totalGuests > 0 && (
-            <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+            <span className="border-accent/20 bg-accent/10 text-accent rounded-full border px-2 py-0.5 text-[10px] font-bold">
               {totalGuests} gjester
             </span>
           )}
         </div>
         <button
           onClick={() => setBookingDialogOpen(true)}
-          className="flex items-center gap-1 text-[10px] font-bold text-orange-400 hover:text-orange-300"
+          className="text-accent hover:text-accent/70 flex items-center gap-1 text-[10px] font-bold"
         >
           <Plus className="h-3.5 w-3.5" /> Legg til
         </button>
@@ -67,8 +67,8 @@ export function BookingsTab({ dateId }: { dateId: string | null }) {
               >
                 <div className="mb-2 flex justify-between">
                   <span className="text-foreground flex items-center gap-2 text-sm font-bold">
-                    <Users className="h-4 w-4 text-orange-400" /> {booking.title}
-                    {booking.isVip && <Star className="h-3.5 w-3.5 text-amber-400" />}
+                    <Users className="text-accent h-4 w-4" /> {booking.title}
+                    {booking.isVip && <Star className="text-warning h-3.5 w-3.5" />}
                   </span>
                   <StatusBadge status={booking.status} isVip={booking.isVip} />
                 </div>
@@ -86,7 +86,7 @@ export function BookingsTab({ dateId }: { dateId: string | null }) {
                   </div>
                   <button
                     onClick={() => setExpandedBookingId(isExpanded ? null : booking.id)}
-                    className="text-[10px] font-bold text-blue-400 hover:text-blue-300"
+                    className="text-info hover:text-info/70 text-[10px] font-bold"
                   >
                     {isExpanded ? "Skjul detaljer" : "Se detaljer"}
                   </button>
@@ -135,7 +135,7 @@ function StatusBadge({ status, isVip }: { status: string; isVip: boolean }) {
   switch (status) {
     case "confirmed":
       return (
-        <span className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+        <span className="border-success/20 bg-success/10 text-success rounded-lg border px-2 py-0.5 text-[10px] font-bold">
           Bekreftet{vipSuffix}
         </span>
       );
@@ -147,7 +147,7 @@ function StatusBadge({ status, isVip }: { status: string; isVip: boolean }) {
       );
     case "cancelled":
       return (
-        <span className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+        <span className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border px-2 py-0.5 text-[10px] font-bold">
           Kansellert{vipSuffix}
         </span>
       );

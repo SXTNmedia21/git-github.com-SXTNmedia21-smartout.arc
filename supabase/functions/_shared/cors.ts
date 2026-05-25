@@ -10,7 +10,10 @@
  * ALLOWED_ORIGINS env var is retained as an additive exact-match list for
  * ad-hoc origins (Vercel previews, staging) — not the primary source.
  *
- * Full architectural rationale: ADR-0171 (follow-up PR).
+ * All 32 Edge Functions were migrated from the deprecated static `corsHeaders`
+ * constant to this dynamic `getCorsHeaders(req)` function in ADR-0408 (2026-05-23).
+ * The deprecated export was removed — `corsHeaders` no longer exists.
+ * Historical predecessor: ADR-0171 (suffix-match approach, 2026-03).
  */
 
 const DEV_ORIGINS = new Set([
@@ -57,16 +60,3 @@ export function getCorsHeaders(req: Request): Record<string, string> {
     Vary: "Origin",
   };
 }
-
-/**
- * @deprecated Use getCorsHeaders(req). Full migration of ~49 consumers tracked
- * in follow-up PR. Apex fallback keeps un-migrated functions serving the
- * landing site at minimum; tenant subdomains require getCorsHeaders(req).
- */
-export const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://smartout.ai",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-api-key",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  Vary: "Origin",
-};

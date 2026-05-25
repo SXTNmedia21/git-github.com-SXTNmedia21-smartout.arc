@@ -36,6 +36,11 @@ tags: [domain, day-session, e2e, testing, playwright, coverage]
 | F17 | Admin locks week | MISSING | n/a | n/a | manual smoke |
 | F18 | Mobile home Before/During/After | n/a | MISSING | n/a | manual smoke |
 | F19 | Settlement image OCR | MISSING | n/a | n/a | manual smoke |
+| F20 | Manager plans tomorrow (Tidslinje tab — chip-bar + list) | `apps/e2e/tidslinje-tab/tidslinje-tab.spec.ts` (happy path) | n/a | `__tests__/TidslinjeTab.test.tsx` | verified (P10) |
+| F21 | Manager live-status during rush (Tidslinje tab) | `apps/e2e/tidslinje-tab/tidslinje-tab.spec.ts` (chip toggle) | n/a | `__tests__/TidslinjeChipBar.test.tsx` | verified (P10) |
+| F22 | Employee mobile mirror | n/a | MISSING (V2 sortie) | n/a | n/a |
+| F23 | Manager + Botsson reschedule | MISSING (G19b tools deferred) | n/a | n/a | n/a |
+| F24 | Manager empty-day bootstrap | MISSING (V2 empty-state CTA) | n/a | n/a | n/a |
 
 ---
 
@@ -61,6 +66,48 @@ Covers F9. Save + apply round-trip per ADR-0335.
 ---
 
 ## 3. Web E2E — Required New Specs
+
+### 3.0 `apps/e2e/tidslinje-tab/` — P10 Shipped (2026-05-23)
+
+#### `apps/e2e/tidslinje-tab/tidslinje-tab.spec.ts` (F20/F21 — happy path)
+```
+- Login as manager, open DayControlPanel by clicking a date
+- Click Tidslinje tab — assert tabpanel visible
+- Assert chip-bar renders Alle + ≥0 location chips
+- Click a location chip — assert aria-pressed toggles
+- Assert list rows visible OR empty-state text visible
+Coverage: F20 (plan-tomorrow steg 1-3), F21 (live-status chip-toggle)
+```
+
+#### `apps/e2e/tidslinje-tab/tidslinje-tab.axe.spec.ts` (a11y gate — all P10 tabs)
+```
+- Login as manager, open DayControlPanel
+- Run axe-core on [role=tablist] + [role=tabpanel]
+- Assert zero violations (WCAG 4.1.2 — G17 closure)
+- Repeat with Tidslinje tab active
+Coverage: G17 ARIA contract
+```
+
+#### `apps/web/src/app/dashboard/schedule/_components/day-control/__tests__/TidslinjeTab.test.tsx` (unit)
+```
+- emit tidslinje_tab_opened with L-0177 fail-fast IDs on mount
+- renders one row per DayEvent from useDayTimelineEvents
+- sorts rows chronologically ascending
+```
+
+#### `apps/web/src/app/dashboard/schedule/_components/day-control/__tests__/TidslinjeChipBar.test.tsx` (unit)
+```
+- renders Alle + one chip per location
+- calls onToggleLocation with location id when chip clicked
+- marks selected chips with aria-pressed='true'
+```
+
+#### `apps/web/src/app/dashboard/schedule/_components/day-control/__tests__/tidslinje-no-mutation.test.ts` (regression guard)
+```
+- TidslinjeTab.tsx contains no useMutation / mutateAsync (council 2026-05-23)
+- TidslinjeChipBar.tsx contains no useMutation / mutateAsync
+- TidslinjeRow.tsx contains no useMutation / mutateAsync
+```
 
 ### 3.1 `apps/e2e/day-session/create-day-line.spec.ts` (F10)
 ```

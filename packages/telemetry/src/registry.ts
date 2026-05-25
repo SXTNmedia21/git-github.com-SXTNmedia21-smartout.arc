@@ -73,6 +73,7 @@ export interface EntityRef {
 
 export type EntityType =
   | "company"
+  | "user_identity"
   | "workspace"
   | "profile"
   | "department"
@@ -5629,6 +5630,32 @@ export interface AdminPiiReveal extends BaseEvent {
   };
 }
 
+// godmode.admin_access — audit every protected admin route visit by a godmode user.
+// Per ADR-0410: every godmode route access must land in activity_trail.
+export interface GodmodeAdminAccess extends BaseEvent {
+  event: "godmode.admin_access";
+  properties: {
+    entity: EntityRef;
+    data: {
+      route: string;
+    };
+  };
+}
+
+// godmode.workspace_joined — godmode user auto-joined a workspace as admin.
+// Per ADR-0410: profile insert + audit trail. Idempotent (returns existing if already member).
+export interface GodmodeWorkspaceJoined extends BaseEvent {
+  event: "godmode.workspace_joined";
+  properties: {
+    entity: EntityRef;
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      was_existing: boolean;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -9085,6 +9112,8 @@ export type SmartoutEvent =
   | RecorderSessionForceStopped
   | RecorderUserFlagSubmitted
   | AdminPiiReveal
+  | GodmodeAdminAccess
+  | GodmodeWorkspaceJoined
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -9514,6 +9543,9 @@ export type SmartoutEvent =
   | UiDagslinjenListRowClicked
   // ─── Dagslinjen ClusterMarker telemetry (Tidslinjen-redesign sortie) ────────
   | UiDagslinjenClusterExpanded
+  // ─── DayControlPanel Tidslinje tab telemetry (feat/p10-tidslinje-tab, 2026-05-23) ─
+  | TidslinjeTabOpened
+  | TidslinjeFilterChanged
   // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
   | CommScheduledNoteCreated
   | CommScheduledNoteDelivered
@@ -10974,6 +11006,53 @@ export interface UiDagslinjenClusterExpanded extends BaseEvent {
       departmentId: string;
       /** Session context for the strip. */
       sessionId: string;
+    };
+  };
+}
+
+// ─── DayControlPanel Tidslinje tab telemetry (feat/p10-tidslinje-tab, 2026-05-23) ─
+//
+// tidslinje_tab_opened
+//   Emitted when the manager activates the Tidslinje tab inside DayControlPanel.
+//   posthog: product analytics (tab adoption funnel — how many sessions use Tidslinje).
+//   logger: debugging.
+//   activity_trail: navigation audit — opens are workspace-scoped and traceable
+//     (differentiates from passive page loads; aligns with ADR-0358 read-path audit).
+//   No engine_event: tab activation is a view event; no state-machine input.
+//
+// tidslinje_filter_changed
+//   Emitted when the manager toggles a chip-bar filter (location or status).
+//   posthog: product analytics (filter adoption — which filters see use).
+//   logger: debugging.
+//   No activity_trail: pure UI filter, no write; underlying shift/session events own audit.
+//   No engine_event: filter state is ephemeral client state, not a state-machine input.
+
+export interface TidslinjeTabOpened extends BaseEvent {
+  event: "tidslinje_tab_opened";
+  properties: {
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      department_session_id: string;
+      /** ISO 8601 date — which operational day the panel is showing. */
+      date_iso: string;
+    };
+  };
+}
+
+export interface TidslinjeFilterChanged extends BaseEvent {
+  event: "tidslinje_filter_changed";
+  properties: {
+    data: {
+      workspace_id: string;
+      profile_id: string;
+      department_session_id: string;
+      /** "location" | "status" */
+      filter_type: string;
+      /** The specific filter value toggled (e.g. location_id or status key). */
+      filter_value: string;
+      /** true = filter activated, false = filter deactivated. */
+      active: boolean;
     };
   };
 }
@@ -13220,6 +13299,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["logger", "activity_trail"],
     category: "security",
   },
+  "godmode.admin_access": {
+    // Per ADR-0410: every godmode admin route visit MUST land in activity_trail.
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
+  "godmode.workspace_joined": {
+    // Per ADR-0410: godmode workspace auto-join — audit mandatory.
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
 
   "emma_task scheduled": {
     destinations: ["posthog", "logger", "activity_trail"],
@@ -15066,6 +15155,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // ClusterMarker expanded — user tapped a collapsed bucket on DayTimelineStrip.
   // posthog: dense-timeline adoption funnel. logger: debug. No audit trail (view only).
   "ui.dagslinjen.cluster_expanded": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── DayControlPanel Tidslinje tab telemetry (feat/p10-tidslinje-tab, 2026-05-23) ─
+  // tidslinje_tab_opened: posthog + logger + activity_trail — tab activation with
+  //   workspace audit (read-path audit per ADR-0358). No engine_event (view event).
+  // tidslinje_filter_changed: posthog + logger only — ephemeral UI filter state;
+  //   no write = no activity_trail. No engine_event (not a state-machine input).
+  tidslinje_tab_opened: {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  tidslinje_filter_changed: {
     destinations: ["posthog", "logger"],
     category: "navigation",
   },

@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   PenLine,
+  Bell,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const HEADER_ICON: Record<DayEvent["type"], typeof Calendar> = {
   deviation: AlertTriangle,
   checkin: LogIn,
   checkout: LogOut,
+  hook: Bell,
 };
 
 const HEADER_LABEL: Record<DayEvent["type"], string> = {
@@ -48,6 +50,7 @@ const HEADER_LABEL: Record<DayEvent["type"], string> = {
   deviation: "Avvik",
   checkin: "Innsjekk",
   checkout: "Utsjekk",
+  hook: "Sesjonshook",
 };
 
 /**

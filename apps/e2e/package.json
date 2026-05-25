@@ -14,7 +14,8 @@
     "test:e2e:telemetry-smoke": "bash ./scripts/playwright-with-libs.sh pnpm exec node ./scripts/telemetry-smoke.mjs",
     "test:protocol": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test tests/protocol.spec.ts",
     "test:heartbeat": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test tests/heartbeat/ --project=web --reporter=list",
-    "monitor": "bash ./monitor/serve.sh"
+    "monitor": "bash ./monitor/serve.sh",
+    "test:e2e:prod-mode": "SKIP_WEB_SERVER=1 bash ./scripts/playwright-with-libs.sh pnpm exec playwright test --project=web"
   },
   "dependencies": {
     "@smartout/ai": "workspace:*",

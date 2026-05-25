@@ -27,6 +27,7 @@ export const runtime = "nodejs";
 
 const RequestSchema = z.object({
   planning_cycle_id: z.string().uuid("planning_cycle_id must be a UUID"),
+  department_id: z.string().uuid("department_id must be a UUID"),
   workspace_id: z
     .string()
     .uuid()
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── Invoke capability tool ─────────────────────────────────────────────────
   // Tool handles its own gate_action + mutateWithGate + emit.
   const result = await proposePlan.execute(
-    { planning_cycle_id: body.planning_cycle_id },
+    { planning_cycle_id: body.planning_cycle_id, department_id: body.department_id },
     {
       workspaceId: auth.workspaceId as Parameters<typeof proposePlan.execute>[1]["workspaceId"],
       profileId: auth.profileId as Parameters<typeof proposePlan.execute>[1]["profileId"],

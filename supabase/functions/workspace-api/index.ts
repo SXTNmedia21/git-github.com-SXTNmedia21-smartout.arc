@@ -1,4 +1,4 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveAuth } from "../_shared/auth-middleware.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { executeWithWorkspaceContext, logUsage } from "../_shared/api-key-auth.ts";
@@ -39,6 +39,7 @@ import {
 type RouteHandler = (
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ) => Promise<Response>;
 
 const routes: Record<string, RouteHandler> = {};
@@ -73,15 +74,16 @@ routes["GET /v1/asset-downtime"] = handleGetAssetDowntime;
 // ── Main router ──
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   try {
     // 1. Authenticate
     const auth = await resolveAuth(req);
     if (!auth) {
-      return jsonError(401, "Invalid or missing API key");
+      return jsonError(401, "Invalid or missing API key", cors);
     }
 
     // 2. Rate limit
@@ -90,7 +92,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
         headers: {
-          ...corsHeaders,
+          ...cors,
           "Content-Type": "application/json",
           "X-RateLimit-Remaining": String(rl.remaining),
           "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
@@ -103,13 +105,14 @@ Deno.serve(async (req) => {
       return jsonError(
         400,
         "Workspace context required. Use a workspace API key, not a service key.",
+        cors,
       );
     }
 
     // 3b. Environment check: test keys cannot access workspace-api in production
     const isProduction = Deno.env.get("ENVIRONMENT") === "production";
     if (auth.method === "api_key" && auth.environment === "test" && isProduction) {
-      return jsonError(403, "Test keys cannot access production data. Use a live key.");
+      return jsonError(403, "Test keys cannot access production data. Use a live key.", cors);
     }
 
     // 4. Route
@@ -120,11 +123,11 @@ Deno.serve(async (req) => {
 
     const handler = routes[routeKey];
     if (!handler) {
-      return jsonError(404, `Unknown endpoint: ${req.method} ${fnPath}`);
+      return jsonError(404, `Unknown endpoint: ${req.method} ${fnPath}`, cors);
     }
 
     // 5. Execute handler
-    const response = await handler({ workspaceId: auth.workspaceId, scopes: auth.scopes }, url);
+    const response = await handler({ workspaceId: auth.workspaceId, scopes: auth.scopes }, url, cors);
 
     // 6. Fire-and-forget usage logging (only for API key auth, not JWT)
     if (auth.method === "api_key" && auth.keyId) {
@@ -134,23 +137,23 @@ Deno.serve(async (req) => {
     return response;
   } catch (error: unknown) {
     console.error("[workspace-api]", error);
-    return jsonError(500, "Internal server error");
+    return jsonError(500, "Internal server error", cors);
   }
 });
 
 // ── Helpers ──
 
-function jsonError(status: number, message: string): Response {
+function jsonError(status: number, message: string, cors?: Record<string, string>): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...(cors ?? {}), "Content-Type": "application/json" },
   });
 }
 
-export function jsonOk(data: unknown): Response {
+export function jsonOk(data: unknown, cors?: Record<string, string>): Response {
   return new Response(JSON.stringify({ data }), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...(cors ?? {}), "Content-Type": "application/json" },
   });
 }
 

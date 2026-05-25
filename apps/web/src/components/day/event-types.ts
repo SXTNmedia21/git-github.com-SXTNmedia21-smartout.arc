@@ -11,7 +11,15 @@
 //            ClusterMarker uses the shared meta for dominant-type rendering.
 
 import type { DayEventType } from "@/app/dashboard/_hooks/use-day-timeline-events";
-import { Calendar, CheckCircle2, AlertTriangle, StickyNote, LogIn, LogOut } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  AlertTriangle,
+  StickyNote,
+  LogIn,
+  LogOut,
+  Bell,
+} from "lucide-react";
 
 export type ShapeKind = "dot" | "flag" | "diamond" | "arrow-down" | "arrow-up" | "ring";
 
@@ -42,6 +50,7 @@ export const EVENT_TYPE_ORDER: DayEventType[] = [
   "deviation",
   "checkin",
   "checkout",
+  "hook",
 ];
 
 export const EVENT_TYPE_META: Record<DayEventType, EventTypeMeta> = {
@@ -117,6 +126,18 @@ export const EVENT_TYPE_META: Record<DayEventType, EventTypeMeta> = {
     listBg: "bg-muted",
     listBorder: "border-border",
   },
+  hook: {
+    label: "Sesjonshook",
+    filterLabel: "Hooks",
+    icon: Bell,
+    shape: "dot",
+    stripFill: "bg-cyan-400/80 dark:bg-cyan-500/70",
+    stripRing: "ring-cyan-300/40 dark:ring-cyan-500/25",
+    stripIconColor: "text-white",
+    listIconColor: "text-cyan-600 dark:text-cyan-400",
+    listBg: "bg-cyan-50 dark:bg-cyan-500/10",
+    listBorder: "border-cyan-200 dark:border-cyan-500/20",
+  },
 };
 
 export const EVENT_FILTER_KEYS: (DayEventType | "all")[] = [
@@ -127,4 +148,5 @@ export const EVENT_FILTER_KEYS: (DayEventType | "all")[] = [
   "deviation",
   "checkin",
   "checkout",
+  "hook",
 ];

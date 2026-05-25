@@ -25,8 +25,6 @@ import { usePostHog } from "posthog-js/react";
 import { Mic, MicOff, Sparkles, X, Bot, Loader2, Activity } from "lucide-react";
 import { MISSION_MANIFEST } from "@smartout/ai/missions";
 import type { MissionId } from "@smartout/ai/missions";
-import type { ClientTools } from "./voice-tools-context";
-
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type VoiceStatus =
@@ -314,7 +312,6 @@ interface VoiceAssistantProps {
     workingElements: string[];
     availableInputs: string[];
   };
-  clientTools?: ClientTools | null;
 }
 
 export function VoiceAssistant({

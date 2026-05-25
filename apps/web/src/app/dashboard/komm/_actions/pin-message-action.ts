@@ -3,9 +3,12 @@
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { resolveCurrentProfile } from "@/app/dashboard/_actions/_shared";
+import type { NonEmptyString } from "@smartout/telemetry/server";
+import { pinMessage } from "@smartout/ai/capabilities/communication/pin-message";
 
 const PinInputSchema = z.object({
   messageId: z.string().uuid(),
+  channelId: z.string().uuid(),
   workspaceId: z.string().uuid(),
   pin: z.boolean(),
 });
@@ -15,54 +18,63 @@ type PinResult = { ok: true; messageId: string; pinned: boolean } | { ok: false;
 /**
  * pinMessageAction — manager+ pin/unpin of channel_message rows.
  *
- * RLS UPDATE policy on channel_message only permits sender to update own row
- * (see 20260422300100_channel_rls_policies.sql:122-124). Pin is a moderation
- * action that must work across senders, so it bypasses RLS via service role
- * with an explicit role-and-workspace guard.
+ * Thin-wraps the pin_message capability tool (packages/ai/src/capabilities/communication/
+ * pin-message.ts) so the human-author path and the agent-author path share the same
+ * gate + emit semantics. Previously the hook emitted telemetry client-side via
+ * `void emit(...)` in onSuccess — a fire-and-forget race with page unload (BUG-3).
  *
- * Follows the established pattern from `_actions/helpdesk-channel-actions.ts:51`
- * — JWT role check FIRST via resolveCurrentProfile, then service-role write.
+ * The capability tool body now owns: gate precheck (ADR-0287), UPDATE, awaited emit
+ * (ADR-0415 Path A). The Server Action owns: JWT auth, workspace isolation, input
+ * parsing, ctx synthesis, result forwarding.
  *
- * TODO: when a Botsson `komm.pin_message` capability tool is introduced
- * (held — see Open recommendations after close), route the agent path
- * through gateAction per ADR-0287; UI Server Action stays as-is.
+ * ADR-0151 / L-0177: workspaceId is server-derived from JWT via resolveCurrentProfile.
+ * Body-supplied workspaceId is only used as a cross-check, never as the authoritative ID.
  */
 export async function pinMessageAction(input: unknown): Promise<PinResult> {
   const parsed = PinInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, reason: "Invalid input" };
   }
-  const { messageId, workspaceId, pin } = parsed.data;
+  const { messageId, channelId, workspaceId, pin } = parsed.data;
 
   // Server-derive profile from JWT (ADR-0151)
   const profile = await resolveCurrentProfile();
   if (!profile) {
     return { ok: false, reason: "Not authenticated" };
   }
+  // L-0177: fail-fast on workspace mismatch — never silently accept body-supplied ID.
   if (profile.workspaceId !== workspaceId) {
     return { ok: false, reason: "Workspace mismatch" };
   }
-  if (!["manager", "admin", "owner"].includes(profile.role ?? "")) {
-    return { ok: false, reason: "Insufficient role — manager+ required" };
+
+  const supabaseAdmin = createAdminClient();
+  const ctx = {
+    workspaceId: profile.workspaceId as NonEmptyString,
+    profileId: profile.profileId as NonEmptyString,
+    sessionId: "server-action",
+    channel: "chat" as const,
+    supabaseAdmin,
+  };
+
+  let raw: string;
+  try {
+    raw = await pinMessage.execute(
+      { channel_message_id: messageId, channel_id: channelId, pin },
+      ctx,
+    );
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : "Ukjent feil." };
   }
 
-  // Service-role write — RLS bypassed; only pin columns touched.
-  // Defense-in-depth: explicit workspace_id filter even though service role
-  // could span workspaces.
-  const admin = createAdminClient();
-  const { error: updateErr } = await admin
-    .from("channel_message")
-    .update({
-      is_pinned: pin,
-      pinned_by: pin ? profile.profileId : null,
-      pinned_at: pin ? new Date().toISOString() : null,
-    })
-    .eq("id", messageId)
-    .eq("workspace_id", workspaceId);
-
-  if (updateErr) {
-    return { ok: false, reason: updateErr.message };
+  // The tool returns JSON on success, a plain error string on failure.
+  try {
+    const result = JSON.parse(raw) as { ok?: boolean; pinned?: boolean };
+    if (result.ok === true) {
+      return { ok: true, messageId, pinned: pin };
+    }
+    return { ok: false, reason: raw };
+  } catch {
+    // Tool returned a plain error string (gate denied or row not found)
+    return { ok: false, reason: raw };
   }
-
-  return { ok: true, messageId, pinned: pin };
 }

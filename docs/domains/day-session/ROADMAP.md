@@ -96,7 +96,7 @@ Council reading of ADR-0156 §Rejected Option B: forbidden pattern is **fragment
 
 Sortie sequence — gates between each:
 
-**Sortie 1 — Pre-condition cleanup (BLOCKS S2):**
+**Sortie 1 (Shipped 2026-05-23):**
 1. Remove dead Ultravox path in `DaySessionProvider.tsx` — `useVoiceTools()` + `temporaryTool` shape post-ADR-0282 removal. Grep entire repo for `useVoiceTools|temporaryTool` before claiming complete (see G18).
 2. Replace with `useRegisterTools("day-control", ...)` per harness canonical pattern.
 3. Implement `pinDayControlPanelContextAction` mirroring `pinDayControlContextAction`, surface=`day_control_panel` (closes G16).
@@ -104,7 +104,7 @@ Sortie sequence — gates between each:
 
 Gate 1: axe-core 0 violations on `/dashboard/schedule` with panel open + Trust Gate per-tool PASS + L-0177 fail-fast verified on pin-context action.
 
-**Sortie 2 — Slim TidslinjeTab build (BLOCKED by S1):**
+**Sortie 2 (Shipped 2026-05-23):**
 1. Frontend spec: chip-bar (planlagt / pågående / fullført + location chips) + flat session-card list per Task Manager prototype canonical recipe. Spatial budget ≤654px (sheet content area = 75vh - header - tab-bar - broadcast-footer).
 2. Build `apps/web/src/components/day-control-panel/TidslinjeTab.tsx` consuming `useDayTimelineEvents` (close `session_hook` source-type gap per Supervisor cond.1) + `useDayLines` (multi-strip aware).
 3. Telemetry: `tidslinje_tab_opened`, `tidslinje_filter_changed` via `emit()` with L-0177 fail-fast on `workspace_id` + `profile_id`. Verify matching call-sites grep (no L-NEW telemetry-without-emit recurrence).
@@ -112,7 +112,7 @@ Gate 1: axe-core 0 violations on `/dashboard/schedule` with panel open + Trust G
 
 Gate 2: frontend visual review + harness Trust Gate per-tool table + steward cascade-integrity check (single pipeline preserved, no new source-of-truth).
 
-**Sortie 3 — ADR amendment + docs (BLOCKED by S2 merge):**
+**Sortie 3 (Shipped 2026-05-23):**
 1. ADR-0156 amendment: document bottom-sheet variant as Phase 2 packages-extraction precedent. Codify "surface duplication ≠ authority fragmentation" reading.
 2. L-NEW captures (3): (a) Surface duplication permitted when both views consume same capability, (b) Spatial budget as Phase 3 council coverage axis (sibling of design+a11y axis), (c) Telemetry-registered without emit() — 2nd occurrence pattern promotion.
 3. Update day-session domain spine: ARCHITECTURE.md (add bottom-sheet variant), USER-FLOWS.md (link 5 new journeys), E2E-COVERAGE.md (planned coverage matrix).
@@ -125,6 +125,8 @@ Gate 3: steward verification pass on docs match shipped code.
 **Revisit:** Panel consolidation (sunset DayControlPanel) revisited after 60 days of dual-surface telemetry. If usage overlap >80% → reconsider sunset.
 
 **Journeys (target):** J-tidslinje-manager-plan-tomorrow, J-tidslinje-manager-live-status, J-tidslinje-employee-mobile-mirror, J-tidslinje-manager-botsson-reschedule, J-tidslinje-manager-empty-day-template-bootstrap. Draft inline in this session 2026-05-23; formal journey files filed in S3.
+
+**P10 status:** COMPLETE 2026-05-23. DnD re-time capability sortie (G19a/b/c) remains DEFERRED. Panel consolidation revisit scheduled 2026-07-22 (+60d).
 
 ---
 

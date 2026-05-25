@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 import { searchBrregByNameAll } from "../_shared/brreg.ts";
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
 
     if (!name || typeof name !== "string") {
       return new Response(JSON.stringify({ error: "name is required" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 400,
       });
     }
@@ -50,14 +51,14 @@ Deno.serve(async (req) => {
     console.log(`[search-brreg] Found ${candidates.length} candidates (${matches.length} raw)`);
 
     return new Response(JSON.stringify({ candidates, matchCount: candidates.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: unknown) {
     console.error("[search-brreg] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      { headers: { ...cors, "Content-Type": "application/json" }, status: 400 },
     );
   }
 });

@@ -66,17 +66,17 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
       case "completed":
         return {
           icon: <CheckSquare className="h-3.5 w-3.5" />,
-          classes: "border-emerald-500 bg-emerald-500 text-[#050505]",
+          classes: "border-success bg-success text-background",
         };
       case "in_progress":
         return {
           icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-          classes: "border-blue-500 bg-blue-500/20 text-blue-400",
+          classes: "border-info bg-info/20 text-info",
         };
       default:
         return {
           icon: <CheckSquare className="h-3.5 w-3.5" />,
-          classes: "border-muted-foreground/30 text-transparent hover:border-orange-500",
+          classes: "border-muted-foreground/30 text-transparent hover:border-accent",
         };
     }
   }
@@ -89,7 +89,7 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
           Gjoremal &amp; Rutiner
         </h3>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+          <span className="border-success/20 bg-success/10 text-success rounded-full border px-2 py-0.5 text-[10px] font-bold">
             {completedCount} / {totalCount} Utfort
           </span>
         </div>
@@ -102,7 +102,7 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
             className={`h-1.5 w-full overflow-hidden rounded-full ${isDark ? "bg-muted" : "bg-muted"}`}
           >
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              className="bg-success h-full rounded-full transition-[width] duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -120,11 +120,11 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddTask();
             }}
-            className="border-input placeholder:text-muted-foreground flex-1 rounded-xl border bg-transparent p-3 text-xs shadow-inner focus:border-orange-500/50 focus:outline-none"
+            className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex-1 rounded-xl border bg-transparent p-3 text-xs shadow-inner focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
           />
           <button
             onClick={handleAddTask}
-            className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/20 px-3 text-xs font-bold text-emerald-500 transition-all hover:bg-emerald-500/30 md:px-4"
+            className="border-success/30 bg-success/20 text-success hover:bg-success/30 flex items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors md:px-4"
           >
             <Plus className="h-3.5 w-3.5" /> Legg til
           </button>
@@ -165,9 +165,9 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
             const base = isDone
               ? `border-border bg-muted/30 opacity-60`
               : task.highlight
-                ? `border-orange-500/20 bg-orange-500/5`
+                ? `border-accent/20 bg-accent/5`
                 : isInProgress
-                  ? `border-blue-500/20 bg-blue-500/5`
+                  ? `border-info/20 bg-info/5`
                   : `border-border bg-background`;
 
             return (
@@ -194,7 +194,7 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
                 </span>
 
                 {task.highlight && (
-                  <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                  <span className="bg-accent ml-auto h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_8px_color-mix(in_oklch,var(--accent),transparent_20%)]" />
                 )}
 
                 <button
@@ -202,7 +202,7 @@ export function OppgaverTab({ dateId }: { dateId: string | null }) {
                     deleteDayTask.mutate(task.id);
                     toast("Oppgave slettet");
                   }}
-                  className="text-muted-foreground ml-auto shrink-0 transition-colors hover:text-rose-400"
+                  className="text-muted-foreground hover:text-destructive ml-auto shrink-0 transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -233,7 +233,7 @@ function FilterChip({
         active
           ? "bg-muted text-foreground"
           : "border-border text-muted-foreground border bg-transparent"
-      } hover:bg-orange-500/20 hover:text-orange-400`}
+      } hover:bg-accent/20 hover:text-accent`}
     >
       {label}
     </span>

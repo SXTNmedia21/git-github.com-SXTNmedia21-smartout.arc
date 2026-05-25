@@ -12,6 +12,58 @@ import { validateReturnTo } from "@/lib/safe-redirect";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
 import { useTranslation } from "@smartout/i18n";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/* ── Invite-token acceptance helper ───────────────────────────────────────
+ *
+ * BUG-003 / BUG-005 fix (2026-05-24, ADR-0409):
+ * When an existing user clicks an invite link they land on /login?invite=<token>.
+ * The accept-invitation EF was never called on the existing-user code path — only
+ * /signup called it. This helper runs after successful sign-in and calls the EF
+ * to provision the profile + bind the invitation.
+ *
+ * The EF accepts an authenticated caller (Bearer JWT) and skips password
+ * requirements. It still needs first_name + last_name to update user_identity;
+ * we pass sensible defaults ("Bruker", "") because the EF will use whatever
+ * first_name/last_name are already on user_identity if the user exists.
+ *
+ * Returns { redirectTo, efError } — caller should navigate and optionally show banner.
+ */
+async function consumeInviteAfterAuth(
+  supabase: SupabaseClient,
+  token: string,
+): Promise<{ redirectTo: string; efError?: string }> {
+  // Call accept-invitation EF. The authenticated session JWT is attached
+  // automatically by supabase.functions.invoke (bearer token injected by the client).
+  // The EF sees the valid JWT, looks up the user, and matches against invite email.
+  const { data: efData, error: efInvokeError } = await supabase.functions.invoke(
+    "accept-invitation",
+    {
+      body: {
+        token,
+        first_name: "Bruker",
+        last_name: "",
+      },
+    },
+  );
+
+  if (efInvokeError || (efData as { error?: string } | null)?.error) {
+    const msg =
+      (efData as { error?: string } | null)?.error ?? efInvokeError?.message ?? "Ukjent feil";
+    return {
+      redirectTo: "/select-workspace",
+      efError: `Invitasjonen ble ikke aktivert: ${msg}. Du er innlogget — ta kontakt med admin.`,
+    };
+  }
+
+  // Success — navigate to workspace selection (auto-selects if single workspace).
+  return { redirectTo: "/select-workspace" };
+}
+
+/** UUID v4 shape guard — tokens are UUIDs per ADR-0167. */
+function isUUID(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
 
 /* ─────────────────────────────────────────────────────
    Nordic Split — Choreographed panel swap
@@ -152,8 +204,21 @@ function LoginContent() {
   // Safe-validated return_to: only allow known prefixes — open-redirect guard.
   const returnTo =
     validateReturnTo(searchParams.get("return_to"), {
-      allowedPrefixes: ["/join", "/onboarding", "/dashboard"],
+      allowedPrefixes: ["/join", "/onboarding", "/dashboard", "/select-workspace"],
     }) ?? "/dashboard";
+
+  // BUG-003 / BUG-005 (ADR-0409): invitation token from /invite/[token] → /login?invite=<token>.
+  // Validated as UUID before use — malformed values are silently dropped.
+  const rawInvite = searchParams.get("invite") ?? "";
+  const inviteToken = rawInvite && isUUID(rawInvite) ? rawInvite : null;
+
+  // When an invite is being consumed post-login, redirect to /select-workspace
+  // rather than the generic returnTo (or /dashboard), so the user lands on their workspace.
+  // If return_to is also present, invite takes precedence (see ADR-0409).
+  const postAuthDest = inviteToken ? "/select-workspace" : returnTo;
+
+  // Invite error surfaced as a non-blocking banner after auth succeeds.
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Banner shown when user was redirected here because their session expired mid-wizard.
   const expiredReason = searchParams.get("reason") === "expired";
@@ -242,25 +307,34 @@ function LoginContent() {
     window.location.href = "/join";
   }, [mode, navStep]);
 
-  // Navigate after panel animations settle (logging in)
+  // Navigate after panel animations settle (logging in).
+  // postAuthDest is /select-workspace when an invite token is present (ADR-0409),
+  // or the validated return_to / /dashboard otherwise.
   useEffect(() => {
     if (mode !== "logging-in") return;
-    const t = setTimeout(() => {
-      routerRef.current.push(returnTo);
+    const timeout = setTimeout(() => {
+      routerRef.current.push(postAuthDest);
       routerRef.current.refresh();
     }, 1100);
-    return () => clearTimeout(t);
-  }, [mode, returnTo]);
+    return () => clearTimeout(timeout);
+  }, [mode, postAuthDest]);
 
   async function handleGoogleLogin() {
     setError(null);
     setGoogleLoading(true);
     try {
       const supabase = createClient();
+      // BUG-003 / BUG-005 (ADR-0409): if an invite token is present, carry it through
+      // the OAuth redirect so /select-workspace can call accept-invitation after session
+      // is established. Google OAuth is a full-page redirect — we can't call the EF here.
+      const nextUrl = inviteToken
+        ? `/select-workspace?invite=${encodeURIComponent(inviteToken)}`
+        : "/dashboard";
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin + "/api/auth/callback?next=/dashboard",
+          redirectTo:
+            window.location.origin + `/api/auth/callback?next=${encodeURIComponent(nextUrl)}`,
         },
       });
       if (oauthError) {
@@ -312,9 +386,19 @@ function LoginContent() {
     setOtpEmailEntry(false);
   }
 
-  function handleOtpVerified() {
+  async function handleOtpVerified() {
     // Clear the pending key — code has been used successfully.
     sessionStorage.removeItem(OTP_PENDING_KEY);
+
+    // BUG-003 / BUG-005 (ADR-0409): if an invite token is in the URL, consume it now
+    // while the auth session is fresh. Non-blocking on failure — user still lands
+    // on /select-workspace with an error banner.
+    if (inviteToken) {
+      const supabase = createClient();
+      const { efError } = await consumeInviteAfterAuth(supabase, inviteToken);
+      if (efError) setInviteError(efError);
+    }
+
     setHasInteracted(true);
     setTimeout(() => setPendingMode("logging-in"), 200);
   }
@@ -353,6 +437,12 @@ function LoginContent() {
         setError(authError.message);
         setLoading(false);
         return;
+      }
+
+      // BUG-003 / BUG-005 (ADR-0409): consume invite token if present before navigating.
+      if (inviteToken) {
+        const { efError } = await consumeInviteAfterAuth(supabase, inviteToken);
+        if (efError) setInviteError(efError);
       }
 
       // Breathe, then darken + navigate
@@ -444,7 +534,7 @@ function LoginContent() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.tagline")}
                     <br />
                     <span className="text-brand-orange-light">{t("login.brand.ready")}</span>{" "}
@@ -463,7 +553,7 @@ function LoginContent() {
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.2rem] font-bold leading-[1.1] tracking-tight text-white">
                     {t("login.brand.signup_heading")}
                     <br />
                     <span className="text-brand-orange-light">{t("login.brand.signup_team")}</span>
@@ -482,7 +572,7 @@ function LoginContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.lets_go")}
                     <br />
                     <span className="text-brand-orange-light">
@@ -498,7 +588,7 @@ function LoginContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
                     {t("login.brand.welcome_back")}
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
@@ -532,7 +622,7 @@ function LoginContent() {
       >
         {/* Edge line — hidden when swapped */}
         <motion.div
-          className="absolute top-0 left-0 hidden h-full w-px bg-gradient-to-b from-transparent via-black/6 to-transparent lg:block"
+          className="via-black/6 absolute left-0 top-0 hidden h-full w-px bg-gradient-to-b from-transparent to-transparent lg:block"
           animate={{ opacity: isSwapped || isLoggingIn ? 0 : 1 }}
           transition={{ duration: 0.3 }}
         />
@@ -572,7 +662,7 @@ function LoginContent() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[var(--foreground)]">
+                    <h1 className="font-heading text-[2rem] font-bold leading-[1.15] tracking-tight text-[var(--foreground)]">
                       {t("login.heading")}
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[var(--text-dim)]">
@@ -590,6 +680,32 @@ function LoginContent() {
                   >
                     <div className="border-border bg-muted text-foreground mb-6 rounded-lg border p-3 text-sm">
                       {t("login.session_expired")}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Invite context banner — shown when landing from /invite/[token] (ADR-0409) */}
+                {inviteToken && !inviteError && (
+                  <motion.div
+                    variants={itemVariant}
+                    className={!hasInteracted ? "animate-auth-in" : undefined}
+                    style={!hasInteracted ? { animationDelay: "25ms" } : undefined}
+                  >
+                    <div className="border-border bg-muted text-foreground mb-6 rounded-lg border p-3 text-sm">
+                      Du er invitert til en arbeidsflate. Logg inn for å akseptere invitasjonen.
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Invite error banner — non-blocking; user is logged in but invite failed */}
+                {inviteError && (
+                  <motion.div
+                    variants={itemVariant}
+                    className={!hasInteracted ? "animate-auth-in" : undefined}
+                    style={!hasInteracted ? { animationDelay: "25ms" } : undefined}
+                  >
+                    <div className="border-destructive/20 bg-destructive/5 text-destructive mb-6 rounded-lg border p-3 text-sm">
+                      {inviteError}
                     </div>
                   </motion.div>
                 )}
@@ -840,7 +956,7 @@ function LoginContent() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[var(--foreground)]">
+                    <h1 className="font-heading text-[2.2rem] font-bold leading-[1.1] tracking-tight text-[var(--foreground)]">
                       {t("login.signup.heading")}
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[var(--text-dim)]">

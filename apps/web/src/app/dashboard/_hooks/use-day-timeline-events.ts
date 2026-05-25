@@ -4,7 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
-export type DayEventType = "booking" | "note" | "task" | "deviation" | "checkin" | "checkout";
+export type DayEventType =
+  | "booking"
+  | "note"
+  | "task"
+  | "deviation"
+  | "checkin"
+  | "checkout"
+  | "hook";
 
 export type DayEvent = {
   id: string;
@@ -217,6 +224,62 @@ export function useDayTimelineEvents(args: {
           refId: d.deviation_id,
           source: "deviation",
         });
+      }
+
+      // Session hooks (department-scoped config rows) — surfaced as scheduled
+      // markers on the timeline. `session_hook` is a template table; it has no
+      // per-session FK, so we scope by department_id + workspace_id. Trigger time
+      // is computed from the session's planned_open / planned_close +
+      // trigger_offset_min (positive = after anchor, negative = before close).
+      // hook_type anchor: pre_open/open → planned_open-anchor;
+      //                   pre_close/close/scheduled → planned_close-anchor.
+      if (sessionId && departmentId) {
+        // Fetch the session's planned times so we can compute trigger instants.
+        const { data: sessionRow } = await supabase
+          .from("department_session")
+          .select("planned_open, planned_close")
+          .eq("department_session_id", sessionId)
+          .maybeSingle();
+
+        const { data: hooks } = await supabase
+          .from("session_hook")
+          .select(
+            "id, hook_type, trigger_offset_min, linked_routine_id, linked_procedure_id, is_active",
+          )
+          .eq("workspace_id", wsId!)
+          .eq("department_id", departmentId)
+          .eq("is_active", true);
+
+        for (const h of hooks ?? []) {
+          // Resolve anchor time from session planned times.
+          const isCloseAnchored =
+            h.hook_type === "pre_close" || h.hook_type === "close" || h.hook_type === "scheduled";
+          const anchorStr = isCloseAnchored ? sessionRow?.planned_close : sessionRow?.planned_open;
+
+          // Compute ISO trigger timestamp by applying offset to anchor.
+          let triggerIso: string | null = null;
+          let triggerHhmm = "";
+          if (anchorStr) {
+            const anchor = combineDateTime(dateISO, anchorStr);
+            if (anchor) {
+              const fired = new Date(anchor.getTime() + h.trigger_offset_min * 60 * 1000);
+              triggerIso = fired.toISOString();
+              triggerHhmm = hhmm(fired);
+            }
+          }
+
+          events.push({
+            id: `hook-${h.id}`,
+            type: "hook" as const,
+            time: triggerHhmm || h.hook_type,
+            iso: triggerIso,
+            title: h.hook_type,
+            category: isCloseAnchored ? "Avslutning" : "Åpning",
+            tone: "info",
+            refId: h.id,
+            source: "session_hook",
+          });
+        }
       }
 
       // Check-ins / Check-outs — workspace-wide for the date, optionally

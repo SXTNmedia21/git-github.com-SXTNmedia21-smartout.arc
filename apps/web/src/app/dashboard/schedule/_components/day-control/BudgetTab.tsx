@@ -90,7 +90,7 @@ export function BudgetTab({ dateId }: { dateId: string | null }) {
           <div className="mb-3 flex items-center justify-between">
             <span className="text-muted-foreground text-xs font-bold">Omsetning</span>
             <span
-              className={`flex items-center gap-1 text-xs font-bold ${yoyPositive ? "text-emerald-500" : "text-red-500"}`}
+              className={`flex items-center gap-1 text-xs font-bold ${yoyPositive ? "text-success" : "text-destructive"}`}
             >
               {yoyPositive ? (
                 <TrendingUp className="h-3 w-3" />
@@ -109,7 +109,7 @@ export function BudgetTab({ dateId }: { dateId: string | null }) {
                 <span>{formatNok(budget.revenueTarget)}</span>
               </div>
               <div className="bg-muted/30 h-5 w-full overflow-hidden rounded-lg">
-                <div className="h-full bg-indigo-500 transition-all" style={{ width: "100%" }} />
+                <div className="bg-accent h-full transition-[width]" style={{ width: "100%" }} />
               </div>
             </div>
             <div>
@@ -119,7 +119,7 @@ export function BudgetTab({ dateId }: { dateId: string | null }) {
               </div>
               <div className="bg-muted/30 h-5 w-full overflow-hidden rounded-lg">
                 <div
-                  className="bg-muted-foreground/40 h-full transition-all"
+                  className="bg-muted-foreground/40 h-full transition-[width]"
                   style={{
                     width: `${(budget.lastYearRevenue / budget.revenueTarget) * 100}%`,
                   }}
@@ -141,19 +141,19 @@ export function BudgetTab({ dateId }: { dateId: string | null }) {
               label="Lønn"
               amount={budget.laborTarget}
               pct={Number(laborPct)}
-              color="bg-blue-500"
+              color="bg-info"
             />
             <CostRow
               label="Varekost"
               amount={budget.foodCostTarget}
               pct={Number(foodPct)}
-              color="bg-amber-500"
+              color="bg-warning"
             />
             <CostRow
               label="Margin"
               amount={budget.revenueTarget - budget.laborTarget - budget.foodCostTarget}
               pct={100 - Number(laborPct) - Number(foodPct)}
-              color="bg-emerald-500"
+              color="bg-success"
             />
           </div>
         </div>
@@ -177,7 +177,7 @@ function CostRow({
     <div className="flex items-center gap-3">
       <span className="text-muted-foreground w-20 text-xs font-bold">{label}</span>
       <div className="bg-muted/30 h-3 flex-1 overflow-hidden rounded-full">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${color} transition-[width]`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-foreground w-20 text-right text-xs font-bold">{formatNok(amount)}</span>
       <span className="text-muted-foreground w-10 text-right text-[10px]">{pct.toFixed(0)}%</span>

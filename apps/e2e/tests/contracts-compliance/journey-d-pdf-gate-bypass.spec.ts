@@ -22,7 +22,7 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3060";
 
 // Admin credentials from seed.sql
 const ADMIN_EMAIL = "pontus@smartout.no";
-const ADMIN_PASSWORD = "testpassword123";
+const ADMIN_PASSWORD = "password123";
 const HQ_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 const ADMIN_PROFILE_ID = "f0000000-0000-0000-0000-000000000000";
 
