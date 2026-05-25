@@ -9433,6 +9433,7 @@ export type SmartoutEvent =
   // ─── Payroll Engine Phase 1 (T4.3) ──────────────
   | PayrollPeriodCreated
   | PayrollPeriodLocked
+  | PayrollPeriodApproved
   | PayrollDeviationAcknowledged
   | PayrollDeviationBlockedApproval
   | PayrollManualSupplementAdded
@@ -10497,6 +10498,28 @@ export interface PayrollPeriodLocked extends BaseEvent {
        */
       affected_profile_ids: string[];
       locked_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollPeriodApproved extends BaseEvent {
+  event: "payroll.period_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      period_start: string;
+      period_end: string;
+      profiles_count: number;
+      total_lines: number;
+      /**
+       * Distinct profile_ids affected by the approval. Mirrors period_locked
+       * shape so downstream subscribers (ADR-0319 notify_each_profile) can
+       * fan out N notification_outbox rows on payroll approval.
+       */
+      affected_profile_ids: string[];
+      approved_by_profile_id: string;
       gate_evaluation_id: string | null;
     };
   };
@@ -14386,6 +14409,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "payroll",
   },
   "payroll.period_locked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.period_approved": {
+    // period_approved → engine_event: mirrors period_locked routing.
+    // Downstream subscribers (ADR-0319 notify_each_profile fan-out, payslip
+    // generation orchestration) react to approval terminal-event.
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "payroll",
   },

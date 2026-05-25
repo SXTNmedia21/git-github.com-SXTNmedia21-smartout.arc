@@ -31,6 +31,7 @@ import { usePayrollDeviations } from "../_hooks/use-payroll-deviations";
 import { useWorkspaceFramework, buildFrameworkLabel } from "../_hooks/use-workspace-framework";
 import { useAcknowledgeDeviation } from "../_hooks/use-acknowledge-deviation";
 import { useLockPeriod } from "../_hooks/use-lock-period";
+import { useApprovePeriod } from "../_hooks/use-approve-period";
 import { PeriodHeader } from "./PeriodHeader";
 import { LinesTable } from "./LinesTable";
 import { DeviationList } from "./DeviationList";
@@ -63,6 +64,7 @@ export function PeriodDetailClient({ periodId }: Props) {
   } = usePayrollDeviations(periodId);
   const { mutate: acknowledge, isPending: isAcknowledging } = useAcknowledgeDeviation(periodId);
   const { mutate: lockPeriod, isPending: isLocking } = useLockPeriod(periodId);
+  const { mutate: approvePeriod, isPending: isApproving } = useApprovePeriod(periodId);
   const { data: frameworkInfo } = useWorkspaceFramework(period?.workspace_id ?? "");
 
   if (isPeriodLoading) {
@@ -125,6 +127,27 @@ export function PeriodDetailClient({ periodId }: Props) {
     }
   }
 
+  function handleApprove() {
+    if (!period) return;
+    approvePeriod(
+      { workspaceId: period.workspace_id, periodId },
+      {
+        onSuccess: (result) => {
+          if (result.ok) {
+            toast.success("Perioden er godkjent.");
+          } else if (result.error === "period_not_locked") {
+            toast.error(`Kan ikke godkjenne — perioden er ${result.status ?? "ikke låst"}.`);
+          } else {
+            toast.error(result.error ?? "Godkjenning feilet.");
+          }
+        },
+        onError: (err) => {
+          toast.error((err as Error).message ?? "Godkjenning feilet.");
+        },
+      },
+    );
+  }
+
   function handleLockConfirm() {
     if (!period) return;
     lockPeriod(
@@ -154,8 +177,10 @@ export function PeriodDetailClient({ periodId }: Props) {
         period={period}
         deviationErrors={deviationErrors}
         isRecalculating={isRecalculating}
+        isApproving={isApproving}
         onRecalculate={handleRecalculate}
         onLock={() => setLockModalOpen(true)}
+        onApprove={handleApprove}
       />
 
       {/* "+ Manuelt tillegg" — only visible on open periods (ADR-0133) */}

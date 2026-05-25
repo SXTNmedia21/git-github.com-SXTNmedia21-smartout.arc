@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { ArrowLeft, Lock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, Lock, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,26 +29,34 @@ type Props = {
   period: Period;
   deviationErrors: number;
   isRecalculating: boolean;
+  isApproving?: boolean;
   onRecalculate: () => void;
   onLock: () => void;
+  onApprove?: () => void;
 };
 
 /**
  * Period detail page header.
- * Shows: back link, period date range, status badge, Recalculate + Lock buttons.
- * Lock button is disabled when period is not "open" or has unacked errors.
+ * Shows: back link, period date range, status badge.
+ * Actions by status:
+ *   - open    → Recalculate + Lock
+ *   - locked  → Godkjenn (P0 GAP-SIM-B02; ADR-0099 admin gate via BFF)
+ *   - approved/exported → no actions (terminal states)
  */
 export function PeriodHeader({
   period,
   deviationErrors,
   isRecalculating,
+  isApproving,
   onRecalculate,
   onLock,
+  onApprove,
 }: Props) {
   const startLabel = format(new Date(period.start_date), "d. MMMM", { locale: nb });
   const endLabel = format(new Date(period.end_date), "d. MMMM yyyy", { locale: nb });
 
   const isOpen = period.status === "open";
+  const isLocked = period.status === "locked";
   const canLock = isOpen && deviationErrors === 0;
 
   return (
@@ -76,7 +84,7 @@ export function PeriodHeader({
           )}
         </div>
 
-        {/* Actions — only available on open periods */}
+        {/* Actions — open: Recalculate + Lock. locked: Godkjenn (P0 GAP-SIM-B02). */}
         {isOpen && (
           <div className="flex items-center gap-2">
             <Button
@@ -98,6 +106,20 @@ export function PeriodHeader({
             >
               <Lock className="h-3.5 w-3.5" />
               Lås periode
+            </Button>
+          </div>
+        )}
+        {isLocked && onApprove && (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={onApprove}
+              disabled={isApproving}
+              className="gap-2"
+              title="Godkjenn periode for utbetaling (Bokf §13 — terminal state)"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {isApproving ? "Godkjenner…" : "Godkjenn periode"}
             </Button>
           </div>
         )}
