@@ -1216,6 +1216,36 @@ export interface TaskCancelled extends BaseEvent {
   };
 }
 
+/**
+ * task.session_task_updated — Partial update of a session_task row via the
+ * `task.update_session_task` capability tool (Wave 1 Phase A DnD re-timing).
+ * Logs which fields were actually changed: scheduled_at and/or assigned_to.
+ *
+ * Emitted only when the gate allows + the workspace-scoped row exists +
+ * the update succeeded (L-0177 fail-fast, ADR-0287 gate-mandatory).
+ *
+ * Destinations: posthog (DnD adoption), activity_trail (audit who/what),
+ * engine_event (downstream workflows may react to assignee change e.g. notify).
+ */
+export interface TaskSessionTaskUpdated extends BaseEvent {
+  event: "task.session_task_updated";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "task.update_session_task";
+      reason: string;
+      /** Present when the caller updated the field. ISO-8601. */
+      scheduled_at?: string;
+      /** Present when the caller updated assignment. null = explicit unassign. */
+      assigned_to?: string | null;
+      /** ADR-0356 audit symmetry — capability that initiated the write. */
+      actor_capability?: string;
+      /** ADR-0356 delegation chain (e.g. 'day-line-dnd'). */
+      delegated_via?: string;
+    };
+  };
+}
+
 export interface SessionTaskCreated extends BaseEvent {
   event: "session_task.created";
   properties: {
@@ -8691,6 +8721,36 @@ export interface OppgaverContextPinned extends BaseEvent {
   };
 }
 
+/**
+ * Fired when a manager drag-drops a task to a new time slot on the Gantt
+ * (DnD re-timing, Wave 1b). workspace_id + actor_id come from BaseEvent.
+ *
+ * Destinations: posthog + activity_trail — a write-intent mutation (C4 via
+ * gatedMutation in task capability) that produces a schedule deviation and
+ * should be auditable alongside other manager task-mutation events.
+ *
+ * TODO emit-site added in Wave 1b by TA2 (DnD wiring) — this is a
+ * controlled known gap closing within the same sortie (feat/dayplanner-dnd-and-views).
+ * Not an L-0340 violation: registration and emit-site are intentionally split
+ * across Wave 1a (Track A data layer) and Wave 1b (Track B DnD interaction).
+ */
+export interface OppgaverTaskReTimed extends BaseEvent {
+  event: "oppgaver.task_re_timed";
+  properties: {
+    data: {
+      task_id: string;
+      /** Original scheduled_at — ISO 8601 */
+      from_iso: string;
+      /** New scheduled_at after DnD drop — ISO 8601 */
+      to_iso: string;
+      /** Assignee profile_id before re-timing (null if unassigned) */
+      from_assignee: string | null;
+      /** Assignee profile_id after re-timing (null if unassigned or unchanged) */
+      to_assignee: string | null;
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9512,6 +9572,7 @@ export type SmartoutEvent =
   | TaskCreated
   | TaskCompleted
   | TaskCancelled
+  | TaskSessionTaskUpdated
   // ─── GDPR §13 Retention (ADR-0312, SMA-308) ──────────────────
   | ContractRetentionAnonymizedParagraf13
   | ContractRetentionSkippedNoClock
@@ -9649,7 +9710,9 @@ export type SmartoutEvent =
   | OppgaverAreaFilterChanged
   | OppgaverDateChanged
   | OppgaverTaskFocused
-  | OppgaverContextPinned;
+  | OppgaverContextPinned
+  // ─── Oppgaver Write-surface (P11 DnD re-timing, Wave 1b) ────────────────
+  | OppgaverTaskReTimed;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -15082,6 +15145,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
 
+  // task.session_task_updated: partial update of session_task (DnD re-timing).
+  // Emitted only on successful write (gate-allow + row-found + update-ok).
+  // engine_event: assignee changes may trigger downstream notifications.
+  "task.session_task_updated": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
   // ─── GDPR §13 Retention Events (ADR-0312, SMA-308) ──────────────────────────
   // Emitted via inline INSERT INTO activity_trail in anonymize_contract RPC body
   // (SECURITY DEFINER pattern — auth.uid() is NULL in pg_cron context).
@@ -15758,6 +15829,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "oppgaver.context_pinned": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "oppgaver",
+  },
+  // oppgaver.task_re_timed: posthog + activity_trail — DnD re-timing is a
+  // write-intent mutation (C4 gated) that produces a schedule deviation and
+  // must be auditable alongside other manager task-mutation events (no logger
+  // since activity_trail already provides the audit record).
+  // TODO emit-site added in Wave 1b by TA2 (DnD wiring) — controlled known gap.
+  "oppgaver.task_re_timed": {
+    destinations: ["posthog", "activity_trail"],
     category: "oppgaver",
   },
 };

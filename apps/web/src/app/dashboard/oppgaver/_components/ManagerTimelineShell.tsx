@@ -246,12 +246,30 @@ export function ManagerTimelineShell() {
     return rows.map((t) => ({
       id: t.id,
       title: t.title,
-      // V1: session_task has no scheduled_at on the manager-scope row type.
-      // Display tasks at session_hook anchor when available; otherwise stack
-      // them at 12:00 placeholder. Full time-anchored render lands when the
-      // useSessionTasksForDate row is extended to expose scheduled_at.
-      start: "12:00",
-      end: "13:00",
+      // Wave 1a: read scheduled_at from the extended hook row type.
+      // Tasks WITH scheduled_at: extract HH:mm from the ISO timestamp for start;
+      // compute end as start + 60 min.
+      // TODO duration column — session_task has no duration field yet; 60 min
+      // hardcoded until the schema adds one.
+      // Tasks WITHOUT scheduled_at: fall back to "12:00" / "13:00" placeholder.
+      // TODO TA2 (Wave 1b DnD wiring): add `unscheduled` flag to TimelineTask and
+      // pass it here so TaskBlock can dim unanchored tasks visually.
+      ...(() => {
+        if (t.scheduled_at) {
+          const d = new Date(t.scheduled_at);
+          const hh = d.getHours().toString().padStart(2, "0");
+          const mm = d.getMinutes().toString().padStart(2, "0");
+          const startMin = d.getHours() * 60 + d.getMinutes();
+          const endMin = startMin + 60; // TODO duration column
+          const endHH = Math.floor(endMin / 60)
+            .toString()
+            .padStart(2, "0");
+          const endMM = (endMin % 60).toString().padStart(2, "0");
+          return { start: `${hh}:${mm}`, end: `${endHH}:${endMM}` };
+        }
+        // V1 fallback: no scheduled_at → 12:00 placeholder
+        return { start: "12:00", end: "13:00" };
+      })(),
       status:
         t.status === "completed"
           ? "done"

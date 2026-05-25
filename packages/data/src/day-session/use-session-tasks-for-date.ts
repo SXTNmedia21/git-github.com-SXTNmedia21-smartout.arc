@@ -63,6 +63,11 @@ export type SessionTaskStatus =
  * Flat row returned by the hook — all fields sourced from real DB columns.
  * department_name and department_id are surfaced from the joined
  * department_session so callers can group/sort by area without a second query.
+ *
+ * Wave 1a (feat/dayplanner-dnd-and-views): added `scheduled_at` to support
+ * time-anchored task rendering in ManagerTimelineShell + future DnD re-timing
+ * (TA2, Wave 1b). `assigned_to` was already selected but is now also listed
+ * explicitly in the type docs for DnD assignee-swap telemetry (oppgaver.task_re_timed).
  */
 export type ManagerTimelineTaskRow = {
   /** session_task.id */
@@ -73,7 +78,13 @@ export type ManagerTimelineTaskRow = {
   title: string;
   description: string | null;
   status: SessionTaskStatus;
-  /** FK → profile.profile_id (the assignee) */
+  /**
+   * When the task is scheduled to start (ISO 8601 with timezone).
+   * Null for tasks without a specific time anchor — callers should fall back
+   * to a sensible placeholder (e.g. "12:00") and mark the task visually.
+   */
+  scheduled_at: string | null;
+  /** FK → profile.profile_id (the assignee). Column name is `assigned_to` in DB. */
   assigned_to: string | null;
   completed_by: string | null;
   completed_at: string | null;
@@ -119,6 +130,7 @@ type RawSessionTaskRow = {
   title: string;
   description: string | null;
   status: string;
+  scheduled_at: string | null;
   assigned_to: string | null;
   completed_by: string | null;
   completed_at: string | null;
@@ -153,6 +165,7 @@ async function fetchSessionTasksForDate(
       title,
       description,
       status,
+      scheduled_at,
       assigned_to,
       completed_by,
       completed_at,
@@ -184,6 +197,7 @@ async function fetchSessionTasksForDate(
       title: row.title,
       description: row.description ?? null,
       status: row.status as SessionTaskStatus,
+      scheduled_at: row.scheduled_at ?? null,
       assigned_to: row.assigned_to ?? null,
       completed_by: row.completed_by ?? null,
       completed_at: row.completed_at ?? null,
