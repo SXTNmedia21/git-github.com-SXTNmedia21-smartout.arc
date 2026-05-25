@@ -46,6 +46,7 @@ import {
   createSession,
   createDayAdHoc,
   complete,
+  updateSessionTask,
   cancelPersonal,
 } from "../tools.js";
 import type { AgentToolContext, SessionChannel } from "../../types.js";
@@ -754,5 +755,257 @@ describe("T8 — create_session description + scheduled_at round-trips", () => {
     expect(inserts).toHaveLength(1);
     expect(inserts[0]!.row.description).toBeNull();
     expect(inserts[0]!.row.scheduled_at).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T-DnD — update_session_task (Wave 1 Phase A DnD re-timing)
+//
+// Covers spec contract:
+//   - happy path: scheduled_at + assignee_profile_id round-trip; emit fired
+//   - column-name correctness: payload uses `assigned_to`, NOT `assignee_profile_id`
+//   - L-0177 fail-fast: task row missing (cross-workspace forge) → ok:false not_found
+//   - L-0177 fail-fast: assignee not in workspace → ok:false assignee_not_in_workspace
+//   - ADR-0298 R6: voice channel rejected without touching DB
+//   - emit metadata projects only provided fields (audit symmetry with partial update)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T-DnD — update_session_task", () => {
+  const TASK_ID = "00000000-0000-0000-0000-000000000111";
+  const NEW_ASSIGNEE = "00000000-0000-0000-0000-000000000222";
+  const NEW_SCHEDULED_AT = "2026-06-10T14:00:00.000Z";
+  const EXISTING_ROW = {
+    id: TASK_ID,
+    workspace_id: "ws-test-1",
+    title: "Rydde fryser",
+  };
+
+  it("happy path: updates scheduled_at + assigned_to and emits with right column name", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      tableReads: {
+        session_task: { data: EXISTING_ROW, error: null },
+        profile: { data: { profile_id: NEW_ASSIGNEE }, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      {
+        task_id: TASK_ID,
+        scheduled_at: NEW_SCHEDULED_AT,
+        assignee_profile_id: NEW_ASSIGNEE,
+        reason: "DnD re-timing",
+      },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(true);
+    expect(parsed.id).toBe(TASK_ID);
+
+    // Column-name contract: payload must use `assigned_to` (DB column), never
+    // `assignee_profile_id` (tool param name). Sole-write goes through one update.
+    const sessionUpdate = updates.find((u) => u.table === "session_task");
+    expect(sessionUpdate).toBeDefined();
+    expect(sessionUpdate!.payload).toHaveProperty("assigned_to", NEW_ASSIGNEE);
+    expect(sessionUpdate!.payload).not.toHaveProperty("assignee_profile_id");
+    expect(sessionUpdate!.payload).toHaveProperty("scheduled_at", NEW_SCHEDULED_AT);
+    expect(sessionUpdate!.payload).toHaveProperty("updated_at");
+
+    // Emit shape — uses task.session_task_updated.
+    const calls = emitMock.mock.calls as unknown[][];
+    const updatedCall = calls.find(
+      (args) =>
+        typeof args[0] === "object" &&
+        args[0] !== null &&
+        (args[0] as Record<string, unknown>).event === "task.session_task_updated",
+    );
+    expect(updatedCall).toBeDefined();
+    const emitArg = (updatedCall as unknown[])[0] as Record<string, unknown>;
+    expect(emitArg.workspace_id).toBe("ws-test-1");
+    expect(emitArg.actor_id).toBe("profile-owner-1");
+    const meta = (emitArg.properties as Record<string, unknown>).metadata as Record<
+      string,
+      unknown
+    >;
+    expect(meta.source).toBe("task.update_session_task");
+    expect(meta.reason).toBe("DnD re-timing");
+    expect(meta.scheduled_at).toBe(NEW_SCHEDULED_AT);
+    expect(meta.assigned_to).toBe(NEW_ASSIGNEE);
+  });
+
+  it("scheduled_at only: partial payload omits assigned_to key entirely", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      tableReads: { session_task: { data: EXISTING_ROW, error: null } },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      { task_id: TASK_ID, scheduled_at: NEW_SCHEDULED_AT, reason: "Bare flytt tid" },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(true);
+
+    const sessionUpdate = updates.find((u) => u.table === "session_task");
+    expect(sessionUpdate!.payload).toHaveProperty("scheduled_at", NEW_SCHEDULED_AT);
+    // assigned_to NOT in payload (param undefined → no overwrite).
+    expect(sessionUpdate!.payload).not.toHaveProperty("assigned_to");
+  });
+
+  it("explicit null assignee unassigns the task (assigned_to=null in payload)", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      tableReads: { session_task: { data: EXISTING_ROW, error: null } },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      { task_id: TASK_ID, assignee_profile_id: null, reason: "Fjern tildeling" },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(true);
+
+    const sessionUpdate = updates.find((u) => u.table === "session_task");
+    expect(sessionUpdate!.payload).toHaveProperty("assigned_to", null);
+  });
+
+  it("L-0177 fail-fast: task row not found (cross-workspace forge) → ok:false not_found", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      tableReads: {
+        // maybeSingle returns null → simulates task in another workspace OR deleted.
+        session_task: { data: null, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      { task_id: TASK_ID, scheduled_at: NEW_SCHEDULED_AT, reason: "Test" },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("not_found");
+
+    // Fail-fast contract: NO update issued when row not found.
+    expect(updates.filter((u) => u.table === "session_task")).toHaveLength(0);
+  });
+
+  it("L-0177 fail-fast: assignee in other workspace → ok:false assignee_not_in_workspace", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      tableReads: {
+        session_task: { data: EXISTING_ROW, error: null },
+        // profile lookup returns null → assignee not a workspace member.
+        profile: { data: null, error: null },
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      {
+        task_id: TASK_ID,
+        assignee_profile_id: NEW_ASSIGNEE,
+        reason: "Forsøk på cross-workspace",
+      },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("assignee_not_in_workspace");
+
+    // Fail-fast contract: NO update issued when assignee invalid.
+    expect(updates.filter((u) => u.table === "session_task")).toHaveLength(0);
+  });
+
+  it("voice channel rejected (ADR-0298 R6 chat-only V1) without touching gate or DB", async () => {
+    const rpcCaptures: string[] = [];
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      rpcHandler: (fn) => {
+        rpcCaptures.push(fn);
+        return { data: DEFAULT_GATE_ALLOW, error: null };
+      },
+    });
+
+    const ctx = makeCtx({ channel: "voice", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      { task_id: TASK_ID, scheduled_at: NEW_SCHEDULED_AT, reason: "Test" },
+      ctx,
+    );
+
+    expect(rpcCaptures).not.toContain("gate_action");
+    expect(updates).toHaveLength(0);
+    expect(out).toMatch(/chat/i);
+    expect(out).not.toContain("{"); // plain Norwegian string, not JSON
+  });
+
+  it("gate deny: employee role rejected → ok:false, no DB update", async () => {
+    const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+    const sb = makeSupabase({
+      capturedUpdates: updates,
+      rpcHandler: (fn) => {
+        if (fn === "gate_action") return { data: GATE_DENY, error: null };
+        return { data: null, error: null };
+      },
+    });
+
+    const ctx = makeCtx({ channel: "chat", supabaseAdmin: sb });
+    const out = await updateSessionTask.execute(
+      { task_id: TASK_ID, scheduled_at: NEW_SCHEDULED_AT, reason: "Test" },
+      ctx,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toMatch(/ikke_tillatt|role_below_minimum/i);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("strict schema: rejects unknown body field (e.g. workspace_id forge)", () => {
+    const params = {
+      task_id: TASK_ID,
+      workspace_id: "ws-forged",
+      reason: "Test",
+    } as Record<string, unknown>;
+    const result = updateSessionTask.schema.safeParse(params);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const codes = result.error.errors.map((e) => e.code);
+      expect(codes).toContain("unrecognized_keys");
+      const unrecognised = result.error.errors.find((e) => e.code === "unrecognized_keys");
+      expect((unrecognised as unknown as { keys: string[] }).keys).toContain("workspace_id");
+    }
+  });
+
+  it("strict schema: rejects assigned_to forge (body must not supply DB column)", () => {
+    // The tool exposes `assignee_profile_id` as the param surface and maps it to
+    // `assigned_to` server-side. A caller forging `assigned_to` directly must be
+    // rejected by .strict().
+    const params = {
+      task_id: TASK_ID,
+      assigned_to: "p-forged",
+      reason: "Test",
+    } as Record<string, unknown>;
+    const result = updateSessionTask.schema.safeParse(params);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const codes = result.error.errors.map((e) => e.code);
+      expect(codes).toContain("unrecognized_keys");
+    }
   });
 });

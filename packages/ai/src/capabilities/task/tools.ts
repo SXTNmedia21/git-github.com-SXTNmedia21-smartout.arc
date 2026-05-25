@@ -1,18 +1,19 @@
 /**
- * Task capability tools — ADR-0298 Sortie 3.
+ * Task capability tools — ADR-0298 Sortie 3 (+ Wave 1 Phase A DnD re-timing).
  *
- * Six tools unifying five task sources (session_task, personal_task, schedule_day_task,
+ * Seven tools unifying five task sources (session_task, personal_task, schedule_day_task,
  * emma_task, engine_state_step) behind a single capability surface.
  *
  * Read surface:
- *   list_mine        — fn_list_my_tasks RPC (4-source UNION); chat + voice
+ *   list_mine             — fn_list_my_tasks RPC (4-source UNION); chat + voice
  *
  * Write surface (source-dispatched):
- *   create_personal  — personal_task (self, employee+); chat-only V1 (ADR-0298 R6)
- *   create_session   — session_task via BFF (manager+, assignee-verified); chat-only V1
- *   create_day_ad_hoc— schedule_day_task (manager+, date-anchored); chat-only V1
- *   complete         — source-dispatched to correct table/endpoint; chat + voice
- *   cancel_personal  — personal_task cancel (self-only, irreversible); chat-only V1
+ *   create_personal       — personal_task (self, employee+); chat-only V1 (ADR-0298 R6)
+ *   create_session        — session_task via BFF (manager+, assignee-verified); chat-only V1
+ *   create_day_ad_hoc     — schedule_day_task (manager+, date-anchored); chat-only V1
+ *   complete              — source-dispatched to correct table/endpoint; chat + voice
+ *   update_session_task   — partial update scheduled_at/assigned_to (manager+); chat-only V1
+ *   cancel_personal       — personal_task cancel (self-only, irreversible); chat-only V1
  *
  * Authority model (ADR-0298 §Authority + ADR-0287 gate_action mandatory):
  *   list_mine        — ungated read
@@ -953,7 +954,158 @@ export const complete = defineTool({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tool 6 — task.cancel_personal
+// Tool 6 — task.update_session_task
+// Channels: CHAT-ONLY (ADR-0298 R6 — mutation; mirrors create_session)
+// Gate: task.update_session_task, suggest, manager+ (capability-level seed)
+// Writes to: session_task (partial update of scheduled_at + assigned_to)
+//
+// Purpose: enable DnD task re-timing on /dashboard/oppgaver (Wave 1 Phase A).
+// Server-side identity per ADR-0151 — no workspace_id / profile_id / assigned_to
+// accepted as a top-level body field (assigned_to is mapped from assignee_profile_id).
+// Fail-fast on row-not-found per L-0177 — no silent fallback. Workspace-scoped
+// row lookup confirms cross-workspace forge attempts return not_found.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const updateSessionTask = defineTool({
+  name: "update_session_task",
+  description:
+    "Oppdater tidspunkt eller mottaker på en eksisterende sesjonsoppgave. " +
+    "Bruk når en leder sier 'flytt oppgaven til 14:00', 'gi oppgaven til Anna istedenfor', " +
+    "'utsett oppgaven', 'endre tidspunkt på X'. " +
+    "Brukes også internt av drag-and-drop på dagsplanen for å re-time eller re-tildele oppgaver. " +
+    "Krever manager+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Partial update: oppdaterer kun felter som sendes inn. " +
+    "Sett assignee_profile_id=null for å fjerne tildeling.",
+  capability: CAPABILITY,
+  schema: z
+    .object({
+      task_id: UUIDSchema.describe("UUID for sesjonsoppgaven som skal oppdateres."),
+      scheduled_at: z
+        .string()
+        .datetime()
+        .optional()
+        .describe("Nytt ISO-8601 tidspunkt for oppgaven (f.eks. ved drag-and-drop)."),
+      assignee_profile_id: UUIDSchema.nullable()
+        .optional()
+        .describe(
+          "UUID for ny mottaker, eller null for å fjerne tildeling. " +
+            "Workspace-tilhørighet verifiseres fail-fast (L-0177).",
+        ),
+      reason: ReasonSchema.describe(
+        "Hvorfor oppgaven oppdateres — logges til aktivitetsspor (audit-trail).",
+      ),
+      actor_capability: z
+        .string()
+        .optional()
+        .describe(
+          "Hvilken capability som initierer dette skriveriet (ADR-0356 audit symmetry). " +
+            "Settes f.eks. til 'day-line' ved DnD-flytting.",
+        ),
+      delegated_via: z
+        .string()
+        .optional()
+        .describe(
+          "Delegasjonskjeden, f.eks. 'day-line-dnd' (ADR-0356 audit symmetry).",
+        ),
+    })
+    .strict(),
+  execute: async (params, ctx: AgentToolContext) => {
+    // Channel guard (ADR-0298 R6): chat-only V1 — mutation tools mirror create_session.
+    const channel = normaliseChannel(ctx.channel);
+    if (channel === "voice") {
+      return "Av sikkerhetshensyn kan sesjonsoppgaver bare oppdateres i chat, ikke via stemme (V1-policy).";
+    }
+
+    const supabase = ctx.supabaseAdmin as SupabaseClient;
+
+    // C4 authority gate (ADR-0099 / ADR-0287 — mandatory before any mutation).
+    const gate = await gateTaskAction(supabase, ctx.workspaceId, ctx.profileId, {
+      actionType: `${CAPABILITY}.update_session_task`,
+      channel,
+      entityId: params.task_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({ ok: false, error: gate.reason ?? "ikke_tillatt" });
+    }
+
+    // Workspace-scoped lookup — never trust client task_id (ADR-0151).
+    // maybeSingle returns null on not-found; fail-fast per L-0177 (no JWT fallback).
+    const { data: existing } = await supabase
+      .from("session_task")
+      .select("id, workspace_id, title")
+      .eq("id", params.task_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (!existing) {
+      return JSON.stringify({ ok: false, error: "not_found" });
+    }
+
+    // Validate new assignee (when non-null) — fail-fast workspace-membership check.
+    // Distinguish "missing" (undefined) from "explicit unassign" (null).
+    if (params.assignee_profile_id !== undefined && params.assignee_profile_id !== null) {
+      const isMember = await resolveAssigneeWorkspaceMembership(
+        supabase,
+        params.assignee_profile_id,
+        ctx.workspaceId,
+      );
+      if (!isMember) {
+        return JSON.stringify({ ok: false, error: "assignee_not_in_workspace" });
+      }
+    }
+
+    // Build partial update — only include keys the caller actually sent.
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (params.scheduled_at !== undefined) {
+      updatePayload.scheduled_at = params.scheduled_at;
+    }
+    if (params.assignee_profile_id !== undefined) {
+      updatePayload.assigned_to = params.assignee_profile_id; // null permitted (unassign)
+    }
+
+    const { error: updateError } = await supabase
+      .from("session_task")
+      .update(updatePayload)
+      .eq("id", params.task_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (updateError) {
+      return JSON.stringify({ ok: false, error: updateError.message });
+    }
+
+    await emit({
+      event: "task.session_task_updated",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "session_task",
+          entity_id: params.task_id,
+          entity_label: existing.title,
+        },
+        metadata: {
+          source: "task.update_session_task",
+          reason: params.reason,
+          // Only project provided fields into telemetry payload — keep audit symmetric
+          // with the partial update (do not log nulls we did not write).
+          ...(params.scheduled_at !== undefined && { scheduled_at: params.scheduled_at }),
+          ...(params.assignee_profile_id !== undefined && {
+            assigned_to: params.assignee_profile_id,
+          }),
+          ...(params.actor_capability && { actor_capability: params.actor_capability }),
+          ...(params.delegated_via && { delegated_via: params.delegated_via }),
+        },
+      },
+    });
+
+    return JSON.stringify({ ok: true, id: params.task_id });
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool 7 — task.cancel_personal
 // Channels: CHAT-ONLY (ADR-0298 R6 — irreversible action + reason PII risk V1)
 // Gate: task.cancel_personal, suggest, self-only
 // Writes to: personal_task (status=cancelled, irreversible)

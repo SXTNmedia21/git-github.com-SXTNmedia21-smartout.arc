@@ -37,12 +37,20 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useDayLinesForDate, useSessionTasksForDate, useRolesForPositions } from "@smartout/data";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  useDayLinesForDate,
+  useSessionTasksForDate,
+  useRolesForPositions,
+  sessionTaskKeys,
+} from "@smartout/data";
 import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { completeSessionTaskAction } from "@/app/dashboard/_actions/complete-session-task-action";
+import { updateTaskScheduledAtAction } from "@/app/dashboard/_actions/update-task-scheduled-at";
 import { OppgaverToolsBridge } from "../_tools/oppgaver-tools-bridge";
 import { TimelineTopBar } from "./TimelineTopBar";
 import { TimelineToolbar } from "./TimelineToolbar";
@@ -51,6 +59,8 @@ import { ManagerTimelineChart } from "../_chart/ManagerTimelineChart";
 import type { Band } from "../_chart/AreaBand";
 import type { Employee } from "../_chart/PersonLane";
 import type { TimelineTask } from "../_chart/TaskBlock";
+import type { DragDropResult } from "../_chart/useDragRetiming";
+import type { ManagerTimelineTaskRow } from "@smartout/data";
 
 type ViewMode = "area" | "role" | "person";
 
@@ -83,6 +93,7 @@ export function ManagerTimelineShell() {
   const wsCtx = useWorkspaceOptional();
   const workspaceId = wsCtx?.workspace.workspace_id ?? null;
   const { profileId } = useContext(DashboardContext);
+  const queryClient = useQueryClient();
 
   const [dateISO, setDateISOState] = useState<string>(todayISO());
   const [viewMode, setViewModeState] = useState<ViewMode>("area");
@@ -92,6 +103,8 @@ export function ManagerTimelineShell() {
   const [zoom, setZoom] = useState<number>(48); // pxPerHour
   // Track focused task for oppgaver.task_focused emit + TaskEditModal (Phase 6 modal).
   const [selectedTask, setSelectedTask] = useState<TimelineTask | null>(null);
+  // editModalMode: "view" = view-only panel; "edit" = re-timing form (keyboard a11y fallback)
+  const [editModalMode, setEditModalMode] = useState<boolean>(false);
 
   // Stable ref for prev values used in from/to payloads.
   const prevDateRef = useRef<string>(dateISO);
@@ -204,9 +217,10 @@ export function ManagerTimelineShell() {
     [workspaceId, profileId],
   );
 
-  /** focusTask — opens TaskEditModal + emits oppgaver.task_focused. */
+  /** focusTask — opens TaskEditModal in view mode + emits oppgaver.task_focused. */
   const handleFocusTask = useCallback(
     (task: TimelineTask) => {
+      setEditModalMode(false);
       setSelectedTask(task);
       // L-0177: skip emit if either id is missing/empty.
       if (!workspaceId || !profileId) return; // L-0177
@@ -246,12 +260,30 @@ export function ManagerTimelineShell() {
     return rows.map((t) => ({
       id: t.id,
       title: t.title,
-      // V1: session_task has no scheduled_at on the manager-scope row type.
-      // Display tasks at session_hook anchor when available; otherwise stack
-      // them at 12:00 placeholder. Full time-anchored render lands when the
-      // useSessionTasksForDate row is extended to expose scheduled_at.
-      start: "12:00",
-      end: "13:00",
+      // Wave 1a: read scheduled_at from the extended hook row type.
+      // Tasks WITH scheduled_at: extract HH:mm from the ISO timestamp for start;
+      // compute end as start + 60 min.
+      // TODO duration column — session_task has no duration field yet; 60 min
+      // hardcoded until the schema adds one.
+      // Tasks WITHOUT scheduled_at: fall back to "12:00" / "13:00" placeholder.
+      // TODO TA2 (Wave 1b DnD wiring): add `unscheduled` flag to TimelineTask and
+      // pass it here so TaskBlock can dim unanchored tasks visually.
+      ...(() => {
+        if (t.scheduled_at) {
+          const d = new Date(t.scheduled_at);
+          const hh = d.getHours().toString().padStart(2, "0");
+          const mm = d.getMinutes().toString().padStart(2, "0");
+          const startMin = d.getHours() * 60 + d.getMinutes();
+          const endMin = startMin + 60; // TODO duration column
+          const endHH = Math.floor(endMin / 60)
+            .toString()
+            .padStart(2, "0");
+          const endMM = (endMin % 60).toString().padStart(2, "0");
+          return { start: `${hh}:${mm}`, end: `${endHH}:${endMM}` };
+        }
+        // V1 fallback: no scheduled_at → 12:00 placeholder
+        return { start: "12:00", end: "13:00" };
+      })(),
       status:
         t.status === "completed"
           ? "done"
@@ -298,6 +330,52 @@ export function ManagerTimelineShell() {
   const areas = bands.map((b) => ({ id: b.id, label: b.name }));
   const managerName = wsCtx?.workspace.name ?? "—";
   const deviationsCount = tasks.filter((t) => t.status === "missed").length;
+
+  // handleTaskDrop — DnD drop handler (Wave 1 Phase A.4).
+  // 1. Optimistic: update TanStack Query cache immediately so the chart re-renders.
+  // 2. Dispatch updateTaskScheduledAtAction (server action → capability tool).
+  // 3. On error: revert optimistic update, show sonner toast.
+  // 4. On success: invalidate to re-fetch authoritative data.
+  const handleTaskDrop = useCallback(
+    async (_empId: string | null, result: DragDropResult) => {
+      if (!workspaceId) return;
+
+      const queryKey = sessionTaskKeys.forDate(workspaceId, dateISO);
+
+      // Optimistic update
+      queryClient.setQueryData<ManagerTimelineTaskRow[]>(queryKey, (prev) => {
+        if (!prev) return prev;
+        return prev.map((row) => {
+          if (row.id !== result.taskId) return row;
+          return {
+            ...row,
+            scheduled_at: result.newScheduledAt,
+            assigned_to: result.newAssignee ?? row.assigned_to,
+          };
+        });
+      });
+
+      // Dispatch server action
+      const res = await updateTaskScheduledAtAction({
+        task_id: result.taskId,
+        scheduled_at: result.newScheduledAt,
+        assignee_profile_id: result.newAssignee,
+        fromIso: result.fromIso,
+        fromAssignee: result.fromAssignee,
+      });
+
+      if (!res.ok) {
+        // Revert: invalidate so cache re-fetches authoritative state
+        await queryClient.invalidateQueries({ queryKey });
+        toast.error(res.reason ?? "Kunne ikke flytte oppgaven.");
+        return;
+      }
+
+      // Success: re-fetch authoritative data
+      await queryClient.invalidateQueries({ queryKey });
+    },
+    [workspaceId, dateISO, queryClient],
+  );
 
   // handleComplete — delegates to completeSessionTaskAction.
   // actor is derived from profileId + workspaceId resolved at call time (L-0177 fail-fast).
@@ -346,8 +424,20 @@ export function ManagerTimelineShell() {
       />
       <TaskEditModal
         task={selectedTask}
-        onClose={() => setSelectedTask(null)}
+        onClose={() => {
+          setSelectedTask(null);
+          setEditModalMode(false);
+        }}
         onComplete={handleComplete}
+        editMode={editModalMode}
+        dateISO={dateISO}
+        onTaskUpdated={() => {
+          if (workspaceId) {
+            void queryClient.invalidateQueries({
+              queryKey: sessionTaskKeys.forDate(workspaceId, dateISO),
+            });
+          }
+        }}
       />
       <div
         className="bg-background grid h-[100dvh] grid-rows-[60px_52px_1fr] overflow-hidden"
@@ -384,6 +474,12 @@ export function ManagerTimelineShell() {
           nowMinutes={nowMinutes()}
           dimmedBandIds={dimmedBandIds}
           onTaskClick={handleFocusTask}
+          onTaskDrop={handleTaskDrop}
+          dateISO={dateISO}
+          onKeyboardEdit={(task) => {
+            setEditModalMode(true);
+            setSelectedTask(task);
+          }}
         />
       </div>
     </>

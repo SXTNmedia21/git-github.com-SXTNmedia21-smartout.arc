@@ -1,8 +1,9 @@
 /**
- * Task capability definition — ADR-0298 Sortie 3.
+ * Task capability definition — ADR-0298 Sortie 3 (+ Wave 1 Phase A DnD re-timing).
  *
- * Six tools unifying the five-source task ontology (ADR-0298 R1):
- *   list_mine, create_personal, create_session, create_day_ad_hoc, complete, cancel_personal.
+ * Seven tools unifying the five-source task ontology (ADR-0298 R1):
+ *   list_mine, create_personal, create_session, create_day_ad_hoc, complete,
+ *   update_session_task, cancel_personal.
  *
  * Authority: defaultAuthority="suggest" (seeded by migration 20260607100000_task_capability_authority_seed.sql).
  *   Mutations require user confirmation at suggest level.
@@ -34,6 +35,7 @@ import {
   createSession,
   createDayAdHoc,
   complete,
+  updateSessionTask,
   cancelPersonal,
 } from "./tools.js";
 
@@ -44,6 +46,7 @@ const suggestTools = [
   createSession,
   createDayAdHoc,
   complete,
+  updateSessionTask,
   cancelPersonal,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
