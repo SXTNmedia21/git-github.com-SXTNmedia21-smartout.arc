@@ -26,6 +26,7 @@ import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { usePunch } from "@/hooks/mutations/use-punch";
 import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
+import { useShiftClockConfig } from "@/hooks/queries/use-shift-clock-config";
 import { enqueue } from "@/lib/sync/queue";
 import type { TimeEntry } from "@/types/time-entry";
 import { useSupplements } from "@/hooks/shift-clock/useSupplements";
@@ -74,6 +75,15 @@ export function ShiftClockView() {
   // string fallback is forbidden by ADR-0134 / L-0083.
   const shiftId = activeShift?.schedule_shift_id ?? null;
   const workspaceId = profile?.workspace_id ?? null;
+
+  // Fetch workspace GPS + clock config for geofence enforcement on punch-in.
+  // Cascading resolution: team > department > workspace (most specific wins).
+  // team_id requires department_id — pass both when available.
+  // Null workspace_id disables the query.
+  const departmentId = activeShift?.department_id ?? undefined;
+  const teamId = activeShift?.team_id ?? undefined;
+  const { data: clockConfig } = useShiftClockConfig(workspaceId, departmentId, teamId);
+
   const {
     options: supplementOptions,
     claims: supplementClaims,
@@ -108,9 +118,19 @@ export function ShiftClockView() {
   /* ---- Punch-in handler for PunchAnimation ---- */
   const handlePunchIn = useCallback(async () => {
     if (!shiftForPunch) return { allowed: false, warnings: [] };
-    await punchIn(shiftForPunch.schedule_shift_id);
+
+    try {
+      // Pass GPS config so punchIn can enforce the geofence before enqueuing.
+      // clockConfig null = no config row found = GPS not required for this workspace.
+      await punchIn(shiftForPunch.schedule_shift_id, clockConfig?.gpsConfig ?? null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Kunne ikke stemple inn. Prøv igjen.";
+      Alert.alert("Stempling avvist", message);
+      return { allowed: false, warnings: [] };
+    }
+
     return { allowed: true, warnings: [] };
-  }, [punchIn, shiftForPunch]);
+  }, [punchIn, shiftForPunch, clockConfig]);
 
   /* ---- Called after PunchAnimation success completes ---- */
   const handlePunchComplete = useCallback(() => {

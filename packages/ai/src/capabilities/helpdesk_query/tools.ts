@@ -159,7 +159,12 @@ export const openTicket = defineTool({
     //    state context (summary, desk_channel_id, requester_profile_id,
     //    assignee_profile_id). engine-event.ts promotes entity_type/entity_id
     //    and assignee_id to the top of the dispatch payload.
-    const emitTimestamp = new Date().toISOString();
+    // Capture timestamp BEFORE emit so the poll window (.gte started_at)
+    // is guaranteed to include the spawned engine_state row even when the
+    // dispatcher completes synchronously before new Date() is evaluated.
+    // 50 ms back-offset ensures clock skew / same-millisecond completion
+    // never causes the row to fall below the floor.  BUG-SIM-13 fix.
+    const emitTimestamp = new Date(Date.now() - 50).toISOString();
     await emit({
       event: "helpdesk.query.opened",
       workspace_id: ctx.workspaceId,
