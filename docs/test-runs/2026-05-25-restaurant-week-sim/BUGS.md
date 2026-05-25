@@ -65,7 +65,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** CRITICAL
 - **Fixed in:** feat/helpdesk-rewire-openticket (see git log). `use-help-requests.ts` rewired to `openPrivateTicket` Server Action; reads from `engine_state`; telemetry + gate_action now correct.
 
-### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH
+### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH — ✅ FIXED in commit 668d13bf9
 
 - **Where:** `apps/web/src/app/dashboard/schedule/_components/batch-action-bar.tsx:39-50`
 - **Evidence:** A2 / BUG-A2-1 — calls `publishShifts.mutate(draftIds)` directly. Skips `PublishOverviewDialog` → `usePublishValidation` → `evaluateFrameworkRules`. The proper dialog path in `page.tsx:750-774` uses `setOnPublishAll`.
@@ -161,7 +161,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (UX semantic mismatch + functional miss)
 - **Fix:** Add `on_shift` audience kind that queries `schedule_shift` for a configurable window; keep `on_duty` as currently-clocked-in subset. Update audience picker UI + `AudienceKind` union + tool schema.
 
-### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM
+### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM — ✅ FIXED in commit bac824b6f
 
 - **Where:** `apps/web/src/app/platform-admin/billing/invoices/_components/ad-hoc-invoice-drawer.tsx:120-130`
 - **Evidence:** A5 / GAP-A5-08 — `canSubmit` checks description/quantity/unit_price/vat_rate; never compares `periodFrom`/`periodTo`. Pontus can create an invoice with reversed period.
@@ -169,7 +169,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (legal compliance)
 - **Fix:** Add `periodFrom <= periodTo` predicate to `canSubmit`; mirror in `CreateAdHocInvoiceInputSchema` (Zod refine).
 
-### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM
+### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM — ✅ FIXED in commit eea18b9e7
 
 - **Where:** `apps/mobile/src/components/home/AfterShiftView.tsx:51,128`; `apps/mobile/src/components/home/DuringShiftView.v2.tsx:62,160`
 - **Evidence:** A3 / NEW-GAP-D — `HOURLY_RATE_FALLBACK = 220` used unconditionally. No query to `employee_payroll_profile.hourly_rate` or `tariff_rate_table`.
@@ -217,7 +217,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fix:** Cascade scheduling engine must expand multi-day events to the full date range when computing day_factor.
 
-### BUG-SIM-25 — `approve_tip_pool` raises `workspace_mismatch` for inactive actors (misleading error class) 🟢 LOW
+### BUG-SIM-25 — `approve_tip_pool` raises `workspace_mismatch` for inactive actors (misleading error class) 🟢 LOW — ⏸ DEFERRED migration-only (see ec356140d)
 
 - **Where:** `supabase/migrations/20260429010000_approve_tip_pool_rpc.sql:66-75`
 - **Evidence:** A8 / BUG-A8-01 — `NOT FOUND` on the workspace check fires when actor's profile row is `is_active = false`, not on actual workspace mismatch. Error message misleads operator.
@@ -233,7 +233,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (hotel vertical)
 - **Fix:** Drop UNIQUE in favor of `(workspace_id, department_id, session_date, service_window)` where `service_window` is a discriminator (`breakfast` | `dinner` | `event` | etc.) OR introduce `event_session` as a sibling to `department_session`.
 
-### BUG-SIM-27 — Schedule temporal lock function uses `v_local_now::date` → traps 02:00–02:30 post-midnight checkouts 🟠 HIGH
+### BUG-SIM-27 — Schedule temporal lock function uses `v_local_now::date` → traps 02:00–02:30 post-midnight checkouts 🟠 HIGH — ⏸ DEFERRED migration-only (see ec356140d)
 
 - **Where:** `supabase/migrations/20260428130000_schedule_shift_temporal_lock.sql:43`
 - **Evidence:** A7 / GAP-4 — `RETURN p_shift_date < v_local_now::date OR v_shift_start_local <= v_local_now;` — date rolls at midnight Oslo. Any shift with `shift_date = N` that runs past midnight cannot be approved at 02:30 (now date N+1).
