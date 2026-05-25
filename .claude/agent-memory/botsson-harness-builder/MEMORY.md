@@ -8,6 +8,8 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 ## Phase progress
 
+- [Sortie F Phase 2-B 2026-05-25](sortie-f-phase-2b.md) — EF thin proxy handler. 19/19 tests. PR #482. Brace-depth caseBody trap: regex literals + comments with unbalanced `}` break source-parse tests — use \\x7b/\\x7d hex escapes + brace-free comments.
+- [Sortie F Phase 2-A 2026-05-25](sortie-f-phase-2a.md) — invoke_capability_tool endpoint. 9/9 tests. PR #481. ADR-0424 body contradiction flagged (gate_evaluation_id optional in body, always returned).
 - [BT1 day-line caps + server actions 2026-05-18](bt1-day-line-caps.md) — 4 tools + gate + 4 server actions. 12/12 tests. Migration 20260620120900. PR #408. Push via HUSKY=0 (WSL2 OOM on web typecheck).
 - [calendar perf polish 2026-05-18](calendar-perf-polish.md) — wsParam path parallelized; callbacks+motion memoized. Real bottleneck=Supabase auth.getUser()~123ms, irreducible. Commits f3e2a7bc7+15c1b530e.
 - [BT3 triggers + cleanup 2026-05-18](bt3-triggers-cleanup.md) — ensure_shift_session + back_populate triggers. vitest fix: createServiceClient() at module scope crashes; use describe.skipIf(!HAS_SUPABASE_ENV) + lazy sb. PR #405.
