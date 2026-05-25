@@ -73,13 +73,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH
 - **Fix:** Route `handlePublishAll` through the gated `PublishOverviewDialog` (same path as `DashboardShell`'s `onPublishAll`).
 
-### BUG-SIM-07 — `absence-popover` writes `new Date().toISOString()` (TIMESTAMPTZ) into `DATE` columns → off-by-one after 22:00 UTC 🟠 HIGH
+### BUG-SIM-07 — `absence-popover` writes `new Date().toISOString()` (TIMESTAMPTZ) into `DATE` columns → off-by-one after 22:00 UTC 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/schedule/_components/absence-popover.tsx:62-70`
 - **Evidence:** A2 / BUG-A2-2 — `nowStr` passed to `createAbsence.mutate()` as `startDate`+`endDate`. Mapper writes to `schedule_absence.start_date`/`end_date` (`DATE NOT NULL`, `20260301600003_schedule_persistence_tables.sql:48-49`). Postgres coerces in UTC — sick-call at 00:30 Oslo (22:30 UTC) lands on yesterday.
 - **Impact:** Absence date wrong-day for any registration after ~22:00 Oslo. Disappears from the correct week grid; SLA + payroll read wrong date.
 - **Severity:** HIGH
 - **Fix:** Replace `nowStr` with `absencePopover.dateId` for both start and end.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-07). dateId uses Date.getFullYear/Month/Date local methods → already YYYY-MM-DD in user timezone.
 
 ### BUG-SIM-08 — `getShiftColleagues` uses wrong PK column (`id` not `schedule_shift_id`) — always returns `shift_not_found` 🟠 HIGH
 
