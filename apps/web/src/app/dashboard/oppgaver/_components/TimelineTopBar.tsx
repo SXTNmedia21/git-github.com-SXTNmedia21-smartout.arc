@@ -43,13 +43,13 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
       {/* ── LEFT: brand + utility icons ─────────────────────────── */}
       <div className="flex items-center gap-3">
         <span className="font-heading text-foreground text-xl leading-none select-none">
-          {t("oppgaver.brand")}
+          {t("brand")}
         </span>
 
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("oppgaver.search_aria")}
+          aria-label={t("search_aria")}
           className="text-muted-foreground hover:text-foreground h-8 w-8"
         >
           <Search className="h-4 w-4" aria-hidden="true" />
@@ -58,7 +58,7 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("oppgaver.notifications_aria")}
+          aria-label={t("notifications_aria")}
           className="text-muted-foreground hover:text-foreground h-8 w-8"
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
@@ -67,7 +67,7 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("oppgaver.voice_aria")}
+          aria-label={t("voice_aria")}
           className="text-muted-foreground hover:text-foreground h-8 w-8"
         >
           <Mic className="h-4 w-4" aria-hidden="true" />
@@ -79,7 +79,7 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("oppgaver.prev_day_aria")}
+          aria-label={t("prev_day_aria")}
           onClick={onPrevDay}
           className="text-muted-foreground hover:text-foreground h-8 w-8"
         >
@@ -96,7 +96,7 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("oppgaver.next_day_aria")}
+          aria-label={t("next_day_aria")}
           onClick={onNextDay}
           className="text-muted-foreground hover:text-foreground h-8 w-8"
         >
@@ -114,13 +114,8 @@ export function TimelineTopBar({ dateISO, dateLabel, managerName, onPrevDay, onN
          * Lukk-dagen is disabled in V1.
          * Wire action + C4 gate in a future sortie when Day-close flow is spec'd.
          */}
-        <Button
-          variant="default"
-          disabled
-          aria-label={t("oppgaver.lukk_dagen")}
-          className="h-8 text-sm"
-        >
-          {t("oppgaver.lukk_dagen")}
+        <Button variant="default" disabled aria-label={t("lukk_dagen")} className="h-8 text-sm">
+          {t("lukk_dagen")}
         </Button>
       </div>
     </header>

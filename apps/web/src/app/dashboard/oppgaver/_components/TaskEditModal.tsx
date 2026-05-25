@@ -192,14 +192,14 @@ export function TaskEditModal({
     >
       <SheetContent
         side="right"
-        aria-label={t("oppgaver.task_modal.close_aria")}
+        aria-label={t("task_modal.close_aria")}
         className="bg-card flex flex-col gap-0 p-0"
       >
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <SheetHeader className="border-border border-b px-6 py-4">
           <div className="flex items-start justify-between gap-3">
             <SheetTitle className="font-heading text-foreground text-xl leading-snug">
-              {t_ ? task.title : t("oppgaver.task_modal.title")}
+              {t_ ? task.title : t("task_modal.title")}
             </SheetTitle>
             <div className="mt-0.5 flex shrink-0 items-center gap-1.5">
               {editMode && (
@@ -213,7 +213,7 @@ export function TaskEditModal({
               </Badge>
             </div>
           </div>
-          <SheetDescription className="sr-only">{t("oppgaver.task_modal.title")}</SheetDescription>
+          <SheetDescription className="sr-only">{t("task_modal.title")}</SheetDescription>
         </SheetHeader>
 
         {/* ── Body ───────────────────────────────────────────────────────── */}
@@ -226,7 +226,7 @@ export function TaskEditModal({
                   htmlFor="edit-time"
                   className="text-muted-foreground text-xs tracking-wide uppercase"
                 >
-                  {t("oppgaver.task_modal.edit_time_label")}
+                  {t("task_modal.edit_time_label")}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Clock
@@ -252,7 +252,7 @@ export function TaskEditModal({
                   htmlFor="edit-assignee"
                   className="text-muted-foreground text-xs tracking-wide uppercase"
                 >
-                  {t("oppgaver.task_modal.edit_assignee_label")}
+                  {t("task_modal.edit_assignee_label")}
                 </Label>
                 <div className="flex items-center gap-2">
                   <User className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -273,7 +273,7 @@ export function TaskEditModal({
               {/* Time range */}
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs tracking-wide uppercase">
-                  {t("oppgaver.task_modal.time_range")}
+                  {t("task_modal.time_range")}
                 </span>
                 <div className="text-foreground flex items-center gap-1.5 font-mono text-sm">
                   <Clock
@@ -289,7 +289,7 @@ export function TaskEditModal({
               {/* Assignee */}
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs tracking-wide uppercase">
-                  {t("oppgaver.task_modal.assignee")}
+                  {t("task_modal.assignee")}
                 </span>
                 <div className="text-foreground flex items-center gap-1.5 text-sm">
                   <User className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -300,7 +300,7 @@ export function TaskEditModal({
               {/* Status pill */}
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs tracking-wide uppercase">
-                  {t("oppgaver.task_modal.status")}
+                  {t("task_modal.status")}
                 </span>
                 <Badge variant={statusVariant(t_ ? task.status : undefined)} className="w-fit">
                   {statusLabel(t_ ? task.status : undefined)}
@@ -319,13 +319,13 @@ export function TaskEditModal({
               disabled={saving || !editTime}
               onClick={() => void handleSaveEdit()}
             >
-              {t("oppgaver.task_modal.save_action")}
+              {t("task_modal.save_action")}
             </Button>
           ) : (
             canComplete && (
               <Button type="button" className="w-full" onClick={() => void handleComplete()}>
                 <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t("oppgaver.task_modal.complete_action")}
+                {t("task_modal.complete_action")}
               </Button>
             )
           )}

@@ -65,15 +65,15 @@ export function TimelineToolbar({
   const { t } = useTranslation("oppgaver");
 
   const viewSegments = [
-    { value: "area" as const, label: t("oppgaver.view_mode.area") },
-    { value: "role" as const, label: t("oppgaver.view_mode.role") },
-    { value: "person" as const, label: t("oppgaver.view_mode.person") },
+    { value: "area" as const, label: t("view_mode.area") },
+    { value: "role" as const, label: t("view_mode.role") },
+    { value: "person" as const, label: t("view_mode.person") },
   ];
 
   return (
     <div
       role="toolbar"
-      aria-label={t("oppgaver.toolbar_aria")}
+      aria-label={t("toolbar_aria")}
       className="border-border bg-card flex h-full flex-wrap items-center gap-2 border-b px-4 py-2"
     >
       {/* ── View-mode switcher ──────────────────────────────────────── */}
@@ -104,14 +104,10 @@ export function TimelineToolbar({
 
       {/* ── Boolean filter chips ──────────────────────────────────────── */}
       <div className="flex items-center gap-1.5">
-        <FilterChip
-          label={t("oppgaver.filter.only_open")}
-          active={onlyOpen}
-          onToggle={onToggleOnlyOpen}
-        />
+        <FilterChip label={t("filter.only_open")} active={onlyOpen} onToggle={onToggleOnlyOpen} />
 
         <FilterChip
-          label={t("oppgaver.filter.deviations")}
+          label={t("filter.deviations")}
           active={deviationsOnly}
           onToggle={onToggleDeviations}
           count={deviationsCount}
@@ -127,7 +123,7 @@ export function TimelineToolbar({
         <Button
           variant="ghost"
           size="sm"
-          aria-label={t("oppgaver.zoom_out_aria")}
+          aria-label={t("zoom_out_aria")}
           onClick={() => onZoomChange(zoom - 1)}
           className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
         >
@@ -137,7 +133,7 @@ export function TimelineToolbar({
         <Button
           variant="ghost"
           size="sm"
-          aria-label={t("oppgaver.zoom_in_aria")}
+          aria-label={t("zoom_in_aria")}
           onClick={() => onZoomChange(zoom + 1)}
           className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
         >
