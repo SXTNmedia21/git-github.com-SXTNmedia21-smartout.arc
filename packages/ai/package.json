@@ -242,6 +242,10 @@
       "types": "./dist/engine/authority-pipeline/index.d.ts",
       "default": "./dist/engine/authority-pipeline/index.js"
     },
+    "./engine/resolve-capability-tool": {
+      "types": "./dist/engine/resolve-capability-tool.d.ts",
+      "default": "./dist/engine/resolve-capability-tool.js"
+    },
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
