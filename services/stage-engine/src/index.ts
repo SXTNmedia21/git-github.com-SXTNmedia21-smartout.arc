@@ -31,6 +31,7 @@ import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
 import { recorderMetrics } from "./routes/recorder-metrics.js";
 import { routineExtractRoute } from "./routes/routine-extract.js";
+import { invokeCapabilityToolRouter } from "./routes/internal/invoke-capability-tool.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
@@ -117,6 +118,7 @@ app.route("/", agentQueue);
 app.route("/", createGuardianRoute(upgradeWebSocket));
 app.route("/", recorderMetrics);
 app.route("/", routineExtractRoute);
+app.route("/internal/engine-dispatch", invokeCapabilityToolRouter);
 
 // Start server
 const port = config.PORT;

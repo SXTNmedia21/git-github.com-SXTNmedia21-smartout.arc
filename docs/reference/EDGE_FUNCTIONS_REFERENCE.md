@@ -358,7 +358,16 @@ Calls `cleanup_expired_api_keys` RPC.
 3. Create `engine_state` + execute first step, or schedule delayed trigger
 4. Resume waiting states on matching event
 
-**Action types:** `wait_for_event`, `assign_task`, `send_notification`, `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control`, `start_process`
+**Action types:** `wait_for_event`, `assign_task`, `send_notification`, `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control`, `start_process`, `invoke_capability_tool`
+
+**`invoke_capability_tool` action — bridge note (ADR-0424 §Transport):**
+This action-type is NOT handled inline in the EF. The EF is a thin proxy: it calls
+`POST /internal/engine-dispatch/invoke-capability-tool` on stage-engine (Node) and
+returns. Capability tool bodies + the resolver live in `packages/ai` (Node ESM) which
+Deno cannot import. Auth: `x-api-key` with scope `engine:invoke` via
+`STAGE_ENGINE_INTERNAL_KEY`. The EF receives `gate_evaluation_id` in the response
+and persists it into the `engine_state_step` row. Phase 2-B (EF proxy handler) is
+the next sortie after Phase 2-A (this endpoint).
 
 **Condition evaluator:** `match`, `step_status`, `all`/`any` combinators.
 
