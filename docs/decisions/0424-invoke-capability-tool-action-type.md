@@ -5,6 +5,9 @@ status: accepted
 layer: decision
 created: 2026-05-25
 updated: 2026-05-25
+amendments:
+  - "2026-05-25: §Transport layer added — HTTP bridge EF→stage-engine /internal/engine-dispatch/invoke-capability-tool (Council R6, 3:1 majority, system-agent-coordinator dissent accepted as future B6)"
+related_adrs: [ADR-0151, ADR-0173, ADR-0193, ADR-0265, ADR-0356, ADR-0421]
 ---
 
 # ADR-0424: `invoke_capability_tool` Action-Type Contract
@@ -79,6 +82,180 @@ If a capability tool needs to spawn additional engine_process work, it must use 
 `start_process` action — NOT another `invoke_capability_tool`. Recursion depth limit
 enforced at depth check in handler.
 
+## Transport layer
+
+> **Amendment 2026-05-25 (Council R6, 3:1 majority).** Phase 1 (PR #476 schema, #477 resolver
+> shim, #478 telemetry registration) landed cleanly on `development`. Phase 2 (T-Handler)
+> surfaced a structural blocker documented in `docs/plans/SORTIE-F-HANDLER-BLOCKED.md`: the
+> handler must execute inside `supabase/functions/engine-dispatch/index.ts` (Deno EF) but
+> capability tool bodies + the T-Shim resolver live in `packages/ai` (Node ESM). Deno cannot
+> import Node ESM (verified in three sibling code comments: `engine-dispatch/index.ts:3057-3061`,
+> `handlers/sync-integration.ts:16-19`, `pos-sync/index.ts:50-52`).
+>
+> This is the same "logic beside cascade" anti-pattern ADR-0424 was meant to close, surfaced
+> one layer deeper than the original ADR anticipated — captured as L-0361 (3rd-occurrence
+> ADR-missing-cross-runtime-dimension; chair self-reversal trigger).
+
+### Decision
+
+EF handler calls back into a new internal stage-engine endpoint via HTTP. The EF stays a
+thin proxy; capability tool resolution + execute() runs Node-side, where the bodies live.
+
+**Rejected alternatives:**
+
+- **Inline mirror in Deno** — reproduces ADR-0421 sub-pattern C (EF/capability duplication),
+  the exact pattern this ADR exists to close. Forbidden.
+- **Move engine-dispatch to a Node service now** — campaign-scale refactor (touches pg_cron
+  targets, EF→service routing, deploy pipeline). Deferred as **future B6 sortie**; supersedes
+  the bridge when ready (see §Future evolution).
+
+### Endpoint contract
+
+```
+POST /internal/engine-dispatch/invoke-capability-tool
+Auth: x-api-key (existing platform_api_key validation path)
+      + scope guard: scopes contains "engine:invoke" OR "*"
+
+Body: {
+  capability: CapabilityName,
+  tool: string,
+  args: unknown,                       // resolver Zod-validates server-side per tool schema
+  workspace_id: NonEmptyString,        // EF-supplied; Node re-derives from engine_state row (defense)
+  actor_profile_id: NonEmptyString,    // EF resolves system-bot fallback before call
+  channel: "system",                   // reserved enum value for engine-spawned context
+  engine_process_id: string,
+  engine_state_id: string,
+  engine_state_step_id: string,
+  gate_evaluation_id: string,          // EF-side gate result, persisted into step row after fetch
+  depth: 0,                            // EF enforces; endpoint asserts === 0 (fail-closed defense)
+}
+
+Response (success): { ok: true, result: unknown, duration_ms: number }
+Response (failure): { ok: false, error: string, duration_ms: number }
+
+Error semantics:
+  400 — body schema invalid, depth > 0, workspace re-derive mismatch
+  401 — auth failure (missing/invalid x-api-key, scope guard reject)
+  404 — resolveCapabilityTool() returns null (capability/tool unknown)
+  500 — tool.execute() threw; body carries sanitized error message
+```
+
+### Identity re-derivation (cross-runtime)
+
+The Node-side endpoint MUST re-derive `workspace_id` from the `engine_state` row using the
+body's `engine_state_id`. Body-supplied `workspace_id` is **sanity-check only** — a mismatch
+between body value and re-derived value is a 400 + audit alert (treat as forged identity
+attempt, same class as L-0177 silent-fallback).
+
+Rationale: ADR-0151 mandates server-side derivation of actor identity from a trusted source
+within a runtime. This amendment **extends the rule across runtime boundaries**: every
+receiving runtime re-derives identity from a propagated opaque reference (here:
+`engine_state_id`), never trusting body values for authority decisions. Phase 2.5 cross-runtime
+defense.
+
+The EF still propagates `workspace_id` in the body (helps with logging + makes EF intent
+explicit), but the Node side treats it as a hint, not a fact.
+
+### Gate placement
+
+The `gate_action` call runs **Node-side, inside the bridge endpoint**, immediately before
+`tool.execute()`. The capability tool body lives Node-side and so does its authority gate —
+gating where the body runs is the only placement that preserves ADR-0356 audit symmetry
+(gate + emit + audit row on the same side as the mutation).
+
+**The EF MUST NOT call `gate_action` for `invoke_capability_tool`.** EF is a thin proxy. The
+`gate_evaluation_id` field in the payload is the **outcome reference** of the Node-side gate;
+the EF receives the gate id (via the response) and persists it into the `engine_state_step`
+row after the fetch returns. This preserves the existing dispatcher pattern of "step row
+records gate outcome" while keeping the gate evaluation itself on the runtime that owns the
+mutation.
+
+Rationale: ADR-0356 §149-161 — gate runs on the side that owns the audit row. Splitting gate
+(EF) from execute (Node) would double-audit and create the L-0176 docstring-vs-body drift
+class at the runtime boundary.
+
+### Recursion enforcement
+
+The recursion depth check (ADR-0424 §Recursion limit — handler invariant 3, depth = 1) runs
+**EF-side, BEFORE the bridge fetch**. The EF queries the partial index
+`idx_engine_state_step_invoke_cap` (shipped in PR #476) to count ancestor
+`invoke_capability_tool` steps in the same `engine_state` chain. If count > 0 → reject with
+deterministic error before any network call.
+
+The Node-side endpoint asserts `depth === 0` in the request body as redundant defense
+(fail-closed per L-0177 — defense-in-depth across runtime boundary, not single-point trust).
+
+Rationale: depth enforcement runs on the side that owns the step-history view
+(`engine_state_step` is EF-accessible via Supabase RPC). Node-side endpoint has no engine
+state view; trusting body depth alone would be the silent-fallback class.
+
+### Telemetry split (avoid double-emit)
+
+Two distinct events represent the two distinct facts:
+
+| Event                                       | Side | Destinations                                                  | Represents                            |
+| ------------------------------------------- | ---- | ------------------------------------------------------------- | ------------------------------------- |
+| `engine.action.invoked.invoke_capability_tool` | Node | posthog + logger + activity_trail + engine_event (per ADR-0193) | Tool execution fact (gate + body)     |
+| `engine.dispatch.bridge_invoked`            | EF   | posthog + logger + activity_trail (NOT engine_event)          | EF transport fact + latency + outcome |
+
+The Node-side variant was registered in PR #478 and is correctly the **execution** event.
+The EF-side `engine.dispatch.bridge_invoked` variant is **new**; it must be added to
+`packages/telemetry/src/registry.ts` in the same sortie that implements the EF proxy (Phase
+2-B). Routing excludes `engine_event` because the Node side already emits an `engine_event`
+row for the execution — duplicating EF-side would produce two engine_event rows per single
+logical invocation (same class as L-0094 phantom-emit-contracts).
+
+### Env var contract
+
+A new env var is required for EF→stage-engine internal auth:
+
+| Var                          | Scope                          | Source                                    | Reachable from client? |
+| ---------------------------- | ------------------------------ | ----------------------------------------- | ---------------------- |
+| `STAGE_ENGINE_INTERNAL_KEY`  | EF → stage-engine internal API | 1Password: `op://smartout_ai_prod/stage-engine/internal-key` (+ `_dev` variant) | No                     |
+
+This is **distinct** from `STAGE_ENGINE_API_KEY`, which scopes BFF (Next.js Server) →
+stage-engine for the user-JWT path. Keys are not interchangeable:
+
+- `STAGE_ENGINE_API_KEY` carries scope `bff:proxy` (user-routed agent traffic)
+- `STAGE_ENGINE_INTERNAL_KEY` carries scope `engine:invoke` (EF-initiated tool dispatch)
+
+Both keys honour ADR-0265 secrets protocol: provisioned via 1Password, synced to Supabase
+secrets + Vercel env + droplet manifest via `sync-env-to-*.sh`. Drift-check
+(`infra/scripts/drift-check.sh`) auto-detects the new env channel.
+
+### Documentation surfaces (mandatory in same PR as Phase 2-A)
+
+Phase 2-A endpoint implementation MUST update these reference docs in the same PR:
+
+- `docs/reference/SERVICE_ROUTING.md` — add EF→stage-engine internal route row
+  (auth: `x-api-key + scope engine:invoke`, request shape per §Endpoint contract above)
+- `docs/reference/EDGE_FUNCTIONS_REFERENCE.md` — note `engine-dispatch` action-type
+  `invoke_capability_tool` bridges to stage-engine; not a self-contained EF handler
+- `docs/reference/ENV_VARS.md` — add `STAGE_ENGINE_INTERNAL_KEY` row, link to 1Password ref
+
+Reference doc drift is the highest-frequency failure class in cross-runtime work (L-0359
+doctrine-ADR gap is the formal-decision-level sibling; missing reference rows are the
+operational-level sibling). Treat reference doc updates as merge-blocker for Phase 2-A.
+
+### Future evolution
+
+The HTTP bridge is **interim, not permanent**. The architecturally clean resolution is to
+migrate `engine-dispatch` from a Deno EF to a Node service (stage-engine or a new
+`engine-dispatch-node`), allowing direct `import { resolveCapabilityTool } from "@smartout/ai"`.
+
+When that migration ships (deferred sortie **B6** — campaign-scale, blocks on pg_cron URL
+swap + EF→service routing parity):
+
+1. `STAGE_ENGINE_INTERNAL_KEY` retired
+2. EF stub `engine-dispatch` deprecated; cron triggers swap to Node service URL
+3. `/internal/engine-dispatch/invoke-capability-tool` endpoint can stay (already on the right
+   side) or fold into direct call — implementation choice at B6 time
+4. This §Transport layer section gets a "Superseded by ADR-XXXX (B6 dispatcher migration)"
+   header
+
+The bridge buys time for B6 to be sequenced properly (after current C2 campaign sortier
+land) without blocking C2 on a runtime-migration campaign.
+
 ## Rules & Consequences
 
 - **Good:** Unblocks C2 campaign (sortie G) without violating frozen-4 boundaries
@@ -103,8 +280,13 @@ of this pattern.
 ## References
 
 - 11-agent restaurant-week sim council 2026-05-25 (system-agent-coordinator framing depth)
+- Council R6 2026-05-25 PM (transport-layer escalation, 3:1 HTTP bridge majority, harness B6 dissent)
 - [[ADR-0173]] — frozen-4 capability boundaries
-- [[ADR-0356]] — cascade-namespace-delegation audit symmetry
-- [[ADR-0151]] — server-derived workspace_id
-- [[ADR-0421]] sub-pattern C — EF/capability duplication
+- [[ADR-0356]] — cascade-namespace-delegation audit symmetry (gate-placement precedent)
+- [[ADR-0151]] — server-derived workspace_id (cross-runtime extension applies)
+- [[ADR-0193]] — telemetry routing contract (4-destination pattern for execution event)
+- [[ADR-0265]] — secrets/env-var protocol (new `STAGE_ENGINE_INTERNAL_KEY` honours this)
+- [[ADR-0421]] sub-pattern C — EF/capability duplication (inline-mirror rejection)
 - L-0355 — C2 reframing (duplicate-logic surface vs engine_process gap depth)
+- L-0361 — ADR-missing-cross-runtime-dimension (3rd-occurrence pattern; this amendment closes for ADR-0424 specifically and codifies the Phase 2.5 rule for future ADRs)
+- `docs/plans/SORTIE-F-HANDLER-BLOCKED.md` — Phase 2 escalation source document
