@@ -55,7 +55,7 @@ type AnnouncementInput = {
   profileId: string;
   targetProfileIds?: string[];
   visibilityScope?: "all_members" | "targeted_members";
-  audienceKind: "all" | "on_duty" | "department" | "role" | "individuals";
+  audienceKind: "all" | "on_duty" | "on_shift" | "department" | "role" | "individuals";
   audienceLabel: string;
   // V2 fields
   kind?: AnnouncementKind;

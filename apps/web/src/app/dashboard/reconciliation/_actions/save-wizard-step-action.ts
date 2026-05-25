@@ -228,38 +228,41 @@ export async function saveWizardStepAction(
           .eq("department_session_id", parsed.data.sessionId)
           .maybeSingle();
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { error: devInsertErr } = await admin.from("deviation").insert({
-          workspace_id: session.workspace_id,
-          department_id: sessionDept?.department_id ?? null,
-          session_id: parsed.data.sessionId,
-          reconciliation_id: reconId,
-          domain: "material" as const,
-          subcategory: "cash_variance",
-          severity,
-          title: `Kassaavvik ${sign}${absVariance.toLocaleString("nb-NO")} kr`,
-          description:
-            `Automatisk opprettet ved kontanttelling (steg 03). ` +
-            `Avvik: ${sign}${absVariance.toLocaleString("nb-NO")} kr — ` +
-            `grense: ${toleranceValue.toLocaleString("nb-NO")} kr. ` +
-            `Krever lederbehandling.`,
-          reported_by: null, // system-generated per schema comment
-          status: "open" as const,
-        });
+        const { data: insertedDev, error: devInsertErr } = await admin
+          .from("deviation")
+          .insert({
+            workspace_id: session.workspace_id,
+            department_id: sessionDept?.department_id ?? null,
+            session_id: parsed.data.sessionId,
+            reconciliation_id: reconId,
+            domain: "material" as const,
+            subcategory: "cash_variance",
+            severity,
+            title: `Kassaavvik ${sign}${absVariance.toLocaleString("nb-NO")} kr`,
+            description:
+              `Automatisk opprettet ved kontanttelling (steg 03). ` +
+              `Avvik: ${sign}${absVariance.toLocaleString("nb-NO")} kr — ` +
+              `grense: ${toleranceValue.toLocaleString("nb-NO")} kr. ` +
+              `Krever lederbehandling.`,
+            reported_by: null, // system-generated per schema comment
+            status: "open" as const,
+          })
+          .select("deviation_id")
+          .single();
 
-        if (!devInsertErr) {
-          // Emit telemetry for the auto-created cash deviation.
+        if (!devInsertErr && insertedDev) {
           await emit({
             event: "deviation reported",
             workspace_id: nonEmpty(session.workspace_id, "workspace_id"),
             actor_id: nonEmpty(profile.profileId, "actor_id"),
             properties: {
+              entity: {
+                entity_type: "deviation",
+                entity_id: insertedDev.deviation_id,
+              },
               data: {
-                reconciliation_id: reconId,
-                session_id: parsed.data.sessionId,
-                subcategory: "cash_variance",
-                variance,
-                tolerance_value: toleranceValue,
+                domain: "material",
+                severity,
               },
             },
           });

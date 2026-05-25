@@ -77,13 +77,17 @@ export function useAudienceResolver(input: AudienceInput) {
         const windowEnd = new Date(now + windowMs).toISOString();
         const { data, error } = await supabase
           .from("schedule_shift")
-          .select("profile_id")
+          .select("employee_id")
           .eq("workspace_id", wsId)
           .lte("start_time", windowEnd)
           .gte("end_time", windowStart);
         if (error) throw error;
         const ids = Array.from(
-          new Set((data ?? []).map((s: { profile_id: string }) => s.profile_id).filter(Boolean)),
+          new Set(
+            (data ?? [])
+              .map((s: { employee_id: string | null }) => s.employee_id)
+              .filter((id): id is string => id !== null),
+          ),
         );
         return { kind: "on_shift", profileIds: ids, count: ids.length };
       }
