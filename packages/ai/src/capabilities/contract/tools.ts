@@ -9,6 +9,11 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 
 const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
@@ -476,30 +481,16 @@ export const forkTemplate = defineTool({
       return "Template authoring requires chat channel. Please switch to chat.";
     }
 
-    // ADR-0099 / ADR-0186 mandatory C4 gate.
-    const denied = await gateMutation(ctx, "fork_template", params.system_template_id);
-    if (denied) return denied;
-
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: forking templates requires admin or owner role.";
     }
 
-    // ── Fix #2 (ADR-0191) — direct admin write ────────────────────────────
-    // Previously this tool fetched `${APP_URL}/api/contract-templates/copy`
-    // with no auth header. That route guards on `supabase.auth.getUser()`,
-    // which requires a session cookie — stage-engine has no cookie context,
-    // so the call returned 401 every time. The fix mirrors the sibling
-    // `publishWorkspaceTemplate` / `deprecateWorkspaceTemplate` pattern:
-    // write directly via `ctx.supabaseAdmin`, with the role gate enforced
-    // above and `gate_action` enforced upstream by the agent dispatcher
-    // (ADR-0099). This also makes the tool the canonical emit site for the
-    // agent fork path — the route stays canonical for the UI path (Fix #3).
-
     // Load source to capture version + default name + full row to clone.
     // Belt-and-suspenders is_system=true assertion; Gate G3 trigger blocks
     // any later flip, but a precise pre-check yields a clearer error than
-    // RLS-empty.
+    // RLS-empty. Pre-check stays OUTSIDE mutateWithGate — read-only, no
+    // gate needed; only the INSERT runs under Pathway A + Pathway B.
     const { data: source, error: sourceError } = await ctx.supabaseAdmin
       .from("contract_template")
       .select("*")
@@ -517,41 +508,72 @@ export const forkTemplate = defineTool({
     const sourceVersion = source.version !== null ? String(source.version) : null;
     const resolvedName = params.name_override ?? `${source.name} (kopi)`;
 
-    const { data: copy, error: copyError } = await ctx.supabaseAdmin
-      .from("contract_template")
-      .insert({
-        name: resolvedName,
-        description: source.description,
-        workspace_id: ctx.workspaceId,
-        contract_type: source.contract_type,
-        language: source.language,
-        content_html: source.content_html,
-        content_css: source.content_css,
-        header_html: source.header_html,
-        footer_html: source.footer_html,
-        placeholders: source.placeholders,
-        employment_category: source.employment_category,
-        is_system: false,
-        is_active: true,
-        version: 1,
-        // ── Gate G5 lineage columns ──
-        source_template_id: params.system_template_id,
-        source_template_version: sourceVersion,
-        forked_at: forkedAt,
-        // Explicitly null for a fresh fork — caller can publish later.
-        published_at: null,
-        deprecated_at: null,
-      })
-      .select("template_id, source_template_version, forked_at")
-      .single();
+    // ── Fix #2 (ADR-0191) — direct admin write via mutateWithGate ─────────
+    // Previously this tool fetched the copy route without auth header — 401
+    // every time. Direct admin INSERT now wrapped in mutateWithGate so both
+    // Pathway A (gate_action, ADR-0099) AND Pathway B (cascade_gate_write,
+    // ADR-0204 §3) fire as one correlated audit chain. Canonical emit-site
+    // for the agent path stays — route emits separately for UI path.
+    let copy: {
+      template_id: string;
+      source_template_version: string | null;
+      forked_at: string;
+    };
+    try {
+      const mut = await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: "contract",
+        actionType: "fork_template",
+        channel: normaliseChannel(ctx.channel),
+        targetId: params.system_template_id,
+        exec: async (db) => {
+          const { data: row, error: copyError } = await db
+            .from("contract_template")
+            .insert({
+              name: resolvedName,
+              description: source.description,
+              workspace_id: ctx.workspaceId,
+              contract_type: source.contract_type,
+              language: source.language,
+              content_html: source.content_html,
+              content_css: source.content_css,
+              header_html: source.header_html,
+              footer_html: source.footer_html,
+              placeholders: source.placeholders,
+              employment_category: source.employment_category,
+              is_system: false,
+              is_active: true,
+              version: 1,
+              // Gate G5 lineage columns
+              source_template_id: params.system_template_id,
+              source_template_version: sourceVersion,
+              forked_at: forkedAt,
+              published_at: null,
+              deprecated_at: null,
+            })
+            .select("template_id, source_template_version, forked_at")
+            .single();
+          if (copyError) throw new Error(`Fork failed: ${copyError.message}`);
+          if (!row) throw new Error("Fork failed: insert returned no row.");
+          return row;
+        },
+      });
+      copy = mut.result;
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          error: "gate_denied",
+          reason: err.message ?? "denied",
+          adr: "ADR-0099",
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return `Fork gate unavailable: ${err.code}: ${err.message}`;
+      }
+      return err instanceof Error ? err.message : String(err);
+    }
 
-    if (copyError) return `Fork failed: ${copyError.message}`;
-    if (!copy) return "Fork failed: insert returned no row.";
-
-    // Canonical emit for the agent path. The route emits its own
-    // `contract_template forked` for the UI path (Fix #3 — each path emits
-    // exactly once). The legacy `contract_template copied` event is being
-    // phased out (see route).
     void emit({
       event: "contract_template forked",
       workspace_id: ctx.workspaceId,
@@ -587,14 +609,6 @@ export const publishWorkspaceTemplate = defineTool({
       return "Template authoring requires chat channel. Please switch to chat.";
     }
 
-    // ADR-0099 / ADR-0186 mandatory C4 gate.
-    const denied = await gateMutation(
-      ctx,
-      "publish_workspace_template",
-      params.workspace_template_id,
-    );
-    if (denied) return denied;
-
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: publishing templates requires admin or owner role.";
@@ -603,7 +617,8 @@ export const publishWorkspaceTemplate = defineTool({
     // Load the template to verify ownership + scope. Admin RLS restricts
     // UPDATE to is_system=false rows in the caller's workspace, but we
     // pre-check for a precise error message (otherwise RLS returns empty
-    // data which is confusing for the LLM).
+    // data which is confusing for the LLM). Pre-check stays OUTSIDE
+    // mutateWithGate — read-only, no gate needed.
     const { data: tpl, error: loadError } = await ctx.supabaseAdmin
       .from("contract_template")
       .select("template_id, workspace_id, is_system, published_at, deprecated_at, name, version")
@@ -623,24 +638,52 @@ export const publishWorkspaceTemplate = defineTool({
     const nowIso = new Date().toISOString();
 
     // Journey 5 (re-activate): a template may be currently deprecated.
-    // Publishing it clears `deprecated_at` AND sets `published_at` (or
-    // preserves an earlier publish if one exists — semantics: becoming
-    // bindable again). We always stamp published_at to `now()` so the
-    // "most recent activation" is explicit in the audit trail.
-    const { data: updated, error: updateError } = await ctx.supabaseAdmin
-      .from("contract_template")
-      .update({
-        published_at: nowIso,
-        deprecated_at: null,
-      })
-      .eq("template_id", params.workspace_template_id)
-      .eq("workspace_id", ctx.workspaceId)
-      .eq("is_system", false)
-      .select("template_id, published_at, version")
-      .single();
-
-    if (updateError) return `Publish failed: ${updateError.message}`;
-    if (!updated) return "Publish failed: template not updated (RLS or missing row).";
+    // Publishing it clears `deprecated_at` AND sets `published_at`. We
+    // always stamp published_at = now() so the most-recent activation is
+    // explicit in the audit trail.
+    // ADR-0204 §3: UPDATE runs inside mutateWithGate.exec so Pathway A
+    // (gate_action) + Pathway B (cascade_gate_write) + write share one
+    // correlated audit chain.
+    let updated: { template_id: string; published_at: string | null; version: number | null };
+    try {
+      const mut = await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: "contract",
+        actionType: "publish_workspace_template",
+        channel: normaliseChannel(ctx.channel),
+        targetId: params.workspace_template_id,
+        exec: async (db) => {
+          const { data: row, error: updateError } = await db
+            .from("contract_template")
+            .update({
+              published_at: nowIso,
+              deprecated_at: null,
+            })
+            .eq("template_id", params.workspace_template_id)
+            .eq("workspace_id", ctx.workspaceId)
+            .eq("is_system", false)
+            .select("template_id, published_at, version")
+            .single();
+          if (updateError) throw new Error(`Publish failed: ${updateError.message}`);
+          if (!row) throw new Error("Publish failed: template not updated (RLS or missing row).");
+          return row;
+        },
+      });
+      updated = mut.result;
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          error: "gate_denied",
+          reason: err.message ?? "denied",
+          adr: "ADR-0099",
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return `Publish gate unavailable: ${err.code}: ${err.message}`;
+      }
+      return err instanceof Error ? err.message : String(err);
+    }
 
     void emit({
       event: "contract_template published",
@@ -677,19 +720,12 @@ export const deprecateWorkspaceTemplate = defineTool({
       return "Template authoring requires chat channel. Please switch to chat.";
     }
 
-    // ADR-0099 / ADR-0186 mandatory C4 gate.
-    const denied = await gateMutation(
-      ctx,
-      "deprecate_workspace_template",
-      params.workspace_template_id,
-    );
-    if (denied) return denied;
-
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: deprecating templates requires admin or owner role.";
     }
 
+    // Pre-check stays OUTSIDE mutateWithGate — read-only, no gate needed.
     const { data: tpl, error: loadError } = await ctx.supabaseAdmin
       .from("contract_template")
       .select("template_id, workspace_id, is_system, published_at, deprecated_at, name")
@@ -714,7 +750,7 @@ export const deprecateWorkspaceTemplate = defineTool({
 
     // Idempotency: if already deprecated, short-circuit with the existing
     // timestamp so repeated tool calls produce stable output and do not
-    // emit a second event.
+    // emit a second event. No gate runs on the idempotent path — no write.
     if (tpl.deprecated_at !== null) {
       return JSON.stringify({
         template_id: tpl.template_id,
@@ -725,17 +761,45 @@ export const deprecateWorkspaceTemplate = defineTool({
 
     const nowIso = new Date().toISOString();
 
-    const { data: updated, error: updateError } = await ctx.supabaseAdmin
-      .from("contract_template")
-      .update({ deprecated_at: nowIso })
-      .eq("template_id", params.workspace_template_id)
-      .eq("workspace_id", ctx.workspaceId)
-      .eq("is_system", false)
-      .select("template_id, deprecated_at")
-      .single();
-
-    if (updateError) return `Deprecate failed: ${updateError.message}`;
-    if (!updated) return "Deprecate failed: template not updated (RLS or missing row).";
+    // ADR-0204 §3: UPDATE runs inside mutateWithGate.exec so Pathway A
+    // + Pathway B + write share one correlated audit chain.
+    let updated: { template_id: string; deprecated_at: string | null };
+    try {
+      const mut = await mutateWithGate(ctx.supabaseAdmin, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: "contract",
+        actionType: "deprecate_workspace_template",
+        channel: normaliseChannel(ctx.channel),
+        targetId: params.workspace_template_id,
+        exec: async (db) => {
+          const { data: row, error: updateError } = await db
+            .from("contract_template")
+            .update({ deprecated_at: nowIso })
+            .eq("template_id", params.workspace_template_id)
+            .eq("workspace_id", ctx.workspaceId)
+            .eq("is_system", false)
+            .select("template_id, deprecated_at")
+            .single();
+          if (updateError) throw new Error(`Deprecate failed: ${updateError.message}`);
+          if (!row) throw new Error("Deprecate failed: template not updated (RLS or missing row).");
+          return row;
+        },
+      });
+      updated = mut.result;
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          error: "gate_denied",
+          reason: err.message ?? "denied",
+          adr: "ADR-0099",
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return `Deprecate gate unavailable: ${err.code}: ${err.message}`;
+      }
+      return err instanceof Error ? err.message : String(err);
+    }
 
     void emit({
       event: "contract_template deprecated",

@@ -105,9 +105,15 @@ describe("fork_template", () => {
     expect(parsed.source_version).toBe("3");
     expect(parsed.forked_at).toBe("2026-04-22T12:00:00Z");
 
-    expect(emitMock).toHaveBeenCalledTimes(1);
-    const [call] = emitMock.mock.calls;
-    expect(call?.[0].event).toBe("contract_template forked");
+    // ADR-0204 SS-4: mutateWithGate emits `gate_evaluated` in addition to
+    // the capability's domain event. Filter the domain event explicitly
+    // rather than asserting total-call-count so the test stays robust to
+    // wrapper-internal emits.
+    const forkedCalls = emitMock.mock.calls.filter(
+      (c) => (c?.[0] as { event?: string })?.event === "contract_template forked",
+    );
+    expect(forkedCalls).toHaveLength(1);
+    const call = forkedCalls[0];
     expect(call?.[0].properties.entity.entity_id).toBe(WORKSPACE_TEMPLATE_ID);
     expect(call?.[0].properties.data.source_scope).toBe("system");
   });

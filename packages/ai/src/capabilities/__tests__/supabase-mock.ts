@@ -387,6 +387,31 @@ const defaultRpc: RpcImpl = (fn) => {
       error: null,
     };
   }
+  // ADR-0204 Pathway B: gatedMutation calls cascade_gate_write after a
+  // successful gate_action. When the capability uses mutateWithGate
+  // without an explicit `cascade` arg, the wrapper passes a sentinel
+  // entity_type (__authority_shadow_<cap>__) that semantically maps to
+  // "no cascade rule applies" — return outcome=applied so the domain
+  // write proceeds. Tests that need to exercise data_rule deny/proposal
+  // paths override via the `rpc:` option (see journey.capability.test.ts).
+  if (fn === "cascade_gate_write") {
+    return {
+      data: {
+        allowed: true,
+        outcome: "applied",
+        proposal_id: null,
+        reason: null,
+        exception_reason: null,
+        gate_evaluation_id: "00000000-0000-0000-0000-000000000001",
+      },
+      error: null,
+    };
+  }
+  // stamp_gate_correlation is best-effort in gatedMutation (failures don't
+  // invalidate the audit decision). Default to no-op success.
+  if (fn === "stamp_gate_correlation") {
+    return { data: null, error: null };
+  }
   return {
     data: null,
     error: { message: `supabase-mock: rpc '${fn}' has no configured handler` },

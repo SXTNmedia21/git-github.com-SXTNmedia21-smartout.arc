@@ -91,10 +91,13 @@ describe("publish_workspace_template", () => {
     expect(parsed.template_id).toBe(TEMPLATE_ID);
     expect(parsed.published_at).toBe("2026-04-22T12:30:00Z");
 
-    expect(emitMock).toHaveBeenCalledTimes(1);
-    const [call] = emitMock.mock.calls;
-    expect(call?.[0].event).toBe("contract_template published");
-    expect(call?.[0].properties.data.is_reactivation).toBe(false);
+    // ADR-0204 SS-4: mutateWithGate emits gate_evaluated in addition to
+    // the domain event. Filter the domain event explicitly.
+    const publishedCalls = emitMock.mock.calls.filter(
+      (c) => (c?.[0] as { event?: string })?.event === "contract_template published",
+    );
+    expect(publishedCalls).toHaveLength(1);
+    expect(publishedCalls[0]?.[0].properties.data.is_reactivation).toBe(false);
   });
 
   it("re-activates a deprecated template and emits is_reactivation=true", async () => {
@@ -136,8 +139,12 @@ describe("publish_workspace_template", () => {
       makeCtx({ supabaseAdmin: sb }),
     );
 
-    expect(emitMock).toHaveBeenCalledTimes(1);
-    expect(emitMock.mock.calls[0]?.[0].properties.data.is_reactivation).toBe(true);
+    // ADR-0204 SS-4: filter the domain event past gate_evaluated.
+    const publishedCalls = emitMock.mock.calls.filter(
+      (c) => (c?.[0] as { event?: string })?.event === "contract_template published",
+    );
+    expect(publishedCalls).toHaveLength(1);
+    expect(publishedCalls[0]?.[0].properties.data.is_reactivation).toBe(true);
   });
 
   it("rejects non-admin with access denied and does NOT emit", async () => {

@@ -85,10 +85,13 @@ describe("deprecate_workspace_template", () => {
     expect(parsed.template_id).toBe(TEMPLATE_ID);
     expect(parsed.deprecated_at).toBe("2026-04-22T12:45:00Z");
 
-    expect(emitMock).toHaveBeenCalledTimes(1);
-    const [call] = emitMock.mock.calls;
-    expect(call?.[0].event).toBe("contract_template deprecated");
-    expect(call?.[0].properties.entity.entity_id).toBe(TEMPLATE_ID);
+    // ADR-0204 SS-4: mutateWithGate emits gate_evaluated in addition to
+    // the domain event. Filter the domain event explicitly.
+    const deprecatedCalls = emitMock.mock.calls.filter(
+      (c) => (c?.[0] as { event?: string })?.event === "contract_template deprecated",
+    );
+    expect(deprecatedCalls).toHaveLength(1);
+    expect(deprecatedCalls[0]?.[0].properties.entity.entity_id).toBe(TEMPLATE_ID);
   });
 
   it("rejects a draft (published_at IS NULL) and does NOT emit", async () => {
