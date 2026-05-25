@@ -115,13 +115,13 @@ const HAPPY_TABLES: Record<string, { data: unknown | null; single?: boolean }> =
     single: true,
   },
   department_operating_hours: {
-    data: [{ department_operating_hours_id: "doh-001" }],
+    data: [{ id: "doh-001" }],
   },
   employment_contract: {
-    data: [{ employment_contract_id: "contract-001" }],
+    data: [{ contract_id: "contract-001" }],
   },
-  framework_rule: {
-    data: [{ framework_rule_id: "rule-001" }],
+  regulatory_framework: {
+    data: [{ framework_id: "fw-001" }],
   },
   season: {
     data: { season_id: SEASON_ID, name: "Sommer 2026" },
@@ -138,7 +138,7 @@ const HAPPY_TABLES: Record<string, { data: unknown | null; single?: boolean }> =
     data: [{ hour_factor_id: "hf-001" }],
   },
   workspace: {
-    data: { niche: "restaurant" },
+    data: { workspace_id: WORKSPACE_ID, is_active: true },
     single: true,
   },
   schedule_shift: {
