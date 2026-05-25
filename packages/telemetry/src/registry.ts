@@ -4295,6 +4295,33 @@ export interface EngineCrossStateWriteBlocked extends BaseEvent {
   entity: EntityRef;
 }
 
+// ADR-0424 — Engine-dispatch action-type `invoke_capability_tool` telemetry.
+// Emitted by the handler AFTER the capability tool execute() returns (success,
+// denied, or error). workspace_id always from parent engine_state row — never
+// from action.args (ADR-0151). gate_action_id links to the gate_evaluation row
+// written before tool invocation. delegated_via carries the engine_process chain
+// per ADR-0356 audit-symmetry contract ("engine_process:<id>:<step>").
+// 4 destinations: posthog + logger + activity_trail + engine_event — so
+// downstream consumers (e.g. monitoring rules) can react to tool failures;
+// activity_trail provides per-step audit for C4 governance.
+export interface EngineActionInvokedInvokeCapabilityTool extends BaseEvent {
+  event: "engine.action.invoked.invoke_capability_tool";
+  properties: {
+    data: {
+      engine_state_id: string; // UUID — the executing engine_state row
+      engine_process_id: string; // process blueprint identifier
+      step_index: number; // 0-based step index within the state
+      capability_name: string; // e.g. "operations", "schedule"
+      tool_name: string; // snake_case tool identifier
+      gate_action_id: string | null; // UUID of gate_evaluation row; null if gate skipped (platform actor)
+      delegated_via: string; // "engine_process:<id>:<step>" per ADR-0356
+      tool_status: "success" | "denied" | "error"; // outcome of tool execute()
+      tool_error: string | null; // error message when tool_status === "error"; null otherwise
+      duration_ms: number | null; // wall-clock ms from gate pass to tool return; null if not measured
+    };
+  };
+}
+
 // ADR-0226 — High-signal operational warn when the proxy resolution chain
 // (team leader → broadcast) fails to find any observer for SLA notification.
 // Routes to logger + activity_trail only — NOT PostHog (not an analytics event)
@@ -9077,6 +9104,8 @@ export type SmartoutEvent =
   | HelpdeskSlaNobodyResolved
   | EngineContextPatchedTargeted
   | EngineCrossStateWriteBlocked
+  // ─── Engine Dispatch Action Invocation (ADR-0424) ──────────────────
+  | EngineActionInvokedInvokeCapabilityTool
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -15032,6 +15061,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "system",
   },
   "engine_world status_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Engine Dispatch Action Invocation (ADR-0424) ──────────────────────────
+  // Emitted by the invoke_capability_tool handler after tool execute() returns.
+  // 4 destinations: posthog (action analytics) + logger (stdout observability
+  // in engine-dispatch) + activity_trail (per-step C4 governance audit trail) +
+  // engine_event (monitoring rules can react to tool_status=denied/error).
+  // Never emitted inside a tool body — always at the dispatcher handler level,
+  // after gate_action passes and tool execute() completes (success or throws).
+  "engine.action.invoked.invoke_capability_tool": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "system",
   },
