@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const FIELD_MASK = [
@@ -33,8 +33,9 @@ interface PlacesResult {
 }
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
     if (!apiKey) {
       console.log("[places] No GOOGLE_API_KEY configured, returning empty");
       return new Response(JSON.stringify({ success: true, data: null, reason: "no_api_key" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
 
     if (!companyName) {
       return new Response(JSON.stringify({ error: "companyName is required" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 400,
       });
     }
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
       const errorText = await res.text();
       console.error(`[places] Google API error ${res.status}: ${errorText}`);
       return new Response(JSON.stringify({ success: true, data: null, reason: "api_error" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
     if (!place) {
       console.log("[places] No results found");
       return new Response(JSON.stringify({ success: true, data: null, reason: "no_results" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
     );
 
     return new Response(JSON.stringify({ success: true, data: result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: unknown) {
@@ -146,7 +147,7 @@ Deno.serve(async (req) => {
     console.error("[places] unhandled exception:", error);
     return new Response(
       JSON.stringify({ success: false, error: "internal" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+      { headers: { ...cors, "Content-Type": "application/json" }, status: 500 },
     );
   }
 });

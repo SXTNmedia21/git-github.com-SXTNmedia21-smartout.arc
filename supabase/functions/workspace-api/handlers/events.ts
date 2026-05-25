@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface EventRow {
   id: string;
@@ -14,6 +13,7 @@ interface EventRow {
 export async function handleGetEvents(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -31,7 +31,7 @@ export async function handleGetEvents(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: events:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -65,5 +65,5 @@ export async function handleGetEvents(
 
   const rows = await executeWithWorkspaceContext<EventRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ events: rows, limit, offset });
+  return jsonOk({ events: rows, limit, offset }, cors);
 }

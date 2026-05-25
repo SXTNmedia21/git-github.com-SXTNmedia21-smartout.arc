@@ -9,7 +9,7 @@
  */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
 
@@ -118,8 +118,9 @@ async function sendEmail(
 // ── Handler ────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   // Auth: cron secret bearer token
@@ -152,7 +153,7 @@ Deno.serve(async (req) => {
   if (recipientErr) {
     return new Response(JSON.stringify({ status: "error", error: recipientErr.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -225,6 +226,6 @@ Deno.serve(async (req) => {
       skipped,
       errors: errors.length > 0 ? errors : undefined,
     }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
   );
 });

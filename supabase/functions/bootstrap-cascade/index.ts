@@ -12,7 +12,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 // Department name → type mapping (mirrors hospitality.ts DEPARTMENT_TYPE_MAP)
@@ -469,8 +469,9 @@ function getOffsets(name: string): { open: number; close: number } {
 }
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   // ADR-0029: gate all inbound requests — anonymous calls must be rejected.
@@ -1300,7 +1301,7 @@ Deno.serve(async (req) => {
         warnings,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
         status: 200,
       },
     );
@@ -1309,7 +1310,7 @@ Deno.serve(async (req) => {
     console.error("Bootstrap cascade error:", message);
 
     return new Response(JSON.stringify({ error: message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
       status: 500,
     });
   }

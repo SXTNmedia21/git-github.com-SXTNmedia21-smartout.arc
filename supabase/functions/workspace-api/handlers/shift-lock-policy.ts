@@ -1,6 +1,5 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 import { jsonOk } from "../index.ts";
 
 const ALLOWED_LOCK_MODES = new Set(["enforce", "shadow", "off"]);
@@ -9,10 +8,11 @@ const ALLOWED_LOCK_MODES = new Set(["enforce", "shadow", "off"]);
  * Returns the current temporal shift lock mode for the workspace.
  * If no explicit row exists, the DB default behavior is "enforce".
  */
-export async function handleGetShiftLockPolicy(auth: {
-  workspaceId: string;
-  scopes: string[];
-}): Promise<Response> {
+export async function handleGetShiftLockPolicy(
+  auth: { workspaceId: string; scopes: string[] },
+  _url: URL,
+  cors: Record<string, string>,
+): Promise<Response> {
   if (
     !requireScope(
       {
@@ -29,7 +29,7 @@ export async function handleGetShiftLockPolicy(auth: {
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: schedules:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -55,7 +55,7 @@ export async function handleGetShiftLockPolicy(auth: {
         lock_mode: "enforce",
         source: "implicit_default",
       },
-    });
+    }, cors);
   }
 
   return jsonOk({
@@ -65,7 +65,7 @@ export async function handleGetShiftLockPolicy(auth: {
       updated_at: rows[0].updated_at,
       source: "explicit_policy",
     },
-  });
+  }, cors);
 }
 
 /**
@@ -75,6 +75,7 @@ export async function handleGetShiftLockPolicy(auth: {
 export async function handleSetShiftLockPolicy(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -92,7 +93,7 @@ export async function handleSetShiftLockPolicy(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: schedules:write" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -104,7 +105,7 @@ export async function handleSetShiftLockPolicy(
       }),
       {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       },
     );
   }
@@ -134,5 +135,5 @@ export async function handleSetShiftLockPolicy(
       updated_at: rows[0].updated_at,
       source: "explicit_policy",
     },
-  });
+  }, cors);
 }
