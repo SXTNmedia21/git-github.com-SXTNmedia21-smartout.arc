@@ -272,7 +272,8 @@ are populated by the Supabase runtime — do not set them manually.
 
 | Variable                | Required | Notes                          |
 | ----------------------- | -------- | ------------------------------ |
-| `STAGE_ENGINE_API_KEY`  | Yes      | Service auth key (min 16 chars)|
+| `STAGE_ENGINE_API_KEY`       | Yes      | BFF→stage-engine key (scope `bff:proxy`, min 16 chars) |
+| `STAGE_ENGINE_INTERNAL_KEY`  | Yes (prod) | EF→stage-engine internal key (scope `engine:invoke`). ADR-0424 §Transport. 1Password: `op://smartout_ai_prod/stage-engine/internal-key`. Distinct from `STAGE_ENGINE_API_KEY`. |
 | `DEV_API_KEY`           | Local    | Alternate key (development)    |
 | `ENGINE_URL`            | No       | Self-reference URL             |
 | `ENVIRONMENT`           | No       | development / production       |
