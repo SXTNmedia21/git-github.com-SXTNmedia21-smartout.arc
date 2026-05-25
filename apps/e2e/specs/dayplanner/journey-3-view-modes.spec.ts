@@ -37,8 +37,8 @@ let checkA11y: ((page: unknown, options?: unknown) => Promise<void>) | null = nu
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const axe = require("@axe-core/playwright") as {
-    injectAxe: typeof injectAxe;
-    checkA11y: typeof checkA11y;
+    injectAxe: () => Promise<void>;
+    checkA11y: (page: unknown, options?: unknown) => Promise<void>;
   };
   injectAxe = axe.injectAxe;
   checkA11y = axe.checkA11y;

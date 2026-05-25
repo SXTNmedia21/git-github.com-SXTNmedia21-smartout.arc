@@ -26,7 +26,9 @@ import { test, expect } from "@playwright/test";
 let checkA11y: ((page: unknown) => Promise<void>) | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const axe = require("@axe-core/playwright") as { checkA11y: typeof checkA11y };
+  const axe = require("@axe-core/playwright") as {
+    checkA11y: (page: unknown) => Promise<void>;
+  };
   checkA11y = axe.checkA11y;
 } catch {
   // axe-playwright not installed — skip a11y assertions
