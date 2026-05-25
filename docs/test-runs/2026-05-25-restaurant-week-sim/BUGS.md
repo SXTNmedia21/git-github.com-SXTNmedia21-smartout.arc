@@ -315,3 +315,108 @@ The sim re-encountered (and provided NEW evidence for the ROOT CAUSE of) the fol
 All finding files: `docs/test-runs/2026-05-25-restaurant-week-sim/findings/agent-{1..11}-*.md`
 Plans: `INDEX.md`, `SIMULATION-PLAN.md`, `HOTEL-WEDDING-PLAN.md`, `CONCERT-FESTIVAL-PLAN.md`
 Baseline: `docs/test-runs/2026-05-23-journey-sweep/BUGS.md`
+
+---
+
+## SECURITY bugs — CVE-class capability registry gaps (ADR-0421 sub-check C-G)
+
+Council session 2026-05-25. ADR-0421 sub-check C-G identified 13 capabilities
+lacking `capability_default_registry` entries. All 13 create a CVE-class
+default-allow security hole on every new workspace created after 2026-06-01
+(L-0066 pattern: gate_action silently allows any caller when no authority row
+exists for the capability).
+
+Source: `supabase/migrations/20260518000000_contract_authority_seed_upsert_and_bootstrap.sql`
+lines 235-244.
+
+### BUG-A4-02 — `kb_query` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066 default-allow on new workspaces)
+- **Effect:** Bootstrap trigger skips → no `engine_authority_config` row → `gate_action` default-allows all callers.
+- **Fixed in:** `supabase/migrations/20260701000000_capability_registry_seed_sweep.sql` Part A cap 1. Authority: `read_only / employee`.
+
+### BUG-A4-03 — `schedule` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** New workspaces have no authority row → default-allow on all shift queries.
+- **Fixed in:** Migration `20260701000000` Part A cap 2. Authority: `read_only / employee`.
+
+### BUG-A4-04 — `training` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** Default-allow on `getTeamReadiness` (team-level PII) without any gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 3. Authority: `suggest / employee`.
+
+### BUG-A4-05 — `operations` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `createDeviation` write bypasses gate_action authority check on new workspaces.
+- **Fixed in:** Migration `20260701000000` Part A cap 4. Authority: `suggest / employee`.
+
+### BUG-A4-06 — `profile` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `searchProfilesByName` (team PII) and `getContractStatus` exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 5. Authority: `read_only / employee`.
+
+### BUG-A4-07 — `memory` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `saveMemoryTool` write bypasses authority tier-unlock on new workspaces.
+- **Fixed in:** Migration `20260701000000` Part A cap 6. Authority: `suggest / employee`.
+
+### BUG-A4-08 — `ui` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** All UI tools (navigate, fill, highlight, showPanel, toast) exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 7. Authority: `suggest / employee`.
+
+### BUG-A4-09 — `contract_intake` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class HIGH (L-0066 + PII)
+- **Effect:** `submitFieldGroup` (collects personnummer + bank account) and `declineIntake` bypass authority gate — highest severity in sweep.
+- **Fixed in:** Migration `20260701000000` Part A cap 8. Authority: `confirm / employee`.
+
+### BUG-A4-10 — `shift_swap` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `requestSwap`, `respondToSwap`, `cancelSwap`, `overrideSwapPipeline` bypass authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 9. Authority: `suggest / employee`.
+
+### BUG-A4-11 — `shift_lifecycle` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `publishShift` and `approveShift` (manager-level mutations) bypass authority tier check.
+- **Fixed in:** Migration `20260701000000` Part A cap 10. Authority: `suggest / manager`.
+
+### BUG-A4-12 — `governance` not seeded in `capability_default_registry` ✅ FIXED
+
+- **Severity:** CVE-class (L-0066)
+- **Effect:** `checkReadiness` (employee PII) exposed without authority gate.
+- **Fixed in:** Migration `20260701000000` Part A cap 11. Authority: `read_only / employee`.
+
+### BUG-A4-13 — `communication` registry gap (cross-reference) ✅ FIXED SEPARATELY
+
+- **Severity:** CVE-class (L-0066) — fixed in ADR-0413 / migration `20260626000000`.
+
+### BUG-A4-14 — `payroll` registry gap (cross-reference) ✅ FIXED SEPARATELY
+
+- **Severity:** CVE-class (L-0066) — fixed in migration `20260519160000` (ADR-0234).
+
+### CVE sweep summary
+
+| Bug | Capability | Authority | Migration |
+|---|---|---|---|
+| BUG-A4-02 | `kb_query` | read_only / employee | 20260701000000 |
+| BUG-A4-03 | `schedule` | read_only / employee | 20260701000000 |
+| BUG-A4-04 | `training` | suggest / employee | 20260701000000 |
+| BUG-A4-05 | `operations` | suggest / employee | 20260701000000 |
+| BUG-A4-06 | `profile` | read_only / employee | 20260701000000 |
+| BUG-A4-07 | `memory` | suggest / employee | 20260701000000 |
+| BUG-A4-08 | `ui` | suggest / employee | 20260701000000 |
+| BUG-A4-09 | `contract_intake` | confirm / employee | 20260701000000 |
+| BUG-A4-10 | `shift_swap` | suggest / employee | 20260701000000 |
+| BUG-A4-11 | `shift_lifecycle` | suggest / manager | 20260701000000 |
+| BUG-A4-12 | `governance` | read_only / employee | 20260701000000 |
+| BUG-A4-13 | `communication` | suggest / employee | 20260626000000 (ADR-0413) |
+| BUG-A4-14 | `payroll` | confirm / admin | 20260519160000 (ADR-0234) |
