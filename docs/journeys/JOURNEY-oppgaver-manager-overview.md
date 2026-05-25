@@ -1,6 +1,6 @@
 ---
 title: "JOURNEY — Manager opens /dashboard/oppgaver for today's overview"
-status: done
+status: verified
 created: 2026-05-24
 updated: 2026-05-24
 feature: p11-oppgaver-page

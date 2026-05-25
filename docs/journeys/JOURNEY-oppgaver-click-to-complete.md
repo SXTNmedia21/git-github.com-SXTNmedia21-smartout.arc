@@ -1,6 +1,6 @@
 ---
 title: "JOURNEY — Manager clicks task → modal → mark complete"
-status: done
+status: verified
 created: 2026-05-24
 updated: 2026-05-24
 feature: p11-oppgaver-page
