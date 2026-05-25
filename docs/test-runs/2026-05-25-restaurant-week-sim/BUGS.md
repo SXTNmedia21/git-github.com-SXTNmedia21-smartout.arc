@@ -64,7 +64,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** CRITICAL
 - **Fix:** Rewire `HelpDesk.tsx` to call `helpdesk_query.open_ticket` capability tool via Server Action OR a new BFF route. Remove writes to `help_request`.
 
-### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH
+### BUG-SIM-06 — `BatchActionBar.handlePublishAll` bypasses cascade rule validation 🟠 HIGH — FIXED in commit (see feat/sim-fast-wins-batch-2)
 
 - **Where:** `apps/web/src/app/dashboard/schedule/_components/batch-action-bar.tsx:39-50`
 - **Evidence:** A2 / BUG-A2-1 — calls `publishShifts.mutate(draftIds)` directly. Skips `PublishOverviewDialog` → `usePublishValidation` → `evaluateFrameworkRules`. The proper dialog path in `page.tsx:750-774` uses `setOnPublishAll`.
