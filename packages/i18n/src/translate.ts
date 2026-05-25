@@ -17,6 +17,7 @@ import nbShift from "../locales/nb/shift.json";
 import nbBilling from "../locales/nb/billing.json";
 import nbHelpdesk from "../locales/nb/helpdesk.json";
 import nbYearWheel from "../locales/nb/year-wheel.json";
+import nbOppgaver from "../locales/nb/oppgaver.json";
 import enCommon from "../locales/en/common.json";
 import enLanding from "../locales/en/landing.json";
 import enDocs from "../locales/en/docs.json";
@@ -34,6 +35,7 @@ import enShift from "../locales/en/shift.json";
 import enBilling from "../locales/en/billing.json";
 import enHelpdesk from "../locales/en/helpdesk.json";
 import enYearWheel from "../locales/en/year-wheel.json";
+import enOppgaver from "../locales/en/oppgaver.json";
 
 type MessageValue = string | { [key: string]: MessageValue };
 type Messages = Record<string, MessageValue>;
@@ -57,6 +59,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     billing: nbBilling,
     helpdesk: nbHelpdesk,
     "year-wheel": nbYearWheel,
+    oppgaver: nbOppgaver,
   },
   en: {
     common: enCommon,
@@ -76,6 +79,7 @@ const localeModules: Record<string, Record<string, Messages>> = {
     billing: enBilling,
     helpdesk: enHelpdesk,
     "year-wheel": enYearWheel,
+    oppgaver: enOppgaver,
   },
 };
 

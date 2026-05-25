@@ -1,0 +1,39 @@
+{
+  "brand": "Dagslinjen",
+  "lukk_dagen": "Lukk dagen → AVV",
+  "search_aria": "Søk",
+  "notifications_aria": "Varsler",
+  "voice_aria": "Stemmestyring",
+  "prev_day_aria": "Forrige dag",
+  "next_day_aria": "Neste dag",
+  "manager_pill_suffix": "·  Manager",
+  "toolbar_aria": "Tidslinje verktøylinje",
+  "view_mode": {
+    "area": "Område",
+    "role": "Rolle",
+    "person": "Person"
+  },
+  "filter": {
+    "only_open": "Kun åpne",
+    "deviations": "Avvik"
+  },
+  "zoom_in_aria": "Zoom inn",
+  "zoom_out_aria": "Zoom ut",
+  "empty": {
+    "no_tasks_in_area": "Ingen oppgaver i dette området i dag",
+    "no_employees_planned": "Ingen ansatte planlagt",
+    "no_day_lines": "Ingen dagslinjer for denne datoen"
+  },
+  "task_modal": {
+    "title": "Oppgavedetaljer",
+    "time_range": "Tidsrom",
+    "assignee": "Tildelt",
+    "status": "Status",
+    "complete_action": "Marker som ferdig",
+    "close_aria": "Lukk panelet",
+    "status_done": "Ferdig",
+    "status_in_progress": "Pågår",
+    "status_upcoming": "Kommer",
+    "status_missed": "Bommet"
+  }
+}

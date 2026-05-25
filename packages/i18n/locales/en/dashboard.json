@@ -1259,44 +1259,5 @@
     "tab_eventer": "Events",
     "tab_bookings": "Bookings",
     "page_description": "Dates, seasons, events and bookings in one place"
-  },
-  "oppgaver": {
-    "brand": "Day Line",
-    "lukk_dagen": "Close day → AVV",
-    "search_aria": "Search",
-    "notifications_aria": "Notifications",
-    "voice_aria": "Voice control",
-    "prev_day_aria": "Previous day",
-    "next_day_aria": "Next day",
-    "manager_pill_suffix": "·  Manager",
-    "toolbar_aria": "Timeline toolbar",
-    "view_mode": {
-      "area": "Area",
-      "role": "Role",
-      "person": "Person"
-    },
-    "filter": {
-      "only_open": "Open only",
-      "deviations": "Deviations"
-    },
-    "zoom_in_aria": "Zoom in",
-    "zoom_out_aria": "Zoom out",
-    "empty": {
-      "no_tasks_in_area": "No tasks in this area today",
-      "no_employees_planned": "No employees scheduled",
-      "no_day_lines": "No day lines for this date"
-    },
-    "task_modal": {
-      "title": "Task details",
-      "time_range": "Time range",
-      "assignee": "Assigned to",
-      "status": "Status",
-      "complete_action": "Mark complete",
-      "close_aria": "Close panel",
-      "status_done": "Done",
-      "status_in_progress": "In progress",
-      "status_upcoming": "Upcoming",
-      "status_missed": "Missed"
-    }
   }
 }
