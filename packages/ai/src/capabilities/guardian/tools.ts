@@ -1,5 +1,6 @@
 // packages/ai/src/capabilities/guardian/tools.ts
 import { z } from "zod";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -128,6 +129,23 @@ export const acknowledgeSignal = defineTool({
         action: "acknowledge",
         profile_id: ctx.profileId,
         note: params.note ?? null,
+      },
+    });
+
+    // ADR-0358: register telemetry emit so PostHog + activity_trail receive
+    // the event. The guardian_log insert above is the bus event for stage-
+    // engine WS fan-out (ADR-0186); telemetry is a separate concern.
+    // Audit 2026-05-25 (cap-tools H-2) flagged this gap.
+    // L-0177 fail-fast on workspace_id + actor_id.
+    void emit({
+      event: "guardian_signal acknowledged",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        data: {
+          signal_id: params.signal_id,
+          note: params.note,
+        },
       },
     });
 
