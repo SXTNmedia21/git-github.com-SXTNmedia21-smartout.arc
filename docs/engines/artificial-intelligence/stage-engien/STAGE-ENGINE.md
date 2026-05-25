@@ -1,10 +1,10 @@
 ---
 title: Stage Engine — Sessions, Guardian, Whispers
 status: in_progress
-updated: 2026-05-04
+updated: 2026-05-25
 created: 2026-05-04
 module: stage-engine
-tags: [architecture, stage-engine, guardian, whispers, sessions, agent-runtime]
+tags: [architecture, stage-engine, guardian, whispers, sessions, agent-runtime, capability-bridge]
 ---
 
 # Stage Engine
@@ -54,6 +54,7 @@ Kropp = state. Syn = observability ut. Ord = supervisory in.
 | `POST /agent/dispatch` | `routes/agent/dispatch.ts` | Tool-dispatch fra agent |
 | `POST /adapters/ultravox` | `routes/adapters/ultravox.ts` | Ultravox webhook-bridge |
 | `POST /adapters/telegram` | `routes/adapters/telegram.ts` | Telegram-bridge |
+| `POST /internal/engine-dispatch/invoke-capability-tool` | `routes/internal/invoke-capability-tool.ts` | EF→Node bridge for `invoke_capability_tool` action (ADR-0424 §Transport) |
 | `GET /health`, `GET /recorder-metrics` | `routes/health.ts`, `routes/recorder-metrics.ts` | Helse + observability |
 
 ### Workers (bakgrunnsjobber, startes i `index.ts`)
@@ -74,6 +75,61 @@ Kropp = state. Syn = observability ut. Ord = supervisory in.
 - **In-memory `SessionLane`** (`core/session-lane.ts`) serialiserer turn-handling per session — én tur av gangen for samme `session_id`. Kritisk for å unngå race på `collected_data` JSONB-merge.
 - **Recorder singleton** (ADR-0184) initialiseres ved boot, satt globalt via `setRecorder()`. Alle hooks (prompt-builder, agent-router, authority, guardian, memory) skriver via `getRecorder()`. Fire-and-forget ring-buffer → `agent_session_recording`.
 - **Multi-instance** stage-engine: Guardian-event-fanout via `pg_notify('guardian_events')` (ADR-0186). Hver instans LISTEN-er, parser, og fanout-er til sine egne WS-klienter.
+
+### Internal capability-tool bridge (ADR-0424 §Transport)
+
+Stage-engine exposes one internal route consumed only by the `engine-dispatch` Edge
+Function. It is the Node-side half of the `invoke_capability_tool` action-type bridge.
+
+**Why a bridge exists.** The dispatcher action `invoke_capability_tool` needs to execute
+capability tool bodies that live in `packages/ai` (Node ESM). The dispatcher itself runs as
+a Deno Edge Function (`supabase/functions/engine-dispatch/index.ts`) which cannot import
+Node ESM. The EF therefore stays a thin proxy and HTTP-fetches into this route.
+
+**Dispatch flow** (per ADR-0424 §Transport):
+
+```
+pg_cron / engine_trigger
+        │
+        ▼
+engine-dispatch EF (Deno)
+        │  1. Reads next engine_state_step (action_type = 'invoke_capability_tool')
+        │  2. Recursion-depth check via partial index idx_engine_state_step_invoke_cap
+        │  3. Resolves system-bot fallback for actor_profile_id (sanity hint only)
+        │  4. POSTs to stage-engine internal route with x-api-key (scope engine:invoke)
+        ▼
+POST /internal/engine-dispatch/invoke-capability-tool (Node, this service)
+        │  5. Re-derives workspace_id + actor_profile_id from engine_state row (ADR-0151
+        │     cross-runtime extension — body values are sanity-check / hint only)
+        │  6. Runs gate_action(workspace_id, capability, level)
+        │  7. resolveCapabilityTool(capability, tool) (PR #477 shim)
+        │  8. tool.execute(args, ctx)
+        │  9. emit('engine.action.invoked.invoke_capability_tool', …) with
+        │     actor_capability + delegated_via (ADR-0356 audit symmetry)
+        │ 10. Returns { ok, result | error, gate_evaluation_id, duration_ms }
+        ▼
+engine-dispatch EF
+       11. Persists gate_evaluation_id from response into engine_state_step row
+       12. emit('engine.dispatch.bridge_invoked', …) — transport fact only,
+           routes posthog+logger+activity_trail (NOT engine_event — Node already
+           emitted the execution event, double engine_event would orphan-row)
+```
+
+**Key invariants:**
+
+| Invariant | Enforced where | ADR |
+|---|---|---|
+| Recursion depth ≤ 1 (no `invoke_capability_tool` chains itself) | EF pre-check (partial index) + Node assert `depth === 0` | ADR-0424 §Recursion limit |
+| Identity server-derived from `engine_state_id` | Node `deriveEngineStateContext()` | ADR-0151 §Cross-runtime extension |
+| Gate runs on the side that owns the mutation audit row | Node (Gate placement co-located with `tool.execute()`) | ADR-0356, ADR-0424 §Gate placement |
+| Two telemetry events for two distinct facts (execution + transport) | Node emits execution; EF emits transport | ADR-0424 §Telemetry split, L-0094 |
+| EF auth via dedicated `STAGE_ENGINE_INTERNAL_KEY` scoped `engine:invoke` | Stage-engine `x-api-key` validator | ADR-0265, ADR-0424 §Env var contract |
+
+**Future evolution.** The bridge is interim. ADR-0424 §Future evolution defers sortie **B6**
+(engine-dispatch migration from Deno EF to Node service) which would let dispatcher
+`import { resolveCapabilityTool }` directly. See
+[`docs/plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md`](../../../plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md)
+for scope.
 
 ## 2. Sessions — kropp
 
@@ -343,6 +399,7 @@ Whisper-tilgangen er begrenset til admin-rolle. Vanlig bruker kan ikke whispe. B
 | 0204 | gatedMutation — capability-tools må gå via authority-gate |
 | 0238 | Domain chat ownership — Botsson suppress når domain-chat tar over surface |
 | 0270 *(forslag)* | Mission Run Contract — per-step durability, idempotent recovery |
+| 0424 | `invoke_capability_tool` action-type — EF→Node bridge for cron/engine-spawned tool invocation (§1 internal route) |
 
 ## 9. Referanser
 

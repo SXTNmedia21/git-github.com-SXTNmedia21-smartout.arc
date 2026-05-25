@@ -1,12 +1,20 @@
 ---
 title: "`invoke_capability_tool` Engine-Dispatch Action-Type Contract"
 id: ADR-0424
-status: accepted
+status: implemented
 layer: decision
 created: 2026-05-25
 updated: 2026-05-25
 amendments:
   - "2026-05-25: §Transport layer added — HTTP bridge EF→stage-engine /internal/engine-dispatch/invoke-capability-tool (Council R6, 3:1 majority, system-agent-coordinator dissent accepted as future B6)"
+  - "2026-05-25: §Endpoint contract clarification (Sortie F Phase 3) — `gate_evaluation_id` is OPTIONAL in request body (EF may omit) and ALWAYS returned in response; `actor_profile_id` REMOVED from request body per ADR-0151 §Cross-runtime extension (server-derived from `engine_state.assignee_id` with `'system'` fallback)"
+implementation:
+  - "PR #476 — Phase 1: schema + partial index (`idx_engine_state_step_invoke_cap`)"
+  - "PR #477 — Phase 1.5: `resolveCapabilityTool()` shim in `packages/ai`"
+  - "PR #478 — Phase 1: telemetry registration `engine.action.invoked.invoke_capability_tool`"
+  - "PR #480 — §Transport amendment + L-0361 + ADR-0151 §Cross-runtime extension"
+  - "PR #481 — Phase 2-A: Node-side internal endpoint `services/stage-engine/src/routes/internal/invoke-capability-tool.ts` (gate + execute + emit; workspace_id + actor_profile_id server-derived)"
+  - "PR #482 — Phase 2-B: EF thin proxy in `supabase/functions/engine-dispatch/index.ts` + `engine.dispatch.bridge_invoked` telemetry variant"
 related_adrs: [ADR-0151, ADR-0173, ADR-0193, ADR-0265, ADR-0356, ADR-0421]
 ---
 
@@ -111,6 +119,23 @@ thin proxy; capability tool resolution + execute() runs Node-side, where the bod
 
 ### Endpoint contract
 
+> **Phase 3 clarification (2026-05-25).** Body shape below reflects shipped implementation
+> (PR #481). Two fields evolved from the original draft:
+>
+> 1. `actor_profile_id` **REMOVED from body** — server-derived from `engine_state.assignee_id`
+>    (with `'system'` fallback) per ADR-0151 §Cross-runtime extension. Originally drafted as
+>    body-supplied with "EF resolves system-bot fallback before call"; harness invariant
+>    `check-server-derived-actor` flagged the body field as a forge surface. Refactored
+>    `deriveWorkspaceFromEngineState` → `deriveEngineStateContext` returning
+>    `{ workspace_id, actor_profile_id }`. See PR #481 commit `730f6e113`.
+> 2. `gate_evaluation_id` **OPTIONAL in body, ALWAYS in response** — body field exists for
+>    backward-compatibility with handler patterns that may pre-allocate a UUID for the step
+>    row, but the Node endpoint **always** runs `gate_action` itself and returns the
+>    authoritative `gate_evaluation_id` in the response. EF persists the **response value**
+>    into the `engine_state_step` row (the body value, if supplied, is sanity-check only).
+>    Original §Gate placement text already mandated Node-side gate; this clarifies the body
+>    field's role. See PR #481 commit `c226fda84`.
+
 ```
 POST /internal/engine-dispatch/invoke-capability-tool
 Auth: x-api-key (existing platform_api_key validation path)
@@ -121,21 +146,25 @@ Body: {
   tool: string,
   args: unknown,                       // resolver Zod-validates server-side per tool schema
   workspace_id: NonEmptyString,        // EF-supplied; Node re-derives from engine_state row (defense)
-  actor_profile_id: NonEmptyString,    // EF resolves system-bot fallback before call
   channel: "system",                   // reserved enum value for engine-spawned context
   engine_process_id: string,
   engine_state_id: string,
   engine_state_step_id: string,
-  gate_evaluation_id: string,          // EF-side gate result, persisted into step row after fetch
+  gate_evaluation_id?: string,         // OPTIONAL — Node returns authoritative value in response
   depth: 0,                            // EF enforces; endpoint asserts === 0 (fail-closed defense)
 }
 
-Response (success): { ok: true, result: unknown, duration_ms: number }
-Response (failure): { ok: false, error: string, duration_ms: number }
+// Identity fields server-derived from engine_state_id (NOT body):
+//   workspace_id (re-derived, body value sanity-check only — 400 on mismatch)
+//   actor_profile_id (from engine_state.assignee_id || 'system')
+
+Response (success): { ok: true, result: unknown, gate_evaluation_id: string, duration_ms: number }
+Response (failure): { ok: false, error: string, gate_evaluation_id?: string, duration_ms: number }
 
 Error semantics:
   400 — body schema invalid, depth > 0, workspace re-derive mismatch
   401 — auth failure (missing/invalid x-api-key, scope guard reject)
+  403 — gate_action denied (capability/level not permitted for workspace)
   404 — resolveCapabilityTool() returns null (capability/tool unknown)
   500 — tool.execute() threw; body carries sanitized error message
 ```
@@ -256,6 +285,9 @@ swap + EF→service routing parity):
 The bridge buys time for B6 to be sequenced properly (after current C2 campaign sortier
 land) without blocking C2 on a runtime-migration campaign.
 
+See [`docs/plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md`](../plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md)
+for the deferred-sortie scope, trigger conditions, and migration outline.
+
 ## Rules & Consequences
 
 - **Good:** Unblocks C2 campaign (sortie G) without violating frozen-4 boundaries
@@ -289,4 +321,4 @@ of this pattern.
 - [[ADR-0421]] sub-pattern C — EF/capability duplication (inline-mirror rejection)
 - L-0355 — C2 reframing (duplicate-logic surface vs engine_process gap depth)
 - L-0361 — ADR-missing-cross-runtime-dimension (3rd-occurrence pattern; this amendment closes for ADR-0424 specifically and codifies the Phase 2.5 rule for future ADRs)
-- `docs/plans/SORTIE-F-HANDLER-BLOCKED.md` — Phase 2 escalation source document
+- `docs/plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md` — Deferred sortie that supersedes §Transport layer when landed (Harness Specialist dissent direction)
