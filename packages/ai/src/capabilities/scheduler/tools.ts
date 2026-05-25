@@ -576,7 +576,6 @@ export const acceptProposal = defineTool({
               applied_template_provenance: {
                 applied_at: string;
                 applied_by: string;
-                source_cycle_id: string;
               };
             };
 
