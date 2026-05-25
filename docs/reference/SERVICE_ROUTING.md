@@ -2,7 +2,7 @@
 title: Service Routing Reference
 status: canonical
 created: 2026-03-19
-updated: 2026-03-19
+updated: 2026-05-25
 module: infrastructure
 tags: [services, routing, caddy, docker, urls, endpoints]
 ---
@@ -129,6 +129,18 @@ Same Caddy URLs, same env vars. The only difference:
 | Supabase    | Local Docker              | Supabase Cloud       |
 
 The `.env.template` is identical for both environments. Secrets differ (1Password vaults), but URLs are the same.
+
+---
+
+## Stage Engine — Internal Routes (ADR-0424 §Transport)
+
+| Route                                                      | Caller                  | Auth                                    | Purpose                                                     |
+| ---------------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------------------------------- |
+| `POST /internal/engine-dispatch/invoke-capability-tool`    | Supabase EF (`engine-dispatch`) | `x-api-key` + scope `engine:invoke` | Execute a capability tool Node-side (Node ESM bridge for EF→stage-engine) |
+
+**Key:** `STAGE_ENGINE_INTERNAL_KEY` (scope `engine:invoke`). Distinct from `STAGE_ENGINE_API_KEY` (scope `bff:proxy`).
+**Identity re-derivation:** `workspace_id` is re-derived from `engine_state` row using `engine_state_id`. Body value is sanity-check only (ADR-0151 §Cross-runtime extension).
+**Gate placement:** `gate_action` runs Node-side, before `tool.execute()`. EF receives `gate_evaluation_id` in response body and persists into `engine_state_step` row (ADR-0424 §Gate placement + ADR-0356).
 
 ---
 
