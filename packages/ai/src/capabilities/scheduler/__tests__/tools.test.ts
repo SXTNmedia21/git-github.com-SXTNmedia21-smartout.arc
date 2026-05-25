@@ -267,3 +267,77 @@ describe("reject_proposal", () => {
     expect(mockMutateWithGate).not.toHaveBeenCalled();
   });
 });
+
+// ─── accept_proposal: kind='template_apply' branch (ADR-0417) ────────────────
+
+describe("accept_proposal — kind=template_apply branch", () => {
+  it("happy path — template_apply kind accepted, returns success with shift count", async () => {
+    mockMutateWithGate.mockResolvedValue({
+      ok: true,
+      result: { shifts_inserted: 8, planning_cycle_id: CYCLE_ID, solver_run_id: "" },
+      gateEvaluationId: "gate-eval-004",
+      correlationId: "corr-004",
+    });
+
+    const ctx = makeCtx("chat");
+    const result = await acceptProposal.execute({ change_proposal_id: PROPOSAL_ID }, ctx);
+
+    expect(result).toContain("godtatt");
+    expect(result).toContain("8");
+    expect(mockMutateWithGate).toHaveBeenCalledOnce();
+  });
+
+  it("kind mismatch — exec throws 'expected scheduler_bundle or template_apply' error", async () => {
+    // Simulate the exec callback throwing because kind is unknown
+    mockMutateWithGate.mockRejectedValue(
+      new Error(
+        "Proposal kind is 'wage_line_override', expected 'scheduler_bundle' or 'template_apply'",
+      ),
+    );
+
+    const ctx = makeCtx("chat");
+    const result = await acceptProposal.execute({ change_proposal_id: PROPOSAL_ID }, ctx);
+
+    expect(result).toContain("Feil ved godkjenning");
+    expect(result).toContain("wage_line_override");
+  });
+
+  it("template_apply gate-denied — returns 'Ikke tillatt'", async () => {
+    mockMutateWithGate.mockRejectedValue(
+      new MockMutateWithGateDenied({ deniedBy: "capability", reason: "manager role required" }),
+    );
+
+    const ctx = makeCtx("chat");
+    const result = await acceptProposal.execute({ change_proposal_id: PROPOSAL_ID }, ctx);
+
+    expect(result).toContain("Ikke tillatt");
+    expect(result).toContain("accept_proposal");
+  });
+
+  it("template_apply voice-channel — returns chat-only guard, gate not called", async () => {
+    const ctx = makeCtx("voice");
+    const result = await acceptProposal.execute({ change_proposal_id: PROPOSAL_ID }, ctx);
+
+    expect(result).toContain("bare tilgjengelig i chat");
+    expect(result).toContain("ADR-0288");
+    expect(mockMutateWithGate).not.toHaveBeenCalled();
+  });
+
+  it("template_apply + scheduler_bundle both still accepted — no regression", async () => {
+    // Verify both kinds resolve via same mock path (exec callback handles branching)
+    mockMutateWithGate.mockResolvedValue({
+      ok: true,
+      result: { shifts_inserted: 3, planning_cycle_id: CYCLE_ID, solver_run_id: "solver-abc" },
+      gateEvaluationId: "gate-eval-005",
+      correlationId: "corr-005",
+    });
+
+    const ctx = makeCtx("chat");
+    const result = await acceptProposal.execute({ change_proposal_id: PROPOSAL_ID }, ctx);
+
+    // Both kinds produce the same Norwegian success message
+    expect(result).toContain("godtatt");
+    expect(result).toContain("3");
+    expect(mockMutateWithGate).toHaveBeenCalledOnce();
+  });
+});

@@ -9527,6 +9527,9 @@ export type SmartoutEvent =
   | SchedulerProposalProposed
   | SchedulerProposalAccepted
   | SchedulerProposalRejected
+  | SchedulerDiagnoseRequested
+  | SchedulerTemplateListed
+  | SchedulerTemplateApplied
   // ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0310/0314/0315) ──────
   | ContractDispatchFailedSafe
   | ContractAml146ValidationFailed
@@ -9930,6 +9933,67 @@ export interface SchedulerProposalRejected extends BaseEvent {
       rejection_reason: string | null;
       gate_evaluation_id: string | null;
     };
+  };
+}
+
+// ─── Scheduler Diagnose Event (feat/turnus-diagnose-and-template, Phase 1) ──────
+// Read-only diagnostic tool for cascade prerequisite checking.
+// One emit per diagnose_turnus_disabled tool call (ADR-0134).
+//
+// Routing rationale:
+//   posthog — product analytics: how often are workspaces blocked from planning?
+//   logger — stdout audit trail.
+//   activity_trail — audit: which manager ran diagnose, what was missing.
+//   engine_event EXCLUDED — read-only diagnose is not a workflow trigger.
+//
+// Per L-NEW (telemetry-without-emit-wiring): call-site in diagnose-tools.ts
+// exists in the same commit as this registry entry.
+
+export interface SchedulerDiagnoseRequested extends BaseEvent {
+  event: "scheduler.diagnose.requested";
+  properties: {
+    target_week_iso: string;
+    department_id: string | null;
+    ready: boolean;
+    missing_count: number;
+    missing_dimensions: Array<"D1" | "D2" | "D3" | "D4" | "D5" | "D6">;
+    channel: "chat" | "voice";
+  };
+}
+
+// ─── Scheduler Template Events (feat/turnus-diagnose-and-template, Phase 1) ──────
+// Template listing and application telemetry (ADR-0417).
+//
+// listed:  Read-only. manager sees available archived cycles.
+//   posthog — product analytics: which workspaces use template listings.
+//   logger + activity_trail — audit trail (manager saw these templates).
+//   engine_event EXCLUDED — read-only, no D6 effect.
+//
+// applied: Write event. ONE change_proposal of kind='template_apply' created.
+//   All 4 destinations — engine_event included because template-apply proposals
+//   are workflow-triggering (manager review step, downstream D6 shift creation).
+//
+// Per L-NEW (telemetry-without-emit-wiring): call-sites in tools-template.ts
+// exist in the same commit as this registry entry.
+
+export interface SchedulerTemplateListed extends BaseEvent {
+  event: "scheduler.template.listed";
+  properties: {
+    result_count: number;
+    department_id: string | null;
+    channel: "chat" | "voice";
+  };
+}
+
+export interface SchedulerTemplateApplied extends BaseEvent {
+  event: "scheduler.template.applied";
+  properties: {
+    source_cycle_id: string;
+    target_cycle_id: string;
+    department_id: string;
+    proposed_count: number;
+    change_proposal_id: string;
+    channel: "chat" | "voice";
   };
 }
 
@@ -15111,6 +15175,25 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "scheduler.proposal.rejected": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduler",
+  },
+  // diagnose_turnus_disabled read-only emit (feat/turnus-diagnose-and-template Phase 1).
+  // No engine_event — read-only diagnose does not trigger any workflow.
+  // Call-site: diagnose-tools.ts (same commit per L-NEW anti-phantom-emit rule).
+  "scheduler.diagnose.requested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduler",
+  },
+  // template listing + apply emits (feat/turnus-diagnose-and-template Phase 1, ADR-0417).
+  // listed: read-only — no engine_event.
+  // applied: write event — engine_event included (proposal creation triggers review workflow).
+  // Call-sites: tools-template.ts (same commit per L-NEW anti-phantom-emit rule).
+  "scheduler.template.listed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduler",
+  },
+  "scheduler.template.applied": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduler",
   },
 

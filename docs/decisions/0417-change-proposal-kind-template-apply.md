@@ -1,7 +1,7 @@
 ---
 id: ADR-0417
 title: change_proposal kind=template_apply — week-template application as proposal bundle
-status: draft
+status: accepted
 date: 2026-05-25
 author: System Council (system-steward chair)
 supersedes: none
@@ -56,7 +56,17 @@ Authority: `confirm` min_role `manager`. Channel: chat-only (Compose verb per AD
 
 ## Status
 
-Draft — implementation deferred to Phase 2 of "Sett opp juni for meg" sortie chain. Pre-work bug fixes (L-0348 solver column drift, G10 TZ bug, G9 profile_id forgery) must close first.
+**Accepted 2026-05-25 (Phase 1 sortie `turnus-diagnose-and-template`).** Pre-work bug fixes closed on development:
+- C1 L-0348 solver column drift → commit `39f1fbd5f`
+- C2 G10 TZ wrong-day → commit `b0c8e7dca`
+- C3 G9 profile_id forgery (regression tests; route was already fixed `84f374cc5`) → commit `b9a66f98d`
+
+Implementation lands in Phase 1 sortie `feat/turnus-diagnose-and-template` (this ADR's accept-event). Track A (system-steward, 2026-05-25) verified zero new schema beyond single `COMMENT ON COLUMN` migration for the new TEXT literal.
+
+**Track A scope corrections (must be honored by Track C):**
+- Use `planning_cycle.status = 'archived'` for template list (not `committed` — enum has `draft|active|archived` only, see `database.types.ts:23604`).
+- Payload `proposed_shifts[]` MUST mirror real `schedule_shift` columns (`shift_date DATE, role TEXT, start_time TIME, end_time TIME, position_id UUID?, department_id UUID`). Drop `shift_type_id` + `slot_index` from V1 — those columns don't exist in `schedule_shift` (`supabase/migrations/20260301300000_schedule_shift_table.sql:44-71`).
+- Extend `scheduler.accept_proposal` at `packages/ai/src/capabilities/scheduler/tools.ts:498,660` to branch on `kind` field (currently throws on `kind !== 'scheduler_bundle'`). Otherwise Phase 1 ships orphan write surface (R3 BLOCKER).
 
 ## References
 
