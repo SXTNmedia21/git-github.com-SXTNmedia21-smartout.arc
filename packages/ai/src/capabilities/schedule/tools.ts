@@ -133,7 +133,7 @@ export const getShiftColleagues = defineTool({
     const { data: shift, error: shiftError } = await supabase
       .from("schedule_shift")
       .select("start_time, end_time, department_id")
-      .eq("id", params.shift_id)
+      .eq("schedule_shift_id", params.shift_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
@@ -143,7 +143,9 @@ export const getShiftColleagues = defineTool({
     // Find overlapping shifts in the same department
     const { data, error } = await supabase
       .from("schedule_shift")
-      .select("id, profile:profile_id(display_name, profile_id), position, start_time, end_time")
+      .select(
+        "schedule_shift_id, profile:profile_id(display_name, profile_id), position, start_time, end_time",
+      )
       .eq("workspace_id", ctx.workspaceId)
       .eq("department_id", shift.department_id)
       .lt("start_time", shift.end_time)
@@ -205,7 +207,9 @@ export const getTodaySchedule = defineTool({
 
     const { data, error } = await supabase
       .from("schedule_shift")
-      .select("id, start_time, end_time, position, status, profile:profile_id(display_name)")
+      .select(
+        "schedule_shift_id, start_time, end_time, position, status, profile:profile_id(display_name)",
+      )
       .eq("workspace_id", ctx.workspaceId)
       .eq("department_id", deptId)
       .gte("start_time", todayStart.toISOString())
@@ -238,9 +242,9 @@ export const getShiftDetail = defineTool({
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "id, start_time, end_time, position, status, notes, department:department_id(name), location:location_id(name), profile:profile_id(display_name)",
+        "schedule_shift_id, start_time, end_time, position, status, notes, department:department_id(name), location:location_id(name), profile:profile_id(display_name)",
       )
-      .eq("id", params.shift_id)
+      .eq("schedule_shift_id", params.shift_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
