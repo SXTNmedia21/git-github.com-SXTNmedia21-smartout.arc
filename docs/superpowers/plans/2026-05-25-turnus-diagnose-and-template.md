@@ -25,7 +25,8 @@ Council 2026-05-25 Phase 1 (post-pre-work C1/C2/C3 closure). Manager opens sched
 
 **Capability 2: `timeline_template` (chat-only, write via gate)**
 - Tool 1: `list_week_templates({ workspace_id })` — lists past planning_cycles + named templates
-- Tool 2: `apply_week_template({ source_cycle_id, target_cycle_id, department_id })` — writes change_proposal kind='scheduler_template_apply' OR 'scheduler_bundle' (Track A decides)
+- Tool 2: `apply_week_template({ source_cycle_id, target_cycle_id, department_id })` — writes change_proposal kind='template_apply' (ADR-0417 authoritative literal)
+- Tool 3: `scheduler.accept_proposal` EXTENDED to handle `kind='template_apply'` payload (mirror scheduler_bundle accept logic with template-derived shifts) — closes R3 orphan-write risk
 - mutateWithGate per ADR-0204, fail-fast L-0177
 - Chat-only per ADR-0288 (irreversible C4 act)
 
@@ -58,7 +59,7 @@ See main session orchestration plan. Tracks A→{B,C,D}→E→F sequenced with p
 ## Decisions to make (track owners)
 
 - **Track A:** Is `week_template` a new table, a view, or derived from past `planning_cycle` rows? Decides Tracks B+C schema reads.
-- **Track C:** New `change_proposal.kind` value `scheduler_template_apply` OR reuse `scheduler_bundle`? ADR consequence either way.
+- **Track C:** New `change_proposal.kind` value `template_apply` OR reuse `scheduler_bundle`? ADR consequence either way.
 - **Track D:** mr-botsson mission intent slot — collision with existing `propose_plan`? L-0147 outsider-renumber risk.
 - **Track B:** Diagnose voice-channel — confirm ADR-0288 allows read-only diagnostics on voice (likely yes).
 
