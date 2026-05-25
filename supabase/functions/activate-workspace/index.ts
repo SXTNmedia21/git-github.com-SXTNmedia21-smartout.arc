@@ -1,13 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Legacy compatibility path for older onboarding flows.
 // New workspace creation should prefer shell provisioning plus /onboarding finalization.
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: cors });
   }
 
   try {
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true, workspaceId: data }), {
       headers: {
-        ...corsHeaders,
+        ...cors,
         "Content-Type": "application/json",
         "X-Smartout-Legacy-Path": "activate-workspace",
       },
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
     console.error("[activate-workspace] unhandled error:", error);
     return new Response(JSON.stringify({ error: "internal" }), {
       headers: {
-        ...corsHeaders,
+        ...cors,
         "Content-Type": "application/json",
         "X-Smartout-Legacy-Path": "activate-workspace",
       },

@@ -61,11 +61,16 @@ async function loadSolverContext(
   supabase: SupabaseClient,
   workspaceId: string,
   planningCycleId: string,
+  departmentId: string,
 ): Promise<SolverInput> {
   // ── D1: planning cycle envelope ──────────────────────────────────────────
+  // L-0348 fix #5: planning_cycle schema reality —
+  // - columns are start_date + end_date (DATE), NOT starts_at + ends_at (TIMESTAMPTZ)
+  // - planning_cycle is workspace-scoped, NOT department-scoped (no department_id)
+  // - departmentId is passed as separate param by caller (propose_plan schema)
   const { data: cycle, error: cycleErr } = await supabase
     .from("planning_cycle")
-    .select("planning_cycle_id, department_id, starts_at, ends_at")
+    .select("planning_cycle_id, start_date, end_date")
     .eq("workspace_id", workspaceId)
     .eq("planning_cycle_id", planningCycleId)
     .maybeSingle();
@@ -74,42 +79,85 @@ async function loadSolverContext(
     throw new Error(`planning_cycle not found or not in workspace: ${planningCycleId}`);
   }
 
+  // Convert DATE strings to ISO timestamps for SolverInput consumption.
+  const cycleStartsAt = `${cycle.start_date}T00:00:00Z`;
+  const cycleEndsAt = `${cycle.end_date}T23:59:59Z`;
+
   // ── D4: demand buckets via day_factor + hour_factor ──────────────────────
-  // V1 fallback: load day_factor rows for the cycle's date range.
+  // Schema reality (L-0348 fix): day_factor + hour_factor are keyed per
+  // season_budget_id, NOT per (workspace, department, date). Resolve active
+  // season_budget for the cycle window first; if absent, fall back to
+  // factor=1.0 across all buckets (degraded but non-empty).
+  //
   // Real-time POS demand (ADR-0305) deferred to V2 — day_factor is the
   // production-ready fallback per ADR-0307 spec.
-  const { data: dayFactors } = await supabase
-    .from("day_factor")
-    .select("date, factor, department_id")
-    .eq("workspace_id", workspaceId)
-    .eq("department_id", cycle.department_id)
-    .gte("date", cycle.starts_at.slice(0, 10))
-    .lte("date", cycle.ends_at.slice(0, 10));
+  const cycleStartDate = cycle.start_date;
+  const cycleEndDate = cycle.end_date;
 
-  const { data: hourFactors } = await supabase
-    .from("hour_factor")
-    .select("hour_of_day, factor, department_id")
+  // Resolve active season overlapping the cycle window.
+  // season has start_date + end_date (nullable for open-ended) + status enum.
+  const { data: activeSeason } = await supabase
+    .from("season")
+    .select("season_id, start_date, end_date")
     .eq("workspace_id", workspaceId)
-    .eq("department_id", cycle.department_id);
+    .eq("status", "active")
+    .lte("start_date", cycleEndDate)
+    .or(`end_date.is.null,end_date.gte.${cycleStartDate}`)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let seasonBudgetId: string | null = null;
+  if (activeSeason) {
+    const { data: budget } = await supabase
+      .from("season_budget")
+      .select("season_budget_id")
+      .eq("workspace_id", workspaceId)
+      .eq("season_id", activeSeason.season_id)
+      .maybeSingle();
+    seasonBudgetId = budget?.season_budget_id ?? null;
+  }
+
+  // Real day_factor schema: (season_budget_id, weekday 0=Mon..6=Sun, factor).
+  // Real hour_factor schema: (season_budget_id, hour 0-23, factor).
+  let dayFactorRows: Array<{ weekday: number; factor: number }> = [];
+  let hourFactorRows: Array<{ hour: number; factor: number }> = [];
+
+  if (seasonBudgetId) {
+    const { data: dfRows } = await supabase
+      .from("day_factor")
+      .select("weekday, factor")
+      .eq("season_budget_id", seasonBudgetId);
+    dayFactorRows = dfRows ?? [];
+
+    const { data: hfRows } = await supabase
+      .from("hour_factor")
+      .select("hour, factor")
+      .eq("season_budget_id", seasonBudgetId);
+    hourFactorRows = hfRows ?? [];
+  }
 
   // Build 1-hour demand buckets from day × hour factors.
-  // baseline_headcount = 2 (configurable V2; V1 uses 2 as sensible starting point).
+  // baseline_headcount = 2 (configurable V2 per ADR-0418 D5 Concept derivation;
+  // V1 uses 2 as sensible starting point).
   const BASELINE_HEADCOUNT = 2;
   const demand_buckets: DemandBucket[] = [];
 
-  const startDate = new Date(cycle.starts_at);
-  const endDate = new Date(cycle.ends_at);
+  const startDate = new Date(cycleStartsAt);
+  const endDate = new Date(cycleEndsAt);
 
   for (let d = new Date(startDate); d < endDate; d.setUTCDate(d.getUTCDate() + 1)) {
     const dateStr = d.toISOString().slice(0, 10);
-    const dayFactor =
-      dayFactors?.find((df) => df.date === dateStr && df.department_id === cycle.department_id)
-        ?.factor ?? 1.0;
+    // Weekday convention: day_factor uses 0=Mon..6=Sun (Norwegian) per migration
+    // 20260306100000_season_planning_tables.sql. JS getUTCDay() is 0=Sun..6=Sat.
+    // Convert: (jsDay + 6) % 7.
+    const jsDay = d.getUTCDay();
+    const weekday = (jsDay + 6) % 7;
+
+    const dayFactor = dayFactorRows.find((df) => df.weekday === weekday)?.factor ?? 1.0;
 
     for (let h = 0; h < 24; h++) {
-      const hourFactor =
-        hourFactors?.find((hf) => hf.hour_of_day === h && hf.department_id === cycle.department_id)
-          ?.factor ?? 1.0;
+      const hourFactor = hourFactorRows.find((hf) => hf.hour === h)?.factor ?? 1.0;
 
       const score = BASELINE_HEADCOUNT * dayFactor * hourFactor;
       if (score < 0.5) continue; // Skip near-zero demand buckets
@@ -118,22 +166,26 @@ async function loadSolverContext(
       const endHour = `${dateStr}T${String(h + 1).padStart(2, "0")}:00:00Z`;
 
       demand_buckets.push({
-        department_id: cycle.department_id,
+        department_id: departmentId,
         start_at: startHour,
         end_at: endHour,
         score,
-        position_id: cycle.department_id, // V1: position_id = department_id (V2 uses positions table)
+        position_id: departmentId, // V1: position_id = department_id (V2 uses positions table)
         role: "employee", // V1 default role; V2 uses position.role
       });
     }
   }
 
   // ── D2: active profiles with employment contracts ────────────────────────
+  // L-0348 fix: profile column is `status` (profile_status enum), NOT
+  // `employment_status`. Map to solver-interface field name below.
+  // Trainee paired-only treatment deferred to ADR-0419 separate sortie —
+  // for now, only status='active' qualifies (current behavior preserved).
   const { data: profileRows } = await supabase
     .from("profile")
-    .select("profile_id, workspace_id, employment_status, display_name")
+    .select("profile_id, workspace_id, status, display_name")
     .eq("workspace_id", workspaceId)
-    .eq("employment_status", "active");
+    .eq("status", "active");
 
   const { data: contractRows } = await supabase
     .from("employment_contract")
@@ -142,22 +194,24 @@ async function loadSolverContext(
     .eq("status", "active");
 
   // ── D6: existing shifts in cycle window ───────────────────────────────────
+  // L-0348 fix: schedule_shift columns are `shift_date` + `employee_id`,
+  // NOT `date` + `profile_id`. employee_id FKs to profile.profile_id.
   const { data: existingShiftRows } = await supabase
     .from("schedule_shift")
-    .select("schedule_shift_id, profile_id, start_time, end_time, date")
+    .select("schedule_shift_id, employee_id, start_time, end_time, shift_date")
     .eq("workspace_id", workspaceId)
-    .eq("department_id", cycle.department_id)
-    .gte("date", cycle.starts_at.slice(0, 10))
-    .lte("date", cycle.ends_at.slice(0, 10))
-    .not("profile_id", "is", null);
+    .eq("department_id", departmentId)
+    .gte("shift_date", cycleStartDate)
+    .lte("shift_date", cycleEndDate)
+    .not("employee_id", "is", null);
 
   // ── D2: absences in cycle window ──────────────────────────────────────────
   const { data: absenceRows } = await supabase
     .from("schedule_absence")
     .select("absence_id, profile_id, start_at, end_at")
     .eq("workspace_id", workspaceId)
-    .gte("end_at", cycle.starts_at)
-    .lte("start_at", cycle.ends_at);
+    .gte("end_at", cycleStartsAt)
+    .lte("start_at", cycleEndsAt);
 
   // ── D3: framework rules for scheduling ───────────────────────────────────
   const { data: frameworkRuleRows } = await supabase
@@ -182,13 +236,14 @@ async function loadSolverContext(
   }
 
   // ── Build SolverProfile list ──────────────────────────────────────────────
+  // L-0348 fix: column refs updated to shift_date + employee_id.
   const existing_shifts: ExistingShift[] = (existingShiftRows ?? []).map((s) => ({
     shift_id: s.schedule_shift_id,
-    start_at: `${s.date}T${s.start_time}Z`,
-    end_at: `${s.date}T${s.end_time}Z`,
+    start_at: `${s.shift_date}T${s.start_time}Z`,
+    end_at: `${s.shift_date}T${s.end_time}Z`,
     duration_hours:
-      (new Date(`${s.date}T${s.end_time}Z`).getTime() -
-        new Date(`${s.date}T${s.start_time}Z`).getTime()) /
+      (new Date(`${s.shift_date}T${s.end_time}Z`).getTime() -
+        new Date(`${s.shift_date}T${s.start_time}Z`).getTime()) /
       3_600_000,
   }));
 
@@ -203,9 +258,10 @@ async function loadSolverContext(
         }
       : null;
 
+    // Join via employee_id (DB column on schedule_shift) to p.profile_id.
     const profileShifts = existing_shifts.filter((s) =>
       existingShiftRows?.some(
-        (r) => r.schedule_shift_id === s.shift_id && r.profile_id === p.profile_id,
+        (r) => r.schedule_shift_id === s.shift_id && r.employee_id === p.profile_id,
       ),
     );
 
@@ -224,7 +280,10 @@ async function loadSolverContext(
         profile_id: p.profile_id,
         workspace_id: workspaceId,
         competent_roles: ["employee"], // V1: all active employees competent for "employee" role
-        employment_status: p.employment_status,
+        // Map DB profile.status (profile_status enum) → solver-interface
+        // employment_status string. Both 'active' values align; trainee
+        // profiles excluded by filter above per ADR-0419 deferred.
+        employment_status: p.status,
       },
       utilized_hours: utilizedHours,
       existing_shifts: profileShifts,
@@ -238,9 +297,9 @@ async function loadSolverContext(
     workspace_id: workspaceId,
     planning_cycle: {
       planning_cycle_id: cycle.planning_cycle_id,
-      department_id: cycle.department_id,
-      starts_at: cycle.starts_at,
-      ends_at: cycle.ends_at,
+      department_id: departmentId,
+      starts_at: cycleStartsAt,
+      ends_at: cycleEndsAt,
     },
     demand_buckets,
     profiles,
@@ -267,6 +326,12 @@ export const proposePlan = defineTool({
       .string()
       .uuid()
       .describe("The planning cycle to schedule. Solver reads D2+D3+D4+D6 context for this cycle."),
+    department_id: z
+      .string()
+      .uuid()
+      .describe(
+        "Department to schedule. planning_cycle is workspace-scoped; department is required to scope D2/D6 reads + bucket scoring.",
+      ),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
@@ -279,7 +344,12 @@ export const proposePlan = defineTool({
     // ── Load cascade context (workspace-scoped per Law 1) ─────────────────
     let solverInput: SolverInput;
     try {
-      solverInput = await loadSolverContext(supabase, ctx.workspaceId, params.planning_cycle_id);
+      solverInput = await loadSolverContext(
+        supabase,
+        ctx.workspaceId,
+        params.planning_cycle_id,
+        params.department_id,
+      );
     } catch (err) {
       return `Feil ved lasting av planleggingskontekst: ${err instanceof Error ? err.message : String(err)}`;
     }

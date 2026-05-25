@@ -13,7 +13,7 @@
  */
 
 import { useMemo } from "react";
-import type { ClientToolDefinition, ClientTools } from "@/components/voice-tools-context";
+import type { ClientToolDefinition, ClientToolKit } from "@smartout/agent-sdk";
 import { peopleToolDefinitions } from "./people-tool-definitions";
 import type { Employee, Department } from "../_components/types";
 
@@ -27,8 +27,8 @@ const TOOL_DEFINITIONS: ClientToolDefinition[] = [...peopleToolDefinitions];
 export function usePeopleVoiceTools({
   employees,
   departments,
-}: PeopleVoiceToolsInput): ClientTools {
-  return useMemo((): ClientTools => {
+}: PeopleVoiceToolsInput): ClientToolKit {
+  return useMemo((): ClientToolKit => {
     // -- getPeopleState -------------------------------------------------------
     function getPeopleState(): string {
       const activeCount = employees.filter((e) => e.status === "active").length;

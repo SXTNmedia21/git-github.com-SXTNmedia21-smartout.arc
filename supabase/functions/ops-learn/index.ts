@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 type PatternType = "task_duration" | "staffing" | "deviation_correlation";
@@ -349,9 +349,10 @@ async function cleanupExpired(
 
 // ─── Main Handler ────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   // Auth: cron secret (fail closed with !cronSecret ||)
@@ -359,14 +360,14 @@ Deno.serve(async (req) => {
   const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    return new Response("Unauthorized", { status: 401, headers: cors });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    return new Response("Missing Supabase credentials", { status: 500, headers: corsHeaders });
+    return new Response("Missing Supabase credentials", { status: 500, headers: cors });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -398,7 +399,7 @@ Deno.serve(async (req) => {
     if (!workspaces || workspaces.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: "No active workspaces", patterns_persisted: 0 }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        { status: 200, headers: { "Content-Type": "application/json", ...cors } },
       );
     }
 
@@ -451,7 +452,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json", ...cors },
     });
   } catch (error) {
     console.error(
@@ -468,7 +469,7 @@ Deno.serve(async (req) => {
         success: false,
         error: String(error),
       }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      { status: 500, headers: { "Content-Type": "application/json", ...cors } },
     );
   }
 });
