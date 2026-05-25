@@ -1,9 +1,10 @@
 ---
 title: "Journey: Manager filtrerer Oppgaver-timeline etter område"
-status: draft
+status: verified
 feature: dayplanner-dnd-and-views
 created: 2026-05-25
 updated: 2026-05-25
+verified: 2026-05-25
 module: day-session
 tags: [journey, dayplanner, oppgaver, filter, manager]
 ---

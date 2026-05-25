@@ -119,6 +119,22 @@ Extend `/dashboard/oppgaver` (Manager Timeline page shipped in p11-oppgaver-page
 - [ ] No new ADR-0298 violations (task capability is sole writer to `session_task.scheduled_at`)
 - [ ] Manager Timeline.html design parity verified visually for all 3 modes
 
+## Deferred to Follow-up Sorties
+
+Findings from Wave 2 visual-parity audit (`docs/visual-parity-dayplanner.md`):
+
+1. **Drop-target hardcoded color** — `UnassignedLane.tsx` uses `bg-orange-500/10` for drag-over highlight. ADR-0361 violation (hardcoded Tailwind color, not CSS variable). Fix: replace with `bg-[color:oklch(from_var(--brand-orange)_l_c_h_/_0.10)]` or add a Tailwind alias token. Low-severity but should be cleaned in a follow-up touch-up sortie.
+
+2. **Dim opacity 50% vs prototype 30%** — `AreaBand.tsx` uses `opacity-50` (50%). Prototype targets 30% dimming. Intentional acceptance or inadvertent gap — warrants a visual review with Pontus before changing. Fix if review confirms 30% is preferred: replace `opacity-50` with `opacity-30`.
+
+3. **No `data-dimmed` attribute on AreaBand** — E2E journey-1 spec targets `opacity-50` class. If AreaBand ever changes Tailwind classes, E2E will silently miss dimming. Adding `data-dimmed={dimmed}` attribute to the band root div would make the E2E contract explicit and stable. Add in next touch-up sortie.
+
+4. **Band name typography** — Prototype renders area band names with `--font-heading` (Instrument Serif). Implementation uses default Geist Sans (`text-sm font-semibold`). Minor visual hierarchy gap. Fix: add `font-heading` class to band name `<span>` in `AreaBand.tsx` header.
+
+5. **Dept token id mapping** — `var(--dept-<band.id>)` resolves to border-gray if `location_id` doesn't match token keys (`kitchen`, `floor`, `bar`, `event`, `storage`). Requires seeder / location normalization or token aliasing per actual location IDs from `day_line`. Follow-up: add token aliases matching real location_id values from the DB seed.
+
+6. **FilterChip / SegmentGroup transition verification** — Visual parity doc flags as TODO. Verify `@smartout/ui` primitives have `transition-colors` per Nordic Split §10.4. If absent, add in the next ui-shell sub-sortie.
+
 ## Risks + Open Questions
 
 - **DnD library choice** — prototype uses native HTML5 drag-and-drop. Decide vs `@dnd-kit/core`. Recommend native first (zero dep), revisit if accessibility gaps appear.

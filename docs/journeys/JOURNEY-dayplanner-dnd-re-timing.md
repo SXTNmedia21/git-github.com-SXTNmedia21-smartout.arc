@@ -1,9 +1,10 @@
 ---
 title: "Journey: Manager drar task til ny tid og ansatt"
-status: draft
+status: verified
 feature: dayplanner-dnd-and-views
 created: 2026-05-25
 updated: 2026-05-25
+verified: 2026-05-25
 module: day-session
 tags: [journey, dayplanner, oppgaver, dnd, manager, mutation, adr-0298]
 ---
