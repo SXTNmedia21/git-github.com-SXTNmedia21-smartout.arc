@@ -175,6 +175,18 @@ export default async function DashboardLayout({
     // Welcome wizard gate: check if profile has completed the first-login wizard.
     // Showcase mode and profiles without a profileId skip the check.
     // Treat column-not-found (migration not yet applied) as complete (degrade gracefully).
+    //
+    // BUG-SIM-21 fix: gate is ROLE-AWARE.
+    //   - employee / trainee → employee WelcomeWizard (existing flow)
+    //   - manager / admin / owner → the 8-step employee wizard is wrong.
+    //     Route to /dashboard/setup (workspace configuration) instead.
+    //     If setup is already complete (workspace.setup_guide_completed), skip
+    //     the wizard entirely — these roles do not have a personal-info step.
+    //     Without this gate, a newly-invited manager sees the employee wizard,
+    //     never reaches workspace setup, and blocks scheduling for the whole team.
+    const isManagerOrAbove =
+      profileRole === "manager" || profileRole === "admin" || profileRole === "owner";
+
     let showWelcomeWizard = false;
     const userEmail = user.email ?? "";
     if (!isShowcaseMode && profileId) {
@@ -182,8 +194,23 @@ export default async function DashboardLayout({
       // is_welcome_complete = null means column exists but not set → show wizard
       // is_welcome_complete = false (default) → show wizard
       // Treat DB error / column missing (data null) as complete to avoid blocking
-      showWelcomeWizard =
+      const needsWizard =
         welcomeStatus?.is_welcome_complete === false || welcomeStatus?.is_welcome_complete === null;
+
+      if (needsWizard) {
+        if (isManagerOrAbove) {
+          // Managers+: redirect to workspace setup wizard if not yet complete;
+          // otherwise no personal-info wizard is needed — skip silently so the
+          // profile's is_welcome_complete will be marked via the setup guide path.
+          if (!workspace?.setup_guide_completed) {
+            redirect("/dashboard/setup");
+          }
+          // Setup already done — do not mount employee wizard; fall through with
+          // showWelcomeWizard=false so the manager lands on the dashboard normally.
+        } else {
+          showWelcomeWizard = true;
+        }
+      }
     }
 
     // Resolve tariffBound from payroll schema (per T10 — NOT public.workspace).

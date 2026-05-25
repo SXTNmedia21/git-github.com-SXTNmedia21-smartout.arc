@@ -301,6 +301,20 @@ export async function listWorkspaceInvitations(workspaceId: string): Promise<Adm
 
 export async function cancelInvitation(invitationId: string) {
   const supabase = await getClient();
+
+  // Fetch workspace_id from the invitation row before mutating so the
+  // emit() call satisfies ADR-0134 (non-null workspace_id required).
+  // Fail-fast per L-0177: do NOT silently fall back to a different workspace.
+  // BUG-SIM-12 fix.
+  const { data: inv, error: fetchError } = await supabase
+    .from("invitation")
+    .select("workspace_id")
+    .eq("invitation_id", invitationId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+  if (!inv?.workspace_id) throw new Error("Invitation not found or workspace_id missing");
+
   const { error } = await supabase
     .from("invitation")
     .update({ status: "cancelled" } satisfies TablesUpdate<"invitation">)
@@ -310,7 +324,7 @@ export async function cancelInvitation(invitationId: string) {
 
   void emit({
     event: "invitation cancelled",
-    workspace_id: null,
+    workspace_id: nonEmpty(inv.workspace_id, "workspace_id"),
     actor_id: nonEmpty(await resolveActorId(supabase), "actor_id"),
     properties: {
       entity: { entity_type: "invitation", entity_id: invitationId },
