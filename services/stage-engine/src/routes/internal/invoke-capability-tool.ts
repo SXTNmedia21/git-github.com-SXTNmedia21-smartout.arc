@@ -72,7 +72,10 @@ const invokeCapabilityToolBodySchema = z.object({
   tool: z.string().min(1, "tool is required"),
   args: z.unknown(),
   workspace_id: z.string().min(1, "workspace_id is required"),
-  actor_profile_id: z.string().min(1, "actor_profile_id is required"),
+  // actor_profile_id REMOVED from body per ADR-0151 §Cross-runtime extension.
+  // Node-side re-derives via deriveEngineStateContext() → state.assignee_id ||
+  // "system". Body cannot supply or override the actor. Eliminates the
+  // forgery-vector site flagged by harness invariants (check-server-derived-actor).
   channel: z.literal("system"),
   engine_process_id: z.string().min(1, "engine_process_id is required"),
   engine_state_id: z.string().min(1, "engine_state_id is required"),
@@ -93,15 +96,23 @@ type InvokeCapabilityToolBody = z.infer<typeof invokeCapabilityToolBodySchema>;
 
 // ── engine_state workspace re-derivation ───────────────────────────────────
 
+type EngineStateContext = {
+  workspace_id: string;
+  actor_profile_id: string; // assignee_id || "system" (ADR-0281 platform-actor)
+};
+
 /**
- * Re-derives workspace_id from the engine_state row.
+ * Re-derives workspace_id AND actor_profile_id from the engine_state row.
  * Per ADR-0151 §Cross-runtime extension: Node-side must re-derive from a
  * trusted source (the engine_state row) rather than trusting body values.
+ *
+ * Actor resolution per ADR-0281: assignee_id || "system" (cron-spawned states
+ * have NULL assignee — system-bot is the canonical platform actor).
  */
-async function deriveWorkspaceFromEngineState(engineStateId: string): Promise<string | null> {
+async function deriveEngineStateContext(engineStateId: string): Promise<EngineStateContext | null> {
   const { data, error } = await (supabaseAdmin as SupabaseClient)
     .from("engine_state")
-    .select("workspace_id")
+    .select("workspace_id, assignee_id")
     .eq("id", engineStateId)
     .single();
 
@@ -109,7 +120,11 @@ async function deriveWorkspaceFromEngineState(engineStateId: string): Promise<st
     return null;
   }
 
-  return (data as { workspace_id: string }).workspace_id;
+  const row = data as { workspace_id: string; assignee_id: string | null };
+  return {
+    workspace_id: row.workspace_id,
+    actor_profile_id: row.assignee_id ?? "system",
+  };
 }
 
 // ── Route definition ────────────────────────────────────────────────────────
@@ -180,9 +195,10 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
     );
   }
 
-  // ── 4. Re-derive workspace_id from engine_state row (ADR-0151 cross-runtime) ─
-  const derivedWorkspaceId = await deriveWorkspaceFromEngineState(body.engine_state_id);
-  if (!derivedWorkspaceId) {
+  // ── 4. Re-derive workspace_id + actor_profile_id from engine_state row ───
+  // (ADR-0151 §Cross-runtime extension — actor MUST be server-derived)
+  const derivedCtx = await deriveEngineStateContext(body.engine_state_id);
+  if (!derivedCtx) {
     baseLogger.warn(
       { engine_state_id: body.engine_state_id },
       "[invoke-cap-tool] engine_state row not found — failing closed",
@@ -198,13 +214,12 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
   }
 
   // Mismatch between body workspace_id and derived = forged identity attempt (L-0177)
-  if (body.workspace_id !== derivedWorkspaceId) {
+  if (body.workspace_id !== derivedCtx.workspace_id) {
     baseLogger.error(
       {
         body_workspace_id: body.workspace_id,
-        derived_workspace_id: derivedWorkspaceId,
+        derived_workspace_id: derivedCtx.workspace_id,
         engine_state_id: body.engine_state_id,
-        actor_profile_id: body.actor_profile_id,
       },
       "[invoke-cap-tool] SECURITY: workspace_id mismatch — potential identity forgery",
     );
@@ -218,8 +233,10 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
     );
   }
 
-  // From here, derivedWorkspaceId is trusted. body.workspace_id was only a hint.
-  const workspaceId = derivedWorkspaceId;
+  // From here, derived values are trusted. Body workspace_id was a hint;
+  // actor_profile_id was never in the body — derived from engine_state.assignee_id.
+  const workspaceId = derivedCtx.workspace_id;
+  const actorProfileId = derivedCtx.actor_profile_id;
 
   // ── 5. Resolve capability tool (ADR-0173 frozen-4 boundaries) ────────────
   // resolveCapabilityTool returns null for unknown capability or tool.
@@ -249,7 +266,7 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
       p_workspace_id: workspaceId,
       p_capability: body.capability,
       p_channel: "system",
-      p_actor_profile_id: body.actor_profile_id,
+      p_actor_profile_id: actorProfileId,
       p_action_type: "invoke_capability_tool",
     },
   );
@@ -293,7 +310,7 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
       await emit({
         event: "engine.action.invoked.invoke_capability_tool",
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(body.actor_profile_id, "actor_profile_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_profile_id"),
         properties: {
           data: {
             engine_state_id: body.engine_state_id,
@@ -330,7 +347,7 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
   // for service-role operations (ADR-0151 + ADR-0265).
   const ctx: AgentToolContext = {
     workspaceId: nonEmpty(workspaceId, "workspaceId"),
-    profileId: nonEmpty(body.actor_profile_id, "profileId"),
+    profileId: nonEmpty(actorProfileId, "profileId"),
     sessionId: body.engine_state_id, // engine_state_id serves as session context
     supabaseAdmin: supabaseAdmin as SupabaseClient,
     channel: "system",
@@ -348,7 +365,7 @@ invokeCapabilityToolRouter.post("/invoke-capability-tool", async (c) => {
     await emit({
       event: "engine.action.invoked.invoke_capability_tool",
       workspace_id: nonEmpty(workspaceId, "workspace_id"),
-      actor_id: nonEmpty(body.actor_profile_id, "actor_profile_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_profile_id"),
       properties: {
         data: {
           engine_state_id: body.engine_state_id,

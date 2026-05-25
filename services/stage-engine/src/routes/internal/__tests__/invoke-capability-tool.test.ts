@@ -45,7 +45,7 @@ const {
 } = vi.hoisted(() => {
   // Single-row engine_state lookup builder (select → eq → single)
   const singleMock = vi.fn().mockResolvedValue({
-    data: { workspace_id: "ws-uuid-01" },
+    data: { workspace_id: "ws-uuid-01", assignee_id: "profile-uuid-01" },
     error: null,
   });
   const eqMock = vi.fn().mockReturnThis();
@@ -119,12 +119,14 @@ function buildApp(scopes: string[] = ["engine:invoke"]) {
   return app;
 }
 
+// Note: actor_profile_id is NOT in the body per ADR-0151 §Cross-runtime
+// extension — derived server-side from engine_state.assignee_id (mock returns
+// "profile-uuid-01" via singleMock above).
 const validBody = {
   capability: "schedule",
   tool: "get_my_shifts",
   args: { days: 7 },
   workspace_id: "ws-uuid-01",
-  actor_profile_id: "profile-uuid-01",
   channel: "system" as const,
   engine_process_id: "proc-uuid-01",
   engine_state_id: "state-uuid-01",
