@@ -2,6 +2,11 @@
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+function normaliseChannel(ch: AgentToolContext["channel"]) {
+  return ch ?? "chat";
+}
 
 export const getMyTrainingStatus = defineTool({
   name: "get_my_training_status",
@@ -80,6 +85,20 @@ export const getTeamReadiness = defineTool({
     departmentId: z.string().uuid().optional().describe("Filter by department ID"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
+    // ADR-0099 §2 gate — exposes workspace-wide PII (display_names +
+    // training completion %). Description claims "Requires manager or
+    // admin role" but enforced nothing before audit 2026-05-25 (cap-tools
+    // H-3). Gate consults engine_authority_config to deny non-managers.
+    const channel = normaliseChannel(ctx.channel);
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: "training",
+      channel,
+      actionType: "read_team_readiness",
+    });
+    if (!gate.allow) {
+      return `Cannot view team readiness: ${gate.reason ?? "ikke tillatt"}.`;
+    }
+
     // Fetch readiness using the RPC function
     const { data, error } = await ctx.supabaseAdmin.rpc("get_workspace_readiness", {
       p_workspace_id: ctx.workspaceId,
