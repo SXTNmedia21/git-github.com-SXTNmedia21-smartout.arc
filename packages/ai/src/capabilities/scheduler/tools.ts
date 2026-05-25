@@ -456,12 +456,14 @@ export const acceptProposal = defineTool({
   name: "accept_proposal",
   capability: "scheduler",
   description:
-    "Accept an entire scheduler bundle proposal. Atomically inserts all proposed shifts and marks the proposal as applied. Manager-only, chat-only. Mobile-allowed (Approve verb).",
+    "Accept a scheduler proposal (kind=scheduler_bundle or kind=template_apply). Atomically inserts all proposed shifts and marks the proposal as applied. Manager-only, chat-only. Mobile-allowed (Approve verb).",
   schema: z.object({
     change_proposal_id: z
       .string()
       .uuid()
-      .describe("The scheduler bundle proposal to accept. Kind must be scheduler_bundle."),
+      .describe(
+        "The proposal to accept. Supports kind=scheduler_bundle (greedy solver) and kind=template_apply (week-template, ADR-0417).",
+      ),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
@@ -494,9 +496,13 @@ export const acceptProposal = defineTool({
             throw new Error(`Proposal not found: ${params.change_proposal_id}`);
           }
 
-          // ── Kind check ────────────────────────────────────────────────
-          if (proposal.kind !== "scheduler_bundle") {
-            throw new Error(`Proposal kind is '${proposal.kind}', expected 'scheduler_bundle'`);
+          // ── Kind check — branch on supported kinds (ADR-0417) ────────
+          // Supported: scheduler_bundle (ADR-0309) + template_apply (ADR-0417).
+          // Any other kind is an explicit error (L-0177: fail-fast, no silent skip).
+          if (proposal.kind !== "scheduler_bundle" && proposal.kind !== "template_apply") {
+            throw new Error(
+              `Proposal kind is '${proposal.kind}', expected 'scheduler_bundle' or 'template_apply'`,
+            );
           }
 
           // ── State precondition (only pending can be accepted) ─────────
@@ -506,30 +512,33 @@ export const acceptProposal = defineTool({
             );
           }
 
-          // ── Parse proposed_shifts from immutable JSONB ─────────────────
-          const changes = proposal.changes as {
-            solver_run_id?: string;
-            proposed_shifts?: Array<{
-              shift_id_proposed: string;
-              department_id: string;
-              start_at: string;
-              end_at: string;
-              position_id: string;
-              role: string;
-              assigned_profile_id: string;
-            }>;
-          };
-
-          const proposedShifts = changes?.proposed_shifts ?? [];
           const now = new Date().toISOString();
+          let shiftRows: Array<Record<string, unknown>> = [];
+          let solverRunId = "";
 
-          // ── INSERT all proposed shifts (atomic with status UPDATE) ────
-          if (proposedShifts.length > 0) {
+          if (proposal.kind === "scheduler_bundle") {
+            // ── scheduler_bundle path (ADR-0309) ──────────────────────
+            // Parse proposed_shifts from JSONB — solver shape uses start_at/end_at ISO strings.
+            const changes = proposal.changes as {
+              solver_run_id?: string;
+              proposed_shifts?: Array<{
+                shift_id_proposed: string;
+                department_id: string;
+                start_at: string;
+                end_at: string;
+                position_id: string;
+                role: string;
+                assigned_profile_id: string;
+              }>;
+            };
+
+            const proposedShifts = changes?.proposed_shifts ?? [];
+            solverRunId = changes.solver_run_id ?? "";
+
             // Build schedule_shift rows from proposed_shifts JSONB.
             // DB columns per database.types.ts:
-            //   shift_date (not date), employee_id (not profile_id),
-            //   day_category required enum, role required string.
-            const shiftRows = proposedShifts.map((ps) => ({
+            //   shift_date (DATE), employee_id (profile_id), day_category required enum.
+            shiftRows = proposedShifts.map((ps) => ({
               workspace_id: ctx.workspaceId,
               department_id: ps.department_id,
               employee_id: ps.assigned_profile_id,
@@ -544,7 +553,58 @@ export const acceptProposal = defineTool({
               created_at: now,
               updated_at: now,
             }));
+          } else {
+            // ── template_apply path (ADR-0417) ────────────────────────
+            // Payload shape: { kind, template_id, applied_date_range, department_id,
+            //   proposed_shifts[]: [{ shift_date, role, start_time, end_time,
+            //                         position_id?, department_id }],
+            //   gap_count, applied_template_provenance }
+            const changes = proposal.changes as {
+              kind: "template_apply";
+              template_id: string;
+              applied_date_range: { from: string; to: string };
+              department_id: string;
+              proposed_shifts?: Array<{
+                shift_date: string;
+                role: string;
+                start_time: string;
+                end_time: string;
+                position_id?: string | null;
+                department_id: string;
+              }>;
+              gap_count: number;
+              applied_template_provenance: {
+                applied_at: string;
+                applied_by: string;
+                source_cycle_id: string;
+              };
+            };
 
+            const proposedShifts = changes?.proposed_shifts ?? [];
+
+            // Build schedule_shift rows from template_apply proposed_shifts.
+            // employee_id=NULL: template shifts are unassigned — manager assigns post-accept.
+            // (ADR-0417 Consequences: "employee_id=NULL (unassigned; manager assigns post-accept)")
+            shiftRows = proposedShifts.map((ps) => ({
+              workspace_id: ctx.workspaceId,
+              department_id: ps.department_id,
+              employee_id: null, // Unassigned — manager assigns per ADR-0417
+              shift_date: ps.shift_date,
+              start_time: ps.start_time,
+              end_time: ps.end_time,
+              role: ps.role,
+              position_id: ps.position_id ?? null,
+              day_category: "morning" as const, // V1 placeholder; V2 derives from shift time
+              status: "published" as const,
+              source: "template_apply",
+              notes: `Fra mal (source=${changes.template_id}, proposal_id=${params.change_proposal_id})`,
+              created_at: now,
+              updated_at: now,
+            }));
+          }
+
+          // ── INSERT all proposed shifts (atomic with status UPDATE) ────
+          if (shiftRows.length > 0) {
             const { error: insertErr } = await client.from("schedule_shift").insert(shiftRows);
 
             if (insertErr) {
@@ -568,11 +628,9 @@ export const acceptProposal = defineTool({
           }
 
           return {
-            shifts_inserted: proposedShifts.length,
+            shifts_inserted: shiftRows.length,
             planning_cycle_id: proposal.trigger_entity_id,
-            // solver_run_id is always present in well-formed scheduler_bundle proposals.
-            // Empty fallback only on malformed JSONB (should never occur post-ADR-0309).
-            solver_run_id: changes.solver_run_id ?? "",
+            solver_run_id: solverRunId,
           };
         },
       });
