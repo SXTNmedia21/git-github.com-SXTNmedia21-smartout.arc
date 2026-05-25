@@ -6,7 +6,7 @@
  */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Inline Zod-like validation (Edge Functions don't always have Zod available)
 // We use manual validation to stay dependency-light.
@@ -65,14 +65,15 @@ function validateRequest(
 }
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Missing authorization header" }), {
       status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
   if (authErr || !user) {
     return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
       status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
   if (!validation.ok) {
     return new Response(JSON.stringify({ error: validation.error }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
   if (fetchErr || !signal) {
     return new Response(JSON.stringify({ error: "Signal not found" }), {
       status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
   if (profileErr || !profile) {
     return new Response(JSON.stringify({ error: "Forbidden: not an admin in this workspace" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -221,7 +222,7 @@ Deno.serve(async (req) => {
   if (updateErr) {
     return new Response(
       JSON.stringify({ error: `Failed to update signal: ${updateErr.message}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
     );
   }
 
@@ -244,6 +245,6 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify({ status: "ok", signal: updated }), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 });

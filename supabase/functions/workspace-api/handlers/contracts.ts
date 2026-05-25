@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface ContractRow {
   contract_id: string;
@@ -19,6 +18,7 @@ interface ContractRow {
 export async function handleGetContracts(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -36,7 +36,7 @@ export async function handleGetContracts(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: contracts:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -72,5 +72,5 @@ export async function handleGetContracts(
   // Intentionally excludes document_url and signature_id (sensitive fields)
   const rows = await executeWithWorkspaceContext<ContractRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ contracts: rows, limit, offset });
+  return jsonOk({ contracts: rows, limit, offset }, cors);
 }

@@ -1,8 +1,8 @@
-// Schedule tool definitions — Ultravox client tool shapes.
+// Schedule tool definitions — canonical client tool shapes per ADR-0282.
 // Colocated with the hook that consumes them to avoid cross-package
 // import issues in client bundles (@smartout/ai may not resolve in all envs).
 
-import type { ClientToolDefinition } from "@/components/voice-tools-context";
+import type { ClientToolDefinition } from "@smartout/agent-sdk";
 
 const body = "PARAMETER_LOCATION_BODY" as const;
 

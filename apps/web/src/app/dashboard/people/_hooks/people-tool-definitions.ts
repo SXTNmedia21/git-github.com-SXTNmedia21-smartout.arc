@@ -2,7 +2,7 @@
 // Registered via usePeopleVoiceTools in people-voice-tools-bridge.tsx.
 // Read-only: people data queries for roster, readiness, and status lookups.
 
-import type { ClientToolDefinition } from "@/components/voice-tools-context";
+import type { ClientToolDefinition } from "@smartout/agent-sdk";
 
 const body = "PARAMETER_LOCATION_BODY" as const;
 

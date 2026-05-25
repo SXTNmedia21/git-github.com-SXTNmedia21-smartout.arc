@@ -2,7 +2,7 @@
 # ============================================
 # drift-check.sh — Continuous review of deploy-artefact parity
 #
-# Four parity checks against live deploy state. Runs nightly via heartbeat,
+# Five parity checks against live deploy state. Runs nightly via heartbeat,
 # manually before any release, and as `make drift` shortcut.
 #
 # Exit 0 = all parities hold. Exit 1 = at least one drift detected.
@@ -13,6 +13,7 @@
 #   2. apps/web/src/env.ts schema keys vs Vercel manifest keys
 #   3. supabase/functions/**/Deno.env.get() keys vs `supabase secrets list`
 #   4. infra/.env keys on droplet vs sync-env-to-droplet.sh manifest
+#   5. platform_api_key live service-key count vs expected-keys.json registry (ADR-0411)
 #
 # Exit codes:
 #   0 — green
@@ -164,6 +165,46 @@ else
       fi
     else
       record_skip "edge-fn-secrets" "SUPABASE_PROJECT_REF not set or unreachable"
+    fi
+  fi
+fi
+
+# ── Check 4b: platform_api_key service-key count vs expected-keys registry ─
+# Mirrors ADR-0388 cron-seed pattern. Guards against BUG-009 class of bug
+# (empty platform_api_key → all service-to-service calls silently 401).
+# Connects to: infra/scripts/seed-prod-service-keys.sh (the fix script)
+#              services/_shared/expected-keys.json (the registry)
+#              ADR-0411 (decision)
+REGISTRY="${REPO_ROOT}/services/_shared/expected-keys.json"
+if [ ! -f "$REGISTRY" ]; then
+  record_skip "platform-api-keys" "registry not found: services/_shared/expected-keys.json"
+elif ! command -v jq >/dev/null 2>&1; then
+  record_skip "platform-api-keys" "jq not available"
+else
+  _EXPECTED=$(jq '. | length' "$REGISTRY" 2>/dev/null || echo "")
+  if [ -z "$_EXPECTED" ] || [ "$_EXPECTED" -eq 0 ]; then
+    record_skip "platform-api-keys" "expected-keys.json is empty or unreadable"
+  elif [ -z "${SUPABASE_PROJECT_REF:-}" ] || [ -z "${PGPASSWORD:-}" ]; then
+    # Mirror edge-fn-secrets skip pattern: can't query without credentials
+    record_skip "platform-api-keys" "SUPABASE_PROJECT_REF or PGPASSWORD not set"
+  else
+    _PSQL="psql -v ON_ERROR_STOP=1 \
+      -h aws-1-eu-west-1.pooler.supabase.com \
+      -p 5432 \
+      -U postgres.${SUPABASE_PROJECT_REF} \
+      -d postgres"
+    _ACTUAL=$($_PSQL -tAc \
+      "SELECT count(*) FROM public.platform_api_key \
+       WHERE environment='live' AND revoked_at IS NULL AND key_type='service';" \
+      2>/dev/null || echo "")
+    if [ -z "$_ACTUAL" ]; then
+      record_skip "platform-api-keys" "prod query failed (auth or connectivity)"
+    elif [ "$_ACTUAL" -lt "$_EXPECTED" ]; then
+      record_fail "platform-api-keys" \
+        "platform_api_key has ${_ACTUAL} live service rows, expected >= ${_EXPECTED} — run infra/scripts/seed-prod-service-keys.sh (BUG-009 / ADR-0411)"
+    else
+      record_pass "platform-api-keys" \
+        "platform_api_key: ${_ACTUAL} live service keys >= ${_EXPECTED} expected"
     fi
   fi
 fi
