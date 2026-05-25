@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { useSessionTasksForDate } from "../use-session-tasks-for-date.js";
+import { useSessionTasksForDate } from "../use-session-tasks-for-date";
 
 describe("useSessionTasksForDate", () => {
   it("is callable", () => {

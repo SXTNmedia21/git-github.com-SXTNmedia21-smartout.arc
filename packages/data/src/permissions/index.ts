@@ -6,4 +6,4 @@ export {
   ROLE_HIERARCHY,
   PERMISSION_MATRIX,
   checkPermission,
-} from "./check.js";
+} from "./check";
