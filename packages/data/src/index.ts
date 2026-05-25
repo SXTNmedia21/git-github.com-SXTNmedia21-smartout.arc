@@ -9,8 +9,8 @@
  * - day-session: TanStack Query hooks for day_line (mobile-parity, ADR-0133)
  */
 
-export * from "./validators/index.js";
-export * from "./permissions/index.js";
-export * from "./cascade/index.js";
-export * from "./telemetry/index.js";
-export * from "./day-session/index.js";
+export * from "./validators/index";
+export * from "./permissions/index";
+export * from "./cascade/index";
+export * from "./telemetry/index";
+export * from "./day-session/index";
