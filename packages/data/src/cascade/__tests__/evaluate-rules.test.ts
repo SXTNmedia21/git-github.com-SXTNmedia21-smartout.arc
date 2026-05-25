@@ -4,7 +4,7 @@ import {
   type EvaluationContext,
   type FrameworkRule,
   type EvaluationConfig,
-} from "../evaluate-rules.js";
+} from "../evaluate-rules";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
