@@ -1070,6 +1070,12 @@ function DashboardShellInner({
   useEffect(() => {
     if (setupRedirectFired.current) return;
     if (isSetupPage || !isSetupMode) return;
+    // Honour the escape-hatch cookie set by /dashboard/setup's skip button.
+    // The server layout already reads this cookie to skip its 307; without the
+    // same check here, the client effect races ahead of WorkspaceProvider's
+    // sessionStorage useEffect (child effects flush before parent) and fires
+    // window.location.href="/dashboard/setup" before setupDismissed flips.
+    if (typeof document !== "undefined" && document.cookie.includes("setup_dismissed=1")) return;
     setupRedirectFired.current = true;
     window.location.href = "/dashboard/setup";
   }, [isSetupPage, isSetupMode]);

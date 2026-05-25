@@ -107,6 +107,12 @@ export default function DashboardSetupPage() {
           <button
             type="button"
             onClick={() => {
+              // Two-layer flag: server layout reads the cookie (skips its 307
+              // redirect), client DashboardShell reads sessionStorage (skips its
+              // window.location.href redirect at DashboardShell.tsx:1070-1075).
+              // Cookie TTL 1 day; sessionStorage clears on tab close — both
+              // intentional so reload re-arms setup if still incomplete.
+              document.cookie = "setup_dismissed=1; path=/; max-age=86400; samesite=lax";
               sessionStorage.setItem("setup_dismissed", "1");
               window.location.href = "/dashboard";
             }}

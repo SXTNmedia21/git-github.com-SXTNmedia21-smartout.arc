@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
@@ -202,7 +202,15 @@ export default async function DashboardLayout({
           // Managers+: redirect to workspace setup wizard if not yet complete;
           // otherwise no personal-info wizard is needed — skip silently so the
           // profile's is_welcome_complete will be marked via the setup guide path.
-          if (!workspace?.setup_guide_completed) {
+          // Guard against self-redirect: the setup route mounts this same layout,
+          // so without a pathname check we re-fire the redirect on every render →
+          // infinite 307 loop (observed 2026-05-25).
+          const onSetupRoute = pathname?.startsWith("/dashboard/setup") ?? false;
+          // Honour the "skip to dashboard" escape hatch in setup/page.tsx — it
+          // writes a server-readable cookie. Without this, the click navigated
+          // to /dashboard which then bounced straight back to /dashboard/setup.
+          const setupDismissed = (await cookies()).get("setup_dismissed")?.value === "1";
+          if (!workspace?.setup_guide_completed && !onSetupRoute && !setupDismissed) {
             redirect("/dashboard/setup");
           }
           // Setup already done — do not mount employee wizard; fall through with

@@ -282,6 +282,7 @@ coverage_check() {
     'scripts/ci-local\.sh$|—|META|self-modifying — manual review required'
     '^\.github/workflows/.+\.yml$|—|META|workflow change — re-verify all gates'
     '^supabase/migrations/.+\.sql$|migration-lint,check-rls-with-check,pgTAP|REQUIRE|'
+    '^supabase/functions/import_map\.json$|—|SKIP|edge_runtime CLI bootstrap stub — no runtime function code'
     '^supabase/functions/.+|—|BLOCK|external — Supabase Cloud only; ack via PR body'
     '^supabase/seed\.sql$|pgTAP|REQUIRE|'
     '^supabase/tests/.+\.sql$|pgTAP|REQUIRE|'
@@ -326,6 +327,7 @@ coverage_check() {
     '^packages/.+/scripts/.+\.ts$|—|WARN|package-internal script change'
     '^docs/missions/.+\.json$|—|SKIP|mission draft (doc-only)'
     '^supabase/config\.toml$|—|WARN|local Supabase config — no CI gate'
+    '^\.env\.template$|—|WARN|env template — secrets via op://, value safety checked at runtime'
     '\.md$|—|SKIP|doc-only'
   )
 
