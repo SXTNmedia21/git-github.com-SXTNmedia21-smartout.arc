@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface AssetRow {
   asset_id: string;
@@ -49,6 +48,7 @@ interface AssetDowntimeRow {
 export async function handleGetAssets(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -66,7 +66,7 @@ export async function handleGetAssets(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: equipment:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -89,12 +89,13 @@ export async function handleGetAssets(
     offset,
   ]);
 
-  return jsonOk({ assets: rows, limit, offset });
+  return jsonOk({ assets: rows, limit, offset }, cors);
 }
 
 export async function handleGetAssetMaintenance(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -112,7 +113,7 @@ export async function handleGetAssetMaintenance(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: equipment:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -144,12 +145,13 @@ export async function handleGetAssetMaintenance(
     params,
   );
 
-  return jsonOk({ maintenance: rows, limit, offset });
+  return jsonOk({ maintenance: rows, limit, offset }, cors);
 }
 
 export async function handleGetAssetDowntime(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -167,7 +169,7 @@ export async function handleGetAssetDowntime(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: equipment:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -200,5 +202,5 @@ export async function handleGetAssetDowntime(
 
   const rows = await executeWithWorkspaceContext<AssetDowntimeRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ downtime: rows, limit, offset });
+  return jsonOk({ downtime: rows, limit, offset }, cors);
 }

@@ -1,10 +1,14 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 import { type AuthContext } from "../../_shared/auth-middleware.ts";
 
-function scopeGuard(scopes: string[], workspaceId: string, required: string): Response | null {
+function scopeGuard(
+  scopes: string[],
+  workspaceId: string,
+  required: string,
+  cors: Record<string, string>,
+): Response | null {
   const ctx: AuthContext = {
     method: "api_key",
     scopes,
@@ -17,7 +21,7 @@ function scopeGuard(scopes: string[], workspaceId: string, required: string): Re
   if (!requireScope(ctx, required)) {
     return new Response(JSON.stringify({ error: `Missing scope: ${required}` }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
   return null;
@@ -26,8 +30,9 @@ function scopeGuard(scopes: string[], workspaceId: string, required: string): Re
 export async function handleGetProtocols(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const denied = scopeGuard(auth.scopes, auth.workspaceId, "training:read");
+  const denied = scopeGuard(auth.scopes, auth.workspaceId, "training:read", cors);
   if (denied) return denied;
 
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
@@ -43,14 +48,15 @@ export async function handleGetProtocols(
      LIMIT $2 OFFSET $3`,
     [auth.workspaceId, limit, offset],
   );
-  return jsonOk({ protocols: rows, limit, offset });
+  return jsonOk({ protocols: rows, limit, offset }, cors);
 }
 
 export async function handleGetAssignments(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const denied = scopeGuard(auth.scopes, auth.workspaceId, "training:read");
+  const denied = scopeGuard(auth.scopes, auth.workspaceId, "training:read", cors);
   if (denied) return denied;
 
   const profileId = url.searchParams.get("profile_id");
@@ -78,5 +84,5 @@ export async function handleGetAssignments(
   params.push(limit, offset);
 
   const rows = await executeWithWorkspaceContext(auth.workspaceId, query, params);
-  return jsonOk({ assignments: rows, limit, offset });
+  return jsonOk({ assignments: rows, limit, offset }, cors);
 }

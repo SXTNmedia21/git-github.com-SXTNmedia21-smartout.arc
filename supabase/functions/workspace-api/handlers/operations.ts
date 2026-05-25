@@ -1,7 +1,6 @@
 import { executeWithWorkspaceContext } from "../../_shared/api-key-auth.ts";
 import { requireScope } from "../../_shared/scope-middleware.ts";
 import { jsonOk } from "../index.ts";
-import { corsHeaders } from "../../_shared/cors.ts";
 
 interface SessionRow {
   department_session_id: string;
@@ -45,6 +44,7 @@ interface DeviationRow {
 export async function handleGetSessions(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -62,7 +62,7 @@ export async function handleGetSessions(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: operations:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -113,12 +113,13 @@ export async function handleGetSessions(
 
   const rows = await executeWithWorkspaceContext<SessionRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ sessions: rows, limit, offset });
+  return jsonOk({ sessions: rows, limit, offset }, cors);
 }
 
 export async function handleGetDeviations(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
+  cors: Record<string, string>,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -136,7 +137,7 @@ export async function handleGetDeviations(
   ) {
     return new Response(JSON.stringify({ error: "Missing scope: operations:read" }), {
       status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
@@ -180,5 +181,5 @@ export async function handleGetDeviations(
 
   const rows = await executeWithWorkspaceContext<DeviationRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ deviations: rows, limit, offset });
+  return jsonOk({ deviations: rows, limit, offset }, cors);
 }
