@@ -4,7 +4,10 @@ id: ADR_0151
 status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-23
+updated: 2026-05-25
+amendments:
+  - "2026-05-25: §Cross-runtime extension added — receiving runtime re-derives every identity field from propagated opaque reference, never trusts body values across runtime boundaries (ADR-0424 §Transport layer consumer)"
+related_adrs: [ADR-0058, ADR-0193, ADR-0424]
 ---
 
 # ADR-0151: Stage-engine must re-derive profile_id server-side (no trust in request body)
@@ -54,3 +57,32 @@ Landed 2026-04-23 via `feat/botsson-arena-harness-hardening` sortie.
 - Integration test: `services/stage-engine/src/__tests__/agent-chat-forged-profile.test.ts`.
 
 Ultravox / Telegram adapter surfaces retain the optional `profile_id` body field for now — different auth model; follow-up spec.
+
+### Cross-runtime extension (2026-05-25)
+
+**Original rule scope:** Within a single runtime (stage-engine Node), `profile_id` and
+`workspace_id` are derived server-side from a trusted source (verified bearer token, RLS-scoped
+profile lookup) and never accepted from the request body for authority decisions.
+
+**Amendment:** The same rule applies **across runtime boundaries**. When runtime **A** (e.g.
+Supabase Edge Function `engine-dispatch`) invokes work on runtime **B** (e.g. stage-engine
+Node service via HTTP bridge), runtime **B** MUST re-derive every identity field
+(`workspace_id`, `actor_profile_id`, role, capability scope) from a **propagated opaque
+reference** that **B** can look up against its own trusted source.
+
+For ADR-0424's `invoke_capability_tool` bridge, the propagated opaque reference is
+`engine_state_id`. The bridge endpoint resolves `workspace_id` by looking up the
+`engine_state` row, NOT by reading the body's `workspace_id` field. Body-supplied identity
+fields are **hints for logging clarity**, treated as untrusted input for authority decisions.
+
+**Enforcement:** Mismatch between body-supplied identity and re-derived identity is a 400
+response + audit alert. Same class as L-0177 (silent fallback to JWT-default workspace);
+silent acceptance of body-supplied identity across runtime boundaries is the same forgery
+surface as the original L-0058 issue this ADR closed within one runtime.
+
+**Consequence for new cross-runtime designs:** Any ADR that introduces a runtime boundary
+(Deno↔Node, EF↔service, client↔server, future cross-region) MUST include a §Transport layer
+section specifying identity re-derivation. L-0361 codifies this as a Phase 2.5 council
+fact-check rule.
+
+Reference consumer: [[ADR-0424]] §Identity re-derivation (cross-runtime).
