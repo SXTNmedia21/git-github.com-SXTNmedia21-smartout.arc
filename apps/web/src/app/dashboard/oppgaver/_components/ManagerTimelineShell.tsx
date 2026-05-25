@@ -135,29 +135,30 @@ export function ManagerTimelineShell() {
   /** setDateISO — emits oppgaver.date_changed on stepper interaction. */
   const setDateISO = useCallback(
     (updater: string | ((prev: string) => string)) => {
-      setDateISOState((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
-        if (next !== prev) {
-          // L-0177: skip emit if either id is missing/empty.
-          if (workspaceId && profileId) {
-            // L-0177
-            void emit({
-              event: "oppgaver.date_changed",
-              workspace_id: nonEmpty(workspaceId, "workspace_id"),
-              actor_id: nonEmpty(profileId, "actor_id"),
-              properties: {
-                data: {
-                  from_date: prev,
-                  to_date: next,
-                  triggered_by: "ui" as const,
-                },
+      // Compute next from the ref-tracked prev (not from setState updater),
+      // so emit() never fires inside React's state-updater pass. Calling emit
+      // inside the updater triggered a setState-during-render error via the
+      // emma-awareness subscription chain (BotssonProvider listens on emit).
+      const prev = prevDateRef.current;
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      setDateISOState(next);
+      if (next !== prev) {
+        prevDateRef.current = next;
+        if (workspaceId && profileId) {
+          void emit({
+            event: "oppgaver.date_changed",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(profileId, "actor_id"),
+            properties: {
+              data: {
+                from_date: prev,
+                to_date: next,
+                triggered_by: "ui" as const,
               },
-            });
-          }
-          prevDateRef.current = next;
+            },
+          });
         }
-        return next;
-      });
+      }
     },
     [workspaceId, profileId],
   );
@@ -165,28 +166,26 @@ export function ManagerTimelineShell() {
   /** setViewMode — emits oppgaver.view_mode_changed on segment switch. */
   const setViewMode = useCallback(
     (next: ViewMode) => {
-      setViewModeState((prev) => {
-        if (next !== prev) {
-          // L-0177: skip emit if either id is missing/empty.
-          if (workspaceId && profileId) {
-            // L-0177
-            void emit({
-              event: "oppgaver.view_mode_changed",
-              workspace_id: nonEmpty(workspaceId, "workspace_id"),
-              actor_id: nonEmpty(profileId, "actor_id"),
-              properties: {
-                data: {
-                  from: prev,
-                  to: next,
-                  triggered_by: "ui" as const,
-                },
+      // See setDateISO comment — emit must not fire inside the state-updater.
+      const prev = prevViewModeRef.current;
+      setViewModeState(next);
+      if (next !== prev) {
+        prevViewModeRef.current = next;
+        if (workspaceId && profileId) {
+          void emit({
+            event: "oppgaver.view_mode_changed",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(profileId, "actor_id"),
+            properties: {
+              data: {
+                from: prev,
+                to: next,
+                triggered_by: "ui" as const,
               },
-            });
-          }
-          prevViewModeRef.current = next;
+            },
+          });
         }
-        return next;
-      });
+      }
     },
     [workspaceId, profileId],
   );
@@ -194,27 +193,31 @@ export function ManagerTimelineShell() {
   /** toggleArea — emits oppgaver.area_filter_changed on chip toggle. */
   const handleToggleArea = useCallback(
     (id: string) => {
-      setActiveAreaIds((prev) => {
-        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-        // L-0177: skip emit if either id is missing/empty.
-        if (workspaceId && profileId) {
-          // L-0177
-          void emit({
-            event: "oppgaver.area_filter_changed",
-            workspace_id: nonEmpty(workspaceId, "workspace_id"),
-            actor_id: nonEmpty(profileId, "actor_id"),
-            properties: {
-              data: {
-                active_area_count: next.length,
-                triggered_by: "ui" as const,
-              },
+      // Compute next from current activeAreaIds (closure), not from a
+      // functional setState updater, so emit() never fires inside React's
+      // state-updater pass. Same root cause as setDateISO above —
+      // emma-awareness.notify() invoked via emit triggers a setState in
+      // BotssonProvider, which React forbids during another component's
+      // render or state update.
+      const next = activeAreaIds.includes(id)
+        ? activeAreaIds.filter((x) => x !== id)
+        : [...activeAreaIds, id];
+      setActiveAreaIds(next);
+      if (workspaceId && profileId) {
+        void emit({
+          event: "oppgaver.area_filter_changed",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: {
+            data: {
+              active_area_count: next.length,
+              triggered_by: "ui" as const,
             },
-          });
-        }
-        return next;
-      });
+          },
+        });
+      }
     },
-    [workspaceId, profileId],
+    [activeAreaIds, workspaceId, profileId],
   );
 
   /** focusTask — opens TaskEditModal in view mode + emits oppgaver.task_focused. */
