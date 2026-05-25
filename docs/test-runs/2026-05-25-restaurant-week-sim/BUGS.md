@@ -180,13 +180,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (trust + accuracy)
 - **Fix:** Fetch `employee_payroll_profile.hourly_rate` (or tariff floor via D3 resolution). Add "Estimat" disclaimer regardless.
 
-### BUG-SIM-20 — `cash_count_variance` from Step03 never auto-creates `deviation` row 🟡 MEDIUM
+### BUG-SIM-20 — `cash_count_variance` from Step03 never auto-creates `deviation` row 🟡 MEDIUM ✅ FIXED
 
 - **Where:** `Step03Kontanttelling.tsx:58-63` (computes variance) + `Step04Avvik.tsx` (receives pre-fetched list, does not infer)
 - **Evidence:** A3 / NEW-GAP-E — wizard transition computes variance but no trigger reads `financial_close_config.tolerance_value` to spawn a deviation. `AdminOverrideSheet.tsx:25` lists `no_cash_count` and `open_deviation` as distinct blocker codes — system distinguishes states but doesn't auto-link.
 - **Impact:** Friday 340 kr cash discrepancy passes silently. Manager sign-off step (spec'd) never fires because no deviation exists.
 - **Severity:** MEDIUM (compliance silence)
 - **Fix:** On Step03→Step04 transition, if `|variance| > tolerance_value`, auto-create `deviation` row (domain=`material`, severity by magnitude) via existing `report_deviation` capability.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` BUG-SIM-20 commit. In `save-wizard-step-action.ts`: on `03_kontanttelling` step save, reads `financial_close_config.cash_tolerance_value` (fallback 20 kr), compares `|cash_count_variance|`, auto-inserts `deviation` row with domain=`material`, subcategory=`cash_variance`, severity scaled by magnitude (low/medium/high). Emit `deviation reported` on success. Best-effort: deviation-insert failure does not fail the wizard step.
 
 ### BUG-SIM-21 — `WelcomeWizardGate` mounts employee wizard for ALL roles (manager invite hits personal-info flow) 🟠 HIGH ✅ FIXED
 
