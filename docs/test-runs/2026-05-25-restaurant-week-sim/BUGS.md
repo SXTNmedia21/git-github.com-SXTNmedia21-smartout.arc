@@ -112,13 +112,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (multi-tenancy)
 - **Fix:** Add `.eq("workspace_id", workspaceId)` filter on both call-sites; join through `profile` if needed.
 
-### BUG-SIM-12 — `cancelInvitation` emits with `workspace_id: null` (telemetry contract violation, ADR-0134) 🟡 MEDIUM
+### BUG-SIM-12 — `cancelInvitation` emits with `workspace_id: null` (telemetry contract violation, ADR-0134) 🟡 MEDIUM ✅ FIXED
 
 - **Where:** `apps/web/src/app/dashboard/people/_actions/people-actions.ts:311-319`
 - **Evidence:** A1 / BUG-A1-5 — `workspace_id: null` is explicit (line 313). `resendInvitation` in same file correctly resolves from row (`:493`). Violates CLAUDE.md mandate "every mutation emits non-null, non-empty workspace_id."
 - **Impact:** `activity_trail` engine_event routing drops the event or routes to wrong workspace. Admin audit trail for cancelled invites is silent.
 - **Severity:** MEDIUM
 - **Fix:** Fetch `workspace_id` from the invitation row before emitting (mirror `resendInvitation` pattern).
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-12)
 
 ### BUG-SIM-13 — `publish-announcement` emit timestamp set AFTER emit → engine_state poll can miss spawn (race) 🟡 MEDIUM ✅ FIXED
 
