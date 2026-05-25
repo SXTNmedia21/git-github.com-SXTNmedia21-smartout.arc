@@ -38,6 +38,7 @@ import { nativeTheme } from "@smartout/design-tokens/native";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
 import { useDayLineItems } from "@/hooks/queries/use-shift-session";
+import { useContractRate } from "@/hooks/queries/use-contract-rate";
 import { Avatar } from "@/components/common/Avatar";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
@@ -58,8 +59,6 @@ type DuringShiftViewProps = {
    */
   shiftSessionId?: string | null;
 };
-
-const HOURLY_RATE_FALLBACK = 220;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -119,6 +118,7 @@ export function DuringShiftViewV2({
   const { data: dayLineTasks = [] } = useDayLineItems(shiftSessionId);
 
   const { data: profile } = useMyProfile();
+  const { data: contractRate } = useContractRate();
   const { data: colleagues } = useShiftColleagues(
     shift?.shift_date ?? null,
     profile?.profile_id ?? null,
@@ -157,7 +157,12 @@ export function DuringShiftViewV2({
   const elapsedH = hoursElapsed(timeEntry.punch_in);
   const totalH = shift?.work_hours ?? 8;
   const progressPct = Math.min(100, (elapsedH / totalH) * 100);
-  const earnings = estimateEarnings(HOURLY_RATE_FALLBACK, timeEntry.punch_in);
+  // Use the employee's contracted hourly rate; null = not yet configured.
+  // Show "Beregner…" rather than a misleading hardcoded fallback (BUG-SIM-19).
+  const earnings =
+    contractRate?.hourly_rate != null
+      ? estimateEarnings(contractRate.hourly_rate, timeEntry.punch_in)
+      : null;
 
   const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
   const nextTask = activeTasks[0];
@@ -243,7 +248,10 @@ export function DuringShiftViewV2({
           </View>
 
           <View style={styles.heroStats}>
-            <HeroStat label="TJENT" value={`${earnings} kr`} />
+            <HeroStat
+              label="EST. TJENT"
+              value={earnings != null ? `${earnings} kr` : "Beregner..."}
+            />
             <View style={styles.heroStatDivider} />
             <HeroStat label="PAUSE" value="0 min" />
             <View style={styles.heroStatDivider} />

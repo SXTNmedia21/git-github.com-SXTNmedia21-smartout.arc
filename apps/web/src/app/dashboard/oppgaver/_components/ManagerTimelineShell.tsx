@@ -16,27 +16,375 @@
  * surface, but the user mental-model around a Gantt + AI Orb dual-surface is
  * ambiguous enough that we declare ownership defensively (L-0178 prevention).
  *
- * Subagent-driven plan tasks fill in TopBar (2.1), Toolbar (2.5), Chart (3.7),
- * Hooks (4.x), Tools-bridge (5.x), Modal (6.x).
+ * Data wiring (Task 4.4):
+ *   useDayLinesForDate         → bands (one per location/day_line)
+ *   useSessionTasksForDate     → tasks (manager-scope, all areas)
+ *   useRolesForPositions       → V1 stub (per Council C-B verdict)
+ *
+ * State (local React, no global store):
+ *   dateISO, viewMode, activeAreaIds, onlyOpen, deviationsOnly, zoom,
+ *   selectedTask (Phase 6 click-to-edit modal).
+ *
+ * Telemetry (L-0340 trust-gate — closes Task 5.2 registry commit ce10b93d7):
+ *   oppgaver.view_opened       — on mount (useEffect)
+ *   oppgaver.view_mode_changed — when viewMode segment changes
+ *   oppgaver.area_filter_changed — when area chip is toggled
+ *   oppgaver.date_changed      — when date stepper advances/retreats
+ *   oppgaver.task_focused      — when a task card is focused (Phase 6 modal)
+ *   oppgaver.context_pinned    — in OppgaverToolsBridge (debounced 800ms)
+ *
+ * L-0177: all emit() calls guarded by non-empty workspace_id + actor_id check.
  */
+
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useDayLinesForDate, useSessionTasksForDate, useRolesForPositions } from "@smartout/data";
 import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { completeSessionTaskAction } from "@/app/dashboard/_actions/complete-session-task-action";
+import { OppgaverToolsBridge } from "../_tools/oppgaver-tools-bridge";
+import { TimelineTopBar } from "./TimelineTopBar";
+import { TimelineToolbar } from "./TimelineToolbar";
+import { TaskEditModal } from "./TaskEditModal";
+import { ManagerTimelineChart } from "../_chart/ManagerTimelineChart";
+import type { Band } from "../_chart/AreaBand";
+import type { Employee } from "../_chart/PersonLane";
+import type { TimelineTask } from "../_chart/TaskBlock";
+
+type ViewMode = "area" | "role" | "person";
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function nowMinutes(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function dateLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return new Intl.DateTimeFormat("nb-NO", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(d);
+}
+
+function shiftDate(iso: string, delta: number): string {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
 
 export function ManagerTimelineShell() {
+  const wsCtx = useWorkspaceOptional();
+  const workspaceId = wsCtx?.workspace.workspace_id ?? null;
+  const { profileId } = useContext(DashboardContext);
+
+  const [dateISO, setDateISOState] = useState<string>(todayISO());
+  const [viewMode, setViewModeState] = useState<ViewMode>("area");
+  const [activeAreaIds, setActiveAreaIds] = useState<string[]>([]);
+  const [onlyOpen, setOnlyOpen] = useState(false);
+  const [deviationsOnly, setDeviationsOnly] = useState(false);
+  const [zoom, setZoom] = useState<number>(48); // pxPerHour
+  // Track focused task for oppgaver.task_focused emit + TaskEditModal (Phase 6 modal).
+  const [selectedTask, setSelectedTask] = useState<TimelineTask | null>(null);
+
+  // Stable ref for prev values used in from/to payloads.
+  const prevDateRef = useRef<string>(dateISO);
+  const prevViewModeRef = useRef<ViewMode>(viewMode);
+
+  // ── oppgaver.view_opened — emitted once on mount ────────────────────────
+  useEffect(() => {
+    // L-0177: skip emit if either id is missing/empty.
+    if (!workspaceId || !profileId) return; // L-0177
+    void emit({
+      event: "oppgaver.view_opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        data: {
+          date_iso: dateISO,
+          // ManagerTimelineShell is an admin/manager surface — default to "manager".
+          // Full role derivation (owner/admin/manager) is a follow-up when role is
+          // exposed in DashboardContext or workspace context.
+          viewer_role: "manager" as const,
+        },
+      },
+    });
+  }, []); // intentional mount-only — capture initial dateISO snapshot at open time
+
+  // ── Instrumented state setters ──────────────────────────────────────────
+
+  /** setDateISO — emits oppgaver.date_changed on stepper interaction. */
+  const setDateISO = useCallback(
+    (updater: string | ((prev: string) => string)) => {
+      setDateISOState((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (next !== prev) {
+          // L-0177: skip emit if either id is missing/empty.
+          if (workspaceId && profileId) {
+            // L-0177
+            void emit({
+              event: "oppgaver.date_changed",
+              workspace_id: nonEmpty(workspaceId, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                data: {
+                  from_date: prev,
+                  to_date: next,
+                  triggered_by: "ui" as const,
+                },
+              },
+            });
+          }
+          prevDateRef.current = next;
+        }
+        return next;
+      });
+    },
+    [workspaceId, profileId],
+  );
+
+  /** setViewMode — emits oppgaver.view_mode_changed on segment switch. */
+  const setViewMode = useCallback(
+    (next: ViewMode) => {
+      setViewModeState((prev) => {
+        if (next !== prev) {
+          // L-0177: skip emit if either id is missing/empty.
+          if (workspaceId && profileId) {
+            // L-0177
+            void emit({
+              event: "oppgaver.view_mode_changed",
+              workspace_id: nonEmpty(workspaceId, "workspace_id"),
+              actor_id: nonEmpty(profileId, "actor_id"),
+              properties: {
+                data: {
+                  from: prev,
+                  to: next,
+                  triggered_by: "ui" as const,
+                },
+              },
+            });
+          }
+          prevViewModeRef.current = next;
+        }
+        return next;
+      });
+    },
+    [workspaceId, profileId],
+  );
+
+  /** toggleArea — emits oppgaver.area_filter_changed on chip toggle. */
+  const handleToggleArea = useCallback(
+    (id: string) => {
+      setActiveAreaIds((prev) => {
+        const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+        // L-0177: skip emit if either id is missing/empty.
+        if (workspaceId && profileId) {
+          // L-0177
+          void emit({
+            event: "oppgaver.area_filter_changed",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(profileId, "actor_id"),
+            properties: {
+              data: {
+                active_area_count: next.length,
+                triggered_by: "ui" as const,
+              },
+            },
+          });
+        }
+        return next;
+      });
+    },
+    [workspaceId, profileId],
+  );
+
+  /** focusTask — opens TaskEditModal + emits oppgaver.task_focused. */
+  const handleFocusTask = useCallback(
+    (task: TimelineTask) => {
+      setSelectedTask(task);
+      // L-0177: skip emit if either id is missing/empty.
+      if (!workspaceId || !profileId) return; // L-0177
+      void emit({
+        event: "oppgaver.task_focused",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          data: {
+            task_id: task.id,
+            area_id: task.area ?? null, // resolved from task object per Phase 6 spec
+          },
+        },
+      });
+    },
+    [workspaceId, profileId],
+  );
+
+  const dayLinesQ = useDayLinesForDate(workspaceId ?? "", dateISO);
+  const tasksQ = useSessionTasksForDate(workspaceId, dateISO);
+  // V1: roles stub. Reserved for V2 role-mode rendering. Disabled by hook.
+  void useRolesForPositions(workspaceId, dateISO);
+
+  const bands: Band[] = useMemo(() => {
+    const rows = dayLinesQ.data ?? [];
+    return rows.map((dl) => ({
+      id: dl.day_line_id,
+      name: dl.location_name || dl.location_id,
+      short: (dl.location_name || dl.location_id).slice(0, 3).toUpperCase(),
+      open: dl.planned_open.slice(0, 5),
+      close: dl.planned_close.slice(0, 5),
+    }));
+  }, [dayLinesQ.data]);
+
+  const tasks: TimelineTask[] = useMemo(() => {
+    const rows = tasksQ.data ?? [];
+    return rows.map((t) => ({
+      id: t.id,
+      title: t.title,
+      // V1: session_task has no scheduled_at on the manager-scope row type.
+      // Display tasks at session_hook anchor when available; otherwise stack
+      // them at 12:00 placeholder. Full time-anchored render lands when the
+      // useSessionTasksForDate row is extended to expose scheduled_at.
+      start: "12:00",
+      end: "13:00",
+      status:
+        t.status === "completed"
+          ? "done"
+          : t.status === "in_progress"
+            ? "in_progress"
+            : t.status === "overdue"
+              ? "missed"
+              : "upcoming",
+      area: t.department_id,
+      emp: t.assigned_to,
+    }));
+  }, [tasksQ.data]);
+
+  const employees: Employee[] = useMemo(() => {
+    // V1: derive from assigned_to in tasks (placeholder — Phase 4 follow-up
+    // should add useEmployeesForDate hook reading schedule_shift + profile)
+    const seen = new Map<string, Employee>();
+    for (const t of tasks) {
+      if (t.emp && !seen.has(t.emp)) {
+        seen.set(t.emp, {
+          id: t.emp,
+          name: t.emp.slice(0, 8),
+          role: "—",
+          area: t.area ?? "",
+          shift: null,
+        });
+      }
+    }
+    return Array.from(seen.values());
+  }, [tasks]);
+
+  const dimmedBandIds = useMemo(() => {
+    if (activeAreaIds.length === 0) return undefined;
+    return bands.filter((b) => !activeAreaIds.includes(b.id)).map((b) => b.id);
+  }, [bands, activeAreaIds]);
+
+  const filteredTasks = useMemo(() => {
+    let out = tasks;
+    if (onlyOpen) out = out.filter((t) => t.status !== "done");
+    if (deviationsOnly) out = out.filter((t) => t.status === "missed");
+    return out;
+  }, [tasks, onlyOpen, deviationsOnly]);
+
+  const areas = bands.map((b) => ({ id: b.id, label: b.name }));
+  const managerName = wsCtx?.workspace.name ?? "—";
+  const deviationsCount = tasks.filter((t) => t.status === "missed").length;
+
+  // handleComplete — delegates to completeSessionTaskAction.
+  // actor is derived from profileId + workspaceId resolved at call time (L-0177 fail-fast).
+  const handleComplete = useCallback(
+    async (taskId: string) => {
+      if (!workspaceId || !profileId) return; // L-0177: skip if ids missing
+      await completeSessionTaskAction(
+        taskId,
+        { userId: "", profileId, workspaceId, role: null },
+        "chat",
+      );
+    },
+    [workspaceId, profileId],
+  );
+
+  // Stable uiActions for the bridge — avoids re-creation on every render.
+  // Bridge still expects focusTask: (taskId: string) => void (its tool contract).
+  // We look up the full task from filteredTasks to open the modal with full data.
+  const bridgeUiActions = useMemo(
+    () => ({
+      setDate: (iso: string) => setDateISO(iso),
+      setViewMode,
+      toggleArea: handleToggleArea,
+      focusTask: (taskId: string) => {
+        const t = filteredTasks.find((x) => x.id === taskId) ?? null;
+        if (t) handleFocusTask(t);
+      },
+    }),
+    [setDateISO, setViewMode, handleToggleArea, handleFocusTask, filteredTasks],
+  );
+
   return (
     <>
       <DomainChatOwnership reason="oppgaver-timeline" />
+      {/* OppgaverToolsBridge — registers Botsson tools + emits context_pinned (L-0340 #6) */}
+      <OppgaverToolsBridge
+        dateISO={dateISO}
+        viewMode={viewMode}
+        activeAreaIds={activeAreaIds}
+        onlyOpen={onlyOpen}
+        deviationsOnly={deviationsOnly}
+        zoom={zoom}
+        bands={bands}
+        tasks={filteredTasks}
+        uiActions={bridgeUiActions}
+      />
+      <TaskEditModal
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onComplete={handleComplete}
+      />
       <div
         className="bg-background grid h-[100dvh] grid-rows-[60px_52px_1fr] overflow-hidden"
         role="region"
         aria-label="Manager Timeline"
       >
-        <div className="border-border bg-card border-b">
-          {/* TopBar slot — Task 2.1 fills this in */}
-        </div>
-        <div className="border-border bg-card border-b">
-          {/* Toolbar slot — Task 2.5 fills this in */}
-        </div>
-        <div className="overflow-y-auto">{/* Chart slot — Task 3.7 fills this in */}</div>
+        <TimelineTopBar
+          dateISO={dateISO}
+          dateLabel={dateLabel(dateISO)}
+          managerName={managerName}
+          onPrevDay={() => setDateISO((d) => shiftDate(d, -1))}
+          onNextDay={() => setDateISO((d) => shiftDate(d, 1))}
+        />
+        <TimelineToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          areas={areas}
+          activeAreaIds={activeAreaIds}
+          onToggleArea={handleToggleArea}
+          onlyOpen={onlyOpen}
+          onToggleOnlyOpen={() => setOnlyOpen((v) => !v)}
+          deviationsOnly={deviationsOnly}
+          deviationsCount={deviationsCount}
+          onToggleDeviations={() => setDeviationsOnly((v) => !v)}
+          zoom={zoom}
+          onZoomChange={setZoom}
+        />
+        <ManagerTimelineChart
+          bands={bands}
+          employees={employees}
+          tasks={filteredTasks}
+          mode={viewMode}
+          pxPerHour={zoom}
+          nowMinutes={nowMinutes()}
+          dimmedBandIds={dimmedBandIds}
+          onTaskClick={handleFocusTask}
+        />
       </div>
     </>
   );
