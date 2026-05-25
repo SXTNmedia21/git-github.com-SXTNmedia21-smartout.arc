@@ -129,21 +129,23 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-13). Timestamp set to `Date.now() - 50ms` BEFORE the emit call.
 
-### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH
+### BUG-SIM-14 — `run-deviation-checks` never populates `punchOutMissingShiftIds` → W08 never fires 🟠 HIGH ✅ FIXED
 
 - **Where:** `apps/web/src/app/api/payroll/run-deviation-checks/route.ts:280-285`
 - **Evidence:** A5 / BUG-A5-06 — `DeviationChecksInput.punchOutMissingShiftIds` defaults to empty Set; route never derives the set from interpreted shifts where `actual_end` was substituted from scheduled end.
 - **Impact:** W08 ("Punch-out missing") never fires. Erik sees clean hours but no visibility into which shifts had punch-out auto-filled. Compounds with Friday POS-down scenario.
 - **Severity:** HIGH (compliance silence)
 - **Fix:** Build `punchOutMissingShiftIds` from `payroll.calculation` rows where `actual_end IS NULL` before passing to `DeviationChecks`.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` — BUG-SIM-14+SIM-15 commit. `punchOutMissingShiftIds` built from `latestByShift` entries where `actual_end === null`; W08 now fires for each such shift.
 
-### BUG-SIM-15 — `run-deviation-checks` never populates `preApprovedShiftIds` → W09 false-positive blocks every OT shift 🟠 HIGH
+### BUG-SIM-15 — `run-deviation-checks` never populates `preApprovedShiftIds` → W09 false-positive blocks every OT shift 🟠 HIGH ✅ FIXED (option b)
 
 - **Where:** `apps/web/src/app/api/payroll/run-deviation-checks/route.ts:280-285`
 - **Evidence:** A5 / GAP-A5-02 — `preApprovedShiftIds` is optional, defaults to empty Set; with `overtime_requires_pre_approval=true`, EVERY OT shift fires W09. Erik faces ~72 manual acks/period for a 18-staff bistro.
 - **Impact:** W09 becomes noise instead of signal. Forces operator to ack every OT shift as "verbally approved" — defeats the gate's purpose. Practical blocker.
 - **Severity:** HIGH (operational dead-end)
 - **Fix:** Either (a) build `ot_preapproval` table + UI flow at schedule-publish, OR (b) downgrade W09 to `info` and document as advisory-only until (a) lands.
+- **Fixed in:** `feat/sim-fast-wins-batch-3` — option (b) applied. W09 severity downgraded to `info` in `deviation-checks.ts`; message updated to "(adviserende)". `preApprovedShiftIds` stays empty in BFF; restore to `warning` when `ot_preapproval` table + UI ships (GAP-A5-02).
 
 ### BUG-SIM-16 — `useLockPeriod` mutation has no `emit()` in `onSuccess` (ADR-0193 violation) 🟡 MEDIUM
 

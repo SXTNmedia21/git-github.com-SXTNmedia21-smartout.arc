@@ -411,14 +411,20 @@ function checkW09(
 
   for (const shift of shifts) {
     if (shift.worked_minutes > otThresholdMinutes && !preApprovedShiftIds.has(shift.shift_id)) {
+      // BUG-SIM-15: severity downgraded from 'warning' to 'info' until the
+      // ot_preapproval table + UI flow lands (manager_pre_approved_ot column
+      // does not exist). W09 is advisory-only: operator must ack but it no
+      // longer blocks every OT shift when overtime_requires_pre_approval=true.
+      // Restore to 'warning' when the pre-approval UI ships (see GAP-A5-02).
       deviations.push({
         check_id: "W09",
-        severity: "warning",
-        message: `Overtid på vakt ${shift.shift_id.slice(0, 8)}... uten forhåndsgodkjenning`,
+        severity: "info",
+        message: `Overtid på vakt ${shift.shift_id.slice(0, 8)}... — forhåndsgodkjenning ikke registrert (adviserende)`,
         profile_id: shift.profile_id,
         shift_id: shift.shift_id,
         period_id: null,
-        suggested_action: "Innhent og registrer forhåndsgodkjenning for overtiden.",
+        suggested_action:
+          "Verifiser at overtiden var godkjent. Registrer forhåndsgodkjenning når flyt er tilgjengelig.",
         details: {
           worked_hours: shift.worked_minutes / 60,
           threshold_hours: framework.max_daily_hours,
