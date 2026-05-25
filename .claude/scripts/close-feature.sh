@@ -270,6 +270,28 @@ echo ""
 # GATE 4: Typecheck (mandatory)
 # =============================================
 echo "🔍 Gate 4: Typecheck"
+
+# WSL2 OOM pre-flight (ADR-0412). Next.js 16 tsc peaks ~5GB; under 6500MiB
+# available means SIGTERM 143 is near-certain. Surfaces the L-0316 endemic
+# class before tsc burns 30-60s only to be killed.
+# Override: TURBO_CONCURRENCY=1 + free up via `pkill -9 -f "tsc --noEmit"`
+# or close sibling worktree dev servers / Claude sessions.
+AVAIL_KIB=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo "0")
+AVAIL_MIB=$((AVAIL_KIB / 1024))
+if [ "$AVAIL_MIB" -gt 0 ] && [ "$AVAIL_MIB" -lt 6500 ]; then
+  echo "   ⚠️  WSL2 OOM RISK: ${AVAIL_MIB}MiB available (<6500MiB threshold)"
+  echo "      Next.js 16 tsc peaks ~5GB. Expect SIGTERM 143."
+  echo "      Mitigation:"
+  echo "        - pkill -9 -f 'tsc --noEmit'      # clear stale tsc"
+  echo "        - close sibling dev servers / Claude sessions"
+  echo "        - TURBO_CONCURRENCY=1 bash scripts/close-feature.sh ..."
+  echo "      Continuing anyway — set CLOSE_FEATURE_SKIP_OOM_GATE=1 to silence."
+fi
+
+# TURBO_CONCURRENCY=1 default — serializes turbo workers under WSL2 mem
+# pressure. Override by exporting TURBO_CONCURRENCY before invocation.
+: "${TURBO_CONCURRENCY:=1}"
+export TURBO_CONCURRENCY
 if pnpm turbo typecheck 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tail -5 | grep -q "successful"; then
   echo "   ✅ Typecheck passed"
 else
