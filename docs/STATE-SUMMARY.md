@@ -56,9 +56,11 @@ Sortie pool entirely free. No active sub-sorties.
 | `5a982ce57` | `fix(authority)`: seed 5 missing caps + shift_marketplace backfill — **closes P0 #3 (CVE-class)** |
 | `e7c97d989` | `feat(schema)`: add volunteer enum + ADR-0428 — **closes P0 #2 (BUG-SIM-01)** |
 | `39578426a` | `test(engine-dispatch)`: 5 structural tests — **PARTIAL P0 #1** (runtime E2E still deferred) |
-| `390b5053d` | `fix(journey)`: publishMission via mutateWithGate — **PARTIAL P0 #4** (contract+contract-intake remain) |
+| `390b5053d` | `fix(journey)`: publishMission via mutateWithGate (ADR-0204 Pathway B) |
+| `c17a4b715` | `fix(contract)`: 3 template-write tools via mutateWithGate (continues P0 #4) |
+| `c54bc71f0` | `fix(contract-intake)`: mutations via mutateWithGate — **closes P0 #4 + audit H-1** |
 
-**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 5 P0 blockers fully (#2 employment_form, #3 capability_default_registry, #5 tips-stubs, #6 payroll-approve-period, #8 WSL2-OOM, #7 verified-resolved) + 2 PARTIAL (#1 structural-only, #4 1-of-3 capabilities).
+**Closed today:** 1 CRITICAL + 7 HIGH audit findings (H-1 + 5 in-session + 1 verified-overstated) + **7 of 8 P0 blockers** (#2, #3, #4, #5, #6, #7, #8). Remaining: P0 #1 invoke_capability_tool runtime E2E (5 structural tests landed `39578426a`; full local-stack E2E genuinely needs supabase + stage-engine + Node ai-tools-runner running — ~2-4h memory-bound setup not autonomous-safe under ADR-0412 WSL2 endemic).
 **Audit verified-overstated:** schedule "zero gates" (has inline role-check), schedule "phantom events" (both emit), helpdesk engine_trigger orphan (row exists, dispatcher dual-key).
 
 ## Top Priority Gaps
@@ -71,7 +73,7 @@ Sortie pool entirely free. No active sub-sorties.
 
 3. ✅ **CLOSED 2026-05-26 (`5a982ce57`)** — `capability_default_registry` seed gap closed. 6 missing caps (bootstrap, day-line, org, routine, schedule.view_preference.write, shift_marketplace) seeded with ADR-defined authority. CI parity script extended to detect hyphen literals. `scripts/authority-seed-parity.ts` exits 0 (was exit 1 with 5 missing).
 
-4. **PARTIAL ✅ 2026-05-26 (`390b5053d`)** — ADR-0204 Pathway B journey pilot shipped. `journey.publish_mission` now wraps both engine_missions + engine_stages inserts in `mutateWithGate.exec` callback. 23/23 journey tests pass. Pattern proven. **REMAINING: contract + contract-intake** — 5 mutation tools in contract (create_employee_contract, send_employee_contract, fork_template, +2) + 1 in contract-intake. Mechanical refactor but contract has 13+ E2E specs requiring full stack to verify safely. Recommend dedicated sortie (wave H continuation). Other 5 audit HIGH findings closed earlier today: guardian/acknowledgeSignal emit (`59d157bb3`), training PII gate (`e513b2cfa`), schedule "zero gates"/"phantom events" verified-overstated, availability workspace_id (`de98f16d1`), call-command body workspaceId (`5a982ce57`).
+4. ✅ **FULLY CLOSED 2026-05-26 (`390b5053d` + `c17a4b715` + `c54bc71f0`)** — ADR-0204 Pathway B wave H complete for all 3 originally-flagged capabilities. journey.publish_mission + 3 contract template tools (fork/publish/deprecate) + 2 contract-intake tools (submitFieldGroup/declineIntake) all wrap their writes in `mutateWithGate.exec` callback. 817/817 ai tests pass. Audit H-1 closed. Remaining 2 contract tools (create_employee_contract, send_employee_contract) use external service fetch() — Pathway B doesn't strictly apply (no direct DB writes). All other 5 audit HIGH findings closed earlier today: guardian/acknowledgeSignal emit (`59d157bb3`), training PII gate (`e513b2cfa`), schedule verified-overstated, availability workspace_id (`de98f16d1`), call-command body workspaceId (`5a982ce57`).
 
 5. ✅ **CLOSED 2026-05-26 (`fa09f2158`)** — `tips` capability 4 not_implemented stubs hidden from LLM router. Tool defs kept in tools.ts for Sortie 2/3 to fill bodies. ADR-0196 (no phantom emit) + ADR-0422 (no phantom-tool antipattern) both satisfied.
 
