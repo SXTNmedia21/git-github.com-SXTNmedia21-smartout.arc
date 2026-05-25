@@ -33,6 +33,11 @@ import { JourneyIRSchema, validateV21IrForMission, validateIRForGuide } from "@s
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import {
+  mutateWithGate,
+  MutateWithGateDenied,
+  MutateWithGateError,
+} from "../_shared/mutate-with-gate.js";
 import { generateGuideMdx } from "./guide-mdx.js";
 import { resolveMissionForJourneyVersion } from "../../lib/mission-resolution.js";
 
@@ -427,62 +432,22 @@ export const publishMissionTool = defineTool({
     }
     const ir = validation.ir;
 
-    // ── 4. Authority gate — ADR-0196 Invariant 13 ────────────────────
-    // MANDATORY call even though the seeded default is `suggest`. The Wolf
-    // can flip engine_authority_config; an unguarded `suggest` that bypasses
-    // the RPC is CVE-class (L-0097). Fail CLOSED on RPC error (see
-    // `callGateAction` — RPC error returns allow=false).
-    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
-      capability: "journey.publish_mission",
-      channel,
-      actionType: "publish_mission",
-      entityId: journey_version_id,
-    });
-
-    if (!gate.allow) {
-      return JSON.stringify({
-        ok: false as const,
-        error: "authority_denied" as const,
-        reason: gate.reason ?? "denied",
-      });
-    }
-
-    // ── 5. Insert engine_missions ────────────────────────────────────
-    // ADR-0194 rule 2: id = `journey_<slug>_v<version_number>`. slug comes
-    // from the parent journey (stable human-readable anchor); version_number
-    // is the DB-backed monotonic per-journey sequence so re-publishes of
-    // different versions cannot collide on the TEXT primary key.
+    // ── 4–6. Pathway A + Pathway B + domain write via mutateWithGate ──
+    // ADR-0204 §3: capability authority (Pathway A) + cascade data-rule
+    // (Pathway B) + domain write composed in one correlated audit chain.
+    // ADR-0287 §"single mutateWithGate": both engine_missions + engine_stages
+    // writes run inside the same exec callback so Pathway B's gate_evaluation
+    // row correlates the entire publish operation.
     //
-    // is_active=false is the ADR-0194 Gate — the mission row exists (so
-    // downstream flows like mission resolution can reference it) but is
-    // not yet live. Author enrichment step (M3) flips it to true.
+    // ADR-0194 rule 2: id = `journey_<slug>_v<version_number>`. slug from
+    // parent journey; version_number is the DB-backed monotonic per-journey
+    // sequence so re-publishes of different versions cannot collide on the
+    // TEXT primary key.
+    //
+    // is_active=false is the ADR-0194 Gate — mission row exists (downstream
+    // flows reference it) but isn't live. Author enrichment (M3) flips it.
     const missionId = `journey_${journeyRow.slug}_v${versionRow.version_number}`;
 
-    const { error: missionInsertErr } = await supabase.from("engine_missions").insert({
-      id: missionId,
-      name: ir.title,
-      description: `Published from journey_version ${journey_version_id}`,
-      mode: ir.mode,
-      system_prompt: ir.system_prompt,
-      workspace_id: ctx.workspaceId,
-      journey_id: journeyRow.journey_id,
-      is_active: false,
-    });
-
-    if (missionInsertErr) {
-      return JSON.stringify({
-        ok: false as const,
-        error: "insert_failed" as const,
-        detail: `engine_missions insert: ${missionInsertErr.message}`,
-      });
-    }
-
-    // ── 6. Insert engine_stages (N rows, 1 per IR step) ──────────────
-    // ADR-0194 rule 2 derivation: the per-stage coaching fields fall back
-    // to the Playwright-step summaries when author overrides are absent.
-    // NOT NULL constraints on goal/instructions/success_criteria are
-    // always satisfied by validateV21IrForMission() confirming title +
-    // action + assertion are non-empty per step.
     const stageRows = ir.steps.map((step, idx) => ({
       mission_id: missionId,
       stage_id: step.key && step.key.length > 0 ? step.key : `stage_${idx}`,
@@ -494,17 +459,66 @@ export const publishMissionTool = defineTool({
       is_required: true,
     }));
 
-    const { error: stagesInsertErr } = await supabase.from("engine_stages").insert(stageRows);
+    try {
+      await mutateWithGate(supabase, {
+        workspaceId: ctx.workspaceId,
+        profileId: ctx.profileId,
+        capability: "journey.publish_mission",
+        actionType: "publish_mission",
+        channel,
+        targetId: journey_version_id,
+        exec: async (db) => {
+          const { error: missionInsertErr } = await db.from("engine_missions").insert({
+            id: missionId,
+            name: ir.title,
+            description: `Published from journey_version ${journey_version_id}`,
+            mode: ir.mode,
+            system_prompt: ir.system_prompt,
+            workspace_id: ctx.workspaceId,
+            journey_id: journeyRow.journey_id,
+            is_active: false,
+          });
+          if (missionInsertErr) {
+            throw new Error(`engine_missions insert: ${missionInsertErr.message}`);
+          }
 
-    if (stagesInsertErr) {
-      // Manual rollback — PostgREST has no cross-table transaction. Best
-      // effort: delete the mission row we just inserted so a retry can
-      // re-insert cleanly without colliding on the TEXT PK.
-      await supabase.from("engine_missions").delete().eq("id", missionId);
+          // ADR-0194 rule 2 derivation: per-stage coaching fields fall back
+          // to Playwright-step summaries when author overrides are absent.
+          // NOT NULL constraints on goal/instructions/success_criteria are
+          // satisfied by validateV21IrForMission() confirming title + action
+          // + assertion are non-empty per step.
+          const { error: stagesInsertErr } = await db.from("engine_stages").insert(stageRows);
+          if (stagesInsertErr) {
+            // Manual rollback — PostgREST has no cross-table transaction.
+            // Best-effort: delete the mission row we just inserted so a
+            // retry can re-insert cleanly without colliding on the TEXT PK.
+            await db.from("engine_missions").delete().eq("id", missionId);
+            throw new Error(`engine_stages insert: ${stagesInsertErr.message}`);
+          }
+
+          return { missionId };
+        },
+      });
+    } catch (err) {
+      if (err instanceof MutateWithGateDenied) {
+        return JSON.stringify({
+          ok: false as const,
+          error: "authority_denied" as const,
+          reason: err.message ?? "denied",
+        });
+      }
+      if (err instanceof MutateWithGateError) {
+        return JSON.stringify({
+          ok: false as const,
+          error: "gate_unavailable" as const,
+          detail: `${err.code}: ${err.message}`,
+        });
+      }
+      const detail = err instanceof Error ? err.message : String(err);
       return JSON.stringify({
         ok: false as const,
         error: "insert_failed" as const,
-        detail: `engine_stages insert: ${stagesInsertErr.message}`,
+        detail,
       });
     }
 
