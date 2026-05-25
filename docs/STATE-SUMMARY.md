@@ -54,24 +54,24 @@ Sortie pool entirely free. No active sub-sorties.
 | `fa09f2158` | `fix(tips)`: hide not_implemented stubs from LLM router — **closes P0 ADR-0422 conflict** |
 | `c33c1437c` | `fix(tooling)`: WSL2 OOM pre-flight gate in close-feature.sh — **closes P0 ADR-0412 mitigation** |
 | `5a982ce57` | `fix(authority)`: seed 5 missing caps + shift_marketplace backfill — **closes P0 #3 (CVE-class)** |
+| `e7c97d989` | `feat(schema)`: add volunteer enum + ADR-0428 — **closes P0 #2 (BUG-SIM-01)** |
+| `39578426a` | `test(engine-dispatch)`: 5 structural tests — **PARTIAL P0 #1** (runtime E2E still deferred) |
+| `390b5053d` | `fix(journey)`: publishMission via mutateWithGate — **PARTIAL P0 #4** (contract+contract-intake remain) |
 
-**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 4 P0 blockers (#3 capability_default_registry, #5 tips-stubs, #6 payroll-approve-period, #8 WSL2-OOM).
+**Closed today:** 1 CRITICAL + 6 HIGH audit findings + 5 P0 blockers fully (#2 employment_form, #3 capability_default_registry, #5 tips-stubs, #6 payroll-approve-period, #8 WSL2-OOM, #7 verified-resolved) + 2 PARTIAL (#1 structural-only, #4 1-of-3 capabilities).
 **Audit verified-overstated:** schedule "zero gates" (has inline role-check), schedule "phantom events" (both emit), helpdesk engine_trigger orphan (row exists, dispatcher dual-key).
 
 ## Top Priority Gaps
 
 ### P0 — Blockers
 
-1. **`invoke_capability_tool` Phase 3 E2E tests pending** — ADR-0424 Phase 1.5 + 2-A + 2-B all shipped. Phase 3 E2E is the outstanding gate before Sortie G (ops-day-brief refactor). New env var `STAGE_ENGINE_INTERNAL_KEY` must be in 1Password + Vercel + Supabase + droplet manifest before any HOP A. `docs/plans/B6-ENGINE-DISPATCH-NODE-MIGRATION.md` deferred supersession path.
+1. **PARTIAL ✅ 2026-05-26 (`39578426a`)** — `invoke_capability_tool` 5 additional structural tests landed (24/24 pass). Phase 3 runtime E2E with full local stack (supabase + stage-engine + Node ai-tools-runner) still deferred — ~2-4h memory-bound setup, not autonomous-safe under WSL2 OOM endemic (ADR-0412). Structural invariants now cover: success-branch tool_result_summary, ok:false-branch tool_result_summary, dual engine_state+engine_state_step failed transition, idx_engine_state_step_invoke_cap migration existence, gate_evaluation_id→gate_action_id rename.
 
-2. **`employment_form` NOT NULL conflict — BUG-SIM-01 (CRITICAL schema landmine)** — Migration `20260519150000:160` adds NOT NULL; migration `20260515100100:38` uses NULL = volunteer. Any workspace with volunteer contracts pre-Wave-3 fails forward migration. Documented in `docs/test-runs/2026-05-25-restaurant-week-sim/SCHEMA-BUGS-TRIAGE.md`. Forward-only migration required (ADR-0427 doctrine).
+2. ✅ **CLOSED 2026-05-26 (`e7c97d989`)** — `employment_form` BUG-SIM-01 closed via ADR-0428 + two-part forward migration. `'volunteer'` is now an explicit enum value (was 5→6 values: permanent/temporary/apprentice/practice/freelance/volunteer). Bubble-migration recovery heuristic restored NULL-source volunteers. ADR-0109 §Clause B superseded in form, intent preserved. Tripletex sync EF update filed separately (feature-flagged, no prod blast). Local DB verification: enum extended cleanly, 0 bubble rows to recover.
 
 3. ✅ **CLOSED 2026-05-26 (`5a982ce57`)** — `capability_default_registry` seed gap closed. 6 missing caps (bootstrap, day-line, org, routine, schedule.view_preference.write, shift_marketplace) seeded with ADR-defined authority. CI parity script extended to detect hyphen literals. `scripts/authority-seed-parity.ts` exits 0 (was exit 1 with 5 missing).
 
-4. **6 HIGH audit findings still open** (per 2026-05-25 smoke):
-   - 5 capability-tools: journey/contract/contract-intake gatedMutation Pathway B gap (ADR-0204); guardian/acknowledgeSignal telemetry bypass; training PII without gate; schedule capability zero gates + 2 phantom events (ADR-0358); availability/queryOthersAvailability body workspace_id (ADR-0151)
-   - 1 edge-functions: call-command body workspaceId across 4 handlers (ADR-0151)
-   - Recommend remediation sortie wave H (capability ADR-0204 + telemetry) + wave I (ADR-0151 sweep).
+4. **PARTIAL ✅ 2026-05-26 (`390b5053d`)** — ADR-0204 Pathway B journey pilot shipped. `journey.publish_mission` now wraps both engine_missions + engine_stages inserts in `mutateWithGate.exec` callback. 23/23 journey tests pass. Pattern proven. **REMAINING: contract + contract-intake** — 5 mutation tools in contract (create_employee_contract, send_employee_contract, fork_template, +2) + 1 in contract-intake. Mechanical refactor but contract has 13+ E2E specs requiring full stack to verify safely. Recommend dedicated sortie (wave H continuation). Other 5 audit HIGH findings closed earlier today: guardian/acknowledgeSignal emit (`59d157bb3`), training PII gate (`e513b2cfa`), schedule "zero gates"/"phantom events" verified-overstated, availability workspace_id (`de98f16d1`), call-command body workspaceId (`5a982ce57`).
 
 5. ✅ **CLOSED 2026-05-26 (`fa09f2158`)** — `tips` capability 4 not_implemented stubs hidden from LLM router. Tool defs kept in tools.ts for Sortie 2/3 to fill bodies. ADR-0196 (no phantom emit) + ADR-0422 (no phantom-tool antipattern) both satisfied.
 
