@@ -44,13 +44,14 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM
 - **Fix:** Add partial index `WHERE payroll_period_id IS NULL AND status = 'paid'`, or change FK to `ON DELETE RESTRICT`.
 
-### BUG-SIM-04 — `channel.is_active` migration staged but agent `sendMessage` still filters on `is_archived` 🟡 MEDIUM
+### BUG-SIM-04 — `channel.is_active` migration staged but agent `sendMessage` still filters on `is_archived` 🟡 MEDIUM ✅ FIXED
 
 - **Where:** Staged migration `supabase/migrations/20260625130000_channel_is_active_column.sql` (per `git status`); consumer `packages/ai/src/capabilities/communication/tools.ts:219`
 - **Evidence:** A3 / NEW-FIND-K + A4 / BUG-A4-03 — `is_active` is orthogonal to `is_archived` per migration comment, but `sendMessage` draft phase guards only on `is_archived=false`. `helpdesk_query/tools.ts:372` already uses `is_active=true`. Drift between two channel-state semantics.
 - **Impact:** Deactivated-but-not-archived channels will pass `sendMessage` guard. Announcement fan-out may silently target dead channels.
 - **Severity:** MEDIUM
 - **Fix:** Update `tools.ts:219` to additionally filter `.eq("is_active", true)`. Audit all channel selects in capabilities for the same drift before applying the migration.
+- **Fixed in:** feat/sim-fast-wins-batch-1 (see commit for BUG-SIM-04). Audit of other capability tools found no other channel selects missing is_active.
 
 ---
 
