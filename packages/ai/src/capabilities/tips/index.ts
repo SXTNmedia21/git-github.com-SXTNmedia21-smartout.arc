@@ -23,6 +23,8 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
+// Stub tools intentionally NOT imported here — see allTools comment below.
+// Re-exported at bottom of file for test/registry introspection.
 import {
   tipsSetPotTool,
   tipsAdjustShareTool,
@@ -30,22 +32,21 @@ import {
   tipsQueryOwnShareTool,
 } from "./tools.js";
 
-// All four tools — surfaced when authority ≥ read_only.
-const allTools = [
-  tipsSetPotTool,
-  tipsAdjustShareTool,
-  tipsApproveDistributionTool,
-  tipsQueryOwnShareTool,
-] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
-
-// Employee read-only tool: only query_own_share surfaces at read_only tier.
-const readOnlyTools = [tipsQueryOwnShareTool] as unknown as ReadonlyArray<
-  SmartoutTool<AgentToolContext>
->;
-
-// Suggest-tier tools: set_pot at suggest so managers can record with
-// an agent-confirm UI step.
-const suggestTools = [tipsSetPotTool] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+// ADR-0422 enforcement: tools returning `not_implemented` MUST NOT be
+// surfaced to the LLM router — that is the phantom-tool antipattern
+// (LLM can pick, always fails, telemetry pollutes, council-class drift).
+// The tool definitions stay in tools.ts so Sortie 2 (tips-leader-flows)
+// and Sortie 3 (tips-employee-mobile) can fill in bodies without re-
+// scaffolding. Until bodies land, capability registers ZERO tools.
+//
+// ADR-0196 Invariant 11 (no phantom emit) is preserved — skeletons
+// don't fire events. ADR-0422 is satisfied — router never sees them.
+//
+// To unhide a tool: implement its body (gate_action → write → emit),
+// then move it from the unused imports back into allTools below.
+const allTools: ReadonlyArray<SmartoutTool<AgentToolContext>> = [];
+const readOnlyTools: ReadonlyArray<SmartoutTool<AgentToolContext>> = [];
+const suggestTools: ReadonlyArray<SmartoutTool<AgentToolContext>> = [];
 
 export const tipsCapability: CapabilityDefinition = {
   name: "tips",
