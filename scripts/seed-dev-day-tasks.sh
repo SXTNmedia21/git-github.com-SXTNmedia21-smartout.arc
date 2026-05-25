@@ -77,9 +77,9 @@ SELECT
   'pending'::session_task_status,
   'session'::task_origin,
   'system'::task_generated_by,
-  (ds.session_date::timestamp
+  ((ds.session_date::timestamp
     + (template.hh || ' hours')::interval
-    + (template.mm || ' minutes')::interval)::timestamptz AS scheduled_at,
+    + (template.mm || ' minutes')::interval) AT TIME ZONE 'Europe/Oslo') AS scheduled_at,
   now(),
   now()
 FROM public.department_session ds
