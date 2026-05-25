@@ -27,6 +27,7 @@ import { CompleteProfileCard } from "@/components/onboarding/CompleteProfileCard
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
+import { useContractRate } from "@/hooks/queries/use-contract-rate";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
@@ -48,7 +49,6 @@ type AfterShiftViewProps = {
   onDisputeHours?: () => void;
 };
 
-const HOURLY_RATE_FALLBACK = 220;
 const DAY_LONG = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
 
 function pad2(n: number): string {
@@ -105,6 +105,8 @@ export function AfterShiftView({
     profile?.workspace_id ?? null,
   );
 
+  const { data: contractRate } = useContractRate();
+
   const firstName = profile?.display_name?.split(" ")[0] ?? "";
   const showWorkflow = !!(onSubmitHandoff || onConfirmHours || onDisputeHours);
   const [handoffText, setHandoffText] = useState("");
@@ -125,7 +127,14 @@ export function AfterShiftView({
     return hoursBetween(timeEntry.punch_in, timeEntry.punch_out);
   }, [timeEntry.punch_in, timeEntry.punch_out]);
 
-  const estimatedNok = useMemo(() => formatNok(workedH * HOURLY_RATE_FALLBACK), [workedH]);
+  // Use the employee's contracted hourly rate when available.
+  // contractRate.hourly_rate === null means the contract is not yet configured —
+  // show "Beregner…" so we never surface a misleading hardcoded number (BUG-SIM-19).
+  const estimatedNok = useMemo(() => {
+    const rate = contractRate?.hourly_rate;
+    if (rate == null) return null;
+    return formatNok(workedH * rate);
+  }, [workedH, contractRate]);
 
   const leaderName = leader?.name?.split(" ")[0] ?? "leder";
   const oppgjorBody = `${leaderName} godkjenner dagen før timene låses. Du får varsel når oppgjøret er ferdig.`;
@@ -171,7 +180,7 @@ export function AfterShiftView({
         <View style={styles.statsInset}>
           <SummaryStat label="TIMER" value={`${workedH.toFixed(1).replace(".", ",")}t`} />
           <View style={styles.statDivider} />
-          <SummaryStat label="LØNN" value={estimatedNok} />
+          <SummaryStat label="EST. LØNN" value={estimatedNok ?? "Beregner..."} />
           <View style={styles.statDivider} />
           <SummaryStat label="TILLEGG" value="—" />
         </View>

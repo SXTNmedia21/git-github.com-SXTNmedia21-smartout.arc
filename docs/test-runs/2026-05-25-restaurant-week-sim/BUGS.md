@@ -168,7 +168,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** MEDIUM (legal compliance)
 - **Fix:** Add `periodFrom <= periodTo` predicate to `canSubmit`; mirror in `CreateAdHocInvoiceInputSchema` (Zod refine).
 
-### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM
+### BUG-SIM-19 — `AfterShiftView` + `DuringShiftViewV2` hardcode 220 kr/h fallback instead of contract rate 🟡 MEDIUM — FIXED in commit (see feat/sim-fast-wins-batch-2)
 
 - **Where:** `apps/mobile/src/components/home/AfterShiftView.tsx:51,128`; `apps/mobile/src/components/home/DuringShiftView.v2.tsx:62,160`
 - **Evidence:** A3 / NEW-GAP-D — `HOURLY_RATE_FALLBACK = 220` used unconditionally. No query to `employee_payroll_profile.hourly_rate` or `tariff_rate_table`.
