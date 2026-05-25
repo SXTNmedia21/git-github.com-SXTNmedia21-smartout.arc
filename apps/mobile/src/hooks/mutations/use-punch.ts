@@ -5,7 +5,14 @@
  * optimistically update the TanStack Query cache for useActiveTimeEntry.
  * The SyncWorker picks them up and sends to Supabase when online.
  *
- * Both functions are instant from the user's perspective — no network required.
+ * punchIn() enforces GPS geofencing when gpsConfig is provided:
+ *   - permission_denied / unavailable → throws Norwegian error, blocks submission
+ *   - outside geofence radius → throws Norwegian error with distance, blocks submission
+ *   - inside geofence / GPS not required → proceeds, telemetry carries real verdict
+ *
+ * GPS columns (gps_verified, gps_lat, gps_lng) are NOT yet in the sync-queue
+ * punchInSchema or time_entry table — those land in a follow-up migration sortie.
+ * For now gps_verified and gps_distance_meters are carried in the telemetry emit only.
  */
 
 import { useCallback } from "react";
@@ -16,8 +23,10 @@ import { enqueue } from "@/lib/sync/queue";
 import { getProfileContext } from "@/lib/profile-context";
 import { emit } from "@smartout/telemetry";
 import { subscribeShiftSessionTopic, unsubscribeShiftSessionTopic } from "@/lib/push";
+import { useGPSGuard } from "@/hooks/shift-clock/useGPSGuard";
+import { calculateGPSDistance } from "@smartout/shift-clock";
 import type { TimeEntry } from "@/types/time-entry";
-import type { BreakEntry } from "@smartout/shift-clock";
+import type { BreakEntry, GPSConfig, GPSSnapshot } from "@smartout/shift-clock";
 
 /**
  * Hook that returns punchIn and punchOut functions.
@@ -27,22 +36,92 @@ import type { BreakEntry } from "@smartout/shift-clock";
  */
 export function usePunch() {
   const queryClient = useQueryClient();
+  const { getPosition, isWithinGeofence } = useGPSGuard();
 
   /**
-   * Punches in for a shift: creates a new time_entry via the offline queue.
+   * Punches in for a shift: enforces GPS geofence (when config provided), then
+   * creates a new time_entry via the offline queue.
    *
-   * Generates a client-side UUID for the time_entry_id, builds the payload,
-   * enqueues a 'punch_in' action, and optimistically sets the active time entry
-   * in the query cache so the PunchButton flips to "STEMPLE UT" immediately.
+   * GPS gate (runs BEFORE enqueue):
+   *   - If gpsConfig.required=true and permission is denied/unavailable:
+   *     throws with Norwegian Bokmål message — caller shows Alert + blocks.
+   *   - If gpsConfig.required=true and employee is outside geofence:
+   *     throws with Norwegian Bokmål message including distance — caller shows Alert + blocks.
+   *   - On web (Platform.OS==='web') getPosition() returns null, gpsConfig.required is
+   *     treated as false — web is always allowed per useGPSGuard design.
+   *   - gps_verified and gps_distance_meters in telemetry reflect the ACTUAL verdict.
+   *
+   * NOTE: GPS columns (gps_verified, gps_lat, gps_lng) are NOT yet in the sync-queue
+   * punchInSchema or time_entry table schema. The enqueue payload stays unchanged.
+   * Follow-up: add columns via migration + extend punchInSchema (flagged 2026-05-25).
    *
    * @param shiftId         - schedule_shift_id.
+   * @param gpsConfig       - Workspace GPS config from useShiftClockConfig. Null = GPS not
+   *                          configured for this workspace (allow punch unconditionally).
    * @param shiftSessionId  - Optional shift_session_id. When provided (ADR-0367 §M4),
    *                          subscribe to the push topic for live session updates.
    * @param pushTopic       - push_topic from the shift_session row (required when
    *                          shiftSessionId is supplied).
    */
   const punchIn = useCallback(
-    async (shiftId: string, shiftSessionId?: string, pushTopic?: string) => {
+    async (
+      shiftId: string,
+      gpsConfig: GPSConfig | null,
+      shiftSessionId?: string,
+      pushTopic?: string,
+    ) => {
+      // ── GPS gate ──────────────────────────────────────────────────────────
+      // Resolve GPS verdict BEFORE resolving profile or enqueuing, so a GPS
+      // block fails fast with no side effects on the DB or telemetry.
+      let gpsVerified = false;
+      let gpsDistanceMeters: number | null = null;
+      let gpsSnapshot: GPSSnapshot | null = null;
+
+      if (gpsConfig?.required) {
+        gpsSnapshot = await getPosition();
+
+        if (gpsSnapshot === null) {
+          // null = permission denied, OS hardware unavailable, or timeout.
+          // useGPSGuard sets error state internally; we surface user-facing message here.
+          throw new Error(
+            "GPS-tilgang kreves for stempling. Aktiver GPS i innstillinger og prøv igjen.",
+          );
+        }
+
+        const within = isWithinGeofence(gpsSnapshot, gpsConfig);
+
+        if (!within && gpsConfig.referenceLat !== null && gpsConfig.referenceLng !== null) {
+          // Compute distance so the error message is actionable.
+          const distM = Math.round(
+            calculateGPSDistance(
+              gpsSnapshot.lat,
+              gpsSnapshot.lng,
+              gpsConfig.referenceLat,
+              gpsConfig.referenceLng,
+            ),
+          );
+          gpsDistanceMeters = distM;
+          const overBy = Math.max(0, distM - gpsConfig.radiusMeters);
+          throw new Error(
+            `Du er for langt fra arbeidsplassen til å stemple inn (${overBy} m fra grensen). Beveg deg nærmere og prøv igjen.`,
+          );
+        }
+
+        // Passed geofence check.
+        gpsVerified = true;
+        if (gpsConfig.referenceLat !== null && gpsConfig.referenceLng !== null) {
+          gpsDistanceMeters = Math.round(
+            calculateGPSDistance(
+              gpsSnapshot.lat,
+              gpsSnapshot.lng,
+              gpsConfig.referenceLat,
+              gpsConfig.referenceLng,
+            ),
+          );
+        }
+      }
+
+      // ── Profile resolution (ADR-0134 — fail fast, never empty-string) ────
       const { profileId, workspaceId } = await getProfileContext();
       const timeEntryId = randomUUID();
       const now = new Date().toISOString();
@@ -73,6 +152,8 @@ export function usePunch() {
         updated_at: now,
       } satisfies TimeEntry);
 
+      // Telemetry carries the actual GPS verdict (no more hardcoded false).
+      // gps_verified=true only when guard confirmed employee is within geofence.
       void emit({
         event: "shift punched_in",
         workspace_id: workspaceId,
@@ -85,8 +166,8 @@ export function usePunch() {
             time_entry_id: timeEntryId,
             punch_time: now,
             is_adhoc: false,
-            gps_verified: false,
-            gps_distance_meters: null,
+            gps_verified: gpsVerified,
+            gps_distance_meters: gpsDistanceMeters,
           },
         },
       });
@@ -98,7 +179,7 @@ export function usePunch() {
         });
       }
     },
-    [queryClient],
+    [queryClient, getPosition, isWithinGeofence],
   );
 
   /**
@@ -156,6 +237,13 @@ export function usePunch() {
       // Optimistically clear the active time entry — employee is no longer clocked in
       queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], null);
 
+      // GPS is not re-verified at punch-out — the guard ran at punch-in.
+      // gps_verified=false here is intentional: punch-out is a time-recording
+      // action, not a location-enforcement point. The punch-in telemetry row
+      // already carries the authoritative gps_verified verdict for this shift.
+      // Named constant makes this explicit rather than a magic false.
+      const GPS_NOT_VERIFIED_AT_PUNCHOUT = false;
+
       // entity_id MUST be the schedule_shift id — engine-dispatch stamps
       // engine_state.entity_id from payload.entity_id so shift_lifecycle_v1
       // can match subsequent steps (update_entity on schedule_shift,
@@ -174,7 +262,7 @@ export function usePunch() {
             punch_time: now,
             work_minutes: workMinutes,
             break_minutes: breakMinutes,
-            gps_verified: false,
+            gps_verified: GPS_NOT_VERIFIED_AT_PUNCHOUT,
           },
         },
       });

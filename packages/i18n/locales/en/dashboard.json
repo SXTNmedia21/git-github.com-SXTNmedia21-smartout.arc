@@ -1127,8 +1127,10 @@
     }
   },
   "tidslinje": {
+    "aria_filter_count": "Showing {{count}} of {{total}} events",
     "chip_all": "All",
     "empty_state": "No activity for the selected locations",
+    "empty_state_filtered": "No events match the selected location filter",
     "loading": "Loading today's timeline…",
     "tab_label": "Timeline"
   },

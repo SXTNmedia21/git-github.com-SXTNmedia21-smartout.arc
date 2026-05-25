@@ -178,7 +178,6 @@ export function SelectWorkspaceClient({
       }
     });
     // Run only on initial mount when token present — token is stable from URL.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oauthInviteToken]);
 
   async function handleAcceptInvite(token: string) {

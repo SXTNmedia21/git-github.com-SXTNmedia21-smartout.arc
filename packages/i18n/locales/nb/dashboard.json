@@ -1127,8 +1127,10 @@
     }
   },
   "tidslinje": {
+    "aria_filter_count": "Viser {{count}} av {{total}} hendelser",
     "chip_all": "Alle",
     "empty_state": "Ingen aktivitet for valgte lokasjoner",
+    "empty_state_filtered": "Ingen hendelser matcher valgt lokasjonsfilter",
     "loading": "Laster dagens tidslinje…",
     "tab_label": "Tidslinje"
   },

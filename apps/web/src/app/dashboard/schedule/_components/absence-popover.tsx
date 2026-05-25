@@ -59,15 +59,21 @@ export function AbsencePopover() {
   const handleSubmit = () => {
     if (!absencePopover) return;
 
-    const nowStr = new Date().toISOString();
+    // BUG-SIM-07 fix: use absencePopover.dateId (local-timezone YYYY-MM-DD)
+    // instead of new Date().toISOString() (UTC TIMESTAMPTZ).
+    // Writing a TIMESTAMPTZ into a DATE column coerces in UTC — after 22:00
+    // Oslo (UTC+2 summer) the ISO string is already the next UTC date, causing
+    // the absence to land on the wrong day.  dateId is populated from
+    // Date.getFullYear/Month/Date local methods and is already YYYY-MM-DD in
+    // the user's timezone, which is what the DATE column expects.
     createAbsence.mutate({
       id: crypto.randomUUID(),
       employeeId: absencePopover.employeeId,
       dateId: absencePopover.dateId,
       type: absenceType,
       reason: reason || undefined,
-      startDate: nowStr,
-      endDate: nowStr,
+      startDate: absencePopover.dateId,
+      endDate: absencePopover.dateId,
       isFullDay,
       status: "approved",
     });
