@@ -211,12 +211,16 @@ export const sendMessage = defineTool({
       // Cross-workspace channel_id is rejected by the .eq("workspace_id") filter.
       // Body-supplied workspace_id is NEVER trusted — ctx.workspaceId is authoritative
       // per ADR-0151 + L-0177 (silent-fallback ban).
+      // BUG-SIM-04 fix: also filter is_active=true (migration 20260626000200
+      // adds the column; deactivated-but-not-archived channels must be blocked).
+      // helpdesk_query/tools.ts already used is_active=true — align sendMessage.
       const { data: channel, error: channelError } = await supabase
         .from("channel")
         .select("id, name, channel_type")
         .eq("id", params.channel_id)
         .eq("workspace_id", ctx.workspaceId)
         .is("is_archived", false)
+        .eq("is_active", true)
         .single();
 
       if (channelError || !channel) {

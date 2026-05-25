@@ -182,6 +182,25 @@ export function enrichShiftRowWithOsloTime<
   };
 }
 
+// Return the Norwegian lowercase weekday for a DATE-only string (YYYY-MM-DD).
+//
+// WHY a dedicated helper (G10 / 2026-05-25):
+//   `new Date("2026-06-23")` parses as UTC midnight (Mon 00:00 UTC).
+//   In Europe/Oslo that instant is Mon 02:00 CEST — still Monday — but
+//   callers were constructing `new Date("2026-06-23T00:00:00+02:00")` which
+//   hard-codes the CEST (+02:00) offset. In winter (CET = +01:00) that is
+//   wrong by one hour and across the DST boundary the computed weekday is
+//   off-by-one.
+//
+//   Safe anchor: noon UTC (12:00Z) is always within the same Oslo calendar
+//   day as the date string — Oslo UTC offsets are +01:00 or +02:00, so
+//   noon UTC maps to 13:00 or 14:00 Oslo, never crossing midnight.
+//   We then delegate to osloWeekday() which uses Intl with timeZone pinned.
+export function osloWeekdayFromDateStr(dateStr: string): string {
+  // Noon UTC is safely inside the Oslo calendar day for any dateStr.
+  return osloWeekday(new Date(`${dateStr}T12:00:00Z`));
+}
+
 export type ShiftLocalTime = {
   start_weekday: string | null;
   start_date: string | null;

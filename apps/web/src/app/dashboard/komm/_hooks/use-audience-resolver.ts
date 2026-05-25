@@ -48,10 +48,12 @@ export function useAudienceResolver(input: AudienceInput) {
         // SAFETY: timesheet schema FK joins to public.profile fail in PostgREST,
         // so query time_entry rows then re-resolve profile_ids. No display_name
         // needed here (caller only needs IDs for targeting).
+        // workspace_id scoping required here — same as all/department/role branches.
         const { data: entries, error } = await supabase
           .schema("timesheet")
           .from("time_entry")
           .select("profile_id")
+          .eq("workspace_id", wsId)
           .is("punch_out", null)
           .limit(500);
         if (error) throw error;
