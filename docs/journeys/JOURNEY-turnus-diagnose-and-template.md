@@ -37,14 +37,14 @@ tags: [journey, scheduler, phase-1]
 
 **Role:** Manager (capability `scheduler` authority ≥ `confirm`)
 **Precondition:**
-- Workspace has 2 planning_cycle rows: cycle_a (uke 24, status=committed, has shifts) and cycle_b (uke 26, status=draft, empty)
+- Workspace has 2 planning_cycle rows: cycle_a (uke 24, status=archived, has shifts) and cycle_b (uke 26, status=draft, empty)
 - J1 ready=true OR missing-list empty for cycle_b
 
 **Steps:**
 1. Manager types "bruk mal fra uke 24 på uke 26"
 2. Intent classifier routes → `apply_week_template` intent
 3. Stage engine calls `applyWeekTemplate.execute({ source_cycle_id: <cycle_a>, target_cycle_id: <cycle_b>, department_id: <kitchen> })`
-4. Capability resolves source shifts (D6 from cycle_a), maps weekday-aligned to target dates, writes change_proposal kind=`scheduler_template_apply` (or `scheduler_bundle` per Track C)
+4. Capability resolves source shifts (D6 from cycle_a), maps weekday-aligned to target dates, writes change_proposal kind=`template_apply` (or `scheduler_bundle` per Track C)
 5. Botsson surfaces: "Mal-forslag opprettet (proposal_id=..., N vakter foreslått). Gå til /dashboard/schedule/proposed-plan for å godta eller avvise."
 
 **Postcondition:**
@@ -61,12 +61,12 @@ tags: [journey, scheduler, phase-1]
 ## J3 — Manager: "vis maler"
 
 **Role:** Manager (capability `scheduler` authority ≥ `read`)
-**Precondition:** Workspace has ≥1 past committed planning_cycle
+**Precondition:** Workspace has ≥1 past archived planning_cycle
 
 **Steps:**
 1. Manager types "vis maler" eller "hvilke uker kan jeg kopiere fra"
 2. Intent → `list_week_templates`
-3. Capability returns list of past committed cycles + shift-counts + date-ranges
+3. Capability returns list of past archived cycles + shift-counts + date-ranges
 4. Botsson surfaces table: "Tilgjengelige maler: Uke 24 (35 vakter, 2026-06-15..21), Uke 23 (32 vakter, 2026-06-08..14)..."
 
 **Postcondition:** Manager has list to pick from for J2
