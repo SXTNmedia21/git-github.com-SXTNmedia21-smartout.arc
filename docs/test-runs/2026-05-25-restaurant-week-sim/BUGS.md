@@ -160,7 +160,7 @@ tags: [bugs, sim, restaurant-week, hotel, festival, dedup-2026-05-23]
 - **Severity:** HIGH (UX semantic mismatch + functional miss)
 - **Fix:** Add `on_shift` audience kind that queries `schedule_shift` for a configurable window; keep `on_duty` as currently-clocked-in subset. Update audience picker UI + `AudienceKind` union + tool schema.
 
-### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM
+### BUG-SIM-18 — `ad-hoc-invoice-drawer` has no `period_from <= period_to` validation 🟡 MEDIUM — FIXED in commit (see feat/sim-fast-wins-batch-2)
 
 - **Where:** `apps/web/src/app/platform-admin/billing/invoices/_components/ad-hoc-invoice-drawer.tsx:120-130`
 - **Evidence:** A5 / GAP-A5-08 — `canSubmit` checks description/quantity/unit_price/vat_rate; never compares `periodFrom`/`periodTo`. Pontus can create an invoice with reversed period.
