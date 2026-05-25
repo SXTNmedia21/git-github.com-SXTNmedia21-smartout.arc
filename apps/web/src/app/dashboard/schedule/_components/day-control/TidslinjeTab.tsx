@@ -146,14 +146,18 @@ export function TidslinjeTab() {
   }, [dayLinesQ.data]);
 
   // ── Filtered event list ─────────────────────────────────────────────────
-  // When no location filter is active, show all events.
-  // DayEvent has no `location_id` field in V1 — location filtering is a
-  // placeholder that will become meaningful once location_id is added to
-  // the DayEvent shape (follow-up sortie). For now: chip-bar renders
-  // location chips but filtering falls back to showing all (no-op filter).
+  // SMA-374 §C2: chip-bar filter is functional. DayEvent.location_id is
+  // resolved natively for sources that have a 1:1 anchor (booking via
+  // day_line FK, checkin/checkout via schedule_shift.location_id). Sources
+  // without a native 1:1 anchor (session_note / session_task / session_hook /
+  // deviation) carry location_id == null and are HIDDEN when any chip is
+  // active — V2 lenient-mode + session→day_line derivation follow-up.
+  // No chip selected = show all (chip-bar acts as optional refinement).
   const filteredEvents = useMemo(() => {
-    return (eventsQ.data ?? []) as DayEvent[];
-  }, [eventsQ.data]);
+    const all = (eventsQ.data ?? []) as DayEvent[];
+    if (selectedLocations.size === 0) return all;
+    return all.filter((e) => e.location_id != null && selectedLocations.has(e.location_id));
+  }, [eventsQ.data, selectedLocations]);
 
   // ── Telemetry: mount once when IDs resolve (L-0340, event 1) ───────────
   const emittedRef = useRef(false);
@@ -277,10 +281,23 @@ export function TidslinjeTab() {
         onToggleLocation={handleToggleLocation}
         onClearAll={handleClearLocations}
       />
+      {/*
+        aria-live region — screen readers hear the row count after every
+        filter toggle (WCAG 4.1.3 status-message). Polite so it doesn't
+        interrupt mid-utterance. Kept visually hidden via sr-only.
+      */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {t("tidslinje.aria_filter_count", {
+          count: filteredEvents.length,
+          total: (eventsQ.data ?? []).length,
+        })}
+      </div>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
         {filteredEvents.length === 0 ? (
           <div className="text-muted-foreground py-12 text-center text-sm">
-            {t("tidslinje.empty_state")}
+            {selectedLocations.size > 0
+              ? t("tidslinje.empty_state_filtered")
+              : t("tidslinje.empty_state")}
           </div>
         ) : (
           filteredEvents.map((e) => <TidslinjeRow key={e.id} event={e} onClick={handleRowClick} />)
