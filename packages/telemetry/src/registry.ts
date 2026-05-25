@@ -4322,6 +4322,31 @@ export interface EngineActionInvokedInvokeCapabilityTool extends BaseEvent {
   };
 }
 
+// ADR-0424 §Telemetry split — EF-side transport fact for invoke_capability_tool bridge.
+// Emitted by engine-dispatch EF AFTER the fetch() to stage-engine returns (success or error).
+// Distinct from `engine.action.invoked.invoke_capability_tool` (Node-side execution fact).
+// 3 destinations: posthog + logger + activity_trail. NOT engine_event — Node side already
+// writes the engine_event row for the execution; duplicating would produce two engine_event
+// rows per invocation (same class as L-0094 phantom-emit-contracts).
+// workspace_id always from engine_state row (ADR-0151).
+export interface EngineDispatchBridgeInvoked extends BaseEvent {
+  event: "engine.dispatch.bridge_invoked";
+  properties: {
+    data: {
+      workspace_id: string; // from engine_state row — never from step config (ADR-0151)
+      engine_state_id: string; // UUID of the executing engine_state
+      engine_process_id: string; // process blueprint identifier (state.process_id)
+      step_index: number; // step_order within the state
+      capability_name: string; // e.g. "operations", "schedule"
+      tool_name: string; // snake_case tool identifier
+      bridge_status: "success" | "error"; // EF-layer outcome (fetch result)
+      fetch_duration_ms: number; // wall-clock ms for fetch() call (network + Node endpoint total)
+      endpoint_status: "ok" | "error"; // Node endpoint ok field; "error" on HTTP-level failure
+      endpoint_error: string | null; // error string when endpoint_status === "error"; null otherwise
+    };
+  };
+}
+
 // ADR-0226 — High-signal operational warn when the proxy resolution chain
 // (team leader → broadcast) fails to find any observer for SLA notification.
 // Routes to logger + activity_trail only — NOT PostHog (not an analytics event)
@@ -9106,6 +9131,7 @@ export type SmartoutEvent =
   | EngineCrossStateWriteBlocked
   // ─── Engine Dispatch Action Invocation (ADR-0424) ──────────────────
   | EngineActionInvokedInvokeCapabilityTool
+  | EngineDispatchBridgeInvoked
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -15074,6 +15100,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // after gate_action passes and tool execute() completes (success or throws).
   "engine.action.invoked.invoke_capability_tool": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Engine Dispatch Bridge Transport (ADR-0424 §Telemetry split) ─────────────
+  // Emitted by engine-dispatch EF after fetch() to stage-engine returns.
+  // EF-layer transport fact distinct from Node-side execution event above.
+  // 3 destinations only — NOT engine_event (Node side already writes engine_event
+  // per §Telemetry split; duplicating would produce two rows per invocation).
+  "engine.dispatch.bridge_invoked": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "system",
   },
 

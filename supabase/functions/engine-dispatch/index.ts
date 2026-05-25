@@ -3037,6 +3037,419 @@ async function executeStep(
       break;
     }
 
+    // ──────────────────────────────────────────────────────────────────────
+    // invoke_capability_tool — ADR-0424 §Transport thin-proxy handler.
+    //
+    // The EF cannot import @smartout/ai (Node ESM). This handler is a thin
+    // proxy that:
+    //   1. Validates step.config shape.
+    //   2. Resolves template variables in args_template against engine_state context.
+    //   3. Enforces recursion depth = 1 EF-side (query ancestor steps).
+    //   4. Resolves actor from state.assignee_id → "system" fallback.
+    //   5. fetch()es POST /internal/engine-dispatch/invoke-capability-tool on stage-engine.
+    //   6. Persists result into engine_state_step columns.
+    //   7. Emits engine.dispatch.bridge_invoked (EF-transport fact, 3 destinations).
+    //
+    // Gate runs Node-side per Steward verdict. EF MUST NOT call gate_action.
+    // workspace_id from engine_state row — never from step config (ADR-0151).
+    // ──────────────────────────────────────────────────────────────────────
+    case "invoke_capability_tool": {
+      // ── Step 1: Validate step.config / action_payload shape ──────────
+      const ap = step.action_payload as Record<string, unknown>;
+      const capability = ap.capability as string | undefined;
+      const tool = ap.tool as string | undefined;
+      const argsTemplate = (ap.args_template ?? {}) as Record<string, unknown>;
+
+      if (!capability || !tool) {
+        console.error(
+          `[invoke_capability_tool] step ${step.step_order}: missing capability or tool in action_payload`,
+          { capability, tool, state_id: state.id },
+        );
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: `invoke_capability_tool: action_payload missing 'capability' or 'tool'`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      // ── Step 2: Resolve template variables ───────────────────────────
+      // Supports {{ engine_state.context.foo }} → context.foo substitution.
+      const ctx = state.context as Record<string, unknown>;
+      const resolvedArgs: Record<string, unknown> = {};
+      let templateError: string | null = null;
+
+      for (const [argKey, argVal] of Object.entries(argsTemplate)) {
+        if (typeof argVal === "string") {
+          // Pattern: double-brace engine_state.context.KEY template syntax.
+          // Uses hex escapes (\\x7b = open-brace, \\x7d = close-brace) so the
+          // source-parse test harness brace-depth counter stays balanced.
+          const templatePattern = new RegExp(
+            "^\\x7b\\x7b\\s*engine_state\\.context\\.([^\\s\\x7d]+)\\s*\\x7d\\x7d$",
+          );
+          const match = argVal.match(templatePattern);
+          if (match) {
+            const contextKey = match[1];
+            if (ctx[contextKey] === undefined) {
+              templateError = `invoke_capability_tool: template variable '${contextKey}' not found in engine_state.context`;
+              break;
+            }
+            resolvedArgs[argKey] = ctx[contextKey];
+          } else {
+            resolvedArgs[argKey] = argVal;
+          }
+        } else {
+          resolvedArgs[argKey] = argVal;
+        }
+      }
+
+      if (templateError) {
+        console.error(`[invoke_capability_tool] step ${step.step_order}:`, templateError, {
+          state_id: state.id,
+        });
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: templateError,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      // ── Step 3: Recursion depth check ────────────────────────────────
+      // Count ancestor invoke_capability_tool steps in the same engine_state.
+      // Uses idx_engine_state_step_invoke_cap partial index (PR #476).
+      // If count >= 1 → reject; no fetch call.
+      const { count: ancestorCount, error: ancestorErr } = await supabase
+        .from("engine_state_step")
+        .select("id", { count: "exact", head: true })
+        .eq("state_id", state.id)
+        .eq("action_type", "invoke_capability_tool")
+        .lt("step_order", step.step_order);
+
+      if (ancestorErr) {
+        console.error(
+          `[invoke_capability_tool] recursion depth query failed:`,
+          ancestorErr.message,
+          { state_id: state.id },
+        );
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: `invoke_capability_tool: recursion depth check failed: ${ancestorErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      if ((ancestorCount ?? 0) >= 1) {
+        const depthMsg = `invoke_capability_tool: recursion depth exceeded — an invoke_capability_tool ancestor step already exists in state ${state.id} (depth limit = 1 per ADR-0424)`;
+        console.error(`[invoke_capability_tool]`, depthMsg, {
+          state_id: state.id,
+          ancestor_count: ancestorCount,
+        });
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: depthMsg,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      // ── Step 4: Resolve actor ─────────────────────────────────────────
+      // Prefer state.assignee_id; fallback to "system" (ADR-0281 platform-actor pattern).
+      // Fail-fast if no actor context can be determined (L-0177 guard).
+      const actorProfileId = state.assignee_id ?? null;
+      if (!actorProfileId) {
+        // System actor: use "system" sentinel per ADR-0281.
+        // Log a warning but do not fail — system-spawned engine processes
+        // legitimately run without an assignee (e.g. cron triggers).
+        console.warn(
+          `[invoke_capability_tool] step ${step.step_order}: no assignee_id on state — using system actor`,
+          { state_id: state.id, process_id: state.process_id },
+        );
+      }
+      const resolvedActorId = actorProfileId ?? "system";
+
+      // ── Resolve actual engine_state_step UUID ─────────────────────────
+      // The EngineStep interface carries state.id as a placeholder; we need
+      // the real engine_state_step.id to pass to the Node endpoint.
+      const { data: stepRow } = await supabase
+        .from("engine_state_step")
+        .select("id")
+        .eq("state_id", state.id)
+        .eq("step_order", step.step_order)
+        .maybeSingle();
+      const engineStateStepId = (stepRow as { id?: string } | null)?.id ?? null;
+
+      // ── Step 5: Build fetch payload + call stage-engine ───────────────
+      const stageEngineUrl = Deno.env.get("STAGE_ENGINE_URL");
+      const internalKey = Deno.env.get("STAGE_ENGINE_INTERNAL_KEY");
+
+      if (!stageEngineUrl || !internalKey) {
+        const envMsg = `invoke_capability_tool: env not configured — STAGE_ENGINE_URL or STAGE_ENGINE_INTERNAL_KEY missing`;
+        console.error(`[invoke_capability_tool]`, envMsg, { state_id: state.id });
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: envMsg,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        break;
+      }
+
+      const fetchPayload = {
+        capability,
+        tool,
+        args: resolvedArgs,
+        workspace_id: state.workspace_id,
+        actor_profile_id: resolvedActorId,
+        channel: "system",
+        engine_process_id: state.process_id,
+        engine_state_id: state.id,
+        engine_state_step_id: engineStateStepId,
+        depth: 0,
+      };
+
+      const fetchStart = Date.now();
+      let fetchDurationMs = 0;
+      let bridgeStatus: "success" | "error" = "error";
+      let endpointStatus: "ok" | "error" = "error";
+      let endpointError: string | null = null;
+      let gateEvaluationId: string | null = null;
+
+      try {
+        const fetchRes = await fetch(
+          `${stageEngineUrl}/internal/engine-dispatch/invoke-capability-tool`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": internalKey,
+            },
+            body: JSON.stringify(fetchPayload),
+          },
+        );
+        fetchDurationMs = Date.now() - fetchStart;
+
+        if (fetchRes.ok) {
+          const responseBody = (await fetchRes.json()) as {
+            ok: boolean;
+            result?: unknown;
+            duration_ms?: number;
+            gate_evaluation_id?: string | null;
+            error?: string;
+          };
+
+          if (responseBody.ok) {
+            bridgeStatus = "success";
+            endpointStatus = "ok";
+            gateEvaluationId = responseBody.gate_evaluation_id ?? null;
+
+            // ── Step 7: Persist result into engine_state_step ────────────
+            // Strip PII keys from tool result before storing.
+            const piiKeys = new Set(["email", "phone", "personnummer"]);
+            const resultForSummary = responseBody.result as Record<string, unknown> | null;
+            const sanitizedResult: Record<string, unknown> = {};
+            if (resultForSummary && typeof resultForSummary === "object") {
+              for (const [k, v] of Object.entries(resultForSummary)) {
+                if (!piiKeys.has(k)) sanitizedResult[k] = v;
+              }
+            }
+
+            await supabase
+              .from("engine_state_step")
+              .update({
+                capability_name: capability,
+                tool_name: tool,
+                args_resolved: resolvedArgs,
+                tool_result_summary: {
+                  summary: typeof resultForSummary === "string" ? resultForSummary : JSON.stringify(sanitizedResult),
+                  success: true,
+                },
+                gate_action_id: gateEvaluationId,
+                delegated_via: `engine_process:${state.process_id}:${step.step_order}`,
+                status: "completed",
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("state_id", state.id)
+              .eq("step_order", step.step_order);
+          } else {
+            // Node returned { ok: false, error: "..." }
+            endpointStatus = "error";
+            endpointError = responseBody.error ?? "Node endpoint returned ok:false";
+            bridgeStatus = "error";
+
+            await supabase
+              .from("engine_state_step")
+              .update({
+                capability_name: capability,
+                tool_name: tool,
+                args_resolved: resolvedArgs,
+                tool_result_summary: {
+                  summary: endpointError,
+                  success: false,
+                },
+                delegated_via: `engine_process:${state.process_id}:${step.step_order}`,
+                status: "failed",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("state_id", state.id)
+              .eq("step_order", step.step_order);
+
+            await supabase
+              .from("engine_state")
+              .update({
+                status: "failed",
+                last_error: `invoke_capability_tool (${capability}.${tool}): ${endpointError}`,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", state.id);
+          }
+        } else {
+          // HTTP-level error (4xx, 5xx, network)
+          fetchDurationMs = Date.now() - fetchStart;
+          const errText = await fetchRes.text().catch(() => "");
+          endpointError = `HTTP ${fetchRes.status}: ${errText}`;
+          endpointStatus = "error";
+          bridgeStatus = "error";
+
+          await supabase
+            .from("engine_state_step")
+            .update({
+              capability_name: capability,
+              tool_name: tool,
+              args_resolved: resolvedArgs,
+              tool_result_summary: { summary: endpointError, success: false },
+              delegated_via: `engine_process:${state.process_id}:${step.step_order}`,
+              status: "failed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("state_id", state.id)
+            .eq("step_order", step.step_order);
+
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "failed",
+              last_error: `invoke_capability_tool (${capability}.${tool}): ${endpointError}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", state.id);
+        }
+      } catch (fetchErr) {
+        // Network failure — fail gracefully, never silent
+        fetchDurationMs = Date.now() - fetchStart;
+        endpointError =
+          fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+        endpointStatus = "error";
+        bridgeStatus = "error";
+        console.error(
+          `[invoke_capability_tool] network failure calling stage-engine:`,
+          endpointError,
+          { state_id: state.id, capability, tool },
+        );
+
+        await supabase
+          .from("engine_state_step")
+          .update({
+            capability_name: capability,
+            tool_name: tool,
+            args_resolved: resolvedArgs,
+            tool_result_summary: { summary: endpointError, success: false },
+            delegated_via: `engine_process:${state.process_id}:${step.step_order}`,
+            status: "failed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("state_id", state.id)
+          .eq("step_order", step.step_order);
+
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "failed",
+            last_error: `invoke_capability_tool (${capability}.${tool}): network failure: ${endpointError}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+      }
+
+      // ── Step 8: Emit engine.dispatch.bridge_invoked ───────────────────
+      // EF-side transport fact. 3 destinations: posthog + logger + activity_trail.
+      // NOT engine_event — Node-side already emits engine.action.invoked.invoke_capability_tool
+      // which writes the engine_event row. Dual-emit avoided per ADR-0424 §Telemetry split.
+      {
+        const emitUrl = Deno.env.get("INTERNAL_EMIT_URL");
+        const emitSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
+        if (!emitUrl || !emitSecret) {
+          console.warn(
+            `[invoke_capability_tool] emit bridge not configured — skipping engine.dispatch.bridge_invoked`,
+            { state_id: state.id },
+          );
+        } else {
+          try {
+            const emitRes = await fetch(emitUrl, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${emitSecret}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                event: "engine.dispatch.bridge_invoked",
+                actor_id: resolvedActorId,
+                workspace_id: state.workspace_id,
+                properties: {
+                  data: {
+                    workspace_id: state.workspace_id,
+                    engine_state_id: state.id,
+                    engine_process_id: state.process_id,
+                    step_index: step.step_order,
+                    capability_name: capability,
+                    tool_name: tool,
+                    bridge_status: bridgeStatus,
+                    fetch_duration_ms: fetchDurationMs,
+                    endpoint_status: endpointStatus,
+                    endpoint_error: endpointError,
+                  },
+                },
+              }),
+            });
+            if (!emitRes.ok) {
+              const body = await emitRes.text().catch(() => "");
+              console.error(
+                `[invoke_capability_tool] emit bridge returned ${emitRes.status} for engine.dispatch.bridge_invoked: ${body}`,
+              );
+            }
+          } catch (emitErr) {
+            // Non-fatal — telemetry failure must not block cascade
+            console.error(
+              `[invoke_capability_tool] emit bridge threw for engine.dispatch.bridge_invoked:`,
+              emitErr instanceof Error ? emitErr.message : String(emitErr),
+            );
+          }
+        }
+      }
+
+      // Only advance to next step on success
+      if (bridgeStatus === "success") {
+        await advanceToNextStep(supabase, state, step);
+      }
+      break;
+    }
+
     default:
       // Unknown action type — fail
       await supabase
