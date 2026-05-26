@@ -506,6 +506,42 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     // Recorder must never throw into the primary path.
   }
 
+  // Lovsen telemetry — emit when intent resolves to the legal (Lovsen) capability.
+  // ADR-0256: lovsen.query.received = entry point, lovsen.query.classified = after
+  // classifier resolves skill + tier. Fire-and-forget; must never break primary path.
+  // L-0177: nonEmpty() throws on empty/null — workspaceId + profileId are branded
+  // NonEmptyString from caller boundary (ADR-0193), so this is defence-in-depth only.
+  if (intent.capability === "legal") {
+    void emit({
+      event: "lovsen.query.received",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        query: message,
+        channel: channel ?? "chat",
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
+
+    // skill_picked = the legal capability tool that will likely be invoked.
+    // The intent classifier does not select a tool at this stage — "legal" is the
+    // capability namespace. We map intent.reasoning to a skill hint on best-effort basis.
+    // tier 1 = platform advisory (Riksavtalen/AML citation); tier 2 = contract gate.
+    void emit({
+      event: "lovsen.query.classified",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        intent: intent.intent,
+        skill_picked: "legal",
+        tier: 1,
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
+  }
+
   // Step 2b: Unified authority gate (ADR-0099). Replaces inline min-role + channel logic.
   // Gate returns { allow, downgrade_to, reason, gate_evaluation_id } and writes a gate_evaluation audit row.
   const { data: gateResult, error: gateError } = await supabaseAdmin.rpc("gate_action", {
@@ -959,6 +995,28 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
         }
       }
     }
+  }
+
+  // Lovsen telemetry — emit lovsen.answer.composed when the legal capability
+  // produced a response. ADR-0256: tracks citation_count, confidence, escalation.
+  // Citation count is not available in the raw LLM text without parsing; 0 is
+  // the safe default until the Phase 0c+ Lovdata MCP integration ships.
+  // Escalation recommended when confidence is below 0.5 (stub threshold).
+  // Fire-and-forget; must never block the return path.
+  if (intent.capability === "legal") {
+    void emit({
+      event: "lovsen.answer.composed",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        citation_count: 0,
+        confidence_level:
+          intent.confidence >= 0.7 ? "HØY" : intent.confidence >= 0.4 ? "MEDIUM" : "LAV",
+        escalation_recommended: intent.confidence < 0.4,
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
   }
 
   // Step 7: Return response

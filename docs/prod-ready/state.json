@@ -199,22 +199,44 @@
       "rationale": "Inject emit() for 13 channel.* phantom events."
     },
     {
-      "rank": 4,
+      "rank": 0,
       "sortie": "telemetry-emit-lovsen",
       "domain": "lovsen",
       "owner": "sonnet",
       "estimateHours": 3,
-      "deltaGlobalPp": 0.4,
-      "rationale": "Inject emit() for 8 lovsen.mcp.* phantom events. Already known L-0287 from domain spine."
+      "actualHours": 0.08,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 11:15Z (5/8 injected, 3 aspirational/deferred)",
+      "rationale": "Injected lovsen.query.received + query.classified + answer.composed (agent-router.ts) + skill.invoked × 4 + confidence.degraded (legal/tools.ts). 3 mcp.fetch.* aspirational. 1 citation.stale deferred ADR-0342."
     },
     {
-      "rank": 5,
+      "rank": 0,
       "sortie": "telemetry-emit-payroll-auth",
       "domain": "_multi",
       "owner": "sonnet",
       "estimateHours": 3,
-      "deltaGlobalPp": 0.5,
-      "rationale": "Inject emit() for 7 payroll.* + 5 auth.* phantom events. Auth callbacks likely in EF /api/auth/callback."
+      "actualHours": 0.12,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 11:15Z (1/12 injected, methodology refinement output)",
+      "rationale": "Injected auth signed_up (callback/route.ts:177). 2 payroll RECLASSIFIED SQL-native (trigger writes engine_event). 5 payroll aspirational. 3 auth deferred (client-side). 1 cruft (logged_in dup of signed_in)."
+    },
+    {
+      "rank": 1,
+      "sortie": "phantom-sweep-v2-triage",
+      "domain": "_systemic",
+      "owner": "haiku",
+      "estimateHours": 1.5,
+      "deltaGlobalPp": 0.0,
+      "rationale": "Re-run phantom sweep with iter-9 methodology refinement. Classify each of 252 phantoms into A/B/C/D/cruft (TRUE/SQL-native/aspirational/deferred/cruft). Output new actionable list (~100-130 true phantoms expected). Persist to docs/prod-ready/phantom-telemetry-sweep-v2.md."
+    },
+    {
+      "rank": 2,
+      "sortie": "registry-cleanup-cruft",
+      "domain": "_systemic",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.1,
+      "rationale": "Remove confirmed cruft entries from registry.ts. iter-9 surfaced auth.logged_in as dup of auth.signed_in. v2 triage will find more. Cleanup reduces phantom count by removing event entries that should never have existed."
     },
     {
       "rank": 6,
@@ -266,6 +288,30 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 9,
+      "at": "2026-05-26T11:15:00Z",
+      "actions": [
+        "dispatch 2 parallel sonnet: telemetry-emit-lovsen + telemetry-emit-payroll-auth (combined 20 phantoms)",
+        "lovsen sub-agent: injected 5 of 8 events (6 call-sites in agent-router.ts + legal/tools.ts); 3 aspirational (MCP fetch trio); 1 deferred (citation.stale ADR-0342)",
+        "payroll-auth sub-agent: injected 1 of 12 (auth signed_up at callback/route.ts:177); 2 RECLASSIFIED as SQL-native (emit via trigger to engine_event, not TS); 5 payroll ASPIRATIONAL (supplement-rule engine + drift-detection cron + timebank accrual not built); 3 auth DEFERRED (client-side, no server intercept); 1 CRUFT (auth logged_in duplicate of signed_in)",
+        "**methodology refinement**: 252 phantom count from iter-8 was OVERESTIMATE — scan missed SQL-native paths + did not distinguish aspirational/deferred/cruft from true phantom",
+        "true injectable phantom rate likely 40-50% of 252 (~100-130), rest split A/B/C/D/cruft",
+        "20/20 runner GREEN post-injection, typecheck clean on both sub-sorties"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 3,
+      "phantomsClosed": 6,
+      "phantomsReclassified": {
+        "sqlNative": 2,
+        "aspirational": 8,
+        "deferred": 3,
+        "cruft": 1
+      },
+      "registryCleanupQueued": 1,
+      "learningsHarvested": 1
     },
     {
       "n": 8,

@@ -121,6 +121,18 @@ export const validateAml146 = defineTool({
   execute: async (params, ctx: AgentToolContext): Promise<string> => {
     const VALIDATOR_VERSION = "aml-14-6-2024-07-rule-driven-v1";
 
+    // Lovsen telemetry — skill invoked. ADR-0256: emitted at capability tool entry point.
+    // Fire-and-forget; must not alter operation outcome.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "lovsen.skill.invoked",
+      properties: {
+        skill_name: "validate_aml_14_6",
+        skill_version: VALIDATOR_VERSION,
+      },
+    });
+
     // ADR-0078 Layer 3: channel guard — validate_aml_14_6 is chat + system only.
     // "system" channel is used by /api/contracts/send server route.
     if (ctx.channel !== "chat" && ctx.channel !== undefined && ctx.channel !== "system") {
@@ -400,6 +412,18 @@ export const citeLaw = defineTool({
     // Allowed channels enforced at capability level (allowedChannels: ["chat", "system"])
     // per ADR-0163 §rule 4 — voice was removed when F-CL-11 closed (commit 47bffe635).
 
+    // Lovsen telemetry — skill invoked. ADR-0256: emitted at capability tool entry point.
+    // Fire-and-forget; must not alter operation outcome.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "lovsen.skill.invoked",
+      properties: {
+        skill_name: "cite_law",
+        skill_version: "cite-law-stub-phase-0c",
+      },
+    });
+
     // Phase 0c stub: return placeholder.
     // TODO(Phase 0c+): query regulatory_framework + framework_rule WHERE code ILIKE query
     // AND (effective_to IS NULL OR effective_to > NOW()).
@@ -414,6 +438,20 @@ export const citeLaw = defineTool({
         : "Stub-referanse — Lovdata MCP ikke tilkoblet",
       stub: true,
     };
+
+    // Lovsen telemetry — confidence.degraded when stub returns LAV confidence.
+    // ADR-0256: tracks quality degradation from expected HØY to LAV.
+    // The stub always returns LAV; once Phase 0c+ ships this block moves to
+    // the MCP-fetch-failed path. Fire-and-forget.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "lovsen.confidence.degraded",
+      properties: {
+        score: 0.1,
+        reasons: ["cite_law is a Phase 0c stub — Lovdata MCP not yet connected"],
+      },
+    });
 
     void emit({
       workspace_id: ctx.workspaceId,
@@ -468,6 +506,18 @@ export const classifyAmendment = defineTool({
       .optional(),
   }),
   execute: async (params, ctx: AgentToolContext): Promise<string> => {
+    // Lovsen telemetry — skill invoked. ADR-0256: emitted at capability tool entry point.
+    // Fire-and-forget; must not alter operation outcome.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "lovsen.skill.invoked",
+      properties: {
+        skill_name: "classify_amendment",
+        skill_version: "classify-amendment-stub-phase-0c",
+      },
+    });
+
     // ADR-0078 Layer 3: classify_amendment is server-only.
     // Allowed channels checked at capability level (allowedChannels: ["system", "autonomous"]).
     if (ctx.channel !== "system" && ctx.channel !== "autonomous" && ctx.channel !== undefined) {
@@ -585,6 +635,18 @@ export const validateAml1415 = defineTool({
       .describe("strict = surface hard errors; advisory = log but allow caller to decide."),
   }),
   execute: async (params, ctx: AgentToolContext): Promise<string> => {
+    // Lovsen telemetry — skill invoked. ADR-0256: emitted at capability tool entry point.
+    // Fire-and-forget; must not alter operation outcome.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "lovsen.skill.invoked",
+      properties: {
+        skill_name: "validate_aml_14_15",
+        skill_version: "aml-14-15-2024-07-payroll-v1",
+      },
+    });
+
     // ADR-0078 Layer 3: validate_aml_14_15 is system-only.
     // Layer 2 (allowedChannels) already excludes autonomous — Layer 3 is defence-in-depth.
     const channel = ctx.channel ?? "system";

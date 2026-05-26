@@ -120,12 +120,16 @@ async function resolveContinueDestination(
  * (email magic-link / recovery). Decides where the now-authenticated user lands:
  * recovery → /update-password, existing profile → dashboard/continue-slug,
  * mid-signup → /join at the saved step.
+ *
+ * @param method - "email" for token_hash path (OTP / magic-link), "google" for PKCE OAuth path.
+ *   Forwarded to the `auth signed_up` event so PostHog can segment first-time signups by channel.
  */
 async function routeAfterAuth(
   supabase: Awaited<ReturnType<typeof createClient>>,
   origin: string,
   next: string,
   continueSlug: string | null,
+  method: "email" | "google" = "email",
 ): Promise<NextResponse> {
   const {
     data: { user },
@@ -165,7 +169,22 @@ async function routeAfterAuth(
     return NextResponse.redirect(new URL(next || "/dashboard", origin));
   }
 
-  // No profile yet — resume the signup wizard at the saved step.
+  // No profile yet — this is a brand-new user entering the signup wizard.
+  // Emit auth signed_up (phantom-close L-0287). workspace_id is null (no workspace
+  // exists yet at this point); actor_id is the GoTrue user UUID. ADR-0134 allows
+  // null workspace_id for pre-workspace auth events.
+  try {
+    await emit({
+      event: "auth signed_up",
+      workspace_id: null,
+      actor_id: nonEmpty(user.id, "actor_id"),
+      properties: { method },
+    });
+  } catch (e) {
+    console.error("[auth/callback] Failed to emit auth signed_up:", e);
+  }
+
+  // Resume the signup wizard at the saved step.
   const { data: progress, error: progressError } = await supabase
     .from("signup_progress")
     .select("completed, current_step")
@@ -212,7 +231,7 @@ export async function GET(request: Request) {
       type: otpType as EmailOtpType,
     });
     if (!error) {
-      return routeAfterAuth(supabase, origin, next, continueSlug);
+      return routeAfterAuth(supabase, origin, next, continueSlug, "email");
     }
     // Invalid/expired/stale token_hash → send back to login with a clear marker.
     return NextResponse.redirect(new URL("/login?error=Invalid_link", origin));
@@ -227,7 +246,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return routeAfterAuth(supabase, origin, next, continueSlug);
+      return routeAfterAuth(supabase, origin, next, continueSlug, "google");
     }
   }
 
