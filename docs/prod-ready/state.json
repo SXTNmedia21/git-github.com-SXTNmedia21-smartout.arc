@@ -152,13 +152,15 @@
       "rationale": "FIXED. profile table has no email column (lives on user_identity). Removed email field from DATA_SOURCE_CATALOG.profiles in list-data-sources.ts. 10/10 live-invoke still green."
     },
     {
-      "rank": 2,
+      "rank": 0,
       "sortie": "design-onboarding-add-procedures-multi-call",
       "domain": "onboarding-wizard",
-      "owner": "pontus",
+      "owner": "sonnet",
       "estimateHours": 1.0,
+      "actualHours": 0.04,
       "deltaGlobalPp": 0.0,
-      "rationale": "DESIGN ISSUE surfaced iter-7. protocol table has UNIQUE(policy_id). add_procedures auto-creates 'Generelle prosedyrer' policy if none exists, but 2nd call hits the unique constraint. Decision needed: (a) one policy per add_procedures call (multi-policy), (b) drop UNIQUE constraint (multi-protocol per policy), (c) update existing protocol instead of insert. Pontus design call."
+      "status": "shipped 2026-05-26 17:20Z (option a)",
+      "rationale": "FIXED. Created fresh policy+protocol per procedure inside loop, preserving 1:1 invariant per procedure-engine DATA-MODEL §0. Code-only fix (no migration). Typecheck + 10/10 live-invoke onboarding-wizard.mjs GREEN."
     },
     {
       "rank": 0,
@@ -332,6 +334,24 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 19,
+      "at": "2026-05-26T17:20:00Z",
+      "actions": [
+        "sonnet investigate + fix onboarding protocol UNIQUE(policy_id) design issue from iter-7 backlog",
+        "decision: option (a) — create fresh policy per procedure (preserves 1:1 invariant per procedure-engine DATA-MODEL §0)",
+        "option (b) drop UNIQUE rejected: invariant is load-bearing, violating it needs procedure-engine team sign-off (ADR-0240)",
+        "option (c) upsert rejected: semantic wrong — would overwrite protocol name not append procedure",
+        "code-only fix at packages/ai/src/capabilities/onboarding/tools.ts ~511-577 — policy+protocol created atomically per procedure with continue-on-fail batch tolerance",
+        "no migration needed (no existing data at risk per analysis)",
+        "typecheck PASS + 10/10 live-invoke onboarding-wizard.mjs GREEN"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 1,
+      "designIssuesResolved": 1,
+      "learningsHarvested": 0
     },
     {
       "n": 18,

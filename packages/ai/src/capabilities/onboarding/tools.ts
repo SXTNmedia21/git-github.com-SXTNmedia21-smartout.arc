@@ -508,58 +508,47 @@ export const addProcedures = defineTool({
       return `Ikke tillatt: ${gate.reason ?? "gate avvist"}`;
     }
 
-    // Resolve policy_id: look up (or create) a workspace-scoped operational policy.
-    // protocol.policy_id is NOT NULL — every protocol must belong to a policy.
-    // During onboarding the workspace may have no policies yet, so we auto-create
-    // a placeholder "operational" policy as the container for these procedures.
-    let policyId: string;
-    {
-      const { data: existingPolicy } = await supabase
-        .from("policy")
-        .select("policy_id")
-        .eq("workspace_id", ctx.workspaceId)
-        .eq("policy_scope", "workspace")
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingPolicy?.policy_id) {
-        policyId = existingPolicy.policy_id;
-      } else {
-        // No policy exists yet — create a placeholder operational policy.
-        const { data: newPolicy, error: policyError } = await supabase
-          .from("policy")
-          .insert({
-            workspace_id: ctx.workspaceId,
-            policy_type: "operational" as const,
-            policy_scope: "workspace" as const,
-            name: "Generelle prosedyrer",
-            statement:
-              "Samling av arbeidsplassens prosedyrer og rutiner, opprettet under onboarding.",
-            created_by: ctx.profileId,
-          })
-          .select("policy_id")
-          .single();
-
-        if (policyError || !newPolicy?.policy_id) {
-          return `Kunne ikke opprette policy for prosedyrene: ${policyError?.message ?? "ukjent feil"}`;
-        }
-        policyId = newPolicy.policy_id;
-      }
-    }
-
-    // INSERT each procedure into protocol table (Law 1: workspace_id scoped).
-    // Columns: name (not title), no protocol_type/slug (non-existent on protocol).
-    // Required non-default: policy_id, name, owner_profile_id, created_by.
+    // INSERT each procedure as its own policy→protocol pair.
+    //
+    // The protocol table has UNIQUE(policy_id) — 1:1 policy↔protocol is an intentional
+    // procedure-engine invariant (DATA-MODEL.md §0: "1:1 (UNIQUE constraint)").
+    // Therefore we create a fresh policy for EACH procedure so multiple add_procedures
+    // calls (or a single call with N procedures) never collide on the constraint.
+    // No auto-lookup of existing policies: reusing a policy that already has a protocol
+    // would hit the unique violation on the second insert.
     const results: Array<{ name: string; protocol_id?: string; error?: string }> = [];
 
     for (const proc of params.procedures) {
+      // 1. Create a dedicated policy for this procedure.
+      const { data: newPolicy, error: policyError } = await supabase
+        .from("policy")
+        .insert({
+          workspace_id: ctx.workspaceId,
+          policy_type: "operational" as const,
+          policy_scope: "workspace" as const,
+          name: proc.title,
+          statement: proc.description
+            ? `Prosedyre for: ${proc.description}`
+            : `Prosedyre opprettet under onboarding: ${proc.title}`,
+          created_by: ctx.profileId,
+        })
+        .select("policy_id")
+        .single();
+
+      if (policyError || !newPolicy?.policy_id) {
+        results.push({
+          name: proc.title,
+          error: `Kunne ikke opprette policy: ${policyError?.message ?? "ukjent feil"}`,
+        });
+        continue;
+      }
+
+      // 2. Create the protocol linked to the new policy (1:1 guaranteed).
       const { data: created, error } = await supabase
         .from("protocol")
         .insert({
           workspace_id: ctx.workspaceId,
-          policy_id: policyId,
+          policy_id: newPolicy.policy_id,
           name: proc.title,
           description: proc.description ?? null,
           version: "1.0",
