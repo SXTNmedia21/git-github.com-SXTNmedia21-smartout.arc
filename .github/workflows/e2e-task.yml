@@ -92,6 +92,21 @@ jobs:
           psql "$DATABASE_URL" -c "SELECT version();"
           psql "$DATABASE_URL" -c "SELECT count(*) AS migrations FROM supabase_migrations.schema_migrations;"
 
+      - name: Export Supabase env (URL + keys) for fixture + Playwright
+        run: |
+          npx supabase status -o env >> "$GITHUB_ENV"
+          # supabase status emits API_URL + ANON_KEY + SERVICE_ROLE_KEY; map to expected names
+          API_URL=$(npx supabase status -o env | awk -F= '/^API_URL=/{print $2}' | tr -d '"')
+          ANON=$(npx supabase status -o env | awk -F= '/^ANON_KEY=/{print $2}' | tr -d '"')
+          SR=$(npx supabase status -o env | awk -F= '/^SERVICE_ROLE_KEY=/{print $2}' | tr -d '"')
+          {
+            printf 'SUPABASE_URL=%s\n' "$API_URL"
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$API_URL"
+            printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$ANON"
+            printf 'SUPABASE_ANON_KEY=%s\n' "$ANON"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SR"
+          } >> "$GITHUB_ENV"
+
       - name: Install Playwright browsers
         working-directory: apps/e2e
         run: pnpm exec playwright install --with-deps chromium
