@@ -2,7 +2,7 @@
   "version": "1.0",
   "generatedAt": "2026-05-26T06:35:00Z",
   "generatedBy": "claude-bootstrap-lite",
-  "globalCompletion": 60.9,
+  "globalCompletion": 61.4,
   "domainCount": 20,
   "scanMode": "lite-bootstrap",
   "scanNotes": [
@@ -16,15 +16,15 @@
   "weightedRank": [
     { "domain": "scrapling", "completion": 71.4, "gapCount": 5, "priority": "P2", "blocksDownstream": 0 },
     { "domain": "onboarding-wizard", "completion": 71.4, "gapCount": 5, "priority": "P2", "blocksDownstream": 1 },
-    { "domain": "contracts", "completion": 71.4, "gapCount": 6, "priority": "P0", "blocksDownstream": 4 },
+    { "domain": "contracts", "completion": 75.0, "gapCount": 6, "priority": "P0", "blocksDownstream": 4 },
+    { "domain": "scheduling", "completion": 67.9, "gapCount": 8, "priority": "P0", "blocksDownstream": 3 },
     { "domain": "billing", "completion": 67.9, "gapCount": 10, "priority": "P2", "blocksDownstream": 1 },
-    { "domain": "scheduling", "completion": 64.3, "gapCount": 8, "priority": "P0", "blocksDownstream": 3 },
+    { "domain": "payroll", "completion": 64.3, "gapCount": 10, "priority": "P0", "blocksDownstream": 2 },
     { "domain": "bootstrap", "completion": 64.3, "gapCount": 6, "priority": "P1", "blocksDownstream": 2 },
     { "domain": "agent-harness", "completion": 60.7, "gapCount": 12, "priority": "P0", "blocksDownstream": 14 },
     { "domain": "core-structure", "completion": 60.7, "gapCount": 10, "priority": "P1", "blocksDownstream": 8 },
     { "domain": "year-wheel", "completion": 60.7, "gapCount": 7, "priority": "P2", "blocksDownstream": 2 },
     { "domain": "shift-clock", "completion": 60.7, "gapCount": 7, "priority": "P1", "blocksDownstream": 1 },
-    { "domain": "payroll", "completion": 60.7, "gapCount": 10, "priority": "P0", "blocksDownstream": 2 },
     { "domain": "announcements", "completion": 60.7, "gapCount": 11, "priority": "P2", "blocksDownstream": 1 },
     { "domain": "notifications", "completion": 57.1, "gapCount": 7, "priority": "P0", "blocksDownstream": 6 },
     { "domain": "procedure-engine", "completion": 57.1, "gapCount": 28, "priority": "P0", "blocksDownstream": 4 },
@@ -42,16 +42,16 @@
     "billing":           { "completion": 67.9, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "PlatformAdminToolContext missing; Playwright weak — admin kartotek + avstemming covered only" },
     "botsson":           { "completion": 53.6, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 1, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "proposal pipeline 🔴; soul-on-platform-admin 🔴; generator API 🔴; mission E2E 0/7; persona chat-unwired" },
     "communication":     { "completion": 53.6, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "helpdesk_query capability not implemented; C2 intelligence pipeline not built; mobile parity missing; SIP telephony not built" },
-    "contracts":         { "completion": 71.4, "priority": "P0", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 2, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "route migration /dashboard/contracts→/people/contracts pending; mobile sign ADR-0245 partial; amendment classifier + Tripletex sync deferred" },
+    "contracts":         { "completion": 75.0, "priority": "P0", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 2, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "route migration /dashboard/contracts→/people/contracts pending; mobile sign ADR-0245 partial; amendment classifier + Tripletex sync deferred" },
     "core-structure":    { "completion": 60.7, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "dept_location admin UI missing; onboarding Step 7 bootstrap pipe not wired; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E" },
     "day-session":       { "completion": 53.6, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase C UI + D mobile + E push in flight; close/approval/settlement E2E MISSING; mobile E2E MISSING (15 gaps total — highest mobile debt)" },
     "lovsen":            { "completion": 53.6, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 0, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ADR-0350 bridge proposed not built; cite_law + classify_amendment stubs; 6 of 9 lovsen.mcp.* events not emitted (L-0287 phantom telemetry)" },
     "notifications":     { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "P2 prefs matrix deferred; P3 AI notify tool deferred; P4 mobile prefs UI deferred; 2 Expo senders bypass outbox; L-0042 staged migration timestamp on feat/onesignal-push" },
     "onboarding-wizard": { "completion": 71.4, "priority": "P2", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "Maestro mobile E2E not shipped (manual smoke only)" },
-    "payroll":           { "completion": 60.7, "priority": "P0", "mobileScope": "read-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; Phase 2 manual supplements + line override E2E MISSING; tariff tools E2E MISSING; mobile route MISSING" },
+    "payroll":           { "completion": 64.3, "priority": "P0", "mobileScope": "read-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; Phase 2 manual supplements + line override E2E MISSING; tariff tools E2E MISSING; mobile route MISSING" },
     "procedure-engine":  { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387b council-gated; mobile shift-tasks tests missing (28 open gaps — highest in fleet)" },
     "reports":           { "completion": 57.1, "priority": "P1", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 0, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 0, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ZERO reports.* telemetry events emitted; 0 dedicated Playwright specs for /dashboard/reports (sidebar smoke only)" },
-    "scheduling":        { "completion": 64.3, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "CRITICAL — mobile BFF authoring ADR-0277 not fully closed (direct insert still active); solver propose+accept E2E MISSING; marketplace pipeline E2E MISSING" },
+    "scheduling":        { "completion": 67.9, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "CRITICAL — mobile BFF authoring ADR-0277 not fully closed (direct insert still active); solver propose+accept E2E MISSING; marketplace pipeline E2E MISSING" },
     "scrapling":         { "completion": 71.4, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "ADR-0270 not yet council-accepted; Phase 6 prod smoke deferred; /hospitality-search + godmode tools no dedicated E2E" },
     "shift-clock":       { "completion": 60.7, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ShiftChatUnavailableBanner ACTIVE — channel_id schema mismatch (live bug); mobile pre-punch compliance EF skipped; ad-hoc/leader manual on mobile not built" },
     "training":          { "completion": 57.1, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 1, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "mobile procedure stepper/test UI deferred; admin manual assign/waive UI deferred; auto-assign + F2 completion flow + people/training matrix E2E MISSING" },
@@ -76,49 +76,105 @@
       "domain": "scheduling",
       "owner": "sonnet",
       "estimateHours": 0.5,
-      "deltaGlobalPp": 0.4,
-      "blocksDownstream": ["audit-scheduling-axis-9"],
-      "rationale": "First per-domain live-invoke after scaffold shipped. Scheduling has 5 capabilities + 26 tools — highest L-0348 exposure. Schema-grep + write select-lists for shift, shift_session, schedule_day_task, swap_request, shift_lifecycle tables."
+      "actualHours": 0.07,
+      "deltaGlobalPp": 0.18,
+      "status": "shipped 2026-05-26 07:17Z",
+      "blocksDownstream": [],
+      "rationale": "SHIPPED. 8/8 pass first run, no drift found. Covers schedule_shift (29 col), shift_session (14), shift_approval (16), shift_hour_interpretation (18), derive_shift_hours + initiate_shift_swap + approve_shift_swap RPCs."
+    },
+    {
+      "rank": 1,
+      "sortie": "live-invoke-payroll",
+      "domain": "payroll",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "actualHours": 0.05,
+      "deltaGlobalPp": 0.18,
+      "status": "shipped 2026-05-26 07:16Z",
+      "blocksDownstream": [],
+      "rationale": "SHIPPED. 14/14 pass. CAUGHT L-0348 DRIFT pre-run: tool docstring said `payroll_system_id`, real column is `employee_number`. Covers payroll.period + supplement_rule + timebank_entry + workspace_settings + manual_supplement + tariff_rate_table + employee_payroll_profile."
+    },
+    {
+      "rank": 1,
+      "sortie": "live-invoke-contracts",
+      "domain": "contracts",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "actualHours": 0.04,
+      "deltaGlobalPp": 0.18,
+      "status": "shipped 2026-05-26 07:16Z",
+      "blocksDownstream": [],
+      "rationale": "SHIPPED. 12/12 pass first run. Covers contract_template, contract (DocuSeal), employment_contract, contract_obligation, contract_amendment, contract_event, compliance_drift + 2 RPCs (check_contract_intake_completion, anonymize_contract)."
     },
     {
       "rank": 2,
+      "sortie": "live-invoke-day-session",
+      "domain": "day-session",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.18,
+      "blocksDownstream": [],
+      "rationale": "Next P0 live-invoke. day-session has 15 open gaps (highest in fleet); tables department_session, day_line, shift_session (ADR-0367), session_hook, deviation, daily_reconciliation."
+    },
+    {
+      "rank": 3,
+      "sortie": "live-invoke-notifications",
+      "domain": "notifications",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.18,
+      "blocksDownstream": [],
+      "rationale": "P0 live-invoke. 27 migrations + 4-channel funnel + 43-event registry. Tables notification_outbox, notification_event, notification_preference."
+    },
+    {
+      "rank": 4,
+      "sortie": "live-invoke-procedure-engine",
+      "domain": "procedure-engine",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.18,
+      "blocksDownstream": [],
+      "rationale": "P0 live-invoke. 28 open gaps (highest); tables protocol, policy, routine, knowledge_test, confirmation, protocol_assignment."
+    },
+    {
+      "rank": 5,
+      "sortie": "live-invoke-agent-harness",
+      "domain": "agent-harness",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.18,
+      "blocksDownstream": [],
+      "rationale": "P0 live-invoke. Blocks 14 downstream domains via capability routing. Tables engine_process, engine_state, engine_state_step, engine_event, engine_memory, engine_authority_config."
+    },
+    {
+      "rank": 6,
       "sortie": "shift-clock-banner-fix",
       "domain": "shift-clock",
       "owner": "sonnet",
       "estimateHours": 2,
       "deltaGlobalPp": 0.4,
       "blocksDownstream": [],
-      "rationale": "ShiftChatUnavailableBanner ACTIVE = live user-facing bug. channel_id schema mismatch. Production-grade fix before announcing prod-ready on shift-clock."
+      "rationale": "ShiftChatUnavailableBanner ACTIVE = live user-facing bug. channel_id schema mismatch. Production-grade fix."
     },
     {
-      "rank": 3,
+      "rank": 7,
       "sortie": "reports-telemetry-events",
       "domain": "reports",
       "owner": "sonnet",
       "estimateHours": 3,
       "deltaGlobalPp": 0.7,
       "blocksDownstream": ["reports-e2e-suite"],
-      "rationale": "ZERO reports.* telemetry events — closes axis 4 from 0→2. Pattern reusable for other low-telemetry domains. Sibling skill: smartout-page-polish view-emit step."
+      "rationale": "ZERO reports.* telemetry events — closes axis 4 from 0→2. Pattern reusable for other low-telemetry domains."
     },
     {
-      "rank": 4,
+      "rank": 8,
       "sortie": "notifications-L0042-timestamp-fix",
       "domain": "notifications",
       "owner": "sonnet",
       "estimateHours": 0.5,
       "deltaGlobalPp": 0.2,
       "blocksDownstream": ["onesignal-push-merge"],
-      "rationale": "L-0042 staged migration on feat/onesignal-push — timestamp 20260621210000 < tip 20260622110000; migration-lint blocks merge. Mechanical re-timestamp. Tiny but blocks an open campaign branch."
-    },
-    {
-      "rank": 5,
-      "sortie": "day-session-mobile-push-phase-D",
-      "domain": "day-session",
-      "owner": "sonnet",
-      "estimateHours": 6,
-      "deltaGlobalPp": 1.1,
-      "blocksDownstream": [],
-      "rationale": "15 open gaps (highest in fleet); Phase D mobile + Phase E push in flight already. Closing axis 6 from 0→2 + axis 7 push hook = +14.3pp domain."
+      "rationale": "L-0042 staged migration on feat/onesignal-push — timestamp 20260621210000 < tip 20260622110000; migration-lint blocks merge."
     }
   ],
   "spineRefreshQueue": [],
@@ -138,7 +194,24 @@
       "globalAfter": 60.9,
       "filesCreated": 9,
       "filesModified": 1,
-      "learningsHarvested": 4
+      "learningsHarvested": 4,
+      "commit": "ef8f08f81"
+    },
+    {
+      "n": 2,
+      "at": "2026-05-26T07:17:00Z",
+      "actions": [
+        "dispatch 3 parallel sonnet sub-sorties (scheduling + payroll + contracts)",
+        "all 3 GREEN on first run (0 conflicts)",
+        "payroll caught L-0348 drift pre-run (payroll_system_id docstring vs employee_number actual)",
+        "_runner.mjs verified 4/4 scripts pass via aggregator (4 × ~210ms)"
+      ],
+      "globalBefore": 60.9,
+      "globalAfter": 61.4,
+      "filesCreated": 3,
+      "filesModified": 3,
+      "axesClosed": [{ "domain": "scheduling", "axis": "liveInvoke", "0to2": true }, { "domain": "payroll", "axis": "liveInvoke", "0to2": true }, { "domain": "contracts", "axis": "liveInvoke", "0to2": true }],
+      "learningsHarvested": 1
     }
   ]
 }
