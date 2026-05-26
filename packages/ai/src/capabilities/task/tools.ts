@@ -1004,9 +1004,7 @@ export const updateSessionTask = defineTool({
       delegated_via: z
         .string()
         .optional()
-        .describe(
-          "Delegasjonskjeden, f.eks. 'day-line-dnd' (ADR-0356 audit symmetry).",
-        ),
+        .describe("Delegasjonskjeden, f.eks. 'day-line-dnd' (ADR-0356 audit symmetry)."),
     })
     .strict(),
   execute: async (params, ctx: AgentToolContext) => {
