@@ -115,15 +115,44 @@ jobs:
             WHERE workspace_id='b0000000-0000-0000-0000-000000000000' AND start_date='2026-03-01';
           SQL
 
+      - name: Pre-warm web dev server (next dev compile is slow; default 120s webServer timeout is tight in CI)
+        run: |
+          nohup bash apps/e2e/scripts/start-local-next-app.sh web 3060 > /tmp/web-boot.log 2>&1 &
+          nohup bash apps/e2e/scripts/start-local-next-app.sh landing 3056 > /tmp/landing-boot.log 2>&1 &
+          echo "Waiting for web on :3060..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3060 --max-time 3 || true)
+            if [[ "$code" =~ ^(200|3[0-9]{2})$ ]]; then echo "web ready ($code)"; break; fi
+            sleep 5
+          done
+          echo "Waiting for landing on :3056..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3056 --max-time 3 || true)
+            if [[ "$code" =~ ^(200|3[0-9]{2})$ ]]; then echo "landing ready ($code)"; break; fi
+            sleep 5
+          done
+
       - name: Run task journey E2E specs
         working-directory: apps/e2e
+        env:
+          SKIP_WEB_SERVER: "1"
         run: |
-          pnpm test:e2e \
+          pnpm exec playwright test \
             tests/daily-operation-tasks-add-task.spec.ts \
             tests/sortie-p0-fix-sweep-task-created-canonical.spec.ts \
             tests/sortie-1-mobile-task-complete.spec.ts \
             tests/sortie-p0-fix-sweep-task-complete-source.spec.ts \
             --reporter=list
+
+      - name: Upload web/landing boot logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-landing-boot-logs
+          path: |
+            /tmp/web-boot.log
+            /tmp/landing-boot.log
+          retention-days: 7
 
       - name: Upload Playwright report on failure
         if: failure()
