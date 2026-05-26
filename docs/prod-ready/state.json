@@ -2,7 +2,7 @@
   "version": "1.0",
   "generatedAt": "2026-05-26T06:35:00Z",
   "generatedBy": "claude-bootstrap-lite",
-  "globalCompletion": 63.5,
+  "globalCompletion": 64.4,
   "domainCount": 20,
   "scanMode": "lite-bootstrap",
   "scanNotes": [
@@ -45,17 +45,17 @@
     "contracts":         { "completion": 75.0, "priority": "P0", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 2, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "route migration /dashboard/contracts→/people/contracts pending; mobile sign ADR-0245 partial; amendment classifier + Tripletex sync deferred" },
     "core-structure":    { "completion": 64.3, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "dept_location admin UI missing; onboarding Step 7 bootstrap pipe not wired; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E" },
     "day-session":       { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase C UI + D mobile + E push in flight; close/approval/settlement E2E MISSING; mobile E2E MISSING (15 gaps total — highest mobile debt)" },
-    "lovsen":            { "completion": 53.6, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 0, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ADR-0350 bridge proposed not built; cite_law + classify_amendment stubs; 6 of 9 lovsen.mcp.* events not emitted (L-0287 phantom telemetry)" },
+    "lovsen":            { "completion": 57.1, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 0, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ADR-0350 bridge proposed not built; cite_law + classify_amendment stubs; 6 of 9 lovsen.mcp.* events not emitted (L-0287 phantom telemetry)" },
     "notifications":     { "completion": 60.7, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "P2 prefs matrix deferred; P3 AI notify tool deferred; P4 mobile prefs UI deferred; 2 Expo senders bypass outbox; L-0042 staged migration timestamp on feat/onesignal-push" },
-    "onboarding-wizard": { "completion": 71.4, "priority": "P2", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "Maestro mobile E2E not shipped (manual smoke only)" },
+    "onboarding-wizard": { "completion": 75.0, "priority": "P2", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "Maestro mobile E2E not shipped; tools.ts add_procedures protocol insert drift {title, protocol_type} vs real {name} + 4 missing required (caught iter-6)" },
     "payroll":           { "completion": 64.3, "priority": "P0", "mobileScope": "read-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; Phase 2 manual supplements + line override E2E MISSING; tariff tools E2E MISSING; mobile route MISSING" },
     "procedure-engine":  { "completion": 60.7, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387b council-gated; mobile shift-tasks tests missing (28 open gaps — highest in fleet)" },
     "reports":           { "completion": 60.7, "priority": "P1", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 0, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 0, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ZERO reports.* telemetry events emitted; 0 dedicated Playwright specs; preview-report.ts:31 department.location_id drift (column does not exist) — caught iter-5" },
     "scheduling":        { "completion": 67.9, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "CRITICAL — mobile BFF authoring ADR-0277 not fully closed (direct insert still active); solver propose+accept E2E MISSING; marketplace pipeline E2E MISSING" },
-    "scrapling":         { "completion": 71.4, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "ADR-0270 not yet council-accepted; Phase 6 prod smoke deferred; /hospitality-search + godmode tools no dedicated E2E" },
-    "shift-clock":       { "completion": 60.7, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ShiftChatUnavailableBanner ACTIVE — channel_id schema mismatch (live bug); mobile pre-punch compliance EF skipped; ad-hoc/leader manual on mobile not built" },
+    "scrapling":         { "completion": 75.0, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "ADR-0270 not yet council-accepted; Phase 6 prod smoke deferred; /hospitality-search + godmode tools no dedicated E2E" },
+    "shift-clock":       { "completion": 64.3, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ShiftChatUnavailableBanner GUARDED — channel_id schema mismatch is INTENTIONAL pending mobile-shift-chat-bff-migration follow-up sortie (verified iter-6 useShiftChat.ts:248-270 deliberate throw)" },
     "training":          { "completion": 60.7, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 1, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "mobile procedure stepper/test UI deferred; admin manual assign/waive UI deferred; auto-assign + F2 completion flow + people/training matrix E2E MISSING" },
-    "year-wheel":        { "completion": 60.7, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "SeasonGoalsTab + SeasonProceduresTab deferred; Duplicate UI not wired; drag-to-resize not built; M2 design-debt partial; D1 fanout E2E missing" }
+    "year-wheel":        { "completion": 64.3, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "SeasonGoalsTab + SeasonProceduresTab deferred; Duplicate UI not wired; drag-to-resize not built; M2 design-debt partial; D1 fanout E2E missing" }
   },
   "fleetQueue": [
     {
@@ -107,44 +107,44 @@
       "rationale": "SHIPPED. 12/12 pass first run. Covers contract_template, contract (DocuSeal), employment_contract, contract_obligation, contract_amendment, contract_event, compliance_drift + 2 RPCs (check_contract_intake_completion, anonymize_contract)."
     },
     {
-      "rank": 2,
-      "sortie": "live-invoke-day-session",
-      "domain": "day-session",
+      "rank": 1,
+      "sortie": "fix-prod-bug-communication-channel-is-active",
+      "domain": "communication",
       "owner": "sonnet",
       "estimateHours": 0.5,
-      "deltaGlobalPp": 0.18,
+      "deltaGlobalPp": 0.0,
       "blocksDownstream": [],
-      "rationale": "Next P0 live-invoke. day-session has 15 open gaps (highest in fleet); tables department_session, day_line, shift_session (ADR-0367), session_hook, deviation, daily_reconciliation."
+      "rationale": "REAL PROD BUG caught iter-5. packages/ai/src/capabilities/communication/tools.ts:223 filters channel.is_active=true; real column is channel.is_archived. Change to .eq('is_archived', false) to preserve intent (active = not archived). Verify no other tools.ts is_active references on channel."
+    },
+    {
+      "rank": 2,
+      "sortie": "fix-prod-bug-reports-department-location-id",
+      "domain": "reports",
+      "owner": "sonnet",
+      "estimateHours": 0.5,
+      "deltaGlobalPp": 0.0,
+      "blocksDownstream": [],
+      "rationale": "REAL PROD BUG caught iter-5. packages/ai/src/tools/report/preview-report.ts:31 SOURCE_COLUMNS.departments references location_id; department Row has no location_id. Either remove from select OR fix to proper FK lookup. Static catalog so AI gets wrong metadata silently."
     },
     {
       "rank": 3,
-      "sortie": "live-invoke-notifications",
-      "domain": "notifications",
+      "sortie": "fix-prod-bug-onboarding-add-procedures",
+      "domain": "onboarding-wizard",
       "owner": "sonnet",
-      "estimateHours": 0.5,
-      "deltaGlobalPp": 0.18,
+      "estimateHours": 1.0,
+      "deltaGlobalPp": 0.0,
       "blocksDownstream": [],
-      "rationale": "P0 live-invoke. 27 migrations + 4-channel funnel + 43-event registry. Tables notification_outbox, notification_event, notification_preference."
+      "rationale": "REAL PROD BUG caught iter-6. packages/ai/src/capabilities/onboarding/tools.ts add_procedures inserts {title, protocol_type, description} into protocol — real Row needs {name, description, owner_profile_id, policy_id, created_by, version}. Would 400 at runtime. Fix: map title→name, derive owner_profile_id from ctx, fetch/create policy_id, set created_by + version default."
     },
     {
       "rank": 4,
-      "sortie": "live-invoke-procedure-engine",
-      "domain": "procedure-engine",
-      "owner": "sonnet",
-      "estimateHours": 0.5,
-      "deltaGlobalPp": 0.18,
+      "sortie": "telemetry-phantom-sweep",
+      "domain": "_systemic",
+      "owner": "haiku",
+      "estimateHours": 2.0,
+      "deltaGlobalPp": 1.5,
       "blocksDownstream": [],
-      "rationale": "P0 live-invoke. 28 open gaps (highest); tables protocol, policy, routine, knowledge_test, confirmation, protocol_assignment."
-    },
-    {
-      "rank": 5,
-      "sortie": "live-invoke-agent-harness",
-      "domain": "agent-harness",
-      "owner": "sonnet",
-      "estimateHours": 0.5,
-      "deltaGlobalPp": 0.18,
-      "blocksDownstream": [],
-      "rationale": "P0 live-invoke. Blocks 14 downstream domains via capability routing. Tables engine_process, engine_state, engine_state_step, engine_event, engine_memory, engine_authority_config."
+      "rationale": "L-0287 phantom telemetry — scan packages/telemetry/src/registry.ts events vs grep emit() call-sites across apps/ + packages/. Lovsen has 6 of 9 registered events with no emit-site. Likely 20+ phantom events across fleet. Closing axis 4 for multiple domains."
     },
     {
       "rank": 6,
@@ -196,6 +196,35 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 6,
+      "at": "2026-05-26T09:35:00Z",
+      "milestone": "AXIS-9 UNIVERSALLY CLOSED — all 20 domains have live-invoke smoke. _runner aggregate 20/20 GREEN.",
+      "actions": [
+        "dispatch 5 parallel sonnet (lovsen + onboarding-wizard + scrapling + shift-clock + year-wheel)",
+        "all 5 GREEN: 12+10+5+7+15 = 49 new assertions; 20/20 runner GREEN",
+        "1 REAL PROD BUG caught + verified (onboarding/tools.ts add_procedures inserts {title, protocol_type} but protocol Row needs {name, owner_profile_id, policy_id, created_by} — would 400 at runtime)",
+        "shift-clock 'live bug' RECLASSIFIED: ShiftChatUnavailableBanner is INTENTIONAL guarded throw pending mobile-shift-chat-bff-migration sortie (verified at useShiftChat.ts:248-270 + strings.ts:40 + ShiftChatUnavailableBanner.tsx:5-6 — explicit cross-file proof per trust-but-verify rule)",
+        "year-wheel surfaced 5 schema reality facts (workspace_budget PK is id; public_holiday no workspace_id K1a; planning_event links via planning_cycle_id not season_id; day/hour_factor FK to season_budget_id; activate_season returns Json not void)",
+        "0 hallucinations this iter"
+      ],
+      "globalBefore": 63.5,
+      "globalAfter": 64.4,
+      "filesCreated": 5,
+      "filesModified": 5,
+      "axesClosed": [
+        { "domain": "lovsen", "axis": "liveInvoke", "0to2": true },
+        { "domain": "onboarding-wizard", "axis": "liveInvoke", "0to2": true },
+        { "domain": "scrapling", "axis": "liveInvoke", "0to2": true },
+        { "domain": "shift-clock", "axis": "liveInvoke", "0to2": true },
+        { "domain": "year-wheel", "axis": "liveInvoke", "0to2": true }
+      ],
+      "driftsCaughtReal": 2,
+      "prodBugsFound": 1,
+      "intentionalBugReclassified": 1,
+      "learningsHarvested": 0,
+      "axisCompleteForFleet": "liveInvoke"
     },
     {
       "n": 5,
