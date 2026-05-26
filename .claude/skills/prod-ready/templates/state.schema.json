@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartout.ai/schemas/prod-ready-state.json",
+  "title": "prod-ready state",
+  "type": "object",
+  "required": ["version", "generatedAt", "generatedBy", "globalCompletion", "domainCount", "weightedRank", "domains", "fleetQueue", "spineRefreshQueue", "alerts"],
+  "properties": {
+    "version": { "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "generatedBy": { "enum": ["claude", "heartbeat", "manual"] },
+    "globalCompletion": { "type": "number", "minimum": 0, "maximum": 100 },
+    "domainCount": { "type": "integer", "minimum": 0 },
+    "weightedRank": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain", "completion", "gapCount", "priority", "blocksDownstream"],
+        "properties": {
+          "domain": { "type": "string" },
+          "completion": { "type": "number", "minimum": 0, "maximum": 100 },
+          "gapCount": { "type": "integer", "minimum": 0 },
+          "priority": { "enum": ["P0", "P1", "P2", "P3"] },
+          "blocksDownstream": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/domain" }
+      }
+    },
+    "fleetQueue": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sortie" }
+    },
+    "spineRefreshQueue": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain", "reason", "delegateTo"],
+        "properties": {
+          "domain": { "type": "string" },
+          "reason": { "type": "string" },
+          "delegateTo": { "type": "string" }
+        }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["level", "message"],
+        "properties": {
+          "level": { "enum": ["info", "warn", "error"] },
+          "message": { "type": "string" },
+          "domain": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "domain": {
+      "type": "object",
+      "required": ["completion", "priority", "mobileScope", "axes", "gaps", "nextAction", "lastScannedAt"],
+      "properties": {
+        "completion": { "type": "number", "minimum": 0, "maximum": 100 },
+        "priority": { "enum": ["P0", "P1", "P2", "P3"] },
+        "mobileScope": { "enum": ["full", "read-only", "web-only", "aspirational"] },
+        "axes": {
+          "type": "object",
+          "required": [
+            "journey", "schema", "capability", "telemetry", "web", "mobile",
+            "edgeFunction", "unit", "liveInvoke", "e2e", "typecheck",
+            "pagePolish", "audit", "spine"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "journey":      { "type": "integer", "minimum": 0, "maximum": 2 },
+            "schema":       { "type": "integer", "minimum": 0, "maximum": 2 },
+            "capability":   { "type": "integer", "minimum": 0, "maximum": 2 },
+            "telemetry":    { "type": "integer", "minimum": 0, "maximum": 2 },
+            "web":          { "type": "integer", "minimum": 0, "maximum": 2 },
+            "mobile":       { "type": "integer", "minimum": 0, "maximum": 2 },
+            "edgeFunction": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "unit":         { "type": "integer", "minimum": 0, "maximum": 2 },
+            "liveInvoke":   { "type": "integer", "minimum": 0, "maximum": 2 },
+            "e2e":          { "type": "integer", "minimum": 0, "maximum": 2 },
+            "typecheck":    { "type": "integer", "minimum": 0, "maximum": 2 },
+            "pagePolish":   { "type": "integer", "minimum": 0, "maximum": 2 },
+            "audit":        { "type": "integer", "minimum": 0, "maximum": 2 },
+            "spine":        { "type": "integer", "minimum": 0, "maximum": 2 }
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["axis", "action", "blocking", "estimateHours", "owner"],
+            "properties": {
+              "axis": { "type": "string" },
+              "action": { "type": "string" },
+              "blocking": { "type": "boolean" },
+              "blocksDownstream": { "type": "array", "items": { "type": "string" } },
+              "estimateHours": { "type": "number", "minimum": 0 },
+              "owner": { "enum": ["haiku", "sonnet", "opus", "pontus"] },
+              "rationale": { "type": "string" }
+            }
+          }
+        },
+        "nextAction": { "type": "string" },
+        "lastScannedAt": { "type": "string", "format": "date-time" },
+        "lastCommitTouched": { "type": "string" },
+        "spineLastVerified": { "type": "string", "format": "date" }
+      }
+    },
+    "sortie": {
+      "type": "object",
+      "required": ["rank", "sortie", "domain", "owner", "estimateHours", "deltaGlobalPp"],
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1 },
+        "sortie": { "type": "string" },
+        "domain": { "type": "string" },
+        "owner": { "enum": ["haiku", "sonnet", "opus", "pontus"] },
+        "estimateHours": { "type": "number", "minimum": 0 },
+        "deltaGlobalPp": { "type": "number" },
+        "blocksDownstream": { "type": "array", "items": { "type": "string" } },
+        "rationale": { "type": "string" }
+      }
+    }
+  }
+}
