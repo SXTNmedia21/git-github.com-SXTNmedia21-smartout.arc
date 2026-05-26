@@ -26,6 +26,7 @@ import { ChangeBindingForm } from "./ChangeBindingForm";
 import { AddSupplementForm } from "./AddSupplementForm";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { Separator } from "@/components/ui/separator";
+import { TariffToolsBridge } from "../_tools/tariff-tools-bridge";
 
 export function TariffClient() {
   const { isAdminMode, profileId } = useContext(DashboardContext);
@@ -83,8 +84,20 @@ export function TariffClient() {
   // Manager can add supplements; only admin can change binding
   const canAddSupplement = isAdminMode; // server enforces — UI reflects
 
+  const tariffData = data?.ok ? data.data : null;
+
   return (
     <div className="flex flex-col gap-6 p-4">
+      {/* Botsson tool bridge — Phase 7 (ADR-0357 §e) */}
+      <TariffToolsBridge
+        isLoading={isLoading}
+        isBound={isBound}
+        unionName={tariffData?.union_name ?? null}
+        lawVersion={tariffData?.law_version ?? null}
+        effectiveFrom={tariffData?.effective_from ?? null}
+        isAdmin={isAdminMode}
+      />
+
       {/* Page header — ADR-0357 §b */}
       <div>
         <div className="flex items-center gap-2">

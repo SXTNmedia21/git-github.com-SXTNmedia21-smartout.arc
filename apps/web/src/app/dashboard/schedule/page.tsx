@@ -21,6 +21,8 @@ import {
   PanelLeftOpen,
   Printer,
 } from "lucide-react";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { usePageTitle } from "@/components/dashboard/PageHeaderContext";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import {
@@ -242,6 +244,14 @@ function SchedulePageContent() {
     setWeeklyPeriodCount,
     profileId,
   } = useContext(DashboardContext);
+
+  // Page header — title + description published to the dashboard breadcrumb slot.
+  // Why subtitle: lets assistants and screen-readers understand page purpose beyond the icon.
+  usePageTitle({
+    title: "Vaktplan",
+    subtitle: "Planlegg, publiser og administrer skiftplanen for teamet ditt",
+  });
+
   const { t: tRaw } = useTranslation("dashboard");
   const tSchedule = (key: string) => tRaw(`schedule.${key}`);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -357,6 +367,24 @@ function SchedulePageContent() {
   // ── Workspace context ───────────────────────────────────────
   const ctx = useWorkspaceOptional();
   const workspace = ctx?.workspace;
+
+  // ── View-emit telemetry — fires once per mount ──────────────
+  // L-0177: guard on non-empty ids before emitting; skip if workspace not
+  // yet resolved (useWorkspaceOptional returns null on first render).
+  const hasEmittedViewRef = useRef(false);
+  useEffect(() => {
+    if (hasEmittedViewRef.current) return;
+    const wsId = workspace?.workspace_id;
+    const actorId = profileId;
+    if (!wsId || !actorId) return;
+    hasEmittedViewRef.current = true;
+    void emit({
+      event: "page viewed",
+      workspace_id: nonEmpty(wsId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
+      properties: { path: "/dashboard/schedule" },
+    });
+  }, [workspace?.workspace_id, profileId]);
 
   const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
   const shouldLoadDayContent =
