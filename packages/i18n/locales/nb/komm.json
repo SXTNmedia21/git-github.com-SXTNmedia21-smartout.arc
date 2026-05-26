@@ -1,6 +1,7 @@
 {
   "shell": {
     "title": "Kanaler",
+    "description": "Kommuniser med teamet — gruppekanaler, direktemeldinger og taleanrop på ett sted.",
     "empty_state": "Velg en kanal eller person for å begynne",
     "connection_error": "Kunne ikke koble til samtale",
     "retry": "Prøv igjen",

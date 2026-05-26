@@ -210,7 +210,10 @@ export function KanalerClient({ profileId }: { profileId: string }) {
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-3">
               <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
-              <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
+              <p className="text-foreground text-sm font-medium">{t("shell.empty_state")}</p>
+              <p className="text-muted-foreground max-w-xs text-center text-xs">
+                {t("shell.description")}
+              </p>
             </div>
           )}
         </div>

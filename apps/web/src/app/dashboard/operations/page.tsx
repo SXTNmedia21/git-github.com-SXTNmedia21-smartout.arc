@@ -5,7 +5,7 @@
 // checklist progress, deviation severity breakdown, and revenue vs labor cost.
 // Auto-refetches every 60s. All labels are i18n, all colors use CSS variables.
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useOperationsData } from "./_hooks/use-operations-data";
 import type { StressLabel } from "./_hooks/use-operations-data";
 import { DeviationDialog } from "./_components/DeviationDialog";
@@ -94,6 +95,22 @@ export default function OperationsPage() {
   const { data, isLoading, isError } = useOperationsData();
   const { t, locale } = useTranslation("operations");
   const dateFnsLocale = locale === "nb" ? nb : enUS;
+
+  // Telemetry: emit "page viewed" once after workspace + actor are known (ADR-0134 R1).
+  const hasEmittedViewRef = useRef(false);
+  useEffect(() => {
+    if (hasEmittedViewRef.current) return;
+    const wsId = workspaceData?.workspace_id;
+    const actorId = profileId;
+    if (!wsId || !actorId) return;
+    hasEmittedViewRef.current = true;
+    void emit({
+      event: "page viewed",
+      workspace_id: nonEmpty(wsId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
+      properties: { path: "/dashboard/operations" },
+    });
+  }, [workspaceData?.workspace_id, profileId]);
 
   const [showDeptBreakdown, setShowDeptBreakdown] = useState(false);
 

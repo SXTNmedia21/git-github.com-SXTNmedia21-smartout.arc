@@ -4029,6 +4029,19 @@ export interface FlowSkipped extends BaseEvent {
 }
 
 // ─── Channel Events ─────────────────────────────
+
+// channel.viewed — emitted when /dashboard/komm root loads and a profileId resolves.
+// PostHog + Logger only: read-only view event; no downstream workflow triggered.
+// surface: "channels" | "chat" — which tab the user landed on.
+export interface ChannelViewed extends BaseEvent {
+  event: "channel.viewed";
+  properties: {
+    data: {
+      surface: "channels" | "chat";
+    };
+  };
+}
+
 export interface ChannelCreated extends BaseEvent {
   event: "channel.created";
   properties: { channel_type: string; name: string | null };
@@ -9145,6 +9158,7 @@ export type SmartoutEvent =
   | MealRuleDeleted
   | PageViewed
   | ButtonClicked
+  | ChannelViewed
   | ChannelCreated
   | ChannelArchived
   | ChannelRenamed
@@ -13068,6 +13082,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "button clicked": { destinations: ["posthog"], category: "navigation" },
 
   // Channel events
+  // channel.viewed — PostHog + Logger only: read-only surface entry, no downstream workflow.
+  "channel.viewed": {
+    destinations: ["posthog", "logger"],
+    category: "channels",
+  },
   "channel.created": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",

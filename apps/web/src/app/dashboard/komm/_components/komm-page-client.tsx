@@ -13,14 +13,27 @@
 
 "use client";
 
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { KanalerClient } from "./KanalerClient";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export function KommPageClient() {
   const { profileId } = useContext(DashboardContext);
   const { t } = useTranslation("komm");
+  const { workspace } = useWorkspace();
+
+  useEffect(() => {
+    if (!profileId || !workspace?.workspace_id) return;
+    void emit({
+      event: "channel.viewed",
+      workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: { data: { surface: "channels" } },
+    });
+  }, [profileId, workspace?.workspace_id]);
 
   if (!profileId) {
     return (

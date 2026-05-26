@@ -334,6 +334,28 @@
       "commit": "ef8f08f81"
     },
     {
+      "n": 16,
+      "at": "2026-05-26T15:25:00Z",
+      "actions": [
+        "dispatch 4 parallel sonnet axis-12 batch3 (shift-clock + procedure-engine + communication + agent-harness)",
+        "shift-clock: page viewed reused → 0→2 (header partial FN, 9 tools FN)",
+        "procedure-engine /operations: page viewed reused → 0→2 (h1+tools+i18n all FN)",
+        "communication /komm: NEW channel.viewed event + i18n shell.description → 0→2 (8 tools FN)",
+        "agent-harness /ai: ALL 3 FN (already polished 4/4) — BUT discovered 4TH PROD BUG: use-authority-config.ts onSuccess emit used nonEmpty('', 'actor_id') which throws runtime on every authority update; fixed by wiring profileId from DashboardContext",
+        "stop-hook fired 15+ times (registry routing lag + NonEmptyString branding); sub-agents recovered each time",
+        "final typecheck PASS (telemetry + web exit=0) + 20/20 runner GREEN"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 8,
+      "pagesUpgraded": 4,
+      "scanFNConfirmed": 11,
+      "registryEventsAdded": 1,
+      "prodBugsFound": 1,
+      "stopHookEvents": 15,
+      "learningsHarvested": 0
+    },
+    {
       "n": 15,
       "at": "2026-05-26T14:50:00Z",
       "actions": [

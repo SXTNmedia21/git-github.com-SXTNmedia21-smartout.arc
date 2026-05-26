@@ -1,6 +1,7 @@
 {
   "shell": {
     "title": "Komm",
+    "description": "Communicate with your team — group channels, direct messages and voice calls in one place.",
     "empty_state": "Select a channel or person to get started",
     "connection_error": "Could not connect to conversation",
     "retry": "Try again",

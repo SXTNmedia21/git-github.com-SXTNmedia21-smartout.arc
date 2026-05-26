@@ -15,13 +15,15 @@
  * ADR-0133 mobile-critical: shift-clock is the primary D6 employee execute surface.
  */
 
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftClockView } from "./ShiftClockView";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
 import { ShiftClockToolsBridge } from "./_tools/shift-clock-tools-bridge";
 import type { ShiftClockUiActions } from "./_tools/use-shift-clock-tools";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 /**
  * LeaderOverview placeholder — will be implemented in Task 11.
@@ -40,7 +42,26 @@ function LeaderOverviewPlaceholder() {
 }
 
 export default function ShiftClockPage() {
-  const { isAdminMode } = useContext(DashboardContext);
+  const { isAdminMode, profileId } = useContext(DashboardContext);
+  const wsCtx = useWorkspaceOptional();
+  const workspace = wsCtx?.workspace;
+
+  // ── View-emit telemetry — fires once per mount ──────────────
+  // L-0177: guard on non-empty ids before emitting; skip if workspace not yet resolved.
+  const hasEmittedViewRef = useRef(false);
+  useEffect(() => {
+    if (hasEmittedViewRef.current) return;
+    const wsId = workspace?.workspace_id;
+    const actorId = profileId;
+    if (!wsId || !actorId) return;
+    hasEmittedViewRef.current = true;
+    void emit({
+      event: "page viewed",
+      workspace_id: nonEmpty(wsId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
+      properties: { path: "/dashboard/shift-clock" },
+    });
+  }, [workspace?.workspace_id, profileId]);
 
   // Lift shift state to page level so ShiftClockToolsBridge can read it.
   // TanStack Query deduplicates the fetch — ShiftClockView retains its own hook.

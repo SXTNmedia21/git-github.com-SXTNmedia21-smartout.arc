@@ -1,7 +1,9 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 const CAPABILITIES = [
@@ -72,6 +74,8 @@ export function useAuthorityConfig() {
 export function useUpdateAuthority() {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  // profileId resolves actor_id for telemetry — same pattern as use-shift-types.ts
+  const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -127,7 +131,7 @@ export function useUpdateAuthority() {
       void emit({
         event: "authority_config updated",
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty("", "actor_id"),
+        actor_id: nonEmpty(profileId ?? "", "actor_id"),
         properties: { data: { capability, level } },
       });
     },
