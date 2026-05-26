@@ -2,7 +2,7 @@
   "version": "1.0",
   "generatedAt": "2026-05-26T06:35:00Z",
   "generatedBy": "claude-bootstrap-lite",
-  "globalCompletion": 61.4,
+  "globalCompletion": 62.1,
   "domainCount": 20,
   "scanMode": "lite-bootstrap",
   "scanNotes": [
@@ -37,19 +37,19 @@
   ],
   "domains": {
     "bootstrap":         { "completion": 64.3, "priority": "P1", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "workspace_readiness gate table + bootstrap-coordinator + week-1 progressive UI (aspirational tier)" },
-    "agent-harness":     { "completion": 60.7, "priority": "P0", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "voice agent pipeline E2E + per-capability eval transcripts + specialist E2E MISSING; 3 voice schedule tools bypass gatedMutation (DEV-4); GAP-7 schedule specialist no BFF route" },
+    "agent-harness":     { "completion": 64.3, "priority": "P0", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "voice agent pipeline E2E + per-capability eval transcripts + specialist E2E MISSING; 3 voice schedule tools bypass gatedMutation (DEV-4); GAP-7 schedule specialist no BFF route" },
     "announcements":     { "completion": 60.7, "priority": "P2", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Wave B UI pickers + EntityLinkCTA mobile mount + bulletin compose E2E" },
     "billing":           { "completion": 67.9, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "PlatformAdminToolContext missing; Playwright weak — admin kartotek + avstemming covered only" },
     "botsson":           { "completion": 53.6, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 1, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "proposal pipeline 🔴; soul-on-platform-admin 🔴; generator API 🔴; mission E2E 0/7; persona chat-unwired" },
     "communication":     { "completion": 53.6, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "helpdesk_query capability not implemented; C2 intelligence pipeline not built; mobile parity missing; SIP telephony not built" },
     "contracts":         { "completion": 75.0, "priority": "P0", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 2, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "route migration /dashboard/contracts→/people/contracts pending; mobile sign ADR-0245 partial; amendment classifier + Tripletex sync deferred" },
     "core-structure":    { "completion": 60.7, "priority": "P1", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "dept_location admin UI missing; onboarding Step 7 bootstrap pipe not wired; dept/location/zone/asset/hours-override/planning_cycle no dedicated E2E" },
-    "day-session":       { "completion": 53.6, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase C UI + D mobile + E push in flight; close/approval/settlement E2E MISSING; mobile E2E MISSING (15 gaps total — highest mobile debt)" },
+    "day-session":       { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase C UI + D mobile + E push in flight; close/approval/settlement E2E MISSING; mobile E2E MISSING (15 gaps total — highest mobile debt)" },
     "lovsen":            { "completion": 53.6, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 1, "telemetry": 1, "web": 1, "mobile": 2, "edgeFunction": 0, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ADR-0350 bridge proposed not built; cite_law + classify_amendment stubs; 6 of 9 lovsen.mcp.* events not emitted (L-0287 phantom telemetry)" },
-    "notifications":     { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "P2 prefs matrix deferred; P3 AI notify tool deferred; P4 mobile prefs UI deferred; 2 Expo senders bypass outbox; L-0042 staged migration timestamp on feat/onesignal-push" },
+    "notifications":     { "completion": 60.7, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "P2 prefs matrix deferred; P3 AI notify tool deferred; P4 mobile prefs UI deferred; 2 Expo senders bypass outbox; L-0042 staged migration timestamp on feat/onesignal-push" },
     "onboarding-wizard": { "completion": 71.4, "priority": "P2", "mobileScope": "full", "axes": { "journey": 2, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 1, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "Maestro mobile E2E not shipped (manual smoke only)" },
     "payroll":           { "completion": 64.3, "priority": "P0", "mobileScope": "read-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 0, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 7 Tripletex + Phase 8 Event Engine recalc proposed; Phase 2 manual supplements + line override E2E MISSING; tariff tools E2E MISSING; mobile route MISSING" },
-    "procedure-engine":  { "completion": 57.1, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387b council-gated; mobile shift-tasks tests missing (28 open gaps — highest in fleet)" },
+    "procedure-engine":  { "completion": 60.7, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 1, "mobile": 1, "edgeFunction": 2, "unit": 1, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "Phase 1 UI: RoutineForm + clock-in + notifications NOT built; ADR-0387b council-gated; mobile shift-tasks tests missing (28 open gaps — highest in fleet)" },
     "reports":           { "completion": 57.1, "priority": "P1", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 0, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 1, "liveInvoke": 0, "e2e": 0, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "ZERO reports.* telemetry events emitted; 0 dedicated Playwright specs for /dashboard/reports (sidebar smoke only)" },
     "scheduling":        { "completion": 67.9, "priority": "P0", "mobileScope": "full", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 1, "edgeFunction": 2, "unit": 2, "liveInvoke": 2, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 1 }, "topGap": "CRITICAL — mobile BFF authoring ADR-0277 not fully closed (direct insert still active); solver propose+accept E2E MISSING; marketplace pipeline E2E MISSING" },
     "scrapling":         { "completion": 71.4, "priority": "P2", "mobileScope": "web-only", "axes": { "journey": 1, "schema": 2, "capability": 2, "telemetry": 1, "web": 2, "mobile": 2, "edgeFunction": 2, "unit": 2, "liveInvoke": 0, "e2e": 1, "typecheck": 1, "pagePolish": 1, "audit": 1, "spine": 2 }, "topGap": "ADR-0270 not yet council-accepted; Phase 6 prod smoke deferred; /hospitality-search + godmode tools no dedicated E2E" },
@@ -196,6 +196,31 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 3,
+      "at": "2026-05-26T07:50:00Z",
+      "actions": [
+        "dispatch 4 parallel sonnet sub-sorties (day-session + notifications + procedure-engine + agent-harness)",
+        "all 4 GREEN: 12+16+23+14 = 65 new assertions pass",
+        "2 real drifts caught (notifications: notification_policy.id assumption vs real notification_policy_id PK; notification_mode enum vs reality)",
+        "1 hallucinated finding rejected (day-session sub-agent falsely claimed operations/tools.ts:132 bug; orchestrator verified zero matches via grep)",
+        "_runner aggregate: 8/8 scripts GREEN, ~210ms each",
+        "new rationalization added: trust-but-verify sub-agent cross-file claims"
+      ],
+      "globalBefore": 61.4,
+      "globalAfter": 62.1,
+      "filesCreated": 4,
+      "filesModified": 3,
+      "axesClosed": [
+        { "domain": "day-session", "axis": "liveInvoke", "0to2": true },
+        { "domain": "notifications", "axis": "liveInvoke", "0to2": true },
+        { "domain": "procedure-engine", "axis": "liveInvoke", "0to2": true },
+        { "domain": "agent-harness", "axis": "liveInvoke", "0to2": true }
+      ],
+      "driftsCaughtReal": 2,
+      "driftsCaughtHallucinated": 1,
+      "learningsHarvested": 1
     },
     {
       "n": 2,
