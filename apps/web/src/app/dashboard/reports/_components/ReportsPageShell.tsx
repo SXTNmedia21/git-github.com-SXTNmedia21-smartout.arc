@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useCallback, useContext, useMemo } from "react";
+import { useState, useCallback, useContext, useMemo, useEffect, useRef } from "react";
 import {
   BarChart3,
   Users,
@@ -23,6 +23,7 @@ import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { usePageTabs } from "@/components/dashboard/PageHeaderContext";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import dynamic from "next/dynamic";
 import { SkeletonChart, withEntrance } from "@smartout/ui";
 import { SavedReportsGrid } from "./SavedReportsGrid";
@@ -103,7 +104,7 @@ const TABS = [
 ] as const;
 
 export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageShellProps) {
-  const { isDark, workspaceData } = useContext(DashboardContext);
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
   const workspaceId = workspaceIdProp ?? workspaceData?.workspace_id ?? "";
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [activeReportData, setActiveReportData] = useState<ReportData | null>(null);
@@ -116,6 +117,23 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
   const [insightDefaultsByCard, setInsightDefaultsByCard] = useState<
     Record<string, ReportInsightCard>
   >({});
+
+  // Telemetry: emit "page viewed" once after workspace + actor are known (ADR-0134 R1).
+  // Reports is a read-only analytics surface — no domain-specific registry entry needed;
+  // "page viewed" (PostHog only) is sufficient for navigation audit.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (!workspaceId || !profileId || viewedRef.current) return;
+    viewedRef.current = true;
+    void emit({
+      event: "page viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        path: "/dashboard/reports",
+      },
+    });
+  }, [workspaceId, profileId]);
 
   // Controlled tab — lets Botsson navigate between tabs via switchReportTab tool.
   const [activeTab, setActiveTab] = useState<ReportsTab>("overview");

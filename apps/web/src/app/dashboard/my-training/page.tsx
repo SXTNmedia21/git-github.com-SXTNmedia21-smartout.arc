@@ -1,7 +1,8 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { GraduationCap } from "lucide-react";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ProtocolList } from "./_components/ProtocolList";
 import { useAssignedProtocols } from "./_hooks/use-assigned-protocols";
@@ -13,8 +14,32 @@ import { MyTrainingToolsBridge } from "./_tools/my-training-tools-bridge";
 // - action: complete step, submit test, sign confirmation
 
 export default function MyTrainingPage() {
-  const { isDark, profileId } = useContext(DashboardContext);
+  const { isDark, profileId, workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id ?? null;
   const { data: protocols, isLoading } = useAssignedProtocols(profileId);
+
+  // Emit my.training.viewed once workspace + profile are resolved (L-0177 pattern).
+  // protocol_count and completed_count derived from live query when data lands.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (!workspaceId || !profileId || isLoading || viewedRef.current) return;
+    viewedRef.current = true;
+    const total = protocols?.length ?? 0;
+    const completed = protocols?.filter((p) => p.assignmentStatus === "completed").length ?? 0;
+    void emit({
+      event: "my.training.viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "profile",
+          entity_id: profileId,
+          entity_label: "My Training",
+        },
+        data: { protocol_count: total, completed_count: completed },
+      },
+    });
+  }, [workspaceId, profileId, isLoading, protocols]);
 
   // Flatten to bridge-compatible summaries (strip procedure/test/confirmation detail)
   const protocolSummaries = (protocols ?? []).map((p) => ({

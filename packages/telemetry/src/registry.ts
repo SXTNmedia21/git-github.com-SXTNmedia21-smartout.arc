@@ -2736,6 +2736,22 @@ export interface CostOverviewViewed extends BaseEvent {
   };
 }
 
+// billing.invoices.viewed — emitted when admin/owner lands on /dashboard/billing.
+//   posthog: adoption funnel (how often do admins check invoices?).
+//   logger: observability.
+//   activity_trail: admin engagement audit.
+//   No engine_event — read-only surface; no downstream workflow reactions.
+export interface BillingInvoicesViewed extends BaseEvent {
+  event: "billing.invoices.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      /** Number of invoices rendered on first load. */
+      invoice_count: number;
+    };
+  };
+}
+
 // ─── HMS Read-surface events (ui-shell-hms-cluster-polish-read) ─────────────
 // hms.umbrella.viewed — emitted when manager lands on /dashboard/hms.
 //   activity_trail records manager readiness-surface engagement; posthog tracks adoption.
@@ -2785,6 +2801,23 @@ export interface HmsTrainingViewed extends BaseEvent {
       // Total protocols in scope at view time; lets us see how readiness-load
       // affects return visit frequency.
       protocol_count: number;
+    };
+  };
+}
+
+// my.training.viewed — emitted when /dashboard/my-training loads (employee self-view).
+// Distinct from hms.training.viewed (manager HMS surface) and people.training.viewed
+// (manager people hub). PostHog + Logger only: activity_trail excluded — read-only view
+// event; no downstream workflow triggered. protocol_count drives funnel analytics.
+export interface MyTrainingViewed extends BaseEvent {
+  event: "my.training.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Total protocols assigned to this employee at view time.
+      protocol_count: number;
+      // How many are already completed.
+      completed_count: number;
     };
   };
 }
@@ -8685,6 +8718,31 @@ export interface BootstrapGateSkipped extends BaseEvent {
   };
 }
 
+// ─── Bootstrap Setup Wizard View Event (axis-12, page-polish) ───────────────
+// setup.wizard_viewed — posthog + logger + activity_trail.
+//   posthog: funnel analytics (how many workspaces open the wizard vs complete it).
+//   logger: debugging cold-start flow.
+//   activity_trail: audit trace — owner opened workspace setup.
+//   NO engine_event: viewing the wizard does not drive any workflow state transition.
+// Call-site: DashboardSetupPage in apps/web/src/app/dashboard/setup/page.tsx
+//   (once workspace_id + profileId resolved, gated by L-0177 nonEmpty).
+export interface SetupWizardViewed extends BaseEvent {
+  event: "setup.wizard_viewed";
+  properties: {
+    entity: {
+      entity_type: "workspace";
+      entity_id: string;
+      entity_label: "Setup Wizard";
+    };
+    data: {
+      /** Number of steps completed this session when the page loaded (0 on cold open). */
+      steps_completed: number;
+      /** Total steps in the wizard (currently 9). */
+      total_steps: number;
+    };
+  };
+}
+
 // ─── Oppgaver Read-surface Events (P11 oppgaver-page) ───────────────────────
 // Task board view + interaction events.
 // No engine_event on any: read-path telemetry and UI state changes do NOT
@@ -8877,6 +8935,7 @@ export type SmartoutEvent =
   | ContractReviseOpened
   | ContractAwaitingSignatureViewed
   | CostOverviewViewed
+  | BillingInvoicesViewed
   | ContractResendSubmitted
   | ContractCancelDialogOpened
   | ContractCancelConfirmed
@@ -9019,6 +9078,7 @@ export type SmartoutEvent =
   | ContractReviseOpened
   | ContractAwaitingSignatureViewed
   | CostOverviewViewed
+  | BillingInvoicesViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
   | ContractBulkSubmitted
@@ -9670,6 +9730,8 @@ export type SmartoutEvent =
   | HmsDriftViewed
   | HmsDocumentsOpened
   | HmsTrainingViewed
+  // ─── My Training employee self-view (page-polish axis 12, 2026-05-26) ────────
+  | MyTrainingViewed
   // ─── People Training (SM-2-followup-training 2026-05-19) ─────────────────────
   | PeopleTrainingViewed
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────
@@ -9740,6 +9802,8 @@ export type SmartoutEvent =
   | BootstrapGatesListed
   | BootstrapGateClosed
   | BootstrapGateSkipped
+  // ─── Bootstrap Setup Wizard View (axis-12) ───────────────────────────────
+  | SetupWizardViewed
   // ─── Oppgaver Read-surface (P11 oppgaver-page) ──────────────────────────
   | OppgaverViewOpened
   | OppgaverViewModeChanged
@@ -15492,6 +15556,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "cost",
   },
+  "billing.invoices.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "billing",
+  },
 
   // ─── HMS Read-surface (ui-shell-hms-cluster-polish-read) ─────────────────
   // Read-side views: posthog (adoption funnel) + logger (observability) +
@@ -15518,6 +15586,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "people.training.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "people",
+  },
+  // my.training.viewed: employee self-service funnel entry.
+  // activity_trail excluded — read-only view, no actor-driven mutation.
+  "my.training.viewed": {
+    destinations: ["posthog", "logger"],
+    category: "training",
   },
 
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ────────────────────
@@ -15849,6 +15923,17 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "bootstrap.gate_skipped": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "agent",
+  },
+
+  // ─── Bootstrap Setup Wizard View (axis-12, page-polish) ──────────────────
+  // setup.wizard_viewed: 3 destinations — view-emit only, no mutation.
+  //   posthog: funnel analytics.
+  //   logger: debugging.
+  //   activity_trail: audit (owner opened setup).
+  //   NO engine_event: view is not a workflow trigger.
+  "setup.wizard_viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
   },
 
   // ─── InlineConfirmCard HITL Gate Events (ADR-0398, Phase 1) ──────────────

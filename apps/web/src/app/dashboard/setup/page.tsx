@@ -14,10 +14,11 @@
  *   openStep navigates via ?step= URL param — loadState respects it on remount.
  */
 
-import { Suspense, useContext, useState, useCallback, useMemo } from "react";
+import { Suspense, useContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Loader2, SkipForward } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { AnimatedWizardShell } from "@/components/wizard/AnimatedWizardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -38,6 +39,33 @@ export default function DashboardSetupPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<ReadonlySet<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+
+  /* ── View-emit (axis-12 page-polish, L-0177 fail-fast guard) ──────────────
+   * Fires once when workspace_id + profileId are both non-empty.
+   * completedSteps initial value is 0 (wizard not yet loaded); this reflects
+   * the state at page-open, not mid-session. */
+  const wizardViewedRef = useRef(false);
+  useEffect(() => {
+    const workspaceId = workspace.workspace_id;
+    if (!workspaceId || !profileId || wizardViewedRef.current) return;
+    wizardViewedRef.current = true;
+    void emit({
+      event: "setup.wizard_viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspaceId,
+          entity_label: "Setup Wizard",
+        },
+        data: {
+          steps_completed: 0,
+          total_steps: 9,
+        },
+      },
+    });
+  }, [workspace.workspace_id, profileId]);
 
   const handleContextChangeWithLift = useCallback(
     (ctx: WizardContextPayload) => {

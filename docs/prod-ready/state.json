@@ -334,6 +334,28 @@
       "commit": "ef8f08f81"
     },
     {
+      "n": 15,
+      "at": "2026-05-26T14:50:00Z",
+      "actions": [
+        "dispatch 4 parallel sonnet axis-12 batch2 (bootstrap + billing + reports + training) with explicit FN-verify-first instruction",
+        "ALL 4 pages had header + tool-desc as scan false-negatives (per iter-14 prediction); only view-emit was genuine gap",
+        "bootstrap /setup: added setup.wizard_viewed (registry + page emit) — 0→2",
+        "billing /billing: added billing.invoices.viewed (registry + bridge emit) — 0→2",
+        "reports /reports: added 'page viewed' generic (registry already had it) — 0→2",
+        "my-training /my-training: added my.training.viewed (registry + page emit) — 0→2",
+        "stop-hook caught 10+ mid-iter typecheck failures (registry routing entries lagging interface adds); sub-agents recovered each time",
+        "final typecheck PASS (both telemetry + web) + 20/20 runner GREEN"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 6,
+      "pagesUpgraded": 4,
+      "registryEventsAdded": 3,
+      "scanFalseNegativesConfirmed": 12,
+      "stopHookEvents": 10,
+      "learningsHarvested": 0
+    },
+    {
       "n": 14,
       "at": "2026-05-26T14:15:00Z",
       "actions": [

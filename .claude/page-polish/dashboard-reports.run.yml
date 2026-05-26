@@ -105,6 +105,7 @@ checklist:
   no_skeleton_flash: null              # Suspense + matched dims — likely ok; needs browser confirm
   motion_tokens_used: true             # 0 raw spring/damping values in page tree
   telemetry_emit_per_mutation: true    # no user mutations — read-only surface
+  view_emit_on_mount: true             # "page viewed" emitted once via useEffect (viewedRef guard, ADR-0134 R1)
   page_knowledge_written: true         # header + description present in ReportsPageShell
   page_knowledge_db_synced: false      # pending page_knowledge table row
   harness_tools_registered: true       # 7 tools via use-reports-tools.ts + bridge
@@ -128,9 +129,15 @@ notes: |
   - ADR-0238 respected: owns_chat_surface=false.
   - ADR-0151 respected: workspaceId comes from auth-derived prop, never body-supplied.
 
+  Axis 12 polish (2026-05-26):
+  - FN-recovery confirmed: page header, tool descriptions (7), site-map entry — all present.
+  - Real gap found + fixed: view-emit was missing. Added "page viewed" emit in ReportsPageShell
+    via viewedRef guard (once per mount, only when workspaceId + profileId resolved). PostHog only.
+  - No registry edits needed — "page viewed" already in EventRegistry union.
+  - Typecheck: 0 errors in reports/ files. Pre-existing billing error unrelated.
+
   Next sortie follow-ups:
   1. Wire SavedReportsGrid to call onCountChange(reports.length) on load so savedReportsCount
      reflects actual saved report count.
   2. Add page_knowledge table row for /dashboard/reports.
-  3. Add site-map.json entry for /dashboard/reports (Phase 8 — excluded from this task).
-  4. Phase 1-3 Lighthouse once browser session available.
+  3. Phase 1-3 Lighthouse once browser session available.
