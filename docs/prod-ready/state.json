@@ -316,6 +316,29 @@
       "commit": "ef8f08f81"
     },
     {
+      "n": 12,
+      "at": "2026-05-26T13:05:00Z",
+      "actions": [
+        "haiku phantom-sweep-v3-attempt-verified (re-verify 42 remaining v2-A events)",
+        "v3 sub-agent IGNORED exclusion list — re-listed 17 contract events as TRUE that iter-11 already settled; orchestrator REJECTED noise + extracted 6 legitimate non-contract findings + 19 cruft list",
+        "co-locate sortie (iter-10 learning applied): dispatched cruft-cleanup + 6-event mop-up in parallel during same iter as scan",
+        "INJECTED 3 real: ops.compile shift_brief (briefing.ts:181) + telegram.message_sent (telegram.ts:134) + invoice.sent (engine-dispatch:3984)",
+        "RECLASSIFIED 2 B-class (already wired): shift.published (lifecycle:246) + invoice.generated (generator.ts:342)",
+        "RECLASSIFIED 1 C-class: botsson.nudge_shown (no UI exists)",
+        "REMOVED 2 cruft from registry: auth.logged_in + contract.retention_skipped_no_clock (30 lines deleted)",
+        "v3 cruft list (19) was STALE — 18 of them were already absent from registry; only 2 truly removable",
+        "stop-hook caught typecheck breakage mid-iter on registry edits (interface deleted before union member); sub-agent fixed in subsequent edit, final typecheck green"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 4,
+      "phantomsClosed": 3,
+      "cruftRemoved": 2,
+      "reclassifications": 3,
+      "noiseRejectedByOrchestrator": 17,
+      "learningsHarvested": 1
+    },
+    {
       "n": 11,
       "at": "2026-05-26T12:20:00Z",
       "milestone": "CASCADING-OVERESTIMATE INSIGHT — true injectable phantom rate is ~10% of iter-8 scan, not 30%",

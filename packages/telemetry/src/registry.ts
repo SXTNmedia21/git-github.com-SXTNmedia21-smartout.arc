@@ -326,11 +326,6 @@ export interface AuthOtpFailed extends BaseEvent {
   properties: { data: { reason: "expired" | "wrong_code" | "max_attempts" } };
 }
 
-export interface AuthLoggedIn extends BaseEvent {
-  event: "auth logged_in";
-  properties: { data: { method: "password" | "otp" | "google" } };
-}
-
 export interface LoginCodeSent extends BaseEvent {
   event: "login_code sent";
   properties: {
@@ -3596,19 +3591,6 @@ export interface ContractRetentionAnonymizedParagraf13 extends BaseEvent {
       status_at_anonymization: "terminated" | "expired" | "declined";
       paragraph_ref: "Bokf.lov §13" | "GDPR Art. 17";
       dry_run: boolean;
-    };
-  };
-}
-
-export interface ContractRetentionSkippedNoClock extends BaseEvent {
-  event: "contract.retention_skipped_no_clock";
-  properties: {
-    entity: EntityRef;
-    data: {
-      contract_id: string;
-      workspace_id: string;
-      status: string;
-      reason: "no_end_event_date";
     };
   };
 }
@@ -9290,7 +9272,6 @@ export type SmartoutEvent =
   | AuthOtpSent
   | AuthOtpVerified
   | AuthOtpFailed
-  | AuthLoggedIn
   | LoginCodeSent
   | AuthPasswordResetRequested
   | AuthPasswordResetCompleted
@@ -9631,7 +9612,6 @@ export type SmartoutEvent =
   | TaskSessionTaskUpdated
   // ─── GDPR §13 Retention (ADR-0312, SMA-308) ──────────────────
   | ContractRetentionAnonymizedParagraf13
-  | ContractRetentionSkippedNoClock
   // ─── WFM Foundation (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ─
   | PosAccountConnected
   | PosAccountDisconnected
@@ -13745,7 +13725,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth otp_sent": { destinations: ["posthog", "logger"], category: "auth" },
   "auth otp_verified": { destinations: ["posthog", "logger"], category: "auth" },
   "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
-  "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
   "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
   // emit site: apps/web/src/app/reset-password/page.tsx submit handler (password-reset form)
   // Pre-auth visitor event — the user has lost access and is not signed in, so actor_id is empty
@@ -15275,17 +15254,8 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   //   activity_trail: immutable audit of PII wipe event (who/what/when).
   //   logger: operational stdout for monitoring.
   //
-  // contract.retention_skipped_no_clock:
-  //   Fired when status matches but no end-event date exists (end_date IS NULL +
-  //   terminated_at IS NULL for terminated/expired, or declined_at IS NULL for declined).
-  //   Not posthog — operational error, not analytics event.
-  //   activity_trail + logger: operational audit trail for operator investigation.
   "contract.retention_anonymized_§13": {
     destinations: ["posthog", "activity_trail", "logger"],
-    category: "contracts",
-  },
-  "contract.retention_skipped_no_clock": {
-    destinations: ["activity_trail", "logger"],
     category: "contracts",
   },
 

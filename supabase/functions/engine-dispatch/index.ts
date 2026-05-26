@@ -3983,6 +3983,21 @@ async function handleDispatchInvoice(
       },
     });
 
+    // 7. Emit 'invoice sent' — delivery confirmation event (ADR-0128 / billing registry).
+    // Fires once per successfully delivered invoice_dispatch row.
+    // workspace_id from engine state (may be null for platform-level jobs).
+    // actor_id is null — this is a system/cron dispatch, not a user action.
+    await emitViaBridge({
+      event: "invoice sent",
+      actor_id: null,
+      workspace_id: state.workspace_id,
+      properties: {
+        entity_type: "invoice",
+        entity_id: dispatch.invoice_id,
+        data: {},
+      },
+    });
+
     await supabase
       .from("engine_state")
       .update({

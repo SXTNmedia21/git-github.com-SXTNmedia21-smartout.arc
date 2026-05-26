@@ -6,6 +6,7 @@
 //               src/core/agent-router.ts (escalation dispatch)
 // ============================================
 
+import { emit } from "@smartout/telemetry";
 import { getSecrets } from "../secrets.js";
 import type {
   TelegramApiResponse,
@@ -132,6 +133,18 @@ export async function sendTelegramMessage(
 
     lastResponse = await callApi<TelegramMessage>("sendMessage", body);
   }
+
+  // Telemetry: admin Telegram message sent — workspace_id + actor_id are null
+  // because this is the platform-admin channel (no per-workspace context at this layer).
+  // Fire-and-forget: telemetry failure must never break the primary Telegram path.
+  void emit({
+    event: "telegram message_sent",
+    workspace_id: null,
+    actor_id: null,
+    properties: { data: { text: text.slice(0, 200) } },
+  }).catch(() => {
+    // Telemetry must never throw into the primary path.
+  });
 
   return lastResponse;
 }

@@ -2,6 +2,7 @@
 // Shift briefing composer — reads cascade dimensions D1, D2, D6, K1b
 // to produce a concise pre-shift briefing for an employee.
 import { z } from "zod";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -179,6 +180,23 @@ export const composeShiftBriefing = defineTool({
       department_hours: hours,
       announcements: memories,
     };
+
+    // Telemetry: shift brief compiled — ADR-0134 L-0177 fail-fast on IDs.
+    // workspace_id + actor_id resolved server-side from ctx (never body).
+    void emit({
+      event: "ops.compile shift_brief",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "shift",
+          entity_id: shift.schedule_shift_id,
+        },
+        data: {
+          profile_id: ctx.profileId,
+        },
+      },
+    });
 
     return JSON.stringify(briefing);
   },
