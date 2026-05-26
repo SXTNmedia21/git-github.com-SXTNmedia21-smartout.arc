@@ -24,7 +24,6 @@ const DATA_SOURCE_CATALOG = [
     fields: [
       { name: "profile_id", type: "uuid", label: "Profil-ID" },
       { name: "display_name", type: "text", label: "Visningsnavn" },
-      { name: "email", type: "text", label: "E-post" },
       {
         name: "role",
         type: "enum",

@@ -141,13 +141,15 @@
       "rationale": "FIXED. Full Row remap: title→name, removed protocol_type+slug, added policy_id (auto-lookup or create operational placeholder), owner_profile_id, version='1'. Typecheck 0 errors + 10/10 live-invoke pass. SURFACED SCHEMA CONSTRAINT: protocol has UNIQUE(policy_id) — multi-call to add_procedures with auto-created placeholder will fail on 2nd call (design follow-up)."
     },
     {
-      "rank": 1,
+      "rank": 0,
       "sortie": "fix-prod-bug-reports-email-source-column",
       "domain": "reports",
       "owner": "sonnet",
       "estimateHours": 0.3,
+      "actualHours": 0.015,
       "deltaGlobalPp": 0.0,
-      "rationale": "SECONDARY DRIFT surfaced iter-7. list-data-sources.ts advertises profiles.email as queryable field; preview-report.ts SOURCE_COLUMNS.profiles does not fetch email. PGRST 42703 if AI uses email in filter. Either add email to SOURCE_COLUMNS or remove from catalog."
+      "status": "shipped 2026-05-26 10:42Z",
+      "rationale": "FIXED. profile table has no email column (lives on user_identity). Removed email field from DATA_SOURCE_CATALOG.profiles in list-data-sources.ts. 10/10 live-invoke still green."
     },
     {
       "rank": 2,
@@ -159,14 +161,60 @@
       "rationale": "DESIGN ISSUE surfaced iter-7. protocol table has UNIQUE(policy_id). add_procedures auto-creates 'Generelle prosedyrer' policy if none exists, but 2nd call hits the unique constraint. Decision needed: (a) one policy per add_procedures call (multi-policy), (b) drop UNIQUE constraint (multi-protocol per policy), (c) update existing protocol instead of insert. Pontus design call."
     },
     {
-      "rank": 4,
+      "rank": 0,
       "sortie": "telemetry-phantom-sweep",
       "domain": "_systemic",
       "owner": "haiku",
       "estimateHours": 2.0,
-      "deltaGlobalPp": 1.5,
-      "blocksDownstream": [],
-      "rationale": "L-0287 phantom telemetry — scan packages/telemetry/src/registry.ts events vs grep emit() call-sites across apps/ + packages/. Lovsen has 6 of 9 registered events with no emit-site. Likely 20+ phantom events across fleet. Closing axis 4 for multiple domains."
+      "actualHours": 0.08,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 10:42Z (scan-only)",
+      "rationale": "SCAN COMPLETE. 252 phantom of 858 registered (29.3% systemic drift). Top: contract 29, ops 14, channel 13, lovsen 8, payroll 7, auth 5. Full report at docs/prod-ready/phantom-telemetry-sweep-2026-05-26.md. Remediation = 5 separate parallel sorties by domain (40-60h aggregate). New fleet items spawned below."
+    },
+    {
+      "rank": 1,
+      "sortie": "telemetry-emit-contract",
+      "domain": "contracts",
+      "owner": "sonnet",
+      "estimateHours": 8,
+      "deltaGlobalPp": 0.4,
+      "rationale": "Inject emit() call-sites for 29 contract.* phantom events. Likely in contract-service Fastify routes + EF callbacks. Per phantom report."
+    },
+    {
+      "rank": 2,
+      "sortie": "telemetry-emit-ops",
+      "domain": "day-session",
+      "owner": "sonnet",
+      "estimateHours": 4,
+      "deltaGlobalPp": 0.4,
+      "rationale": "Inject emit() for 14 ops.* phantom events (operations-intelligence monitor+predict tools, day-session domain)."
+    },
+    {
+      "rank": 3,
+      "sortie": "telemetry-emit-channel",
+      "domain": "communication",
+      "owner": "sonnet",
+      "estimateHours": 4,
+      "deltaGlobalPp": 0.4,
+      "rationale": "Inject emit() for 13 channel.* phantom events."
+    },
+    {
+      "rank": 4,
+      "sortie": "telemetry-emit-lovsen",
+      "domain": "lovsen",
+      "owner": "sonnet",
+      "estimateHours": 3,
+      "deltaGlobalPp": 0.4,
+      "rationale": "Inject emit() for 8 lovsen.mcp.* phantom events. Already known L-0287 from domain spine."
+    },
+    {
+      "rank": 5,
+      "sortie": "telemetry-emit-payroll-auth",
+      "domain": "_multi",
+      "owner": "sonnet",
+      "estimateHours": 3,
+      "deltaGlobalPp": 0.5,
+      "rationale": "Inject emit() for 7 payroll.* + 5 auth.* phantom events. Auth callbacks likely in EF /api/auth/callback."
     },
     {
       "rank": 6,
@@ -218,6 +266,27 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 8,
+      "at": "2026-05-26T10:42:00Z",
+      "actions": [
+        "parallel: haiku phantom-telemetry-sweep + sonnet reports.email fix",
+        "haiku scanned 858 registry events → 252 phantom (29.3% systemic L-0287 drift)",
+        "top phantoms: contract 29, ops 14, channel 13, lovsen 8, payroll 7, auth 5",
+        "full phantom report persisted to docs/prod-ready/phantom-telemetry-sweep-2026-05-26.md",
+        "sonnet fix: removed profiles.email from list-data-sources catalog (email lives on user_identity not profile)",
+        "5 new sortie items added to fleetQueue for telemetry emit() injection by domain (40-60h aggregate)",
+        "20/20 runner GREEN post-fix"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 1,
+      "filesCreated": 1,
+      "phantomTelemetryFound": 252,
+      "secondaryBugsFixed": 1,
+      "newSortiesQueued": 5,
+      "learningsHarvested": 1
     },
     {
       "n": 7,
