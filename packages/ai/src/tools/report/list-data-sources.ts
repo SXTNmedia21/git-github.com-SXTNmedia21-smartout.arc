@@ -56,11 +56,10 @@ const DATA_SOURCE_CATALOG = [
     fields: [
       { name: "department_id", type: "uuid", label: "Avdeling-ID" },
       { name: "name", type: "text", label: "Navn" },
-      { name: "location_id", type: "uuid", label: "Lokasjon" },
       { name: "created_at", type: "timestamp", label: "Opprettet" },
     ],
     suggested_metrics: [{ field: "*", aggregation: "count", label: "Antall avdelinger" }],
-    suggested_group_by: ["location_id"],
+    suggested_group_by: [],
   },
   {
     id: "teams",

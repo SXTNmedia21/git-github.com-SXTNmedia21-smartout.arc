@@ -3,6 +3,7 @@
   "generatedAt": "2026-05-26T06:35:00Z",
   "generatedBy": "claude-bootstrap-lite",
   "globalCompletion": 64.4,
+  "prodBugsResolved": 3,
   "domainCount": 20,
   "scanMode": "lite-bootstrap",
   "scanNotes": [
@@ -107,34 +108,55 @@
       "rationale": "SHIPPED. 12/12 pass first run. Covers contract_template, contract (DocuSeal), employment_contract, contract_obligation, contract_amendment, contract_event, compliance_drift + 2 RPCs (check_contract_intake_completion, anonymize_contract)."
     },
     {
-      "rank": 1,
+      "rank": 0,
       "sortie": "fix-prod-bug-communication-channel-is-active",
       "domain": "communication",
       "owner": "sonnet",
       "estimateHours": 0.5,
+      "actualHours": 0.03,
       "deltaGlobalPp": 0.0,
-      "blocksDownstream": [],
-      "rationale": "REAL PROD BUG caught iter-5. packages/ai/src/capabilities/communication/tools.ts:223 filters channel.is_active=true; real column is channel.is_archived. Change to .eq('is_archived', false) to preserve intent (active = not archived). Verify no other tools.ts is_active references on channel."
+      "status": "shipped 2026-05-26 10:05Z",
+      "rationale": "FIXED. Removed phantom .eq('is_active', true) at tools.ts:223; is_archived filter at line 222 was already correct. 26/26 unit + 14/14 live-invoke pass. helpdesk_query verified clean (filter intent comment was wrong, sub-agent corrected)."
     },
     {
-      "rank": 2,
+      "rank": 0,
       "sortie": "fix-prod-bug-reports-department-location-id",
       "domain": "reports",
       "owner": "sonnet",
       "estimateHours": 0.5,
+      "actualHours": 0.02,
       "deltaGlobalPp": 0.0,
-      "blocksDownstream": [],
-      "rationale": "REAL PROD BUG caught iter-5. packages/ai/src/tools/report/preview-report.ts:31 SOURCE_COLUMNS.departments references location_id; department Row has no location_id. Either remove from select OR fix to proper FK lookup. Static catalog so AI gets wrong metadata silently."
+      "status": "shipped 2026-05-26 10:05Z",
+      "rationale": "FIXED. Removed location_id from preview-report.ts:31 SOURCE_COLUMNS.departments + list-data-sources.ts catalog. 10/10 live-invoke pass. SURFACED SECONDARY DRIFT: list-data-sources advertises profiles.email but SOURCE_COLUMNS does not fetch it (PGRST 42703 if used as filter)."
     },
     {
-      "rank": 3,
+      "rank": 0,
       "sortie": "fix-prod-bug-onboarding-add-procedures",
       "domain": "onboarding-wizard",
       "owner": "sonnet",
       "estimateHours": 1.0,
+      "actualHours": 0.05,
       "deltaGlobalPp": 0.0,
-      "blocksDownstream": [],
-      "rationale": "REAL PROD BUG caught iter-6. packages/ai/src/capabilities/onboarding/tools.ts add_procedures inserts {title, protocol_type, description} into protocol — real Row needs {name, description, owner_profile_id, policy_id, created_by, version}. Would 400 at runtime. Fix: map title→name, derive owner_profile_id from ctx, fetch/create policy_id, set created_by + version default."
+      "status": "shipped 2026-05-26 10:05Z",
+      "rationale": "FIXED. Full Row remap: title→name, removed protocol_type+slug, added policy_id (auto-lookup or create operational placeholder), owner_profile_id, version='1'. Typecheck 0 errors + 10/10 live-invoke pass. SURFACED SCHEMA CONSTRAINT: protocol has UNIQUE(policy_id) — multi-call to add_procedures with auto-created placeholder will fail on 2nd call (design follow-up)."
+    },
+    {
+      "rank": 1,
+      "sortie": "fix-prod-bug-reports-email-source-column",
+      "domain": "reports",
+      "owner": "sonnet",
+      "estimateHours": 0.3,
+      "deltaGlobalPp": 0.0,
+      "rationale": "SECONDARY DRIFT surfaced iter-7. list-data-sources.ts advertises profiles.email as queryable field; preview-report.ts SOURCE_COLUMNS.profiles does not fetch email. PGRST 42703 if AI uses email in filter. Either add email to SOURCE_COLUMNS or remove from catalog."
+    },
+    {
+      "rank": 2,
+      "sortie": "design-onboarding-add-procedures-multi-call",
+      "domain": "onboarding-wizard",
+      "owner": "pontus",
+      "estimateHours": 1.0,
+      "deltaGlobalPp": 0.0,
+      "rationale": "DESIGN ISSUE surfaced iter-7. protocol table has UNIQUE(policy_id). add_procedures auto-creates 'Generelle prosedyrer' policy if none exists, but 2nd call hits the unique constraint. Decision needed: (a) one policy per add_procedures call (multi-policy), (b) drop UNIQUE constraint (multi-protocol per policy), (c) update existing protocol instead of insert. Pontus design call."
     },
     {
       "rank": 4,
@@ -196,6 +218,24 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 7,
+      "at": "2026-05-26T10:05:00Z",
+      "milestone": "3 PROD BUGS RESOLVED — all 3 axis-9-discovered drifts fixed and verified via live-invoke smoke.",
+      "actions": [
+        "dispatch 3 parallel sonnet for prod-bug fixes (communication channel.is_active, reports department.location_id, onboarding add_procedures protocol insert)",
+        "all 3 fixes applied + verified via live-invoke smoke (14/14 + 10/10 + 10/10) + 26/26 communication unit tests",
+        "20/20 runner aggregate still GREEN post-fix",
+        "0 hallucinations (sub-agents corrected even my own analysis: communication had TWO redundant filters not one; helpdesk_query never had the same bug — comment was misleading)",
+        "2 new findings flagged for follow-up sorties: reports.profiles.email catalog drift + onboarding protocol UNIQUE(policy_id) design issue"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 4,
+      "prodBugsResolved": 3,
+      "newFindings": 2,
+      "learningsHarvested": 0
     },
     {
       "n": 6,

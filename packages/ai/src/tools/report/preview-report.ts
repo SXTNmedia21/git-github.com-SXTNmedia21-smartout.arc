@@ -28,7 +28,7 @@ const SOURCE_TO_TABLE: Record<ReportDataSource, string> = {
  */
 const SOURCE_COLUMNS: Record<ReportDataSource, string> = {
   profiles: "profile_id, display_name, role, status, department_id, team_id, created_at",
-  departments: "department_id, name, location_id, created_at",
+  departments: "department_id, name, created_at",
   teams: "team_id, name, department_id, leader_profile_id, created_at",
   locations: "location_id, name, address, created_at",
   protocols: "protocol_id, title, type, department_id, is_active, created_at",

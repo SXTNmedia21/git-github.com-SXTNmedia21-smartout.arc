@@ -508,33 +508,72 @@ export const addProcedures = defineTool({
       return `Ikke tillatt: ${gate.reason ?? "gate avvist"}`;
     }
 
+    // Resolve policy_id: look up (or create) a workspace-scoped operational policy.
+    // protocol.policy_id is NOT NULL — every protocol must belong to a policy.
+    // During onboarding the workspace may have no policies yet, so we auto-create
+    // a placeholder "operational" policy as the container for these procedures.
+    let policyId: string;
+    {
+      const { data: existingPolicy } = await supabase
+        .from("policy")
+        .select("policy_id")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("policy_scope", "workspace")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingPolicy?.policy_id) {
+        policyId = existingPolicy.policy_id;
+      } else {
+        // No policy exists yet — create a placeholder operational policy.
+        const { data: newPolicy, error: policyError } = await supabase
+          .from("policy")
+          .insert({
+            workspace_id: ctx.workspaceId,
+            policy_type: "operational" as const,
+            policy_scope: "workspace" as const,
+            name: "Generelle prosedyrer",
+            statement:
+              "Samling av arbeidsplassens prosedyrer og rutiner, opprettet under onboarding.",
+            created_by: ctx.profileId,
+          })
+          .select("policy_id")
+          .single();
+
+        if (policyError || !newPolicy?.policy_id) {
+          return `Kunne ikke opprette policy for prosedyrene: ${policyError?.message ?? "ukjent feil"}`;
+        }
+        policyId = newPolicy.policy_id;
+      }
+    }
+
     // INSERT each procedure into protocol table (Law 1: workspace_id scoped).
-    const results: Array<{ title: string; protocol_id?: string; error?: string }> = [];
+    // Columns: name (not title), no protocol_type/slug (non-existent on protocol).
+    // Required non-default: policy_id, name, owner_profile_id, created_by.
+    const results: Array<{ name: string; protocol_id?: string; error?: string }> = [];
 
     for (const proc of params.procedures) {
-      const slug = proc.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-
       const { data: created, error } = await supabase
         .from("protocol")
         .insert({
           workspace_id: ctx.workspaceId,
-          title: proc.title,
+          policy_id: policyId,
+          name: proc.title,
           description: proc.description ?? null,
-          protocol_type: proc.category ?? "routine",
+          version: "1.0",
           status: "draft",
-          slug: `${slug}-${Date.now()}`,
+          owner_profile_id: ctx.profileId,
           created_by: ctx.profileId,
         })
         .select("protocol_id")
         .single();
 
       if (error) {
-        results.push({ title: proc.title, error: error.message });
+        results.push({ name: proc.title, error: error.message });
       } else {
-        results.push({ title: proc.title, protocol_id: created?.protocol_id });
+        results.push({ name: proc.title, protocol_id: created?.protocol_id });
       }
     }
 
@@ -549,22 +588,22 @@ export const addProcedures = defineTool({
       properties: {
         data: {
           count: succeeded.length,
-          titles: succeeded.map((r) => r.title),
+          titles: succeeded.map((r) => r.name),
           failed_count: failed.length,
         },
       },
     });
 
     if (succeeded.length === 0) {
-      return `Alle ${params.procedures.length} prosedyre(r) feilet: ${failed.map((f) => `${f.title}: ${f.error}`).join("; ")}`;
+      return `Alle ${params.procedures.length} prosedyre(r) feilet: ${failed.map((f) => `${f.name}: ${f.error}`).join("; ")}`;
     }
 
     const lines = [
       `${succeeded.length} av ${params.procedures.length} prosedyre(r) opprettet.`,
-      ...succeeded.map((r) => `• ${r.title} (ID: ${r.protocol_id})`),
+      ...succeeded.map((r) => `• ${r.name} (ID: ${r.protocol_id})`),
     ];
     if (failed.length > 0) {
-      lines.push(`Feilet: ${failed.map((f) => `${f.title} (${f.error})`).join(", ")}`);
+      lines.push(`Feilet: ${failed.map((f) => `${f.name} (${f.error})`).join(", ")}`);
     }
     return lines.join("\n");
   },
