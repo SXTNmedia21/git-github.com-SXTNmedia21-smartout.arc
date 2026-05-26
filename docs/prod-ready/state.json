@@ -334,6 +334,27 @@
       "commit": "ef8f08f81"
     },
     {
+      "n": 18,
+      "at": "2026-05-26T16:45:00Z",
+      "actions": [
+        "haiku mobile-parity scan across 20 domains (axis 6) — report at docs/prod-ready/mobile-parity-status-2026-05-26.md",
+        "RESULT: 10/20 polished (7 web-only N/A + 3 with all signals: notifications/payroll/shift-clock), 2/20 partial (botsson/training), 8/20 unstarted full-scope",
+        "8 unstarted P0 = big 160-320h aggregate campaign (mobile screens + BFF routes + push subscriptions per domain)",
+        "sonnet verification on flagged ADR-0134 violations (notifications + payroll): ALL 4 mutation hooks (use-mark-read + use-request-absence + use-cancel-absence + use-submit-supplement) already compliant — scan FN-method missed hook-chain",
+        "5th FN class added to SKILL.md: scan signals at one directory level miss call-chain dependencies",
+        "0 code changes this iter"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 0,
+      "filesCreated": 1,
+      "pagesUpgraded": 0,
+      "axisExposed": "mobile-parity",
+      "newCampaignQueued": "axis-6-mobile (160-320h aggregate, 8 P0 domains, requires user strategic decision)",
+      "scanFalseNegativesConfirmed": 2,
+      "learningsHarvested": 1
+    },
+    {
       "n": 17,
       "at": "2026-05-26T16:00:00Z",
       "milestone": "AXIS 12 UNIVERSALLY COMPLETE — 17/17 dashboard pages polished",
