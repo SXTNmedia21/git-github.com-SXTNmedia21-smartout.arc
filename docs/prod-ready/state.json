@@ -206,12 +206,30 @@
     },
     {
       "rank": 1,
+      "sortie": "axis-12-page-polish-batch1",
+      "domain": "_multi",
+      "owner": "sonnet",
+      "estimateHours": 4,
+      "deltaGlobalPp": 1.5,
+      "rationale": "First batch of 13 unstarted pages — add PageInstructions header + view-emit + tool-desc to 3-4 P0 domains (scheduling + day-session + payroll + contracts). 4 parallel sonnet sub-sorties. Closes axis 12 for ~25% of fleet in single iter."
+    },
+    {
+      "rank": 2,
+      "sortie": "axis-12-page-polish-batch2",
+      "domain": "_multi",
+      "owner": "sonnet",
+      "estimateHours": 4,
+      "deltaGlobalPp": 1.5,
+      "rationale": "Second batch of remaining P1/P2 pages. Same pattern."
+    },
+    {
+      "rank": 3,
       "sortie": "telemetry-emit-mop-up-A",
       "domain": "_multi",
       "owner": "sonnet",
       "estimateHours": 1.5,
       "deltaGlobalPp": 0.2,
-      "rationale": "Remaining 56 TRUE-A events from v2 triage (78 minus contract 14 + payroll 4 + journey/mission 5 + lovsen 8 already attempted). Apply iter-11 lesson: expect 30% true-injection rate, so realistic outcome is ~17 actual injections across help (3), small per-domain buckets, agent-harness, etc. Better: run reduced v3 triage first that actually attempts each event."
+      "rationale": "L-0287 long-tail. Remaining ~13 true-phantom events distributed across small per-domain buckets. Lower priority than axis 12 which has 36h backlog."
     },
     {
       "rank": 2,
@@ -314,6 +332,24 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 13,
+      "at": "2026-05-26T13:40:00Z",
+      "actions": [
+        "pivot from L-0287 (diminishing returns) to axis-12 page polish scan",
+        "haiku scanned 17 dashboard routes across 20 domains, 4-signal proxy per route",
+        "FINDING: site-map 17/17 ✓ (universal), page-header 3/17, view-emit 1/17, tool-desc 0/17",
+        "axis 12 essentially universal-zero across fleet — massive new gap class surfaced",
+        "remediation estimate: ~36h aggregate, 4 parallel sub-sortie batches",
+        "scan persisted to docs/prod-ready/page-polish-status-2026-05-26.md"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesCreated": 1,
+      "axisExposed": "pagePolish",
+      "newCampaignQueued": "axis-12-page-polish-mvp",
+      "learningsHarvested": 0
     },
     {
       "n": 12,
