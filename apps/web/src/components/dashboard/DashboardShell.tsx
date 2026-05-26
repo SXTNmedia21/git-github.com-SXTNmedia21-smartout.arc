@@ -1517,7 +1517,7 @@ function DashboardShellInner({
                 >
                   {/* ACTION BAR — left-aligned per Pontus 2026-05-19 */}
                   <div
-                    className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
+                    className={`sticky top-0 z-10 flex min-h-16 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
                       isDark
                         ? "border-border bg-background/90"
                         : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
@@ -1818,6 +1818,15 @@ function DashboardShellInner({
   );
 }
 
+// Sub-header precedence (read in DashboardShell render):
+//   1. tabsNode (set via usePageTabs)  → renders custom node
+//   2. header.title (set via usePageTitle)  → renders default breadcrumb pill
+//   3. neither  → renders null
+//
+// Pages with rich toolbar content MUST use usePageTabs (custom node accepted)
+// + usePageActions (right-side controls). Do not add new hooks here without
+// updating this precedence matrix.
+
 /**
  * BreadcrumbActiveSlot — renders the second breadcrumb element in the
  * action bar. Three render modes, in order of precedence:
@@ -1843,6 +1852,11 @@ function BreadcrumbActiveSlot() {
   // matches Pontus 2026-05-19: no URL-derived "Oversikt"-style fallback pill.
   return null;
 }
+
+// PageActionsSlot — no precedence chain. Renders actionsNode verbatim into
+// the right cluster of the action bar when set via usePageActions().
+// Returns null when nothing is published so sibling controls (schedule
+// layout toggle, etc.) keep their natural placement.
 
 /**
  * PageActionsSlot — renders the page-published right-aligned action cluster
