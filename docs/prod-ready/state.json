@@ -173,30 +173,30 @@
     },
     {
       "rank": 1,
-      "sortie": "telemetry-emit-contract",
+      "sortie": "telemetry-emit-contract-A",
       "domain": "contracts",
       "owner": "sonnet",
-      "estimateHours": 8,
+      "estimateHours": 2,
       "deltaGlobalPp": 0.4,
-      "rationale": "Inject emit() call-sites for 29 contract.* phantom events. Likely in contract-service Fastify routes + EF callbacks. Per phantom report."
+      "rationale": "Inject emit() for 14 TRUE-A contract events (down from iter-8 estimate of 29 — rest were aspirational/deferred per v2 triage). Top remediation target."
     },
     {
       "rank": 2,
-      "sortie": "telemetry-emit-ops",
-      "domain": "day-session",
+      "sortie": "telemetry-emit-payroll-A",
+      "domain": "payroll",
       "owner": "sonnet",
-      "estimateHours": 4,
-      "deltaGlobalPp": 0.4,
-      "rationale": "Inject emit() for 14 ops.* phantom events (operations-intelligence monitor+predict tools, day-session domain)."
+      "estimateHours": 1,
+      "deltaGlobalPp": 0.3,
+      "rationale": "Inject emit() for 4 TRUE-A payroll events (rest were SQL-native or aspirational per v2 triage)."
     },
     {
       "rank": 3,
-      "sortie": "telemetry-emit-channel",
-      "domain": "communication",
+      "sortie": "telemetry-emit-journey-mission-A",
+      "domain": "_multi",
       "owner": "sonnet",
-      "estimateHours": 4,
-      "deltaGlobalPp": 0.4,
-      "rationale": "Inject emit() for 13 channel.* phantom events."
+      "estimateHours": 1,
+      "deltaGlobalPp": 0.3,
+      "rationale": "Inject emit() for 5 TRUE-A journey + mission events."
     },
     {
       "rank": 0,
@@ -221,13 +221,15 @@
       "rationale": "Injected auth signed_up (callback/route.ts:177). 2 payroll RECLASSIFIED SQL-native (trigger writes engine_event). 5 payroll aspirational. 3 auth deferred (client-side). 1 cruft (logged_in dup of signed_in)."
     },
     {
-      "rank": 1,
+      "rank": 0,
       "sortie": "phantom-sweep-v2-triage",
       "domain": "_systemic",
       "owner": "haiku",
       "estimateHours": 1.5,
+      "actualHours": 0.05,
       "deltaGlobalPp": 0.0,
-      "rationale": "Re-run phantom sweep with iter-9 methodology refinement. Classify each of 252 phantoms into A/B/C/D/cruft (TRUE/SQL-native/aspirational/deferred/cruft). Output new actionable list (~100-130 true phantoms expected). Persist to docs/prod-ready/phantom-telemetry-sweep-v2.md."
+      "status": "shipped 2026-05-26 11:50Z",
+      "rationale": "TRIAGE COMPLETE. 252 phantoms → 78 TRUE + 62 SQL-native + 49 aspirational + 38 deferred + 25 cruft. Remediation scope cut 70% from iter-8 estimate (40-60h → 8-12h). Full triage at docs/prod-ready/phantom-telemetry-sweep-v2-triage-2026-05-26.md. 78 true phantoms split: contract 14, lovsen 8 (in flight), payroll 4, journey/mission 5, help/support 3, rest distributed."
     },
     {
       "rank": 2,
@@ -288,6 +290,28 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 10,
+      "at": "2026-05-26T11:50:00Z",
+      "actions": [
+        "dispatch haiku phantom-sweep-v2-triage (scan-only, classify 252 phantoms into A/B/C/D/E)",
+        "haiku completed in ~3min (estimate was 1.5h — sonnet-style overestimate, haiku scan-only is fast)",
+        "RESULT: 78 TRUE PHANTOM + 62 SQL-NATIVE + 49 ASPIRATIONAL + 38 DEFERRED + 25 CRUFT (sum 252)",
+        "remediation scope cut 70% (40-60h → 8-12h aggregate for true emit-injection)",
+        "triage persisted to docs/prod-ready/phantom-telemetry-sweep-v2-triage-2026-05-26.md (25KB, 491 lines)",
+        "fleet queue updated: removed inflated contract-29 + ops-14 + channel-13 sorties; replaced with A-class sized sorties (contract-14, payroll-4, journey-mission-5)"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesCreated": 1,
+      "phantomTrueCount": 78,
+      "phantomSqlNativeCount": 62,
+      "phantomAspirationalCount": 49,
+      "phantomDeferredCount": 38,
+      "phantomCruftCount": 25,
+      "remediationScopeReductionPct": 70,
+      "learningsHarvested": 1
     },
     {
       "n": 9,
