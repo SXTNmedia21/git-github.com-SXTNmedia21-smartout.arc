@@ -15,6 +15,17 @@ on:
         description: "Branch/SHA to run against (defaults to caller ref)"
         required: false
         default: ""
+  push:
+    branches:
+      - development
+    paths:
+      - ".github/workflows/e2e-task.yml"
+      - "apps/e2e/tests/daily-operation-tasks-add-task.spec.ts"
+      - "apps/e2e/tests/sortie-p0-fix-sweep-task-created-canonical.spec.ts"
+      - "apps/e2e/tests/sortie-1-mobile-task-complete.spec.ts"
+      - "apps/e2e/tests/sortie-p0-fix-sweep-task-complete-source.spec.ts"
+      - "packages/ai/src/capabilities/task/**"
+      - "apps/web/src/app/api/mobile/tasks/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
