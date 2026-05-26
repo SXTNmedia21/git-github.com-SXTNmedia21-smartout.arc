@@ -172,31 +172,55 @@
       "rationale": "SCAN COMPLETE. 252 phantom of 858 registered (29.3% systemic drift). Top: contract 29, ops 14, channel 13, lovsen 8, payroll 7, auth 5. Full report at docs/prod-ready/phantom-telemetry-sweep-2026-05-26.md. Remediation = 5 separate parallel sorties by domain (40-60h aggregate). New fleet items spawned below."
     },
     {
-      "rank": 1,
+      "rank": 0,
       "sortie": "telemetry-emit-contract-A",
       "domain": "contracts",
       "owner": "sonnet",
       "estimateHours": 2,
-      "deltaGlobalPp": 0.4,
-      "rationale": "Inject emit() for 14 TRUE-A contract events (down from iter-8 estimate of 29 — rest were aspirational/deferred per v2 triage). Top remediation target."
+      "actualHours": 0.16,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 12:20Z (2/14 injected; 12 reclassified B/D/E)",
+      "rationale": "Injected contracts.delete.confirmed + contract.preview.edited. 7 already-wired (B), 4 deferred (D), 1 cruft (E)."
     },
     {
-      "rank": 2,
+      "rank": 0,
       "sortie": "telemetry-emit-payroll-A",
       "domain": "payroll",
       "owner": "sonnet",
       "estimateHours": 1,
-      "deltaGlobalPp": 0.3,
-      "rationale": "Inject emit() for 4 TRUE-A payroll events (rest were SQL-native or aspirational per v2 triage)."
+      "actualHours": 0.04,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 12:20Z (0/4 injected; all 4 reclassified C aspirational)",
+      "rationale": "0 inject. supplement-rule engine + timebank accrual loop + tariff-drift scanner = unbuilt. All 4 are aspirational waiting on Wave-2 payroll infrastructure."
     },
     {
-      "rank": 3,
+      "rank": 0,
       "sortie": "telemetry-emit-journey-mission-A",
       "domain": "_multi",
       "owner": "sonnet",
       "estimateHours": 1,
-      "deltaGlobalPp": 0.3,
-      "rationale": "Inject emit() for 5 TRUE-A journey + mission events."
+      "actualHours": 0.06,
+      "deltaGlobalPp": 0.0,
+      "status": "shipped 2026-05-26 12:20Z (1/5 injected; 1 B-class + 3 registry-shorthand-not-real)",
+      "rationale": "Injected journey_authoring.journey_published. journey_version.created already wired. mission.started/completed/failed are triage-invented shorthand (not in registry) — false A."
+    },
+    {
+      "rank": 1,
+      "sortie": "telemetry-emit-mop-up-A",
+      "domain": "_multi",
+      "owner": "sonnet",
+      "estimateHours": 1.5,
+      "deltaGlobalPp": 0.2,
+      "rationale": "Remaining 56 TRUE-A events from v2 triage (78 minus contract 14 + payroll 4 + journey/mission 5 + lovsen 8 already attempted). Apply iter-11 lesson: expect 30% true-injection rate, so realistic outcome is ~17 actual injections across help (3), small per-domain buckets, agent-harness, etc. Better: run reduced v3 triage first that actually attempts each event."
+    },
+    {
+      "rank": 2,
+      "sortie": "phantom-sweep-v3-attempt-verified",
+      "domain": "_systemic",
+      "owner": "haiku",
+      "estimateHours": 1,
+      "deltaGlobalPp": 0.0,
+      "rationale": "Final triage refinement: for each of 78 v2-A events not yet attempted (56 remaining), grep across full codebase one more time looking for ANY emit(<event>) match. Reclassify any matches to B (already wired). Output reduced list of actual-A candidates. Should drop the A count from 78 → ~25 based on iter-11 87% noise rate."
     },
     {
       "rank": 0,
@@ -290,6 +314,30 @@
       "filesModified": 1,
       "learningsHarvested": 4,
       "commit": "ef8f08f81"
+    },
+    {
+      "n": 11,
+      "at": "2026-05-26T12:20:00Z",
+      "milestone": "CASCADING-OVERESTIMATE INSIGHT — true injectable phantom rate is ~10% of iter-8 scan, not 30%",
+      "actions": [
+        "dispatch 3 parallel sonnet: telemetry-emit-{contract-A 14, payroll-A 4, journey-mission-A 5}",
+        "23 A-class events attempted → 3 injected, 20 RECLASSIFIED (87% noise in v2 triage A-classification)",
+        "INJECTED: contracts.delete.confirmed (data-table.tsx:528) + contract.preview.edited (DispatchDrawer.tsx:726) + journey_authoring.journey_published (publish_draft tools.ts:560)",
+        "RECLASSIFIED A→B (already emitted, iter-8 scan missed): 8 contract events + 1 journey_version",
+        "RECLASSIFIED A→C (aspirational, no engine): all 4 payroll A-class + 3 mission events (registry-shorthand invented, not real registry entries)",
+        "RECLASSIFIED A→D (code path missing): 4 contract template/obligation events",
+        "RECLASSIFIED A→E (cruft superseded): 1 contract event",
+        "20/20 runner GREEN + typecheck clean + 62 contract+payroll unit tests pass post-injection"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 3,
+      "phantomsClosed": 3,
+      "phantomsReclassifiedOnInjectionAttempt": 20,
+      "noiseRatePctInTriage": 87,
+      "trueInjectionRateOf78Aclass": 30,
+      "projectedFinalPhantomCount": 25,
+      "learningsHarvested": 1
     },
     {
       "n": 10,

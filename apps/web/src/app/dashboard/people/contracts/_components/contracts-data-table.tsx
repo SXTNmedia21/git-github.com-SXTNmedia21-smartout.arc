@@ -525,6 +525,19 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
         throw new Error(msg);
       }
       toast.success(t("toast.contract_deleted"));
+      void emit({
+        event: "contracts.delete.confirmed",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "contract", entity_id: contract.contract_id },
+          data: {
+            contract_id: contract.contract_id,
+            employee_id: contract.profile_id ?? "",
+            prior_status: contract.status ?? "unknown",
+          },
+        },
+      });
       if (detailId === contract.contract_id) setDetailId(null);
       setDeleteTarget(null);
       void fetchContracts();

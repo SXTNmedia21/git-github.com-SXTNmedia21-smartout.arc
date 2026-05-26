@@ -25,6 +25,7 @@
 import { z } from "zod";
 import type { Json } from "@smartout/supabase";
 import type { Database } from "@smartout/supabase";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { gatedMutation } from "../../gate/gatedMutation.js";
@@ -456,6 +457,7 @@ export const publishDraftTool = defineTool({
     // refactor (delegation to a journey-capability tool) is tracked
     // separately; gate-wrap closes ADR-0186 / 0204 / L-0176 today.
     let publishedJourneyCode = "";
+    let publishedJourneyId = "";
     let publishedVersionId = "";
     const result = await gatedMutation(supabase, {
       workspace_id: ctx.workspaceId,
@@ -538,6 +540,7 @@ export const publishDraftTool = defineTool({
           .eq("wizard_session_id", wizardSessionId);
 
         publishedJourneyCode = journeyRow.code;
+        publishedJourneyId = journeyRow.journey_id;
         publishedVersionId = versionRow.journey_version_id;
         return { ok: true };
       },
@@ -550,6 +553,28 @@ export const publishDraftTool = defineTool({
     if (result.proposal_id) {
       return `Publish queued for approval (proposal ${result.proposal_id}).`;
     }
+
+    // Emit journey_authoring journey_published ONLY after successful commit
+    // (ADR-0196 Invariant 11 — no phantom emit on proposal or failure paths).
+    // workspace_id + profileId are already validated non-empty above (ADR-0134).
+    await emit({
+      event: "journey_authoring journey_published",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        wizard_session_id: wizardSessionId,
+        journey_id: publishedJourneyId,
+        journey_version_id: publishedVersionId,
+        // mission_id intentionally omitted — populated once publish_mission runs (ADR-0257)
+        actor_id: ctx.profileId,
+        workspace_id: ctx.workspaceId,
+        entity: {
+          entity_type: "journey",
+          entity_id: publishedJourneyId,
+          entity_label: `${slug}@v1`,
+        },
+      },
+    });
 
     return `Draft published. Journey ${publishedJourneyCode} (${slug}) created with status=ready_test. journey_version_id=${publishedVersionId}. Next: invoke journey.publish_mission with this version_id to materialize engine_missions + engine_stages rows. Mission will be is_active=false until author enriches stages (ADR-0194).`;
   },

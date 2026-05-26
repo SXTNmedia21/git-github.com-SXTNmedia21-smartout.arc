@@ -279,6 +279,9 @@ export function ContractDispatchDrawer({
   // SMA-303: track Tiptap edits and PDF-ack snapshot (ADR-0244 legal evidence gate)
   const editedHtmlRef = useRef<string>(""); // tracks Tiptap edits
   const pdfAckdHtmlRef = useRef<string>(""); // snapshot at PDF-ack moment
+  // Telemetry: debounced edit-count for contract.preview.edited event
+  const editCountRef = useRef<number>(0);
+  const editDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // SMA-305: MissingInfoSheet state
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
@@ -294,6 +297,8 @@ export function ContractDispatchDrawer({
       setState(initialState());
       editedHtmlRef.current = "";
       pdfAckdHtmlRef.current = "";
+      editCountRef.current = 0;
+      if (editDebounceRef.current) clearTimeout(editDebounceRef.current);
       setMissingFields([]);
       setMissingInfoSheetOpen(false);
     }
@@ -711,6 +716,28 @@ export function ContractDispatchDrawer({
                               setState((prev) => ({ ...prev, pdfPreviewViewedAt: null }));
                               pdfAckdHtmlRef.current = "";
                             }
+                            // Telemetry: debounce so rapid keystrokes collapse into one event.
+                            // emit() is observational — never affects operation outcome.
+                            editCountRef.current += 1;
+                            if (editDebounceRef.current) clearTimeout(editDebounceRef.current);
+                            editDebounceRef.current = setTimeout(() => {
+                              if (!workspaceId || !actorProfileId) return;
+                              void emit({
+                                event: "contract.preview.edited",
+                                workspace_id: nonEmpty(workspaceId, "workspace_id"),
+                                actor_id: nonEmpty(actorProfileId, "actor_id"),
+                                properties: {
+                                  entity: {
+                                    entity_type: "employment_contract",
+                                    entity_id: existingContractId ?? targetProfileId,
+                                  },
+                                  data: {
+                                    contract_id: existingContractId ?? "",
+                                    edit_count: editCountRef.current,
+                                  },
+                                },
+                              });
+                            }, 2000);
                           }}
                         />
                       </div>
