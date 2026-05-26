@@ -35,6 +35,7 @@ import {
   useMarkAllAsRead,
 } from "@smartout/notifications/client";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { NotificationsToolsBridge } from "@/app/dashboard/notifications/_tools/notifications-tools-bridge";
 
 /* ------------------------------------------------------------------ */
@@ -94,6 +95,40 @@ export function VarslerClient() {
 
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
 
+  // Build filter params for useNotifications based on active tab
+  const queryFilter =
+    activeFilter === "all"
+      ? undefined
+      : activeFilter === "unread"
+        ? { unreadOnly: true }
+        : { iconType: activeFilter };
+
+  // Data hooks — declared before the view-emit effect so unreadCount is in scope.
+  const { data: unreadCount = 0 } = useUnreadCount(profileId ?? undefined);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications(
+    profileId ?? undefined,
+    queryFilter,
+  );
+  const markAsRead = useMarkAsRead(workspaceId, actorId);
+  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined, workspaceId, actorId);
+
+  // View-emit: fire once when both profile + workspace resolve AND the unread count arrives
+  // from the server. Uses a fired-ref so re-renders as notifications are marked read do
+  // NOT re-emit. PostHog + Logger only — read-side view; no activity_trail, no engine_event.
+  // ADR-0134: no empty-string fallback on workspace_id or actor_id.
+  const viewEmittedRef = useRef(false);
+  useEffect(() => {
+    if (viewEmittedRef.current) return;
+    if (!profileId || !workspaceId) return;
+    viewEmittedRef.current = true;
+    void emit({
+      event: "notifications.page_viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: { data: { unread_count: unreadCount } },
+    });
+  }, [profileId, workspaceId, unreadCount]);
+
   function timeAgo(date: string): string {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
     if (seconds < 60) return t("time.now");
@@ -117,23 +152,6 @@ export function VarslerClient() {
     training: t("filter.training"),
     contract: t("filter.contract"),
   };
-
-  // Build filter params for useNotifications based on active tab
-  const queryFilter =
-    activeFilter === "all"
-      ? undefined
-      : activeFilter === "unread"
-        ? { unreadOnly: true }
-        : { iconType: activeFilter };
-
-  // Data hooks
-  const { data: unreadCount = 0 } = useUnreadCount(profileId ?? undefined);
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useNotifications(
-    profileId ?? undefined,
-    queryFilter,
-  );
-  const markAsRead = useMarkAsRead(workspaceId, actorId);
-  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined, workspaceId, actorId);
 
   // Flatten all pages into one flat list
   const notifications = (data?.pages ?? []).flatMap((p: { data: unknown[] }) => p.data) as Array<{
@@ -202,6 +220,7 @@ export function VarslerClient() {
               </span>
             )}
           </div>
+          <p className="text-muted-foreground mt-1 text-sm">{t("page.description")}</p>
         </div>
 
         {unreadCount > 0 && (

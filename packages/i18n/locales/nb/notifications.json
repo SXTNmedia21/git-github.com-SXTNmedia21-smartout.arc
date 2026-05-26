@@ -11,6 +11,7 @@
   "time.daysAgo": "{count}d siden",
 
   "page.title": "Varsler",
+  "page.description": "Samlet oversikt over vakter, oppgaver, avvik og kontrakter \u2014 filtrer og merk som lest.",
   "page.markAllRead": "Marker alle som lest",
   "page.empty": "Ingen varsler enn\u00e5",
   "page.loadingMore": "Laster flere varsler...",
@@ -23,6 +24,7 @@
   "filter.deviation": "Avvik",
   "filter.approval": "Godkjenning",
   "filter.training": "Oppl\u00e6ring",
+  "filter.contract": "Kontrakter",
 
   "prefs.channels.title": "Kanaler",
   "prefs.channels.description": "Velg hvilke kanaler du vil motta varsler p\u00e5.",

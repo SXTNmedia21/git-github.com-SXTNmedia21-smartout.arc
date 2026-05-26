@@ -11,6 +11,7 @@
   "time.daysAgo": "{count}d ago",
 
   "page.title": "Notifications",
+  "page.description": "All alerts for shifts, tasks, deviations and contracts — filter and mark as read.",
   "page.markAllRead": "Mark all as read",
   "page.empty": "No notifications yet",
   "page.loadingMore": "Loading more notifications...",
@@ -23,6 +24,7 @@
   "filter.deviation": "Deviations",
   "filter.approval": "Approvals",
   "filter.training": "Training",
+  "filter.contract": "Contracts",
 
   "prefs.channels.title": "Channels",
   "prefs.channels.description": "Choose which channels to receive notifications on.",

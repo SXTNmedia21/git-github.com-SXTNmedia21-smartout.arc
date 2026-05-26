@@ -87,37 +87,23 @@ export function CalendarPageShell() {
   });
 
   // ── View-emit ─────────────────────────────────────────────────────────────
-  // FLAG: registry entry "calendar.hub.viewed" not yet in packages/telemetry/src/registry.ts.
-  // Proposed shape (add before shipping emit call):
-  //
-  //   export interface CalendarHubViewed extends BaseEvent {
-  //     event: "calendar.hub.viewed";
-  //     properties: {
-  //       entity: { entity_type: "workspace"; entity_id: string; entity_label: "Calendar Hub" };
-  //       data: { initial_tab: string };
-  //     };
-  //   }
-  //   routing: posthog + logger + activity_trail (no engine_event — read-only view).
-  //
-  // Emit call is wired here (once per mount, L-0177 pattern) and will activate
-  // automatically once the registry entry is added and types are regenerated.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- activate after registry add
+  // Once-per-mount. L-0177 pattern: fail-fast via nonEmpty, guard ref prevents
+  // double-fire on StrictMode double-mount in dev.
   const { workspaceData, profileId } = useContext(DashboardContext);
   const calendarHubViewedRef = useRef(false);
   useEffect(() => {
     const workspaceId = workspaceData?.workspace_id ?? null;
     if (!workspaceId || !profileId || calendarHubViewedRef.current) return;
     calendarHubViewedRef.current = true;
-    // TODO: uncomment after adding "calendar.hub.viewed" to registry.ts + regen types.
-    // void emit({
-    //   event: "calendar.hub.viewed",
-    //   workspace_id: nonEmpty(workspaceId, "workspace_id"),
-    //   actor_id: nonEmpty(profileId, "actor_id"),
-    //   properties: {
-    //     entity: { entity_type: "workspace", entity_id: workspaceId, entity_label: "Calendar Hub" },
-    //     data: { initial_tab: "calendar" },
-    //   },
-    // });
+    void emit({
+      event: "calendar.hub.viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: { entity_type: "workspace", entity_id: workspaceId, entity_label: "Calendar Hub" },
+        data: { initial_tab: "calendar" },
+      },
+    });
   }, [workspaceData?.workspace_id, profileId]);
   // ── End view-emit ──────────────────────────────────────────────────────────
 

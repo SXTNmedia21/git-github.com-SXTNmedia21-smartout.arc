@@ -2822,6 +2822,21 @@ export interface MyTrainingViewed extends BaseEvent {
   };
 }
 
+// notifications.page_viewed — emitted when any profile lands on /dashboard/komm/varsler.
+// Distinct from the bell-overlay peek (read-without-navigating). Unread count at view
+// time feeds adoption funnel: do users who open the full page mark things read?
+// PostHog + Logger only: activity_trail excluded — read-only view, no actor mutation.
+// No engine_event: read-side surface; no downstream workflow triggered.
+export interface NotificationsPageViewed extends BaseEvent {
+  event: "notifications.page_viewed";
+  properties: {
+    data: {
+      // Total unread count at the moment the page mounts.
+      unread_count: number;
+    };
+  };
+}
+
 // people.training.viewed — emitted when /dashboard/people/training loads (manager view).
 // Mirrors hms.training.viewed but scoped to the people hub surface.
 // No engine_event: read-side view; no downstream workflow triggered.
@@ -9625,6 +9640,7 @@ export type SmartoutEvent =
   | CalendarViewChanged
   | CalendarTabSwitched
   | CalendarDaySelected
+  | CalendarHubViewed
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────
   | BusinessIntelligenceFindHospitalityCalled
   | BusinessIntelligenceFindHospitalityCost
@@ -9746,6 +9762,8 @@ export type SmartoutEvent =
   | HmsTrainingViewed
   // ─── My Training employee self-view (page-polish axis 12, 2026-05-26) ────────
   | MyTrainingViewed
+  // ─── Notifications page view (page-polish axis 12, 2026-05-26) ───────────────
+  | NotificationsPageViewed
   // ─── People Training (SM-2-followup-training 2026-05-19) ─────────────────────
   | PeopleTrainingViewed
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ─────────────────
@@ -10251,6 +10269,14 @@ export interface CalendarDaySelected extends BaseEvent {
     data: {
       date: string; // YYYY-MM-DD
     };
+  };
+}
+
+export interface CalendarHubViewed extends BaseEvent {
+  event: "calendar.hub.viewed";
+  properties: {
+    entity: { entity_type: "workspace"; entity_id: string; entity_label: "Calendar Hub" };
+    data: { initial_tab: string };
   };
 }
 
@@ -15002,6 +15028,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger"],
     category: "navigation",
   },
+  "calendar.hub.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
 
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
   // called-events: posthog + logger + activity_trail (godmode audit trail).
@@ -15611,6 +15641,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "my.training.viewed": {
     destinations: ["posthog", "logger"],
     category: "training",
+  },
+  // notifications.page_viewed: full-page varsler view (distinct from bell-overlay peek).
+  // posthog: adoption funnel (do users who open the page act on it?).
+  // logger: observability.
+  // activity_trail excluded — read-only view, no mutation.
+  "notifications.page_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
   },
 
   // ─── Cascade Delegation (ADR-0356, Sortie 3 2026-05-17) ────────────────────

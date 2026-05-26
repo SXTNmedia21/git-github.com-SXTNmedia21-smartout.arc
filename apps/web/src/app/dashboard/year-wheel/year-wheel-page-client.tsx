@@ -60,6 +60,25 @@ export function YearWheelPageClient() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [quickCreate, setQuickCreate] = useState<{ start: string; end: string } | null>(null);
 
+  // Phase 5 view-emit — fires once when workspace + profile context resolve.
+  // Registry entry: "season year_wheel_viewed" (posthog + logger).
+  // ADR-0357 §(c): never-skippable when registry entry exists.
+  // seasons_count is the total loaded by useSeasons; 0 is acceptable if
+  // the workspace has no seasons yet — the event still records the view.
+  useEffect(() => {
+    if (!workspaceId || !profileId) return;
+    void emit({
+      event: "season year_wheel_viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: { data: { year, seasons_count: seasons.length } },
+    });
+    // Intentionally omit `seasons` — we want one emit per page visit,
+    // not one per season-list refetch. year + context IDs are stable
+    // across a single page visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, profileId, year]);
+
   // Alt+N shortcut: quick-open the season sheet with a 7-day range starting
   // today. Skips if the sheet is already open so we don't stomp on an
   // in-progress draft. Registered globally on window — the year-wheel page

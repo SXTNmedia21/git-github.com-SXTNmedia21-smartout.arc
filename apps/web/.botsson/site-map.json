@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-18T00:00:00Z",
+  "generated_at": "2026-05-26T00:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -529,7 +529,7 @@
       "module": "Governance",
       "tier": 2,
       "access": ["owner", "admin", "manager"],
-      "polished_at": "2026-05-14",
+      "polished_at": "2026-05-26",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [
@@ -548,10 +548,6 @@
         {
           "name": "listOverdueItems",
           "description": "List D3-layer protocols that have expired assignments or completion below 80%. Use when manager asks 'hva er på etterskudd?', 'hvem mangler opplæring?', or needs to identify C4-compliance gaps."
-        },
-        {
-          "name": "listOpenDeviations",
-          "description": "List open C4-layer deviations (open + acknowledged + escalated). Includes severity, domain, department, and whether the deviation blocks day-approval. Use when manager asks 'hvilke avvik er åpne?', 'blokkerer noe dag-godkjenning?'."
         },
         {
           "name": "proposeAssignProtocol",

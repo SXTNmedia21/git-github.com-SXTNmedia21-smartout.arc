@@ -80,7 +80,7 @@ page_knowledge:
 
 # Step 8 — Harness tools
 harness_tools_current:
-  count: 8
+  count: 7  # listOpenDeviations REMOVED per ADR-0365 (2026-05-17) — single owner is hms/deviations sub-tab
   registered_at: apps/web/src/app/dashboard/governance/_tools/governance-tools-bridge.tsx
   page_key: governance
   read:
@@ -92,8 +92,6 @@ harness_tools_current:
       desc: "Get detailed status breakdown (completed/in_progress/not_started/expired/waived) for a single D3-layer protocol."
     - key: listOverdueItems
       desc: "List D3-layer protocols with expired assignments or completion below threshold (default 80%). Use for compliance gap analysis."
-    - key: listOpenDeviations
-      desc: "List open C4-layer deviations. Optional blocking_only flag to surface only those that block day-approval."
   write_propose:
     - key: proposeAssignProtocol
       desc: "Navigate to the governance sub-tab and open the assign-protocol sheet for a protocol. User selects employees and confirms. NEVER assigns directly."

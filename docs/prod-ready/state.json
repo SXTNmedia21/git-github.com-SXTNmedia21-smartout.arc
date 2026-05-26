@@ -334,6 +334,31 @@
       "commit": "ef8f08f81"
     },
     {
+      "n": 17,
+      "at": "2026-05-26T16:00:00Z",
+      "milestone": "AXIS 12 UNIVERSALLY COMPLETE — 17/17 dashboard pages polished",
+      "actions": [
+        "dispatch 4 parallel sonnet axis-12 batch4 closure (governance + notifications/varsler + year-wheel + calendar-unblock)",
+        "governance: scan ALL FN — redirect-shell page (page.tsx redirects to /dashboard/hms), ADR-0357 N/A. SECONDARY FIX: removed ghost tool listOpenDeviations from site-map (ADR-0365 removal not reflected)",
+        "notifications /varsler: 0→2 (new notifications.page_viewed event + 2 i18n descriptions + view-emit). FN: tool-bridge already wired",
+        "year-wheel: 0→2 (view-emit added; season year_wheel_viewed registry entry already existed). FN: 7 tools + header already present",
+        "calendar/day-session UNBLOCKED: atomic registry edit (CalendarHubViewed interface + union + EVENT_ROUTING in single Edit) + emit() uncommented in CalendarPageShell",
+        "stop-hook fired 14+ times (registry routing lag + EventCategory mismatch + WSL2 OOM); sub-agents recovered each time",
+        "final typecheck PASS (telemetry + web exit=0) + 20/20 runner GREEN"
+      ],
+      "globalBefore": 64.4,
+      "globalAfter": 64.4,
+      "filesModified": 8,
+      "pagesUpgraded": 3,
+      "pagesUnblocked": 1,
+      "ghostToolRemoved": 1,
+      "registryEventsAdded": 3,
+      "scanFalseNegativesConfirmed": 9,
+      "stopHookEvents": 14,
+      "axis12CampaignComplete": true,
+      "learningsHarvested": 0
+    },
+    {
       "n": 16,
       "at": "2026-05-26T15:25:00Z",
       "actions": [
