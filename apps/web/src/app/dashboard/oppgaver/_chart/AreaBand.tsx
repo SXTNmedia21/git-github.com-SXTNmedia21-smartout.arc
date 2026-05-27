@@ -255,7 +255,10 @@ export function AreaBand({
 
   return (
     <div
-      className={cn("border-border flex flex-col border-r", dimmed && "opacity-30")}
+      className={cn(
+        "border-border flex min-w-[220px] flex-1 flex-col border-r",
+        dimmed && "opacity-30",
+      )}
       data-dimmed={dimmed ? "true" : "false"}
       style={{ "--area-color": areaColorVar } as React.CSSProperties}
     >

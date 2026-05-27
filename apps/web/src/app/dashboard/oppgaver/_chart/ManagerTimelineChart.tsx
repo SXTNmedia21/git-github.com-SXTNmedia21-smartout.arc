@@ -134,23 +134,28 @@ export function ManagerTimelineChart({
           {/* Layer 1 — past-time dim overlay (absolute, above strips) */}
           <PastDim currentMin={nowMinutes} pxPerMin={pxPerMin} />
 
-          {/* Layer 2 — area band rows (flow layout, stacked vertically) */}
-          {bands.map((band) => (
-            <AreaBand
-              key={band.id}
-              band={band}
-              mode={mode}
-              employees={employees.filter((e) => e.area === band.id)}
-              tasks={tasks}
-              pxPerHour={pxPerHour}
-              dimmed={dimmedBandIds?.includes(band.id)}
-              onLaneClick={onLaneClick}
-              onTaskClick={onTaskClick}
-              onDrop={onTaskDrop}
-              dateISO={dateISO}
-              onKeyboardEdit={onKeyboardEdit}
-            />
-          ))}
+          {/* Layer 2 — area bands rendered as side-by-side columns (flex-row).
+               overflow-x-auto enables horizontal scroll when >N bands exceed viewport.
+               Each AreaBand receives flex-1 min-w-[220px] to match prototype minWidth logic
+               (Math.max(220, totalCols * 110) per timeline-chart.jsx line 338). */}
+          <div className="flex flex-row overflow-x-auto">
+            {bands.map((band) => (
+              <AreaBand
+                key={band.id}
+                band={band}
+                mode={mode}
+                employees={employees.filter((e) => e.area === band.id)}
+                tasks={tasks}
+                pxPerHour={pxPerHour}
+                dimmed={dimmedBandIds?.includes(band.id)}
+                onLaneClick={onLaneClick}
+                onTaskClick={onTaskClick}
+                onDrop={onTaskDrop}
+                dateISO={dateISO}
+                onKeyboardEdit={onKeyboardEdit}
+              />
+            ))}
+          </div>
 
           {/* Layer 3 — now-line overlay (absolute, top-most z-index) */}
           <NowLine currentMin={nowMinutes} pxPerMin={pxPerMin} />
