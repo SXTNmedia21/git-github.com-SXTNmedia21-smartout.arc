@@ -40,7 +40,8 @@ export function Orb({
   "aria-label": ariaLabel,
 }: OrbProps) {
   const chroma = CHROMA[status];
-  const gradient = `radial-gradient(circle at 45% 35%, oklch(0.82 ${chroma} 50) 0%, oklch(0.72 ${chroma * 0.7} 50 / 0.75) 35%, oklch(0.62 ${chroma * 0.4} 50 / 0.35) 60%, transparent 75%)`;
+  // Gradient defined in globals.css via [data-orb-gradient] selector (ADR-0366).
+  // --orb-chroma drives all colour stops via CSS calc().
 
   return (
     <div
@@ -65,8 +66,9 @@ export function Orb({
           position: "absolute",
           inset: 0,
           borderRadius: "50%",
-          background: gradient,
+          // background provided by [data-orb-gradient] in globals.css — no inline literal (ADR-0366)
           filter: "blur(1px)",
+          ["--orb-chroma" as string]: chroma,
         }}
       />
       {withCheck && (

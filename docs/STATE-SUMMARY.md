@@ -184,6 +184,7 @@ Campaign drift refreshed 2026-05-26: ui-shell + ui-shell-followup + mobile all s
 - **L-0357 (2026-05-25)** — `not_implemented` LLM-callable antipattern (sibling L-0176)
 - **L-0358 / L-0359** — Forward-only doctrine extension
 - **L-0361 (2026-05-25)** — ADR-missing-cross-runtime-dimension (3rd occurrence, promotion-grade)
+- **ADR-0366 enforcement (2026-05-28)** — `nordic-split/no-oklch-literal` ESLint rule live in pre-push + CI; ADR-0366 promoted `proposed → accepted`; 2 helpdesk-orb runtime gradient violations swept
 
 ## Quick References
 

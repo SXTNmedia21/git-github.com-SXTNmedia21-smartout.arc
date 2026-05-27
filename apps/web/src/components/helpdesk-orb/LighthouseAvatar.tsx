@@ -50,7 +50,8 @@ export function LighthouseAvatar({
   const chroma = CHROMA[halo];
   const initials = getInitials(name);
 
-  const haloGradient = `radial-gradient(circle at 45% 40%, oklch(0.80 ${chroma} 50 / 0.55) 0%, oklch(0.70 ${chroma * 0.6} 50 / 0.25) 45%, transparent 70%)`;
+  // Gradient defined in globals.css via [data-halo] selector (ADR-0366).
+  // --orb-chroma drives all colour stops via CSS calc().
   const avatarFallback = "var(--avatar-fallback-gradient)";
 
   return (
@@ -73,8 +74,9 @@ export function LighthouseAvatar({
           position: "absolute",
           inset: 0,
           borderRadius: "50%",
-          background: haloGradient,
+          // background provided by [data-halo] in globals.css — no inline literal (ADR-0366)
           filter: "blur(2px)",
+          ["--orb-chroma" as string]: chroma,
         }}
       />
       <div

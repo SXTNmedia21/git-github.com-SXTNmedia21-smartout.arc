@@ -35,6 +35,12 @@ export default [
       // Metro bundle guard: wizard barrel pulls lucide-react + framer-motion.
       // Mobile must import from "@smartout/ui/wizard/state" (deep entry only).
       "smartout/no-wizard-barrel-import": "error",
+      // ADR-0366 §Decision scopes the OKLCH-literal ban to apps/web/**,
+      // apps/mobile/**, and apps/landing/**. Wired here (not in base.mjs) to
+      // avoid spraying the rule onto services/ + scripts/ where it has no
+      // semantic meaning. Mobile sortie was swept earlier per
+      // JOURNEY-design-token-sweep.md — baseline is clean.
+      "smartout/no-oklch-literal": "error",
     },
   },
 ];
