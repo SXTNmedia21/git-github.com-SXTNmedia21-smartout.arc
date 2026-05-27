@@ -1,6 +1,6 @@
 ---
 title: "STATE Summary — Quick Session Start"
-updated: 2026-05-25
+updated: 2026-05-26
 derived-from: docs/STATE.md (817 lines full version)
 ---
 
@@ -8,7 +8,7 @@ derived-from: docs/STATE.md (817 lines full version)
 
 > Read this instead of STATE.md at session start. For deep dives, use semantic search on STATE.md.
 
-## Active Work (2026-05-25)
+## Active Work (2026-05-26)
 
 | Worktree | Branch | HEAD | Status | Notes |
 |---|---|---|---|---|
@@ -22,11 +22,15 @@ derived-from: docs/STATE.md (817 lines full version)
 | `~/dev/smartout.ai-ui-shell-followup` | `campaign/ui-shell-followup` | `932e91ec0` | clean | Sync-only ahead |
 | `~/dev/smartout.ai-world-best-wfm` | `campaign/world-best-wfm` | `84902705e` | clean | Sync-only ahead |
 
-Open PRs (2026-05-25 evening):
-- **PR #486** — setup-flow redirect-loop guard + storage godmode bypass — 22 pass, 0 fail, 3 pending (essentially merge-ready)
-- **PR #488** — DashboardShell sub-header `min-h-16` (oppgaver redesign Track A) — 18 pass, 1 lint-fail (local exit 0, CI exit 1 — known dev-debt divergence)
+Open PRs (2026-05-26): _none_.
+
+Recently merged (2026-05-25 → 2026-05-26 UTC):
+- **PR #486** — setup-flow redirect-loop guard + storage godmode bypass → merged 2026-05-25 23:30 UTC (`cf62db965`)
+- **PR #488** — DashboardShell sub-header `min-h-16` (oppgaver redesign Track A) → merged 2026-05-26 03:04 UTC (`a8a66a454`)
 
 Sortie pool entirely free. No active sub-sorties.
+
+Campaign drift refreshed 2026-05-26: ui-shell + ui-shell-followup + mobile all synced with development (39/40/40 commits respectively). `sync-campaign.sh` patched with `pnpm install --prefer-offline` pre-flight to pre-empt L-0190 4th occurrence.
 
 ## Production / Preview State (2026-05-25)
 
