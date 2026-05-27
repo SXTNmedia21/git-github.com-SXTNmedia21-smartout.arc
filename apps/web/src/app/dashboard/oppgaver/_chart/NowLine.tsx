@@ -44,41 +44,16 @@ const pulseVariants = {
 };
 
 export function NowLine({ currentMin, pxPerMin }: NowLineProps) {
+  // Reduced-motion preference resolves to null on SSR + first client render,
+  // then to boolean after the media-query subscription mounts. Gating DOM
+  // structure on this value caused SSR/client tree divergence (hydration
+  // mismatch). Single tree always; only the framer-motion `animate` target
+  // changes, which is applied post-hydration without DOM diff.
   const prefersReducedMotion = useReducedMotion();
 
   const top = (currentMin - DAY_START_MIN) * pxPerMin;
   const timeLabel = minToHM(currentMin);
 
-  const lineEl = (
-    <div
-      className="border-warning absolute right-0 left-0 border-t-2"
-      style={{ top }}
-      role="presentation"
-      aria-label={`Nå: ${timeLabel}`}
-    >
-      {/* Dot indicator at left edge */}
-      <div className="bg-warning absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full" />
-      {/* Time label */}
-      <span className="text-warning absolute -top-3 left-4 font-mono text-[0.6rem] select-none">
-        {timeLabel}
-      </span>
-    </div>
-  );
-
-  if (prefersReducedMotion) {
-    // Static render — no animation props whatsoever
-    return (
-      <div
-        className="pointer-events-none absolute inset-x-0"
-        style={{ top: 0, bottom: 0 }}
-        aria-hidden="true"
-      >
-        {lineEl}
-      </div>
-    );
-  }
-
-  // Animated: pulse on the dot only via motion.div wrapper
   return (
     <div
       className="pointer-events-none absolute inset-x-0"
@@ -95,7 +70,7 @@ export function NowLine({ currentMin, pxPerMin }: NowLineProps) {
           className="bg-warning absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full"
           variants={pulseVariants}
           initial="idle"
-          animate="pulse"
+          animate={prefersReducedMotion ? "idle" : "pulse"}
           transition={{ type: "spring", ...motionTokens.springGentle }}
         />
         <span className="text-warning absolute -top-3 left-4 font-mono text-[0.6rem] select-none">
