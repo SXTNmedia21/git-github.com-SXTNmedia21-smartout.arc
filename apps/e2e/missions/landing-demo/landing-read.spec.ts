@@ -12,19 +12,19 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("landing-demo — voice widget mount", () => {
-  /* SMA-376: VoiceDemoWidget is implemented but no landing route mounts it on
-   * the live page tree (grep confirms no consumer in apps/landing/src/app/**
-   * or any variant under apps/landing/src/components/landing/**). This spec
-   * is `test.fixme` until the widget is mounted on a real route per the
-   * acceptance criteria in the Linear issue.
-   * https://linear.app/smartout/issue/SMA-376 */
-  test.fixme("landing page renders, voice trigger reachable via role", async ({ page }) => {
-    const response = await page.goto("/", { timeout: 15_000 });
+  /* SMA-376 resolved 2026-05-27: VoiceDemoWidget now mounts on /demo/voice
+   * (apps/landing/src/app/demo/voice/page.tsx) with missionId="landing-demo"
+   * wired through the widget's default Ultravox/LiveKit bootstrap. */
+  test("landing voice-demo page renders, voice trigger reachable", async ({ page }) => {
+    const response = await page.goto("/demo/voice", { timeout: 15_000 });
     expect(response, "landing server must respond on baseURL").not.toBeNull();
     expect(response!.status(), "non-5xx response from landing app").toBeLessThan(500);
 
-    /* Page-level sanity. */
-    await expect(page).toHaveTitle(/SmartOut/i);
+    /* Page-level sanity — heading or title indicates mount. Title falls back
+     * to landing layout default; the page-specific h1 is the stable signal. */
+    await expect(page.getByRole("heading", { name: /snakk med lise/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     /* Voice widget trigger — VoiceDemoWidget placeholder is a styled <div>
      * with onClick + cursor-pointer (not <button>). Locate by the visible
