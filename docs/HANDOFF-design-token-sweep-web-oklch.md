@@ -82,7 +82,7 @@ The following are candidates for `docs/learnings/` — NOT promoted here (occurr
 | Criterion | Status | Notes |
 |---|---|---|
 | ESLint `no-oklch-literal` errors on new `oklch(...)` literal in `apps/web/src/**` | ✓ | 19/19 RuleTester cases pass; blocking in pre-push + CI |
-| `grep "oklch\(" apps/web/src/components apps/web/src/app` returns 0 | ✓ | 1 remaining hit: JSDoc comment at `LighthouseAvatar.tsx:8` — correctly ignored by rule (comment node, not a violation) |
+| `grep "oklch\(" apps/web/src/components apps/web/src/app` returns 0 | ✓ | 3 remaining grep hits, all non-violations: 1 JSDoc comment at `LighthouseAvatar.tsx:8` (comment node, AST-ignored) + 2 test assertions (`expect(src).not.toContain("oklch(")` in TidslinjeChipBar.test.tsx:121 + TidslinjeTab.test.tsx:88; these are the rule's own guard tests). Rule correctly fires on none. |
 | `grep "(zinc\|slate\|gray)-[0-9]" apps/web/src/components apps/web/src/app` returns 0 | ✗ | 4 hits remain in contract print-preview (`contract-preview-editor.tsx:73,76,81` + `contracts-data-table.tsx:868`). Intentionally deferred — print surface is theme-invariant by design. See Out of Scope #1. **Orchestrator attention required.** |
 | Hex bucket report exists at `docs/audits/2026-05-28-oklch-sweep/hex-buckets.md` | ✓ | A=29 (exempt), B=171 (replaceable), C=15 (ambiguous) |
 | `pnpm turbo typecheck` passes | ✓ | 52/52 tasks, 0 errors |

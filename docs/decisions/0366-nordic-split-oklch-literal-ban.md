@@ -15,7 +15,7 @@ tags: [design-system, nordic-split, a11y, lint, css-variables]
 
 ## Status
 
-**proposed** — drafted 2026-05-17 from Council R1 Tidslinjen post-implementation verdict. Awaits ratification + migration sortie. (Original slot: 0349; renumbered to 0361 per outsider-renumber convention — payroll kept 0347-0356 after merging to development first.)
+**accepted 2026-05-28** — drafted 2026-05-17 from Council R1 Tidslinjen post-implementation verdict. Ratified + enforced by `design-token-sweep-web-oklch` sortie 2026-05-28 (see §Addendum — Enforcement). (Original slot: 0349; renumbered to 0361 per outsider-renumber convention — payroll kept 0347-0356 after merging to development first.)
 
 ## Context
 
