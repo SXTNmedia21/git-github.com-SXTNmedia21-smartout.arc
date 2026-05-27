@@ -535,6 +535,11 @@ export function getBootstrapGates(): BootstrapGateDefinition[] {
   return HOSPITALITY_BOOTSTRAP_GATES;
 }
 
+// ADR-0429: Default departments for new hospitality workspaces are FoH / BoH / Admin.
+// Replaces the previous 4-dept seed (Operations / Kitchen / Service / Bar).
+// Existing workspaces are untouched — workspace-defined autonomy (ADR-0429 §Rules).
+// Bar is an optional 4th dept seeded when admin checks "vi har en dedikert bar-avdeling"
+// in the onboarding wizard. Events is an optional 5th (no default positions).
 export const hospitalityPackage: IndustryPackage = {
   id: "hospitality",
   label: "Restaurant og servering",
@@ -722,12 +727,16 @@ export const hospitalityPackage: IndustryPackage = {
   ],
   defaultTariffKey: "riksavtalen",
 
+  // ADR-0429: Three default departments — FoH (Front of House), BoH (Back of House), Admin.
+  // Bar is a size-conditional 4th department; when not enabled, bartenders live under FoH.
+  // These shift templates reference the canonical dept names — update if admin renames depts.
   shiftTemplates: [
-    { name: "Morgenvakt", department: "Kjokken", startTime: "07:00", endTime: "15:00" },
-    { name: "Kveldsvakt", department: "Kjokken", startTime: "15:00", endTime: "23:00" },
-    { name: "Morgenvakt", department: "Service", startTime: "09:00", endTime: "15:00" },
-    { name: "Kveldsvakt", department: "Service", startTime: "15:00", endTime: "23:00" },
-    { name: "Kveldsvakt", department: "Bar", startTime: "16:00", endTime: "01:00" },
+    { name: "Morgenvakt", department: "BoH", startTime: "07:00", endTime: "15:00" },
+    { name: "Kveldsvakt", department: "BoH", startTime: "15:00", endTime: "23:00" },
+    { name: "Morgenvakt", department: "FoH", startTime: "09:00", endTime: "15:00" },
+    { name: "Kveldsvakt", department: "FoH", startTime: "15:00", endTime: "23:00" },
+    // Bar kveldsvakt stays under FoH until admin activates the optional Bar dept (ADR-0429 §size-conditional).
+    { name: "Barvakt", department: "FoH", startTime: "16:00", endTime: "01:00" },
   ],
 
   seasonTemplates: [
@@ -769,7 +778,7 @@ export const hospitalityPackage: IndustryPackage = {
     payroll: "Velg tariffavtale og legg til tillegg som gjelder for din virksomhet.",
     employment: "Provetid pa 6 maneder er standard. Dere kan sette kortere, men ikke lenger.",
     team: "Alle nye ansatte starter som trainee. De far automatisk opplaering basert pa stilling og avdeling.",
-    "shift-template": "Basert pa apningstidene deres foreslar vi 2 skift per dag for kjokkenet.",
+    "shift-template": "Basert pa apningstidene deres foreslar vi 2 skift per dag for BoH og FoH.",
     season:
       "De fleste restauranter kjorer sommersesong mai–september og vintersesong oktober–april.",
     handbook:
@@ -799,9 +808,13 @@ export const hospitalityPackage: IndustryPackage = {
       ],
       readySignal: "Can run one full shift cycle without policy-critical misses",
     },
+    // ADR-0429: FoH positions — Servitør, Bartender, Hovmester, Sommelier, Hostess, Runner.
+    // "Vertinne" was a legacy alias for Hostess — replaced by canonical "Hostess" per ADR-0429.
+    // Bartender lives under FoH in default config (no dedicated Bar dept); moves to Bar role
+    // when admin activates the optional Bar department.
     {
       roleSlug: "servitor",
-      positionSlugs: ["Servitør", "Runner", "Vertinne"],
+      positionSlugs: ["Servitør", "Runner", "Hovmester", "Sommelier", "Hostess"],
       mandatoryProtocolSlugs: [
         "Allergenhandtering-protokoll", // governance.sql:324
         "Handhygiene-protokoll", // governance.sql:327
@@ -811,17 +824,13 @@ export const hospitalityPackage: IndustryPackage = {
       ],
       readySignal: "Completes full service sequence with correct allergen handling",
     },
+    // ADR-0429: BoH positions — Kjøkkensjef, Sous Chef, Kokk, Lærling, Oppvask, Stewarding.
+    // "Kjøkkenassistent", "Gardemanger", "Patissier", "Oppvaskhjelp" were legacy granular names;
+    // consolidated to the canonical 6 per ADR-0429 (Lærling covers apprentices, Stewarding covers
+    // dishwash + receiving). Old position names remain as DB aliases on existing workspaces.
     {
       roleSlug: "kokk",
-      positionSlugs: [
-        "Kokk",
-        "Sous Chef",
-        "Kjøkkenassistent",
-        "Kjøkkensjef",
-        "Gardemanger",
-        "Patissier",
-        "Oppvaskhjelp",
-      ],
+      positionSlugs: ["Kjøkkensjef", "Sous Chef", "Kokk", "Lærling", "Oppvask", "Stewarding"],
       mandatoryProtocolSlugs: [
         "Temperaturkontroll-protokoll", // governance.sql:323
         "Allergenhandtering-protokoll", // governance.sql:324
@@ -833,6 +842,8 @@ export const hospitalityPackage: IndustryPackage = {
       ],
       readySignal: "Executes prep + service tasks with compliant temperature and hygiene behavior",
     },
+    // ADR-0429: Bartender role profile applies when admin activates the optional Bar dept.
+    // In default (3-dept) config, Bartender is a position under FoH (see servitor profile above).
     {
       roleSlug: "bartender",
       positionSlugs: ["Bartender", "Barback", "Barsjef"],
@@ -843,6 +854,9 @@ export const hospitalityPackage: IndustryPackage = {
       ],
       readySignal: "Handles bar service and age checks without compliance breaches",
     },
+    // ADR-0429: "Renhold" as a standalone dept is removed from the 3-dept default.
+    // Stewarding (BoH) covers dishwash + receiving cleanliness. If admin keeps a dedicated
+    // Renhold dept, this profile provides the protocol gate for that staffing.
     {
       roleSlug: "renhold",
       positionSlugs: ["Renholder", "Renholdsansvarlig"],
