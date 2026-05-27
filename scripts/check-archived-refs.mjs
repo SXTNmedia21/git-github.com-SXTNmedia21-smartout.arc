@@ -51,6 +51,7 @@ const EXCLUDE_PREFIXES = [
   "docs/superpowers/specs/",
   "docs/superpowers/plans/",
   "docs/handoffs/",
+  "docs/audits/",
 ];
 const isExcluded = (rel, entry) => {
   if (rel.startsWith(`docs/modules/${entry.name}/`)) return true;
