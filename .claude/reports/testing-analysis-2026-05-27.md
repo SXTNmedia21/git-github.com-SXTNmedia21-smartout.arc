@@ -211,13 +211,74 @@ mobile-pwa (existing)    | mobileBaseUrl        | tests/mobile-pwa/**           
 
 **Discovery confirmed:** `playwright test --list missions/mr-botsson/mobile-read.spec.ts` shows 2 tests — one under `[web-iphone14]`, one under `[web-pixel7]`. Zero under `[web]` (testIgnore working).
 
-**Verification (in progress):** running `--project=web-iphone14` against the spec. Result pending — populated next.
+**Verification result:** Playwright `webServer` config exited early because `npx supabase status -o env` could not reach the local stack. Spec never executed. Exit code 0 (Playwright reported the infra error cleanly + exited). Stdout:
 
-(continues per iteration)
+```
+[WebServer] Local Playwright app bootstrap could not read Supabase status.
+[WebServer] Start the local Supabase stack with `npx supabase start` before
+[WebServer] running the dedicated Playwright web servers.
+Error: Process from config.webServer was not able to start. Exit code: 1
+```
+
+**Diagnosis:** Not a spec defect. Infra dependency missing. Root: Docker Desktop on Windows is not running → docker daemon unreachable in WSL2 → `supabase start` cannot launch its container stack.
+
+### Iteration 4 — Specs fan-out (completed)
+
+Drafted 7 additional mission specs while iter-3 blocker stood. All discovered correctly:
+
+```
+[landing]       missions/landing-demo/landing-read.spec.ts
+[web]           missions/mr-botsson/web-chat.spec.ts
+[web]           missions/shift-assistant/web-author.spec.ts
+[web]           missions/haccp-inspector/web-author.spec.ts
+[web]           missions/onboarding-interview/web-author.spec.ts
+[web-iphone14]  missions/mr-botsson/mobile-read.spec.ts
+[web-iphone14]  missions/shift-assistant/mobile-my-schedule.spec.ts
+[web-iphone14]  missions/haccp-inspector/mobile-run-check.spec.ts
+[web-pixel7]    (3 mobile specs above, mirrored)
+```
+
+Total: 11 test occurrences across 4 projects. Zero spec leak between projects (verified via `playwright test --list`).
+
+`landing` project `testMatch` broadened to `[/tests\/landing\.spec\.ts/, /missions\/landing-demo\/.+\.spec\.ts/]` so the landing-demo mission ships against landingBaseUrl :3056, not webBaseUrl :3060.
+
+`apps/e2e` typecheck clean (no compile errors). Commits: `b6caf7f59` (foundation), `ee130f2b8` (fan-out).
+
+### Iteration 5 — Runtime verification (BLOCKED)
+
+**Blocker:** Docker Desktop on Windows is not running. WSL2 `docker` CLI reports "could not be found in this WSL 2 distro" → Supabase container stack cannot start → web dev server can't bootstrap env from `supabase status` → Playwright can't execute mission specs.
+
+**Required user action:** Start Docker Desktop on Windows, ensure WSL integration is enabled for the active distro. Then `npx supabase start` from repo root.
+
+**On resume:** running all 11 specs is a single command —
+`pnpm --filter @smartout/e2e exec playwright test --project=web --project=web-iphone14 --project=web-pixel7 --project=landing missions/`
+— with `op run --env-file=.env.template` prefix if vault-sourced env is needed.
+
+(loop reopens when infra returns)
 
 ## 9. Exit Status
 
-**Pending.** Loop in progress. Final criteria assessment populated when loop terminates.
+**Interim — runtime blocked on Docker Desktop startup.**
+
+| Exit Criterion | Status | Evidence |
+|---|---|---|
+| 1. All journeys green on Chromium + iPhone 14 + Pixel 7 | ⏸ BLOCKED — runtime infra | 11 specs scaffolded; Playwright projects + discovery confirmed |
+| 2. Button click + state sync (Zustand ↔ UI) | ✅ designed | `data-density` attr asserts orb→arena transition in every spec |
+| 3. Backend contract via API intercept | ✅ designed | every mission spec uses `page.route(/\/api\/(botsson\|emma)\/chat/, ...)` with body + status fulfilment |
+| 4. `getByRole` / `getByTestId` only, no fragile CSS | ✅ implemented | all 8 new specs use testid or role locators; testids added to BotssonShell + BotssonChat |
+| 5. Author web-only, mobile read/operator only (ADR-0133) | ✅ implemented | file naming convention enforces routing; mobile specs assert zero write-verb URLs hit |
+| 6. Trace Viewer artifacts on every failure | ✅ implemented | `trace: "retain-on-failure"` (was `on-first-retry`+retries=0 = never) |
+| 7. Test creds via op:// | ✅ pre-existing | `helpers/auth.ts` reads `E2E_EMAIL` + `E2E_PASSWORD` from env; no raw creds in any spec |
+| 8. Blockers filed as SMA-xxx | n/a | Docker startup is transient infra, not architectural — not Linear-worthy |
+
+**Loop will resume** once Docker Desktop on Windows is running + `npx supabase start` succeeds in WSL2. At that point one playwright invocation runs all 11 occurrences; subsequent iterations diagnose any real spec-level failures.
+
+**Pending follow-on iterations (once runtime is back):**
+
+1. Run full mission suite, diagnose any locator timing issues (Botsson Orb appears after dashboard hydration — may need `waitForLoadState`).
+2. Verify the BFF intercept actually fires — `BotssonChat` defaults to `/api/botsson/chat` but the route handler may redirect to `/api/emma/chat` depending on caller; the spec uses an alternation regex covering both.
+3. Tune any spec where mocked-reply assertion races with the Loader/sending state — add `await expect(loader).not.toBeVisible()` if needed.
+4. Capture Trace artifacts per failure, attach to report.
 
 ## 10. Code Examples
 
