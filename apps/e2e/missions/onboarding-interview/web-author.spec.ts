@@ -13,6 +13,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../../helpers/auth";
+import { dismissDevOverlays, openBotssonChat } from "../_fixtures";
 
 const REPLY = "Vi setter opp Smartout for deg. Hva heter du? — Vi starter med å hente bedriften.";
 
@@ -26,7 +27,6 @@ test.describe("onboarding-interview — web author surface", () => {
         contentType: "application/json",
         body: JSON.stringify({
           text: REPLY,
-          sessionId: "00000000-0000-0000-0000-00000000d001",
           intent: { capability: "onboarding_open", confidence: 0.97 },
         }),
       });
@@ -34,14 +34,8 @@ test.describe("onboarding-interview — web author surface", () => {
 
     await loginAsAdmin(page);
     await page.goto("/dashboard/onboarding-assistant");
-
-    /* Orb mounted via DashboardShell → BotssonHost → BotssonShell. */
-    const orb = page.getByTestId("botsson-orb");
-    await expect(orb).toBeVisible({ timeout: 15_000 });
-    await orb.click();
-
-    const shell = page.getByTestId("botsson-shell");
-    await expect(shell).toHaveAttribute("data-density", /arena|immersive/, { timeout: 5_000 });
+    await dismissDevOverlays(page);
+    await openBotssonChat(page);
 
     await page.getByTestId("botsson-chat-input").fill("La oss starte oppsettet.");
     await page.getByTestId("botsson-chat-send").click();

@@ -10,6 +10,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../../helpers/auth";
+import { dismissDevOverlays, openBotssonChat } from "../_fixtures";
 
 const MOCK_REPLY = "Bra. Temperaturen er innenfor. Loggen er signert.";
 
@@ -23,7 +24,6 @@ test.describe("@mobile-ok haccp-inspector — mobile run-check", () => {
         contentType: "application/json",
         body: JSON.stringify({
           text: MOCK_REPLY,
-          sessionId: "00000000-0000-0000-0000-00000000c001",
           intent: { capability: "haccp_check", confidence: 0.91 },
         }),
       });
@@ -31,16 +31,13 @@ test.describe("@mobile-ok haccp-inspector — mobile run-check", () => {
 
     await loginAsAdmin(page);
     await page.goto("/dashboard/hms");
+    await dismissDevOverlays(page);
+    await openBotssonChat(page);
 
-    const orb = page.getByTestId("botsson-orb");
-    await expect(orb).toBeVisible({ timeout: 15_000 });
-    await orb.click();
-
-    const shell = page.getByTestId("botsson-shell");
-    await expect(shell).toHaveAttribute("data-density", /arena|immersive/, { timeout: 5_000 });
-
-    await page.getByTestId("botsson-chat-input").fill("Logg temperatur 4 grader på kjøl 1.");
-    await page.getByTestId("botsson-chat-send").click();
+    const input = page.getByTestId("botsson-chat-input");
+    await input.fill("Logg temperatur 4 grader på kjøl 1.");
+    /* Submit via Enter — see mr-botsson/mobile-read.spec.ts rationale. */
+    await input.press("Enter");
 
     await expect.poll(() => captured.length, { timeout: 10_000 }).toBeGreaterThan(0);
     await expect(page.getByTestId("botsson-chat-messages")).toContainText(MOCK_REPLY);

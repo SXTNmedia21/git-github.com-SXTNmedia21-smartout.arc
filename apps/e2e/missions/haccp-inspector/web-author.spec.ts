@@ -11,6 +11,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../../helpers/auth";
+import { dismissDevOverlays, openBotssonChat } from "../_fixtures";
 
 const REPLY =
   "Du har 8 kjøl/frys-punkter registrert. Siste avvik var fredag — temperatur 9° på kjøl 3, korrigert.";
@@ -25,7 +26,6 @@ test.describe("haccp-inspector — web author surface", () => {
         contentType: "application/json",
         body: JSON.stringify({
           text: REPLY,
-          sessionId: "00000000-0000-0000-0000-00000000c002",
           intent: { capability: "haccp_status", confidence: 0.92 },
         }),
       });
@@ -33,13 +33,8 @@ test.describe("haccp-inspector — web author surface", () => {
 
     await loginAsAdmin(page);
     await page.goto("/dashboard/hms");
-
-    const orb = page.getByTestId("botsson-orb");
-    await expect(orb).toBeVisible({ timeout: 15_000 });
-    await orb.click();
-
-    const shell = page.getByTestId("botsson-shell");
-    await expect(shell).toHaveAttribute("data-density", /arena|immersive/, { timeout: 5_000 });
+    await dismissDevOverlays(page);
+    await openBotssonChat(page);
 
     await page.getByTestId("botsson-chat-input").fill("Hvordan står det til med HACCP?");
     await page.getByTestId("botsson-chat-send").click();

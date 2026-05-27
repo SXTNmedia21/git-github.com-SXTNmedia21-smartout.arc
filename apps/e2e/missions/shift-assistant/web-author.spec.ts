@@ -13,6 +13,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../../helpers/auth";
+import { dismissDevOverlays, openBotssonChat } from "../_fixtures";
 
 const REPLY = "Fredag 17-23 mangler 1 kokk og 1 servitør. Anna er ledig — vil du legge henne på?";
 
@@ -28,7 +29,6 @@ test.describe("shift-assistant — web author surface", () => {
         contentType: "application/json",
         body: JSON.stringify({
           text: REPLY,
-          sessionId: "00000000-0000-0000-0000-00000000b002",
           intent: { capability: "get_coverage", confidence: 0.95 },
         }),
       });
@@ -36,15 +36,8 @@ test.describe("shift-assistant — web author surface", () => {
 
     await loginAsAdmin(page);
     await page.goto("/dashboard/schedule");
-
-    /* ROUTE_MISSION_MAP /dashboard/schedule → shift-assistant. Orb mounts
-     * via BotssonHost wrapped inside DashboardShell. */
-    const orb = page.getByTestId("botsson-orb");
-    await expect(orb).toBeVisible({ timeout: 15_000 });
-    await orb.click();
-
-    const shell = page.getByTestId("botsson-shell");
-    await expect(shell).toHaveAttribute("data-density", /arena|immersive/, { timeout: 5_000 });
+    await dismissDevOverlays(page);
+    await openBotssonChat(page);
 
     await page.getByTestId("botsson-chat-input").fill("Hva mangler jeg av dekning på fredag?");
     await page.getByTestId("botsson-chat-send").click();

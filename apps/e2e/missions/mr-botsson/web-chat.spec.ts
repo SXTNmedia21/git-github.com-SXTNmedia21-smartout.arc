@@ -15,6 +15,7 @@
 
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../../helpers/auth";
+import { dismissDevOverlays, openBotssonChat } from "../_fixtures";
 
 const REPLY_1 = "Du har 4 åpne oppgaver: 2 vaktbytter, 1 HACCP-avvik, 1 onboarding.";
 const REPLY_2 = "Vaktbyttene er fra Anna (fredag 17-23) og Bjørn (lørdag 12-20).";
@@ -35,7 +36,6 @@ test.describe("mr-botsson — web chat round-trip", () => {
         contentType: "application/json",
         body: JSON.stringify({
           text: reply,
-          sessionId: "00000000-0000-0000-0000-00000000a002",
           intent: { capability: "summary", confidence: 0.93 },
         }),
       });
@@ -43,14 +43,8 @@ test.describe("mr-botsson — web chat round-trip", () => {
 
     await loginAsAdmin(page);
     await page.goto("/dashboard");
-
-    /* Orb → Arena state sync. */
-    const orb = page.getByTestId("botsson-orb");
-    await expect(orb).toBeVisible({ timeout: 15_000 });
-    await orb.click();
-
-    const shell = page.getByTestId("botsson-shell");
-    await expect(shell).toHaveAttribute("data-density", /arena|immersive/, { timeout: 5_000 });
+    await dismissDevOverlays(page);
+    await openBotssonChat(page);
 
     /* Turn 1. */
     const input = page.getByTestId("botsson-chat-input");
@@ -65,10 +59,11 @@ test.describe("mr-botsson — web chat round-trip", () => {
     const firstBody = captured[0]?.body as Record<string, unknown> | null;
     expect(firstBody, "BFF payload non-null").not.toBeNull();
 
-    /* Turn 2. Sticky composer regression — send button must re-enable after
-     * first turn settles, accepting a new message without page reload.      */
-    await expect(send).toBeEnabled({ timeout: 10_000 });
+    /* Turn 2. Composer clears `inputValue` after a send, which leaves the
+     * submit button disabled (`disabled={isSending || !inputValue.trim()}`).
+     * Fill first, THEN assert enabled — order matters.                     */
     await input.fill("Hvilke vaktbytter?");
+    await expect(send).toBeEnabled({ timeout: 10_000 });
     await send.click();
 
     await expect.poll(() => captured.length, { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
