@@ -16,6 +16,18 @@ const eslintConfig = defineConfig([
       "smartout/no-direct-supabase-write": "warn",
     },
   },
+  // ADR-0366: OKLCH literals banned in app code. Token DEFINITIONS belong in
+  // globals.css (exempt below). All other app code must use CSS variables or
+  // Tailwind token classes. Severity: error — regression-prevention gate.
+  // T2 of design-token-sweep-web-oklch sortie sweeps the 3 existing violations
+  // in Orb.tsx + LighthouseAvatar.tsx. Until then, rule will error on them.
+  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    plugins: { smartout },
+    rules: {
+      "smartout/no-oklch-literal": "error",
+    },
+  },
   // public-site uses [host] dynamic route which ESLint treats as a glob
   // character class, causing "rule definition not found" errors in lint-staged.
   // These are server-rendered public pages — Next.js link rules don't apply.

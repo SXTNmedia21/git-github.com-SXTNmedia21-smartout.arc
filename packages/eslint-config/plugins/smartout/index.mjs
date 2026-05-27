@@ -7,6 +7,7 @@ import noDirectSupabaseWrite from "./rules/no-direct-supabase-write.mjs";
 import noGatedWriteInCapabilities from "./rules/no-gated-write-in-capabilities.mjs";
 import noEmptyStringIdentifierFallback from "./rules/no-empty-string-identifier-fallback.mjs";
 import noWizardBarrelImport from "./rules/no-wizard-barrel-import.mjs";
+import noOklchLiteral from "./rules/no-oklch-literal.mjs";
 
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
@@ -19,6 +20,7 @@ const plugin = {
     "no-gated-write-in-capabilities": noGatedWriteInCapabilities,
     "no-empty-string-identifier-fallback": noEmptyStringIdentifierFallback,
     "no-wizard-barrel-import": noWizardBarrelImport,
+    "no-oklch-literal": noOklchLiteral,
   },
 };
 
