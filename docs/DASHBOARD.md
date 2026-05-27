@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-25
+updated: 2026-05-27
 last-reconciled: 2026-05-23T22:00Z
 last-event: /status regenerate — global rebuild post wt-6/wt-7/tier0-polish ships (development @ 61a8b97ed)
 module: meta
