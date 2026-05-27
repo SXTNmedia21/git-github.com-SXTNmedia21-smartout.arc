@@ -110,7 +110,8 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         baseURL: landingBaseUrl,
       },
-      testMatch: /landing\.spec\.ts/,
+      /* Original tests/landing.spec.ts + the landing-demo mission folder. */
+      testMatch: [/tests\/landing\.spec\.ts/, /missions\/landing-demo\/.+\.spec\.ts/],
     },
     {
       name: "web",
@@ -118,11 +119,12 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         baseURL: webBaseUrl,
       },
-      /* Ignore landing-only specs, Expo PWA specs (tests/mobile, tests/mobile-pwa),
-       * and mission mobile specs (missions/<id>/mobile-*.spec.ts which run on
-       * web-iphone14 + web-pixel7 against webBaseUrl). */
+      /* Ignore landing-only specs, landing-demo mission (landing baseURL),
+       * Expo PWA specs (tests/mobile, tests/mobile-pwa), and mission mobile
+       * specs (run on web-iphone14 + web-pixel7 against webBaseUrl). */
       testIgnore: [
-        /landing\.spec\.ts/,
+        /tests\/landing\.spec\.ts/,
+        /missions\/landing-demo\//,
         /tests\/mobile\//,
         /tests\/mobile-pwa\//,
         /missions\/[^/]+\/mobile-[^/]+\.spec\.ts/,
