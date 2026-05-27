@@ -79,6 +79,23 @@ describe("smartout/no-oklch-literal", () => {
 
         // String without oklch
         { code: `const s = "radial-gradient(circle, #fff, #000)";` },
+
+        // ── False-positive guard: prefix-detection strings ─────────────────
+        // Runtime helpers parse OKLCH strings supplied by the token layer; the
+        // string "oklch(" with no digits/dots inside the parens is a prefix
+        // pattern, not a color literal. Real-world example: `apps/mobile/src/
+        // theme/colors.ts:withOpacity` (line 44 as of 2026-05-28).
+
+        // Prefix-test via String.startsWith
+        { code: `if (color.startsWith("oklch(")) { /* runtime prefix-test */ }` },
+
+        // Named constant holding the bare prefix
+        { code: `const PREFIX = "oklch(";` },
+
+        // ── Regex literal — node.value is RegExp object, must skip ─────────
+        // The Literal visitor checks typeof node.value === "string" first, so
+        // RegExp values are correctly ignored. Lock that behavior in.
+        { code: "const re = /oklch\\(/;" },
       ],
 
       invalid: [
@@ -115,6 +132,23 @@ describe("smartout/no-oklch-literal", () => {
         // style prop with string value containing oklch
         {
           code: `const el = <div style={{ background: "radial-gradient(circle, oklch(0.8 0.1 60))" }} />;`,
+          errors: [{ messageId: "forbidden" }],
+        },
+
+        // ── False-positive guard: tightened regex still catches real values ─
+        // Sibling of the prefix-test valid cases above. If a future regex
+        // regression weakens the digit/dot requirement, this case ensures we
+        // still fire on the actual color-literal form.
+        {
+          code: `const c = "oklch(0.5 0.1 90)";`,
+          errors: [{ messageId: "forbidden" }],
+        },
+
+        // ── Case-insensitivity: uppercase OKLCH( must fire ─────────────────
+        // ADR-0366 doesn't care about case; CSS accepts oklch/Oklch/OKLCH.
+        // The `i` flag in OKLCH_RE handles all three — this locks it in.
+        {
+          code: `const c = "OKLCH(0.5 0.1 90)";`,
           errors: [{ messageId: "forbidden" }],
         },
       ],

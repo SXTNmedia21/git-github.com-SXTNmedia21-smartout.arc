@@ -17,10 +17,22 @@
  *   - Tagged template literals that contain `oklch(` in any quasi element
  *
  * Exempt:
- *   - `apps/web/src/app/globals.css`  — token DEFINITIONS belong here
+ *   - `apps/web/src/app/globals.css`  — token DEFINITIONS belong here.
+ *                                       Listed for future Stylelint-mirror parity;
+ *                                       ESLint never sees .css files under the
+ *                                       current `files` glob, but the entry stays
+ *                                       so a future Stylelint port shares the
+ *                                       same exemption surface.
  *   - `packages/design-tokens/**`     — canonical token source
  *   - `*.test.{ts,tsx,mjs}`           — test fixtures may reference literals
  *   - `*.stories.tsx`                 — Storybook
+ *
+ * False-positive guard:
+ *   The regex requires a digit or dot **inside** the `oklch(...)` parens to fire.
+ *   This distinguishes color literals (`oklch(0.5 0.1 90)`) from runtime
+ *   prefix-detection strings (`color.startsWith("oklch(")`), a legitimate idiom
+ *   in string-parsing helpers like `apps/mobile/src/theme/colors.ts:withOpacity`
+ *   that append an alpha channel to a token-supplied OKLCH string at runtime.
  *
  * Severity: `error` — this is a regression-prevention gate.
  *
@@ -39,7 +51,9 @@ const ALLOW_LIST_PATTERNS = [
   /\.stories\.(ts|tsx)$/,
 ];
 
-const OKLCH_RE = /oklch\s*\(/i;
+// Require a digit or dot inside the parens — fires on `oklch(0.5 …)` but
+// NOT on prefix-test strings like `"oklch("`. Case-insensitive per ADR-0366.
+const OKLCH_RE = /oklch\s*\(\s*[\d.]/i;
 
 /** @param {string} s @returns {boolean} */
 function containsOklch(s) {
