@@ -47,7 +47,7 @@ export const updateDeptAreas = defineTool({
     "Kobler eller avkobler en avdeling fra en lokasjon (department_location). " +
     "Bruk når en administrator sier 'legg til avdeling X på lokasjon Y', " +
     "'fjern avdeling fra lokasjonen', 'endre avdelingslokasjoner'. " +
-    "Krever admin+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Krever admin+ tilgangsnivå. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
     "action='add' er idempotent (duplikat ignoreres). action='remove' fjerner koblingen.",
   capability: CAPABILITY,
   schema: z

@@ -1,0 +1,66 @@
+{
+  "avdeling": {
+    "label": "Avdeling",
+    "tooltip": "En avdeling er en gruppe ansatte med lignende oppgaver, fag, og regler.",
+    "default_foh": "FoH",
+    "default_foh_long": "Front of House",
+    "default_boh": "BoH",
+    "default_boh_long": "Back of House",
+    "default_admin": "Admin",
+    "default_admin_long": "Administrasjon",
+    "default_bar": "Bar",
+    "default_events": "Events",
+    "add_bar_toggle": "Legg til Bar som egen avdeling",
+    "add_events_toggle": "Legg til Events som egen avdeling",
+    "rename_placeholder": "Endre avdelingsnavn"
+  },
+  "stilling": {
+    "label": "Stilling",
+    "tooltip": "Stilling er rolle-typen i en avdeling (Bartender, Kjøkkensjef). Ikke en person.",
+    "positions": {
+      "servitor": "Servitør",
+      "bartender": "Bartender",
+      "hovmester": "Hovmester",
+      "sommelier": "Sommelier",
+      "hostess": "Hostess",
+      "runner": "Runner",
+      "kjokkensjef": "Kjøkkensjef",
+      "sous_chef": "Sous Chef",
+      "kokk": "Kokk",
+      "laerling": "Lærling",
+      "oppvask": "Oppvask",
+      "stewarding": "Stewarding",
+      "daglig_leder": "Daglig leder",
+      "eier": "Eier",
+      "regnskap": "Regnskap",
+      "hr": "HR",
+      "innkjop": "Innkjøp"
+    }
+  },
+  "tilgangsniva": {
+    "label": "Tilgangsnivå",
+    "tooltip": "Tilgangsnivå er sikkerhetsnivå (ikke jobbtittel). Brukes til hvilke deler av systemet ansatte kan bruke.",
+    "roles": {
+      "employee": "Ansatt",
+      "manager": "Leder",
+      "admin": "Admin",
+      "owner": "Eier"
+    }
+  },
+  "omrade": {
+    "label": "Område",
+    "tooltip": "Område er et fysisk operativt rom inne i workspacen (Bar, Kjøkken, Sal)."
+  },
+  "sone": {
+    "label": "Sone",
+    "tooltip": "Sone er en del av et område hvor en vakt kan tildeles (Bar 1, Dish Station)."
+  },
+  "lag": {
+    "label": "Lag",
+    "tooltip": "Lag er en konkret gruppe ansatte som jobber sammen på en vakt."
+  },
+  "vakt": {
+    "label": "Vakt",
+    "tooltip": "Vakt er en planlagt jobb-tildeling for en ansatt på en dato."
+  }
+}

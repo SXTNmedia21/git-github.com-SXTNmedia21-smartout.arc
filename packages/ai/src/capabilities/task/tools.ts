@@ -283,7 +283,7 @@ export const createPersonal = defineTool({
     "Bruk når brukeren sier 'lag oppgave', 'ny oppgave', 'jeg må huske å', 'todo', " +
     "'legg til X i oppgavelisten', 'gjør X'. " +
     "Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy, ADR-0298 R6. " +
-    "Skriver til personal_task. Krever ingen spesiell rolle (employee+).",
+    "Skriver til personal_task. Krever ingen spesielt tilgangsnivå (employee+).",
   capability: CAPABILITY,
   schema: z
     .object({
@@ -364,7 +364,7 @@ export const createSession = defineTool({
     "Opprett en sesjonsoppgave koblet til en aktiv avdelingsøkt. " +
     "Bruk når en leder sier 'lag oppgave til Anna', 'sett oppgave på morgenvakten', " +
     "'legg til HACCP-sjekk', 'ny oppgave i denne vakten'. " +
-    "Krever manager+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Krever manager+ tilgangsnivå. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
     "assignee_profile_id er den valgfrie mottakeren (må tilhøre samme workspace). " +
     "Delegerer til addTaskAction Server Action for å bevare telemetri og gate-konsistens.",
   capability: CAPABILITY,
@@ -656,7 +656,7 @@ export const createDayAdHoc = defineTool({
     "Opprett en dagsplan-oppgave forankret på en bestemt dato. " +
     "Bruk når en leder sier 'legg til X på tirsdagens dagsplan', 'ny oppgave 22. mai', " +
     "'sett opp bestilling på fredag', 'highlight oppgave for i morgen'. " +
-    "Krever manager+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Krever manager+ tilgangsnivå. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
     "Skriver til schedule_day_task (D6 Production).",
   capability: CAPABILITY,
   schema: z
@@ -973,7 +973,7 @@ export const updateSessionTask = defineTool({
     "Bruk når en leder sier 'flytt oppgaven til 14:00', 'gi oppgaven til Anna istedenfor', " +
     "'utsett oppgaven', 'endre tidspunkt på X'. " +
     "Brukes også internt av drag-and-drop på dagsplanen for å re-time eller re-tildele oppgaver. " +
-    "Krever manager+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Krever manager+ tilgangsnivå. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
     "Partial update: oppdaterer kun felter som sendes inn. " +
     "Sett assignee_profile_id=null for å fjerne tildeling.",
   capability: CAPABILITY,

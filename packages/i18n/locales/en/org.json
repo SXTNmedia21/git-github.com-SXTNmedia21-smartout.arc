@@ -1,0 +1,66 @@
+{
+  "avdeling": {
+    "label": "Department",
+    "tooltip": "A department is a group of staff with similar tasks, profession, and regulations.",
+    "default_foh": "FoH",
+    "default_foh_long": "Front of House",
+    "default_boh": "BoH",
+    "default_boh_long": "Back of House",
+    "default_admin": "Admin",
+    "default_admin_long": "Administration",
+    "default_bar": "Bar",
+    "default_events": "Events",
+    "add_bar_toggle": "Add Bar as a separate department",
+    "add_events_toggle": "Add Events as a separate department",
+    "rename_placeholder": "Change department name"
+  },
+  "stilling": {
+    "label": "Position",
+    "tooltip": "Position is the role type within a department (Bartender, Head Chef). Not a person.",
+    "positions": {
+      "servitor": "Servitør",
+      "bartender": "Bartender",
+      "hovmester": "Hovmester",
+      "sommelier": "Sommelier",
+      "hostess": "Hostess",
+      "runner": "Runner",
+      "kjokkensjef": "Kjøkkensjef",
+      "sous_chef": "Sous Chef",
+      "kokk": "Kokk",
+      "laerling": "Lærling",
+      "oppvask": "Oppvask",
+      "stewarding": "Stewarding",
+      "daglig_leder": "Daglig leder",
+      "eier": "Eier",
+      "regnskap": "Regnskap",
+      "hr": "HR",
+      "innkjop": "Innkjøp"
+    }
+  },
+  "tilgangsniva": {
+    "label": "Access Level",
+    "tooltip": "Access level is the security level (not a job title). Used for what parts of the system staff can use.",
+    "roles": {
+      "employee": "Employee",
+      "manager": "Manager",
+      "admin": "Admin",
+      "owner": "Owner"
+    }
+  },
+  "omrade": {
+    "label": "Area",
+    "tooltip": "Area is a physical operational room inside the workspace (Bar, Kitchen, Floor)."
+  },
+  "sone": {
+    "label": "Zone",
+    "tooltip": "Zone is a part of an area where a shift can be assigned (Bar 1, Dish Station)."
+  },
+  "lag": {
+    "label": "Team",
+    "tooltip": "Team is a concrete group of staff working together on a shift."
+  },
+  "vakt": {
+    "label": "Shift",
+    "tooltip": "Shift is a planned work assignment for an employee on a date."
+  }
+}

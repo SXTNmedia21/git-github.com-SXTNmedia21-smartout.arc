@@ -562,7 +562,7 @@ export const saveTemplate = defineTool({
     "Kun tilgjengelig i chat (ikke stemme) — inneholder fri tekst og scope-informasjon. " +
     "Validerer scope_id mot workspace; avviser dersom entiteten ikke finnes. " +
     "Lokasjonsscope tillater kun vaktenheter (schedule_shift). " +
-    "Skriver til timeline_template. Krever manager+ rolle.",
+    "Skriver til timeline_template. Krever manager+ tilgangsnivå.",
   capability: CAPABILITY,
   schema: TimelineTemplateSaveSchema.strict(),
   execute: async (params, ctx: AgentToolContext) => {
@@ -925,7 +925,7 @@ export const archiveTemplate = defineTool({
     "Arkiver en tidslinje-mal (myk sletting — is_archived=true). " +
     "Bruk når manager sier 'arkiver mal', 'fjern mal', 'slett tidslinje-mal'. " +
     "Kun tilgjengelig i chat. Irreversibel i v1 (ingen hard-delete policy). " +
-    "Verifiserer workspace-tilhørighet før update. Krever manager+ rolle.",
+    "Verifiserer workspace-tilhørighet før update. Krever manager+ tilgangsnivå.",
   capability: CAPABILITY,
   schema: z
     .object({

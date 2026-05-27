@@ -2,11 +2,12 @@
 title: "Core Structure — Overview"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-23
-updated: 2026-05-23
+last_verified: 2026-05-28
+updated: 2026-05-28
 created: 2026-05-23
+module: core-structure
 domain: core-structure
-tags: [domain, core-structure, d1, overview, cascade, operating-hours, identity, rls, multi-workspace]
+tags: [domain, core-structure, d1, overview, cascade, operating-hours, identity, rls, multi-workspace, terminology, adr-0429]
 ---
 
 # Core Structure — Overview
@@ -111,7 +112,30 @@ The settings hook `use-operating-hours.ts:94` reads `department_operating_hours`
 8. **Structural mutations require `gatedMutation`** (ADR-0204) and admin role.
 9. **Mobile is read-only on structure** (ADR-0133) — no authoring UIs on mobile.
 
-## 7. Identity layer boundary and multi-workspace patterns
+## 7. Terminology — Canonical glossar (ADR-0429)
+
+A single canonical vocabulary across UI, AI, docs, and database ensures clarity. The word **rolle** is intentionally NOT a Smartout term — it ambiguously covers both "stilling" and "tilgangsnivå" in colloquial Norwegian.
+
+| Norwegian UI term | Database concept | Used for |
+|---|---|---|
+| **Avdeling** | `department` | Functional grouping of staff with similar tasks, profession, and regulations |
+| **Stilling** | `position` | Role *type* under a department (Bartender, Kjøkkensjef) — NOT a person |
+| **Tilgangsnivå** | `profile.role` enum (`employee` / `manager` / `admin` / `owner`) | Permission/security level — NOT a job title |
+| **Område** | `location` | Operational area inside the workspace |
+| **Sone** | `zone` | Sub-area shift-assignment unit (e.g. "Bar 1", "Dish station") |
+| **Lag** | `team` | Concrete crew of people working together |
+| **Vakt** | `schedule_shift` | A planned work-assignment for a profile on a date |
+
+**Tooltip copy** (avdeling definition, rendered in onboarding + UI): "En avdeling er en gruppe ansatte med lignende oppgaver, fag, og regler."
+
+**Default departments** for new hospitality workspaces follow the FoH/BoH/Admin archetype:
+- **FoH** (Front of House) — guest-facing service (Servitør, Bartender, Hovmester, Sommelier, Hostess, Runner)
+- **BoH** (Back of House) — food production + cleanliness + receiving (Kjøkkensjef, Sous Chef, Kokk, Lærling, Oppvask, Stewarding)
+- **Admin** — coordinating + business operations (Daglig leder, Eier, Regnskap, HR, Innkjøp)
+
+Optional fourth **Bar** department when workspace has bar-led operations or large bar staffing. See ADR-0429 for full rationale and cross-industry scaling pattern.
+
+## 8. Identity layer boundary and multi-workspace patterns
 
 Core structure starts AT the workspace. The identity layer below it is a prerequisite:
 

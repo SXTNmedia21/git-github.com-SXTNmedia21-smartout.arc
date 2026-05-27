@@ -204,7 +204,7 @@ export const skipBootstrapGate = defineTool({
     "'vi selger ikke alkohol — hopp over alkohol-portene', " +
     "'skip porten for [gate_slug]'. " +
     "Kun tilgjengelig i chat (fri tekst i reason). " +
-    "Krever admin+ rolle. Required-porter KAN IKKE hoppes over (blokkert i RPC). " +
+    "Krever admin+ tilgangsnivå. Required-porter KAN IKKE hoppes over (blokkert i RPC). " +
     "profile_id utledes server-side fra AgentToolContext (ADR-0151).",
   capability: CAPABILITY,
   schema: z

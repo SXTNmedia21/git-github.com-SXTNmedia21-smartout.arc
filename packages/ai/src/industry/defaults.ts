@@ -23,14 +23,13 @@ export const INDUSTRY_NACE_MAP: Record<string, string> = {
 };
 
 /** Department config per NACE code */
+// ADR-0429: Restaurant default is FoH / BoH / Admin (replaces Kjøkken/Sal/Bar/Ledelse).
+// Bar and Events are size-conditional extras offered via wizard toggles, not default-selected.
 const DEPARTMENT_CONFIGS: Record<string, { name: string; icon: string; preselected: boolean }[]> = {
   "56.101": [
-    { name: "Kjøkken", icon: "chef-hat", preselected: true },
-    { name: "Sal", icon: "utensils", preselected: true },
-    { name: "Bar", icon: "wine", preselected: true },
-    { name: "Ledelse", icon: "briefcase", preselected: false },
-    { name: "Event", icon: "calendar", preselected: false },
-    { name: "Housekeeping", icon: "sparkles", preselected: false },
+    { name: "FoH", icon: "utensils", preselected: true },
+    { name: "BoH", icon: "chef-hat", preselected: true },
+    { name: "Admin", icon: "briefcase", preselected: true },
   ],
   "55.101": [
     { name: "Resepsjon", icon: "concierge-bell", preselected: true },
@@ -53,7 +52,40 @@ const DEPARTMENT_CONFIGS: Record<string, { name: string; icon: string; preselect
 };
 
 /** Tiered position registry — tier controls visibility by employee count */
+// ADR-0429: FoH/BoH/Admin position sets per department canonical.
+// Bar positions are kept for optional Bar dept (size-conditional wizard toggle).
 const POSITION_REGISTRY: Record<string, PositionTemplate[]> = {
+  // ADR-0429 canonical restaurant departments
+  FoH: [
+    { name: "Hovmester", isLeader: true, tier: "basis" },
+    { name: "Servitør", isLeader: false, tier: "basis" },
+    { name: "Bartender", isLeader: false, tier: "basis" },
+    { name: "Runner", isLeader: false, tier: "mid" },
+    { name: "Sommelier", isLeader: false, tier: "specialist" },
+    { name: "Hostess", isLeader: false, tier: "specialist" },
+  ],
+  BoH: [
+    { name: "Kjøkkensjef", isLeader: true, tier: "basis" },
+    { name: "Kokk", isLeader: false, tier: "basis" },
+    { name: "Oppvask", isLeader: false, tier: "basis" },
+    { name: "Sous Chef", isLeader: false, tier: "mid" },
+    { name: "Lærling", isLeader: false, tier: "mid" },
+    { name: "Stewarding", isLeader: false, tier: "specialist" },
+  ],
+  Admin: [
+    { name: "Daglig leder", isLeader: true, tier: "basis" },
+    { name: "Eier", isLeader: true, tier: "basis" },
+    { name: "Regnskap", isLeader: false, tier: "mid" },
+    { name: "HR", isLeader: false, tier: "mid" },
+    { name: "Innkjøp", isLeader: false, tier: "specialist" },
+  ],
+  // Size-conditional Bar dept — activated via wizard toggle (ADR-0429 §size-conditional)
+  Bar: [
+    { name: "Barsjef", isLeader: true, tier: "basis" },
+    { name: "Bartender", isLeader: false, tier: "basis" },
+    { name: "Barback", isLeader: false, tier: "mid" },
+  ],
+  // Legacy keys retained for hotel (55.101) and bar-venue (56.301) NACE codes
   Kjøkken: [
     { name: "Kjøkkensjef", isLeader: true, tier: "basis" },
     { name: "Kokk", isLeader: false, tier: "basis" },
@@ -69,11 +101,6 @@ const POSITION_REGISTRY: Record<string, PositionTemplate[]> = {
     { name: "Runner", isLeader: false, tier: "mid" },
     { name: "Sommelier", isLeader: false, tier: "specialist" },
     { name: "Vertinne", isLeader: false, tier: "specialist" },
-  ],
-  Bar: [
-    { name: "Bartender", isLeader: true, tier: "basis" },
-    { name: "Barback", isLeader: false, tier: "mid" },
-    { name: "Barsjef", isLeader: true, tier: "specialist" },
   ],
   Ledelse: [
     { name: "Daglig leder", isLeader: true, tier: "basis" },

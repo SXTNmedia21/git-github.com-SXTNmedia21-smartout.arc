@@ -61,7 +61,7 @@ export const attachToLine = defineTool({
     "Materialiserer en rutine-mal til et day_line's oppgavesett. " +
     "Bruk når en leder sier 'koble rutinen til dagslinjen', 'legg til åpningsrutinen', " +
     "'sett opp standardoppgaver for denne linjen'. " +
-    "Krever manager+ rolle. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
+    "Krever manager+ tilgangsnivå. Kun tilgjengelig i chat (ikke stemme) — V1 kanal-policy. " +
     "Oppretter session-oppgaver via task.create_session (ADR-0240 — ingen direkte DB-skriving). " +
     "Returnerer antall opprettede oppgaver og UUID-listen.",
   capability: CAPABILITY,
@@ -219,7 +219,7 @@ export const createRoutineTool = defineTool({
   description:
     "Opprett en rutine-mal koblet til en prosedyre og et protokoll. " +
     "Bruk når en admin sier 'lag rutine', 'opprett ny rutine', 'legg til rutine for stenging'. " +
-    "Krever admin-rolle. Kun i chat (V1-policy). " +
+    "Krever admin tilgangsnivå. Kun i chat (V1-policy). " +
     "trigger_type='scheduled' for tidsbaserte rutiner (åpning/stenging), " +
     "'event' for hendelsesbaserte rutiner. " +
     "executor_type='human' (standard), 'ai', 'system' eller 'hybrid'.",
@@ -374,7 +374,7 @@ export const assignRoutineToLocation = defineTool({
     "'tilordne åpningsrutinen til baren og team A'. " +
     "Oppretter session_hook for hvert avdeling ved lokasjonen. " +
     "team_ids=[] (tomt) = alle team ved lokasjonen. " +
-    "Krever manager+ rolle. Kun i chat (V1-policy).",
+    "Krever manager+ tilgangsnivå. Kun i chat (V1-policy).",
   capability: CAPABILITY,
   schema: z
     .object({
@@ -572,7 +572,7 @@ export const addStepTool = defineTool({
     "Bruk når en leder sier 'legg til steg i rutinen', 'ny oppgave i rutinen', " +
     "'legg til 'vask gulv' som steg'. " +
     "Løser rutine → prosedyre automatisk. " +
-    "Krever manager+ rolle. Kun i chat (V1-policy).",
+    "Krever manager+ tilgangsnivå. Kun i chat (V1-policy).",
   capability: CAPABILITY,
   schema: z
     .object({
