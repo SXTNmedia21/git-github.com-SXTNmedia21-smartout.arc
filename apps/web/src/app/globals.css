@@ -609,6 +609,33 @@
   );
 }
 
+/* ─── Helpdesk Orb — chroma-parametrized radial gradients (ADR-0366) ───────── */
+/*
+ * `--orb-chroma` is injected at runtime via inline style (plain number, 0.04-0.12).
+ * CSS calc() derives scaled stops. OKLCH literals live here — globals.css is exempt.
+ *
+ * Halo (LighthouseAvatar): circle at 45% 40%, hue 50, warm orange.
+ * Orb gradient (Orb): circle at 45% 35%, 4 stops, hue 50, warm orange.
+ */
+[data-halo] {
+  background: radial-gradient(
+    circle at 45% 40%,
+    oklch(0.8 var(--orb-chroma) 50 / 0.55) 0%,
+    oklch(0.7 calc(var(--orb-chroma) * 0.6) 50 / 0.25) 45%,
+    transparent 70%
+  );
+}
+
+[data-orb-gradient] {
+  background: radial-gradient(
+    circle at 45% 35%,
+    oklch(0.82 var(--orb-chroma) 50) 0%,
+    oklch(0.72 calc(var(--orb-chroma) * 0.7) 50 / 0.75) 35%,
+    oklch(0.62 calc(var(--orb-chroma) * 0.4) 50 / 0.35) 60%,
+    transparent 75%
+  );
+}
+
 /* ─── Helpdesk: noise overlay for modal surfaces (Phase 3 — web-settings.jsx) ─ */
 /* 2026-04-29: drop position:relative — was demoting position:fixed on Dialog */
 @layer utilities {
