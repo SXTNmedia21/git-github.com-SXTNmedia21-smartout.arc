@@ -413,7 +413,11 @@ export function BotssonChat({
   }
 
   return (
-    <div className={`flex h-full flex-col ${className ?? ""}`} data-component="botsson-chat">
+    <div
+      className={`flex h-full flex-col ${className ?? ""}`}
+      data-component="botsson-chat"
+      data-testid="botsson-chat"
+    >
       {/* Container-level ARIA live region — announces InlineConfirmCard mounts to screen readers.
           Single element at root per ADR-0398 §Accessibility. sr-only keeps it invisible.
           Updated by pushCard when a new card is injected into the message stream. */}
@@ -422,7 +426,11 @@ export function BotssonChat({
       </div>
 
       {/* Scrollable message area */}
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div
+        ref={scrollRef}
+        data-testid="botsson-chat-messages"
+        className="flex-1 space-y-4 overflow-y-auto p-4"
+      >
         {messages.length === 0 ? (
           <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 text-center text-sm">
             <Bot className="h-8 w-8 opacity-40" />
@@ -480,6 +488,7 @@ export function BotssonChat({
           placeholder="Skriv en melding til Botsson … (Enter for å sende, Shift+Enter for ny linje)"
           rows={2}
           disabled={isSending}
+          data-testid="botsson-chat-input"
           className="border-input bg-background ring-offset-background focus-visible:ring-ring flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
         />
         <Button
@@ -487,6 +496,7 @@ export function BotssonChat({
           size="sm"
           disabled={isSending || !inputValue.trim()}
           aria-label="Send melding"
+          data-testid="botsson-chat-send"
         >
           {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>

@@ -535,6 +535,8 @@ export function BotssonShell() {
   return (
     <div
       ref={shellRef}
+      data-testid="botsson-shell"
+      data-density={density}
       style={shellStyle}
       onMouseEnter={() => isSticky && setStickyHovered(true)}
       onMouseLeave={() => isSticky && setStickyHovered(false)}
@@ -703,6 +705,7 @@ export function BotssonShell() {
       {/* Sticky */}
       {isSticky && (
         <div
+          data-testid="botsson-sticky"
           className="h-full w-full"
           style={{
             opacity: stickyRetracted ? 0 : 1,
@@ -716,6 +719,7 @@ export function BotssonShell() {
       {/* Arena / Immersive */}
       {(isArena || isImmersive) && (
         <div
+          data-testid="botsson-arena"
           className="h-full w-full"
           style={{ animation: `botsson-fade-in ${TIMING.contentEnter}ms ${EASING}` }}
         >

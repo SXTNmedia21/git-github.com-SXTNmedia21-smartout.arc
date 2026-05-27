@@ -60,9 +60,12 @@ export default defineConfig({
   },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    /* Capture trace on every failure (incl. first attempt) so local runs with
+     * retries=0 still yield Trace Viewer artifacts. Required by Agent UI
+     * Testing goal (2026-05-27) exit criterion 6. */
+    trace: "retain-on-failure",
     video: "retain-on-failure",
+    screenshot: "only-on-failure",
     /* Remove Next.js dev overlay that intercepts pointer events in dev mode */
     ...(!process.env.CI && {
       actionTimeout: 15_000,
@@ -115,7 +118,38 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         baseURL: webBaseUrl,
       },
-      testIgnore: /landing\.spec\.ts/,
+      /* Ignore landing-only specs, Expo PWA specs (tests/mobile, tests/mobile-pwa),
+       * and mission mobile specs (missions/<id>/mobile-*.spec.ts which run on
+       * web-iphone14 + web-pixel7 against webBaseUrl). */
+      testIgnore: [
+        /landing\.spec\.ts/,
+        /tests\/mobile\//,
+        /tests\/mobile-pwa\//,
+        /missions\/[^/]+\/mobile-[^/]+\.spec\.ts/,
+      ],
+    },
+    {
+      name: "web-iphone14",
+      use: {
+        /* iPhone 14 emulation against the Next.js web dashboard (port 3060).
+         * Force chromium per WSL2 webkit/libgtk-4 constraint. Only runs
+         * mission mobile-* specs — author flows stay on `web` project. */
+        ...devices["iPhone 14"],
+        browserName: "chromium",
+        baseURL: webBaseUrl,
+      },
+      testMatch: /missions\/[^/]+\/mobile-[^/]+\.spec\.ts/,
+    },
+    {
+      name: "web-pixel7",
+      use: {
+        /* Pixel 7 emulation against the Next.js web dashboard (port 3060).
+         * Same constraints as web-iphone14. */
+        ...devices["Pixel 7"],
+        browserName: "chromium",
+        baseURL: webBaseUrl,
+      },
+      testMatch: /missions\/[^/]+\/mobile-[^/]+\.spec\.ts/,
     },
     {
       name: "mobile",
