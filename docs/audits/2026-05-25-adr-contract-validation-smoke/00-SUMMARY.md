@@ -40,26 +40,32 @@ Prior HIGH (5 ops cron EFs missing `verify_jwt=false`): CONFIRMED RESOLVED.
 
 No tables missing RLS among user-facing surfaces. Platform-admin tables intentionally exempt per ADR-0008.
 
-## Resolution status
+## Resolution status (updated 2026-05-28)
 
-| Severity | Total | Fixed today | Open |
+| Severity | Total | Fixed | Open |
 |---|---|---|---|
 | CRITICAL | 1 | 1 | 0 |
-| HIGH | 9 | 2 | 7 |
+| HIGH | 9 | 9 | 0 |
 | MEDIUM | 15 | 0 | 15 |
 | LOW | 10 | 0 | 10 |
 
 ## Open HIGH for next sortie wave
 
-1. ADR-0204 Pathway B violations in journey/contract/contract-intake (cap-tools H-1)
-2. guardian/acknowledgeSignal telemetry bypass (cap-tools H-2)
-3. training PII exposure without gate (cap-tools H-3)
-4. schedule capability zero gates + 2 phantom events (cap-tools H-4)
-5. availability/queryOthersAvailability ADR-0151 violation (cap-tools H-5)
-6. shift-clock-compliance ADR-0151 violation (ef H-1)
-7. call-command body workspaceId across 4 handlers (ef H-2)
+_None._ All 7 HIGH findings closed 2026-05-25 → 2026-05-26.
 
-Recommend dedicated remediation sortie wave H — addresses 6 of 7 (5 capability + 1 EF). Wave I covers ADR-0151 sweep across both call-command + availability.
+### Closure log
+
+| # | Finding | Status | Closing SHA(s) |
+|---|---|---|---|
+| 1 | ADR-0204 Pathway B violations in journey/contract/contract-intake (cap-tools H-1) | CLOSED 2026-05-26 | `390b5053d` + `c17a4b715` + `c54bc71f0` |
+| 2 | guardian/acknowledgeSignal telemetry bypass (cap-tools H-2) | CLOSED 2026-05-25 | `59d157bb3` |
+| 3 | training PII exposure without gate (cap-tools H-3) | CLOSED 2026-05-25 | `e513b2cfa` |
+| 4 | schedule capability zero gates + 2 phantom events (cap-tools H-4) | VERIFIED-OVERSTATED 2026-05-25 | inline role-check exists; both events emit |
+| 5 | availability/queryOthersAvailability ADR-0151 violation (cap-tools H-5) | CLOSED 2026-05-25 | `de98f16d1` |
+| 6 | shift-clock-compliance ADR-0151 violation (ef H-1) | CLOSED 2026-05-25 | `79e383c33` |
+| 7 | call-command body workspaceId across 4 handlers (ef H-2) | CLOSED 2026-05-26 | `5a982ce57` |
+
+Wave H / Wave I both subsumed by 7-commit closure burst. No dedicated remediation sortie needed.
 
 ## Method
 
