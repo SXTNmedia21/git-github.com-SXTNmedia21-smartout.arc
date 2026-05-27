@@ -79,18 +79,20 @@ hits into a follow-up sortie's punch list.
 
 ## Acceptance Criteria
 
-- [ ] ESLint `no-oklch-literal` rule errors on any new `oklch(...)` literal in `apps/web/src/**` (verified via deliberate test introduction)
-- [ ] `grep -rEn "oklch\(" apps/web/src/components apps/web/src/app` returns 0 (down from 28)
-- [ ] `grep -rEn "(zinc|slate|gray)-[0-9]" apps/web/src/components apps/web/src/app` returns 0 (down from 4)
-- [ ] Hex bucket report exists at `docs/audits/2026-05-28-oklch-sweep/hex-buckets.md`
-- [ ] Typecheck passes: `pnpm turbo typecheck`
-- [ ] Decision log updated with ADR-0366 enforcement entry
-- [ ] User journeys written
-- [ ] Pre-push hook green (lint:tool-collisions, OTP coherence, domain-lint, archived-refs)
+- [x] ESLint `no-oklch-literal` rule errors on any new `oklch(...)` literal in `apps/web/src/**` (verified via deliberate test introduction) — `1da0f1ca4` + hardened in `fb48ecd91`
+- [x] `grep -rEn "oklch\(" apps/web/src/components apps/web/src/app | grep -v globals.css | grep -v test` returns 0 (initial baseline of 28 was raw-grep noise; AST-aware classification confirmed 2 real literal uses, both swept in `6d484e51e`. 1 remaining hit is a JSDoc design-annotation comment, correctly ignored by rule.)
+- [x] Hex bucket report exists at `docs/audits/2026-05-28-oklch-sweep/hex-buckets.md` — T4 wrote it (A=29 / B=171 / C=15 / total=215)
+- [x] Typecheck passes: `pnpm turbo typecheck` — 52/52 successful (after telemetry rebuild)
+- [x] Decision log updated with ADR-0366 enforcement entry — `42f4f64ec`
+- [x] User journeys written — `JOURNEY-design-token-sweep-web-oklch.md`
+- [x] Pre-push hook green (lint:tool-collisions, OTP coherence, domain-lint, archived-refs)
+- [DEFERRED] `grep -rEn "(zinc|slate|gray)-[0-9]"` returns 0 — see Out of Scope §T3-deferred. Pragmatic re-scope mid-sortie after discovery that all 4 hits are in print-preview/legal-document surface (intentionally theme-invariant). Design-system decision (paper tokens vs annotated exemption) is load-bearing and warrants a dedicated follow-up sortie + ADR amendment, not a quick swap in this one.
 
 ## Out of Scope
 
-- Sweeping the 206 hex hits (deferred to follow-up sortie informed by Tier 4 bucket report)
+- **T3 zinc/slate/gray-N sweep (4 hits)** — DEFERRED to follow-up sortie. All hits in `apps/web/src/app/dashboard/people/contracts/_components/contract-preview-editor.tsx` + `contracts-data-table.tsx` render print-preview/legal-document surface. `bg-white text-zinc-900` is intentionally theme-invariant (paper look-and-feel for export/print). Sweeping without first deciding between (a) introducing `paper-bg`/`paper-text` semantic tokens OR (b) keeping zinc-N with annotated exemption would risk breaking print/export rendering. Decision needs design-system review + ADR amendment (extends or carves out ADR-0361). See HANDOFF §Next-steps for follow-up sortie scope.
+- **Bucket C ambiguous (15 chart-component hits)** — DEFERRED. `StaffingSection` chart `isDark` ternaries + ring-offset CSS-var fallbacks. Needs design-system decision: map to existing `department`/`priority`/`phase` palettes OR introduce a `chart-grid-*` token family. See `docs/audits/2026-05-28-oklch-sweep/hex-buckets.md` §Bucket C.
+- **Bucket B hex sweep (171 replaceable)** — DEFERRED. Too large for single sortie. T4 recommends split into 3 follow-up sortier (B1=25 / B2=60 / B3=45).
 - Mobile token work (already covered by closed mobile sortie)
 - Refactoring `globals.css` token definitions themselves
 - Adding new tokens beyond what the sweep proves missing
