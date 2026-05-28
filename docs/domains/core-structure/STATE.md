@@ -3,8 +3,8 @@ sortie: adr-0430-shift-zone-m2m
 domain: core-structure
 role: secondary (schema-axis owner)
 primary_state_md: docs/domains/scheduling/STATE.md
-state: S4
-sub_state: plan-generation-pending
+state: S6
+sub_state: plan-0-pre-flight-dispatch-pending
 tier: T3
 test_mode: continuous
 design_link: n/a (schema reform — no Cloud Design)
@@ -14,10 +14,10 @@ adr_status: accepted
 council_verdict: APPROVE WITH CHANGES (4/4, 2026-05-27)
 council_path: docs/audits/2026-05-27-core-structure-reform-index/INDEX.md
 created_at: 2026-05-28T20:00:00Z
-updated_at: 2026-05-28T20:00:00Z
+updated_at: 2026-05-28T22:30:00Z
 imported_at: 2026-05-28T20:00:00Z
 campaign: development
-worktree: /home/sxtnl/dev/smartout.ai
+worktree: /home/sxtnl/dev/smartout.ai-wt-1 (pending creation; branch feat/adr-0430-shift-zone-m2m)
 import_mode: true
 ---
 
@@ -38,7 +38,8 @@ ADR-0430 touches core-structural tables: `schedule_shift` (D2 planning record pe
 | G2 | S2 | PASS (imported) | Audit INDEX Track K |
 | G3 | S3 | PASS (imported) | Council Phase 1-5 |
 | G4 | S4 | PASS (2026-05-28T12:59Z) | ADR commit `dad1e3fd7` |
-| G5 | S5 | AWAITING | Plan-generation in progress on scheduling STATE.md |
+| G5 | S5 | PASS (2026-05-28T22:30Z) | Auto-pass per SDSM v2; council-vetted Rules 1-9 + Pontus delegated execution. See scheduling STATE.md for full rationale. |
+| G6 | S6 PLAN-0 | AWAITING | PLAN-0 build dispatch pending; sub-orchestrator (sonnet) to execute at `~/dev/smartout.ai-wt-1`. |
 
 ## Schema-axis Phase b deliverables (mirrored from PLAN-0..PLAN-4)
 

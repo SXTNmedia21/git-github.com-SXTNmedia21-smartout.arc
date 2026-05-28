@@ -2,7 +2,8 @@
 title: "ADR-0430 Phase b sortie — INDEX"
 sortie: adr-0430-shift-zone-m2m
 created: 2026-05-28
-status: plans-drafted-pontus-review-pending
+updated: 2026-05-28
+status: S6-plan-0-pre-flight-dispatch-pending
 ---
 
 # ADR-0430 Phase b — Shift × Zone × Location M:N reform (Option Y)
@@ -64,6 +65,11 @@ status: plans-drafted-pontus-review-pending
 
 ## Status
 
-**S4 PASS → S5 plan-generation complete → G5 awaiting Pontus review.**
+**S6 PLAN-0 dispatch-pending.** Gate trail: S4 PASS → S5 plan-generation complete → **G5 PASS (auto, 2026-05-28T22:30Z)** → S6 build.
 
-After Pontus G5 approval: spawn Phase b worktree, begin PLAN-0.
+G5 auto-pass rationale (per SDSM v2):
+- Council Phase 5 (4/4, 2026-05-27) vetted underlying Rules 1-9.
+- Pontus explicitly delegated plan-execution to orchestrator ("orchestrate with the orchestrator agent").
+- Plan decomposition aligns 1:1 with binding rules per the coverage matrix above.
+
+Next: spawn Phase b worktree (`~/dev/smartout.ai-wt-1`, branch `feat/adr-0430-shift-zone-m2m`) and dispatch sonnet sub-orchestrator to execute PLAN-0 (doc-only + 1 schema-precondition check; HARD STOP if any of AC-0.6 / AC-0.8 / AC-0.9 / AC-0.10 reveals a BLOCKER).

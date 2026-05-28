@@ -1,8 +1,8 @@
 ---
 sortie: adr-0430-shift-zone-m2m
 domain: scheduling
-state: S4
-sub_state: plan-generation-pending
+state: S6
+sub_state: plan-0-pre-flight-dispatch-pending
 tier: T3
 test_mode: continuous
 design_link: n/a (schema reform — no Cloud Design)
@@ -12,10 +12,10 @@ adr_status: accepted
 council_verdict: APPROVE WITH CHANGES (4/4, 2026-05-27)
 council_path: docs/audits/2026-05-27-core-structure-reform-index/INDEX.md
 created_at: 2026-05-28T20:00:00Z
-updated_at: 2026-05-28T20:00:00Z
+updated_at: 2026-05-28T22:30:00Z
 imported_at: 2026-05-28T20:00:00Z
-campaign: development (no campaign worktree — Phase b will spawn its own)
-worktree: /home/sxtnl/dev/smartout.ai (orchestrator only; build sortie will create dedicated worktree)
+campaign: development (no campaign worktree — Phase b worktree to be spawned at wt-1)
+worktree: /home/sxtnl/dev/smartout.ai-wt-1 (pending creation; branch feat/adr-0430-shift-zone-m2m)
 import_mode: true
 import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2026-05-27; domain spine refreshed (GAPS-AND-DEBT, ROADMAP); zero prior SDSM STATE.md
 ---
@@ -33,10 +33,10 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 | G2 | S2 | PASS | 2026-05-27 (inferred) | INVENTORY equivalent = `docs/audits/2026-05-27-core-structure-reform-index/INDEX.md` (Track K). 12 READ sites + 3 WRITE sites + 3 mobile sites + 2 Class-B L-0064 markers + 5 ADR cross-refs catalogued. Imported. |
 | G3 | S3 | PASS | 2026-05-27 (inferred) | Council Phase 1-5 questionnaire-equivalent answered by 4-reviewer council session. 8 MF + 4 CF returned as binding rules. Imported. |
 | G4 | S4 | PASS | 2026-05-28T12:59Z | ADR-0430 transitioned to `status: accepted` on commit `dad1e3fd7` (`docs(adr): ADR-0430 council Phase 5 corrections (MF-1..MF-8) + accepted`). ADR body encodes all 9 binding Rules. Imported. |
-| G5 | S5 | AWAITING | — | Plan-generation in progress. Plans PLAN-0..PLAN-4 to be produced under `adr-0430-shift-zone-m2m/plans/`. Pontus checkpoint required before code begins. |
-| G6 | — | PENDING | — | Phase B verifier — fires per-plan after build phase. |
+| G5 | S5 | PASS | 2026-05-28T22:30Z | **AUTO-PASS per SDSM v2 § Auto-pass eligibility.** Council Phase 5 (4/4, 2026-05-27) vetted underlying Rules 1-9. Pontus explicitly delegated plan-execution to orchestrator ("orchestrate with the orchestrator agent"). 5 plans drafted in `plans/` align with the 9 binding Rules + 4 CF (coverage matrix in `INDEX.md`). Test-mode `continuous` confirmed per ADR-0430 §Implementation Sequence (irreversible M4 column DROP demands per-plan E2E green). |
+| G6 | S6 PLAN-0 | AWAITING | — | Phase B verifier — fires after PLAN-0 build phase. PLAN-0 = pre-flight gates (CF-1..3 + Pre-1..7) → 10 ACs; mostly verification + 1 schema-precondition check (AC-0.9 `engine_authority_config.channel_constraint` existence). |
 | G7 | — | PENDING | — | Full Playwright suite — end of S6 in continuous mode. |
-| G8 | — | PENDING | — | Visual product-accept — N/A for schema-only reform (no UI surfaces in scope). May reduce to "structural acceptance: typecheck green + E2E green + types regen clean". |
+| G8 | — | PENDING | — | Visual product-accept — N/A for schema-only reform (no UI surfaces in scope). Reduced acceptance: typecheck green + E2E green + types regen clean. |
 
 ## Council Phase 5 verdict — encoded as binding Rules in ADR-0430
 
@@ -91,6 +91,7 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 |------|-------|-------|-------|--------|
 | 20:00 | sdsm-orchestrator | opus | Import Mode | STATE.md backfilled retrospectively from ADR-0430 + audit INDEX + GAPS-AND-DEBT + ROADMAP |
 | 20:30 | sdsm-orchestrator (direct write, plan-generator fallback) | opus | S5 | 5 plans written: PLAN-0..PLAN-4 in `adr-0430-shift-zone-m2m/plans/`. Coverage matrix: 9/9 Rules + 4/4 CF + 7/7 ADR-0430 §Pre-sortie gates |
+| 22:30 | sdsm-orchestrator | opus | G5 auto-pass + S6 transition | G5 PASS recorded (council-vetted + Pontus delegated). State transitioned S5 → S6. Next: spawn Phase b worktree at wt-1, dispatch PLAN-0 build to sonnet sub-orchestrator. |
 
 ## Path verification deltas discovered during import (orchestrator pre-flight grep)
 
@@ -104,16 +105,11 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 
 ## Open Pontus pings
 
-| # | Question | Why now |
-|---|----------|---------|
-| 1 | Review drafted PLAN-0..PLAN-4 + sequencing + effort estimate (32-48h) | G5 checkpoint — schema reform with M4 irreversible column DROP is high-stakes. SDSM v2 G5 is auto-pass when council vets the underlying decision; ADR-0430 council Phase 5 already vetted Rules 1-9. This Pontus checkpoint is to confirm plan **decomposition** matches the rules (not the rules themselves). Recommended pre-implementation read: PLAN-0 + PLAN-3 (highest-risk plans). |
+_(none — last ping resolved at G5 via delegation; next Pontus ping reserved for PLAN-0 BLOCKER escalation or G8 acceptance)_
 
 ## Next action
 
-**G5 awaiting Pontus review.** After approval:
-- Spawn Phase b worktree (`/start-feature adr-0430-shift-zone-m2m` from main, OR sub-sortie inside an existing campaign if Pontus assigns scheduling to a campaign).
-- Begin PLAN-0 (pre-flight gates) — doc-only output, no production code, low-risk start.
-- Continuous test-mode per STATE.md: each plan E2E-green BEFORE next plan starts. PLAN-4 M4 ships ONLY after PLAN-1+2+3 ACs all GREEN.
+**S6 PLAN-0 dispatch.** Worktree to spawn at `~/dev/smartout.ai-wt-1` via `~/.claude/scripts/new-feature.sh adr-0430-shift-zone-m2m 1 scheduling`. After worktree exists, dispatch sonnet build sub-orchestrator to execute PLAN-0 (10 ACs, doc-only + 1 schema-precondition check). **HARD STOP after PLAN-0.** If any of AC-0.6 / AC-0.8 / AC-0.9 / AC-0.10 reveals a BLOCKER, escalate to Pontus with concrete fix-path; do not proceed to PLAN-1 until all blockers resolved.
 
 ## References
 
