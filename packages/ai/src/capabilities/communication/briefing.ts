@@ -34,7 +34,10 @@ export const composeShiftBriefing = defineTool({
       const { data, error } = await supabase
         .from("schedule_shift")
         .select(
-          "schedule_shift_id, employee_id, department_id, role, shift_date, start_time, end_time, work_hours, notes, status, team_id, location_id",
+          // ADR-0430 Rule 3: location_id removed — schedule_shift.location_id drops in M4.
+          // Location is not surfaced in the briefing output; if needed in a future version,
+          // join through shift_session(shift_session_day_line(day_line(location(name)))).
+          "schedule_shift_id, employee_id, department_id, role, shift_date, start_time, end_time, work_hours, notes, status, team_id",
         )
         .eq("schedule_shift_id", params.shift_id)
         .eq("workspace_id", ctx.workspaceId)
@@ -49,7 +52,8 @@ export const composeShiftBriefing = defineTool({
       const { data, error } = await supabase
         .from("schedule_shift")
         .select(
-          "schedule_shift_id, employee_id, department_id, role, shift_date, start_time, end_time, work_hours, notes, status, team_id, location_id",
+          // ADR-0430 Rule 3: location_id removed — schedule_shift.location_id drops in M4.
+          "schedule_shift_id, employee_id, department_id, role, shift_date, start_time, end_time, work_hours, notes, status, team_id",
         )
         .eq("employee_id", ctx.profileId)
         .eq("workspace_id", ctx.workspaceId)
@@ -203,6 +207,7 @@ export const composeShiftBriefing = defineTool({
 });
 
 /** Internal type matching the select columns from schedule_shift. */
+// ADR-0430 Rule 3: location_id removed from select and type — drops in M4.
 type ShiftRow = {
   schedule_shift_id: string;
   employee_id: string | null;
@@ -215,5 +220,4 @@ type ShiftRow = {
   notes: string | null;
   status: string;
   team_id: string | null;
-  location_id: string | null;
 };
