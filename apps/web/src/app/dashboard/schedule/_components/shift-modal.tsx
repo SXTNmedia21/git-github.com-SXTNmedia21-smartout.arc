@@ -658,6 +658,8 @@ export function ShiftModal() {
           status,
           dayCategory: form.dayCategory,
           zone: form.zone || undefined,
+          // ADR-0430 Rule 3: newly created shifts have no zone M:N row yet — zones[] is empty.
+          zones: [],
           indicator: "blue",
           isPublished: isPublishedFinal,
           breaks: form.breaks,

@@ -114,6 +114,8 @@ export function LoadTemplateSheet({
       status: "created" as const,
       dayCategory: s.dayCategory,
       zone: s.zone,
+      // ADR-0430 Rule 3: template shifts have no zone M:N row yet — stub empty.
+      zones: [],
       indicator: s.indicator,
       isPublished: false,
       breaks: s.breaks,

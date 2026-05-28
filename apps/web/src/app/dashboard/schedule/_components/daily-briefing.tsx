@@ -470,7 +470,9 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
           endTime: s.endTime,
           time: s.time,
           status: s.status,
-          zone: s.zone,
+          // ADR-0430 Rule 3: first-zone for timeline display; full array for pill-stack.
+          zone: s.zones?.[0]?.name ?? s.zone,
+          zones: s.zones ?? [],
           team: emp?.team,
         };
       });
@@ -600,6 +602,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 time={entry.time}
                 status={entry.status}
                 zone={entry.zone}
+                zones={entry.zones}
                 team={entry.team}
                 dateId={dateId ?? ""}
                 onShiftClick={() => setSelectedShift(entry.shiftId)}
@@ -670,7 +673,10 @@ type TimelineEntry = {
   endTime: string;
   time: string;
   status: string;
+  /** Legacy scalar — first-zone display (ADR-0430 transition). */
   zone?: string;
+  /** ADR-0430 Rule 3: full zones[] for pill-stack display (max-2 + +N counter). */
+  zones?: Array<{ name: string; location_id: string }>;
   team?: string;
 };
 
@@ -834,7 +840,9 @@ function TimelineBar({
     [entry, onTimeChange, pxToHour],
   );
 
-  const meta = [entry.zone, entry.team].filter(Boolean).join(" · ");
+  // ADR-0430 Rule 3: first-zone for timeline tooltip; full array rendered in EmployeeRow.
+  const zoneDisplay = entry.zones?.[0]?.name ?? entry.zone;
+  const meta = [zoneDisplay, entry.team].filter(Boolean).join(" · ");
 
   return (
     <div className="group/bar mb-2 flex items-center">
@@ -933,6 +941,7 @@ function EmployeeRow({
   time,
   status,
   zone,
+  zones,
   team,
   dateId,
   onShiftClick,
@@ -944,7 +953,10 @@ function EmployeeRow({
   role: string;
   time: string;
   status: string;
+  /** Legacy scalar — used as fallback when zones[] is empty. */
   zone?: string;
+  /** ADR-0430 Rule 3: pill-stack (max-2 + +N counter). */
+  zones?: Array<{ name: string; location_id: string }>;
   team?: string;
   dateId: string;
   onShiftClick: () => void;
@@ -975,12 +987,18 @@ function EmployeeRow({
         <div className="text-muted-foreground text-[10px]">
           {time} &middot; {role}
         </div>
-        {(zone || team) && (
-          <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-[9px]">
-            {zone && (
-              <span className="flex items-center gap-0.5">
-                <MapPin className="h-2.5 w-2.5" /> {zone}
-              </span>
+        {/* ADR-0430 Rule 3 (MF-3 T5): pill-stack zones (max-2 visible + +N counter). */}
+        {((zones && zones.length > 0) || zone || team) && (
+          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1 text-[9px]">
+            {(zones && zones.length > 0 ? zones : zone ? [{ name: zone, location_id: "" }] : [])
+              .slice(0, 2)
+              .map((z) => (
+                <span key={z.name} className="flex items-center gap-0.5">
+                  <MapPin className="h-2.5 w-2.5" /> {z.name}
+                </span>
+              ))}
+            {zones && zones.length > 2 && (
+              <span className="bg-muted rounded px-1 font-medium">+{zones.length - 2}</span>
             )}
             {team && (
               <span className="flex items-center gap-0.5">
