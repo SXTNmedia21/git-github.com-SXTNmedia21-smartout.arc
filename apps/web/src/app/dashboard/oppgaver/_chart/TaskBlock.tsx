@@ -136,6 +136,7 @@ export function TaskBlock({
       draggable={!!drag}
       onDragStart={drag ? handleDragStart : undefined}
       onKeyDown={handleKeyDown}
+      data-testid={`task-block-${task.id}`}
       className={cn(
         // Base layout
         "absolute overflow-hidden rounded-md border px-2 py-1 text-left text-xs",

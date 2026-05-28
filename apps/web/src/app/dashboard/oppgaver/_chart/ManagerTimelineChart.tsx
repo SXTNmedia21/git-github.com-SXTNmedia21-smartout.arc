@@ -29,6 +29,7 @@
  */
 
 import type React from "react";
+import type { RefObject } from "react";
 import { TimeGutter } from "./TimeGutter";
 import { RoutineStrips } from "./RoutineStrips";
 import { NowLine } from "./NowLine";
@@ -83,6 +84,12 @@ type Props = {
    * Opens TaskEditModal in edit mode (Deliverable 5).
    */
   onKeyboardEdit?: (task: TimelineTask) => void;
+  /**
+   * Optional ref forwarded to the scrollable chart body div
+   * (aria-label="Gantt timeline"). Used by ManagerTimelineShell's
+   * scrollToNow callback to imperatively scroll to the current time.
+   */
+  scrollBodyRef?: RefObject<HTMLDivElement | null>;
 };
 
 // ─── ManagerTimelineChart ─────────────────────────────────────────────────────
@@ -108,6 +115,7 @@ export function ManagerTimelineChart({
   onTaskDrop,
   dateISO,
   onKeyboardEdit,
+  scrollBodyRef,
 }: Props) {
   const pxPerMin = pxPerHour / 60;
   const retimer = useDragRetiming();
@@ -120,6 +128,7 @@ export function ManagerTimelineChart({
 
         {/* Right column — scrollable chart body */}
         <div
+          ref={scrollBodyRef}
           className="bg-background relative overflow-y-auto focus-visible:outline-none"
           // --hour-h lets TimeGutter (and any CSS descendant) read the same unit
           // without prop drilling. Dynamic-color carve-out: runtime layout value,

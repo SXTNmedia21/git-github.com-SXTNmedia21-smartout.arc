@@ -59,6 +59,7 @@ export function NowLine({ currentMin, pxPerMin }: NowLineProps) {
       className="pointer-events-none absolute inset-x-0"
       style={{ top: 0, bottom: 0 }}
       aria-hidden="true"
+      data-testid="now-line"
     >
       <div
         className="border-warning absolute right-0 left-0 border-t-2"

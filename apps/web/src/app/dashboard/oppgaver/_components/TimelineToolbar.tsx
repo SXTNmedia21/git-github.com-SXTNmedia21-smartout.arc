@@ -10,17 +10,36 @@
  *
  * Layout (left → right):
  *   [SegmentGroup view-mode] | [Area pills — wrapping flex] | spacer |
- *   [FilterChip onlyOpen] [FilterChip deviations+count] | [zoom − +]
+ *   [FilterChip onlyOpen] [FilterChip deviations+count] |
+ *   [Bruk mal chip] | [zoom − +] | [Akkurat nå pulse-button]
+ *
+ * Prototype parity:
+ *   "Bruk mal" — opens ApplyTemplateModal via onApplyTemplate prop.
+ *   "Akkurat nå · HH:MM" — pulse-dot button that scrolls chart to nowMinutes.
+ *   Both emit telemetry (L-0176 hard rule: registry-entry + emit-site same commit).
+ *
+ * Motion:
+ *   Pulse dot uses framer-motion with motionTokens.springGentle (30/20/2.5).
+ *   useReducedMotion() gating follows the single-tree pattern from NowLine.tsx
+ *   (commit 376567a39) — no DOM-structure branching on reduced-motion preference.
  *
  * Design: Nordic Split tokens only — no OKLCH literals, no zinc/gray/slate.
- * Icons: Lucide React only (ZoomIn, ZoomOut).
- * ARIA: zoom buttons have aria-label for keyboard users (WCAG 2.4.11).
+ * Icons: Lucide React only (ZoomIn, ZoomOut, BookOpen).
+ * ARIA: zoom + now-button have aria-label for keyboard users (WCAG 2.4.11).
  */
 
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
+import { ZoomIn, ZoomOut, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentGroup, FilterChip } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { minToHM } from "../_chart/timeMath";
+import { useContext } from "react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +63,22 @@ export type TimelineToolbarProps = {
   onToggleDeviations: () => void;
   zoom: number;
   onZoomChange: (next: number) => void;
+  /** Current time in absolute minutes — shown in the "Akkurat nå" button label. */
+  nowMinutes: number;
+  /** Callback to scroll the chart body to the current time position. */
+  scrollToNow?: () => void;
+  /** Callback to open the ApplyTemplateModal. */
+  onApplyTemplate?: () => void;
+};
+
+// ── Pulse dot variants (single tree — no DOM branching on reduced-motion) ────
+
+const pulseVariants = {
+  idle: { opacity: 1, scale: 1 },
+  pulse: {
+    opacity: [1, 0.5, 1],
+    scale: [1, 1.3, 1],
+  },
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -61,14 +96,54 @@ export function TimelineToolbar({
   onToggleDeviations,
   zoom,
   onZoomChange,
+  nowMinutes,
+  scrollToNow,
+  onApplyTemplate,
 }: TimelineToolbarProps) {
   const { t } = useTranslation("oppgaver");
+  const wsCtx = useWorkspaceOptional();
+  const workspaceId = wsCtx?.workspace.workspace_id ?? null;
+  const { profileId } = useContext(DashboardContext);
+
+  // Single-tree reduced-motion pattern (NowLine.tsx commit 376567a39):
+  // null on SSR + first render, boolean after media-query mounts.
+  // Gating DOM structure on this value causes hydration mismatch.
+  // Only the framer-motion `animate` target changes post-hydration.
+  const prefersReducedMotion = useReducedMotion();
 
   const viewSegments = [
     { value: "area" as const, label: t("view_mode.area") },
     { value: "role" as const, label: t("view_mode.role") },
     { value: "person" as const, label: t("view_mode.person") },
   ];
+
+  function handleApplyTemplate() {
+    onApplyTemplate?.();
+    // L-0176: emit registered event at call-site (registry entry same commit).
+    if (workspaceId && profileId) {
+      void emit({
+        event: "oppgaver.template_apply_clicked",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {},
+      });
+    }
+  }
+
+  function handleScrollToNow() {
+    scrollToNow?.();
+    // L-0176: emit registered event at call-site (registry entry same commit).
+    if (workspaceId && profileId) {
+      void emit({
+        event: "oppgaver.pulse_now_clicked",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          data: { nowMinutes },
+        },
+      });
+    }
+  }
 
   return (
     <div
@@ -118,6 +193,17 @@ export function TimelineToolbar({
       {/* ── Vertical divider ──────────────────────────────────────────── */}
       <div className="bg-border mx-1 h-5 w-px shrink-0" aria-hidden="true" />
 
+      {/* ── "Bruk mal" chip ───────────────────────────────────────────── */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleApplyTemplate}
+        className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2.5 text-xs"
+      >
+        <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+        {t("use_template")}
+      </Button>
+
       {/* ── Zoom cluster ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-1">
         <Button
@@ -140,6 +226,33 @@ export function TimelineToolbar({
           <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       </div>
+
+      {/* ── "Akkurat nå" pulse-button ─────────────────────────────────── */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleScrollToNow}
+        aria-label={`${t("now_btn_aria")} (${minToHM(nowMinutes)})`}
+        data-testid="now-pulse-button"
+        className="text-muted-foreground hover:text-foreground relative h-7 gap-1.5 px-2.5 text-xs"
+      >
+        {/* Pulse dot — single-tree pattern: animate target switches, DOM stays constant. */}
+        <span className="relative flex h-2 w-2 shrink-0">
+          <motion.span
+            className="bg-warning absolute inset-0 rounded-full"
+            variants={pulseVariants}
+            initial="idle"
+            animate={prefersReducedMotion ? "idle" : "pulse"}
+            transition={{
+              type: "spring",
+              ...motionTokens.springGentle,
+              duration: 2,
+              repeat: Infinity,
+            }}
+          />
+        </span>
+        {t("now_label")} · {minToHM(nowMinutes)}
+      </Button>
     </div>
   );
 }
