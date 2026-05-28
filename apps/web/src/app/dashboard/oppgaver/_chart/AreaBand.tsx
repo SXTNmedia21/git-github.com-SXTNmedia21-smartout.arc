@@ -30,6 +30,7 @@ import { layoutOverlap } from "./layoutOverlap";
 import { useChartDrag } from "./ChartDragContext";
 import type { DragDropResult } from "./useDragRetiming";
 import { resolveDeptToken } from "./dept-token-resolver";
+import { hmToMin, DAY_START_HOUR } from "./timeMath";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,163 @@ function UnassignedLane({
   );
 }
 
+// ─── OpenPeriodWash ───────────────────────────────────────────────────────────
+
+/**
+ * Absolute overlay inside the lane body that highlights the band's planned
+ * open period with a dashed border + gradient tint.
+ *
+ * ADR-0366: no OKLCH literals. Gradient and border colour use color-mix()
+ * against `var(--area-color)` which is set on the AreaBand root via `style`.
+ *
+ * Prototype reference: timeline-chart.jsx:410-422 (open-period wash).
+ */
+function OpenPeriodWash({
+  open,
+  close,
+  pxPerHour,
+}: {
+  open: string;
+  close: string;
+  pxPerHour: number;
+}) {
+  const DAY_START_MIN = DAY_START_HOUR * 60;
+  const pxPerMin = pxPerHour / 60;
+
+  // Wall-clock minutes → pixel offset from chart top (DAY_START offset subtracted)
+  const topPx = (hmToMin(open) - DAY_START_MIN) * pxPerMin;
+
+  // close may be past midnight — handle wrap by adding 24*60 when close < open
+  const openMin = hmToMin(open);
+  const rawCloseMin = hmToMin(close);
+  const closeMin = rawCloseMin < openMin ? rawCloseMin + 24 * 60 : rawCloseMin;
+  const heightPx = (closeMin - openMin) * pxPerMin;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute rounded-xl border border-dashed",
+        // color-mix against --area-color (CSS var set on AreaBand root)
+        // these are arbitrary-value Tailwind classes, not hardcoded colors
+        "border-[color:color-mix(in_oklch,var(--area-color)_35%,transparent)]",
+      )}
+      style={{
+        top: topPx,
+        left: 4,
+        right: 4,
+        height: heightPx,
+        // Gradient uses color-mix via inline style — cannot express multi-stop
+        // color-mix gradients via Tailwind arbitrary values, so inline is required.
+        // This is the approved dynamic-color carve-out for multi-stop gradients.
+        background: [
+          "linear-gradient(to bottom,",
+          "color-mix(in oklch, var(--area-color) 10%, transparent),",
+          "color-mix(in oklch, var(--area-color) 3%, transparent)",
+          ")",
+        ].join(" "),
+      }}
+    >
+      {/* Åpent label — positioned at top-left of wash, muted mono */}
+      <span className="text-muted-foreground absolute top-1 left-2 font-mono text-[0.6rem] select-none">
+        Åpent · {open}–{close}
+      </span>
+    </div>
+  );
+}
+
+// ─── EmpStrip ─────────────────────────────────────────────────────────────────
+
+/**
+ * Row of employee avatar-chips rendered in the band header, below the band
+ * name + time meta row. Max 6 chips visible; remainder shown as "+N" overflow.
+ *
+ * Chips for employees currently on shift receive an accent ring (--area-color).
+ * Employees not yet on shift are rendered at reduced opacity.
+ *
+ * Prototype reference: timeline-chart.jsx:366-385 (emp-strip + emp-chip).
+ */
+function EmpStrip({
+  employees,
+  onShiftIds,
+}: {
+  employees: ReadonlyArray<Employee>;
+  /** Set of employee IDs whose shift covers the current wall-clock time. */
+  onShiftIds: ReadonlySet<string>;
+}) {
+  const visible = employees.slice(0, 6);
+  const overflow = employees.length - visible.length;
+
+  if (employees.length === 0) {
+    return (
+      <div
+        className="text-muted-foreground px-3 pb-1 text-[0.65rem]"
+        aria-label="Ingen ansatte tildelt"
+      >
+        Ingen tildelt
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex flex-row flex-wrap items-center gap-1 px-3 pt-1 pb-2"
+      role="list"
+      aria-label="Ansatte i avdeling"
+    >
+      {visible.map((emp) => {
+        const isOn = onShiftIds.has(emp.id);
+        // Initials: first letter of first + last name
+        const parts = emp.name.trim().split(/\s+/);
+        const initials =
+          parts.length >= 2
+            ? `${parts[0]![0]}${parts[parts.length - 1]![0]}`
+            : (parts[0]?.[0] ?? "?");
+        const firstName = parts[0] ?? emp.name;
+
+        return (
+          <div
+            key={emp.id}
+            role="listitem"
+            title={`${emp.name} · ${emp.shift ? `${emp.shift[0]}–${emp.shift[1]}` : "Ingen vakt"}`}
+            className={cn(
+              "flex items-center gap-1 rounded-full px-1.5 py-0.5",
+              "bg-muted text-muted-foreground text-[0.6rem] font-medium",
+              "transition-opacity",
+              isOn
+                ? // On shift: accent ring derived from --area-color
+                  "opacity-100 ring-1 ring-[color:color-mix(in_oklch,var(--area-color)_60%,transparent)]"
+                : "opacity-50",
+            )}
+          >
+            {/* Avatar circle — initials, tinted with area color */}
+            <span
+              aria-hidden="true"
+              className="flex size-4 shrink-0 items-center justify-center rounded-full text-[0.5rem] leading-none font-semibold text-white uppercase"
+              style={{
+                // Avatar bg: area-color at 80% — uses CSS var, no literal
+                background: "color-mix(in oklch, var(--area-color) 80%, var(--muted))",
+              }}
+            >
+              {initials.toUpperCase()}
+            </span>
+            <span className="max-w-[3.5rem] truncate">{firstName}</span>
+          </div>
+        );
+      })}
+
+      {overflow > 0 && (
+        <div
+          role="listitem"
+          className="bg-muted text-muted-foreground flex items-center rounded-full px-1.5 py-0.5 text-[0.6rem] font-medium"
+        >
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── AreaBand ─────────────────────────────────────────────────────────────────
 
 /**
@@ -227,22 +385,20 @@ export function AreaBand({
   const colByTaskId = new Map(overlapItems.map(({ task, col }) => [task.id, col]));
 
   // ── Employees on shift ────────────────────────────────────────────────────
-  // For the header chip count — employees whose shift is active right now.
-  // We check against employees.length for total, filter for onShift ones.
+  // For the header chip count + EmpStrip on-shift ring indicator.
+  // `onShiftIds` is a Set for O(1) lookup in EmpStrip render.
+  const nowMin = useMemo(() => new Date().getHours() * 60 + new Date().getMinutes(), []);
   const onShiftEmployees = useMemo(
     () =>
       employees.filter((e) => {
         if (!e.shift) return false;
-        // Shift is [HH:MM, HH:MM] — convert to wall-clock minutes
-        const toMin = (hm: string) => {
-          const [h, m] = hm.split(":").map(Number);
-          return (h ?? 0) * 60 + (m ?? 0);
-        };
-        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-        return toMin(e.shift[0]) <= nowMin && nowMin <= toMin(e.shift[1]);
+        const startMin = hmToMin(e.shift[0]);
+        const endMin = hmToMin(e.shift[1]);
+        return startMin <= nowMin && nowMin <= endMin;
       }),
-    [employees],
+    [employees, nowMin],
   );
+  const onShiftIds = useMemo(() => new Set(onShiftEmployees.map((e) => e.id)), [onShiftEmployees]);
 
   // ── CSS custom-prop: --area-color ─────────────────────────────────────────
   // Reference the dept token by id. `var(--dept-<id>)` is a CSS variable chain
@@ -259,12 +415,14 @@ export function AreaBand({
         "border-border flex min-w-[220px] flex-1 flex-col border-r",
         dimmed && "opacity-30",
       )}
+      data-testid={`area-band-${band.id}`}
       data-dimmed={dimmed ? "true" : "false"}
       style={{ "--area-color": areaColorVar } as React.CSSProperties}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="border-border bg-background sticky top-0 z-10 border-b px-3 py-2">
-        <div className="flex items-baseline gap-2">
+      <div className="border-border bg-background sticky top-0 z-10 border-b">
+        {/* Row 1: band name + on-shift count + open times */}
+        <div className="flex items-baseline gap-2 px-3 pt-2">
           {/* Band name — font-heading (Instrument Serif) per prototype visual hierarchy */}
           <span className="text-foreground font-heading truncate text-sm font-semibold">
             {band.name}
@@ -282,12 +440,22 @@ export function AreaBand({
             </span>
           )}
         </div>
+
+        {/* Row 2: emp-on-shift chip strip (prototype:366-385) */}
+        <EmpStrip employees={employees} onShiftIds={onShiftIds} />
       </div>
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       {mode === "area" ? (
-        // Area mode: one PersonLane per employee + an UnassignedLane at the end
-        <div className="flex flex-1 flex-row">
+        // Area mode: one PersonLane per employee + an UnassignedLane at the end.
+        // OpenPeriodWash sits as an absolute overlay on top of the lane body —
+        // pointer-events: none so it doesn't interfere with lane click/drag.
+        <div className="relative flex flex-1 flex-row">
+          {/* Open-period wash — only when band has planned open/close hours */}
+          {band.open && band.close && (
+            <OpenPeriodWash open={band.open} close={band.close} pxPerHour={pxPerHour} />
+          )}
+
           {employees.map((emp) => {
             // Per-employee tasks: area-scoped tasks assigned to this person
             const empTasks = areaTasks.filter((t) => t.emp === emp.id);
@@ -331,6 +499,10 @@ export function AreaBand({
           className="relative flex-1"
           style={{ height: pxPerHour * 20 }}
         >
+          {band.open && band.close && (
+            <OpenPeriodWash open={band.open} close={band.close} pxPerHour={pxPerHour} />
+          )}
+
           {areaTasks.map((task) => (
             <TaskBlock
               key={task.id}
