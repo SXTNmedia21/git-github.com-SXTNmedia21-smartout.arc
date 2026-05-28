@@ -86,6 +86,45 @@ function timeToHHMM(time: string): string {
   return time.slice(0, 5);
 }
 
+// ── ADR-0430 Rule 3 — resolve zones[] from shift_session join ──
+// Two-hop join: schedule_shift → shift_session → shift_session_day_line
+//               → shift_zone → zone(name, location_id)
+// Returns empty array (never null) when no zones are assigned or when the
+// query did not embed shift_session (e.g. simple select("*") queries).
+// Deduplicates by zone.name — a shift spanning multiple day-lines may resolve
+// the same zone more than once.
+
+type ShiftRawWithSession = {
+  shift_session?: Array<{
+    shift_session_day_line?: Array<{
+      shift_zone?: Array<{
+        location_id: string;
+        zone?: { name: string; location_id: string } | null;
+      }>;
+    }>;
+  }> | null;
+};
+
+export function resolveZones(
+  row: ShiftRawWithSession,
+): Array<{ name: string; location_id: string }> {
+  const seen = new Set<string>();
+  const zones: Array<{ name: string; location_id: string }> = [];
+  for (const session of row.shift_session ?? []) {
+    for (const ssdl of session.shift_session_day_line ?? []) {
+      for (const sz of ssdl.shift_zone ?? []) {
+        const name = sz.zone?.name;
+        const location_id = sz.location_id;
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          zones.push({ name, location_id });
+        }
+      }
+    }
+  }
+  return zones;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Shift
 // ══════════════════════════════════════════════════════════════
@@ -111,6 +150,9 @@ export function fromDbShift(row: ShiftRow): Shift {
     status: row.status as ShiftStatus,
     dayCategory: row.day_category as DayCategory,
     zone: row.zone ?? undefined,
+    // ADR-0430 Rule 3: zones[] resolved from shift_session embed (two-hop join).
+    // Empty array until PLAN-4b query updates embed shift_session into select("*").
+    zones: resolveZones(row as ShiftRawWithSession),
     indicator: row.indicator,
     isPublished: row.is_published,
     breaks: row.breaks,
@@ -262,6 +304,9 @@ export function fromDbTemplate(row: TemplateRow, shiftRows: TemplateShiftRow[]):
         status: "created" as ShiftStatus,
         dayCategory: s.day_category as DayCategory,
         zone: s.zone ?? undefined,
+        // Template shifts have no shift_session join — zone M:N not applicable.
+        // ADR-0430 Rule 3: stub empty until template M:N support is added.
+        zones: [],
         indicator: s.indicator,
         breaks: s.breaks,
         notes: s.notes ?? undefined,

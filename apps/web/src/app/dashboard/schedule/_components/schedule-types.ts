@@ -46,8 +46,18 @@ export type Shift = {
   status: ShiftStatus;
   /** From @smartout/types — morning, midday, afternoon, evening, night, weekend */
   dayCategory: DayCategory;
-  /** Kitchen zone, floor section, etc. */
+  /**
+   * Kitchen zone, floor section, etc. — legacy scalar.
+   * @deprecated Use `zones` instead. Kept until PLAN-4b drops schedule_shift.zone column.
+   */
   zone?: string;
+  /**
+   * ADR-0430 Rule 3 — resolved zone array from shift_zone M:N join.
+   * Empty array when no zones are assigned; undefined when the query
+   * did not embed shift_session (simple select("*") callers).
+   * Populated after PLAN-4b updates queries to embed the join.
+   */
+  zones?: Array<{ name: string; location_id: string }>;
   /** Color indicator for the shift card: blue, emerald, purple, orange */
   indicator: string;
   /** Derived from status, kept for quick filtering */
