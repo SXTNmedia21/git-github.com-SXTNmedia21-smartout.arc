@@ -8793,6 +8793,7 @@ export type Database = {
       engine_authority_config: {
         Row: {
           capability: string
+          channel_constraint: string | null
           created_at: string
           id: string
           level: string
@@ -8805,6 +8806,7 @@ export type Database = {
         }
         Insert: {
           capability: string
+          channel_constraint?: string | null
           created_at?: string
           id?: string
           level?: string
@@ -8817,6 +8819,7 @@ export type Database = {
         }
         Update: {
           capability?: string
+          channel_constraint?: string | null
           created_at?: string
           id?: string
           level?: string
@@ -10401,8 +10404,10 @@ export type Database = {
         Row: {
           chapter_key: string
           content: Json
+          content_template_id: string | null
           created_at: string
           handbook_chapter_id: string
+          level: Database["public"]["Enums"]["hms_chapter_level"] | null
           title: string
           updated_at: string
           updated_by: string | null
@@ -10411,8 +10416,10 @@ export type Database = {
         Insert: {
           chapter_key: string
           content?: Json
+          content_template_id?: string | null
           created_at?: string
           handbook_chapter_id?: string
+          level?: Database["public"]["Enums"]["hms_chapter_level"] | null
           title: string
           updated_at?: string
           updated_by?: string | null
@@ -10421,8 +10428,10 @@ export type Database = {
         Update: {
           chapter_key?: string
           content?: Json
+          content_template_id?: string | null
           created_at?: string
           handbook_chapter_id?: string
+          level?: Database["public"]["Enums"]["hms_chapter_level"] | null
           title?: string
           updated_at?: string
           updated_by?: string | null
@@ -10445,6 +10454,126 @@ export type Database = {
           },
           {
             foreignKeyName: "handbook_chapter_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      handbook_chapter_snapshot: {
+        Row: {
+          chapter_key: string
+          content: Json
+          created_at: string
+          handbook_chapter_snapshot_id: string
+          handbook_snapshot_id: string
+          title: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          chapter_key: string
+          content: Json
+          created_at?: string
+          handbook_chapter_snapshot_id?: string
+          handbook_snapshot_id: string
+          title: string
+          version: number
+          workspace_id: string
+        }
+        Update: {
+          chapter_key?: string
+          content?: Json
+          created_at?: string
+          handbook_chapter_snapshot_id?: string
+          handbook_snapshot_id?: string
+          title?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handbook_chapter_snapshot_handbook_snapshot_id_fkey"
+            columns: ["handbook_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "handbook_snapshot"
+            referencedColumns: ["handbook_snapshot_id"]
+          },
+          {
+            foreignKeyName: "handbook_chapter_snapshot_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "handbook_chapter_snapshot_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      handbook_snapshot: {
+        Row: {
+          created_at: string
+          created_by: string
+          handbook_snapshot_id: string
+          pdf_storage_path: string | null
+          review_due_at: string | null
+          trigger_type: Database["public"]["Enums"]["hms_snapshot_trigger"]
+          triggering_chapter_key: string | null
+          triggering_event_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          handbook_snapshot_id?: string
+          pdf_storage_path?: string | null
+          review_due_at?: string | null
+          trigger_type: Database["public"]["Enums"]["hms_snapshot_trigger"]
+          triggering_chapter_key?: string | null
+          triggering_event_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          handbook_snapshot_id?: string
+          pdf_storage_path?: string | null
+          review_due_at?: string | null
+          trigger_type?: Database["public"]["Enums"]["hms_snapshot_trigger"]
+          triggering_chapter_key?: string | null
+          triggering_event_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handbook_snapshot_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "handbook_snapshot_triggering_event_id_fkey"
+            columns: ["triggering_event_id"]
+            isOneToOne: false
+            referencedRelation: "engine_event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handbook_snapshot_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "handbook_snapshot_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -10515,6 +10644,230 @@ export type Database = {
             foreignKeyName: "help_request_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      hms_chapter_setup_status: {
+        Row: {
+          applies_to_industry_codes: string[] | null
+          chapter_key: string
+          completed_at: string | null
+          completed_by: string | null
+          completion_status: Database["public"]["Enums"]["hms_chapter_completion_status"]
+          created_at: string
+          id: string
+          level: string
+          next_review_due_at: string | null
+          required: boolean
+          responsible_profile_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          skipped_reason: string | null
+          updated_at: string
+          validation_rules: Json
+          workspace_id: string
+        }
+        Insert: {
+          applies_to_industry_codes?: string[] | null
+          chapter_key: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_status?: Database["public"]["Enums"]["hms_chapter_completion_status"]
+          created_at?: string
+          id?: string
+          level: string
+          next_review_due_at?: string | null
+          required?: boolean
+          responsible_profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skipped_reason?: string | null
+          updated_at?: string
+          validation_rules?: Json
+          workspace_id: string
+        }
+        Update: {
+          applies_to_industry_codes?: string[] | null
+          chapter_key?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_status?: Database["public"]["Enums"]["hms_chapter_completion_status"]
+          created_at?: string
+          id?: string
+          level?: string
+          next_review_due_at?: string | null
+          required?: boolean
+          responsible_profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skipped_reason?: string | null
+          updated_at?: string
+          validation_rules?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hms_chapter_setup_status_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "hms_chapter_setup_status_responsible_profile_id_fkey"
+            columns: ["responsible_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "hms_chapter_setup_status_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "hms_chapter_setup_status_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "hms_chapter_setup_status_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      hms_onboarding_state: {
+        Row: {
+          admin_profile_id: string
+          completed_at: string | null
+          completed_steps: number[]
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          last_step_at: string
+          started_at: string
+          status: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_profile_id: string
+          completed_at?: string | null
+          completed_steps?: number[]
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          last_step_at?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_profile_id?: string
+          completed_at?: string | null
+          completed_steps?: number[]
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          last_step_at?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hms_onboarding_state_admin_profile_id_fkey"
+            columns: ["admin_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "hms_onboarding_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "hms_onboarding_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      hms_setup_state: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          current_chapter_key: string | null
+          last_reviewed_at: string | null
+          level_a_completed_count: number
+          level_a_required_count: number
+          next_review_due_at: string | null
+          status: Database["public"]["Enums"]["hms_setup_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_chapter_key?: string | null
+          last_reviewed_at?: string | null
+          level_a_completed_count?: number
+          level_a_required_count?: number
+          next_review_due_at?: string | null
+          status?: Database["public"]["Enums"]["hms_setup_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          current_chapter_key?: string | null
+          last_reviewed_at?: string | null
+          level_a_completed_count?: number
+          level_a_required_count?: number
+          next_review_due_at?: string | null
+          status?: Database["public"]["Enums"]["hms_setup_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hms_setup_state_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "hms_setup_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "hms_setup_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
           },
@@ -16976,7 +17329,7 @@ export type Database = {
             | Database["payroll"]["Enums"]["custom_rate_type"]
             | null
           day_category: Database["public"]["Enums"]["day_category"]
-          department_id: string | null
+          department_id: string
           employee_id: string | null
           end_time: string
           indicator: string
@@ -17014,7 +17367,7 @@ export type Database = {
             | Database["payroll"]["Enums"]["custom_rate_type"]
             | null
           day_category: Database["public"]["Enums"]["day_category"]
-          department_id?: string | null
+          department_id: string
           employee_id?: string | null
           end_time: string
           indicator?: string
@@ -17052,7 +17405,7 @@ export type Database = {
             | Database["payroll"]["Enums"]["custom_rate_type"]
             | null
           day_category?: Database["public"]["Enums"]["day_category"]
-          department_id?: string | null
+          department_id?: string
           employee_id?: string | null
           end_time?: string
           indicator?: string
@@ -19273,6 +19626,75 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shift_session"
             referencedColumns: ["shift_session_id"]
+          },
+        ]
+      }
+      shift_zone: {
+        Row: {
+          created_at: string
+          day_line_id: string
+          id: string
+          location_id: string
+          shift_session_id: string
+          updated_at: string
+          workspace_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_line_id: string
+          id?: string
+          location_id: string
+          shift_session_id: string
+          updated_at?: string
+          workspace_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          day_line_id?: string
+          id?: string
+          location_id?: string
+          shift_session_id?: string
+          updated_at?: string
+          workspace_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_shift_zone_day_line_location"
+            columns: ["day_line_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "day_line"
+            referencedColumns: ["day_line_id", "location_id"]
+          },
+          {
+            foreignKeyName: "fk_shift_zone_parent"
+            columns: ["shift_session_id", "day_line_id"]
+            isOneToOne: false
+            referencedRelation: "shift_session_day_line"
+            referencedColumns: ["shift_session_id", "day_line_id"]
+          },
+          {
+            foreignKeyName: "fk_shift_zone_zone"
+            columns: ["zone_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "zone"
+            referencedColumns: ["zone_id", "location_id"]
+          },
+          {
+            foreignKeyName: "shift_zone_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "shift_zone_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -22430,6 +22852,11 @@ export type Database = {
       }
     }
     Functions: {
+      _hms_count_tiptap_blocks: {
+        Args: { p_content: Json; p_type: string }
+        Returns: number
+      }
+      _hms_extract_tiptap_text: { Args: { p_content: Json }; Returns: string }
       _role_rank: { Args: { p_role: string }; Returns: number }
       activate_season: {
         Args: { p_season_id: string; p_workspace_id: string }
@@ -22722,6 +23149,33 @@ export type Database = {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
       }
+      fn_advance_hms_onboarding_guide: {
+        Args: {
+          p_complete_current?: boolean
+          p_profile_id: string
+          p_to_step: number
+          p_workspace_id: string
+        }
+        Returns: {
+          admin_profile_id: string
+          completed_at: string | null
+          completed_steps: number[]
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          last_step_at: string
+          started_at: string
+          status: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hms_onboarding_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_birthday_cohort_for_workspace: {
         Args: { p_today: string; p_workspace_id: string }
         Returns: {
@@ -22738,6 +23192,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: string
+      }
+      fn_create_hms_handbook_snapshot: {
+        Args: { p_workspace_id: string }
+        Returns: Json
+      }
+      fn_create_hms_snapshot_from_event: {
+        Args: { p_event_id: string }
+        Returns: Json
       }
       fn_create_routine_from_draft: {
         Args: {
@@ -22756,6 +23218,28 @@ export type Database = {
         Returns: Json
       }
       fn_cron_jobs_health: { Args: never; Returns: Json }
+      fn_dismiss_hms_onboarding_guide: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: {
+          admin_profile_id: string
+          completed_at: string | null
+          completed_steps: number[]
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          last_step_at: string
+          started_at: string
+          status: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hms_onboarding_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_fuzzy_match_entity: {
         Args: {
           p_entity_type: string
@@ -22787,6 +23271,18 @@ export type Database = {
           invoice_id: string
           invoice_number: number
         }[]
+      }
+      fn_get_hms_chapter_snapshot_history: {
+        Args: {
+          p_chapter_key: string
+          p_limit?: number
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      fn_get_hms_setup_state: {
+        Args: { p_workspace_id: string }
+        Returns: Json
       }
       fn_godmode_join_workspace: {
         Args: { p_workspace_id: string }
@@ -22845,6 +23341,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      fn_mark_hms_chapter_completed: {
+        Args: { p_chapter_key: string; p_workspace_id: string }
+        Returns: Json
+      }
       fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
       fn_normalize_session_task_status: {
         Args: { p_raw: string }
@@ -22871,9 +23371,35 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_recalculate_hms_setup_status: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          current_chapter_key: string | null
+          last_reviewed_at: string | null
+          level_a_completed_count: number
+          level_a_required_count: number
+          next_review_due_at: string | null
+          status: Database["public"]["Enums"]["hms_setup_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hms_setup_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_resolve_single_day_line: {
         Args: { p_department_session_id: string }
         Returns: string
+      }
+      fn_seed_hms_chapter_from_wizards: {
+        Args: { p_chapter_key: string; p_workspace_id: string }
+        Returns: Json
       }
       fn_seed_profession_training: {
         Args: { p_profiles: Json; p_workspace_id: string }
@@ -22886,6 +23412,40 @@ export type Database = {
           p_reason: string
           p_workspace_id: string
         }
+        Returns: string
+      }
+      fn_start_hms_onboarding_guide: {
+        Args: {
+          p_profile_id: string
+          p_resume?: boolean
+          p_workspace_id: string
+        }
+        Returns: {
+          admin_profile_id: string
+          completed_at: string | null
+          completed_steps: number[]
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          last_step_at: string
+          started_at: string
+          status: Database["public"]["Enums"]["hms_onboarding_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hms_onboarding_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_validate_hms_chapter_complete: {
+        Args: { p_chapter_key: string; p_workspace_id: string }
+        Returns: Json
+      }
+      fn_workspace_industry_code: {
+        Args: { p_workspace_id: string }
         Returns: string
       }
       gate_action: {
@@ -23224,6 +23784,10 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      seed_hms_setup_for_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       seed_onboarding_journey: {
         Args: { p_workspace_id: string }
         Returns: string
@@ -23504,7 +24068,33 @@ export type Database = {
         | "framework_rule_change"
         | "external_sync"
       governance_status: "unassigned" | "attached"
-      industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
+      hms_chapter_completion_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "skipped"
+        | "not_applicable"
+      hms_chapter_level: "A" | "B"
+      hms_onboarding_status: "in_progress" | "dismissed" | "completed"
+      hms_setup_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "needs_review"
+        | "not_applicable"
+      hms_snapshot_trigger:
+        | "chapter_completion"
+        | "on_demand_admin"
+        | "full_handbook"
+        | "periodic_review"
+      industry:
+        | "restaurant"
+        | "hotel"
+        | "cafe"
+        | "bar"
+        | "catering"
+        | "other"
+        | "unknown"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
       invite_type: "email" | "sms" | "link"
       invoice_line_type:
@@ -25198,7 +25788,37 @@ export const Constants = {
         "external_sync",
       ],
       governance_status: ["unassigned", "attached"],
-      industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
+      hms_chapter_completion_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "skipped",
+        "not_applicable",
+      ],
+      hms_chapter_level: ["A", "B"],
+      hms_onboarding_status: ["in_progress", "dismissed", "completed"],
+      hms_setup_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "needs_review",
+        "not_applicable",
+      ],
+      hms_snapshot_trigger: [
+        "chapter_completion",
+        "on_demand_admin",
+        "full_handbook",
+        "periodic_review",
+      ],
+      industry: [
+        "restaurant",
+        "hotel",
+        "cafe",
+        "bar",
+        "catering",
+        "other",
+        "unknown",
+      ],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
       invite_type: ["email", "sms", "link"],
       invoice_line_type: [
