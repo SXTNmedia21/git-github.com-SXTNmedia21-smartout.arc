@@ -46,15 +46,21 @@ const ItemBase = z.object({
 
 /**
  * Payload for a template shift slot. Maps to schedule_shift on apply.
- * position_id / team_id / location_id / zone are all optional — the template
- * author may leave these as null if they vary per apply invocation.
+ * position_id / team_id / location_id / zone_ids are all optional — the
+ * template author may leave these empty if they vary per apply invocation.
+ *
+ * ADR-0430 Rule 4 (M2N zone contract): zone_ids replaces the legacy `zone`
+ * TEXT field. An array of zone UUIDs, each validated server-side at apply
+ * time (Rule 7 forgery defense). Empty array = shift unassigned to any zone.
+ * Same commit as timeline-template/tools.ts consumer rewrite (ADR-0112
+ * type-contract same-commit gate, MF-D).
  */
 export const SchedShiftPayload = z.object({
   role: z.string().min(1).max(40),
   position_id: z.string().uuid().nullable(),
   team_id: z.string().uuid().nullable(),
   location_id: z.string().uuid().nullable(),
-  zone: z.string().max(40).nullable(),
+  zone_ids: z.array(z.string().uuid()).default([]),
   notes: z.string().max(280).nullable(),
 });
 
