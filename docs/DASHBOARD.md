@@ -26,7 +26,7 @@ _None._ Last sortie wt-7 (`feat/procedure-engine-2b`) closed today → merged to
 | Campaign | Branch | HEAD | Dirty | vs origin/development | Last Commit |
 |---|---|---|---|---|---|
 | botsson-arena | `campaign/botsson-arena` | `420c232a6` | 0 | 188 behind, 4 ahead | 9h ago |
-| hms | `campaign/hms` | `c462b4ca9` | 0 | 0 behind, 5 ahead | just now |
+| hms | `campaign/hms` | `c57039bfb` | 1 untracked | 0 behind, ~13 ahead | just now |
 | bubble-migration | `campaign/bubble-migration` | `9d7506ed7` | 0 | 325 behind, 126 ahead | 9h ago |
 | daily-operation | `campaign/daily-operation` | `bdf7d3ceb` | 1 untracked | 188 behind, 1 ahead | 9h ago |
 | mobile | `campaign/mobile` | `d5f3e5929` | 0 | 188 behind, 4 ahead | 9h ago |
