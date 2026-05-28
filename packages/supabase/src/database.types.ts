@@ -3535,6 +3535,7 @@ export type Database = {
           direct_pair_hash: string | null
           helpdesk_enabled: boolean
           id: string
+          is_active: boolean
           is_archived: boolean
           is_read_only: boolean
           legal_hold_until: string | null
@@ -3567,6 +3568,7 @@ export type Database = {
           direct_pair_hash?: string | null
           helpdesk_enabled?: boolean
           id?: string
+          is_active?: boolean
           is_archived?: boolean
           is_read_only?: boolean
           legal_hold_until?: string | null
@@ -3599,6 +3601,7 @@ export type Database = {
           direct_pair_hash?: string | null
           helpdesk_enabled?: boolean
           id?: string
+          is_active?: boolean
           is_archived?: boolean
           is_read_only?: boolean
           legal_hold_until?: string | null
@@ -8639,6 +8642,20 @@ export type Database = {
             referencedColumns: ["contract_id"]
           },
           {
+            foreignKeyName: "employment_contract_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+          {
             foreignKeyName: "fk_contract_created_by"
             columns: ["created_by"]
             isOneToOne: false
@@ -9624,46 +9641,64 @@ export type Database = {
         Row: {
           action_payload: Json
           action_type: string
+          args_resolved: Json | null
           assignee_rule: string | null
+          capability_name: string | null
           completed_at: string | null
           completed_by: string | null
           condition: Json | null
           created_at: string
+          delegated_via: string | null
+          gate_action_id: string | null
           id: string
           result: Json | null
           state_id: string
           status: string
           step_order: number
+          tool_name: string | null
+          tool_result_summary: Json | null
           updated_at: string
         }
         Insert: {
           action_payload?: Json
           action_type: string
+          args_resolved?: Json | null
           assignee_rule?: string | null
+          capability_name?: string | null
           completed_at?: string | null
           completed_by?: string | null
           condition?: Json | null
           created_at?: string
+          delegated_via?: string | null
+          gate_action_id?: string | null
           id?: string
           result?: Json | null
           state_id: string
           status?: string
           step_order: number
+          tool_name?: string | null
+          tool_result_summary?: Json | null
           updated_at?: string
         }
         Update: {
           action_payload?: Json
           action_type?: string
+          args_resolved?: Json | null
           assignee_rule?: string | null
+          capability_name?: string | null
           completed_at?: string | null
           completed_by?: string | null
           condition?: Json | null
           created_at?: string
+          delegated_via?: string | null
+          gate_action_id?: string | null
           id?: string
           result?: Json | null
           state_id?: string
           status?: string
           step_order?: number
+          tool_name?: string | null
+          tool_result_summary?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -22102,6 +22137,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "employment_contract_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+          {
             foreignKeyName: "fk_contract_profile"
             columns: ["profile_id"]
             isOneToOne: false
@@ -22738,6 +22787,10 @@ export type Database = {
           invoice_id: string
           invoice_number: number
         }[]
+      }
+      fn_godmode_join_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: string
       }
       fn_list_my_tasks: {
         Args: { p_window_end?: string; p_window_start?: string }
@@ -23403,6 +23456,7 @@ export type Database = {
         | "apprentice"
         | "practice"
         | "freelance"
+        | "volunteer"
       employment_role: "main" | "secondary" | "temporary_supplement"
       enforcement_status: "aspirational" | "enforced"
       engine_world_status: "green" | "yellow" | "red" | "unknown" | "paused"
@@ -25089,6 +25143,7 @@ export const Constants = {
         "apprentice",
         "practice",
         "freelance",
+        "volunteer",
       ],
       employment_role: ["main", "secondary", "temporary_supplement"],
       enforcement_status: ["aspirational", "enforced"],
