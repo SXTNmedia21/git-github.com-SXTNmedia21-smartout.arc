@@ -1,7 +1,7 @@
 ---
 title: "Core Structure Reform Phase 2 — Shift × Zone × Location M:N (Option Y)"
 id: ADR_0430
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-27
 updated: 2026-05-28
@@ -103,20 +103,19 @@ CREATE TABLE public.shift_zone (
   workspace_id          UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   shift_session_id      UUID NOT NULL,
   day_line_id           UUID NOT NULL,
-  zone_id               UUID NOT NULL REFERENCES zone(id),
+  zone_id               UUID NOT NULL,
+  location_id           UUID NOT NULL,  -- denormalized for FK coherence (Rule 1)
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   FOREIGN KEY (shift_session_id, day_line_id)
     REFERENCES shift_session_day_line(shift_session_id, day_line_id),
-
-  CONSTRAINT chk_zone_location_matches_day_line
-    CHECK (
-      (SELECT location_id FROM zone WHERE id = zone_id)
-      = (SELECT location_id FROM day_line WHERE id = day_line_id)
-    )
+  FOREIGN KEY (zone_id, location_id) REFERENCES zone(id, location_id),
+  FOREIGN KEY (day_line_id, location_id) REFERENCES day_line(id, location_id)
 );
 ```
+
+Location coherence (zone.location_id = day_line.location_id) is enforced as a **composite FK invariant**, not a CHECK constraint. PostgreSQL does not allow subqueries inside CHECK; the denormalized `location_id` column on `shift_zone` plus two composite FKs (one to `zone(id, location_id)`, one to `day_line(id, location_id)`) makes the coherence rule **enforced at every write path** — including service-role bulk INSERT, `pg_dump/restore`, and `session_replication_role = replica`. Two UNIQUE constraints are additive prerequisites: `UNIQUE (zone.id, zone.location_id)` and `UNIQUE (day_line.id, day_line.location_id)` — both columns already exist on the target tables.
 
 **FK is to the composite** `(shift_session_id, day_line_id)` on `shift_session_day_line`, NOT to `shift_session_id` alone. A `shift_zone` row without a matching `shift_session_day_line` parent is structurally invalid and blocked at the DB level.
 
@@ -159,16 +158,34 @@ The `gatedMutation` wrap on `add-shift-action.ts` is a security gate (ADR-0204 +
 Three mobile files must replace the `profile.location_id` direct read with the `profile → department → department_location → location` resolution path:
 
 - `apps/mobile/src/components/RoutineReviewForm.tsx`
-- `apps/mobile/src/hooks/use-shift-session.ts:71`
+- `apps/mobile/src/hooks/queries/use-shift-session.ts:71`
 - `apps/mobile/src/hooks/use-routine-extract.ts:41`
 
 The replacement hook (`useShiftSession` or equivalent) must be placed in `packages/data/` per ADR-0133 Mobile Parity rule so both web and mobile consume the same hook. Mobile surfaces remain read-only (ADR-0133); no mobile authoring UI for `shift_zone` assignment.
 
+**Path-verification note (added 2026-05-28):** `grep "profile.location_id" apps/mobile/` returns zero hits as of 2026-05-28 — the over-binding may already be unused on mobile. Phase b implementer must re-grep before declaring each file changed; if reads have already been refactored, that file becomes a no-op for Rule 5.
+
 ### Rule 6 — Telemetry contract (Condition #6 — HARD, already resolved)
 
-Option β chosen. The existing `roster.add_shift_manual` telemetry event is extended with `metadata.zone_ids: string[]`. No new event registry entries for `shift_zone.*` in this sortie. If `zone_ids` is empty (ad-hoc shift with no zone assignment), emit with `zone_ids: []` — the field is always present to allow downstream filtering.
+Option β chosen. The telemetry event extended is **`"shift added_manual"`** (registry.ts:753 — note the space, not a dot). The capability gate identifier `roster.add_shift_manual` (registry.ts:751 comment, `engine_authority_config` row) is a **separate concept** — it controls authorization, not telemetry routing. Phase b implementer must NOT search for `roster.add_shift_manual` as an event key; the event lookup uses the literal string `"shift added_manual"`.
+
+Extension shape: append `zone_ids?: string[]` (optional in the TypeScript interface so legacy callsites compile) to `ShiftAddedManual.properties.data`. Same extension applies to two adjacent events that also fire during zone-bearing shift creation — see Rule 6b.
 
 The L-0176 constraint is satisfied: no new event names are registered, so no new emit() call-sites are required to pair with them. If a future ADR adds `shift_zone.assigned` / `shift_zone.removed` events, the pair constraint applies at that ADR.
+
+### Rule 6b — Three emit-sites carry `zone_ids` (audit completeness)
+
+The audit trail requires zone provenance on every emit path that triggers `shift_zone` INSERT. Three telemetry events are extended in Phase b:
+
+| Event name | Interface | Emit-site | Notes |
+|---|---|---|---|
+| `"shift added_manual"` | `ShiftAddedManual` (registry.ts:752) | `apps/web/src/app/dashboard/_actions/add-shift-action.ts:326` | Manual single-shift create via web Server Action; G4 closure also lands here (Rule 4) |
+| `"shift created"` | `ShiftCreated` (registry.ts:709) | `packages/ai/src/capabilities/timeline-template/tools.ts:300` | Template-driven shift create; per-item emit inside `mutateWithGate` exec |
+| `"scheduler.proposal.accepted"` | (registry entry) | `packages/ai/src/capabilities/scheduler/tools.ts:640` | Bulk proposal-accept; one emit per bundle per ADR-0309, NOT per shift |
+
+Mobile BFF emit-site `apps/web/src/app/api/mobile/shifts/route.ts` (documented emit-site for `"shift added_manual"`) also carries `zone_ids` — passes empty array `[]` since mobile is read-only on shift authoring per ADR-0133.
+
+All three interface extensions land in the SAME commit as their respective emit-site updates (L-0176 spirit applied across existing events).
 
 ### Rule 7 — Forgery defense (Condition #7, ADR-0151)
 
@@ -182,15 +199,20 @@ This closes the forgery surface: a client cannot supply a `zone_id` from another
 
 ### Rule 8 — L-0064 cleanup (Condition #8)
 
-After M1 adds the NOT NULL constraint on `schedule_shift.department_id`, the five L-0064 comment markers must be removed:
+After M1 adds the NOT NULL constraint on `schedule_shift.department_id`, remove the **2 Class-B L-0064 comment markers** that workaround the nullable column:
 
-- `apps/web/src/components/day/tabs/RosterTab.tsx`
-- `apps/web/src/app/dashboard/_hooks/use-roster.ts`
-- `apps/web/src/app/dashboard/_hooks/use-shift-day-stats.ts`
-- `apps/web/src/app/dashboard/_actions/add-shift-action.ts` (×2)
-- `apps/web/src/app/dashboard/_hooks/use-day-timeline-events.ts`
+- `apps/web/src/app/dashboard/_hooks/use-day-timeline-events.ts:299`
+- `apps/web/src/app/dashboard/_hooks/use-shift-day-stats.ts:18`
 
-These comments are workarounds for a nullable column. Once the NOT NULL constraint and backfill land, the workarounds become misleading dead commentary.
+**DO NOT** touch Class-A L-0064 markers. The canonical L-0064 (per `docs/learnings/0064-phase-enum-ui-vs-db-drift.md`) is **"Phase Enum UI-vs-DB Drift"** — derivation-helper signposts for the locked-phase pattern in `WebDayControl.tsx`, `derive-phase.ts`, `use-daily-reconciliation.ts`, `toggle-session-task-action.ts`, `packages/telemetry/src/registry.ts`, `compile-day-brief.ts`, `compile-preclose.ts`, `communication/tools.ts`, and `operations/tools.ts` (9 files). These are NOT workarounds and remain valid post-reform.
+
+Two semantic classes have squatted on the same Learning ID. Phase b cleanup applies ONLY to Class B (nullable-`department_id` workarounds). The audit INDEX (2026-05-27) cited 5 files for cleanup — code-trace 2026-05-28 verified 3 of those (RosterTab.tsx, use-roster.ts, add-shift-action.ts) no longer carry markers; the audit was stale.
+
+### Rule 9 — Channel pinning (ADR-0078)
+
+Capability tool calls that assign `zone_ids` to a shift (`schedule.create_shift_with_zones`, `roster.add_shift_manual` with `zone_ids[]`, equivalent zone-assignment paths inside `scheduler`, `timeline-template`) are **chat-only**. Voice surface MUST NOT expose zone-assignment writes.
+
+ADR-0367 lineage (web-only authoring per ADR-0133) implies this, but the channel guard is restated explicitly here to prevent silent voice-surface drift. Verification: `services/voice-agent/src/tools-*.ts` must NOT register any tool that writes to `shift_zone`. `engine_authority_config` row for `roster.add_shift_manual` must have `channel_constraint = 'chat_only'`.
 
 ---
 
@@ -202,7 +224,7 @@ These comments are workarounds for a nullable column. Once the NOT NULL constrai
 - **G4 closed.** `add-shift-action.ts` gets `gatedMutation` wrap — closes a pre-existing ADR-0204 violation independently of the zone reform.
 - **Mobile path corrected.** `profile.location_id` removal forces mobile onto the session-derived path, which is accurate and multi-zone-aware.
 - **L-0064 comments eliminated.** Codebase gains a NOT NULL constraint and loses 5 misleading comment workarounds.
-- **CHECK constraint is database law.** Zone-to-area coherence is enforced at INSERT, not at runtime assertion.
+- **Composite FK is database law.** Zone-to-area coherence (zone.location_id = day_line.location_id) is enforced at INSERT by two composite FOREIGN KEYs on `shift_zone`, not by CHECK or runtime assertion. PostgreSQL FK enforcement survives bulk INSERT, pg_dump/restore, and session_replication_role switches.
 
 **Bad:**
 - **M4 is a blocking column drop.** Dropping `schedule_shift.location_id` and `schedule_shift.zone` requires ALL read and write sites to be migrated before M4 ships. Any capability tool, Edge Function, or E2E fixture that still references the dropped columns will fail to typecheck. The code-rewrite sortie must be exhaustive.
@@ -231,12 +253,15 @@ Phase a (this ADR — planning only). Phase b is a separate implementation sorti
 1. Council Phase 3-9 re-confirmation that this proposed ADR is accepted.
 2. Verify no in-flight feat/* branch has migrations with timestamp conflicts against M1–M4 slots (ADR-0427 collision-aliasing doctrine).
 3. Confirm `shift_session_day_line` composite PK exists in current schema (migration `20260620120400`) — verified by the 2026-05-27 steward.
+4. **M0.5 — Position orphan reconciliation.** Before M1, generate a reconciliation report: `SELECT COUNT(*) FROM schedule_shift s LEFT JOIN position p ON s.position_id = p.id WHERE s.department_id IS NULL AND s.position_id IS NOT NULL AND p.department_id IS NULL` — if non-zero, M1 backfill will fail. Reconcile orphans (add department_id to position rows OR triage to specific Vakt rows) before M1 NOT NULL constraint.
+5. **M3 default-zone definition.** Before M3 backfill, define "default zone per location" operationally: **the single `zone` row with lowest `sort_order` WHERE `workspace_id` matches AND `location_id` matches**. No `is_default` flag exists on the zone table. If multiple zones tied on `sort_order`, skip backfill for that location (log SKIPPED). If no zones at all for a location, skip silently.
+6. **M3.5 pre-M4 — `pg_depend` audit + `ensure_shift_session` trigger rewrite.** Run `SELECT * FROM pg_depend WHERE refobjid = 'schedule_shift'::regclass::oid AND deptype = 'n'` to enumerate every trigger/view/policy referencing `schedule_shift.location_id` or `schedule_shift.zone`. The `ensure_shift_session` trigger (verify exists in current schema) must be rewritten to source location from `shift_session_day_line` instead of `schedule_shift.location_id` BEFORE M4 column drops. Document each rewrite in Phase b HANDOFF.
 
 **Phase b — implementation sortie:**
 
 | Step | Action | Files |
 |---|---|---|
-| M1 | Migration: backfill `schedule_shift.department_id` from `position.department_id` where NULL; ADD CONSTRAINT NOT NULL; remove L-0064 comments from 6 files | `supabase/migrations/202608NNNNNNNN_shift_dept_not_null_backfill.sql` |
+| M1 | Migration: backfill `schedule_shift.department_id` from `position.department_id` where NULL; ADD CONSTRAINT NOT NULL; remove 2 Class-B L-0064 comments (use-day-timeline-events.ts:299, use-shift-day-stats.ts:18) | `supabase/migrations/202608NNNNNNNN_shift_dept_not_null_backfill.sql` |
 | M2 | Migration: CREATE TABLE `shift_zone` + RLS 5-policy mirror + workspace_id trigger + CHECK constraint | `supabase/migrations/202608NNNNNNNN_shift_zone_table.sql` |
 | M3 | Migration: backfill `shift_zone` from existing `shift_session_day_line` rows (skip where zone unresolvable) | `supabase/migrations/202608NNNNNNNN_shift_zone_backfill.sql` |
 | READ-rewrite | Switch 12 READ sites off `location_id` embed → `shift_session → day_line → location` scalar | `schedule/tools.ts:{80,253,324,414}`, `briefing.ts:{37,52}` |
@@ -259,7 +284,7 @@ Phase a (this ADR — planning only). Phase b is a separate implementation sorti
 - ADR-0151 — Server-resolved IDs (forgery defense on `zone_ids[]`)
 - ADR-0173 — Frozen-4 capability boundaries
 - ADR-0204 — gatedMutation (G4 closure in add-shift-action.ts)
-- ADR-0240 — Cross-namespace delegation
+- ADR-0356 — Cross-namespace delegation symmetry (cascade tool emit fields: `actor_capability` + `delegated_via`)
 - ADR-0287 — gate_action mandatory on mutation capability tools
 - ADR-0367 — D6 tri-layer model (foundational; this ADR extends it)
 - ADR-0392 — Domain steward 8-file spine (scheduling domain spine refresh triggered by M4)
