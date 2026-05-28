@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-27
-last-reconciled: 2026-05-23T22:00Z
-last-event: /status regenerate — global rebuild post wt-6/wt-7/tier0-polish ships (development @ 61a8b97ed)
+updated: 2026-05-28
+last-reconciled: 2026-05-28T20:00Z
+last-event: Dagslinjen parity + ADR-0429 Department Vocabulary shipped direct on development (development @ 112c3bf92)
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -26,6 +26,7 @@ _None._ Last sortie wt-7 (`feat/procedure-engine-2b`) closed today → merged to
 | Campaign | Branch | HEAD | Dirty | vs origin/development | Last Commit |
 |---|---|---|---|---|---|
 | botsson-arena | `campaign/botsson-arena` | `420c232a6` | 0 | 188 behind, 4 ahead | 9h ago |
+| hms | `campaign/hms` | `c462b4ca9` | 0 | 0 behind, 5 ahead | just now |
 | bubble-migration | `campaign/bubble-migration` | `9d7506ed7` | 0 | 325 behind, 126 ahead | 9h ago |
 | daily-operation | `campaign/daily-operation` | `bdf7d3ceb` | 1 untracked | 188 behind, 1 ahead | 9h ago |
 | mobile | `campaign/mobile` | `d5f3e5929` | 0 | 188 behind, 4 ahead | 9h ago |
@@ -72,7 +73,23 @@ Top-priority pending (tied to active work):
 - Campaign sync drift: 8 campaigns 188+ behind dev — natural after a 3-merge day, schedule sync
 - `bubble-migration` 325 behind / 126 ahead — biggest divergence, council gate needed before merge
 
-## Today's Shipped to Development (2026-05-23)
+## Today's Shipped to Development (2026-05-28)
+
+| SHA | What | Source |
+|---|---|---|
+| `112c3bf92` | fix(dagslinjen): orchestrator-bundle residual D2/D3/D5 edits | direct |
+| `e9cc6f7ba` | feat(dagslinjen): Toolbar parity — Bruk mal + Akkurat nå pulse-button | direct |
+| `8cd1e67ea` | feat(dagslinjen): AreaBand polish — open-period wash + emp-strip | direct |
+| `c21cbb78e` | feat(dagslinjen): HQ Workspace location area-reshape migration (ADR-0429) | direct |
+| `f5d323b7f` | fix(dagslinjen): bands render as horizontal columns | direct |
+| `708a5d81e` | feat(industry): hospitality.ts I1 seed FoH/BoH/Admin (ADR-0429) | direct |
+
+**ADRs:** ADR-0429 (Department Vocabulary — FoH/BoH/Admin Defaults) **accepted**.
+ADR-0430 (Shift × Zone × Location M:N, Option Y) **reserved** with 8 implementation conditions.
+
+**HANDOFF:** `docs/HANDOFF-dagslinjen-parity-2026-05-28.md`.
+
+## Previously Shipped (2026-05-23)
 
 | SHA | What | Source |
 |---|---|---|
