@@ -15966,7 +15966,6 @@ export type Database = {
           language_override:
             | Database["public"]["Enums"]["preferred_language"]
             | null
-          location_id: string | null
           locations: string[] | null
           notification_pref: Json | null
           personal_number: string | null
@@ -16017,7 +16016,6 @@ export type Database = {
           language_override?:
             | Database["public"]["Enums"]["preferred_language"]
             | null
-          location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
           personal_number?: string | null
@@ -16068,7 +16066,6 @@ export type Database = {
           language_override?:
             | Database["public"]["Enums"]["preferred_language"]
             | null
-          location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
           personal_number?: string | null
@@ -16111,13 +16108,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "department"
             referencedColumns: ["department_id"]
-          },
-          {
-            foreignKeyName: "fk_profile_location"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "location"
-            referencedColumns: ["location_id"]
           },
           {
             foreignKeyName: "fk_profile_user"
@@ -17335,7 +17325,6 @@ export type Database = {
           indicator: string
           is_adhoc: boolean | null
           is_published: boolean
-          location_id: string | null
           notes: string | null
           pipeline_lock_state_id: string | null
           position_id: string | null
@@ -17351,7 +17340,6 @@ export type Database = {
           updated_at: string
           work_hours: number
           workspace_id: string
-          zone: string | null
         }
         Insert: {
           adhoc_approved_at?: string | null
@@ -17373,7 +17361,6 @@ export type Database = {
           indicator?: string
           is_adhoc?: boolean | null
           is_published?: boolean
-          location_id?: string | null
           notes?: string | null
           pipeline_lock_state_id?: string | null
           position_id?: string | null
@@ -17389,7 +17376,6 @@ export type Database = {
           updated_at?: string
           work_hours?: number
           workspace_id: string
-          zone?: string | null
         }
         Update: {
           adhoc_approved_at?: string | null
@@ -17411,7 +17397,6 @@ export type Database = {
           indicator?: string
           is_adhoc?: boolean | null
           is_published?: boolean
-          location_id?: string | null
           notes?: string | null
           pipeline_lock_state_id?: string | null
           position_id?: string | null
@@ -17427,7 +17412,6 @@ export type Database = {
           updated_at?: string
           work_hours?: number
           workspace_id?: string
-          zone?: string | null
         }
         Relationships: [
           {
@@ -17464,13 +17448,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_shift_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "location"
-            referencedColumns: ["location_id"]
           },
           {
             foreignKeyName: "schedule_shift_pipeline_lock_state_id_fkey"
