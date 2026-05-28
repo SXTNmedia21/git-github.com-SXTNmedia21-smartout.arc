@@ -15,11 +15,18 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
-// Department name → type mapping (mirrors hospitality.ts DEPARTMENT_TYPE_MAP)
+// Department name → type mapping (mirrors hospitality.ts DEPARTMENT_TYPE_MAP).
+// ADR-0429 canonical names (FoH/BoH/Admin) are recognized alongside legacy keys
+// (kjøkken/kitchen/sal/service/...) so pre-ADR-0429 workspaces keep classifying.
 const DEPARTMENT_TYPE_MAP: Record<string, { type: string; confidence: string }> = {
+  // ADR-0429 canonical defaults
+  foh: { type: "operational", confidence: "high" },
+  boh: { type: "operational", confidence: "high" },
+  // Legacy / verbose synonyms — preserved for pre-ADR-0429 workspaces
   kjøkken: { type: "operational", confidence: "high" },
   kjokken: { type: "operational", confidence: "high" },
   kitchen: { type: "operational", confidence: "high" },
+  "back of house": { type: "operational", confidence: "high" },
   sal: { type: "operational", confidence: "high" },
   floor: { type: "operational", confidence: "high" },
   "front of house": { type: "operational", confidence: "high" },
@@ -41,11 +48,17 @@ const DEPARTMENT_TYPE_MAP: Record<string, { type: string; confidence: string }> 
   ledelse: { type: "administrative", confidence: "high" },
 };
 
-// Department offset defaults in minutes
+// Department offset defaults in minutes.
+// ADR-0429: foh inherits sal/service open-offset (-60), boh inherits kitchen open-offset (-120).
 const OFFSET_DEFAULTS: Record<string, { open: number; close: number }> = {
+  // ADR-0429 canonical defaults
+  foh: { open: -60, close: 0 },
+  boh: { open: -120, close: 0 },
+  // Legacy / verbose synonyms — preserved for pre-ADR-0429 workspaces
   kjøkken: { open: -120, close: 0 },
   kjokken: { open: -120, close: 0 },
   kitchen: { open: -120, close: 0 },
+  "back of house": { open: -120, close: 0 },
   sal: { open: -60, close: 0 },
   floor: { open: -60, close: 0 },
   service: { open: -60, close: 0 },

@@ -1,7 +1,7 @@
 ---
 title: "Restaurant Industry Template — Complete Package Overview"
 status: done
-updated: 2026-03-06
+updated: 2026-05-28
 created: 2026-03-06
 module: templates
 tags: [template, restaurant, industry, seed, NACE-56.101, Mattilsynet, Riksavtalen]
@@ -13,6 +13,19 @@ tags: [template, restaurant, industry, seed, NACE-56.101, Mattilsynet, Riksavtal
 >
 > A complete operational blueprint for a mid-size Norwegian restaurant.
 > When a workspace admin selects "Restaurant" during onboarding, they get everything below.
+
+> **Status (2026-05-28) — Pre-ADR-0429 demo data.** This 7-department template
+> (`Kjøkken / Restaurant / Bar / Catering / Renhold / Levering / Event`) predates
+> [ADR-0429](../../../docs/decisions/0429-department-vocabulary-foh-boh-admin-defaults.md),
+> which establishes **FoH / BoH / Admin** as the canonical I1 hospitality defaults
+> (with size-conditional 4th `Bar` + optional 5th `Events`). The I1 seed in
+> `packages/ai/src/industry/packages/hospitality.ts` and the `bootstrap-cascade`
+> Edge Function (`DEPARTMENT_TYPE_MAP` + `OFFSET_DEFAULTS`) already follow ADR-0429
+> — new workspaces get FoH/BoH/Admin. This SQL template is retained as-is for the
+> 50-employee demo workspace and will be rebuilt around FoH/BoH/Admin in a
+> dedicated template-redesign sortie. Open question for that sortie: how to
+> remap **Catering / Renhold / Levering** staff (11 of 50 employees), which have
+> no canonical home in the 3-dept ADR-0429 default.
 
 ---
 
