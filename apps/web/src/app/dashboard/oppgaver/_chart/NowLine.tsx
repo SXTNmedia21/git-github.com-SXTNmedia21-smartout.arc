@@ -61,12 +61,7 @@ export function NowLine({ currentMin, pxPerMin }: NowLineProps) {
       aria-hidden="true"
       data-testid="now-line"
     >
-      <div
-        className="border-warning absolute right-0 left-0 border-t-2"
-        style={{ top }}
-        role="presentation"
-        aria-label={`Nå: ${timeLabel}`}
-      >
+      <div className="border-warning absolute right-0 left-0 border-t-2" style={{ top }}>
         <motion.div
           className="bg-warning absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full"
           variants={pulseVariants}

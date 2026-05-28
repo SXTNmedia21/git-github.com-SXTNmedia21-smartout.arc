@@ -244,7 +244,7 @@ function DepartmentCard({
             <button
               type="button"
               aria-label="Hva er en avdeling?"
-              className="text-muted-foreground hover:text-foreground shrink-0 p-1 transition-colors"
+              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring shrink-0 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
               <Info className="size-4" aria-hidden="true" />
             </button>

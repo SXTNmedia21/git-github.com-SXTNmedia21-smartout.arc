@@ -1,17 +1,25 @@
 ---
 title: "Scheduling — Gaps and Debt"
 status: in_progress
-updated: 2026-05-23
+updated: 2026-05-28
 created: 2026-05-23
 domain: scheduling
 mirror: verified
-last_verified: 2026-05-23
+last_verified: 2026-05-28
 tags: [scheduling, gaps, debt, deviation, overlap]
 ---
 
 # Scheduling — Gaps and Debt
 
 > Honest record of deviations (code diverges from ADR/spec), gaps (feature not built), overlaps (seams with other domains), and debt (known tech debt). CODE WINS — if something works but doesn't match docs, update docs.
+
+## Pending Phase b Reform (ADR-0430)
+
+ADR-0430 accepted 2026-05-28 (Shift × Zone × Location M:N reform, Option Y). Phase b implementation sortie not yet built.
+Affects: `schedule_shift.location_id` (drop candidate M4), `schedule_shift.zone` (drop candidate M4), `profile.location_id` (drop candidate M4).
+Introduces: `shift_zone` M:N junction table subordinate to `shift_session_day_line`.
+8 MF council corrections captured in ADR-0430 body. 4 CF conditions required for Phase b plan before implementation begins.
+Domain spine (`DATA-MODEL.md`, `USER-FLOWS.md`, `ARCHITECTURE.md`) marked `UPDATE-pending-reform` — refresh via domain-steward `post` mode after M4 ships.
 
 ## Deviations
 

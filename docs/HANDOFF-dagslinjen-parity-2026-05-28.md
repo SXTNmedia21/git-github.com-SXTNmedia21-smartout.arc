@@ -15,6 +15,8 @@ tags: [handoff, dagslinjen, day-timeline, oppgaver, adr-0429, adr-0430, core-str
 
 ## Summary
 
+**Out-of-scope parallel work:** Commit `aaca997bb` (SDSM orchestrator v2 + spec) landed in the same chain but is independent of the Dagslinjen + ADR-0429 sortie scope. Documented separately in `docs/superpowers/specs/2026-05-28-smartout-development-state-machine-design.md`.
+
 Two orchestrated sorties shipped to `development` on 2026-05-27 → 2026-05-28:
 
 1. **ADR-0429 implementation (L1–L7)** — FoH/BoH/Admin defaults + canonical Smartout
@@ -26,8 +28,7 @@ Two orchestrated sorties shipped to `development` on 2026-05-27 → 2026-05-28:
    and a seeded HQ workspace with 5 areas + 17 day_lines for 2026-05-28.
 
 Council review (Phase 3-9) on the same day produced **ADR-0429 accepted** and
-**ADR-0430 reserved** (shift × zone × location M:N reform, lifted to a separate
-sortie with 8 implementation conditions captured).
+**ADR-0430 accepted** 2026-05-28 via commit `dad1e3fd7` (shift × zone × location M:N reform, 8 MF + 4 CF council corrections applied; Phase b implementation sortie unblocked but not yet built).
 
 ## What Was Built
 
@@ -84,7 +85,7 @@ sortie with 8 implementation conditions captured).
 |---|---|
 | `docs/audits/2026-05-27-core-structure-reform-index/INDEX.md` — 313-line indexer audit (117 ADRs, 41 relevant, 8 spines, 12 migrations, 110+ refs) | shipped |
 | ADR-0429 (Department Vocabulary FoH/BoH/Admin) | **accepted** |
-| ADR-0430 (Shift × Zone × Location M:N — Option Y) | **reserved** with 8 implementation conditions |
+| ADR-0430 (Shift × Zone × Location M:N — Option Y) | **accepted** 2026-05-28 via commit `dad1e3fd7` (8 MF + 4 CF council corrections applied). Phase b implementation sortie unblocked but not yet built. Track #13. |
 | Council 4/4 converged on Option Y for shift_zone reform | locked into ADR-0430 reservation notes |
 
 ## Decisions Registered
@@ -92,7 +93,7 @@ sortie with 8 implementation conditions captured).
 | ADR | Title | Status |
 |---|---|---|
 | ADR-0429 | Department Vocabulary — FoH/BoH/Admin Defaults + Terminology Glossar | accepted |
-| ADR-0430 | Core Structure Reform Phase 2 — Shift × Zone × Location M:N (Option Y) | reserved |
+| ADR-0430 | Core Structure Reform Phase 2 — Shift × Zone × Location M:N (Option Y) | accepted |
 
 Both registered in `docs/decisions/0000-decision-log.md`.
 

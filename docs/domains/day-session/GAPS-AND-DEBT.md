@@ -2,8 +2,8 @@
 title: "Day Session — Gaps & Debt"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-23
-updated: 2026-05-23
+last_verified: 2026-05-28
+updated: 2026-05-28
 created: 2026-05-22
 council_refs: [council-2026-05-23-tidslinje-surface-boundary]
 domain: day-session
@@ -271,7 +271,19 @@ Council 2026-05-23 deferred DnD re-time on Tidslinje surface until capability to
 
 ---
 
-## 7. Cross-ref update backlog (migration from daytimeline folder)
+## 7. Dagslinjen UI Surfaces — Documentation Pending
+
+Dagslinjen UI surfaces shipped 2026-05-28 are not yet documented in USER-FLOWS or ARCHITECTURE:
+- `LocationSwitcherPill` — area/location filter pill in TimelineToolbar
+- `AreaBand` polish — open-period wash, employee strips, routine strips
+- `NowLine` hydration fix — server/client time mismatch resolved
+- 4 `oppgaver.*` telemetry events: `pulse_now_clicked`, `template_apply_clicked`, `location_filter_changed`, `close_day_clicked`
+
+Pending USER-FLOWS + ARCHITECTURE update sortie. Telemetry events registered in `packages/telemetry/src/registry.ts` (verified via grep, emit() wired).
+
+---
+
+## 8. Cross-ref update backlog (migration from daytimeline folder)
 
 The following files in the repo still reference `docs/modules/daytimeline/`:
 - `CLAUDE.md` (project-level) — references this path. Per scope: **DO NOT edit CLAUDE.md**. Log here as migration backlog.

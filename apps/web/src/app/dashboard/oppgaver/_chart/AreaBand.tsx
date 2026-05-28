@@ -152,7 +152,7 @@ function UnassignedLane({
       className={cn(
         "border-border relative w-full overflow-hidden border-t border-dashed transition-colors",
         dimmed && "opacity-30",
-        isDragOver && "bg-[color-mix(in_oklch,var(--brand-orange)_10%,transparent)]",
+        isDragOver && "bg-warning/10",
       )}
       style={{ height: pxPerHour * 20 }}
       onClick={handleClick}

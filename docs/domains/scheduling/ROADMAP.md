@@ -1,11 +1,11 @@
 ---
 title: "Scheduling — Roadmap"
 status: in_progress
-updated: 2026-05-23
+updated: 2026-05-28
 created: 2026-05-23
 domain: scheduling
 mirror: aspirational
-last_verified: 2026-05-23
+last_verified: 2026-05-28
 tags: [scheduling, roadmap, solver, marketplace, mobile, adr]
 ---
 
@@ -49,6 +49,7 @@ tags: [scheduling, roadmap, solver, marketplace, mobile, adr]
 | ADR-0332 | accepted | Dagslinjen fanout scheduler cadence | ✅ Cron seeded |
 | ADR-0340 | proposed | Shift lifecycle pipeline V2 | ✅ Pipeline v2 migration shipped; capability-merge DEFERRED |
 | ADR-0364 | accepted | Schedule density persistence | ✅ Shipped |
+| ADR-0430 | accepted | Shift × Zone × Location M:N reform (Option Y) — Phase b implementation sortie | 🔴 Phase b not yet built (accepted 2026-05-28, 8 MF + 4 CF conditions captured in ADR body) |
 
 ## Phase Milestones — Forward Plan
 
