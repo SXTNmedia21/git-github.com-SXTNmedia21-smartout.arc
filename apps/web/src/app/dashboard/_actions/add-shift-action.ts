@@ -114,7 +114,7 @@ const InputSchema = z
      * Mobile BFF always passes [] — no zone authoring on mobile surface
      * (ADR-0133 + MF-F).
      */
-    zone_ids: z.array(z.string().uuid()).default([]),
+    zone_ids: z.array(z.string().uuid()).optional().default([]),
   })
   .refine((v) => new Date(v.endAtISO).getTime() > new Date(v.startAtISO).getTime(), {
     message: "Slutt-tid må være etter start-tid.",
