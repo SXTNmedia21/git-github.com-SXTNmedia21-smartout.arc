@@ -383,9 +383,8 @@ export async function addShiftAction(
             workspace_id: profile.workspaceId,
             employee_id: parsed.data.profileId,
             department_id: departmentId!, // guarded: null check above returns early
-            // Cascade D1: location scope — nullable, set when provided by the dialog.
-            // The ensure_shift_session trigger propagates this to shift_session.location_id.
-            ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
+            // ADR-0430 M4: location_id dropped from schedule_shift.
+            // Location is now resolved by the trigger from day_line, not from the shift row.
             shift_date: date,
             start_time: startTime,
             end_time: endTime,
@@ -530,8 +529,7 @@ export async function addShiftAction(
         reason: parsed.data.reason,
         // ADR-0430 Rule 6b: zone_ids recorded in telemetry for audit reconstruction.
         ...(parsed.data.zone_ids.length > 0 ? { zone_ids: parsed.data.zone_ids } : {}),
-        // Cascade D1 location scope — present when admin set a location.
-        ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
+        // ADR-0430 M4: location_id dropped from schedule_shift — not included in emit data
         // Availability-override context — present only when the admin
         // assigned a profile flagged `unavailable` / `absent` on the
         // shift date. Lands in `activity_trail.data` via the telemetry

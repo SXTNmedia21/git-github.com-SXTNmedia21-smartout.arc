@@ -74,7 +74,7 @@ export type ShiftWithProfile = {
   /** Shift role (used as title) */
   title: string;
   role: string;
-  zone: string | null;
+  // ADR-0430 M4: zone dropped from schedule_shift — zone display deferred to zones[]
   isShiftLead: boolean;
   /** Duration in decimal hours (for ScopeSummary totalling) */
   planned: number;
@@ -129,7 +129,7 @@ type RawShiftRow = {
   end_time: string;
   breaks: number;
   role: string;
-  zone: string | null;
+  // ADR-0430 M4: zone removed from schedule_shift
   employee_id: string | null;
   profile: ProfileRow | null;
   position: PositionRow;
@@ -192,7 +192,6 @@ async function fetchTeamShifts(
       end_time,
       breaks,
       role,
-      zone,
       employee_id,
       profile:employee_id (
         profile_id,
@@ -263,8 +262,7 @@ async function fetchTeamShifts(
       time: formatTimeRange(row.start_time, row.end_time),
       title: row.role,
       role: row.role,
-      zone: row.zone,
-      // isShiftLead derived from role string — no dedicated DB column on schedule_shift
+      // ADR-0430 M4: zone dropped — isShiftLead derived from role string
       isShiftLead: row.role?.toLowerCase().includes("skiftleder") ?? false,
       planned: calcPlannedHours(row.start_time, row.end_time, row.breaks ?? 0),
       owner: row.employee_id ?? "",

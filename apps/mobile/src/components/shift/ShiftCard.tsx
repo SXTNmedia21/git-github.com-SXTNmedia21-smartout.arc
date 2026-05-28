@@ -171,7 +171,7 @@ export function ShiftCard({
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
           </Text>
           <View style={styles.details}>
-            {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
+            {/* ADR-0430 M4: shift.zone dropped */}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
           {supplements.length > 0 && (
@@ -197,7 +197,7 @@ export function ShiftCard({
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
           </Text>
           <View style={styles.details}>
-            {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
+            {/* ADR-0430 M4: shift.zone dropped */}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
           {supplements.length > 0 && (

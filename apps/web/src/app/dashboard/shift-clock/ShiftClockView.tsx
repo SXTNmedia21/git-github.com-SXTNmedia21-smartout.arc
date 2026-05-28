@@ -39,7 +39,7 @@ type OpenShift = {
   end_time: string;
   department_id: string | null;
   role: string;
-  zone: string | null;
+  // ADR-0430 M4: zone dropped from schedule_shift — omitted from this type
 };
 
 type ShiftClockViewProps = {
@@ -88,7 +88,8 @@ export function ShiftClockView({
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("schedule_shift")
-        .select("schedule_shift_id, start_time, end_time, department_id, role, zone")
+        // ADR-0430 M4: zone dropped from schedule_shift
+        .select("schedule_shift_id, start_time, end_time, department_id, role")
         .eq("workspace_id", workspace.workspace_id)
         .eq("shift_date", today)
         .eq("status", "published")
@@ -111,7 +112,8 @@ export function ShiftClockView({
       const { data, error } = await supabase
         .from("schedule_shift")
         .select(
-          "schedule_shift_id, start_time, end_time, role, zone, department_id, department:department_id(name)",
+          // ADR-0430 M4: zone dropped from schedule_shift
+          "schedule_shift_id, start_time, end_time, role, department_id, department:department_id(name)",
         )
         .eq("workspace_id", workspace.workspace_id)
         .eq("employee_id", profileId!)
@@ -292,8 +294,8 @@ export function ShiftClockView({
                           {fmt(shift.start_time)} – {fmt(shift.end_time)}
                         </p>
                         <p className="text-muted-foreground text-xs">
+                          {/* ADR-0430 M4: shift.zone dropped — zone display removed */}
                           {shift.role}
-                          {shift.zone ? ` · ${shift.zone}` : ""}
                         </p>
                       </div>
                       <Button
@@ -362,7 +364,8 @@ export function ShiftClockView({
           shiftInfo={{
             time: `${startHHMM} - ${endHHMM}`,
             department: nextShiftDeptName || nextShift.role,
-            zone: nextShift.zone ?? "",
+            // ADR-0430 M4: nextShift.zone dropped
+            zone: "",
           }}
           onPunchIn={handlePunchIn}
           onComplete={handlePunchComplete}
@@ -402,7 +405,7 @@ export function ShiftClockView({
         punchInTime={state.punchInTime!}
         isOnBreak={isOnBreak}
         department={nextShiftDeptName || "—"}
-        zone={nextShift?.zone ?? ""}
+        zone={/* ADR-0430 M4: nextShift.zone dropped */ ""}
       />
 
       {/* Action buttons */}

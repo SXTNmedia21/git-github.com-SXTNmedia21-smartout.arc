@@ -136,8 +136,9 @@ export function useOperationsFeed(selectedDate: Date) {
       items.push({
         id: `shift-${shift.schedule_shift_id}`,
         type: "shift",
-        title: `${shift.role}${shift.zone ? ` — ${shift.zone}` : ""}`,
-        subtitle: `${shift.day_category === "evening" ? "Kveldsskift" : shift.day_category === "weekend" ? "Helgeskift" : "Dagskift"}${shift.zone ? ` · ${shift.zone}` : ""}`,
+        // ADR-0430 M4: shift.zone dropped — zone display removed from operations feed
+        title: `${shift.role}`,
+        subtitle: `${shift.day_category === "evening" ? "Kveldsskift" : shift.day_category === "weekend" ? "Helgeskift" : "Dagskift"}`,
         time: formatTimeRange(shift.start_time, shift.end_time),
         // Read dept from DB column — no substring heuristic (dropped 2026-05-18).
         dept: toDepartment(shift.deptSlug),

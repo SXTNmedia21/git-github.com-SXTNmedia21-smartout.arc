@@ -883,7 +883,7 @@ function SchedulePageContent() {
               workHours: sourceShift.workHours,
               status: sourceShift.status === "published" ? "created" : sourceShift.status,
               dayCategory: sourceShift.dayCategory,
-              zone: sourceShift.zone,
+              // ADR-0430 M4: zone dropped from Shift type — zone assignment via shift_zone API
               // ADR-0430 Rule 3: propagate zones[] on copy. Newly created shift has no zone M:N row yet.
               zones: [],
               indicator: sourceShift.indicator,
@@ -947,7 +947,7 @@ function SchedulePageContent() {
             breaks: s.breaks,
             positionId: s.positionId,
             teamId: s.teamId,
-            zone: s.zone,
+            // ADR-0430 M4: zone dropped from Shift type
             // ADR-0430 Rule 3: template shifts have no zone M:N row — stub empty.
             zones: [],
             notes: s.notes,
@@ -977,7 +977,7 @@ function SchedulePageContent() {
             breaks: s.breaks,
             positionId: s.positionId,
             teamId: s.teamId,
-            zone: s.zone,
+            // ADR-0430 M4: zone dropped from Shift type
             // ADR-0430 Rule 3: template shifts have no zone M:N row — stub empty.
             zones: [],
             notes: s.notes,

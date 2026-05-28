@@ -470,8 +470,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
           endTime: s.endTime,
           time: s.time,
           status: s.status,
-          // ADR-0430 Rule 3: first-zone for timeline display; full array for pill-stack.
-          zone: s.zones?.[0]?.name ?? s.zone,
+          // ADR-0430 M4: zone dropped from Shift type — zones[] is the authoritative source
           zones: s.zones ?? [],
           team: emp?.team,
         };
@@ -601,7 +600,6 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 role={entry.role}
                 time={entry.time}
                 status={entry.status}
-                zone={entry.zone}
                 zones={entry.zones}
                 team={entry.team}
                 dateId={dateId ?? ""}

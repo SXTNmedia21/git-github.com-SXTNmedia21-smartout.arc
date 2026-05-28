@@ -178,7 +178,7 @@ export function DuringShiftViewV2({
         <Text style={styles.greetingTime}>
           {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
         </Text>
-        {shift.zone ? ` · ${shift.zone}` : ""}
+        {/* ADR-0430 M4: shift.zone dropped */}
       </>
     );
   }, [shift, styles.greetingTime]);

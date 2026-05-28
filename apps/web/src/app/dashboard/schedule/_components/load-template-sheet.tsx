@@ -113,7 +113,7 @@ export function LoadTemplateSheet({
       workHours: s.workHours,
       status: "created" as const,
       dayCategory: s.dayCategory,
-      zone: s.zone,
+      // ADR-0430 M4: zone dropped from Shift type
       // ADR-0430 Rule 3: template shifts have no zone M:N row yet — stub empty.
       zones: [],
       indicator: s.indicator,

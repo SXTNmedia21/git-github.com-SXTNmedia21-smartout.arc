@@ -332,7 +332,7 @@ function DayCrewCluster({
                   dept: s.dept,
                   status: "upcoming",
                   role: s.role,
-                  zone: s.zone ?? undefined,
+                  // ADR-0430 M4: zone dropped from schedule_shift
                   isShiftLead: s.isShiftLead,
                   planned: s.planned,
                   owner: s.owner,

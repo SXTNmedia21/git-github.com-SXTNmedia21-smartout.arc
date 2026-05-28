@@ -29,8 +29,6 @@ export type Shift = {
   shiftTypeId?: string;
   /** FK to department (cascade A1) */
   departmentId?: string;
-  /** FK to location (cascade A1) */
-  locationId?: string;
   /** future FK to position table */
   positionId?: string;
   /** future FK to team table */
@@ -47,15 +45,9 @@ export type Shift = {
   /** From @smartout/types — morning, midday, afternoon, evening, night, weekend */
   dayCategory: DayCategory;
   /**
-   * Kitchen zone, floor section, etc. — legacy scalar.
-   * @deprecated Use `zones` instead. Kept until PLAN-4b drops schedule_shift.zone column.
-   */
-  zone?: string;
-  /**
-   * ADR-0430 Rule 3 — resolved zone array from shift_zone M:N join.
+   * ADR-0430 Rule 3 — zone array from shift_zone M:N join (shift_session embed).
    * Empty array when no zones are assigned; undefined when the query
-   * did not embed shift_session (simple select("*") callers).
-   * Populated after PLAN-4b updates queries to embed the join.
+   * did not embed shift_session.
    */
   zones?: Array<{ name: string; location_id: string }>;
   /** Color indicator for the shift card: blue, emerald, purple, orange */

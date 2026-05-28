@@ -82,7 +82,8 @@ export function useEmployees() {
       const { data: profiles, error: profileError } = await supabase
         .from("profile")
         .select(
-          "profile_id, display_name, role, job_title, status, department_id, location_id, department:department_id(name), location:location_id(name)",
+          // ADR-0430 M4: profile.location_id dropped — location resolved via department_location
+          "profile_id, display_name, role, job_title, status, department_id, department:department_id(name)",
         )
         .eq("workspace_id", workspaceId)
         .in("status", ["active", "trainee"])
@@ -139,7 +140,8 @@ export function useEmployees() {
           team: teamByProfile.get(p.profile_id) ?? "",
           departmentId: p.department_id ?? "",
           departmentName: extractName(p.department),
-          locationName: extractName(p.location),
+          // ADR-0430 M4: profile.location_id dropped — locationName not resolvable from profile
+          locationName: "",
           avatarColor: getAvatarColor(p.profile_id),
           initials: getInitials(name),
         };

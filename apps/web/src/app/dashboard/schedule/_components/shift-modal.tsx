@@ -514,7 +514,8 @@ export function ShiftModal() {
         startTime: existingShift.startTime,
         endTime: existingShift.endTime,
         dayCategory: existingShift.dayCategory,
-        zone: existingShift.zone ?? "",
+        // ADR-0430 M4: existingShift.zone dropped — zone form field deprecated
+        zone: existingShift.zones?.[0]?.name ?? "",
         isPublished: existingShift.isPublished,
         notificationChannels: new Set(["push"]),
         breaks: existingShift.breaks ?? 30,
@@ -636,7 +637,7 @@ export function ShiftModal() {
             endTime: form.endTime,
             workHours: hours,
             dayCategory: form.dayCategory,
-            zone: form.zone || undefined,
+            // ADR-0430 M4: zone removed from Shift type — zone assignment via shift_zone API
             status,
             isPublished: isPublishedFinal,
             breaks: form.breaks,
@@ -657,7 +658,7 @@ export function ShiftModal() {
           workHours: hours,
           status,
           dayCategory: form.dayCategory,
-          zone: form.zone || undefined,
+          // ADR-0430 M4: zone removed from Shift type — zone assignment via shift_zone API
           // ADR-0430 Rule 3: newly created shifts have no zone M:N row yet — zones[] is empty.
           zones: [],
           indicator: "blue",
