@@ -2,7 +2,7 @@
 title: "Day Session — Data Model"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-28
+last_verified: 2026-05-29
 updated: 2026-05-28
 created: 2026-05-22
 domain: day-session
@@ -340,7 +340,7 @@ Applied at session creation via `day_line.instantiate_template` capability.
 | `deviation` | D6 deviations; gained `day_line_id` FK (ADR-0367) | `20260620120600_day_line_child_fks.sql` |
 | `department_location` | M:N junction — which depts staff which areas | `20260620120500_department_location_table.sql` |
 | `department_operating_hours` | `planned_open`/`planned_close` source (D1) | `20260421100350_cascade_a1_alter_existing.sql` |
-| `schedule_shift` | shift markers; has `location_id` from Cascade A1 (M4 drop-candidate per [ADR-0430](../../decisions/0430-core-structure-reform-shift-zone-m2m.md)) | `20260301300000_schedule_shift_table.sql` |
+| `schedule_shift` | shift markers; `location_id` and `zone` DROPPED by ADR-0430 M4 (`20260801000006`). Zone M:N via `shift_zone` | `20260301300000_schedule_shift_table.sql` |
 
 ---
 

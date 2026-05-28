@@ -1,11 +1,11 @@
 ---
 title: "Scheduling — Data Model"
 status: in_progress
-updated: 2026-05-23
+updated: 2026-05-29
 created: 2026-05-23
 domain: scheduling
 mirror: verified
-last_verified: 2026-05-23
+last_verified: 2026-05-29
 tags: [scheduling, shift, data-model, migrations, tables, telemetry]
 ---
 
@@ -27,7 +27,7 @@ Migration: `20260301300000_schedule_shift_table.sql:55`
 | `employee_id` | UUID NULL | FK → `profile` ON DELETE SET NULL (null = unassigned) |
 | `position_id` | UUID NULL | FK → `position` ON DELETE SET NULL |
 | `team_id` | UUID NULL | FK → `team` ON DELETE SET NULL |
-| `department_id` | UUID NULL | FK → `department`; derived from `position_id` via trigger `20260520170002` |
+| `department_id` | UUID NOT NULL | FK → `department`; NOT NULL per ADR-0430 M1 (`20260801000002`) |
 | `shift_date` | DATE NOT NULL | |
 | `role` | TEXT NOT NULL | |
 | `start_time` | TIME NOT NULL | |
@@ -38,9 +38,12 @@ Migration: `20260301300000_schedule_shift_table.sql:55`
 | `status` | `shift_status` enum | created→assigned→published→active→completed→unpublished |
 | `is_published` | BOOLEAN | Redundant with status=published; kept for query convenience |
 | `pipeline_lock_state_id` | UUID NULL | FK → `engine_state` ON DELETE SET NULL; CAS-style pipeline lock (`20260620110200`) |
-| `is_locked` | BOOLEAN | Temporal lock flag (ADR-0066 rollout `20260428133000`) |
 | `created_at` | TIMESTAMPTZ | |
 | `updated_at` | TIMESTAMPTZ | |
+
+**ADR-0430 M4 (2026-05-29, migration `20260801000006`):** Columns `location_id` and `zone` DROPPED.
+Zone membership is now M:N via `shift_zone` table (see below). Location resolved via
+`shift_session → shift_session_day_line → day_line → location`.
 
 **Enums:**
 - `shift_status`: `created`, `assigned`, `published`, `active`, `completed`, `unpublished`
@@ -153,6 +156,28 @@ Day-line junction: `20260620120400_shift_session_day_line_junction.sql`.
 Migration: `20260620110200_shift_lifecycle_pipeline_v2.sql`
 
 Blueprint table (NOT instance table). Per-(workspace, capability, action_type, stage_index) configuration. Instance state lives in `engine_state` (ADR-0067, ADR-0340 Q1).
+
+## `public.shift_zone` (ADR-0430 M:N Zone Junction)
+
+Migration: `20260801000003_m2_create_shift_zone.sql`
+
+Introduced by ADR-0430 Phase b. Replaces the scalar `schedule_shift.zone` column.
+One `shift_zone` row per `(shift_session, day_line, zone)` triple.
+
+| Column | Notes |
+|---|---|
+| `id` UUID PK | |
+| `workspace_id` UUID NOT NULL | FK → `workspace` |
+| `shift_session_id` UUID NOT NULL | Composite FK parent → `shift_session_day_line(shift_session_id, day_line_id)` |
+| `day_line_id` UUID NOT NULL | Composite FK parent (same) |
+| `zone_id` UUID NOT NULL | FK → `zone` (composite with `location_id`) |
+| `location_id` UUID NOT NULL | Denormalized — coherence anchor (ADR-0430 Rule 1). FK → `zone(zone_id, location_id)` AND `day_line(day_line_id, location_id)` |
+| `created_at` / `updated_at` | |
+
+**UNIQUE:** `(shift_session_id, day_line_id, zone_id)` — one assignment per zone per day_line.
+
+**Read path (mobile):** `shift_session → shift_session_day_line → shift_zone → zone(name)`
+**Rule 9:** `roster.add_shift_manual` writes `shift_zone` rows; channel-constrained to `chat_only` per `engine_authority_config.channel_constraint`.
 
 ## Supporting Tables
 

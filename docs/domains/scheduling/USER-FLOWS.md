@@ -1,11 +1,11 @@
 ---
 title: "Scheduling — User Flows"
 status: in_progress
-updated: 2026-05-23
+updated: 2026-05-29
 created: 2026-05-23
 domain: scheduling
 mirror: verified
-last_verified: 2026-05-23
+last_verified: 2026-05-29
 tags: [scheduling, journeys, user-flows, schedule, shift, swap, marketplace]
 ---
 
