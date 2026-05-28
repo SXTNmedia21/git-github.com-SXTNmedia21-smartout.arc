@@ -228,7 +228,9 @@ export async function addShiftAction(
   // Resolve department scope. Preference order:
   //   1. departmentSessionId → department_session.department_id (strongest — ties to live session)
   //   2. departmentId        → direct input (RosterTab CTA path)
-  //   3. null                → trigger will derive from position_id if set (schema path)
+  // ADR-0430 M1: department_id is NOT NULL on schedule_shift. The trigger-derive
+  // path (position_id → department_id) only fires on UPDATE OF position_id, not
+  // on INSERT when position_id is NULL. A department must be resolved before insert.
   // Cross-workspace verification runs on whichever path is used.
   let departmentId: string | null = null;
   if (parsed.data.departmentSessionId) {
@@ -251,6 +253,15 @@ export async function addShiftAction(
       return { ok: false, error: "Avdeling ikke funnet eller annet workspace." };
     }
     departmentId = dept.department_id;
+  }
+
+  // ADR-0430 M1: department_id is NOT NULL — block if neither resolution path worked.
+  if (!departmentId) {
+    return {
+      ok: false,
+      error:
+        "Kunne ikke bestemme avdeling for vakten. Angi departmentSessionId eller departmentId.",
+    };
   }
 
   const gate = await gateAction({
@@ -290,7 +301,7 @@ export async function addShiftAction(
     .insert({
       workspace_id: profile.workspaceId,
       employee_id: parsed.data.profileId,
-      department_id: departmentId,
+      department_id: departmentId!, // guarded: null check above returns early
       // Cascade D1: location scope — nullable, set when provided by the dialog.
       // The ensure_shift_session trigger propagates this to shift_session.location_id.
       ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),

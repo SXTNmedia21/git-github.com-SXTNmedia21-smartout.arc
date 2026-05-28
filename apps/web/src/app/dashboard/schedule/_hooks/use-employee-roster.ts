@@ -223,6 +223,7 @@ export function useUpsertRoster() {
 
 type AutoFillInput = {
   profileId: string;
+  departmentId: string; // ADR-0430 M1: department_id NOT NULL on schedule_shift
   pattern: RosterPattern;
   periodStart: string; // "YYYY-MM-DD"
   periodEnd: string; // "YYYY-MM-DD"
@@ -313,6 +314,7 @@ export function useAutoFillShifts() {
         shiftsToInsert.push({
           workspace_id: workspace.workspace_id,
           employee_id: input.profileId,
+          department_id: input.departmentId, // ADR-0430 M1: required NOT NULL
           shift_date: dateStr,
           role: input.role,
           start_time: startTime,

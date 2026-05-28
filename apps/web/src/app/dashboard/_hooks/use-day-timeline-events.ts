@@ -296,10 +296,6 @@ export function useDayTimelineEvents(args: {
 
       // Check-ins / Check-outs — workspace-wide for the date, optionally
       // filtered by teamId or shiftId from the scope selector.
-      // Note: `schedule_shift.department_id` is nullable (L-0064 trap); the
-      // canonical dept link goes via `position_id → position.department_id`.
-      // Until that join lands, surface ALL workspace check-ins on the day so
-      // the user actually sees their punch on Dagslinjen.
       {
         // location_id pulled natively for chip-bar filter (SMA-374 §C2).
         let shiftQuery = supabase

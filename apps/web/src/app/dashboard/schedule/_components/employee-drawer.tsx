@@ -144,6 +144,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
 
     autoFill.mutate({
       profileId: employee.id,
+      departmentId: employee.departmentId, // ADR-0430 M1: required NOT NULL
       pattern: editPattern,
       periodStart: editPeriodStart,
       periodEnd: endDate,

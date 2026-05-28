@@ -132,7 +132,11 @@ export function toDbShiftInsert(
     shift_date: shift.dateId,
     role: shift.role,
     shift_type_id: shift.shiftTypeId ?? null,
-    department_id: shift.departmentId ?? null,
+    // ADR-0430 M1: department_id is NOT NULL. Shifts without a departmentId
+    // should not reach insert; upstream callers must resolve department scope.
+    // The non-null assertion here surfaces the bug at insertion time rather than
+    // silently passing null to the DB (which would now be rejected anyway).
+    department_id: shift.departmentId!,
     location_id: shift.locationId ?? null,
     position_id: shift.positionId ?? null,
     team_id: shift.teamId ?? null,
