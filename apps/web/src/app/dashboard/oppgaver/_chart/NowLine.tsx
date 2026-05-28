@@ -36,6 +36,9 @@ const pulseVariants = {
     opacity: [1, 0.5, 1],
     scale: [1, 1.4, 1],
     transition: {
+      // Keyframe arrays require type:"tween" — spring physics conflict with
+      // duration-based loops and are silently overridden by Framer Motion.
+      type: "tween" as const,
       duration: 2,
       repeat: Infinity,
       ease: motionTokens.easingArray,

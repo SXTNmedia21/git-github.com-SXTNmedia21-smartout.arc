@@ -237,7 +237,7 @@ function DepartmentCard({
           }}
           placeholder={renamePlaceholder}
           aria-describedby={tooltipId}
-          className="border-input bg-background text-foreground placeholder:text-muted-foreground flex-1 rounded-lg border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)]/40 focus-visible:outline-none"
+          className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex-1 rounded-lg border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
         />
         <Tooltip>
           <TooltipTrigger asChild>
