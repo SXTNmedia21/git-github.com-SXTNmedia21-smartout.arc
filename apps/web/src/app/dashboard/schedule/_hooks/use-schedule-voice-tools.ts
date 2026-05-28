@@ -223,7 +223,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           employeeId: s.employeeId,
           time: s.time,
           role: s.role,
-          zone: s.zone,
+          // ADR-0430 Rule 3: zones[] replaces zone scalar. V1: first-zone only for voice.
+          zones: s.zones ?? [],
+          // V1 scalar for voice template compatibility — multi-zone voice pending future ADR.
+          zone_display: s.zones?.[0]?.name ?? null,
           status: s.isPublished ? "published" : "draft",
           workHours: s.workHours,
           notes: s.notes,

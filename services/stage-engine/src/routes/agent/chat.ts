@@ -122,6 +122,9 @@ const workforceShiftSchema = z.object({
   department_id: z.string().nullable(),
   department_name: z.string().nullable(),
   position_label: z.string().nullable(),
+  // ADR-0430 MF-5: zone enrichment — optional for backward-compat with older BFF callers.
+  zones: z.array(z.string()).optional(),
+  zone_display: z.string().nullable().optional(),
 });
 const workforceAbsenceSchema = z.object({
   absence_id: z.string(),
