@@ -1,0 +1,149 @@
+-- ADR-0430 Phase b — PLAN-0 AC-0.8 Pre-5 pg_depend audit
+-- Executed: 2026-05-28 against local Supabase (supabase_db_smartout.ai)
+-- Query: SELECT dep_class, deptype, dependent_name, ref_col_num, ref_column
+--        FROM pg_depend WHERE refobjid = 'schedule_shift'::regclass::oid AND deptype = 'n'
+--
+-- Classification key:
+--   (a) ensure_shift_session trigger → MUST REWRITE before M4 (reads location_id)
+--   (b) other trigger → rewrite plan required
+--   (c) view → rewrite plan required if selects location_id or zone
+--   (d) policy → safe-no-action (policies reference workspace_id / employee_id / shift_date / status)
+--   (e) FK constraint → safe-no-action (these FK to schedule_shift_id PK, not location_id/zone)
+
+   dep_class   | deptype |                  dependent_name                  | ref_col_num |    ref_column
+---------------+---------+--------------------------------------------------+-------------+-------------------
+ pg_constraint | n       | deviation_linked_shift_id_fkey                   |           1 | schedule_shift_id
+ pg_constraint | n       | shift_approval_shift_id_fkey                     |           1 | schedule_shift_id
+ pg_constraint | n       | time_entry_shift_id_fkey                         |           1 | schedule_shift_id
+ pg_constraint | n       | shift_cost_snapshot_schedule_shift_id_fkey       |           1 | schedule_shift_id
+ pg_constraint | n       | payroll_calculation_schedule_shift_id_fkey       |           1 | schedule_shift_id
+ pg_constraint | n       | payroll_deviation_schedule_shift_id_fkey         |           1 | schedule_shift_id
+ pg_constraint | n       | payroll_manual_supplement_schedule_shift_id_fkey |           1 | schedule_shift_id
+ pg_constraint | n       | shift_note_shift_id_fkey                         |           1 | schedule_shift_id
+ pg_constraint | n       | tip_distribution_shift_id_fkey                   |           1 | schedule_shift_id
+ pg_constraint | n       | shift_hour_interpretation_shift_id_fkey          |           1 | schedule_shift_id
+ pg_constraint | n       | payroll_ledger_archive_schedule_shift_id_fkey    |           1 | schedule_shift_id
+ pg_constraint | n       | supplement_rule_match_schedule_shift_id_fkey     |           1 | schedule_shift_id
+ pg_constraint | n       | shift_pay_calculation_event_shift_id_fkey        |           1 | schedule_shift_id
+ pg_constraint | n       | shift_cost_snapshot_shift_id_fkey                |           1 | schedule_shift_id
+ pg_constraint | n       | schedule_shift_offer_shift_id_fkey               |           1 | schedule_shift_id
+ pg_constraint | n       | shift_session_schedule_shift_id_fkey             |           1 | schedule_shift_id
+ pg_constraint | n       | schedule_shift_source_check                      |          33 | source
+ pg_rewrite    | n       | v_current_plan_preview (view rule)               |           6 | shift_date
+ pg_rewrite    | n       | v_current_plan_preview (view rule)               |          13 | status
+ pg_rewrite    | n       | v_current_plan_preview (view rule)               |           2 | workspace_id
+ pg_rewrite    | n       | v_current_plan_preview (view rule)               |           3 | employee_id
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |           6 | shift_date
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |           1 | schedule_shift_id
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |           2 | workspace_id
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |           3 | employee_id
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |          10 | work_hours
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |          13 | status
+ pg_rewrite    | n       | v_shift_lifecycle (view rule)                    |          26 | department_id
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |           2 | workspace_id
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |           3 | employee_id
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |           1 | schedule_shift_id
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |          26 | department_id
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |          13 | status
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |          10 | work_hours
+ pg_rewrite    | n       | v_shift_lifecycle_employee (view rule)           |           6 | shift_date
+ pg_trigger    | n       | trg_push_shift_updated                           |          14 | is_published
+ pg_trigger    | n       | trg_push_shift_updated                           |           3 | employee_id
+ pg_trigger    | n       | trg_push_shift_published                         |          14 | is_published
+ pg_trigger    | n       | trg_push_shift_published                         |          33 | source
+ pg_trigger    | n       | trg_push_shift_published                         |           3 | employee_id
+ pg_trigger    | n       | audit_schedule_shift_mutate                      |          33 | source
+ pg_trigger    | n       | schedule_shift_derive_department_id_tg           |           4 | position_id
+ pg_trigger    | n       | trg_ensure_shift_session                         |           4 | position_id
+ pg_trigger    | n       | trg_ensure_shift_session                         |          27 | location_id   ← REWRITE REQUIRED (Class a)
+ pg_trigger    | n       | trg_ensure_shift_session                         |           6 | shift_date
+ pg_trigger    | n       | trg_ensure_shift_session                         |          26 | department_id
+ pg_trigger    | n       | trg_ensure_shift_session                         |           3 | employee_id
+ pg_policy     | n       | jwt_read_schedule_shift                          |           2 | workspace_id
+ pg_policy     | n       | jwt_insert_schedule_shift                        |           2 | workspace_id
+ pg_policy     | n       | jwt_update_schedule_shift                        |           2 | workspace_id
+ pg_policy     | n       | jwt_update_schedule_shift                        |           2 | workspace_id
+ pg_policy     | n       | jwt_delete_schedule_shift                        |           2 | workspace_id
+ pg_policy     | n       | api_key_read_schedule_shift                      |           2 | workspace_id
+ pg_policy     | n       | api_key_insert_schedule_shift                    |           2 | workspace_id
+ pg_policy     | n       | api_key_update_schedule_shift                    |           2 | workspace_id
+ pg_policy     | n       | api_key_update_schedule_shift                    |           2 | workspace_id
+ pg_policy     | n       | api_key_delete_schedule_shift                    |           2 | workspace_id
+ pg_policy     | n       | shift_employee_can_settle                        |           3 | employee_id
+ pg_policy     | n       | shift_employee_can_settle                        |           6 | shift_date
+ pg_policy     | n       | shift_employee_can_settle                        |           2 | workspace_id
+ pg_policy     | n       | shift_employee_can_settle                        |          13 | status
+ pg_policy     | n       | shift_employee_can_create_settlement             |           2 | workspace_id
+ pg_policy     | n       | shift_employee_can_create_settlement             |          13 | status
+ pg_policy     | n       | shift_employee_can_create_settlement             |           3 | employee_id
+ pg_policy     | n       | shift_employee_can_create_settlement             |           6 | shift_date
+ pg_policy     | n       | jwt_employee_confirm_own_shift                   |           3 | employee_id
+ pg_policy     | n       | jwt_employee_confirm_own_shift                   |           3 | employee_id
+ pg_policy     | n       | jwt_update_shift_approval                        |           3 | employee_id
+ pg_policy     | n       | jwt_update_shift_approval                        |           3 | employee_id
+ pg_policy     | n       | jwt_update_shift_approval                        |           1 | schedule_shift_id
+ pg_policy     | n       | jwt_update_shift_approval                        |           1 | schedule_shift_id
+(71 rows)
+
+================================================================================
+CLASSIFICATION NOTES (per AC-0.8 spec)
+================================================================================
+
+(e) SAFE-NO-ACTION — FK constraints (16 rows, all ref schedule_shift_id PK):
+  deviation_linked_shift_id_fkey, shift_approval_shift_id_fkey,
+  time_entry_shift_id_fkey, shift_cost_snapshot_schedule_shift_id_fkey,
+  payroll_calculation_schedule_shift_id_fkey, payroll_deviation_schedule_shift_id_fkey,
+  payroll_manual_supplement_schedule_shift_id_fkey, shift_note_shift_id_fkey,
+  tip_distribution_shift_id_fkey, shift_hour_interpretation_shift_id_fkey,
+  payroll_ledger_archive_schedule_shift_id_fkey, supplement_rule_match_schedule_shift_id_fkey,
+  shift_pay_calculation_event_shift_id_fkey, shift_cost_snapshot_shift_id_fkey,
+  schedule_shift_offer_shift_id_fkey, shift_session_schedule_shift_id_fkey.
+  → All FK to schedule_shift_id (PK — NOT dropped in M4). No action needed.
+
+  schedule_shift_source_check → CHECK constraint on source column (not dropped). No action.
+
+(c) VIEW — SAFE for M4 (both verified by pg_get_viewdef):
+  v_current_plan_preview — references shift_date, status, workspace_id, employee_id.
+    No location_id or zone selected. Safe — no rewrite required.
+  v_shift_lifecycle — references schedule_shift_id, workspace_id, employee_id, work_hours,
+    status, department_id, shift_date. No location_id or zone selected. Safe.
+  v_shift_lifecycle_employee — same columns as v_shift_lifecycle subset. Safe.
+  → All three views do NOT select location_id or zone. No rewrite required for M4.
+
+(b) TRIGGER — SAFE for M4 (references is_published, employee_id, source — not location_id/zone):
+  trg_push_shift_updated — references is_published, employee_id. Safe.
+  trg_push_shift_published — references is_published, source, employee_id. Safe.
+  audit_schedule_shift_mutate — references source. Safe.
+  schedule_shift_derive_department_id_tg — references position_id. Safe (additive; no location).
+
+(a) TRIGGER — MUST REWRITE BEFORE M4:
+  trg_ensure_shift_session (function: ensure_shift_session())
+    Reads NEW.location_id in two places:
+    1. Guard clause: IF NEW.employee_id IS NULL OR NEW.location_id IS NULL OR NEW.shift_date IS NULL
+    2. INSERT into shift_session: ... location_id = NEW.location_id ...
+    3. INSERT into shift_session_day_line: ... WHERE dl.location_id = NEW.location_id
+    After M4, schedule_shift.location_id is dropped. The guard + inserts must be rewritten
+    to source location from shift_session_day_line → day_line → location instead.
+    REWRITE PLAN: see PLAN-4 (Phase b implementation sortie).
+
+(d) POLICY — SAFE for M4 (all reference workspace_id / employee_id / shift_date / status):
+  jwt_read_schedule_shift, jwt_insert_schedule_shift, jwt_update_schedule_shift (×2),
+  jwt_delete_schedule_shift, api_key_read_schedule_shift, api_key_insert_schedule_shift,
+  api_key_update_schedule_shift (×2), api_key_delete_schedule_shift,
+  shift_employee_can_settle, shift_employee_can_create_settlement,
+  jwt_employee_confirm_own_shift (×2), jwt_update_shift_approval (×4).
+  → None reference location_id or zone. All safe.
+
+================================================================================
+SUMMARY
+================================================================================
+Total dependencies: 71
+Class (a) — MUST REWRITE BEFORE M4: 1 (trg_ensure_shift_session / ensure_shift_session())
+Class (b) — OTHER TRIGGER safe: 4 (trg_push_shift_updated, trg_push_shift_published,
+             audit_schedule_shift_mutate, schedule_shift_derive_department_id_tg)
+Class (c) — VIEW safe: 3 (v_current_plan_preview, v_shift_lifecycle, v_shift_lifecycle_employee)
+Class (d) — POLICY safe: 16 (all workspace_id/employee_id/shift_date/status guards)
+Class (e) — FK/CHECK safe: 17 (all FK to PK schedule_shift_id; 1 CHECK on source)
+
+PLAN-4 scope: rewrite ensure_shift_session() to remove NEW.location_id dependency.
+================================================================================
