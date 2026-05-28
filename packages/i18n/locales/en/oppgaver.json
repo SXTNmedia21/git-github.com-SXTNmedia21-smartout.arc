@@ -17,6 +17,9 @@
     "only_open": "Open only",
     "deviations": "Deviations"
   },
+  "use_template": "Use template",
+  "now_label": "Right now",
+  "now_btn_aria": "Scroll timeline to current time",
   "zoom_in_aria": "Zoom in",
   "zoom_out_aria": "Zoom out",
   "empty": {
@@ -24,6 +27,15 @@
     "no_employees_planned": "No employees scheduled",
     "no_day_lines": "No day lines for this date"
   },
+  "close_day": "Close day",
+  "close_day_avv_suffix": "→ AVV",
+  "location_switcher": {
+    "all_label": "All areas",
+    "search_placeholder": "Search areas...",
+    "all_option": "All areas",
+    "no_results": "No areas found"
+  },
+  "workspace_sub_label": "Smartout",
   "task_modal": {
     "title": "Task details",
     "time_range": "Time range",

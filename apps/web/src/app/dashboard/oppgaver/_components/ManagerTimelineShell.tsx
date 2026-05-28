@@ -37,6 +37,7 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -61,6 +62,7 @@ import type { Employee } from "../_chart/PersonLane";
 import type { TimelineTask } from "../_chart/TaskBlock";
 import type { DragDropResult } from "../_chart/useDragRetiming";
 import type { ManagerTimelineTaskRow } from "@smartout/data";
+import { DAY_START_HOUR } from "../_chart/timeMath";
 
 type ViewMode = "area" | "role" | "person";
 
@@ -95,6 +97,11 @@ export function ManagerTimelineShell() {
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
+  // ── Location filter — read from ?location=<id>|all URL param (D2) ─────────
+  // LocationSwitcherPill writes this param; Shell reads + filters bands.
+  const searchParams = useSearchParams();
+  const activeLocationId = searchParams.get("location") ?? "all";
+
   const [dateISO, setDateISOState] = useState<string>(todayISO());
   const [viewMode, setViewModeState] = useState<ViewMode>("area");
   const [activeAreaIds, setActiveAreaIds] = useState<string[]>([]);
@@ -109,6 +116,25 @@ export function ManagerTimelineShell() {
   // Stable ref for prev values used in from/to payloads.
   const prevDateRef = useRef<string>(dateISO);
   const prevViewModeRef = useRef<ViewMode>(viewMode);
+
+  // Ref to the scrollable chart body (aria-label="Gantt timeline") so the
+  // "Akkurat nå" pulse-button can scroll to the current-time position without
+  // prop-drilling into ManagerTimelineChart internals.
+  const chartBodyRef = useRef<HTMLDivElement | null>(null);
+
+  // scrollToNow — stable callback, passed to TimelineToolbar.
+  // Computes scroll offset: (nowMinutes - DAY_START_MIN) * pxPerMin.
+  // pxPerHour is stable within each render cycle via the zoom state.
+  const scrollToNow = useCallback(() => {
+    const el = chartBodyRef.current;
+    if (!el) return;
+    const DAY_START_MIN = DAY_START_HOUR * 60;
+    const pxPerMin = zoom / 60;
+    // Centre the now-line in the viewport (subtract half viewport height).
+    const rawTop = (nowMinutes() - DAY_START_MIN) * pxPerMin;
+    const centred = rawTop - el.clientHeight / 2;
+    el.scrollTo({ top: Math.max(0, centred), behavior: "smooth" });
+  }, [zoom]);
 
   // ── oppgaver.view_opened — emitted once on mount ────────────────────────
   useEffect(() => {
@@ -327,10 +353,25 @@ export function ManagerTimelineShell() {
     return Array.from(seen.values());
   }, [tasks]);
 
+  // ── Location-filtered bands (D2 LocationSwitcherPill) ────────────────────
+  // day_line_id (= band.id) → location_id lookup derived from raw hook data.
+  const bandLocationMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of dayLinesQ.data ?? []) {
+      map.set(row.day_line_id, row.location_id);
+    }
+    return map;
+  }, [dayLinesQ.data]);
+
+  const locationFilteredBands = useMemo(() => {
+    if (activeLocationId === "all") return bands;
+    return bands.filter((b) => bandLocationMap.get(b.id) === activeLocationId);
+  }, [bands, activeLocationId, bandLocationMap]);
+
   const dimmedBandIds = useMemo(() => {
     if (activeAreaIds.length === 0) return undefined;
-    return bands.filter((b) => !activeAreaIds.includes(b.id)).map((b) => b.id);
-  }, [bands, activeAreaIds]);
+    return locationFilteredBands.filter((b) => !activeAreaIds.includes(b.id)).map((b) => b.id);
+  }, [locationFilteredBands, activeAreaIds]);
 
   const filteredTasks = useMemo(() => {
     let out = tasks;
@@ -339,7 +380,7 @@ export function ManagerTimelineShell() {
     return out;
   }, [tasks, onlyOpen, deviationsOnly]);
 
-  const areas = bands.map((b) => ({ id: b.id, label: b.name }));
+  const areas = locationFilteredBands.map((b) => ({ id: b.id, label: b.name }));
   const managerName = wsCtx?.workspace.name ?? "—";
   const deviationsCount = tasks.filter((t) => t.status === "missed").length;
 
@@ -430,7 +471,7 @@ export function ManagerTimelineShell() {
         onlyOpen={onlyOpen}
         deviationsOnly={deviationsOnly}
         zoom={zoom}
-        bands={bands}
+        bands={locationFilteredBands}
         tasks={filteredTasks}
         uiActions={bridgeUiActions}
       />
@@ -462,6 +503,9 @@ export function ManagerTimelineShell() {
           managerName={managerName}
           onPrevDay={() => setDateISO((d) => shiftDate(d, -1))}
           onNextDay={() => setDateISO((d) => shiftDate(d, 1))}
+          workspaceId={workspaceId ?? ""}
+          profileId={profileId ?? ""}
+          workspaceName={wsCtx?.workspace.name}
         />
         <TimelineToolbar
           viewMode={viewMode}
@@ -476,9 +520,15 @@ export function ManagerTimelineShell() {
           onToggleDeviations={() => setDeviationsOnly((v) => !v)}
           zoom={zoom}
           onZoomChange={setZoom}
+          nowMinutes={nowMinutes()}
+          scrollToNow={scrollToNow}
+          onApplyTemplate={() => {
+            // Placeholder: ApplyTemplateModal not yet implemented.
+            // TimelineToolbar emits the telemetry event regardless of this stub.
+          }}
         />
         <ManagerTimelineChart
-          bands={bands}
+          bands={locationFilteredBands}
           employees={employees}
           tasks={filteredTasks}
           mode={viewMode}
@@ -488,6 +538,7 @@ export function ManagerTimelineShell() {
           onTaskClick={handleFocusTask}
           onTaskDrop={handleTaskDrop}
           dateISO={dateISO}
+          scrollBodyRef={chartBodyRef}
           onKeyboardEdit={(task) => {
             setEditModalMode(true);
             setSelectedTask(task);

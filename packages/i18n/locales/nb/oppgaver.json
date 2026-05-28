@@ -17,6 +17,9 @@
     "only_open": "Kun åpne",
     "deviations": "Avvik"
   },
+  "use_template": "Bruk mal",
+  "now_label": "Akkurat nå",
+  "now_btn_aria": "Rull tidslinjen til nåværende tidspunkt",
   "zoom_in_aria": "Zoom inn",
   "zoom_out_aria": "Zoom ut",
   "empty": {
@@ -24,6 +27,15 @@
     "no_employees_planned": "Ingen ansatte planlagt",
     "no_day_lines": "Ingen dagslinjer for denne datoen"
   },
+  "close_day": "Lukk dagen",
+  "close_day_avv_suffix": "→ AVV",
+  "location_switcher": {
+    "all_label": "Alle områder",
+    "search_placeholder": "Søk etter område...",
+    "all_option": "Alle områder",
+    "no_results": "Ingen områder funnet"
+  },
+  "workspace_sub_label": "Smartout",
   "task_modal": {
     "title": "Oppgavedetaljer",
     "time_range": "Tidsrom",

@@ -8841,6 +8841,21 @@ export interface OppgaverContextPinned extends BaseEvent {
   };
 }
 
+export interface OppgaverPulseNowClicked extends BaseEvent {
+  event: "oppgaver.pulse_now_clicked";
+  properties: {
+    data: {
+      /** Current time in absolute minutes (e.g. 875 for 14:35). */
+      nowMinutes: number;
+    };
+  };
+}
+
+export interface OppgaverTemplateApplyClicked extends BaseEvent {
+  event: "oppgaver.template_apply_clicked";
+  properties: Record<string, never>;
+}
+
 /**
  * Fired when a manager drag-drops a task to a new time slot on the Gantt
  * (DnD re-timing, Wave 1b). workspace_id + actor_id come from BaseEvent.
@@ -8867,6 +8882,38 @@ export interface OppgaverTaskReTimed extends BaseEvent {
       from_assignee: string | null;
       /** Assignee profile_id after re-timing (null if unassigned or unchanged) */
       to_assignee: string | null;
+    };
+  };
+}
+
+/**
+ * oppgaver.location_filter_changed — manager switches the Område (location) filter
+ * in LocationSwitcherPill. posthog + logger + activity_trail — filter changes are
+ * a manager-intent signal worth auditing (same routing as oppgaver.context_pinned).
+ */
+export interface OppgaverLocationFilterChanged extends BaseEvent {
+  event: "oppgaver.location_filter_changed";
+  properties: {
+    data: {
+      /** Previous location_id or "all" */
+      from_location: string;
+      /** New location_id or "all" */
+      to_location: string;
+    };
+  };
+}
+
+/**
+ * oppgaver.close_day_clicked — manager taps the "Lukk dagen → AVV" CTA.
+ * Placeholder stub; actual day-close flow is spec'd in a future sortie.
+ * posthog + logger only — intent signal, no state-machine trigger yet.
+ */
+export interface OppgaverCloseDayClicked extends BaseEvent {
+  event: "oppgaver.close_day_clicked";
+  properties: {
+    data: {
+      /** ISO date of the day being closed */
+      date_iso: string;
     };
   };
 }
@@ -9843,8 +9890,13 @@ export type SmartoutEvent =
   | OppgaverDateChanged
   | OppgaverTaskFocused
   | OppgaverContextPinned
+  | OppgaverPulseNowClicked
+  | OppgaverTemplateApplyClicked
   // ─── Oppgaver Write-surface (P11 DnD re-timing, Wave 1b) ────────────────
-  | OppgaverTaskReTimed;
+  | OppgaverTaskReTimed
+  // ─── Oppgaver Filter + CTA events (P11 TopBar D2) ────────────────────────
+  | OppgaverLocationFilterChanged
+  | OppgaverCloseDayClicked;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -16057,6 +16109,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // TODO emit-site added in Wave 1b by TA2 (DnD wiring) — controlled known gap.
   "oppgaver.task_re_timed": {
     destinations: ["posthog", "activity_trail"],
+    category: "oppgaver",
+  },
+  // oppgaver.pulse_now_clicked: posthog + logger — toolbar UI interaction.
+  // No write-mutation, no compliance-audit requirement. Mirrors date_changed routing.
+  "oppgaver.pulse_now_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  // oppgaver.template_apply_clicked: posthog + logger — toolbar UI interaction.
+  // Opens ApplyTemplateModal (no write committed at click-time; modal owns its own mutation).
+  "oppgaver.template_apply_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "oppgaver",
+  },
+  // oppgaver.location_filter_changed: posthog + logger + activity_trail — manager
+  // intent signal (same routing as oppgaver.context_pinned). No engine_event.
+  "oppgaver.location_filter_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "oppgaver",
+  },
+  // oppgaver.close_day_clicked: posthog + logger — intent stub only, no audit
+  // requirement until the day-close flow is spec'd (future sortie).
+  "oppgaver.close_day_clicked": {
+    destinations: ["posthog", "logger"],
     category: "oppgaver",
   },
 };
