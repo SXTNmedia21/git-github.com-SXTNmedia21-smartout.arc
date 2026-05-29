@@ -1,24 +1,28 @@
 ---
 sortie: adr-0430-shift-zone-m2m
 domain: scheduling
-state: S6
-sub_state: plan-0-pre-flight-dispatch-pending
+state: S9
+sub_state: closed
 tier: T3
 test_mode: continuous
 design_link: n/a (schema reform — no Cloud Design)
 adr: ADR-0430
 adr_path: docs/decisions/0430-core-structure-reform-shift-zone-m2m.md
-adr_status: accepted
+adr_status: implemented
 council_verdict: APPROVE WITH CHANGES (4/4, 2026-05-27)
 council_path: docs/audits/2026-05-27-core-structure-reform-index/INDEX.md
 created_at: 2026-05-28T20:00:00Z
-updated_at: 2026-05-28T22:30:00Z
+updated_at: 2026-05-29T00:00:00Z
 imported_at: 2026-05-28T20:00:00Z
-campaign: development (no campaign worktree — Phase b worktree spawned at wt-1)
-worktree: /home/sxtnl/dev/smartout.ai-wt-1 (created 2026-05-28T22:35Z; branch feat/adr-0430-shift-zone-m2m @ d9a4da8be)
+closed_at: 2026-05-29T00:00:00Z
+campaign: development (Phase b shipped to development @ 4e984e628)
+worktree: removed (Phase b closed via /close-feature; merged @ 4e984e628)
 import_mode: true
-structural_block: "Agent/Task tool not exposed in this orchestrator session — sub-dispatch impossible. T3 sortie; per memory feedback_hard_rule_8_vs_tool_layer.md rule 3, surfacing to Pontus before any code-write rather than auto-applying Path 1. Awaiting Pontus auth path A/B/C."
-import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2026-05-27; domain spine refreshed (GAPS-AND-DEBT, ROADMAP); zero prior SDSM STATE.md
+# structural_block CLEARED 2026-05-29: the obsolete auth-path-a/b/c block gated work that ALREADY SHIPPED.
+# ADR-0430 Phase b merged to development @ 4e984e628 (status: implemented). The block was a STATE.md
+# freeze from 2026-05-28T22:30Z that never advanced past the import-mode auth ping. No answer needed —
+# the work it gated is done. See "Reconciliation 2026-05-29" section below.
+import_basis: ADR-0430 implemented on development (commit 4e984e628); audit INDEX 2026-05-27; domain spine refreshed (GAPS-AND-DEBT, ROADMAP); zero prior SDSM STATE.md
 ---
 
 # STATE — Scheduling Domain — ADR-0430 (Shift × Zone × Location M:N reform, Option Y)
@@ -35,9 +39,40 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 | G3 | S3 | PASS | 2026-05-27 (inferred) | Council Phase 1-5 questionnaire-equivalent answered by 4-reviewer council session. 8 MF + 4 CF returned as binding rules. Imported. |
 | G4 | S4 | PASS | 2026-05-28T12:59Z | ADR-0430 transitioned to `status: accepted` on commit `dad1e3fd7` (`docs(adr): ADR-0430 council Phase 5 corrections (MF-1..MF-8) + accepted`). ADR body encodes all 9 binding Rules. Imported. |
 | G5 | S5 | PASS | 2026-05-28T22:30Z | **AUTO-PASS per SDSM v2 § Auto-pass eligibility.** Council Phase 5 (4/4, 2026-05-27) vetted underlying Rules 1-9. Pontus explicitly delegated plan-execution to orchestrator ("orchestrate with the orchestrator agent"). 5 plans drafted in `plans/` align with the 9 binding Rules + 4 CF (coverage matrix in `INDEX.md`). Test-mode `continuous` confirmed per ADR-0430 §Implementation Sequence (irreversible M4 column DROP demands per-plan E2E green). |
-| G6 | S6 PLAN-0 | AWAITING | — | Phase B verifier — fires after PLAN-0 build phase. PLAN-0 = pre-flight gates (CF-1..3 + Pre-1..7) → 10 ACs; mostly verification + 1 schema-precondition check (AC-0.9 `engine_authority_config.channel_constraint` existence). |
-| G7 | — | PENDING | — | Full Playwright suite — end of S6 in continuous mode. |
-| G8 | — | PENDING | — | Visual product-accept — N/A for schema-only reform (no UI surfaces in scope). Reduced acceptance: typecheck green + E2E green + types regen clean. |
+| G6 | S6 PLAN-0..4 | PASS | 2026-05-29 (imported) | All 5 plans built + verified during Phase b. M1-M4 migrations applied, READ+WRITE rewrites shipped, mobile relocated, typegen clean. Per decision-log: "TS sweep clean (web + mobile 0 errors)". |
+| G7 | S7 | PASS | 2026-05-29 (imported) | E2E green at close (Journey Guardian gate passed @ 42160b294 "JOURNEY status verified"). |
+| G8 | S8 | PASS (reduced) | 2026-05-29 (imported) | Visual product-accept N/A for schema-only reform. Reduced acceptance met: typecheck green + types regen clean (598cf6afd) + TS sweep (6ea847d12). |
+| close | S9 | PASS | 2026-05-29 | /close-feature gates passed; merged to development @ 4e984e628. HANDOFF + JOURNEY + decision-log written (a2180b2b6). |
+
+## Reconciliation 2026-05-29 (orchestrator — obsolete-block clear)
+
+This STATE.md was frozen at `S6 / plan-0-pre-flight-dispatch-pending` with a `structural_block`
+(auth-path a/b/c) from the import-mode session 2026-05-28T22:30Z. That session surfaced an
+Agent-tool-exposure ping and never advanced. **In the interim, ADR-0430 Phase b was completed and
+merged to development @ 4e984e628 (status flipped to `implemented`).** The block gated work that is
+now DONE — so the orchestrator CLEARED the block (did NOT answer the obsolete ping) and advanced
+the state to S9 closed, backfilling gate-history retrospectively from the git log:
+
+- M1-M4 migrations: `20260801000001..000006` (NOT NULL backfill → CREATE shift_zone → backfill → trigger rewrite → column DROP)
+- READ rewrites: 7369dc1f7, c6f7435d8, 0c3365e17, 2e8395a47
+- WRITE rewrite + G4 closure: in add-shift-action.ts + packages/ai capabilities
+- typegen + TS sweep: 598cf6afd, 6ea847d12
+- close: a2180b2b6, 42160b294, dbeb6f455, 4e984e628
+
+### DEFERRED DEBT discovered at reconciliation (→ NEW Sortie 1: adr-0430-shift-mcp-completion)
+
+Phase b's READ/WRITE rewrite was **capability-layer-scoped** (packages/ai + web add-shift-action.ts)
+and MISSED two standalone write surfaces — **L-0348, 4th occurrence**. These broke at runtime the
+moment M1 (department_id NOT NULL) + M4 (zone/location_id DROP) landed on development:
+
+1. `services/shift-mcp/src/tools/create-shift.ts:58` — INSERT sets `zone` (dropped) + NO `department_id` (NOT NULL violation). Doubly broken.
+2. `services/shift-mcp/src/tools/update-shift.ts:68` — sets `zone` (dropped).
+3. `supabase/functions/workspace-api/handlers/schedules.ts:40` — public `GET /v1/shifts` raw SQL `SELECT ... zone ...` (dropped col → SQL error). DOCUMENTED ACTIVE endpoint.
+4. `services/shift-mcp/src/types/shift.ts:54,80` — Zod still advertises `zone`.
+
+Root cause: AC-4a.10 live-invoke gate was DEFERRED in Phase b. That gate would have caught all three.
+**Remediation sortie `adr-0430-shift-mcp-completion` opened 2026-05-29** — live-invoke is MANDATORY there.
+See `docs/domains/scheduling/adr-0430-shift-mcp-completion/STATE.md`.
 
 ## Council Phase 5 verdict — encoded as binding Rules in ADR-0430
 
@@ -106,20 +141,13 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 
 ## Open Pontus pings
 
-| #   | Question                                                                                                                                | Why now                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1   | **Choose authorization path for PLAN-0 execution.** Agent/Task tool not exposed in this session — sub-dispatch impossible per Hard Rule 8. | Pontus's prompt expected sub-orchestrator dispatch; harness limitation surfaced. PLAN-0 is doc-only + verification (10 ACs, mostly SQL queries + git grep + 4 file writes). T3 risk concentration is in PLAN-1/PLAN-4 (migrations + irreversible M4 column DROP), not PLAN-0. Three options: **(a)** Path-1-endemic auth scoped to PLAN-0 only — orchestrator (me) executes the 10 ACs directly via Bash/Read/Edit/Write, commits per AC to feat branch, HARD STOP at PLAN-0 close for fresh decision on PLAN-1; **(b)** Stop here, you open a fresh Agent-enabled session to dispatch PLAN-0; **(c)** Full Path-1-endemic auth for entire Phase b — **not recommended** because T3 risk concentration in PLAN-1/PLAN-4. |
+(none — the obsolete import-mode auth-path ping was CLEARED 2026-05-29, not answered. The work it
+gated already shipped @ 4e984e628. See "Reconciliation 2026-05-29" above.)
 
 ## Next action
 
-**BLOCKED on Pontus auth-path choice (a/b/c above).** All preliminary STATE work complete:
-
-- G5 PASS recorded atomically @ `d9a4da8be`
-- Worktree spawned at `/home/sxtnl/dev/smartout.ai-wt-1` (branch `feat/adr-0430-shift-zone-m2m`)
-- PLAN-0..4 + ADR-0430 inherited cleanly into worktree
-- STATE.md `structural_block` field set per memory rule 6
-
-After auth: PLAN-0 executes the 10 ACs (CF-1..3 verification + Pre-1..7 schema + git checks); doc-only outputs to `docs/domains/scheduling/adr-0430-shift-zone-m2m/{pre-flight-report.md, pg-depend-audit.txt, m0.5-position-orphan-report.{md,csv}, schema-precondition-checks.sql}`. HARD STOP after PLAN-0 — any of AC-0.6/AC-0.8/AC-0.9/AC-0.10 BLOCKER triggers escalation, no auto-advance to PLAN-1.
+(none — this sortie is S9 CLOSED. Follow-on remediation tracked in sibling sortie folder
+`docs/domains/scheduling/adr-0430-shift-mcp-completion/STATE.md`.)
 
 ## References
 

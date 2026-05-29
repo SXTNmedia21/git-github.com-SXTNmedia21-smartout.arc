@@ -107,6 +107,8 @@ Tables without `workspace_id` (the only 3): `user_identity`, `company`, `company
 
 **Status:** Surfaced in V1 — `CreateZoneDialog` + `EditZoneDialog` in `organization/locations/[id]/page.tsx:56`. **Not schema-only contrary to older docs.**
 
+**ADR-0430 (Shift × Zone × Location M:N):** `zone` gained a composite UNIQUE index `uq_zone_id_location_id (zone_id, location_id)` (migration `20260801000003_m2_create_shift_zone.sql`) to back the composite FK `shift_zone.(zone_id, location_id) → zone`. This is the schema invariant that enforces `zone.location_id = day_line.location_id` at the DB layer. Verified: `pg_indexes.uq_zone_id_location_id` on `zone`.
+
 ### `asset` (`00002_structure_tables.sql:87`)
 
 | Column | Type | Notes |
@@ -250,9 +252,13 @@ planning_cycle   → workspace.workspace_id
 |---|---|---|---|
 | `department_session` | `department_id` | `department` | day-session (D6) |
 | `schedule_shift` | `position_id` | `position` | scheduling (D6) |
+| `shift_zone` | `(zone_id, location_id)` composite | `zone` (`uq_zone_id_location_id`) | scheduling (D6) — ADR-0430 |
+| `shift_zone` | `(day_line_id, location_id)` composite | `day_line` (`uq_day_line_id_location_id`) | scheduling (D6) — ADR-0430 |
 | `routine` | `location_id` | `location` | procedure-engine |
 | `team` | `department_id` (nullable) | `department` | HR/teams |
 | `employee_payroll_profile` | — | `department` via profile | payroll |
+
+> **ADR-0430 schema note:** `schedule_shift` previously carried scalar `zone TEXT` + `location_id` columns; both were DROPPED by M4 (`20260801000006_m4_drop_legacy_location_zone_columns.sql`). `profile.location_id` was also dropped. Zone is now an M:N relation via the `shift_zone` junction (owned by scheduling, keyed by `shift_session_id + day_line_id`, denormalized `location_id`). Location flows `schedule_shift → shift_session → day_line(location_id)` via the rewritten `ensure_shift_session` trigger (watch list no longer includes `OF location_id`). Verified against live schema 2026-05-29: `schedule_shift` has no `zone`/`location_id`; `profile` has no `location_id`.
 
 ## RLS posture
 

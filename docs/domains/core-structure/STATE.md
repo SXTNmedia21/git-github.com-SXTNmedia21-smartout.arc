@@ -3,22 +3,24 @@ sortie: adr-0430-shift-zone-m2m
 domain: core-structure
 role: secondary (schema-axis owner)
 primary_state_md: docs/domains/scheduling/STATE.md
-state: S6
-sub_state: plan-0-pre-flight-dispatch-pending
+state: S9
+sub_state: closed
 tier: T3
 test_mode: continuous
 design_link: n/a (schema reform — no Cloud Design)
 adr: ADR-0430
 adr_path: docs/decisions/0430-core-structure-reform-shift-zone-m2m.md
-adr_status: accepted
+adr_status: implemented
 council_verdict: APPROVE WITH CHANGES (4/4, 2026-05-27)
 council_path: docs/audits/2026-05-27-core-structure-reform-index/INDEX.md
 created_at: 2026-05-28T20:00:00Z
-updated_at: 2026-05-28T22:30:00Z
+updated_at: 2026-05-29T00:00:00Z
 imported_at: 2026-05-28T20:00:00Z
-campaign: development
-worktree: /home/sxtnl/dev/smartout.ai-wt-1 (pending creation; branch feat/adr-0430-shift-zone-m2m)
+closed_at: 2026-05-29T00:00:00Z
+campaign: development (Phase b shipped @ 4e984e628)
+worktree: removed (Phase b closed via /close-feature)
 import_mode: true
+# Obsolete S6 freeze + structural_block CLEARED 2026-05-29 — work it gated already shipped (status: implemented).
 ---
 
 # STATE — Core-Structure Domain — ADR-0430 (secondary owner)
@@ -39,7 +41,21 @@ ADR-0430 touches core-structural tables: `schedule_shift` (D2 planning record pe
 | G3 | S3 | PASS (imported) | Council Phase 1-5 |
 | G4 | S4 | PASS (2026-05-28T12:59Z) | ADR commit `dad1e3fd7` |
 | G5 | S5 | PASS (2026-05-28T22:30Z) | Auto-pass per SDSM v2; council-vetted Rules 1-9 + Pontus delegated execution. See scheduling STATE.md for full rationale. |
-| G6 | S6 PLAN-0 | AWAITING | PLAN-0 build dispatch pending; sub-orchestrator (sonnet) to execute at `~/dev/smartout.ai-wt-1`. |
+| G6 | S6 PLAN-0..4 | PASS (imported 2026-05-29) | All migrations + rewrites shipped Phase b. See scheduling STATE.md reconciliation. |
+| G7 | S7 | PASS (imported 2026-05-29) | E2E + Journey Guardian gate green at close. |
+| G8 | S8 | PASS reduced (imported 2026-05-29) | Schema-only; typecheck + typegen green. |
+| close | S9 | PASS 2026-05-29 | Merged to development @ 4e984e628 (status: implemented). |
+
+## Reconciliation 2026-05-29 (orchestrator — obsolete-block clear)
+
+Mirrored from scheduling STATE.md. This file was frozen at S6 with the same obsolete
+`structural_block`. ADR-0430 Phase b is `implemented` (merged @ 4e984e628), so the block is CLEARED
+(not answered) and state advanced to S9. **Schema-axis spine debt found at reconciliation:**
+`docs/domains/core-structure/DATA-MODEL.md` had **0 `shift_zone` references** (partial domain-steward
+run during Phase b — scheduling's DATA-MODEL got 6 refs, core-structure got none). Fixed by
+`domain-steward post` on core-structure 2026-05-29 (adds `shift_zone` table + verifies `profile` /
+`schedule_shift` mentions claim no dropped columns). See sibling remediation sortie
+`docs/domains/scheduling/adr-0430-shift-mcp-completion/STATE.md` for the runtime-fix work.
 
 ## Schema-axis Phase b deliverables (mirrored from PLAN-0..PLAN-4)
 
@@ -57,7 +73,8 @@ ADR-0430 touches core-structural tables: `schedule_shift` (D2 planning record pe
 
 ## Next action
 
-Mirrors scheduling STATE.md: plan-generator dispatched against scheduling sortie folder. Core-structure gets schema-deliverable callouts via PLAN-0 and PLAN-4. After M4 ships, domain-steward `post` mode refreshes core-structure DATA-MODEL.md to reflect dropped columns + new `shift_zone` table.
+(none — S9 CLOSED. domain-steward `post` ran on core-structure DATA-MODEL 2026-05-29 to add the
+`shift_zone` table + verify dropped-column claims.)
 
 ## References
 
