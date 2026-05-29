@@ -178,11 +178,11 @@ export default function FreeForeverPage() {
       <FullTracker />
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,oklch(1_0_0/0.06),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,var(--color-foreground)_0%,transparent_40%)] opacity-[0.06]" />
         <div className="bg-brand-orange/10 absolute top-0 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full blur-3xl" />
         <div className="bg-foreground/5 absolute top-40 right-[-10rem] h-[20rem] w-[20rem] rounded-full blur-3xl" />
         <div className="bg-brand-orange/12 absolute bottom-10 left-[-8rem] h-[18rem] w-[18rem] rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,oklch(1_0_0/0.03)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.03]" />
       </div>
 
       <div className="relative z-10">
