@@ -34,10 +34,24 @@ export async function handleGetShifts(
   const employeeId = url.searchParams.get("employee_id");
   const status = url.searchParams.get("status");
 
+  // ADR-0430 M4: scalar `zone` column dropped from schedule_shift. Zone is now
+  // an M:N relation via shift_zone. We surface zone NAMES as a `zones` text[]
+  // (the field existed before as a scalar; dropping it entirely would silently
+  // break documented API consumers, so we expose the M:N-correct successor).
+  // Path: schedule_shift → shift_session (schedule_shift_id) → shift_zone
+  //       (shift_session_id) → zone (zone_id). RLS runs under the same
+  //       workspace context as the outer query (executeWithWorkspaceContext).
   let query = `
     SELECT schedule_shift_id, employee_id, position_id, team_id,
            shift_date, role, start_time, end_time, work_hours, breaks,
-           day_category, status, is_published, zone, notes,
+           day_category, status, is_published, notes,
+           COALESCE((
+             SELECT array_agg(DISTINCT z.name ORDER BY z.name)
+             FROM shift_session ss
+             JOIN shift_zone sz ON sz.shift_session_id = ss.shift_session_id
+             JOIN zone z ON z.zone_id = sz.zone_id
+             WHERE ss.schedule_shift_id = schedule_shift.schedule_shift_id
+           ), ARRAY[]::text[]) AS zones,
            created_at, updated_at
     FROM schedule_shift
     WHERE workspace_id = $1

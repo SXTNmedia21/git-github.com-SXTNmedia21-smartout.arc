@@ -971,7 +971,8 @@ Retry-After: 42`}</Code>
         "shift_date": "2026-03-15",
         "start_time": "09:00",
         "end_time": "17:00",
-        "status": "published"
+        "status": "published",
+        "zones": ["Kjøkken", "Bar"]
       }
     ],
     "limit": 50,
