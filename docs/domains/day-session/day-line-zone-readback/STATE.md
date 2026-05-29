@@ -1,8 +1,8 @@
 ---
 sortie: day-line-zone-readback
 domain: day-session
-state: S5
-sub_state: plans-generated
+state: S7
+sub_state: ready-for-close-pending-web-tsc
 tier: T3
 test_mode: continuous
 design_link: docs/domains/day-session/day-planner/project/Manager Timeline.html (BINDING Cloud Design — pixel-match)
@@ -58,12 +58,17 @@ fidelity centerpiece (self-accept against mockup before generalizing).
 | G3 | S3 | PASS | 2026-05-29 | No open questions; mockup is the fixed contract. |
 | G4 | S4 | PASS | 2026-05-29 | No SPEC — binding mockup + this STATE = the contract. |
 | G5 | S5 | PASS | 2026-05-29 | 5 plans, continuous. Auto-pass (Pontus delegated full delivery). |
-| G6 | S6 PLAN-1..5 | PENDING | — | Per-plan verify. frontend-designer fidelity gate on PLAN-3 + PLAN-4. |
-| G6 council | PLAN-5 | PENDING | — | run-council design-token gate (text-2xs) BEFORE the token sweep. |
-| G7 | S7 | PENDING | — | turbo typecheck + lint at close. |
-| G8 | S8 | PENDING (reduced) | — | Self-run frontend-designer fidelity verdict vs Manager Timeline.html + v6.png; documented in reports/FIDELITY-VERDICT.md. |
+| G6 | S6 PLAN-1 | PASS | 2026-05-29 | web location readback (use-day-timeline-events). |
+| G6 | S6 PLAN-2 | PASS | 2026-05-29 | mobile zones[] + packages/data helper; mobile+data typecheck green. |
+| G6 | S6 PLAN-3 | PASS | 2026-05-29 | right-rail built; fidelity verdict PASS (reports/FIDELITY-VERDICT.md). |
+| G6 | S6 PLAN-4 | PASS | 2026-05-29 | useEmployeesForDate + duration_minutes migration (20260801000007); data typecheck green. |
+| G6 council | PLAN-5 | PASS | 2026-05-29 | run-council design-token gate APPROVE-WITH-CHANGES (DEGRADED, definitive) — text-xs not text-2xs. reports/COUNCIL-design-token.md. |
+| G7 | S7 | AWAITING | — | close-feature Gate 4 diff-scoped turbo typecheck. **RAM-gated (L-0316, web tsc OOM at <6500Mi).** Monitor armed. |
+| G8 | S8 | PASS (reduced) | 2026-05-29 | Design-fidelity verdict PASS (no live screenshot — structural assessment vs mockup CSS contract). |
 
 ## Next action
 
-Build PLAN-1..5 in order (Path 1 self-write, sonnet-equivalent for build / opus for the fidelity+council gates).
-Plans committed to feat branch first (propagation rule).
+All 5 plans built + committed. JOURNEY (verified) + HANDOFF + fidelity verdict + council verdict +
+day-session spine post done. **Only remaining gate: web turbo typecheck (close-feature Gate 4),
+blocked by WSL2 OOM (L-0316) at <6500Mi available.** RAM monitor armed. On headroom: run
+`TURBO_CONCURRENCY=1 pnpm turbo typecheck --filter=./apps/web` then /close-feature → merge to development.
