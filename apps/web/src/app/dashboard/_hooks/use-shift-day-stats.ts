@@ -15,8 +15,8 @@ export type ShiftDayStats = {
 /**
  * useShiftDayStats — workspace-wide counts of today's shifts grouped by punch state.
  *
- * Bypasses L-0064 trap (`schedule_shift.department_id` nullable) by NOT filtering
- * on `department_id`. Department-level breakdown lives in `useRoster` for now.
+ * Does NOT filter on department_id — workspace-wide aggregation is the intended
+ * scope for this hook. Department-level breakdown lives in `useRoster`.
  *
  * Joins `timesheet.time_entry` to derive status:
  *   - active  → punch_in set, no punch_out

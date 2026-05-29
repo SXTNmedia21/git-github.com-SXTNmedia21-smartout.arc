@@ -296,16 +296,14 @@ export function useDayTimelineEvents(args: {
 
       // Check-ins / Check-outs — workspace-wide for the date, optionally
       // filtered by teamId or shiftId from the scope selector.
-      // Note: `schedule_shift.department_id` is nullable (L-0064 trap); the
-      // canonical dept link goes via `position_id → position.department_id`.
-      // Until that join lands, surface ALL workspace check-ins on the day so
-      // the user actually sees their punch on Dagslinjen.
       {
-        // location_id pulled natively for chip-bar filter (SMA-374 §C2).
+        // ADR-0430 M4: location_id dropped from schedule_shift.
+        // location_id for chip-bar filter will need to come from shift_zone or day_line join.
         let shiftQuery = supabase
           .from("schedule_shift")
           .select(
-            "schedule_shift_id, employee_id, team_id, location_id, profile:employee_id(display_name)",
+            // ADR-0430 M4: location_id dropped from schedule_shift — chip-bar location filter deferred
+            "schedule_shift_id, employee_id, team_id, profile:employee_id(display_name)",
           )
           .eq("workspace_id", wsId!)
           .eq("shift_date", dateISO);
@@ -333,10 +331,10 @@ export function useDayTimelineEvents(args: {
               return [s.schedule_shift_id, p?.display_name ?? "Ukjent"] as const;
             }),
           );
-          // location lookup per shift — keeps both punch events anchored to
-          // the same chip filter axis (SMA-374 §C2).
+          // ADR-0430 M4: location_id dropped from schedule_shift.
+          // location_id for chip-bar filter now returns null until resolved via shift_zone join.
           const locationByShift = new Map(
-            (shifts ?? []).map((s) => [s.schedule_shift_id, s.location_id ?? null] as const),
+            (shifts ?? []).map((s) => [s.schedule_shift_id, null as string | null] as const),
           );
 
           for (const e of entries ?? []) {

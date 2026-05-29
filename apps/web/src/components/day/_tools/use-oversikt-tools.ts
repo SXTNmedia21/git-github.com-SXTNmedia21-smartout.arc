@@ -799,6 +799,9 @@ export function useOversiktTools(input: OversiktToolInput): ClientToolKit {
           role,
           reason,
           channel: "chat",
+          // ADR-0430 Rule 4: no zone authoring from Botsson tool V1.
+          // Zone assignment via Botsson ships in a follow-up capability update.
+          zone_ids: [],
         });
         return JSON.stringify(result);
       },

@@ -260,6 +260,9 @@ export function AddShiftDialog({
           endAtISO: localToISO(endAt),
           role: roleTrimmed,
           reason: reasonTrimmed,
+          // ADR-0430 Rule 4: no zone authoring in web dialog V1.
+          // Zone assignment UI ships in a follow-up. Empty = unzoned shift.
+          zone_ids: [],
           // Override context — the Server Action writes this into
           // `activity_trail.data.override_reason` via `emit()` when
           // present. Status is the employee's resolved daily status at

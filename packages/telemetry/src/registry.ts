@@ -717,6 +717,13 @@ export interface ShiftCreated extends BaseEvent {
       start_time: string;
       end_time: string;
       position_id?: string;
+      /** ADR-0430 Rule 6b: zone UUIDs assigned to shift at creation time.
+       *  Optional — absent on pre-M2N shifts and unassigned template shifts.
+       *  ADR-0356 Pattern B fields present when emitted from timeline-template
+       *  (cross-namespace write). */
+      zone_ids?: string[];
+      actor_capability?: string;
+      delegated_via?: string;
     };
   };
 }
@@ -763,6 +770,9 @@ export interface ShiftAddedManual extends BaseEvent {
       source: "manual_admin";
       manual: true;
       reason: string;
+      /** ADR-0430 Rule 6b: zone UUIDs assigned at manual add time.
+       *  Optional — absent when no zones requested (empty zone_ids[]). */
+      zone_ids?: string[];
     };
   };
 }
@@ -10165,6 +10175,18 @@ export interface SchedulerProposalAccepted extends BaseEvent {
       accepted_by_profile_id: string;
       applied_shift_count: number;
       gate_evaluation_id: string | null;
+      /**
+       * ADR-0430 Rule 6b + MF-E: per-shift zone assignments for audit reconstruction.
+       * Shape: Array<{shift_id: string; zone_ids: string[]}> — keyed per-shift
+       * so ADR-0309 audit reconstruction can map zones to shifts without a
+       * follow-up query against shift_zone.
+       * Optional — absent when no proposed_shifts had zone_ids (pre-M2N proposals).
+       * MUST NOT be flat zone_ids: string[] — that loses per-shift provenance.
+       */
+      zone_assignments?: Array<{
+        shift_id: string;
+        zone_ids: string[];
+      }>;
     };
   };
 }

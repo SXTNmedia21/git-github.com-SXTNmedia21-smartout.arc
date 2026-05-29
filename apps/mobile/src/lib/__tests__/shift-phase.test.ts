@@ -49,9 +49,9 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     position_id: null,
     shift_type_id: null,
     team_id: null,
-    department_id: null,
-    location_id: null,
-    zone: null,
+    // ADR-0430 M1: department_id is NOT NULL (migration 20260801000002)
+    department_id: "dept-1",
+    // ADR-0430 M4: location_id and zone dropped from schedule_shift
     template_shift_id: null,
     pipeline_lock_state_id: null,
     created_at: "2026-03-17T10:00:00Z",

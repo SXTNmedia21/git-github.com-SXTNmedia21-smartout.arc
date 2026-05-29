@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
+import { mutateWithGate, MutateWithGateDenied } from "@smartout/ai/gate/mutate-with-gate";
 import { toWorkspaceDateTimeParts } from "../_lib/cockpit/date-anchor";
 
 /**
@@ -99,8 +100,21 @@ const InputSchema = z
      * Per ADR-0078 the channel signal flows into `engine_authority_config`
      * for future per-channel rule enforcement (e.g. restrict voice callers).
      * Default "chat" ensures all existing web call sites are unaffected.
+     *
+     * Rule 9 (ADR-0430) + L-0083 sibling: voice excluded at Zod boundary;
+     * gate_action RPC does not yet read channel_constraint (deferred enforcement).
+     * channel_constraint='chat_only' seed row in engine_authority_config is
+     * forensic-only until gate_action PL/pgSQL is amended (future ADR).
      */
     channel: z.enum(["chat", "system"]).default("chat"),
+    /**
+     * Zone assignments for the shift (ADR-0430 Rule 4 — shift × zone M2N).
+     * Each zone_id must belong to the shift's workspace AND the shift's
+     * department-area (Rule 7 forgery defense). Server validates all IDs.
+     * Mobile BFF always passes [] — no zone authoring on mobile surface
+     * (ADR-0133 + MF-F).
+     */
+    zone_ids: z.array(z.string().uuid()).optional().default([]),
   })
   .refine((v) => new Date(v.endAtISO).getTime() > new Date(v.startAtISO).getTime(), {
     message: "Slutt-tid må være etter start-tid.",
@@ -228,7 +242,9 @@ export async function addShiftAction(
   // Resolve department scope. Preference order:
   //   1. departmentSessionId → department_session.department_id (strongest — ties to live session)
   //   2. departmentId        → direct input (RosterTab CTA path)
-  //   3. null                → trigger will derive from position_id if set (schema path)
+  // ADR-0430 M1: department_id is NOT NULL on schedule_shift. The trigger-derive
+  // path (position_id → department_id) only fires on UPDATE OF position_id, not
+  // on INSERT when position_id is NULL. A department must be resolved before insert.
   // Cross-workspace verification runs on whichever path is used.
   let departmentId: string | null = null;
   if (parsed.data.departmentSessionId) {
@@ -251,6 +267,15 @@ export async function addShiftAction(
       return { ok: false, error: "Avdeling ikke funnet eller annet workspace." };
     }
     departmentId = dept.department_id;
+  }
+
+  // ADR-0430 M1: department_id is NOT NULL — block if neither resolution path worked.
+  if (!departmentId) {
+    return {
+      ok: false,
+      error:
+        "Kunne ikke bestemme avdeling for vakten. Angi departmentSessionId eller departmentId.",
+    };
   }
 
   const gate = await gateAction({
@@ -285,40 +310,204 @@ export async function addShiftAction(
     warnings.push("shift_over_5h_no_break_planned");
   }
 
-  const { data: inserted, error: insertError } = await admin
-    .from("schedule_shift")
-    .insert({
-      workspace_id: profile.workspaceId,
-      employee_id: parsed.data.profileId,
-      department_id: departmentId,
-      // Cascade D1: location scope — nullable, set when provided by the dialog.
-      // The ensure_shift_session trigger propagates this to shift_session.location_id.
-      ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
-      shift_date: date,
-      start_time: startTime,
-      end_time: endTime,
-      role: parsed.data.role,
-      work_hours: workHours,
-      breaks: 0,
-      day_category: dayCategory,
-      status: "created" as const,
-      is_published: true,
-      indicator: "blue",
-      // ADR-0108 provenance discriminator — row-level value is constrained to
-      // operational | bubble_migration | v3_engine. A manually-created admin
-      // shift is operational. The "manual_admin" audit provenance is recorded
-      // on the telemetry emit below (→ activity_trail), not on the row.
-      source: "operational",
-      notes: parsed.data.reason,
-    })
-    .select("schedule_shift_id")
-    .single();
+  // ── Rule 7 forgery defense (ADR-0430) ──────────────────────────────────────
+  // Validate all zone_ids belong to this workspace AND this department's area
+  // before the gatedMutation write executes. Fail-fast on first invalid zone
+  // (L-0177: NO silent fallback to default zone, NO skip-on-null).
+  const resolvedZoneLocationPairs: Array<{ zone_id: string; location_id: string }> = [];
+  for (const zone_id of parsed.data.zone_ids) {
+    // Step 1: verify zone belongs to this workspace (ADR-0151 forgery defense).
+    const { data: zoneRow } = await admin
+      .from("zone")
+      .select("zone_id, location_id")
+      .eq("zone_id", zone_id)
+      .eq("workspace_id", profile.workspaceId)
+      .maybeSingle();
+    if (!zoneRow) {
+      // L-0177: null = zone not found OR wrong workspace — return explicit error.
+      return { ok: false, error: `zone_forgery_workspace: zone ${zone_id} not found in workspace` };
+    }
 
-  if (insertError || !inserted) {
+    // Step 2: verify zone's location_id is in department_location for this dept.
+    const { data: deptLocRow } = await admin
+      .from("department_location")
+      .select("location_id")
+      .eq("department_id", departmentId!)
+      .eq("location_id", zoneRow.location_id)
+      .eq("workspace_id", profile.workspaceId)
+      .maybeSingle();
+    if (!deptLocRow) {
+      // L-0177: null = zone's location not linked to this department — explicit error.
+      return {
+        ok: false,
+        error: `zone_forgery_dept_area: zone ${zone_id} location not in department area`,
+      };
+    }
+
+    resolvedZoneLocationPairs.push({ zone_id, location_id: zoneRow.location_id });
+  }
+
+  // ── G4 closure — gatedMutation wraps the INSERT (ADR-0204) ─────────────────
+  // Both gateway policies (Pathway A: gate_action + Pathway B: cascade_gate_write)
+  // evaluated before the domain write runs. The existing gateAction call above
+  // is ALSO retained for the legacy Server Action path (web AddShiftDialog uses
+  // gateAction directly); gatedMutation provides the full composition gate for
+  // the domain write step.
+  let insertedShiftId: string | null = null;
+  try {
+    const gateResult = await mutateWithGate(admin, {
+      workspaceId: profile.workspaceId,
+      profileId: profile.profileId,
+      capability: "roster.add_shift_manual",
+      actionType: "create",
+      channel: parsed.data.channel as "chat" | "system",
+      targetId: null,
+      cascade: {
+        entityType: "schedule_shift",
+        action: "create",
+        proposedData: {
+          workspace_id: profile.workspaceId,
+          employee_id: parsed.data.profileId,
+          department_id: departmentId,
+          shift_date: date,
+          start_time: startTime,
+          end_time: endTime,
+          role: parsed.data.role,
+        },
+      },
+      exec: async (client) => {
+        // ── INSERT schedule_shift ─────────────────────────────────────────
+        const { data: insertedRow, error: insertError } = await client
+          .from("schedule_shift")
+          .insert({
+            workspace_id: profile.workspaceId,
+            employee_id: parsed.data.profileId,
+            department_id: departmentId!, // guarded: null check above returns early
+            // ADR-0430 M4: location_id dropped from schedule_shift.
+            // Location is now resolved by the trigger from day_line, not from the shift row.
+            shift_date: date,
+            start_time: startTime,
+            end_time: endTime,
+            role: parsed.data.role,
+            work_hours: workHours,
+            breaks: 0,
+            day_category: dayCategory,
+            status: "created" as const,
+            is_published: true,
+            indicator: "blue",
+            // ADR-0108 provenance discriminator — row-level value is constrained to
+            // operational | bubble_migration | v3_engine. A manually-created admin
+            // shift is operational. The "manual_admin" audit provenance is recorded
+            // on the telemetry emit below (→ activity_trail), not on the row.
+            source: "operational",
+            notes: parsed.data.reason,
+          })
+          .select("schedule_shift_id")
+          .single();
+
+        if (insertError || !insertedRow) {
+          return { ok: false, reason: insertError?.message ?? "schedule_shift insert failed" };
+        }
+
+        const newShiftId = insertedRow.schedule_shift_id;
+
+        // ── INSERT shift_zone rows (ADR-0430 Rule 4) ──────────────────────
+        // Requires shift_session + shift_session_day_line rows created by the
+        // ensure_shift_session trigger (migration 20260620130000). The trigger
+        // fires AFTER INSERT on schedule_shift — we query them here.
+        // If no zone_ids were requested, skip this block (empty shift is valid).
+        if (resolvedZoneLocationPairs.length > 0) {
+          // Fetch shift_session created by the trigger (may not exist if
+          // employee_id/location_id/department_session conditions not met).
+          const { data: ssRow } = await client
+            .from("shift_session")
+            .select("shift_session_id")
+            .eq("schedule_shift_id", newShiftId)
+            .maybeSingle();
+
+          if (!ssRow) {
+            // No shift_session means trigger preconditions not met (no session
+            // for this date/dept/location). Cannot insert shift_zone without
+            // shift_session_id FK. Compensating DELETE schedule_shift (MF-B).
+            await client
+              .from("schedule_shift")
+              .delete()
+              .eq("schedule_shift_id", newShiftId)
+              .eq("workspace_id", profile.workspaceId);
+            return {
+              ok: false,
+              reason: "shift_zone_insert_failed: no shift_session created by trigger",
+            };
+          }
+
+          // Fetch day_line for the shift_session (created by trigger alongside shift_session).
+          const { data: sdlRows } = await client
+            .from("shift_session_day_line")
+            .select("day_line_id")
+            .eq("shift_session_id", ssRow.shift_session_id);
+
+          // Use first day_line (V1: single day_line per shift_session for manual shifts).
+          const dayLineId = sdlRows?.[0]?.day_line_id ?? null;
+          if (!dayLineId) {
+            // No day_line — compensating rollback (MF-B).
+            await client
+              .from("schedule_shift")
+              .delete()
+              .eq("schedule_shift_id", newShiftId)
+              .eq("workspace_id", profile.workspaceId);
+            return {
+              ok: false,
+              reason: "shift_zone_insert_failed: no day_line found for shift_session",
+            };
+          }
+
+          // Insert one shift_zone row per zone_id (ADR-0430 Rule 4: M2N).
+          for (const { zone_id, location_id } of resolvedZoneLocationPairs) {
+            const { error: szError } = await client.from("shift_zone").insert({
+              shift_session_id: ssRow.shift_session_id,
+              day_line_id: dayLineId,
+              zone_id,
+              location_id,
+              workspace_id: profile.workspaceId,
+            });
+
+            if (szError) {
+              // Compensating DELETE on shift_zone failure — remove the parent shift (MF-B).
+              await client
+                .from("schedule_shift")
+                .delete()
+                .eq("schedule_shift_id", newShiftId)
+                .eq("workspace_id", profile.workspaceId);
+              return {
+                ok: false,
+                reason: `shift_zone_insert_failed:${zone_id} — ${szError.message}`,
+              };
+            }
+          }
+        }
+
+        return { ok: true, shiftId: newShiftId };
+      },
+    });
+
+    if (!gateResult.result || !(gateResult.result as { ok: boolean }).ok) {
+      const failResult = gateResult.result as { ok: false; reason: string } | undefined;
+      return { ok: false, error: failResult?.reason ?? "Kunne ikke lagre vakt." };
+    }
+
+    insertedShiftId = (gateResult.result as { ok: true; shiftId: string }).shiftId;
+  } catch (err) {
+    if (err instanceof MutateWithGateDenied) {
+      return { ok: false, error: `Ikke autorisert: ${err.message}` };
+    }
     return {
       ok: false,
-      error: insertError?.message ?? "Kunne ikke lagre vakt.",
+      error: err instanceof Error ? err.message : "Kunne ikke lagre vakt.",
     };
+  }
+
+  if (!insertedShiftId) {
+    return { ok: false, error: "Intern feil: mangler vakt-ID etter insert." };
   }
 
   const override = parsed.data.overrideReason;
@@ -328,7 +517,7 @@ export async function addShiftAction(
     actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity_type: "shift",
-      entity_id: inserted.schedule_shift_id,
+      entity_id: insertedShiftId,
       data: {
         assigned_to: parsed.data.profileId,
         date,
@@ -338,8 +527,9 @@ export async function addShiftAction(
         source: "manual_admin",
         manual: true,
         reason: parsed.data.reason,
-        // Cascade D1 location scope — present when admin set a location.
-        ...(parsed.data.locationId ? { location_id: parsed.data.locationId } : {}),
+        // ADR-0430 Rule 6b: zone_ids recorded in telemetry for audit reconstruction.
+        ...(parsed.data.zone_ids.length > 0 ? { zone_ids: parsed.data.zone_ids } : {}),
+        // ADR-0430 M4: location_id dropped from schedule_shift — not included in emit data
         // Availability-override context — present only when the admin
         // assigned a profile flagged `unavailable` / `absent` on the
         // shift date. Lands in `activity_trail.data` via the telemetry
@@ -352,7 +542,7 @@ export async function addShiftAction(
 
   return {
     ok: true,
-    shiftId: inserted.schedule_shift_id,
+    shiftId: insertedShiftId,
     ...(warnings.length > 0 ? { warnings } : {}),
   };
 }

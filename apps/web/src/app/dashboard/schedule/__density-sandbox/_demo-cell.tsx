@@ -6,7 +6,7 @@
 // This is NOT production code — it's the exploration surface Pontus reviews
 // before approving live integration in T5.
 
-import { AlertCircle, Clock, MapPin } from "lucide-react";
+import { AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DensityStrip, SHIFT_INDICATOR_STYLES_MAP } from "../_components/density-strip";
 import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
@@ -57,12 +57,7 @@ function CozyShiftCard({ shift }: { shift: ShiftFixture }) {
             <AlertCircle className="text-destructive ml-1 h-3.5 w-3.5 shrink-0" />
           )}
         </div>
-        {shift.zone && (
-          <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
-            <MapPin className="h-2.5 w-2.5 shrink-0" />
-            <span className="truncate">{shift.zone}</span>
-          </div>
-        )}
+        {/* ADR-0430 Rule 3: zone scalar removed — dev sandbox uses zones[] stub. */}
         <div className="text-muted-foreground mt-auto flex items-center gap-1 pt-1 text-[10px]">
           <Clock className="h-2.5 w-2.5" />
           <span>{fullTime}</span>
@@ -98,12 +93,7 @@ function DefaultShiftCard({ shift }: { shift: ShiftFixture }) {
             <AlertCircle className="text-destructive ml-1 h-3.5 w-3.5 shrink-0" />
           )}
         </div>
-        {shift.zone && (
-          <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{shift.zone}</span>
-          </div>
-        )}
+        {/* ADR-0430 Rule 3: zone scalar removed — dev sandbox uses zones[] stub. */}
         <div className="text-muted-foreground mt-auto flex items-center gap-1 pt-1 text-xs">
           <Clock className="h-3 w-3" />
           <span>{fullTime}</span>

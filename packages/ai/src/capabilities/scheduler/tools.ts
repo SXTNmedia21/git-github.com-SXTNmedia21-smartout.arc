@@ -515,6 +515,8 @@ export const acceptProposal = defineTool({
           const now = new Date().toISOString();
           let shiftRows: Array<Record<string, unknown>> = [];
           let solverRunId = "";
+          // ADR-0430 Rule 4 (M2N): per-shift zone_ids from JSONB proposed_shifts.
+          let proposedZoneIds: Array<string[]> = [];
 
           if (proposal.kind === "scheduler_bundle") {
             // ── scheduler_bundle path (ADR-0309) ──────────────────────
@@ -529,11 +531,13 @@ export const acceptProposal = defineTool({
                 position_id: string;
                 role: string;
                 assigned_profile_id: string;
+                zone_ids?: string[]; // ADR-0430 Rule 4 — optional; absent in pre-M2N proposals
               }>;
             };
 
             const proposedShifts = changes?.proposed_shifts ?? [];
             solverRunId = changes.solver_run_id ?? "";
+            proposedZoneIds = proposedShifts.map((ps) => ps.zone_ids ?? []);
 
             // Build schedule_shift rows from proposed_shifts JSONB.
             // DB columns per database.types.ts:
@@ -557,7 +561,7 @@ export const acceptProposal = defineTool({
             // ── template_apply path (ADR-0417) ────────────────────────
             // Payload shape: { kind, template_id, applied_date_range, department_id,
             //   proposed_shifts[]: [{ shift_date, role, start_time, end_time,
-            //                         position_id?, department_id }],
+            //                         position_id?, department_id, zone_ids? }],
             //   gap_count, applied_template_provenance }
             const changes = proposal.changes as {
               kind: "template_apply";
@@ -571,6 +575,7 @@ export const acceptProposal = defineTool({
                 end_time: string;
                 position_id?: string | null;
                 department_id: string;
+                zone_ids?: string[]; // ADR-0430 Rule 4 — optional; absent in pre-M2N proposals
               }>;
               gap_count: number;
               applied_template_provenance: {
@@ -580,6 +585,7 @@ export const acceptProposal = defineTool({
             };
 
             const proposedShifts = changes?.proposed_shifts ?? [];
+            proposedZoneIds = proposedShifts.map((ps) => ps.zone_ids ?? []);
 
             // Build schedule_shift rows from template_apply proposed_shifts.
             // employee_id=NULL: template shifts are unassigned — manager assigns post-accept.
@@ -603,11 +609,95 @@ export const acceptProposal = defineTool({
           }
 
           // ── INSERT all proposed shifts (atomic with status UPDATE) ────
+          // Return inserted IDs for shift_zone linking (ADR-0430 Rule 4).
+          const insertedShiftIds: string[] = [];
           if (shiftRows.length > 0) {
-            const { error: insertErr } = await client.from("schedule_shift").insert(shiftRows);
+            const { data: insertedRows, error: insertErr } = await client
+              .from("schedule_shift")
+              .insert(shiftRows)
+              .select("schedule_shift_id");
 
-            if (insertErr) {
-              throw new Error(`schedule_shift INSERT failed: ${insertErr.message}`);
+            if (insertErr || !insertedRows) {
+              throw new Error(`schedule_shift INSERT failed: ${insertErr?.message}`);
+            }
+            insertedShiftIds.push(...insertedRows.map((r) => r.schedule_shift_id as string));
+          }
+
+          // ── shift_zone INSERTs (ADR-0430 Rule 4 M2N) ─────────────────
+          // Insert shift_zone rows for shifts that have zone_ids in their JSONB.
+          // Requires shift_session created by ensure_shift_session trigger (AFTER INSERT).
+          // Own-namespace write (scheduler owns shift_session + shift_zone) — no Pattern B.
+          // MF-B: compensating DELETE on partial failure.
+          const zoneAssignments: Array<{ shift_id: string; zone_ids: string[] }> = [];
+          for (let idx = 0; idx < insertedShiftIds.length; idx++) {
+            const shiftId = insertedShiftIds[idx]!;
+            const shiftZoneIds = proposedZoneIds[idx] ?? [];
+
+            if (shiftZoneIds.length > 0) {
+              // ── Rule 7 forgery defense — validate zone_ids workspace scope ──
+              const validatedZonePairs: Array<{ zone_id: string; location_id: string }> = [];
+              for (const zone_id of shiftZoneIds) {
+                const { data: zoneRow } = await client
+                  .from("zone")
+                  .select("zone_id, location_id")
+                  .eq("zone_id", zone_id)
+                  .eq("workspace_id", ctx.workspaceId)
+                  .maybeSingle();
+                if (!zoneRow) {
+                  // L-0177: zone not found or wrong workspace. Compensating rollback (MF-B).
+                  await client
+                    .from("schedule_shift")
+                    .delete()
+                    .eq("schedule_shift_id", shiftId)
+                    .eq("workspace_id", ctx.workspaceId);
+                  throw new Error(`zone_forgery_workspace: zone ${zone_id} not found in workspace`);
+                }
+                validatedZonePairs.push({
+                  zone_id: zoneRow.zone_id,
+                  location_id: zoneRow.location_id,
+                });
+              }
+
+              // Fetch shift_session for shift_zone FK.
+              const { data: ssRow } = await client
+                .from("shift_session")
+                .select("shift_session_id")
+                .eq("schedule_shift_id", shiftId)
+                .maybeSingle();
+
+              if (ssRow) {
+                const { data: sdlRows } = await client
+                  .from("shift_session_day_line")
+                  .select("day_line_id")
+                  .eq("shift_session_id", ssRow.shift_session_id);
+                const dayLineId = sdlRows?.[0]?.day_line_id ?? null;
+
+                if (dayLineId) {
+                  for (const { zone_id, location_id } of validatedZonePairs) {
+                    const { error: szError } = await client.from("shift_zone").insert({
+                      shift_session_id: ssRow.shift_session_id,
+                      day_line_id: dayLineId,
+                      zone_id,
+                      location_id,
+                      workspace_id: ctx.workspaceId,
+                    });
+                    if (szError) {
+                      // Compensating DELETE — remove the shift (MF-B).
+                      await client
+                        .from("schedule_shift")
+                        .delete()
+                        .eq("schedule_shift_id", shiftId)
+                        .eq("workspace_id", ctx.workspaceId);
+                      throw new Error(`shift_zone_insert_failed:${zone_id} — ${szError.message}`);
+                    }
+                  }
+                }
+              }
+
+              zoneAssignments.push({
+                shift_id: shiftId,
+                zone_ids: validatedZonePairs.map((p) => p.zone_id),
+              });
             }
           }
 
@@ -630,12 +720,17 @@ export const acceptProposal = defineTool({
             shifts_inserted: shiftRows.length,
             planning_cycle_id: proposal.trigger_entity_id,
             solver_run_id: solverRunId,
+            zone_assignments: zoneAssignments,
           };
         },
       });
 
       // ── ONE emit per logical event (ADR-0134) ─────────────────────────
       // Emit ONCE for the whole bundle accept — NOT per shift inserted.
+      // ADR-0430 Rule 6b + MF-E: zone_assignments is per-shift array
+      // (Array<{shift_id, zone_ids}>) — NOT flat zone_ids string[]. Preserves
+      // per-shift provenance for ADR-0309 audit reconstruction without a
+      // follow-up query against shift_zone.
       void emit({
         event: "scheduler.proposal.accepted",
         workspace_id: ctx.workspaceId,
@@ -651,6 +746,11 @@ export const acceptProposal = defineTool({
             accepted_by_profile_id: ctx.profileId,
             applied_shift_count: result.shifts_inserted,
             gate_evaluation_id: null,
+            // ADR-0430 Rule 6b (MF-E): per-shift zone assignments for audit reconstruction.
+            // Populated only when zone_ids were present in proposed_shifts JSONB.
+            ...(result.zone_assignments && result.zone_assignments.length > 0
+              ? { zone_assignments: result.zone_assignments }
+              : {}),
           },
         },
       });

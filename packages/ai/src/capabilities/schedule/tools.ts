@@ -77,7 +77,11 @@ export const getMyShifts = defineTool({
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name)",
+        // ADR-0430 Rule 3: location now joins through shift_session → shift_session_day_line → day_line → location.
+        // schedule_shift.location_id is a stale planning-layer scalar (drops in M4).
+        // The cascade-correct path: shift_session (1:1 via UNIQUE FK) → shift_session_day_line (1:N) → day_line → location.
+        // We take the first day_line's location for the scalar "where" string the LLM reads.
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), shift_session(shift_session_day_line(day_line(location(name))))",
       )
       .eq("employee_id", ctx.profileId)
       .eq("workspace_id", ctx.workspaceId)
@@ -105,7 +109,13 @@ export const getMyShifts = defineTool({
       role: row.role,
       status: row.status,
       department: row.department,
-      location: row.location,
+      // Flatten: cascade path shift_session → [shift_session_day_line] → day_line → location.
+      // Use first day_line (index 0) — handles the common single-area shift.
+      // Multi-zone shifts (M:N) will show the primary area; full zone list is available via shift_zone.
+      // PostgREST typegen returns arrays at every embed level, including 1:1 FK.
+      location:
+        // Take first element at each level: shift_session[0] → shift_session_day_line[0] → day_line[0] → location[0].
+        row.shift_session?.[0]?.shift_session_day_line?.[0]?.day_line?.[0]?.location?.[0] ?? null,
       local: {
         // G10 fix (2026-05-25): osloWeekdayFromDateStr() anchors to noon UTC
         // so the Oslo Intl formatter always resolves the correct calendar day.
@@ -250,7 +260,8 @@ export const getShiftDetail = defineTool({
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "schedule_shift_id, start_time, end_time, position, status, notes, department:department_id(name), location:location_id(name), profile:profile_id(display_name)",
+        // ADR-0430 Rule 3: location joins through shift_session → shift_session_day_line → day_line → location.
+        "schedule_shift_id, start_time, end_time, position, status, notes, department:department_id(name), shift_session(shift_session_day_line(day_line(location(name)))), profile:profile_id(display_name)",
       )
       .eq("schedule_shift_id", params.shift_id)
       .eq("workspace_id", ctx.workspaceId)
@@ -258,7 +269,14 @@ export const getShiftDetail = defineTool({
 
     if (error || !data)
       return JSON.stringify({ error: "shift_not_found", shift_id: params.shift_id });
-    return JSON.stringify(enrichShiftRowWithOsloTime(data));
+    // Flatten cascade path before enriching: expose location at top level to preserve output shape.
+    const { shift_session: _ss, ...rest } = data;
+    const flattened = {
+      ...rest,
+      // PostgREST typegen: all embed levels return arrays. Take [0] at each level.
+      location: _ss?.[0]?.shift_session_day_line?.[0]?.day_line?.[0]?.location?.[0] ?? null,
+    };
+    return JSON.stringify(enrichShiftRowWithOsloTime(flattened));
   },
 });
 
@@ -321,7 +339,8 @@ export const getWorkspaceSchedule = defineTool({
     let query = supabase
       .from("schedule_shift")
       .select(
-        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name), profile:employee_id(display_name)",
+        // ADR-0430 Rule 3: location joins through shift_session → shift_session_day_line → day_line → location.
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), shift_session(shift_session_day_line(day_line(location(name)))), profile:employee_id(display_name)",
       )
       .eq("workspace_id", ctx.workspaceId)
       .eq("shift_date", params.date)
@@ -352,7 +371,11 @@ export const getWorkspaceSchedule = defineTool({
       role: row.role,
       status: row.status,
       department: row.department,
-      location: row.location,
+      // ADR-0430 Rule 3: flatten cascade path to preserve output shape { name }.
+      // PostgREST typegen returns arrays at every embed level, including 1:1 FK.
+      location:
+        // Take first element at each level: shift_session[0] → shift_session_day_line[0] → day_line[0] → location[0].
+        row.shift_session?.[0]?.shift_session_day_line?.[0]?.day_line?.[0]?.location?.[0] ?? null,
       profile: row.profile,
       local: {
         // G10 fix (2026-05-25): see getMyShifts comment above.
@@ -411,7 +434,8 @@ export const getDateScheduleForMe = defineTool({
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name)",
+        // ADR-0430 Rule 3: location joins through shift_session → shift_session_day_line → day_line → location.
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), shift_session(shift_session_day_line(day_line(location(name))))",
       )
       .eq("employee_id", ctx.profileId)
       .eq("workspace_id", ctx.workspaceId)
@@ -431,7 +455,11 @@ export const getDateScheduleForMe = defineTool({
       role: row.role,
       status: row.status,
       department: row.department,
-      location: row.location,
+      // ADR-0430 Rule 3: flatten cascade path to preserve output shape { name }.
+      // PostgREST typegen returns arrays at every embed level, including 1:1 FK.
+      location:
+        // Take first element at each level: shift_session[0] → shift_session_day_line[0] → day_line[0] → location[0].
+        row.shift_session?.[0]?.shift_session_day_line?.[0]?.day_line?.[0]?.location?.[0] ?? null,
       local: {
         // G10 fix (2026-05-25): see getMyShifts comment above.
         // Timezone contract: Europe/Oslo (hardcoded V1).

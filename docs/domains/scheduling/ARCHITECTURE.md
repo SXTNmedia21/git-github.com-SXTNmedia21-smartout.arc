@@ -1,11 +1,11 @@
 ---
 title: "Scheduling — Architecture"
 status: in_progress
-updated: 2026-05-23
+updated: 2026-05-29
 created: 2026-05-23
 domain: scheduling
 mirror: verified
-last_verified: 2026-05-23
+last_verified: 2026-05-29
 tags: [scheduling, shift, architecture, solver, capabilities, shift-mcp, lifecycle]
 ---
 
@@ -145,6 +145,7 @@ See [DATA-MODEL.md](./DATA-MODEL.md) for full table inventory, migration groupin
 | Layer | Table | Migration anchor | Tool | Status |
 |---|---|---|---|---|
 | **Execution (D6 commitment)** | `schedule_shift` | `20260301300000_schedule_shift_table.sql:55` | shift-lifecycle: `publish_shift` | ✅ Built |
+| **Zone M:N (D6 ADR-0430)** | `shift_zone` | `20260801000003_m2_create_shift_zone.sql` | `roster.add_shift_manual` (chat_only Rule 9) | ✅ Built |
 | **Reality (D6 source)** | `timesheet.time_entry` | `20260324090000_timesheet_schema.sql` | mobile punch (`use-punch.ts`) | ✅ Built (owned by day-session execution path) |
 | **Interpretation (D6 derived)** | `shift_hour_interpretation` | `20260506100001_shift_derivation_layer.sql:40` | shift-lifecycle: `interpret_shift` (system-only) | ✅ Built |
 | **Derivation (C3)** | `shift_cost_snapshot` | `20260506100001_shift_derivation_layer.sql` (ALTER) | shift-lifecycle: `settle_shift` (system-only) | ✅ Built |

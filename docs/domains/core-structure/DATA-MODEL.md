@@ -2,8 +2,8 @@
 title: "Core Structure — Data Model"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-23
-updated: 2026-05-23
+last_verified: 2026-05-29
+updated: 2026-05-29
 created: 2026-05-23
 domain: core-structure
 tags: [domain, core-structure, data-model, schema, d1, identity, rls]

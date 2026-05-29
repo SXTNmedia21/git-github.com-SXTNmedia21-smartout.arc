@@ -38,10 +38,12 @@
  *     per-actor limit is applied. Otherwise a warning is logged and the request
  *     proceeds (dev/staging acceptable behaviour).
  *
- * ADR-0204 SS-5 inheritance note:
- *   - `addShiftAction` uses `gateAction()` (Pathway A only), NOT `gatedMutation()`.
- *     This matches 10 sibling Server Actions. Migration to `gatedMutation()` is
- *     tracked under ADR-0204 SS-5 and is out of scope for this sortie.
+ * ADR-0204 G4 closure note:
+ *   - `addShiftAction` wraps the INSERT in `gatedMutation()` (both Pathway A +
+ *     Pathway B) per ADR-0430 PLAN-3. The legacy `gateAction()` call at the
+ *     top of the action provides an early-exit for role/channel checks before
+ *     the full composition orchestrator runs. BFF delegates entirely — no gate
+ *     evaluation here.
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -250,6 +252,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       overrideReason: body.overrideReason,
       // Pinned by BFF — never comes from mobile client body (ADR-0078).
       channel: "system",
+      // zone_ids: [] — mobile is read-only on shift authoring (ADR-0133).
+      // Emit happens inside addShiftAction. NO second emit() here (MF-F, ADR-0134).
+      zone_ids: [],
     },
     actor,
   );

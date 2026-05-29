@@ -1,10 +1,10 @@
 ---
 title: "Core Structure Reform Phase 2 — Shift × Zone × Location M:N (Option Y)"
 id: ADR_0430
-status: accepted
+status: implemented
 layer: decision
 created: 2026-05-27
-updated: 2026-05-28
+updated: 2026-05-29
 ---
 
 # ADR-0430: Core Structure Reform Phase 2 — Shift × Zone × Location M:N (Option Y)

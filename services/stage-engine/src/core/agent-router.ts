@@ -215,7 +215,14 @@ function renderWorkforceSlice(wf: WorkforceContext): string {
       const who = s.employee_name ?? "ubemannet";
       const pos = s.position_label ? ` ${s.position_label}` : "";
       const dept = s.department_name ? ` @ ${s.department_name}` : "";
-      lines.push(`- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}`);
+      // ADR-0430 MF-5: zone enrichment — zones[] from shift_zone M:N join (closes slice-vs-tool asymmetry).
+      const zones: string[] = (s as { zones?: string[] }).zones ?? [];
+      const zone_display: string | null =
+        (s as { zone_display?: string | null }).zone_display ?? zones[0] ?? null;
+      const zonePart = zone_display ? ` [${zone_display}]` : "";
+      lines.push(
+        `- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}${zonePart}`,
+      );
     }
     if (wf.shifts_today.length > 15) {
       lines.push(`- … +${wf.shifts_today.length - 15} flere`);
@@ -230,7 +237,14 @@ function renderWorkforceSlice(wf: WorkforceContext): string {
       const who = s.employee_name ?? "ubemannet";
       const pos = s.position_label ? ` ${s.position_label}` : "";
       const dept = s.department_name ? ` @ ${s.department_name}` : "";
-      lines.push(`- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}`);
+      // ADR-0430 MF-5: zone enrichment — V1 scalar for templates.
+      const zones: string[] = (s as { zones?: string[] }).zones ?? [];
+      const zone_display: string | null =
+        (s as { zone_display?: string | null }).zone_display ?? zones[0] ?? null;
+      const zonePart = zone_display ? ` [${zone_display}]` : "";
+      lines.push(
+        `- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}${zonePart}`,
+      );
     }
     if (wf.shifts_tomorrow.length > 15) {
       lines.push(`- … +${wf.shifts_tomorrow.length - 15} flere`);

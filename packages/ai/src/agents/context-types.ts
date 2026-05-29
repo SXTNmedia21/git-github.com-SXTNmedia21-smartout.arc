@@ -72,6 +72,10 @@ export type WorkforceShift = {
   department_id: string | null;
   department_name: string | null;
   position_label: string | null;
+  /** ADR-0430 MF-5: zone names from shift_zone M:N join (closes slice-vs-tool asymmetry). */
+  zones?: string[];
+  /** ADR-0430 MF-5: V1 scalar — first zone name for template display. */
+  zone_display?: string | null;
 };
 
 export type WorkforceAbsence = {

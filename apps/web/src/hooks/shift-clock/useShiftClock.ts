@@ -549,6 +549,16 @@ export function useShiftClock() {
                 ? ("evening" as const)
                 : ("night" as const);
 
+      // ADR-0430 M1: department_id is NOT NULL on schedule_shift.
+      // Ad-hoc shifts require a resolved department — block if missing.
+      if (!departmentId) {
+        return {
+          allowed: false,
+          warnings: [],
+          blockReason: "department_id_required_for_adhoc_shift",
+        };
+      }
+
       // Create the ad-hoc shift record
       const { data: newShift, error: shiftError } = await supabase
         .from("schedule_shift")

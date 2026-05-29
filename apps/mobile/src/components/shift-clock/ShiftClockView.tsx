@@ -270,7 +270,8 @@ export function ShiftClockView() {
     ? {
         time: `${formatShiftTime(shiftForPunch.start_time)} \u2013 ${formatShiftTime(shiftForPunch.end_time)}`,
         department: shiftForPunch.role ?? "Vakt",
-        zone: shiftForPunch.zone ?? "Arbeidsplass",
+        // ADR-0430 M4: shiftForPunch.zone dropped — fallback to "Arbeidsplass"
+        zone: "Arbeidsplass",
       }
     : null;
 

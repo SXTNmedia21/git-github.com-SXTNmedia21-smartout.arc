@@ -86,6 +86,45 @@ function timeToHHMM(time: string): string {
   return time.slice(0, 5);
 }
 
+// ── ADR-0430 Rule 3 — resolve zones[] from shift_session join ──
+// Two-hop join: schedule_shift → shift_session → shift_session_day_line
+//               → shift_zone → zone(name, location_id)
+// Returns empty array (never null) when no zones are assigned or when the
+// query did not embed shift_session (e.g. simple select("*") queries).
+// Deduplicates by zone.name — a shift spanning multiple day-lines may resolve
+// the same zone more than once.
+
+type ShiftRawWithSession = {
+  shift_session?: Array<{
+    shift_session_day_line?: Array<{
+      shift_zone?: Array<{
+        location_id: string;
+        zone?: { name: string; location_id: string } | null;
+      }>;
+    }>;
+  }> | null;
+};
+
+export function resolveZones(
+  row: ShiftRawWithSession,
+): Array<{ name: string; location_id: string }> {
+  const seen = new Set<string>();
+  const zones: Array<{ name: string; location_id: string }> = [];
+  for (const session of row.shift_session ?? []) {
+    for (const ssdl of session.shift_session_day_line ?? []) {
+      for (const sz of ssdl.shift_zone ?? []) {
+        const name = sz.zone?.name;
+        const location_id = sz.location_id;
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          zones.push({ name, location_id });
+        }
+      }
+    }
+  }
+  return zones;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Shift
 // ══════════════════════════════════════════════════════════════
@@ -101,7 +140,6 @@ export function fromDbShift(row: ShiftRow): Shift {
     role: row.role,
     shiftTypeId: row.shift_type_id ?? undefined,
     departmentId: row.department_id ?? undefined,
-    locationId: row.location_id ?? undefined,
     positionId: row.position_id ?? undefined,
     teamId: row.team_id ?? undefined,
     time: `${startTime} - ${endTime}`,
@@ -110,7 +148,9 @@ export function fromDbShift(row: ShiftRow): Shift {
     workHours: row.work_hours,
     status: row.status as ShiftStatus,
     dayCategory: row.day_category as DayCategory,
-    zone: row.zone ?? undefined,
+    // ADR-0430 M4: schedule_shift.zone and .location_id dropped. zones[] sourced from
+    // shift_zone M:N via resolveZones() on the shift_session embed (two-hop join).
+    zones: resolveZones(row as ShiftRawWithSession),
     indicator: row.indicator,
     isPublished: row.is_published,
     breaks: row.breaks,
@@ -132,8 +172,12 @@ export function toDbShiftInsert(
     shift_date: shift.dateId,
     role: shift.role,
     shift_type_id: shift.shiftTypeId ?? null,
-    department_id: shift.departmentId ?? null,
-    location_id: shift.locationId ?? null,
+    // ADR-0430 M1: department_id is NOT NULL. Shifts without a departmentId
+    // should not reach insert; upstream callers must resolve department scope.
+    // The non-null assertion here surfaces the bug at insertion time rather than
+    // silently passing null to the DB (which would now be rejected anyway).
+    department_id: shift.departmentId!,
+    // ADR-0430 M4: location_id and zone dropped from schedule_shift — omitted from insert
     position_id: shift.positionId ?? null,
     team_id: shift.teamId ?? null,
     start_time: shift.startTime,
@@ -141,7 +185,6 @@ export function toDbShiftInsert(
     work_hours: shift.workHours,
     status: shift.status,
     day_category: shift.dayCategory,
-    zone: shift.zone ?? null,
     indicator: shift.indicator,
     is_published: shift.isPublished,
     breaks: shift.breaks,
@@ -160,7 +203,7 @@ export function toDbShiftUpdate(
   if (patch.role !== undefined) update.role = patch.role;
   if (patch.shiftTypeId !== undefined) update.shift_type_id = patch.shiftTypeId ?? null;
   if (patch.departmentId !== undefined) update.department_id = patch.departmentId ?? null;
-  if (patch.locationId !== undefined) update.location_id = patch.locationId ?? null;
+  // ADR-0430 M4: location_id and zone dropped from schedule_shift — no longer in update payload
   if (patch.positionId !== undefined) update.position_id = patch.positionId ?? null;
   if (patch.teamId !== undefined) update.team_id = patch.teamId ?? null;
   if (patch.startTime !== undefined) update.start_time = patch.startTime;
@@ -168,7 +211,6 @@ export function toDbShiftUpdate(
   if (patch.workHours !== undefined) update.work_hours = patch.workHours;
   if (patch.status !== undefined) update.status = patch.status;
   if (patch.dayCategory !== undefined) update.day_category = patch.dayCategory;
-  if (patch.zone !== undefined) update.zone = patch.zone ?? null;
   if (patch.indicator !== undefined) update.indicator = patch.indicator;
   if (patch.isPublished !== undefined) update.is_published = patch.isPublished;
   if (patch.breaks !== undefined) update.breaks = patch.breaks;
@@ -257,7 +299,9 @@ export function fromDbTemplate(row: TemplateRow, shiftRows: TemplateShiftRow[]):
         workHours: s.work_hours,
         status: "created" as ShiftStatus,
         dayCategory: s.day_category as DayCategory,
-        zone: s.zone ?? undefined,
+        // ADR-0430 M4: schedule_template_shift.zone dropped. No shift_session join
+        // on templates — zones stub empty (template M:N not in scope for this reform).
+        zones: [],
         indicator: s.indicator,
         breaks: s.breaks,
         notes: s.notes ?? undefined,
@@ -293,7 +337,7 @@ export function toDbTemplateShiftInsert(
     end_time: shift.endTime,
     work_hours: shift.workHours,
     day_category: shift.dayCategory as DayCategory,
-    zone: shift.zone ?? null,
+    // ADR-0430 M4: schedule_template_shift.zone dropped
     indicator: shift.indicator,
     breaks: shift.breaks,
     notes: shift.notes ?? null,

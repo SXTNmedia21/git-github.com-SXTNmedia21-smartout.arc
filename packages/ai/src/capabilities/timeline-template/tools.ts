@@ -273,6 +273,31 @@ async function insertItemsInExec(
         // day_category defaults to 'morning' — template doesn't store it;
         // the manager can update post-apply via web UI.
         const taggedNotes = `${item.payload.notes ?? ""} [${provenance}]`.trim();
+
+        // ── Rule 7 forgery defense (ADR-0430) — validate zone_ids before insert ──
+        // Each zone_id must belong to this workspace AND the shift's location's
+        // department-area. Fail-fast on first invalid zone (L-0177: no silent fallback).
+        const resolvedZonePairs: Array<{ zone_id: string; location_id: string }> = [];
+        for (const zone_id of item.payload.zone_ids) {
+          const { data: zoneRow } = await supabase
+            .from("zone")
+            .select("zone_id, location_id")
+            .eq("zone_id", zone_id)
+            .eq("workspace_id", workspaceId)
+            .maybeSingle();
+          if (!zoneRow) {
+            // L-0177 fail-fast: zone not found or wrong workspace.
+            throw new Error(`zone_forgery_workspace: zone ${zone_id} not found in workspace`);
+          }
+          // If the template item has a location_id, verify zone's location matches.
+          if (item.payload.location_id && zoneRow.location_id !== item.payload.location_id) {
+            throw new Error(
+              `zone_forgery_dept_area: zone ${zone_id} location mismatch for template item`,
+            );
+          }
+          resolvedZonePairs.push({ zone_id: zoneRow.zone_id, location_id: zoneRow.location_id });
+        }
+
         const { data: shiftRow, error } = await supabase
           .from("schedule_shift")
           .insert({
@@ -285,16 +310,62 @@ async function insertItemsInExec(
             position_id: item.payload.position_id ?? null,
             team_id: item.payload.team_id ?? null,
             location_id: item.payload.location_id ?? null,
-            zone: item.payload.zone ?? null,
+            // ADR-0430: zone TEXT field removed — zone assignment goes to shift_zone table.
             notes: taggedNotes,
             is_published: false,
           })
           .select("schedule_shift_id")
           .single();
         if (error || !shiftRow) throw new Error(`schedule_shift insert failed: ${error?.message}`);
+
+        // ── shift_zone INSERTs (ADR-0430 Rule 4 M2N) ────────────────────────────
+        // Requires shift_session created by ensure_shift_session trigger. Template
+        // shifts are often unassigned (no employee_id), so the trigger may not fire.
+        // If shift_session exists, insert shift_zone rows. Otherwise skip gracefully
+        // (template shifts frequently have no employee_id + no session at apply time).
+        if (resolvedZonePairs.length > 0) {
+          const { data: ssRow } = await supabase
+            .from("shift_session")
+            .select("shift_session_id")
+            .eq("schedule_shift_id", shiftRow.schedule_shift_id)
+            .maybeSingle();
+
+          if (ssRow) {
+            const { data: sdlRows } = await supabase
+              .from("shift_session_day_line")
+              .select("day_line_id")
+              .eq("shift_session_id", ssRow.shift_session_id);
+            const dayLineId = sdlRows?.[0]?.day_line_id ?? null;
+
+            if (dayLineId) {
+              for (const { zone_id, location_id } of resolvedZonePairs) {
+                const { error: szError } = await supabase.from("shift_zone").insert({
+                  shift_session_id: ssRow.shift_session_id,
+                  day_line_id: dayLineId,
+                  zone_id,
+                  location_id,
+                  workspace_id: workspaceId,
+                });
+                if (szError) {
+                  // Compensating rollback — delete the shift (MF-B).
+                  await supabase
+                    .from("schedule_shift")
+                    .delete()
+                    .eq("schedule_shift_id", shiftRow.schedule_shift_id)
+                    .eq("workspace_id", workspaceId);
+                  throw new Error(`shift_zone_insert_failed:${zone_id} — ${szError.message}`);
+                }
+              }
+            }
+          }
+        }
+
         counts["schedule_shift"] = (counts["schedule_shift"] ?? 0) + 1;
 
         // Per-row emit using "shift created" (posthog + logger + activity_trail + engine_event).
+        // ADR-0356 Pattern B: timeline-template writes to schedule-domain data —
+        // emit includes actor_capability + delegated_via for cross-namespace audit symmetry.
+        // ADR-0430 Rule 6b: zone_ids recorded for audit reconstruction.
         // assigned_to is empty string for unassigned template shifts (no employee pinned yet).
         await emit({
           event: "shift created",
@@ -309,6 +380,13 @@ async function insertItemsInExec(
               start_time,
               end_time,
               position_id: item.payload.position_id ?? undefined,
+              // ADR-0430 Rule 6b: zone_ids for audit reconstruction.
+              ...(resolvedZonePairs.length > 0
+                ? { zone_ids: resolvedZonePairs.map((p) => p.zone_id) }
+                : {}),
+              // ADR-0356 Pattern B: cross-namespace write audit fields.
+              actor_capability: "schedule" as const,
+              delegated_via: "timeline-template" as const,
             },
           },
         });

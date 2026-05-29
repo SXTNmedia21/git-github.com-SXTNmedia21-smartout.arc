@@ -163,7 +163,7 @@ export function AfterShiftView({
             <Text style={styles.greetingTime}>
               {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
             </Text>
-            {shift.zone ? ` · ${shift.zone}` : ""}
+            {/* ADR-0430 M4: shift.zone dropped */}
           </Text>
         ) : null}
       </Animated.View>
@@ -216,8 +216,8 @@ export function AfterShiftView({
             {clockHM(nextShift.end_time)}
           </Text>
           <Text style={styles.nextShiftMeta}>
-            {nextShift.zone ?? "Arbeidsplass"}
-            {nextShift.role ? ` · ${nextShift.role}` : ""}
+            {/* ADR-0430 M4: nextShift.zone dropped — role only */}
+            {nextShift.role ?? "Arbeidsplass"}
             {(() => {
               const free = freeHoursUntil(nextShift, timeEntry.punch_out);
               return free ? ` · ${free}` : "";

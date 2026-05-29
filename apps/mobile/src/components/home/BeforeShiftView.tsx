@@ -190,7 +190,7 @@ export function BeforeShiftView({
           <Text style={styles.greetingTime}>
             {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
           </Text>
-          {shift.zone ? ` · ${shift.zone}` : ""}
+          {/* ADR-0430 M4: shift.zone dropped — no zone in caption */}
         </Text>
       </Animated.View>
 
@@ -266,7 +266,8 @@ export function BeforeShiftView({
           <View style={styles.deptInset}>
             <View style={[styles.deptStripe, { backgroundColor: phaseColor }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.deptTitle}>{shift.zone ?? "Arbeidsplass"}</Text>
+              {/* ADR-0430 M4: shift.zone dropped — fallback to "Arbeidsplass" always */}
+              <Text style={styles.deptTitle}>{"Arbeidsplass"}</Text>
               {shift.role ? <Text style={styles.deptMeta}>Rolle: {shift.role}</Text> : null}
             </View>
           </View>
