@@ -164,7 +164,7 @@ function UnassignedLane({
       {/* Label */}
       <span
         aria-hidden="true"
-        className="text-muted-foreground absolute top-1 left-2 text-[0.6rem] font-medium tracking-wide uppercase"
+        className="text-muted-foreground absolute top-1 left-2 text-xs font-medium tracking-wide uppercase"
       >
         Ikke tildelt
       </span>
@@ -244,7 +244,7 @@ function OpenPeriodWash({
       }}
     >
       {/* Åpent label — positioned at top-left of wash, muted mono */}
-      <span className="text-muted-foreground absolute top-1 left-2 font-mono text-[0.6rem] select-none">
+      <span className="text-muted-foreground absolute top-1 left-2 font-mono text-xs select-none">
         Åpent · {open}–{close}
       </span>
     </div>
@@ -307,7 +307,7 @@ function EmpStrip({
             title={`${emp.name} · ${emp.shift ? `${emp.shift[0]}–${emp.shift[1]}` : "Ingen vakt"}`}
             className={cn(
               "flex items-center gap-1 rounded-full px-1.5 py-0.5",
-              "bg-muted text-muted-foreground text-[0.6rem] font-medium",
+              "bg-muted text-muted-foreground text-xs font-medium",
               "transition-opacity",
               isOn
                 ? // On shift: accent ring derived from --area-color
@@ -334,7 +334,7 @@ function EmpStrip({
       {overflow > 0 && (
         <div
           role="listitem"
-          className="bg-muted text-muted-foreground flex items-center rounded-full px-1.5 py-0.5 text-[0.6rem] font-medium"
+          className="bg-muted text-muted-foreground flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium"
         >
           +{overflow}
         </div>

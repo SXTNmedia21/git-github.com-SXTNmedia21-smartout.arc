@@ -18480,6 +18480,7 @@ export type Database = {
           day_line_id: string | null
           department_session_id: string
           description: string | null
+          duration_minutes: number | null
           evidence: Json | null
           generated_by: Database["public"]["Enums"]["task_generated_by"] | null
           id: string
@@ -18501,6 +18502,7 @@ export type Database = {
           day_line_id?: string | null
           department_session_id: string
           description?: string | null
+          duration_minutes?: number | null
           evidence?: Json | null
           generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string
@@ -18522,6 +18524,7 @@ export type Database = {
           day_line_id?: string | null
           department_session_id?: string
           description?: string | null
+          duration_minutes?: number | null
           evidence?: Json | null
           generated_by?: Database["public"]["Enums"]["task_generated_by"] | null
           id?: string

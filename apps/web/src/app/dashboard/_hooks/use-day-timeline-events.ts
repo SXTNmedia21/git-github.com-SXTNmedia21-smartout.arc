@@ -297,14 +297,12 @@ export function useDayTimelineEvents(args: {
       // Check-ins / Check-outs — workspace-wide for the date, optionally
       // filtered by teamId or shiftId from the scope selector.
       {
-        // ADR-0430 M4: location_id dropped from schedule_shift.
-        // location_id for chip-bar filter will need to come from shift_zone or day_line join.
+        // ADR-0430 M4: location_id dropped from schedule_shift. Location is now
+        // resolved via the ADR-0367 tri-layer path: schedule_shift → shift_session
+        // (schedule_shift_id) → shift_session_day_line (shift_session_id) → day_line.location_id.
         let shiftQuery = supabase
           .from("schedule_shift")
-          .select(
-            // ADR-0430 M4: location_id dropped from schedule_shift — chip-bar location filter deferred
-            "schedule_shift_id, employee_id, team_id, profile:employee_id(display_name)",
-          )
+          .select("schedule_shift_id, employee_id, team_id, profile:employee_id(display_name)")
           .eq("workspace_id", wsId!)
           .eq("shift_date", dateISO);
 
@@ -331,11 +329,38 @@ export function useDayTimelineEvents(args: {
               return [s.schedule_shift_id, p?.display_name ?? "Ukjent"] as const;
             }),
           );
-          // ADR-0430 M4: location_id dropped from schedule_shift.
-          // location_id for chip-bar filter now returns null until resolved via shift_zone join.
-          const locationByShift = new Map(
-            (shifts ?? []).map((s) => [s.schedule_shift_id, null as string | null] as const),
+
+          // ADR-0430 M4 + ADR-0367: resolve location per shift via the session→day_line chain.
+          // Two-query approach (robust vs PostgREST embed ambiguity on the composite junction):
+          //   1. shift_session: schedule_shift_id → shift_session_id
+          //   2. shift_session_day_line + day_line: shift_session_id → location_id (first active day_line)
+          // Shifts with no materialized session/day_line keep null (legitimately unscheduled).
+          const locationByShift = new Map<string, string | null>(
+            shiftIds.map((id) => [id, null as string | null] as const),
           );
+          const { data: sessionRows } = await supabase
+            .from("shift_session")
+            .select("schedule_shift_id, shift_session_id")
+            .in("schedule_shift_id", shiftIds);
+          const sessionIds = (sessionRows ?? []).map((s) => s.shift_session_id);
+          if (sessionIds.length > 0) {
+            const { data: junctionRows } = await supabase
+              .from("shift_session_day_line")
+              .select("shift_session_id, day_line:day_line_id(location_id)")
+              .in("shift_session_id", sessionIds);
+            // shift_session_id → location_id (first day_line wins; single-location V1).
+            const locBySession = new Map<string, string>();
+            for (const j of junctionRows ?? []) {
+              const dl = j.day_line as unknown as { location_id: string } | null;
+              if (dl?.location_id && !locBySession.has(j.shift_session_id)) {
+                locBySession.set(j.shift_session_id, dl.location_id);
+              }
+            }
+            for (const s of sessionRows ?? []) {
+              const loc = locBySession.get(s.shift_session_id);
+              if (loc) locationByShift.set(s.schedule_shift_id, loc);
+            }
+          }
 
           for (const e of entries ?? []) {
             const name = nameByShift.get(e.shift_id) ?? "Ukjent";

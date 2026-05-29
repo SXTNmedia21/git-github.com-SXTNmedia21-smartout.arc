@@ -13,8 +13,25 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useWorkspaceStore } from "@/hooks/stores/use-workspace-store";
 import type { Database } from "@smartout/supabase/database.types";
+// ADR-0430 zone M:N readback + ADR-0133 mobile parity: resolution lives in packages/data.
+import { resolveZonesByShift, type ShiftZone } from "@smartout/data";
 
-type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
+type ScheduleShiftRow = Database["public"]["Tables"]["schedule_shift"]["Row"];
+
+/**
+ * Shift row augmented with the zones it covers (ADR-0430 M:N readback).
+ * Mobile is reader-only (ADR-0133) — zones are display-only, no authoring.
+ *
+ * `zones` is OPTIONAL so this type stays structurally compatible with the base
+ * schedule_shift row: rows fetched via useMyShifts/useMyShiftsWithDept carry
+ * resolved zones; rows that flow through other paths (e.g. use-shift-phase derives
+ * nextShift from the same data but is typed against the base Row) simply omit it.
+ * Consumers read `shift.zones ?? []`.
+ */
+export type ScheduleShift = ScheduleShiftRow & {
+  /** Zone assignments resolved via shift_session → shift_zone → zone. Absent/empty when unzoned. */
+  zones?: ShiftZone[];
+};
 
 /**
  * Shift row augmented with the department slug read directly from the DB.
@@ -101,10 +118,21 @@ async function fetchMyShifts(selectedProfileId: string | null): Promise<Schedule
 
   if (error) throw error;
 
-  // Cache for offline reads
-  if (data) persistToCache(data);
+  const baseRows = data ?? [];
+  // ADR-0430 M:N zone readback (reader-only). Resolve via packages/data helper.
+  const zonesByShift = await resolveZonesByShift(
+    supabase as unknown as Parameters<typeof resolveZonesByShift>[0],
+    baseRows.map((r) => r.schedule_shift_id),
+  );
+  const rows: ScheduleShift[] = baseRows.map((r) => ({
+    ...r,
+    zones: zonesByShift.get(r.schedule_shift_id) ?? [],
+  }));
 
-  return data ?? [];
+  // Cache for offline reads
+  persistToCache(rows);
+
+  return rows;
 }
 
 /**
@@ -129,7 +157,7 @@ export function useMyShifts() {
 // ─── Extended variant: shifts + department.slug ───────────────────────────────
 
 /** Raw shape returned by the dept-join query before client mapping. */
-type RawShiftWithDeptRow = ScheduleShift & {
+type RawShiftWithDeptRow = ScheduleShiftRow & {
   position: {
     department: {
       slug: string;
@@ -185,9 +213,15 @@ async function fetchMyShiftsWithDept(selectedProfileId: string | null): Promise<
   if (error) throw error;
 
   const rows = (data ?? []) as unknown as RawShiftWithDeptRow[];
+  // ADR-0430 M:N zone readback (reader-only).
+  const zonesByShift = await resolveZonesByShift(
+    supabase as unknown as Parameters<typeof resolveZonesByShift>[0],
+    rows.map((r) => r.schedule_shift_id),
+  );
 
   return rows.map((row) => ({
     ...row,
+    zones: zonesByShift.get(row.schedule_shift_id) ?? [],
     deptSlug: row.position?.department?.slug ?? null,
   }));
 }

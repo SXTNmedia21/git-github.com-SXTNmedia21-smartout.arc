@@ -21,11 +21,18 @@ import { useIsOnline } from "@/hooks/useIsOnline";
 import { useShiftPipeline, resolvePipelineLabel } from "@/hooks/queries/use-shift-pipeline";
 import { PhaseStrip, PHASE_STRIP_HEIGHT } from "@/components/shift-timeline";
 import type { Database } from "@smartout/supabase/database.types";
+import type { ShiftZone } from "@smartout/data";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
 
 type ShiftCardProps = {
   shift: ScheduleShift;
+  /**
+   * Zone assignments for this shift (ADR-0430 M:N readback, reader-only).
+   * Optional + additive — callers that source shifts via useMyShifts pass
+   * `shift.zones`; legacy callers omit it (renders without zone line).
+   */
+  zones?: ShiftZone[];
   /** Navigate to shift detail */
   onPress?: () => void;
   /** Handle shift confirmation */
@@ -87,12 +94,15 @@ function formatWorkHours(hours: number): string {
 
 export function ShiftCard({
   shift,
+  zones,
   onPress,
   onConfirm,
   confirming = false,
   showPhaseStrip = false,
 }: ShiftCardProps) {
   const styles = useStyles();
+  // ADR-0430 M:N zone readback (reader-only): comma-joined zone names, "" when none.
+  const zoneLabel = (zones ?? []).map((z) => z.name).join(", ");
   const { colors } = useTheme();
   const isConfirmed = Boolean(shift.confirmed_at);
 
@@ -171,7 +181,8 @@ export function ShiftCard({
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
           </Text>
           <View style={styles.details}>
-            {/* ADR-0430 M4: shift.zone dropped */}
+            {/* ADR-0430 M:N zone readback — show zone(s) when assigned. */}
+            {zoneLabel ? <Text style={styles.detail}>{zoneLabel}</Text> : null}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
           {supplements.length > 0 && (
@@ -197,7 +208,8 @@ export function ShiftCard({
             {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
           </Text>
           <View style={styles.details}>
-            {/* ADR-0430 M4: shift.zone dropped */}
+            {/* ADR-0430 M:N zone readback — show zone(s) when assigned. */}
+            {zoneLabel ? <Text style={styles.detail}>{zoneLabel}</Text> : null}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
           {supplements.length > 0 && (

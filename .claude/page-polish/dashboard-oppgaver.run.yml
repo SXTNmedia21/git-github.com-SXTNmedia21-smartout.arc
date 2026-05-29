@@ -22,9 +22,11 @@ architecture:
   shell: ManagerTimelineShell — CSS grid 100dvh × [60px 52px 1fr]
   topbar: TimelineTopBar — brand + date stepper + disabled Lukk-dagen CTA (Task 2.1)
   toolbar: TimelineToolbar — view-mode SegmentGroup + area chips + filter chips + zoom (Task 2.5)
-  chart: PENDING (Task 3.7)
+  chart: ManagerTimelineChart (built) — bands/lanes/tasks/now-line
+  rail: TimelineRightRail (built, day-line-zone-readback PLAN-3) — two-column 1fr 380px per
+        Cloud Design Manager Timeline.html; tabs + STATUS KPI (derived) + Krever/Pågående/Neste
   cascade_dimensions:
-    - D6: department_session, session_task (timeline data — Tasks 3.7+)
+    - D6: department_session, day_line, shift_session, session_task (timeline data — built)
     - C4: Lukk-dagen gate (deferred — V1 disabled)
 
 skills_loaded:
@@ -82,5 +84,13 @@ notes: |
 
   Lukk-dagen CTA is disabled V1 per spec.
   Wiring to C4 gate deferred to future sortie when Day-close flow is spec'd.
-  Full page-polish run deferred to Task 3.7 completion (page not renderable end-to-end until chart is built).
+  Full page-polish run deferred until the page is feature-complete (Lighthouse/speed-test
+  captures + skeleton/loading.tsx + harness-tool registration remain).
   SKIP_PAGE_POLISH=1 bypass used: page is explicitly in active construction, documented in this file.
+
+  2026-05-29 (day-line-zone-readback sortie): chart + right-rail now BUILT (chart no longer
+  PENDING; rail per Cloud Design). Design axis for the rail self-verified (0 OKLCH literals,
+  semantic tokens only, role=tablist + aria-selected + focus-visible rings, KPI counts derived).
+  verified stays FALSE — full polish (Lighthouse LCP, loading.tsx skeleton, harness tools,
+  telemetry view-emit) is still deferred and needs capture infra not available this session.
+  SKIP_PAGE_POLISH=1 remains the sanctioned bypass for this in-construction page.

@@ -175,10 +175,10 @@ export function PersonLane({
             height: shiftHeightPx,
           }}
         >
-          <span className="text-muted-foreground text-[0.6rem] font-medium tracking-wide uppercase">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             På vakt
           </span>
-          <span className="text-muted-foreground text-[0.6rem]">
+          <span className="text-muted-foreground text-xs">
             {shift[0]} – {shift[1]}
           </span>
         </div>
