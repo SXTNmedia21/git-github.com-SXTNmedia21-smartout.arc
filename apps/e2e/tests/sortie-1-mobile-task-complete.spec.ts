@@ -97,9 +97,7 @@ async function seedTask(departmentSessionId: string, title = "E2E sortie-1 task"
       department_session_id: departmentSessionId,
       assigned_to: SEED_PROFILE_ID,
       title,
-      task_type: "general",
       status: "pending",
-      priority: "normal",
     })
     .select("id")
     .single();

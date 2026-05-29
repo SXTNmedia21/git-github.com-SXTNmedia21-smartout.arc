@@ -2673,3 +2673,12 @@ Tri-campaign aggregation: campaign/world-best-wfm (31 unique commits) + campaign
   - `docs/council/COUNCIL-LOG.md` (this entry)
 **Forbidden in this sortie:** code changes (Phase 1.5 is docs-only). Phase 2-A endpoint implementation + Phase 2-B EF proxy are separate sorties. No schema migrations.
 **Deployment risk note:** No deploy impact — docs-only amendment. Phase 2-A will add new env var `STAGE_ENGINE_INTERNAL_KEY` which must land in 1Password + Vercel env + Supabase secrets + droplet manifest BEFORE Phase 2-A merges to development. ADR-0265 drift-check auto-detects on next nightly heartbeat.
+
+## 2026-05-29 — J1 e2e-task seed fix (session_task phantom columns) + scrap-stub architecture
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES (changes applied in-session)
+**Agents consulted:** general-purpose (fact-check 8/8 VERIFIED), system-steward (chair, PASS), supervisor (NEEDS-CHANGES → resolved), system-agent-coordinator (code-tracer, PASS)
+**Prior verdict held?** n/a (no related prior council)
+**Key decision:** `session_task` priority is SYNTHESIZED (fn_list_my_tasks_v2_hook_links.sql:75, `is_compliance_required → high/normal`), never stored — per ADR-0298 per-source synthesis. Fix = remove invalid keys from session_task seed helpers, NOT add a column (would be dual-truth). Supervisor caught that `task_type` is ALSO phantom on session_task (next PostgREST one-per-request miss) — removed both `priority` + `task_type` from `seedSessionTask`/`seedTask`. Kept `priority` on personal_task (real CHECK column). Scrap 98-behind stub wt-4, land fix + journeys on development. J1 status `in_progress` until live e2e-task CI green (L-0348). T3 schedule_day_task 5-column drift + soft-skip = separate P2 sortie (flagged, not fixed).
+**ADR created:** none
+**Learning created:** 0371 (synthesized read-surface projection must never be restored as a stored column to satisfy a failing seed)

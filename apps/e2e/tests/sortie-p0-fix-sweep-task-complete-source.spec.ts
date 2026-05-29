@@ -103,9 +103,7 @@ async function seedSessionTask(
       department_session_id: departmentSessionId,
       assigned_to: SEED_PROFILE_ID,
       title,
-      task_type: "general",
       status: "pending",
-      priority: "normal",
     })
     .select("id")
     .single();
