@@ -46,7 +46,7 @@ export function TimeGutter({ showHalf = false }: TimeGutterProps) {
             </span>
             {showHalf && (
               <span
-                className="text-muted-foreground/30 absolute right-0 font-mono text-[0.6rem]"
+                className="text-muted-foreground/30 absolute right-0 font-mono text-xs"
                 style={{ top: "calc(var(--hour-h, 4rem) / 2)" }}
               >
                 :30

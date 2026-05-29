@@ -11,3 +11,4 @@ export * from "./use-roles-for-positions";
 export * from "./use-locations-for-workspace";
 export * from "./use-shift-session";
 export * from "./shift-zones";
+export * from "./use-employees-for-date";

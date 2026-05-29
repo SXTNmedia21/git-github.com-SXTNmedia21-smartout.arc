@@ -58,24 +58,32 @@ export function NowLine({ currentMin, pxPerMin }: NowLineProps) {
   const timeLabel = minToHM(currentMin);
 
   return (
-    <div
-      className="pointer-events-none absolute inset-x-0"
-      style={{ top: 0, bottom: 0 }}
-      aria-hidden="true"
-      data-testid="now-line"
-    >
-      <div className="border-warning absolute right-0 left-0 border-t-2" style={{ top }}>
-        <motion.div
-          className="bg-warning absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full"
-          variants={pulseVariants}
-          initial="idle"
-          animate={prefersReducedMotion ? "idle" : "pulse"}
-          transition={{ type: "spring", ...motionTokens.springGentle }}
-        />
-        <span className="text-warning absolute -top-3 left-4 font-mono text-[0.6rem] select-none">
-          {timeLabel}
-        </span>
+    <>
+      {/* PLAN-5a: screen-reader announcement of the current time. The visual
+          now-line is aria-hidden (decorative); this polite live-region carries
+          the same information to assistive tech. sr-only = no layout impact. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        Nåværende tid {timeLabel}
+      </span>
+      <div
+        className="pointer-events-none absolute inset-x-0"
+        style={{ top: 0, bottom: 0 }}
+        aria-hidden="true"
+        data-testid="now-line"
+      >
+        <div className="border-warning absolute right-0 left-0 border-t-2" style={{ top }}>
+          <motion.div
+            className="bg-warning absolute -top-1.5 -left-1.5 h-3 w-3 rounded-full"
+            variants={pulseVariants}
+            initial="idle"
+            animate={prefersReducedMotion ? "idle" : "pulse"}
+            transition={{ type: "spring", ...motionTokens.springGentle }}
+          />
+          <span className="text-warning absolute -top-3 left-4 font-mono text-xs select-none">
+            {timeLabel}
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

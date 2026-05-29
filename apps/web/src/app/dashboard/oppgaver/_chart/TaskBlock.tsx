@@ -167,7 +167,7 @@ export function TaskBlock({
 
       {/* Time range + recurring badge — only when block is tall enough */}
       {!tiny && (
-        <div className="text-muted-foreground mt-0.5 flex items-center gap-0.5 text-[0.6rem]">
+        <div className="text-muted-foreground mt-0.5 flex items-center gap-0.5 text-xs">
           <span>{task.start}</span>
           <span aria-hidden="true">–</span>
           <span>{task.end}</span>
@@ -181,7 +181,7 @@ export function TaskBlock({
       {task.flagged && (
         <div
           aria-label="Avvik flagget"
-          className="text-destructive absolute top-1 right-1 text-[0.6rem] font-bold"
+          className="text-destructive absolute top-1 right-1 text-xs font-bold"
         >
           !
         </div>

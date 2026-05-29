@@ -84,6 +84,8 @@ export type ManagerTimelineTaskRow = {
    * to a sensible placeholder (e.g. "12:00") and mark the task visually.
    */
   scheduled_at: string | null;
+  /** Planned duration in minutes (day-line block height). Null → caller defaults to 60. */
+  duration_minutes: number | null;
   /** FK → profile.profile_id (the assignee). Column name is `assigned_to` in DB. */
   assigned_to: string | null;
   completed_by: string | null;
@@ -131,6 +133,7 @@ type RawSessionTaskRow = {
   description: string | null;
   status: string;
   scheduled_at: string | null;
+  duration_minutes: number | null;
   assigned_to: string | null;
   completed_by: string | null;
   completed_at: string | null;
@@ -166,6 +169,7 @@ async function fetchSessionTasksForDate(
       description,
       status,
       scheduled_at,
+      duration_minutes,
       assigned_to,
       completed_by,
       completed_at,
@@ -198,6 +202,7 @@ async function fetchSessionTasksForDate(
       description: row.description ?? null,
       status: row.status as SessionTaskStatus,
       scheduled_at: row.scheduled_at ?? null,
+      duration_minutes: row.duration_minutes ?? null,
       assigned_to: row.assigned_to ?? null,
       completed_by: row.completed_by ?? null,
       completed_at: row.completed_at ?? null,

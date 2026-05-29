@@ -44,6 +44,7 @@ import {
   useDayLinesForDate,
   useSessionTasksForDate,
   useRolesForPositions,
+  useEmployeesForDate,
   sessionTaskKeys,
 } from "@smartout/data";
 import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
@@ -57,6 +58,7 @@ import { TimelineTopBar } from "./TimelineTopBar";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TaskEditModal } from "./TaskEditModal";
 import { ManagerTimelineChart } from "../_chart/ManagerTimelineChart";
+import { TimelineRightRail } from "./TimelineRightRail";
 import type { Band } from "../_chart/AreaBand";
 import type { Employee } from "../_chart/PersonLane";
 import type { TimelineTask } from "../_chart/TaskBlock";
@@ -300,9 +302,7 @@ export function ManagerTimelineShell() {
       title: t.title,
       // Wave 1a: read scheduled_at from the extended hook row type.
       // Tasks WITH scheduled_at: extract HH:mm from the ISO timestamp for start;
-      // compute end as start + 60 min.
-      // TODO duration column — session_task has no duration field yet; 60 min
-      // hardcoded until the schema adds one.
+      // compute end as start + duration_minutes (PLAN-4b; falls back to 60 when null).
       // Tasks WITHOUT scheduled_at: fall back to "12:00" / "13:00" placeholder.
       // TODO TA2 (Wave 1b DnD wiring): add `unscheduled` flag to TimelineTask and
       // pass it here so TaskBlock can dim unanchored tasks visually.
@@ -312,7 +312,8 @@ export function ManagerTimelineShell() {
           const hh = d.getHours().toString().padStart(2, "0");
           const mm = d.getMinutes().toString().padStart(2, "0");
           const startMin = d.getHours() * 60 + d.getMinutes();
-          const endMin = startMin + 60; // TODO duration column
+          // PLAN-4b: honor session_task.duration_minutes (null → 60 default).
+          const endMin = startMin + (t.duration_minutes ?? 60);
           const endHH = Math.floor(endMin / 60)
             .toString()
             .padStart(2, "0");
@@ -335,23 +336,49 @@ export function ManagerTimelineShell() {
     }));
   }, [tasksQ.data]);
 
+  // PLAN-4a: department_id → band.id (day_line_id). Both tasks and the roster
+  // key their `area` by department_id; bands are keyed by day_line_id. This map
+  // bridges the two so tasks AND employees land in the right area band.
+  // (Fixes a pre-existing keying mismatch: tasks set area=department_id but the
+  // chart filters t.area === band.id where band.id = day_line_id.)
+  const bandIdByDept = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const dl of dayLinesQ.data ?? []) {
+      // First day_line per department wins (single-band-per-dept V1).
+      if (!map.has(dl.department_id)) map.set(dl.department_id, dl.day_line_id);
+    }
+    return map;
+  }, [dayLinesQ.data]);
+
+  const rosterQ = useEmployeesForDate(workspaceId, dateISO);
+
   const employees: Employee[] = useMemo(() => {
-    // V1: derive from assigned_to in tasks (placeholder — Phase 4 follow-up
-    // should add useEmployeesForDate hook reading schedule_shift + profile)
     const seen = new Map<string, Employee>();
+    // PLAN-4a: real roster from schedule_shift + profile (display_name, role, shift window).
+    for (const r of rosterQ.data ?? []) {
+      seen.set(r.id, {
+        id: r.id,
+        name: r.name,
+        role: r.role,
+        area: bandIdByDept.get(r.area) ?? r.area,
+        shift: r.shift,
+      });
+    }
+    // Keep task-only assignees that aren't in the roster (covers ad-hoc/unassigned
+    // coverage so the chart still renders their tasks' avatars).
     for (const t of tasks) {
       if (t.emp && !seen.has(t.emp)) {
         seen.set(t.emp, {
           id: t.emp,
           name: t.emp.slice(0, 8),
           role: "—",
-          area: t.area ?? "",
+          area: t.area ? (bandIdByDept.get(t.area) ?? t.area) : "",
           shift: null,
         });
       }
     }
     return Array.from(seen.values());
-  }, [tasks]);
+  }, [rosterQ.data, tasks, bandIdByDept]);
 
   // ── Location-filtered bands (D2 LocationSwitcherPill) ────────────────────
   // day_line_id (= band.id) → location_id lookup derived from raw hook data.
@@ -377,12 +404,40 @@ export function ManagerTimelineShell() {
     let out = tasks;
     if (onlyOpen) out = out.filter((t) => t.status !== "done");
     if (deviationsOnly) out = out.filter((t) => t.status === "missed");
-    return out;
-  }, [tasks, onlyOpen, deviationsOnly]);
+    // PLAN-4a: remap task.area (department_id) → band.id (day_line_id) so tasks
+    // match their AreaBand (chart filters t.area === band.id). Tasks without a
+    // resolvable band keep their department_id (rendered in no band — same as before).
+    return out.map((t) =>
+      t.area && bandIdByDept.has(t.area) ? { ...t, area: bandIdByDept.get(t.area)! } : t,
+    );
+  }, [tasks, onlyOpen, deviationsOnly, bandIdByDept]);
 
   const areas = locationFilteredBands.map((b) => ({ id: b.id, label: b.name }));
   const managerName = wsCtx?.workspace.name ?? "—";
   const deviationsCount = tasks.filter((t) => t.status === "missed").length;
+
+  // Rail: resolve an area (day_line/department) id → its band label.
+  const areaLabelById = useCallback(
+    (areaId: string | null | undefined): string => {
+      if (!areaId) return "—";
+      return areas.find((a) => a.id === areaId)?.label ?? "—";
+    },
+    [areas],
+  );
+
+  /**
+   * Rail "Bekreft" on a deviation card → focus the underlying task (open detail).
+   * V1: no deviation-resolve mutation is wired in this view (deviations here are
+   * derived from tasks with status "missed", not the deviation table). Focus the
+   * task so the manager can act — do NOT fabricate a resolve write.
+   */
+  const handleFocusDeviation = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) handleFocusTask(task);
+    },
+    [tasks, handleFocusTask],
+  );
 
   // handleTaskDrop — DnD drop handler (Wave 1 Phase A.4).
   // 1. Optimistic: update TanStack Query cache immediately so the chart re-renders.
@@ -527,23 +582,34 @@ export function ManagerTimelineShell() {
             // TimelineToolbar emits the telemetry event regardless of this stub.
           }}
         />
-        <ManagerTimelineChart
-          bands={locationFilteredBands}
-          employees={employees}
-          tasks={filteredTasks}
-          mode={viewMode}
-          pxPerHour={zoom}
-          nowMinutes={nowMinutes()}
-          dimmedBandIds={dimmedBandIds}
-          onTaskClick={handleFocusTask}
-          onTaskDrop={handleTaskDrop}
-          dateISO={dateISO}
-          scrollBodyRef={chartBodyRef}
-          onKeyboardEdit={(task) => {
-            setEditModalMode(true);
-            setSelectedTask(task);
-          }}
-        />
+        {/* Main: two-column 1fr 380px per Cloud Design (.main). Chart left, rail right. */}
+        <div className="grid min-h-0 grid-cols-[1fr_380px] overflow-hidden">
+          <ManagerTimelineChart
+            bands={locationFilteredBands}
+            employees={employees}
+            tasks={filteredTasks}
+            mode={viewMode}
+            pxPerHour={zoom}
+            nowMinutes={nowMinutes()}
+            dimmedBandIds={dimmedBandIds}
+            onTaskClick={handleFocusTask}
+            onTaskDrop={handleTaskDrop}
+            dateISO={dateISO}
+            scrollBodyRef={chartBodyRef}
+            onKeyboardEdit={(task) => {
+              setEditModalMode(true);
+              setSelectedTask(task);
+            }}
+          />
+          <TimelineRightRail
+            tasks={filteredTasks}
+            employees={employees}
+            nowMinutes={nowMinutes()}
+            selectedTask={selectedTask}
+            areaLabel={areaLabelById}
+            onConfirmDeviation={handleFocusDeviation}
+          />
+        </div>
       </div>
     </>
   );
