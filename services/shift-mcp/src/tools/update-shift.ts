@@ -85,33 +85,42 @@ export async function handleUpdateShift(
     updateData.work_hours = computeWorkHours(startTime, endTime, breaks);
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("schedule_shift")
-    .update(updateData)
-    .eq("schedule_shift_id", shift_id)
-    .select()
-    .single();
+  // Only issue the schedule_shift UPDATE when there are scalar fields to change.
+  // When the caller supplied ONLY zone_ids, updateData is empty — `.update({})`
+  // returns no row and `.single()` throws "cannot coerce". In that case we keep
+  // the already-fetched `existing` row and go straight to the zone reconcile.
+  let data: typeof existing = existing;
+  if (Object.keys(updateData).length > 0) {
+    const updateResult = await supabaseAdmin
+      .from("schedule_shift")
+      .update(updateData)
+      .eq("schedule_shift_id", shift_id)
+      .select()
+      .single();
 
-  if (error) {
-    if (typeof error.message === "string" && error.message.includes("SHIFT_LOCKED_MUTATION")) {
+    if (updateResult.error) {
+      const error = updateResult.error;
+      if (typeof error.message === "string" && error.message.includes("SHIFT_LOCKED_MUTATION")) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  "Shift is locked because it has started or the shift date has passed. Planning fields cannot be changed.",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              error:
-                "Shift is locked because it has started or the shift date has passed. Planning fields cannot be changed.",
-            }),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify({ error: error.message }) }],
         isError: true,
       };
     }
-
-    return {
-      content: [{ type: "text", text: JSON.stringify({ error: error.message }) }],
-      isError: true,
-    };
+    data = updateResult.data;
   }
 
   // ── Reconcile zone assignments (ADR-0430 Rule 4) ──────────────────────────

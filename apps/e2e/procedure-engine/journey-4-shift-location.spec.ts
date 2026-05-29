@@ -8,8 +8,8 @@
 //
 // Journey (scoped):
 //   Manager opens AddShiftDialog from /dashboard (WebDayControl → RosterTab
-//   CTA) → fills required fields + selects a location → saves → asserts
-//   schedule_shift.location_id is set in DB.
+//   CTA) → fills required fields + selects a location → saves. Location is now
+//   SESSION-DERIVED (ADR-0430 M4 dropped schedule_shift.location_id).
 //
 // Scope decision (see "J4 scope" note at bottom):
 //   Full-save path requires a department context (WebDayControl must have
@@ -19,16 +19,10 @@
 //   We therefore implement TWO tests:
 //     J4-A (structural smoke): Open AddShiftDialog via direct UI → assert the
 //           location Select renders and lists "Oslo Downtown Hub". Does NOT save.
-//     J4-B (full save via BFF): POST addShiftAction equivalent via page.request
-//           to verify DB write — same pattern as timeline-templates A2. Verifies
-//           schedule_shift.location_id is persisted.
-//
-//   J4-B uses the Server Action's route path. Since addShiftAction is a Server
-//   Action (not a REST BFF), there is no direct HTTP route. Therefore J4-B
-//   uses a DB seed + direct supabase insert (service-role) to create a shift
-//   with location_id set, then verifies the row — this mirrors the contract
-//   that the action exercises without requiring the full UI flow. The seed
-//   test is idempotent.
+//     J4-B (DB contract, post ADR-0430 M4): direct supabase insert (service-role)
+//           verifies a shift inserts WITHOUT a location_id column, the dropped
+//           column is unselectable (42703), and location is reachable via the
+//           session → day_line successor path. The seed test is idempotent.
 //
 // Selector strategy (AddShiftDialog.tsx — no data-testid added):
 //   - Trigger button: role="button" + aria-label="Legg til vakt" (prop default)
@@ -49,8 +43,8 @@
 //   - Full end-to-end save test requires a live department session for today.
 //     This is environment-dependent — deferred to a follow-up wave that seeds
 //     department_session rows for the test date. See J4 scope comment above.
-//   - shift_session.location_id propagation (via ensure_shift_session trigger)
-//     verified as SQL unit test, not E2E — trigger correctness is migration-tested.
+//   - shift_session.location_id resolution (via ensure_shift_session trigger from
+//     the day_line, post ADR-0430 M4) verified in shift-session-trigger.spec.ts.
 //   - J1 (mobile) is Detox — out of scope.
 //   - J3/J5 are backend cron / SQL-covered — out of scope.
 // =============================================================================
