@@ -25,6 +25,7 @@
     "@react-native-community/netinfo": "^11",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@shopify/flash-list": "^1.7.3",
+    "@smartout/data": "workspace:*",
     "@smartout/design-tokens": "workspace:*",
     "@smartout/i18n": "workspace:*",
     "@smartout/notifications": "workspace:*",

@@ -24,15 +24,20 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import { CompleteProfileCard } from "@/components/onboarding/CompleteProfileCard";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
-import { useMyShifts } from "@/hooks/queries/use-my-shifts";
+import { useMyShifts, type ScheduleShift } from "@/hooks/queries/use-my-shifts";
 import { useClockIn } from "@/hooks/queries/use-shift-session";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
 import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
-type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
+// ScheduleShift now carries `zones: ShiftZone[]` (ADR-0430 M:N readback, from the hook).
 type DayMessage = Database["public"]["Tables"]["schedule_day_message"]["Row"];
+
+/** Comma-joined zone names for display ("" when unzoned). */
+function zoneCaption(shift: ScheduleShift): string {
+  return (shift.zones ?? []).map((z) => z.name).join(", ");
+}
 
 type BeforeShiftViewProps = {
   shift: ScheduleShift;
@@ -190,7 +195,8 @@ export function BeforeShiftView({
           <Text style={styles.greetingTime}>
             {clockHM(shift.start_time)}–{clockHM(shift.end_time)}
           </Text>
-          {/* ADR-0430 M4: shift.zone dropped — no zone in caption */}
+          {/* ADR-0430 M:N zone readback — show assigned zone(s) when present. */}
+          {zoneCaption(shift) ? <Text> · {zoneCaption(shift)}</Text> : null}
         </Text>
       </Animated.View>
 
@@ -266,8 +272,8 @@ export function BeforeShiftView({
           <View style={styles.deptInset}>
             <View style={[styles.deptStripe, { backgroundColor: phaseColor }]} />
             <View style={{ flex: 1 }}>
-              {/* ADR-0430 M4: shift.zone dropped — fallback to "Arbeidsplass" always */}
-              <Text style={styles.deptTitle}>{"Arbeidsplass"}</Text>
+              {/* ADR-0430 M:N zone readback — title shows zone(s), fallback "Arbeidsplass". */}
+              <Text style={styles.deptTitle}>{zoneCaption(shift) || "Arbeidsplass"}</Text>
               {shift.role ? <Text style={styles.deptMeta}>Rolle: {shift.role}</Text> : null}
             </View>
           </View>
