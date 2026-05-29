@@ -1,6 +1,6 @@
 ---
 title: "Journey — ADR-0430 Shift Zone M:N Reform"
-status: done
+status: verified
 updated: 2026-05-29
 created: 2026-05-29
 feature: adr-0430-shift-zone-m2m
