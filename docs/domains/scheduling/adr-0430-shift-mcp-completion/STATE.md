@@ -1,8 +1,8 @@
 ---
 sortie: adr-0430-shift-mcp-completion
 domain: scheduling
-state: S7
-sub_state: ready-for-close
+state: S9
+sub_state: closed
 tier: T2
 test_mode: continuous
 design_link: n/a (P0 regression completion — no Cloud Design)
@@ -11,9 +11,11 @@ adr_path: docs/decisions/0430-core-structure-reform-shift-zone-m2m.md
 adr_status: implemented
 parent_sortie: adr-0430-shift-zone-m2m (S9 closed; this is its L-0348 remediation)
 created_at: 2026-05-29T00:10:00Z
-updated_at: 2026-05-29T00:10:00Z
-campaign: development (sortie from main; merges to development via /close-feature)
-worktree: /home/sxtnl/dev/smartout.ai-wt-1 (verified present; branch feat/adr-0430-shift-mcp-completion @ 4e984e628)
+updated_at: 2026-05-29T01:00:00Z
+closed_at: 2026-05-29T01:00:00Z
+merge_sha: f54248574
+campaign: development (sortie from main; merged to development @ f54248574 via /close-feature)
+worktree: removed (close-feature success)
 import_mode: false
 structural_block: "suspended — Agent/Task tool NOT exposed this session (per memory feedback_hard_rule_8_vs_tool_layer). Pontus mandate 2026-05-29 'ingen spørsmål, komplett delivery' = Path 1 endemic auth. T2 sortie → Path 1 applies cleanly (orchestrator self-writes via Edit/Write/Bash, atomic per-plan commits). NO sub-agent dispatch possible."
 ---
