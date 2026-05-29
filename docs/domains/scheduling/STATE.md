@@ -14,9 +14,10 @@ council_path: docs/audits/2026-05-27-core-structure-reform-index/INDEX.md
 created_at: 2026-05-28T20:00:00Z
 updated_at: 2026-05-28T22:30:00Z
 imported_at: 2026-05-28T20:00:00Z
-campaign: development (no campaign worktree — Phase b worktree to be spawned at wt-1)
-worktree: /home/sxtnl/dev/smartout.ai-wt-1 (pending creation; branch feat/adr-0430-shift-zone-m2m)
+campaign: development (no campaign worktree — Phase b worktree spawned at wt-1)
+worktree: /home/sxtnl/dev/smartout.ai-wt-1 (created 2026-05-28T22:35Z; branch feat/adr-0430-shift-zone-m2m @ d9a4da8be)
 import_mode: true
+structural_block: "Agent/Task tool not exposed in this orchestrator session — sub-dispatch impossible. T3 sortie; per memory feedback_hard_rule_8_vs_tool_layer.md rule 3, surfacing to Pontus before any code-write rather than auto-applying Path 1. Awaiting Pontus auth path A/B/C."
 import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2026-05-27; domain spine refreshed (GAPS-AND-DEBT, ROADMAP); zero prior SDSM STATE.md
 ---
 
@@ -105,11 +106,20 @@ import_basis: ADR-0430 accepted on development (commit dad1e3fd7); audit INDEX 2
 
 ## Open Pontus pings
 
-_(none — last ping resolved at G5 via delegation; next Pontus ping reserved for PLAN-0 BLOCKER escalation or G8 acceptance)_
+| #   | Question                                                                                                                                | Why now                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1   | **Choose authorization path for PLAN-0 execution.** Agent/Task tool not exposed in this session — sub-dispatch impossible per Hard Rule 8. | Pontus's prompt expected sub-orchestrator dispatch; harness limitation surfaced. PLAN-0 is doc-only + verification (10 ACs, mostly SQL queries + git grep + 4 file writes). T3 risk concentration is in PLAN-1/PLAN-4 (migrations + irreversible M4 column DROP), not PLAN-0. Three options: **(a)** Path-1-endemic auth scoped to PLAN-0 only — orchestrator (me) executes the 10 ACs directly via Bash/Read/Edit/Write, commits per AC to feat branch, HARD STOP at PLAN-0 close for fresh decision on PLAN-1; **(b)** Stop here, you open a fresh Agent-enabled session to dispatch PLAN-0; **(c)** Full Path-1-endemic auth for entire Phase b — **not recommended** because T3 risk concentration in PLAN-1/PLAN-4. |
 
 ## Next action
 
-**S6 PLAN-0 dispatch.** Worktree to spawn at `~/dev/smartout.ai-wt-1` via `~/.claude/scripts/new-feature.sh adr-0430-shift-zone-m2m 1 scheduling`. After worktree exists, dispatch sonnet build sub-orchestrator to execute PLAN-0 (10 ACs, doc-only + 1 schema-precondition check). **HARD STOP after PLAN-0.** If any of AC-0.6 / AC-0.8 / AC-0.9 / AC-0.10 reveals a BLOCKER, escalate to Pontus with concrete fix-path; do not proceed to PLAN-1 until all blockers resolved.
+**BLOCKED on Pontus auth-path choice (a/b/c above).** All preliminary STATE work complete:
+
+- G5 PASS recorded atomically @ `d9a4da8be`
+- Worktree spawned at `/home/sxtnl/dev/smartout.ai-wt-1` (branch `feat/adr-0430-shift-zone-m2m`)
+- PLAN-0..4 + ADR-0430 inherited cleanly into worktree
+- STATE.md `structural_block` field set per memory rule 6
+
+After auth: PLAN-0 executes the 10 ACs (CF-1..3 verification + Pre-1..7 schema + git checks); doc-only outputs to `docs/domains/scheduling/adr-0430-shift-zone-m2m/{pre-flight-report.md, pg-depend-audit.txt, m0.5-position-orphan-report.{md,csv}, schema-precondition-checks.sql}`. HARD STOP after PLAN-0 — any of AC-0.6/AC-0.8/AC-0.9/AC-0.10 BLOCKER triggers escalation, no auto-advance to PLAN-1.
 
 ## References
 
