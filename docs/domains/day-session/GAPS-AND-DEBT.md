@@ -2,10 +2,10 @@
 title: "Day Session — Gaps & Debt"
 status: in_progress
 mirror: verified
-last_verified: 2026-05-28
-updated: 2026-05-28
+last_verified: 2026-05-29
+updated: 2026-05-29
 created: 2026-05-22
-council_refs: [council-2026-05-23-tidslinje-surface-boundary]
+council_refs: [council-2026-05-23-tidslinje-surface-boundary, council-2026-05-29-design-token-text-2xs]
 domain: day-session
 tags: [domain, day-session, gaps, debt, verified]
 ---
@@ -290,3 +290,35 @@ The following files in the repo still reference `docs/modules/daytimeline/`:
 - Various ADR cross-references in `docs/decisions/` — these reference `MODULE_DAYTIMELINE.md`. Update paths to `docs/domains/day-session/` when next touching those ADRs.
 
 **Action item:** In a future cleanup sortie, search and replace `docs/modules/daytimeline/` → `docs/domains/day-session/` across `docs/decisions/` and `docs/INDEX.md`.
+
+---
+
+## 9. day-line-zone-readback sortie (2026-05-29) — domain-steward post
+
+P1 day-line build. Restored the ADR-0430 readbacks + built the missing right-rail + un-stubbed bands.
+
+**CLOSED this sortie:**
+- **Location readback (web Tidslinjen):** `use-day-timeline-events.ts` `locationByShift` was hardcoded
+  `null` post-M4 → resolved via `schedule_shift → shift_session → shift_session_day_line →
+  day_line.location_id` (ADR-0367). Chip-bar location filter live again.
+- **Zone readback (mobile, reader-only ADR-0133):** `shift_zone` M:N surfaced on shift cards via the
+  new shared `packages/data/src/day-session/shift-zones.ts` helper (`resolveZonesByShift`).
+- **Right-rail (design-fidelity RED):** `TimelineRightRail.tsx` built per `Manager Timeline.html`
+  (main grid `1fr 380px`; tabs + STATUS 4 KPI cards + Krever/Pågående/Neste). KPI counts derived
+  (never incremented). Fidelity verdict PASS (`docs/domains/day-session/day-line-zone-readback/reports/FIDELITY-VERDICT.md`).
+- **Bands un-stub:** `useEmployeesForDate` (packages/data) → real roster (display_name + role +
+  shift window) replaces task-assignee stub. `session_task.duration_minutes` column (migration
+  `20260801000007`) drives task-block height (60 fallback).
+- **a11y:** NowLine sr-only `aria-live` current-time announce; rail `role=tablist` + focus rings.
+- **text-[0.6rem] → text-xs** across 5 `_chart/*` files (council design-token verdict, not a new token).
+
+**NEW / remaining debt:**
+- **G20 — pre-existing area-keying mismatch (mitigated, not fully closed).** Bands keyed by
+  `day_line_id`; tasks/employees key `area` by `department_id`. Fixed via `bandIdByDept` remap in
+  `ManagerTimelineShell.tsx`, but the underlying double-keying is fragile — a regression E2E
+  (task lands in correct band) should lock it. MEDIUM.
+- **G21 — rail Detalj/Melding/Avvik tabs are V1 EmptyState.** No data source wired (Bekreft focuses
+  the task, no resolve-mutation). Full surfaces + a real deviation-resolve action deferred. LOW.
+- **Full page-polish run still deferred** — `.claude/page-polish/dashboard-oppgaver.run.yml`
+  `verified: false` (Lighthouse, loading.tsx skeleton, harness tools, telemetry view-emit). Updated
+  to note chart+rail built. Live screenshot vs `v6.png` not captured (RAM). LOW-MEDIUM.
