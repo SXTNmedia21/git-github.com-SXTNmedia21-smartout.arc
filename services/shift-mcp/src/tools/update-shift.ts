@@ -65,7 +65,8 @@ export async function handleUpdateShift(
   if (fields.position_id !== undefined) updateData.position_id = fields.position_id ?? null;
   if (fields.team_id !== undefined) updateData.team_id = fields.team_id ?? null;
   if (fields.breaks !== undefined) updateData.breaks = fields.breaks;
-  if (fields.zone !== undefined) updateData.zone = fields.zone ?? null;
+  // ADR-0430 M4: scalar `zone` dropped. Zone reconcile happens after the update
+  // via the shift_zone junction (handled below). Do NOT write `zone` here.
   if (fields.indicator !== undefined) updateData.indicator = fields.indicator;
   if (fields.notes !== undefined) updateData.notes = fields.notes ?? null;
   if (fields.status !== undefined) updateData.status = fields.status;
@@ -84,32 +85,178 @@ export async function handleUpdateShift(
     updateData.work_hours = computeWorkHours(startTime, endTime, breaks);
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("schedule_shift")
-    .update(updateData)
-    .eq("schedule_shift_id", shift_id)
-    .select()
-    .single();
+  // Only issue the schedule_shift UPDATE when there are scalar fields to change.
+  // When the caller supplied ONLY zone_ids, updateData is empty — `.update({})`
+  // returns no row and `.single()` throws "cannot coerce". In that case we keep
+  // the already-fetched `existing` row and go straight to the zone reconcile.
+  let data: typeof existing = existing;
+  if (Object.keys(updateData).length > 0) {
+    const updateResult = await supabaseAdmin
+      .from("schedule_shift")
+      .update(updateData)
+      .eq("schedule_shift_id", shift_id)
+      .select()
+      .single();
 
-  if (error) {
-    if (typeof error.message === "string" && error.message.includes("SHIFT_LOCKED_MUTATION")) {
+    if (updateResult.error) {
+      const error = updateResult.error;
+      if (typeof error.message === "string" && error.message.includes("SHIFT_LOCKED_MUTATION")) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  "Shift is locked because it has started or the shift date has passed. Planning fields cannot be changed.",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              error:
-                "Shift is locked because it has started or the shift date has passed. Planning fields cannot be changed.",
-            }),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify({ error: error.message }) }],
         isError: true,
       };
     }
+    data = updateResult.data;
+  }
+
+  // ── Reconcile zone assignments (ADR-0430 Rule 4) ──────────────────────────
+  // undefined = leave zones unchanged; [] = clear all; [ids] = replace set.
+  // shift_zone has no UPDATE policy (M2 RLS): zone changes are binary
+  // delete + re-insert, keyed by (shift_session_id, day_line_id).
+  if (fields.zone_ids !== undefined) {
+    // department for forgery checks comes from the (NOT NULL) existing row.
+    const departmentId = (existing as { department_id: string }).department_id;
+
+    // Validate every new zone_id (Rule 7 forgery defense — L-0177 fail-fast).
+    const resolvedZoneLocationPairs: Array<{ zone_id: string; location_id: string }> = [];
+    for (const zone_id of fields.zone_ids) {
+      const { data: zoneRow } = await supabaseAdmin
+        .from("zone")
+        .select("zone_id, location_id")
+        .eq("zone_id", zone_id)
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+      if (!zoneRow) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error: `zone_forgery_workspace: zone ${zone_id} not found in workspace.`,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+      const { data: deptLocRow } = await supabaseAdmin
+        .from("department_location")
+        .select("location_id")
+        .eq("department_id", departmentId)
+        .eq("location_id", zoneRow.location_id)
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+      if (!deptLocRow) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error: `zone_forgery_dept_area: zone ${zone_id} location not in department area.`,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+      resolvedZoneLocationPairs.push({ zone_id, location_id: zoneRow.location_id });
+    }
+
+    // Resolve the trigger-materialized session + day_line for this shift.
+    const { data: ssRow } = await supabaseAdmin
+      .from("shift_session")
+      .select("shift_session_id")
+      .eq("schedule_shift_id", shift_id)
+      .maybeSingle();
+    const { data: sdlRows } = ssRow
+      ? await supabaseAdmin
+          .from("shift_session_day_line")
+          .select("day_line_id")
+          .eq("shift_session_id", ssRow.shift_session_id)
+      : { data: null };
+    const dayLineId = sdlRows?.[0]?.day_line_id ?? null;
+
+    if (!ssRow || !dayLineId) {
+      // Cannot carry zones without a session/day_line. If the caller actually
+      // wanted to set zones (non-empty), surface the failure (no silent drop).
+      // Clearing ([]) when there's no session is a harmless no-op.
+      if (resolvedZoneLocationPairs.length > 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  "shift_zone_reconcile_failed: no shift_session/day_line for this shift; cannot assign zones.",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+    } else {
+      // Binary reconcile: delete the existing set, then insert the new set.
+      const { error: delErr } = await supabaseAdmin
+        .from("shift_zone")
+        .delete()
+        .eq("shift_session_id", ssRow.shift_session_id)
+        .eq("day_line_id", dayLineId);
+      if (delErr) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ error: `shift_zone_reconcile_failed: ${delErr.message}` }),
+            },
+          ],
+          isError: true,
+        };
+      }
+      for (const { zone_id, location_id } of resolvedZoneLocationPairs) {
+        const { error: szErr } = await supabaseAdmin.from("shift_zone").insert({
+          shift_session_id: ssRow.shift_session_id,
+          day_line_id: dayLineId,
+          zone_id,
+          location_id,
+        });
+        if (szErr) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ error: `shift_zone_reconcile_failed: ${szErr.message}` }),
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    }
 
     return {
-      content: [{ type: "text", text: JSON.stringify({ error: error.message }) }],
-      isError: true,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            ...data,
+            zone_ids: resolvedZoneLocationPairs.map((p) => p.zone_id),
+          }),
+        },
+      ],
     };
   }
 

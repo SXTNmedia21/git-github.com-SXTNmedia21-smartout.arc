@@ -8,8 +8,8 @@
 //
 // Journey (scoped):
 //   Manager opens AddShiftDialog from /dashboard (WebDayControl → RosterTab
-//   CTA) → fills required fields + selects a location → saves → asserts
-//   schedule_shift.location_id is set in DB.
+//   CTA) → fills required fields + selects a location → saves. Location is now
+//   SESSION-DERIVED (ADR-0430 M4 dropped schedule_shift.location_id).
 //
 // Scope decision (see "J4 scope" note at bottom):
 //   Full-save path requires a department context (WebDayControl must have
@@ -19,16 +19,10 @@
 //   We therefore implement TWO tests:
 //     J4-A (structural smoke): Open AddShiftDialog via direct UI → assert the
 //           location Select renders and lists "Oslo Downtown Hub". Does NOT save.
-//     J4-B (full save via BFF): POST addShiftAction equivalent via page.request
-//           to verify DB write — same pattern as timeline-templates A2. Verifies
-//           schedule_shift.location_id is persisted.
-//
-//   J4-B uses the Server Action's route path. Since addShiftAction is a Server
-//   Action (not a REST BFF), there is no direct HTTP route. Therefore J4-B
-//   uses a DB seed + direct supabase insert (service-role) to create a shift
-//   with location_id set, then verifies the row — this mirrors the contract
-//   that the action exercises without requiring the full UI flow. The seed
-//   test is idempotent.
+//     J4-B (DB contract, post ADR-0430 M4): direct supabase insert (service-role)
+//           verifies a shift inserts WITHOUT a location_id column, the dropped
+//           column is unselectable (42703), and location is reachable via the
+//           session → day_line successor path. The seed test is idempotent.
 //
 // Selector strategy (AddShiftDialog.tsx — no data-testid added):
 //   - Trigger button: role="button" + aria-label="Legg til vakt" (prop default)
@@ -49,8 +43,8 @@
 //   - Full end-to-end save test requires a live department session for today.
 //     This is environment-dependent — deferred to a follow-up wave that seeds
 //     department_session rows for the test date. See J4 scope comment above.
-//   - shift_session.location_id propagation (via ensure_shift_session trigger)
-//     verified as SQL unit test, not E2E — trigger correctness is migration-tested.
+//   - shift_session.location_id resolution (via ensure_shift_session trigger from
+//     the day_line, post ADR-0430 M4) verified in shift-session-trigger.spec.ts.
 //   - J1 (mobile) is Detox — out of scope.
 //   - J3/J5 are backend cron / SQL-covered — out of scope.
 // =============================================================================
@@ -62,7 +56,10 @@ import { supabase } from "../helpers/seed";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
-const LOCATION_ID = "c0000000-0000-0000-0000-000000000000";
+// ADR-0430 M4: schedule_shift.location_id dropped — location is session-derived.
+// The seed location remains documented (J4-A combobox lists "Oslo Downtown Hub")
+// but is no longer asserted directly on the shift row. Prefixed `_` = intentionally unused.
+const _LOCATION_ID = "c0000000-0000-0000-0000-000000000000";
 const PROFILE_ID = "f0000000-0000-0000-0000-000000000000";
 const DEPARTMENT_ID = "d0000000-0000-0000-0000-000000000000";
 
@@ -169,24 +166,24 @@ test.describe("J4-A — AddShiftDialog location Select renders @smoke", () => {
   });
 });
 
-// ─── J4-B: DB contract — schedule_shift.location_id persisted ────────────────
+// ─── J4-B: DB contract — location is session-derived post ADR-0430 M4 ────────
 
-test.describe("J4-B — schedule_shift location_id DB contract", () => {
+test.describe("J4-B — schedule_shift location contract (post ADR-0430 M4)", () => {
   const SHIFT_TAG = "[e2e-j4-location-test]";
 
   test.afterEach(async () => {
     await cleanupTestShifts(SHIFT_TAG);
   });
 
-  test("J4-B1 — shift inserted with location_id via service-role; location persists", async () => {
-    // This test validates the DB write path (the same path addShiftAction takes)
-    // without requiring the full UI flow. It proves schedule_shift.location_id
-    // is a writable column with the FK constraint enforced.
-    //
-    // Rationale: addShiftAction's full path is a Server Action (no REST BFF).
-    // The UI flow (J4-A) validates the form renders. The DB test validates the
-    // data contract. Together they cover the full journey.
+  // ─── ADR-0430 M4 rewrite ─────────────────────────────────────────────────
+  // Before M4, schedule_shift carried a scalar `location_id` column and these
+  // tests asserted on it directly. M4 DROPPED schedule_shift.location_id (and
+  // `zone`): location is now SESSION-DERIVED — the ensure_shift_session trigger
+  // resolves it onto shift_session/day_line, never onto the shift row. The
+  // contract these tests guard is therefore inverted: a shift inserts WITHOUT
+  // a location_id, and location is reachable via the session path.
 
+  test("J4-B1 — shift inserts without location_id; column is gone (M4 invariant)", async () => {
     const dateISO = shiftDateISO();
 
     const { data: inserted, error } = await supabase
@@ -198,7 +195,6 @@ test.describe("J4-B — schedule_shift location_id DB contract", () => {
         end_time: "16:00:00",
         employee_id: PROFILE_ID,
         department_id: DEPARTMENT_ID,
-        location_id: LOCATION_ID,
         role: "E2E Servitør",
         day_category: "morning",
         status: "created",
@@ -206,100 +202,65 @@ test.describe("J4-B — schedule_shift location_id DB contract", () => {
         notes: `E2E test shift ${SHIFT_TAG}`,
         source: "operational",
       })
-      .select("schedule_shift_id, location_id, workspace_id, department_id")
+      .select("schedule_shift_id, workspace_id, department_id")
       .single();
 
-    expect(error, "shift insert should not fail").toBeNull();
+    expect(error, "shift insert (no location_id) should not fail").toBeNull();
     expect(inserted, "shift row should be returned").not.toBeNull();
-
-    // Core assertions
-    expect(inserted?.location_id, "location_id must be set").toBe(LOCATION_ID);
     expect(inserted?.workspace_id, "workspace_id must be HQ workspace").toBe(WORKSPACE_ID);
-    expect(inserted?.department_id, "department_id must be set").toBe(DEPARTMENT_ID);
-
-    // Verify round-trip: re-read from DB
-    const { data: read, error: readErr } = await supabase
-      .from("schedule_shift")
-      .select("schedule_shift_id, location_id")
-      .eq("schedule_shift_id", inserted!.schedule_shift_id)
-      .single();
-
-    expect(readErr, "re-read should not error").toBeNull();
-    expect(read?.location_id, "location_id persists after round-trip read").toBe(LOCATION_ID);
+    expect(inserted?.department_id, "department_id must be set (M1 NOT NULL)").toBe(DEPARTMENT_ID);
   });
 
-  test("J4-B2 — shift with NULL location_id is valid (location is optional)", async () => {
-    // Verify the FK allows NULL (location is optional per AddShiftDialog UI)
-    const dateISO = shiftDateISO();
-
-    const { data: inserted, error } = await supabase
-      .from("schedule_shift")
-      .insert({
-        workspace_id: WORKSPACE_ID,
-        shift_date: dateISO,
-        start_time: "10:00:00",
-        end_time: "18:00:00",
-        employee_id: PROFILE_ID,
-        department_id: DEPARTMENT_ID,
-        location_id: null,
-        role: "E2E Kokk",
-        day_category: "morning",
-        status: "created",
-        is_published: false,
-        notes: `E2E test shift no-location ${SHIFT_TAG}`,
-        source: "operational",
-      })
-      .select("schedule_shift_id, location_id")
-      .single();
-
-    expect(error, "shift insert with null location_id should not fail").toBeNull();
-    expect(inserted?.location_id, "location_id should be null when not set").toBeNull();
-  });
-
-  test("J4-B3 — location_id from wrong workspace is rejected by FK", async () => {
-    // FK fk_schedule_shift_location references public.location(location_id).
-    // A non-existent location_id should fail the FK constraint.
-    const dateISO = shiftDateISO();
-    const fakeLocationId = "99999999-9999-9999-9999-999999999999";
-
+  test("J4-B2 — selecting schedule_shift.location_id errors (column dropped by M4)", async () => {
+    // The dropped column must not be selectable. PostgREST returns 42703
+    // (undefined_column) when a removed column is requested.
     const { error } = await supabase
       .from("schedule_shift")
-      .insert({
-        workspace_id: WORKSPACE_ID,
-        shift_date: dateISO,
-        start_time: "12:00:00",
-        end_time: "20:00:00",
-        employee_id: PROFILE_ID,
-        department_id: DEPARTMENT_ID,
-        location_id: fakeLocationId,
-        role: "E2E Test",
-        day_category: "afternoon",
-        status: "created",
-        is_published: false,
-        notes: `E2E test shift bad-location ${SHIFT_TAG}`,
-        source: "operational",
-      })
-      .select("schedule_shift_id")
-      .single();
+      // @ts-expect-error location_id was dropped from schedule_shift in ADR-0430 M4
+      .select("schedule_shift_id, location_id")
+      .eq("workspace_id", WORKSPACE_ID)
+      .limit(1);
 
-    // FK violation expected — Supabase returns a constraint error
-    expect(error, "Insert with non-existent location_id should fail FK constraint").not.toBeNull();
-    expect(error?.code, "Error code should be FK violation (23503)").toBe("23503");
+    expect(error, "selecting dropped location_id should error").not.toBeNull();
+    expect(error?.code, "Error code should be undefined_column (42703)").toBe("42703");
+  });
+
+  test("J4-B3 — location is reachable via the session-derived path", async () => {
+    // Location now flows schedule_shift → shift_session → day_line(location_id).
+    // We assert the path is wired: any shift_session for this workspace links to
+    // a day_line carrying a real location_id. This replaces the old direct-column
+    // FK test with the M4 successor contract.
+    const { data: rows, error } = await supabase
+      .from("shift_session_day_line")
+      .select("day_line:day_line_id(location_id, workspace_id)")
+      .limit(1);
+
+    expect(error, "session→day_line join should not error").toBeNull();
+    // If a row exists, its day_line must carry a location_id (the source of truth
+    // post-M4). When the table is empty in a fresh fixture, the join is still
+    // valid (no error) — the structural contract is what we assert here.
+    if (rows && rows.length > 0) {
+      const dayLine = (rows[0] as { day_line: { location_id: string | null } | null }).day_line;
+      expect(
+        dayLine?.location_id,
+        "day_line must carry the location (M4 source of truth)",
+      ).toBeTruthy();
+    }
   });
 });
 
-// ─── J4 scope note ────────────────────────────────────────────────────────────
+// ─── J4 scope note (post ADR-0430 M4) ──────────────────────────────────────────
 //
 // Full save path (admin fills form + submits) deferred as debt. The precondition
 // is a department_session for today (WebDayControl renders RosterTab with the
 // dialog trigger only when currentDept + session are loaded). Seeding a
 // department_session for "today" is brittle across time zones and CI timing.
 //
-// The J4-A structural smoke + J4-B DB contract tests together cover:
+// The J4-A structural smoke + J4-B contract tests together cover:
 //   - UI: location Select is present and populated (J4-A)
-//   - Data layer: location_id persists on schedule_shift (J4-B1)
-//   - Optional flag: NULL location_id accepted (J4-B2)
-//   - FK enforcement: invalid location rejected (J4-B3)
+//   - Data layer: shift inserts without a location_id column (J4-B1)
+//   - M4 invariant: schedule_shift.location_id is gone (J4-B2)
+//   - Successor contract: location reachable via session→day_line (J4-B3)
 //
 // Debt ticket: Add full-save UI test once a test-date-aware department_session
 // seeder is available (similar to payroll-locked-period-seed.ts pattern).

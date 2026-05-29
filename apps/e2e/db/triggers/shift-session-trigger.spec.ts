@@ -4,6 +4,12 @@
 //   - ensure_shift_session  (schedule_shift INSERT/UPDATE → shift_session + junction)
 //   - back_populate_shift_session_day_line (day_line INSERT → junction backfill)
 //
+// ADR-0430 M4 update: the ensure_shift_session trigger was rewritten (migration
+// 20260801000005) — it no longer watches `OF location_id` and no longer reads
+// schedule_shift.location_id (dropped by M4). Location is resolved from the
+// session's day_line. These tests seed a day_line in beforeAll and assert the
+// session materializes from the day_line's location, not from the shift row.
+//
 // Uses well-known seed workspace/department/location/profile IDs from
 // supabase/seed.sql to avoid needing to create schema objects with
 // complex NOT NULL dependencies (user_id on profile, slug on location, etc.).
@@ -94,6 +100,28 @@ beforeAll(async () => {
   if (!testSessionId) {
     throw new Error(`beforeAll: could not resolve testSessionId for ${TEST_DATE}`);
   }
+
+  // ADR-0430 M4: the ensure_shift_session trigger now resolves location_id from
+  // a day_line (department_session_id + active) — NOT from schedule_shift.location_id
+  // (dropped). A day_line must exist for the session BEFORE a shift insert can
+  // materialize a shift_session. Seed one for TEST_DATE.
+  const { data: setupDl } = await sb
+    .from("day_line")
+    .insert({
+      workspace_id: SEED_WORKSPACE_ID,
+      department_session_id: testSessionId,
+      department_id: SEED_DEPARTMENT_ID,
+      location_id: SEED_LOCATION_ID,
+      business_date: TEST_DATE,
+      planned_open: "06:00",
+      planned_close: "23:59",
+    })
+    .select("day_line_id")
+    .single();
+  if (setupDl) {
+    insertedDayLineIds.push(setupDl.day_line_id);
+  }
+  // Conflict (unique department_session_id + location_id) = already seeded; fine.
 }, 30_000);
 
 // ---------------------------------------------------------------------------
@@ -117,9 +145,10 @@ afterAll(async () => {
 // Helper: insert a schedule_shift and track its id for cleanup.
 // ---------------------------------------------------------------------------
 
+// ADR-0430 M4: schedule_shift.location_id dropped. Location is resolved by the
+// trigger from the session's day_line, so this helper no longer sets location_id.
 async function insertShift(overrides: {
   employee_id?: string | null;
-  location_id?: string | null;
   department_id?: string | null;
   shift_date?: string;
   start_time?: string;
@@ -130,7 +159,6 @@ async function insertShift(overrides: {
     .insert({
       workspace_id: SEED_WORKSPACE_ID,
       employee_id: overrides.employee_id !== undefined ? overrides.employee_id : SEED_PROFILE_ID,
-      location_id: overrides.location_id !== undefined ? overrides.location_id : SEED_LOCATION_ID,
       department_id:
         overrides.department_id !== undefined ? overrides.department_id : SEED_DEPARTMENT_ID,
       shift_date: overrides.shift_date ?? TEST_DATE,
@@ -156,16 +184,9 @@ async function insertShift(overrides: {
 // skipIf guard: when SUPABASE_SERVICE_ROLE_KEY is absent (plain `pnpm test`),
 // these DB integration tests are skipped — they require a live local Supabase.
 describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () => {
-  it("skips when location_id is NULL — no shift_session created", async () => {
-    const shiftId = await insertShift({ location_id: null });
-
-    const { count } = await sb
-      .from("shift_session")
-      .select("*", { count: "exact", head: true })
-      .eq("schedule_shift_id", shiftId);
-
-    expect(count).toBe(0);
-  });
+  // ADR-0430 M4: location_id no longer exists on schedule_shift. The
+  // "skips when location is missing" condition is now expressed as
+  // "no active day_line for the session" (see the no-session test below).
 
   it("skips when employee_id is NULL — no shift_session created", async () => {
     const shiftId = await insertShift({ employee_id: null });
@@ -178,10 +199,9 @@ describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () =>
     expect(count).toBe(0);
   });
 
-  it("creates exactly 1 shift_session when all required fields present + department_session exists", async () => {
+  it("creates exactly 1 shift_session when all required fields present + department_session + day_line exist", async () => {
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: TEST_DATE,
       start_time: "10:00",
@@ -196,10 +216,9 @@ describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () =>
     expect(ssCount).toBe(1);
   });
 
-  it("shift_session has correct status='scheduled' and matching location/department", async () => {
+  it("shift_session has status='scheduled' and location resolved from the day_line (ADR-0430)", async () => {
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: TEST_DATE,
       start_time: "12:00",
@@ -213,6 +232,7 @@ describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () =>
       .single();
 
     expect(data?.status).toBe("scheduled");
+    // location_id now comes from the seeded day_line, not the shift row.
     expect(data?.location_id).toBe(SEED_LOCATION_ID);
     expect(data?.department_id).toBe(SEED_DEPARTMENT_ID);
     expect(data?.workspace_id).toBe(SEED_WORKSPACE_ID);
@@ -222,17 +242,17 @@ describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () =>
   it("is idempotent — UPDATE on same schedule_shift_id does not create second shift_session", async () => {
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: TEST_DATE,
       start_time: "14:00",
       end_time: "22:00",
     });
 
-    // Simulate second trigger fire via UPDATE (touches a tracked column).
+    // Fire the UPDATE trigger by touching a WATCHED column. The new trigger
+    // watches: position_id, department_id, employee_id, shift_date (NOT location_id).
     await sb
       .from("schedule_shift")
-      .update({ location_id: SEED_LOCATION_ID }) // same value — still fires UPDATE trigger
+      .update({ department_id: SEED_DEPARTMENT_ID }) // same value — still fires UPDATE OF department_id
       .eq("schedule_shift_id", shiftId);
 
     const { count } = await sb
@@ -244,11 +264,10 @@ describe.skipIf(!HAS_SUPABASE_ENV)("ensure_shift_session trigger (BT3-1)", () =>
   });
 
   it("skips when no department_session exists for the date", async () => {
-    const NO_SESSION_DATE = "2099-12-31"; // guaranteed no session seeded
+    const NO_SESSION_DATE = "2099-12-31"; // guaranteed no session/day_line seeded
 
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: NO_SESSION_DATE,
       start_time: "09:00",
@@ -273,7 +292,6 @@ describe.skipIf(!HAS_SUPABASE_ENV)("back_populate_shift_session_day_line trigger
     // Step 1: Insert shift → ensure_shift_session fires → shift_session created.
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: TEST_DATE,
       start_time: "06:00",
@@ -350,7 +368,6 @@ describe.skipIf(!HAS_SUPABASE_ENV)("back_populate_shift_session_day_line trigger
     // Insert shift → shift_session created.
     const shiftId = await insertShift({
       employee_id: SEED_PROFILE_ID,
-      location_id: SEED_LOCATION_ID,
       department_id: SEED_DEPARTMENT_ID,
       shift_date: TEST_DATE,
       start_time: "04:00",

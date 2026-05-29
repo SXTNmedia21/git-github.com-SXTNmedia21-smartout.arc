@@ -1,0 +1,23 @@
+setup: session=b6414a86-4b18-47e0-9e8c-9ec35279e0a9 day_line=620e1485-7430-4b9c-a350-f5fc9c654bad
+
+[1] create_shift (dept + zone_ids)
+  PASS: create returns no error (got {"schedule_shift_id":"dcda2a78-ce4c-4950-94f2-0ec16fe545a9","workspace_id":"b0000000-0000-0000-0000-000000000000","emplo)
+  PASS: shift row returned with schedule_shift_id
+  PASS: department_id resolved + persisted (M1 NOT NULL)
+  PASS: shift_zone has 2 rows for the session (got 2)
+
+[2] create_shift (no department) → must error
+  PASS: errors with department_unresolved (got {"error":"department_unresolved: supply department_session_id or department_id (schedule_shift.department_id is NOT NULL)."})
+
+[3] create_shift (forged zone) → must error
+  PASS: errors with zone_forgery (got {"error":"zone_forgery_workspace: zone 99999999-9999-9999-9999-999999999999 not found in workspace."})
+
+[4] update_shift (zone_ids reconcile to [Terrasse only])
+  PASS: update returns no error (got {"schedule_shift_id":"dcda2a78-ce4c-4950-94f2-0ec16fe545a9","workspace_id":"b0000000-0000-0000-0000-000000000000","emplo)
+  PASS: shift_zone reconciled to [Terrasse] (got ["d1000000-0000-0000-0000-000000000002"])
+
+[5] workspace-api GET /v1/shifts zones[] SQL (exact EF query shape)
+  PASS: EF correlated-subquery executes (no SQL error on dropped zone col)
+  PASS: zones[] = reconciled set {Terrasse} (got {Terrasse})
+
+==== LIVE-INVOKE RESULT: 10 passed, 0 failed ====

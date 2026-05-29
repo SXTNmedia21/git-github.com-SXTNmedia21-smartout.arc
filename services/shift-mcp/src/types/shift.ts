@@ -50,8 +50,30 @@ export const createShiftInput = z.object({
     .describe("Profile UUID of assigned employee, null for unassigned"),
   position_id: z.string().uuid().nullish().describe("Position UUID"),
   team_id: z.string().uuid().nullish().describe("Team UUID"),
+  // ADR-0430 M1: schedule_shift.department_id is NOT NULL. The trigger-derive
+  // path (position_id → department_id) only fires on UPDATE OF position_id, not
+  // on INSERT — so a department MUST be resolved before insert. Supply either
+  // department_session_id (strongest — ties to a live session) or department_id.
+  department_id: z
+    .string()
+    .uuid()
+    .optional()
+    .describe("Department UUID. Required if department_session_id not supplied (M1 NOT NULL)."),
+  department_session_id: z
+    .string()
+    .uuid()
+    .optional()
+    .describe(
+      "Department session UUID — strongest department resolution path (resolves department_id).",
+    ),
   breaks: z.number().int().min(0).default(0).describe("Break duration in minutes"),
-  zone: z.string().nullish().describe("Kitchen zone, floor section, etc."),
+  // ADR-0430 M4: scalar `zone` column dropped from schedule_shift. Zone is now
+  // an M:N relation via shift_zone (keyed by shift_session_id + day_line_id).
+  zone_ids: z
+    .array(z.string().uuid())
+    .optional()
+    .default([])
+    .describe("Zone UUIDs to assign this shift to (M:N via shift_zone). ADR-0430."),
   indicator: z
     .enum(["blue", "emerald", "purple", "orange"])
     .default("blue")
@@ -77,7 +99,14 @@ export const updateShiftInput = z.object({
   position_id: z.string().uuid().nullish().describe("Position UUID"),
   team_id: z.string().uuid().nullish().describe("Team UUID"),
   breaks: z.number().int().min(0).optional().describe("Break duration in minutes"),
-  zone: z.string().nullish().describe("Kitchen zone, floor section, etc."),
+  // ADR-0430 M4: scalar `zone` dropped. zone_ids REPLACES the zone assignment set
+  // for this shift. undefined = leave zones unchanged; [] = clear all assignments.
+  zone_ids: z
+    .array(z.string().uuid())
+    .optional()
+    .describe(
+      "Replace zone assignments (M:N via shift_zone). undefined = unchanged; [] = clear all. ADR-0430.",
+    ),
   indicator: z
     .enum(["blue", "emerald", "purple", "orange"])
     .optional()
