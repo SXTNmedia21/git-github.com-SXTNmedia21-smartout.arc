@@ -376,16 +376,16 @@ INSERT INTO auth.identities (
    'email', now(), now(), now()),
   -- New employees
   ('e0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-00000000000a',
-   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000a', 'email', 'sofia@smartout.local'),
+   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000a', 'email', 'sofia@smartout.local', 'email_verified', true),
    'email', now(), now(), now()),
   ('e0000000-0000-0000-0000-00000000000b', 'e0000000-0000-0000-0000-00000000000b',
-   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000b', 'email', 'mats@smartout.local'),
+   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000b', 'email', 'mats@smartout.local', 'email_verified', true),
    'email', now(), now(), now()),
   ('e0000000-0000-0000-0000-00000000000c', 'e0000000-0000-0000-0000-00000000000c',
-   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000c', 'email', 'nora@smartout.local'),
+   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000c', 'email', 'nora@smartout.local', 'email_verified', true),
    'email', now(), now(), now()),
   ('e0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-00000000000d',
-   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000d', 'email', 'even@smartout.local'),
+   jsonb_build_object('sub', 'e0000000-0000-0000-0000-00000000000d', 'email', 'even@smartout.local', 'email_verified', true),
    'email', now(), now(), now())
 ON CONFLICT (provider_id, provider) DO NOTHING;
 
@@ -711,6 +711,13 @@ ALTER TABLE public.profile ENABLE TRIGGER trg_auto_assign_protocols;
 -- ============================================================================
 -- 8. GODMODE (admin user)
 -- ============================================================================
+-- Bare UPDATE (not upsert): user_identity is auto-created by a trigger on
+-- auth.users insert, which is the only source that can satisfy this table's
+-- many NOT NULL columns (email, auth_provider, first_name, last_name,
+-- preferred_language, timezone, ...). The admin auth.users row is always
+-- inserted above in this same transaction, so the row is guaranteed to exist
+-- by the time this runs. An INSERT branch would have to duplicate all of the
+-- trigger's NOT NULL payload — fragile and redundant. UPDATE is correct here.
 UPDATE public.user_identity
 SET is_godmode = true
 WHERE user_id = 'e0000000-0000-0000-0000-000000000000';
@@ -860,8 +867,9 @@ INSERT INTO public.employee_payroll_profile (
    false, 'hourly',   20,   'ufaglart', CURRENT_DATE - interval '1 year',    CURRENT_DATE - interval '1 year'),
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000004',
    false, 'monthly',  37.5, 'ufaglart', CURRENT_DATE - interval '3 years',   CURRENT_DATE - interval '3 years'),
+  -- Kari is a trainee servitor — a trainee cannot hold a fagbrev (coherence fix)
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000005',
-   true,  'hourly',   37.5, 'faglart',  CURRENT_DATE - interval '5 years',   CURRENT_DATE - interval '5 years'),
+   false, 'hourly',   37.5, 'ufaglart', CURRENT_DATE - interval '5 years',   CURRENT_DATE - interval '5 years'),
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000006',
    false, 'hourly',   30,   'ufaglart', CURRENT_DATE - interval '2 years 6 months', CURRENT_DATE - interval '2 years 6 months'),
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000007',
@@ -880,9 +888,11 @@ INSERT INTO public.employee_payroll_profile (
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-00000000000d',
    false, 'hourly',   30,   'ufaglart', CURRENT_DATE - interval '8 months',  CURRENT_DATE - interval '8 months')
 ON CONFLICT (profile_id) DO UPDATE SET
-  has_fagbrev         = EXCLUDED.has_fagbrev,
-  salary_type         = EXCLUDED.salary_type,
-  agreed_weekly_hours = EXCLUDED.agreed_weekly_hours,
-  tariff_category     = EXCLUDED.tariff_category;
+  has_fagbrev          = EXCLUDED.has_fagbrev,
+  salary_type          = EXCLUDED.salary_type,
+  agreed_weekly_hours  = EXCLUDED.agreed_weekly_hours,
+  tariff_category      = EXCLUDED.tariff_category,
+  seniority_start_date = EXCLUDED.seniority_start_date,
+  valid_from           = EXCLUDED.valid_from;
 
 COMMIT;
