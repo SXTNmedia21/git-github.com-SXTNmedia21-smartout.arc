@@ -129,6 +129,32 @@ DELETE FROM public.season_policy_binding
 DELETE FROM public.policy
   WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
 
+-- NOTE: season ac000000-…-1 is NOT deleted in the idempotency block. Many other
+-- demo rows (zones, teams, department_operating_hours, etc.) reference it via FK;
+-- it is upsert-only (see section 0 below) so re-applying never orphans them.
+
+
+-- ============================================================================
+-- 0. D4 SEASON STUB (must precede season_policy_binding for FK coherence)
+-- Minimal D4 season stub — no dedicated D4 file in demo-restaurant seed set;
+-- required for season_policy_binding FK coherence on clean reset. The legacy
+-- seed.sql (retired in Task 9) was the only other source of this row, so without
+-- this upsert a fresh `supabase db reset` would FK-violate on the bindings below.
+-- ============================================================================
+INSERT INTO public.season (
+  season_id, workspace_id, name, slug, season_type, status, is_default,
+  start_date, end_date, created_by
+) VALUES (
+  'ac000000-0000-0000-0000-000000000001',
+  'b0000000-0000-0000-0000-000000000000',
+  'Vinter 2026', 'vinter-2026', 'default', 'active', true,
+  date_trunc('year', CURRENT_DATE)::date,
+  (date_trunc('year', CURRENT_DATE) + INTERVAL '1 year' - INTERVAL '1 day')::date,
+  'f0000000-0000-0000-0000-000000000000'
+) ON CONFLICT (season_id) DO UPDATE SET
+  name   = EXCLUDED.name,
+  status = EXCLUDED.status;
+
 
 -- ============================================================================
 -- 1. POLICIES — 6 total (5 core + 1 kitchen-cleaning from 00-base session_hook)
