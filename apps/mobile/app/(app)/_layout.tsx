@@ -231,8 +231,10 @@ export default function AppLayout() {
 
           {/* ── Hidden — Calendar still reachable but not in tab bar ────── */}
           <Tabs.Screen name="(calendar)" options={{ href: null }} />
-          {/* Onboarding wizard — full-screen modal, never appears in tab bar */}
-          <Tabs.Screen name="onboarding" options={{ href: null }} />
+          {/* Onboarding wizard — full-screen modal, never appears in tab bar.
+              Route name is "onboarding/index" (file: onboarding/index.tsx) — declarative
+              href:null on "onboarding" misses it; defense-in-depth via TabBar hiddenTabs. */}
+          <Tabs.Screen name="onboarding/index" options={{ href: null }} />
           {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />

@@ -71,6 +71,8 @@ export function TabBar({
     "journey", // legacy hidden per ADR-0268 5-tab canonical
     "journey/[id]/guided", // dynamic-route auto-leak
     "routine-review", // 2B push-screen auto-leak — href:null not honored by custom tabBar
+    "onboarding", // welcome wizard — href:null on "onboarding" misses "onboarding/index" route name
+    "onboarding/index", // file-based dynamic-route auto-leak (apps/mobile/app/(app)/onboarding/index.tsx)
   ]);
   const visibleRoutes = state.routes.filter((r) => {
     const options = descriptors[r.key]?.options;
