@@ -37,10 +37,12 @@ BEGIN
     RAISE EXCEPTION 'HOLLOW: profile = % (expected >= 11)', n;
   END IF;
 
-  -- ── 2. Department operating hours (4 depts × 7 days) ────────────────────
-  SELECT count(*) INTO n FROM public.department_operating_hours WHERE workspace_id = ws_id;
+  -- ── 2. Department operating hours (4 depts × 7 days default, season_id IS NULL) ──
+  -- Only count the default (null-season) rows; season-scoped rows are additive.
+  SELECT count(*) INTO n FROM public.department_operating_hours
+    WHERE workspace_id = ws_id AND season_id IS NULL;
   IF n <> 28 THEN
-    RAISE EXCEPTION 'HOLLOW: department_operating_hours = % (expected 28)', n;
+    RAISE EXCEPTION 'HOLLOW: department_operating_hours (default, season_id IS NULL) = % (expected 28)', n;
   END IF;
 
   -- ── 3. Employment contracts ──────────────────────────────────────────────
