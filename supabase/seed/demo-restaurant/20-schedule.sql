@@ -88,6 +88,14 @@ WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
 DELETE FROM public.shift_cost_snapshot
 WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
 
+-- shift_pay_calculation_event: payroll audit rows (seeded by 30-payroll) carry a
+-- NO ACTION FK shift_id → schedule_shift. On a WHOLE-SET re-apply this file runs
+-- before 30-payroll's own cleanup, so we must clear them here or the schedule_shift
+-- delete below is blocked. (On a fresh db reset this is a harmless no-op — payroll
+-- events don't exist yet when 20-schedule first runs.)
+DELETE FROM public.shift_pay_calculation_event
+WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
+
 -- schedule_absence (no FK to shift — standalone)
 DELETE FROM public.schedule_absence
 WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
