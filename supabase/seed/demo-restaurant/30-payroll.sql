@@ -711,29 +711,24 @@ WHERE c.workspace_id = 'b0000000-0000-0000-0000-000000000000'
 -- calculated_by = 'seed'. shift_period_end_date = CURRENT_DATE - 1.
 -- ============================================================================
 
--- Scalar tariff IDs needed for event rows (latest row per type)
--- We resolve them via a DO block into a temp table to avoid per-row subqueries.
-
-CREATE TEMP TABLE _seed_tariff_ids ON COMMIT DROP AS
-SELECT
-    (SELECT DISTINCT ON (rate_type) id FROM public.tariff_rate_table
-     WHERE workspace_id IS NULL AND rate_type = 'minstelonn_faglart'
-     ORDER BY rate_type, effective_from DESC)     AS faglart_id,
-    (SELECT DISTINCT ON (rate_type) id FROM public.tariff_rate_table
-     WHERE workspace_id IS NULL AND rate_type = 'minstelonn_ufaglart'
-     ORDER BY rate_type, effective_from DESC)     AS ufaglart_id,
-    (SELECT DISTINCT ON (rate_type) id FROM public.tariff_rate_table
-     WHERE workspace_id IS NULL AND rate_type = 'kveldstillegg'
-     ORDER BY rate_type, effective_from DESC)     AS kveld_id,
-    (SELECT DISTINCT ON (rate_type) id FROM public.tariff_rate_table
-     WHERE workspace_id IS NULL AND rate_type = 'helgetillegg'
-     ORDER BY rate_type, effective_from DESC)     AS helg_id,
-    (SELECT DISTINCT ON (rate_type) id FROM public.tariff_rate_table
-     WHERE workspace_id IS NULL AND rate_type = 'nattillegg_ordinaer'
-     ORDER BY rate_type, effective_from DESC)     AS natt_id;
+-- Tariff IDs are resolved via statement-local CTEs inside each INSERT below.
+-- NOTE: a TEMP TABLE was tried here but DROPS between the supabase reset seeder's
+-- inter-batch COMMITs (pgx/Go driver). CTEs are statement-scoped → batch-safe.
 
 -- 6a. Base events — one per closed shift
--- base_rate from shift_cost_snapshot; tariff_rate_table_id from _seed_tariff_ids
+-- base_rate from shift_cost_snapshot; tariff_rate_table_id resolved inline via CTE
+WITH tariff_ids AS (
+    SELECT
+        (SELECT id FROM public.tariff_rate_table
+         WHERE workspace_id IS NULL AND rate_type = 'minstelonn_faglart'
+         ORDER BY effective_from DESC LIMIT 1)  AS faglart_id,
+        (SELECT id FROM public.tariff_rate_table
+         WHERE workspace_id IS NULL AND rate_type = 'minstelonn_ufaglart'
+         ORDER BY effective_from DESC LIMIT 1)  AS ufaglart_id,
+        (SELECT amount FROM public.tariff_rate_table
+         WHERE workspace_id IS NULL AND rate_type = 'minstelonn_faglart'
+         ORDER BY effective_from DESC LIMIT 1)  AS faglart_amount
+)
 INSERT INTO public.shift_pay_calculation_event (
     workspace_id, payroll_period_id,
     shift_id, profile_id,
@@ -749,17 +744,13 @@ SELECT
     'c1000000-0000-0000-0000-000000000001'           AS payroll_period_id,
     scs.schedule_shift_id                            AS shift_id,
     scs.profile_id,
-    -- tariff_rate_table_id: faglart if base_rate=210, else ufaglart
-    CASE WHEN scs.base_rate = (SELECT DISTINCT ON (rate_type) amount FROM public.tariff_rate_table
-                               WHERE workspace_id IS NULL AND rate_type = 'minstelonn_faglart'
-                               ORDER BY rate_type, effective_from DESC)
+    -- tariff_rate_table_id: faglart if base_rate matches faglart amount, else ufaglart
+    CASE WHEN scs.base_rate = ti.faglart_amount
          THEN ti.faglart_id ELSE ti.ufaglart_id END AS tariff_rate_table_id,
     'base'                                           AS rule_type,
     scs.base_rate                                    AS rate_value_applied,
     'kr_per_time'                                    AS rate_type,
-    CASE WHEN scs.base_rate = (SELECT DISTINCT ON (rate_type) amount FROM public.tariff_rate_table
-                               WHERE workspace_id IS NULL AND rate_type = 'minstelonn_faglart'
-                               ORDER BY rate_type, effective_from DESC)
+    CASE WHEN scs.base_rate = ti.faglart_amount
          THEN 'minstelonn_faglart' ELSE 'minstelonn_ufaglart' END AS source_text_applied,
     scs.base_hours                                   AS quantity_value,
     scs.base_amount                                  AS subtotal,
@@ -769,7 +760,7 @@ SELECT
     'seed'                                           AS calculated_by,
     (CURRENT_DATE - 1)                               AS shift_period_end_date
 FROM public.shift_cost_snapshot scs
-CROSS JOIN _seed_tariff_ids ti
+CROSS JOIN tariff_ids ti
 WHERE scs.workspace_id      = 'b0000000-0000-0000-0000-000000000000'
   AND scs.payroll_period_id = 'c1000000-0000-0000-0000-000000000001';
 
@@ -790,7 +781,9 @@ SELECT
     scs.schedule_shift_id                            AS shift_id,
     scs.profile_id,
     'e0100000-0000-0000-0000-000000000001'::uuid     AS rule_id,
-    ti.kveld_id                                      AS tariff_rate_table_id,
+    (SELECT id FROM public.tariff_rate_table
+     WHERE workspace_id IS NULL AND rate_type = 'kveldstillegg'
+     ORDER BY effective_from DESC LIMIT 1)           AS tariff_rate_table_id,
     'supplement'                                     AS rule_type,
     sr_kveld.rate_value                              AS rate_value_applied,
     'kr_per_time'                                    AS rate_type,
@@ -827,7 +820,6 @@ SELECT
     (CURRENT_DATE - 1)                               AS shift_period_end_date
 FROM public.shift_cost_snapshot scs
 JOIN public.schedule_shift ss ON ss.schedule_shift_id = scs.schedule_shift_id
-CROSS JOIN _seed_tariff_ids ti
 JOIN public.supplement_rule sr_kveld
     ON sr_kveld.id = 'e0100000-0000-0000-0000-000000000001'
 WHERE scs.workspace_id      = 'b0000000-0000-0000-0000-000000000000'
@@ -851,7 +843,9 @@ SELECT
     scs.schedule_shift_id                            AS shift_id,
     scs.profile_id,
     'e0100000-0000-0000-0000-000000000002'::uuid     AS rule_id,
-    ti.helg_id                                       AS tariff_rate_table_id,
+    (SELECT id FROM public.tariff_rate_table
+     WHERE workspace_id IS NULL AND rate_type = 'helgetillegg'
+     ORDER BY effective_from DESC LIMIT 1)           AS tariff_rate_table_id,
     'supplement'                                     AS rule_type,
     sr_helg.rate_value                               AS rate_value_applied,
     'kr_per_time'                                    AS rate_type,
@@ -865,7 +859,6 @@ SELECT
     (CURRENT_DATE - 1)                               AS shift_period_end_date
 FROM public.shift_cost_snapshot scs
 JOIN public.schedule_shift ss ON ss.schedule_shift_id = scs.schedule_shift_id
-CROSS JOIN _seed_tariff_ids ti
 JOIN public.supplement_rule sr_helg
     ON sr_helg.id = 'e0100000-0000-0000-0000-000000000002'
 WHERE scs.workspace_id      = 'b0000000-0000-0000-0000-000000000000'
@@ -889,7 +882,9 @@ SELECT
     scs.schedule_shift_id                            AS shift_id,
     scs.profile_id,
     'e0100000-0000-0000-0000-000000000003'::uuid     AS rule_id,
-    ti.natt_id                                       AS tariff_rate_table_id,
+    (SELECT id FROM public.tariff_rate_table
+     WHERE workspace_id IS NULL AND rate_type = 'nattillegg_ordinaer'
+     ORDER BY effective_from DESC LIMIT 1)           AS tariff_rate_table_id,
     'supplement'                                     AS rule_type,
     sr_natt.rate_value                               AS rate_value_applied,
     'kr_per_time'                                    AS rate_type,
@@ -903,7 +898,6 @@ SELECT
     (CURRENT_DATE - 1)                               AS shift_period_end_date
 FROM public.shift_cost_snapshot scs
 JOIN public.schedule_shift ss ON ss.schedule_shift_id = scs.schedule_shift_id
-CROSS JOIN _seed_tariff_ids ti
 JOIN public.supplement_rule sr_natt
     ON sr_natt.id = 'e0100000-0000-0000-0000-000000000003'
 WHERE scs.workspace_id      = 'b0000000-0000-0000-0000-000000000000'
