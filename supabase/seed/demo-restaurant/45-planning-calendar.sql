@@ -448,12 +448,15 @@ INSERT INTO public.season_policy_binding (
 
 
 -- ============================================================================
--- 8. DEPARTMENT OPERATING HOURS — season-scoped
+-- 8. DEPARTMENT OPERATING HOURS — season-scoped (all 4 seasons → 112 rows)
 --    Vinter (ac…1):  4 depts × 7 days = 28 rows  — same 10:00–23:00 as default
+--    Vår    (ac…2):  4 depts × 7 days = 28 rows  — mirrors default 10:00–23:00
 --    Sommer (ac…3):  4 depts × 7 days = 28 rows  — extended: open 11:00, close 01:00
---    Total: 56 rows
+--    Høst   (ac…4):  4 depts × 7 days = 28 rows  — Christmas peak: Fri/Sat close 00:00
+--    Total: 112 rows. Every season's Hours tab renders populated (not empty CTA).
 --    unique: (department_id, location_id, season_id, day_of_week) NULLS NOT DISTINCT
 --    Default hours use location_id = NULL — match that pattern for season rows too.
+--    No ON CONFLICT needed: idempotency block clears all season_id IS NOT NULL rows.
 -- ============================================================================
 
 -- 8a. Vinter — 4 departments × 7 days (standard winter hours 10:00–23:00)
@@ -483,7 +486,34 @@ FROM
   ) AS depts(dept_id),
   generate_series(0, 6) AS dow;
 
--- 8b. Sommer — extended hours: open 11:00, close 01:00 (next day)
+-- 8b. Vår — mirrors default winter hours 10:00–23:00 (spring is steady, no extension)
+INSERT INTO public.department_operating_hours (
+  id, workspace_id, department_id, location_id, season_id,
+  day_of_week, open_time, close_time, is_closed,
+  provenance, is_derived
+)
+SELECT
+  gen_random_uuid(),
+  'b0000000-0000-0000-0000-000000000000',
+  dept_id,
+  NULL,
+  'ac000000-0000-0000-0000-000000000002',
+  dow,
+  '10:00'::time,
+  '23:00'::time,
+  false,
+  '{}'::jsonb,
+  false
+FROM
+  (VALUES
+    ('d0000000-0000-0000-0000-000000000000'::uuid),
+    ('d0000000-0000-0000-0000-000000000001'::uuid),
+    ('d0000000-0000-0000-0000-000000000002'::uuid),
+    ('d0000000-0000-0000-0000-000000000003'::uuid)
+  ) AS depts(dept_id),
+  generate_series(0, 6) AS dow;
+
+-- 8c. Sommer — extended hours: open 11:00, close 01:00 (next day)
 INSERT INTO public.department_operating_hours (
   id, workspace_id, department_id, location_id, season_id,
   day_of_week, open_time, close_time, is_closed,
@@ -498,6 +528,33 @@ SELECT
   dow,
   '11:00'::time,
   '01:00'::time,  -- midnight-past-midnight extended
+  false,
+  '{}'::jsonb,
+  false
+FROM
+  (VALUES
+    ('d0000000-0000-0000-0000-000000000000'::uuid),
+    ('d0000000-0000-0000-0000-000000000001'::uuid),
+    ('d0000000-0000-0000-0000-000000000002'::uuid),
+    ('d0000000-0000-0000-0000-000000000003'::uuid)
+  ) AS depts(dept_id),
+  generate_series(0, 6) AS dow;
+
+-- 8d. Høst/Jul — Christmas peak: open 10:00; Fri (4) + Sat (5) close 00:00, else 23:00
+INSERT INTO public.department_operating_hours (
+  id, workspace_id, department_id, location_id, season_id,
+  day_of_week, open_time, close_time, is_closed,
+  provenance, is_derived
+)
+SELECT
+  gen_random_uuid(),
+  'b0000000-0000-0000-0000-000000000000',
+  dept_id,
+  NULL,
+  'ac000000-0000-0000-0000-000000000004',
+  dow,
+  '10:00'::time,
+  CASE WHEN dow IN (4, 5) THEN '00:00'::time ELSE '23:00'::time END,
   false,
   '{}'::jsonb,
   false
