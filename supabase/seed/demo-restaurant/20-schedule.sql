@@ -34,7 +34,7 @@
 -- SHIFT ID SCHEME (32 shifts total; stable UUIDs for shift_zone DO-blocks):
 --   Mon(+0)  : 1000…0011..0014   Tue(+1) : 1000…0021..0024
 --   Wed(+2)  : 1000…0031..0034   Thu(+3) : 1000…0041..0045
---   Fri(+4)  : 1000…0051..0056   Sat(+5) : 1000…0061..006e (busy, 14 shifts)
+--   Fri(+4)  : 1000…0051..0056   Sat(+5) : 1000…0061..006d (busy, 13 shifts)
 --   Sun(+6)  : 1000…0071..0073
 -- =============================================================================
 
@@ -444,7 +444,7 @@ VALUES ('10000000-0000-0000-0000-000000000056',
   date_trunc('week', CURRENT_DATE)::date + 4, '09:00', '18:00', 8.50, 30,
   'morning', 'published', true, 'emerald', 'operational');
 
--- ── SATURDAY (anchor + 5) — BUSY DAY: 14 shifts ──────────────────────────────
+-- ── SATURDAY (anchor + 5) — BUSY DAY: 13 shifts (11 assigned + 2 open) ───────
 
 -- KITCHEN (4 shifts):
 
@@ -1123,7 +1123,7 @@ WHERE ds.workspace_id = 'b0000000-0000-0000-0000-000000000000'
 -- Only shifts from past days (shift_date < CURRENT_DATE) get punches.
 -- status = 'completed' (full shift punched out).
 -- punch_in ≈ shift start, punch_out ≈ shift end.
--- source = 'manual' (seed / supervisor entry).
+-- source = 'operational' (CHECK allows operational|bubble_migration|v3_engine).
 -- ===========================================================================
 
 INSERT INTO timesheet.time_entry (
