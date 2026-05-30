@@ -1264,4 +1264,44 @@ WHERE ds.workspace_id = 'b0000000-0000-0000-0000-000000000000'
   AND ds.department_id = 'd0000000-0000-0000-0000-000000000002'
   AND ds.session_date = date_trunc('week', CURRENT_DATE)::date + 4;
 
+
+-- ---------------------------------------------------------------------------
+-- STEP 10: SCHEDULE_DAY_BOOKING — restaurant reservations for the week.
+-- Read by cockpit prep-strip, ReservationSheet, day-timeline. Date-dynamic
+-- (week-anchor + dow). Heavy Fri(4)/Sat(5)/Sun(6). day_line_id resolves to the
+-- Service department day_line for that date (nullable; dining = FoH/Service).
+-- booking_time is TIME; status is booking_status (confirmed|pending|cancelled).
+-- ---------------------------------------------------------------------------
+INSERT INTO public.schedule_day_booking (
+  schedule_day_booking_id, workspace_id, shift_date, title, guest_count,
+  menu, booking_time, location, status, is_vip, notes, contact_person,
+  day_line_id, created_at, updated_at
+)
+SELECT
+  gen_random_uuid(),
+  'b0000000-0000-0000-0000-000000000000',
+  (date_trunc('week', CURRENT_DATE)::date + b.dow),
+  b.title, b.guests, b.menu, b.btime::time, b.loc,
+  b.status::booking_status, b.vip, b.notes, b.contact,
+  (SELECT dl.day_line_id FROM public.day_line dl
+     WHERE dl.workspace_id = 'b0000000-0000-0000-0000-000000000000'
+       AND dl.department_id = 'd0000000-0000-0000-0000-000000000002'
+       AND dl.business_date = date_trunc('week', CURRENT_DATE)::date + b.dow),
+  now(), now()
+FROM (VALUES
+  (0, '12:30', 'Forretningslunsj Aker Solutions',  8, 'Dagens lunsjmeny',                'Hovedsal',   'confirmed', false, NULL,                              'Kari Aas / 91002030'),
+  (1, '19:30', 'Bursdag 50 år',                    14, '3-retters jubileumsmeny',         'Hovedsal',   'confirmed', false, 'Bløtkake medbringes til dessert', 'Per Nilsen / 92003040'),
+  (2, '18:00', 'Quiz-kveld bedriftsgruppe',         6, NULL,                              'Bar-område', 'pending',   false, 'Ønsker fast bord ved baren',      'Ola Hansen / 93004050'),
+  (3, '19:00', 'Avdelingsmiddag Telenor',          18, '2-retters + kaffe',               'Terrasse',   'confirmed', false, 'Faktura til firma',               'Lise Berg / 94005060'),
+  (4, '18:00', 'Bryllupsmiddag Hansen',            24, '3-retters meny med vintilpasning', 'Hovedsal',  'confirmed', true,  'Allergi: skalldyr (2 gjester)',   'Marte Hansen / 95006070'),
+  (4, '20:00', 'Date night',                        2, NULL,                              'Terrasse',   'confirmed', false, 'Vindusbord ønskes',               'Anonym / 96007080'),
+  (4, '21:00', 'Vennegjeng fredagspils',            8, NULL,                              'Bar-område', 'pending',   false, NULL,                              'Stian Lie / 97008090'),
+  (5, '15:00', 'Konfirmasjon Berg',                30, '3-retters konfirmasjonsmeny',     'Hovedsal',   'confirmed', true,  'Egen kakebuffet kl 17',           'Anne Berg / 98009010'),
+  (5, '19:00', 'Jubileum 25 år sammen',            12, '4-retters smaksmeny',             'Terrasse',   'confirmed', true,  'Champagne ved ankomst',           'Tom Ruud / 99001020'),
+  (5, '20:30', 'Stor gruppe walk-in forhåndsvarsel',10, NULL,                             'Hovedsal',   'pending',   false, 'Bekreftes dagen før',             'Eva Sand / 90002030'),
+  (5, '18:00', 'Avlyst — sykdom',                   6, NULL,                              'Hovedsal',   'cancelled', false, 'Avlyst samme morgen pga sykdom',  'Geir Moe / 91003040'),
+  (6, '12:00', 'Søndagsbrunsj familie',            16, 'Brunsjbuffet',                    'Hovedsal',   'confirmed', false, '4 barnestoler',                   'Nina Holm / 92004050'),
+  (6, '14:00', 'Dåp etterfest',                    20, 'Koldtbord + kaffe og kaker',      'Terrasse',   'confirmed', true,  'Glutenfritt alternativ (3)',      'Frode Vik / 93005060')
+) AS b(dow, btime, title, guests, menu, loc, status, vip, notes, contact);
+
 COMMIT;
