@@ -9,9 +9,10 @@
 --
 -- D4 PLANNING + CALENDAR IDs:
 -- SEASON           ac000000-0000-0000-0000-000000000001  Vinter 2026 (seeded by 40-governance)
---                  ac000000-0000-0000-0000-000000000002  Vår 2026    (focus, archived)
---                  ac000000-0000-0000-0000-000000000003  Sommer 2026 (focus, draft)
---                  ac000000-0000-0000-0000-000000000004  Høst/Jul 2026 (focus, draft)
+--                  ac000000-0000-0000-0000-000000000002  Vår 2026    (Q2, ACTIVE + default)
+--                  ac000000-0000-0000-0000-000000000003  Sommer 2026 (Q3, draft)
+--                  ac000000-0000-0000-0000-000000000004  Høst/Jul 2026 (Q4, draft)
+-- Quarters: Vinter Q1 (40-governance, archived) · Vår Q2 active · Sommer Q3 · Høst Q4. Contiguous.
 -- SEASON_BUDGET    ad000000-0000-0000-0000-000000000001  Vinter budget
 --                  ad000000-0000-0000-0000-000000000002  Vår budget
 --                  ad000000-0000-0000-0000-000000000003  Sommer budget
@@ -116,15 +117,15 @@ INSERT INTO public.season (
   start_date, end_date,
   color, created_by
 ) VALUES
-  -- Vår 2026 — archived focus season (past)
+  -- Vår 2026 — Q2, ACTIVE season (current quarter) + workspace default
   (
     'ac000000-0000-0000-0000-000000000002',
     'b0000000-0000-0000-0000-000000000000',
     'Vår 2026', 'var-2026',
-    'Vårsesongen med påske og nasjonaldag — hektisk men kortvarig',
-    'focus', 'archived', false,
+    'Vårsesongen med påske og nasjonaldag — inneværende kvartal',
+    'focus', 'active', true,
     make_date(extract(year from CURRENT_DATE)::int, 4, 1),
-    make_date(extract(year from CURRENT_DATE)::int, 6, 14),
+    make_date(extract(year from CURRENT_DATE)::int, 6, 30),
     '#10B981',
     'f0000000-0000-0000-0000-000000000000'
   ),
@@ -135,8 +136,8 @@ INSERT INTO public.season (
     'Sommer 2026', 'sommer-2026',
     'Høysesong — terrasse full, utvidet åpningstider, økt bemanning',
     'focus', 'draft', false,
-    make_date(extract(year from CURRENT_DATE)::int, 6, 15),
-    make_date(extract(year from CURRENT_DATE)::int, 8, 31),
+    make_date(extract(year from CURRENT_DATE)::int, 7, 1),
+    make_date(extract(year from CURRENT_DATE)::int, 9, 30),
     '#F59E0B',
     'f0000000-0000-0000-0000-000000000000'
   ),
@@ -147,7 +148,7 @@ INSERT INTO public.season (
     'Høst/Jul 2026', 'host-2026',
     'Høst og julesesong — firmafester, julelunsj, adventsbuffet',
     'focus', 'draft', false,
-    make_date(extract(year from CURRENT_DATE)::int, 9, 1),
+    make_date(extract(year from CURRENT_DATE)::int, 10, 1),
     make_date(extract(year from CURRENT_DATE)::int, 12, 31),
     '#8B5CF6',
     'f0000000-0000-0000-0000-000000000000'
@@ -163,22 +164,22 @@ INSERT INTO public.season_budget (
   season_price_factor, target_labor_percentage,
   avg_hourly_wage, status, created_by
 ) VALUES
-  -- Vinter (ac…1) — slightly off-peak, factor 0.95, active season → active budget
+  -- Vinter (ac…1) — Q1 (past), factor 0.95, archived season → draft budget
   (
     'ad000000-0000-0000-0000-000000000001',
     'ac000000-0000-0000-0000-000000000001',
     'b0000000-0000-0000-0000-000000000000',
     3800000.00, 645.00, 0.95, 0.30,
-    220.00, 'active',
+    220.00, 'draft',
     'f0000000-0000-0000-0000-000000000000'
   ),
-  -- Vår (ac…2) — baseline factor 1.0, archived → draft budget
+  -- Vår (ac…2) — baseline factor 1.0, ACTIVE season → active budget
   (
     'ad000000-0000-0000-0000-000000000002',
     'ac000000-0000-0000-0000-000000000002',
     'b0000000-0000-0000-0000-000000000000',
     4200000.00, 650.00, 1.00, 0.29,
-    220.00, 'draft',
+    220.00, 'active',
     'f0000000-0000-0000-0000-000000000000'
   ),
   -- Sommer (ac…3) — peak factor 1.25, high revenue, more staff

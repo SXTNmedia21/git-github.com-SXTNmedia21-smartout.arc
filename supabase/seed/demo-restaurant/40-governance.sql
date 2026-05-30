@@ -147,13 +147,18 @@ INSERT INTO public.season (
 ) VALUES (
   'ac000000-0000-0000-0000-000000000001',
   'b0000000-0000-0000-0000-000000000000',
-  'Vinter 2026', 'vinter-2026', 'default', 'active', true,
+  -- Q1 winter quarter (Jan–Mar). Past as of mid-year → archived, not the workspace default.
+  'Vinter 2026', 'vinter-2026', 'calendar', 'archived', false,
   date_trunc('year', CURRENT_DATE)::date,
-  (date_trunc('year', CURRENT_DATE) + INTERVAL '1 year' - INTERVAL '1 day')::date,
+  (date_trunc('year', CURRENT_DATE) + INTERVAL '3 months' - INTERVAL '1 day')::date,
   'f0000000-0000-0000-0000-000000000000'
 ) ON CONFLICT (season_id) DO UPDATE SET
-  name   = EXCLUDED.name,
-  status = EXCLUDED.status;
+  name        = EXCLUDED.name,
+  season_type = EXCLUDED.season_type,
+  status      = EXCLUDED.status,
+  is_default  = EXCLUDED.is_default,
+  start_date  = EXCLUDED.start_date,
+  end_date    = EXCLUDED.end_date;
 
 
 -- ============================================================================
