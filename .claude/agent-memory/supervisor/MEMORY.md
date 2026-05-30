@@ -1,6 +1,9 @@
 # Supervisor Agent Memory
 
 ## Task Tables (Task Ontology)
+- e2e seed-helper drift (verified 2026-05-29, J1 review): `session_task` has NEITHER `priority` NOR `task_type` (DDL 20260412100300_session_infrastructure.sql + types.ts:18475-18494). Seed helpers in apps/e2e insert both. Removing only `priority` leaves `task_type` as next CI-red (L-0348 one-col-at-a-time class, 4th occurrence). Real session_task cols: assigned_to/completed_*/day_line_id/department_session_id/description/evidence/generated_by/id/is_compliance_required/origin/scheduled_at/session_hook_id/source_reference/status/title/workspace_id.
+- `schedule_day_task` real cols: label(NOT title), shift_date(NOT task_date), task_status(NOT status), category, highlight, schedule_day_task_id PK(NOT id). NO department_id/priority/status. sortie-p0 T3 insert had 5 wrong cols.
+- FALSE-GREEN test pattern: sortie-p0-fix-sweep-task-complete-source.spec.ts T3 (~line 286) does `test.skip(true, "table may not exist")` on insert FAILURE — table exists, insert is malformed → test never executes, never goes red, claims day_ad_hoc→200 coverage it doesn't have. Watch for test.skip on seed-error: it converts column drift into fabricated coverage. Fix = correct cols OR change skip→throw.
 - [4 task-table consolidation blast radius](task_table_consolidation.md) — verified 2026-05-22. session_task=65 src files/20 migs (cascade D6, day_line FK, 2 crons); other 3 tiny. PK convention split (id vs {table}_id); 3 incompatible status types; dual union (fn_list_my_tasks RPC + list_mine TS tools.ts:144-207) must co-change. Verdict: approve C2 merge standalone, reject bundled 4→2 (70% cost is code churn unaffected by empty DB), D6 fights ADR-0367.
 
 ## Task-Manager / Governance
