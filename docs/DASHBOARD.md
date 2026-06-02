@@ -28,6 +28,7 @@ None.
 | hms | `campaign/hms` | hms-proof Playwright config + spec (backup commit) | 1 | 71 behind, 87 ahead | ✓ pushed 2026-05-30 |
 | bubble-migration | `campaign/bubble-migration` | sync development into campaign | 0 | 147 behind, 127 ahead | ✓ |
 | web-frontend-refactor | `campaign/web-frontend-refactor` | campaign scaffolding | 0 | even (just branched) | ✓ pushed 2026-06-02 |
+| mobile-frontend-refactor | `campaign/mobile-frontend-refactor` | campaign scaffolding | 0 | even (just branched) | not pushed |
 
 ## Other Worktrees
 
