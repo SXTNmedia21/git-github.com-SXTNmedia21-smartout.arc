@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-30
+updated: 2026-06-02
 last-reconciled: 2026-05-30T01:00Z
-last-event: /status + git cleanup — deleted 7 dead campaigns (origin+local), backed up hms to origin
+last-event: /start-campaign web-frontend-refactor; moved worktree pool ~/dev → ~/wsl (dev was root-owned, worktrees wiped)
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -27,6 +27,7 @@ None.
 |----------|--------|-------------|-------|----------------------|--------|
 | hms | `campaign/hms` | hms-proof Playwright config + spec (backup commit) | 1 | 71 behind, 87 ahead | ✓ pushed 2026-05-30 |
 | bubble-migration | `campaign/bubble-migration` | sync development into campaign | 0 | 147 behind, 127 ahead | ✓ |
+| web-frontend-refactor | `campaign/web-frontend-refactor` | campaign scaffolding | 0 | even (just branched) | ✓ pushed 2026-06-02 |
 
 ## Other Worktrees
 
