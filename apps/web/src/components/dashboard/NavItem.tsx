@@ -76,7 +76,7 @@ export function NavItem({
         <Icon
           className={`h-4 w-4 shrink-0 transition-colors ${
             ai
-              ? "text-indigo-500 group-hover:text-indigo-400"
+              ? "text-brand-orange group-hover:text-brand-orange/80"
               : active
                 ? "text-brand-orange"
                 : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"

@@ -1262,7 +1262,7 @@ function DashboardShellInner({
                           Running
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-500">
+                        <span className="text-success flex items-center gap-1 text-[11px]">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Done
                         </span>
@@ -1300,13 +1300,9 @@ function DashboardShellInner({
                       key={notice.id}
                       className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
                         notice.tone === "success"
-                          ? isDark
-                            ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          ? "border-success/30 bg-success/10 text-success-foreground"
                           : notice.tone === "warning"
-                            ? isDark
-                              ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
-                              : "border-amber-200 bg-amber-50 text-amber-900"
+                            ? "border-warning/30 bg-warning/10 text-warning-foreground"
                             : "border-border bg-card text-foreground"
                       }`}
                     >
@@ -1499,28 +1495,28 @@ function DashboardShellInner({
                             <button
                               onClick={() => switchScheduleLayout("daily")}
                               data-autoplay="schedule-layout-daily"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border-brand-orange/30 bg-brand-orange/20 text-brand-orange border shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_daily")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border-brand-orange/30 bg-brand-orange/20 text-brand-orange border shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_monthly")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border-brand-orange/30 bg-brand-orange/20 text-brand-orange border shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_list")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border-brand-orange/30 bg-brand-orange/20 text-brand-orange border shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_grid")}
                             </button>
@@ -1662,7 +1658,7 @@ function DashboardShellInner({
                               <button
                                 onClick={() => setScheduleDateOffset(0)}
                                 data-autoplay="schedule-date-today"
-                                className="hover:bg-brand-orange/10 rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors"
+                                className="hover:bg-brand-orange/10 text-brand-orange rounded-md px-2 py-0.5 text-[10px] font-bold transition-colors"
                               >
                                 {t("shell.schedule.today")}
                               </button>
@@ -1913,11 +1909,7 @@ function TodoTabButton({
       <ListChecks className="h-3.5 w-3.5" />
       {t("shell.dashboard_tabs.todo")}
       {pendingCount > 0 && (
-        <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
-            isDark ? "bg-brand-orange/20 text-orange-400" : "text-brand-orange bg-orange-100"
-          }`}
-        >
+        <span className="bg-brand-orange/15 text-brand-orange rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold">
           {pendingCount}
         </span>
       )}
