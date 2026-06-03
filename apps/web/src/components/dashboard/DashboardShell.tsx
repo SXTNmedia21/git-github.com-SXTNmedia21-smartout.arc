@@ -1153,32 +1153,22 @@ function DashboardShellInner({
             - color-regime: isDark — dark=near-black, light=warm-cream header with orange accent */}
               <header
                 className={`relative z-30 grid h-14 grid-cols-[1fr_auto_1fr] items-center border-b px-6 transition-colors duration-300 ${
-                  isDark
-                    ? "border-border bg-background"
-                    : "border-[var(--border)] bg-[var(--surface-base)] shadow-sm"
+                  isDark ? "border-border bg-card" : "border-border bg-card"
                 } print:hidden`}
               >
                 <div className="flex items-center gap-6">
                   <WorkspaceSwitcher isDark={isDark} />
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className={isDark ? "text-muted-foreground" : "text-[var(--text-dim)]"}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-[12.5px]">
                       {t("shell.header.active_season")}
                     </span>
-                    <span
-                      className={`font-semibold ${isDark ? "text-foreground" : "text-[var(--text-strong)]"}`}
-                    >
+                    <span className="text-foreground text-[12.5px] font-semibold">
                       {t("shell.header.season_placeholder")}
                     </span>
-                    <div
-                      className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
-                        isDark
-                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      }`}
-                    >
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold tracking-wider uppercase">
+                    <div className="border-success/20 bg-success/10 ml-1.5 flex items-center gap-1.5 rounded-full border px-2 py-0.5">
+                      <div className="bg-success h-1.5 w-1.5 animate-pulse rounded-full" />
+                      <span className="text-success text-[10px] font-bold tracking-wider uppercase">
                         {t("shell.header.season_active_badge")}
                       </span>
                     </div>
@@ -1188,17 +1178,11 @@ function DashboardShellInner({
                 {/* Centered global search — Pontus 2026-05-19 annotation C */}
                 {!isDocumentMode ? (
                   <div className="group relative justify-self-center">
-                    <Search
-                      className={`text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
-                        isDark
-                          ? "group-focus-within:text-orange-500"
-                          : "group-focus-within:text-orange-600"
-                      }`}
-                    />
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors group-focus-within:text-orange-500" />
                     <button
                       type="button"
                       onClick={() => window.dispatchEvent(new Event("smartout:open-global-search"))}
-                      className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-80 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-colors focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
+                      className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex h-[38px] w-[440px] max-w-[440px] cursor-text items-center justify-between rounded-[10px] border py-2 pr-3 pl-9 text-[13.5px] transition-colors focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                       aria-label="Open global search palette"
                     >
                       <span className="text-muted-foreground">{t("shell.search.placeholder")}</span>
@@ -1216,12 +1200,10 @@ function DashboardShellInner({
                 <div className="flex items-center justify-end gap-4">
                   <button
                     onClick={() => setIsDocumentMode(!isDocumentMode)}
-                    className={`rounded-md p-1.5 transition-colors ${
+                    className={`rounded-[9px] p-1.5 transition-colors ${
                       isDocumentMode
-                        ? "bg-orange-500/20 text-orange-400"
-                        : isDark
-                          ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
+                        ? "bg-orange-500/20 text-orange-500"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                     title={
                       isDocumentMode
@@ -1235,11 +1217,7 @@ function DashboardShellInner({
                   <button
                     onClick={() => setIsDark(!isDark)}
                     data-autoplay="top-theme-toggle"
-                    className={`rounded-md p-1.5 transition-colors ${
-                      isDark
-                        ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        : "text-[var(--text-dim)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-strong)]"
-                    }`}
+                    className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-[9px] p-1.5 transition-colors"
                   >
                     {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                   </button>
@@ -1352,28 +1330,20 @@ function DashboardShellInner({
               - action: toggleAdminMode() (bottom toggle)
               - color-regime: isDark — dark=near-black, light=warm-cream gradient */}
                 <aside
-                  className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
-                    isSidebarCollapsed ? "w-16" : "w-64"
+                  className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-[180ms] ${
+                    isSidebarCollapsed ? "w-16" : "w-[244px]"
                   } ${
-                    isDark
-                      ? "border-border bg-card"
-                      : "border-[var(--border)] bg-[var(--surface-base)] shadow-[1px_0_12px_-4px_color-mix(in_oklch,var(--foreground)_8%,transparent)]"
+                    isDark ? "border-sidebar-border bg-sidebar" : "border-sidebar-border bg-sidebar"
                   } print:hidden`}
                 >
                   <TooltipProvider delayDuration={0}>
                     {/* Sidebar collapse toggle — top */}
                     <div
-                      className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
-                        isDark ? "border-border" : "border-[var(--border)]"
-                      }`}
+                      className={`border-sidebar-border flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-1.5`}
                     >
                       <button
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        className={`rounded-lg p-1.5 transition-colors ${
-                          isDark
-                            ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            : "text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-mid)]"
-                        }`}
+                        className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg p-1.5 transition-colors"
                       >
                         {isSidebarCollapsed ? (
                           <ChevronRight className="h-4 w-4" />
@@ -1385,7 +1355,7 @@ function DashboardShellInner({
 
                     <nav
                       data-testid="sidebar-nav"
-                      className={`relative flex-1 space-y-0 overflow-x-hidden overflow-y-auto py-1 [scrollbar-width:thin] ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
+                      className={`relative flex-1 space-y-0 overflow-x-hidden overflow-y-auto py-2 [scrollbar-width:thin] ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
                     >
                       {isDocumentMode ? (
                         <DocumentModeSidebar isDark={isDark} />
@@ -1415,7 +1385,7 @@ function DashboardShellInner({
                         — BotssonShell handles expand() since it lives in BotssonProvider
                         scope (ADR-0362). No route navigation. */}
                     <div
-                      className={`border-t ${isSidebarCollapsed ? "px-2 py-2" : "px-2.5 py-2"} border-sidebar-border`}
+                      className={`border-sidebar-border border-t ${isSidebarCollapsed ? "px-2 py-2" : "px-2.5 py-2"}`}
                     >
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1426,15 +1396,15 @@ function DashboardShellInner({
                             onClick={() => window.dispatchEvent(new CustomEvent("botsson:open"))}
                             aria-label={t("shell.nav.botsson")}
                             className={[
-                              "flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-medium",
+                              "flex w-full items-center rounded-[9px] px-2.5 py-2 text-sm font-medium",
                               "transition-colors duration-150",
                               "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                               "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
                               isSidebarCollapsed ? "justify-center" : "gap-2.5",
                             ].join(" ")}
                           >
-                            {/* Bot icon — Lucide, same as /dashboard/ai page */}
-                            <Bot className="h-4 w-4 shrink-0 text-indigo-400" aria-hidden />
+                            {/* Bot icon — orange per Nordic Split shell design */}
+                            <Bot className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
                             {!isSidebarCollapsed && (
                               <span className="truncate">{t("shell.nav.botsson")}</span>
                             )}
@@ -1448,11 +1418,7 @@ function DashboardShellInner({
 
                     {/* Sidebar bottom controls */}
                     <div
-                      className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
-                        isDark
-                          ? "border-border bg-muted"
-                          : "border-[var(--border)] bg-[var(--surface-raised)]"
-                      } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
+                      className={`border-sidebar-border border-t ${isSidebarCollapsed ? "p-1.5" : "p-2"} bg-sidebar space-y-1`}
                     >
                       <NavItem
                         href="/dashboard/settings"
@@ -1475,12 +1441,10 @@ function DashboardShellInner({
                       <button
                         onClick={() => setIsAdminMode(!isAdminMode)}
                         data-autoplay="admin-mode-toggle"
-                        className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
+                        className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-[9px] border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
                           isAdminMode
-                            ? isDark
-                              ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
-                              : "border-orange-200 bg-orange-50 text-orange-600"
-                            : "border-border bg-muted text-foreground shadow-sm"
+                            ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                            : "border-sidebar-border bg-sidebar-accent text-sidebar-foreground shadow-sm"
                         }`}
                       >
                         {!isSidebarCollapsed && (
@@ -1511,16 +1475,14 @@ function DashboardShellInner({
 
                 {/* MAIN CONTENT AREA */}
                 <main
-                  className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-                    isDark ? "bg-background" : "bg-[var(--surface-subtle)]"
-                  } print:block print:h-auto print:overflow-visible print:bg-white`}
+                  className={`bg-background relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 print:block print:h-auto print:overflow-visible print:bg-white`}
                 >
                   {/* ACTION BAR — left-aligned per Pontus 2026-05-19 */}
                   <div
-                    className={`sticky top-0 z-10 flex min-h-16 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
+                    className={`border-border sticky top-0 z-10 flex min-h-12 flex-shrink-0 items-center gap-4 border-b px-6 transition-colors duration-300 md:px-8 ${
                       isDark
-                        ? "border-border bg-background/90"
-                        : "border-[var(--border)] bg-[var(--surface-base)/92%] shadow-sm backdrop-blur-md"
+                        ? "bg-background/95 backdrop-blur-sm"
+                        : "bg-card/95 shadow-sm backdrop-blur-sm"
                     } print:hidden`}
                   >
                     <BreadcrumbActiveSlot />

@@ -57,7 +57,7 @@ export function SidebarGroup({
       {!group.standalone && !isCollapsed && (
         <div
           data-testid={`sidebar-group-${groupLabel.toLowerCase().replace(/\s+/g, "-")}`}
-          className="text-muted-foreground mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase"
+          className="text-sidebar-foreground/40 mt-1 mb-1 px-2.5 text-[9px] font-bold tracking-[0.16em] uppercase"
         >
           {groupLabel}
         </div>
@@ -139,9 +139,9 @@ function DisabledNavItem({
       data-testid={`sidebar-disabled-${routeSlug}`}
       data-disabled="true"
       title={tooltip}
-      className={`group flex cursor-not-allowed items-center rounded-xl opacity-50 ${
-        isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
-      } text-muted-foreground border border-transparent`}
+      className={`group flex cursor-not-allowed items-center rounded-[9px] opacity-50 ${
+        isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-[9px]"
+      } text-sidebar-foreground/50 border border-transparent`}
     >
       <div className={`flex items-center ${isCollapsed ? "" : "gap-2.5"}`}>
         <Icon className="h-4 w-4 shrink-0" />

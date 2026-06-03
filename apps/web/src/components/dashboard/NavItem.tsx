@@ -62,16 +62,12 @@ export function NavItem({
   const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
   const navAutoplayId = `nav-${href}`;
   const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
-  const baseClassName = `group flex items-center rounded-xl transition-all ${
-    isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
+  const baseClassName = `group flex items-center rounded-[9px] transition-all ${
+    isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-[9px]"
   } ${
     active
-      ? isDark
-        ? "border border-border bg-accent font-semibold text-accent-foreground"
-        : "border border-[var(--surface-border-strong)/50] bg-[var(--surface-overlay)] font-bold text-[var(--text-strong)] shadow-sm"
-      : isDark
-        ? "border border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        : "border border-transparent text-[var(--text-dim)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-strong)]"
+      ? "border border-sidebar-border bg-card font-semibold text-sidebar-accent-foreground shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+      : "border border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
   }`;
 
   const inner = (
@@ -82,12 +78,8 @@ export function NavItem({
             ai
               ? "text-indigo-500 group-hover:text-indigo-400"
               : active
-                ? isDark
-                  ? "text-accent-foreground"
-                  : "text-[var(--brand-orange-dark)]"
-                : isDark
-                  ? "text-muted-foreground group-hover:text-accent-foreground"
-                  : "text-[var(--text-dim)] group-hover:text-[var(--text-mid)]"
+                ? "text-orange-500"
+                : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
           }`}
         />
         {!isCollapsed && (
@@ -106,13 +98,7 @@ export function NavItem({
         </div>
       )}
       {!isCollapsed && !hasIndicators && active && (
-        <div
-          className={`h-1.5 w-1.5 rounded-full ${
-            isDark
-              ? "bg-orange-500 shadow-[0_0_10px_rgba(234,88,12,0.8)]"
-              : "bg-orange-500 shadow-[0_0_6px_rgba(234,88,12,0.4)]"
-          }`}
-        />
+        <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
       )}
       {/* Collapsed: single dot overlay on the icon corner using the
        *  highest-priority indicator (live > warning > count/text). */}
