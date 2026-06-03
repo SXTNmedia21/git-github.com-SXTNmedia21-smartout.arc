@@ -153,6 +153,9 @@ const DAY_E = 23;
 // ---------------------------------------------------------------------------
 // Brief — verbatim JSX from design
 // ---------------------------------------------------------------------------
+// GHOST: Brief content (body text + b1–b3 actions + sources) is static demo text.
+// Product decision pending — Botsson AI-generated morning brief requires
+// a dedicated AI summary endpoint. Leave hardcoded until that endpoint ships.
 function Brief({ workspaceId, actorId }: { workspaceId: string; actorId: string }) {
   const [showWhy, setShowWhy] = useState(false);
   const [done, setDone] = useState<Record<string, boolean>>({});
@@ -553,6 +556,10 @@ function Roster({
 // ---------------------------------------------------------------------------
 // RiskTomorrow — verbatim JSX from design (static data; noop_candidates: no onClick on risk items)
 // ---------------------------------------------------------------------------
+// GHOST: RiskTomorrow displays static hardcoded forecast data. A real
+// tomorrow-risk calculation requires schedule coverage analysis across
+// future shift rows — no hook for this exists yet. Leave as-is until
+// a forecasting hook ships.
 function RiskTomorrow() {
   return (
     <div className="so-panel">

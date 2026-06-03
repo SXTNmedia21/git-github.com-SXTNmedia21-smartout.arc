@@ -21,7 +21,10 @@ import { useCockpitFirstScreen } from "@/app/dashboard/_hooks/use-cockpit-first-
 import { useShiftDayStats } from "@/app/dashboard/_hooks/use-shift-day-stats";
 import { useDayTimelineEvents } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import { useDayBudget } from "@/app/dashboard/_hooks/use-day-budget";
+import { usePendingApprovals } from "@/app/dashboard/_hooks/use-pending-approvals";
+import { useUnreadCounts } from "@/app/dashboard/komm/_hooks/use-unread-counts";
 import OversiktCockpit from "./OversiktCockpit";
+import { OversiktToolsBridge } from "./_tools/oversikt-tools-bridge";
 import { toDesignOversikt } from "./to-design-shape";
 
 // ---------------------------------------------------------------------------
@@ -78,8 +81,17 @@ export function OversiktCockpitClient() {
     dateISO,
   });
 
-  // useDayBudget requires departmentId — pass null (workspace-level fallback in hook)
+  // useDayBudget — departmentId=null uses workspace-level fallback (enabled-gate fixed to use dateISO)
   const budgetQuery = useDayBudget(null, dateISO);
+
+  // Wired pulse tiles ─────────────────────────────────────────────────────────
+  // pendingApprovals: department_session rows with status=pending_signoff
+  const pendingApprovalsQuery = usePendingApprovals();
+  const pendingApprovalsCount = pendingApprovalsQuery.data?.length ?? 0;
+
+  // unread: total unread channel + direct-message count from komm
+  const unreadCountsQuery = useUnreadCounts();
+  const unreadTotal = (unreadCountsQuery.data ?? []).reduce((sum, u) => sum + u.unread_count, 0);
 
   // ── Adapter ─────────────────────────────────────────────────────────────────
 
@@ -95,8 +107,19 @@ export function OversiktCockpitClient() {
       budgetQuery.data ?? null,
       greetingName,
       now,
+      pendingApprovalsCount,
+      unreadTotal,
     );
-  }, [cockpitModel, shiftStatsQuery.data, timelineQuery.data, budgetQuery.data, greetingName, now]);
+  }, [
+    cockpitModel,
+    shiftStatsQuery.data,
+    timelineQuery.data,
+    budgetQuery.data,
+    greetingName,
+    now,
+    pendingApprovalsCount,
+    unreadTotal,
+  ]);
 
   // ── Loading state ────────────────────────────────────────────────────────────
   // Render the skeleton layout while the cockpit model loads. The design itself
@@ -117,5 +140,10 @@ export function OversiktCockpitClient() {
     );
   }
 
-  return <OversiktCockpit data={designData} workspaceId={workspaceId} actorId={profileId} />;
+  return (
+    <>
+      <OversiktToolsBridge workspaceId={workspaceId} actorId={profileId} designData={designData} />
+      <OversiktCockpit data={designData} workspaceId={workspaceId} actorId={profileId} />
+    </>
+  );
 }

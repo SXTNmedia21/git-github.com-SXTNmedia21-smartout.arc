@@ -28,8 +28,10 @@
  *   - RECEIPTS — read-receipt tracking lives in announcement_meta.read_at per recipient;
  *     no hook exposes this yet. Defaulted to empty array (empty-state rendered).
  *   - PULSE tile values — assembled from useShiftDayStats + useCockpitFirstScreen.
- *     operationalQueue covers "must resolve", pending approvals defaulted 0 (no approval hook),
- *     unread defaulted 0 (no unread-count hook on this surface), coverage defaulted null.
+ *     operationalQueue covers "must resolve".
+ *     pendingApprovals: wired — usePendingApprovals (department_session pending_signoff count).
+ *     unread: wired — useUnreadCounts total (channel + direct messages).
+ *     coverage: GAP — no coverage-% hook available yet; renders honest empty tile.
  *   - BRIEF acts (b1–b3) — static text from design; no dynamic source yet.
  *   - workspace_budget (budget_tile_trap): useDayBudget returns null when 0-seeded.
  *     oversikt.budget_empty_state_shown is emitted from the client when budget is null.
@@ -210,6 +212,10 @@ export function toDesignOversikt(
   budget: DayBudget | null,
   greetingName: string,
   now: Date,
+  /** Wired: count from usePendingApprovals (department_session rows with status=pending_signoff). */
+  pendingApprovalsCount?: number,
+  /** Wired: total unread notification/channel count from useUnreadCounts. */
+  unreadCount?: number,
 ): DesignOversikt {
   // ── ACTIONS ────────────────────────────────────────────────────────────────
   // Sourced from cockpit.operationalQueue. Each OperationalRisk → one DesignAction.
@@ -330,9 +336,9 @@ export function toDesignOversikt(
     onShiftSub: shiftStats?.coming ? `${shiftStats.coming} møter senere` : "ingen kommende",
     mustResolve,
     mustResolveSub: mustResolve > 0 ? "sjekk Oppgaver" : "alt under kontroll",
-    pendingApprovals: 0, // GAP: no pending-approval hook on this surface
+    pendingApprovals: pendingApprovalsCount ?? 0, // Wired: usePendingApprovals count
     pendingApprovalsSub: "sjekk Avstemming",
-    unread: 0, // GAP: no unread-count hook on this surface
+    unread: unreadCount ?? 0, // Wired: useUnreadCounts total
     unreadSub: "sjekk Kommunikasjon",
     coveragePct: null, // GAP: coverage % not available from current hooks
     coverageSub: "sjekk Vaktplan",

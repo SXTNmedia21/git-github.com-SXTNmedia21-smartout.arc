@@ -26,7 +26,9 @@ export function useDayBudget(departmentId: string | null, dateISO: string) {
 
   return useQuery({
     queryKey: ["day-control", "day-budget", wsId, departmentId, dateISO],
-    enabled: !!wsId && !!departmentId,
+    // departmentId=null is valid (workspace-level fallback handled in queryFn);
+    // only gate on wsId + dateISO so the budget fires even when no dept is selected.
+    enabled: !!wsId && !!dateISO,
     staleTime: 60 * 1000,
     queryFn: async (): Promise<DayBudget> => {
       const supabase = createClient();
