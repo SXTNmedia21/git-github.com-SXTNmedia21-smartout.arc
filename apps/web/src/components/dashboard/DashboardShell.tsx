@@ -1121,7 +1121,7 @@ function DashboardShellInner({
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
         <div
-          className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
+          className={`selection:bg-brand-orange/30 flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 ${
             isDark ? "dark" : ""
           } bg-background text-foreground`}
         >
@@ -1142,7 +1142,7 @@ function DashboardShellInner({
           <PageHeaderProvider>
             <div
               style={themeReady ? undefined : { opacity: 0 }}
-              className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
+              className={`selection:bg-brand-orange/30 flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 ${
                 isDark ? "dark" : ""
               } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
             >
@@ -1178,11 +1178,11 @@ function DashboardShellInner({
                 {/* Centered global search — Pontus 2026-05-19 annotation C */}
                 {!isDocumentMode ? (
                   <div className="group relative justify-self-center">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors group-focus-within:text-orange-500" />
+                    <Search className="text-muted-foreground group-focus-within:text-brand-orange pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors" />
                     <button
                       type="button"
                       onClick={() => window.dispatchEvent(new Event("smartout:open-global-search"))}
-                      className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex h-[38px] w-[440px] max-w-[440px] cursor-text items-center justify-between rounded-[10px] border py-2 pr-3 pl-9 text-[13.5px] transition-colors focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
+                      className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground focus:border-brand-orange/50 focus:ring-brand-orange/50 flex h-[38px] w-[440px] max-w-[440px] cursor-text items-center justify-between rounded-[10px] border py-2 pr-3 pl-9 text-[13.5px] transition-colors focus:ring-1 focus:outline-none"
                       aria-label="Open global search palette"
                     >
                       <span className="text-muted-foreground">{t("shell.search.placeholder")}</span>
@@ -1202,7 +1202,7 @@ function DashboardShellInner({
                     onClick={() => setIsDocumentMode(!isDocumentMode)}
                     className={`rounded-[9px] p-1.5 transition-colors ${
                       isDocumentMode
-                        ? "bg-orange-500/20 text-orange-500"
+                        ? "bg-brand-orange/20 text-brand-orange"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                     title={
@@ -1251,13 +1251,13 @@ function DashboardShellInner({
                   <div className="animate-in slide-in-from-right-2 fade-in border-border bg-card text-foreground rounded-xl border p-3 shadow-xl backdrop-blur-sm">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-orange-500" />
+                        <Sparkles className="text-brand-orange h-4 w-4" />
                         <span className="text-xs font-semibold tracking-wide uppercase">
                           Showcase Flow
                         </span>
                       </div>
                       {autoplayUiState.isRunning ? (
-                        <span className="flex items-center gap-1 text-[11px] text-orange-500">
+                        <span className="text-brand-orange flex items-center gap-1 text-[11px]">
                           <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
                           Running
                         </span>
@@ -1275,7 +1275,7 @@ function DashboardShellInner({
 
                     <div className="bg-muted mb-2 h-1.5 overflow-hidden rounded-full">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
+                        className="from-brand-orange to-brand-orange-dark h-full rounded-full bg-gradient-to-r transition-all duration-500"
                         style={{
                           width:
                             autoplayUiState.totalCount > 0
@@ -1404,7 +1404,7 @@ function DashboardShellInner({
                             ].join(" ")}
                           >
                             {/* Bot icon — orange per Nordic Split shell design */}
-                            <Bot className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
+                            <Bot className="text-brand-orange h-4 w-4 shrink-0" aria-hidden />
                             {!isSidebarCollapsed && (
                               <span className="truncate">{t("shell.nav.botsson")}</span>
                             )}
@@ -1443,7 +1443,7 @@ function DashboardShellInner({
                         data-autoplay="admin-mode-toggle"
                         className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-[9px] border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
                           isAdminMode
-                            ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                            ? "border-brand-orange/20 bg-brand-orange/10 text-brand-orange"
                             : "border-sidebar-border bg-sidebar-accent text-sidebar-foreground shadow-sm"
                         }`}
                       >
@@ -1454,7 +1454,7 @@ function DashboardShellInner({
                         )}
                         <div
                           className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
-                            isAdminMode ? "bg-orange-500" : "bg-muted-foreground"
+                            isAdminMode ? "bg-brand-orange" : "bg-muted-foreground"
                           }`}
                         >
                           <div
@@ -1499,28 +1499,28 @@ function DashboardShellInner({
                             <button
                               onClick={() => switchScheduleLayout("daily")}
                               data-autoplay="schedule-layout-daily"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_daily")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_monthly")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_list")}
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border-brand-orange/30 bg-brand-orange/20 border text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               {t("shell.schedule.layout_grid")}
                             </button>
@@ -1662,7 +1662,7 @@ function DashboardShellInner({
                               <button
                                 onClick={() => setScheduleDateOffset(0)}
                                 data-autoplay="schedule-date-today"
-                                className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
+                                className="hover:bg-brand-orange/10 rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors"
                               >
                                 {t("shell.schedule.today")}
                               </button>
@@ -1681,7 +1681,7 @@ function DashboardShellInner({
                             disabled={scheduleDraftCountDisplay === 0}
                             className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
                               scheduleDraftCountDisplay > 0
-                                ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
+                                ? "from-brand-orange to-brand-orange-dark hover:from-brand-orange hover:to-brand-orange-dark bg-gradient-to-r"
                                 : "bg-muted cursor-not-allowed opacity-50"
                             }`}
                           >
@@ -1915,7 +1915,7 @@ function TodoTabButton({
       {pendingCount > 0 && (
         <span
           className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
-            isDark ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
+            isDark ? "bg-brand-orange/20 text-orange-400" : "text-brand-orange bg-orange-100"
           }`}
         >
           {pendingCount}

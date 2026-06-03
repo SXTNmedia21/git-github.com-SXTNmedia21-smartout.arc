@@ -78,7 +78,7 @@ export function NavItem({
             ai
               ? "text-indigo-500 group-hover:text-indigo-400"
               : active
-                ? "text-orange-500"
+                ? "text-brand-orange"
                 : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
           }`}
         />
@@ -98,7 +98,7 @@ export function NavItem({
         </div>
       )}
       {!isCollapsed && !hasIndicators && active && (
-        <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+        <div className="bg-brand-orange h-1.5 w-1.5 rounded-full" />
       )}
       {/* Collapsed: single dot overlay on the icon corner using the
        *  highest-priority indicator (live > warning > count/text). */}
