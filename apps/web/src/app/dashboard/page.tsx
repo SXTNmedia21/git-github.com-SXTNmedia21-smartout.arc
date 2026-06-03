@@ -16,6 +16,14 @@ const WebDayControl = dynamic(
   () => import("@/components/day/WebDayControl").then((m) => ({ default: m.WebDayControl })),
   { ssr: false },
 );
+// OversiktCockpitClient — Nordic Split design port (campaign/master-refactor)
+const OversiktCockpitClient = dynamic(
+  () =>
+    import("@/app/dashboard/_components/oversikt/OversiktCockpitClient").then((m) => ({
+      default: m.OversiktCockpitClient,
+    })),
+  { ssr: false },
+);
 const InteractiveDashboard = dynamic(
   () =>
     import("@/components/dashboard/interactive").then((m) => ({
@@ -68,7 +76,7 @@ export default function DashboardPage() {
   return <div className="relative flex h-full min-h-0 flex-1 flex-col">{renderView()}</div>;
 
   function renderView() {
-    if (adminView === "oversikt") return <WebDayControl />;
+    if (adminView === "oversikt") return <OversiktCockpitClient />;
     // "Interactive" renders the feature-flagged InteractiveDashboard (normally
     // gated on NEXT_PUBLIC_INTERACTIVE_DASHBOARD=true) so Pontus can preview it
     // directly from the variant tab bar.

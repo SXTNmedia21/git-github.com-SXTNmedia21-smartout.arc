@@ -8928,6 +8928,56 @@ export interface OppgaverCloseDayClicked extends BaseEvent {
   };
 }
 
+// ─── Oversikt (campaign/master-refactor — oversikt-v2 port) ──────────────────
+// Manager daily cockpit. All events fire-and-forget (nav/view/intent, no DB write):
+// destinations: posthog + logger.
+// Exception noted inline: gap_fill_requested / dagsrapport_requested are honest
+// intent stubs (hooks missing per PLAN.md).
+export interface OversiktViewed extends BaseEvent {
+  event: "oversikt.viewed";
+  properties: { data: { date_iso: string } };
+}
+export interface OversiktBudgetEmptyStateShown extends BaseEvent {
+  event: "oversikt.budget_empty_state_shown";
+  properties: { data: { date_iso: string } };
+}
+export interface OversiktBriefWhyToggled extends BaseEvent {
+  event: "oversikt.brief_why_toggled";
+  properties: { data: { expanded: boolean } };
+}
+export interface OversiktBriefActionTaken extends BaseEvent {
+  event: "oversikt.brief_action_taken";
+  properties: { data: { action_type: string } };
+}
+export interface OversiktPulseTileClicked extends BaseEvent {
+  event: "oversikt.pulse_tile_clicked";
+  properties: { data: { tile_key: string } };
+}
+export interface OversiktActionQueueRowClicked extends BaseEvent {
+  event: "oversikt.action_queue_row_clicked";
+  properties: { data: { action_type: string } };
+}
+export interface OversiktActionCtaClicked extends BaseEvent {
+  event: "oversikt.action_cta_clicked";
+  properties: { data: { cta_key: string } };
+}
+export interface OversiktNavLinkClicked extends BaseEvent {
+  event: "oversikt.nav_link_clicked";
+  properties: { data: { source: string; target_route: string } };
+}
+export interface OversiktGapFillRequested extends BaseEvent {
+  event: "oversikt.gap_fill_requested";
+  properties: { data: { date_iso: string; gap_count: number } };
+}
+export interface OversiktReceiptNudgeSent extends BaseEvent {
+  event: "oversikt.receipt_nudge_sent";
+  properties: { data: { workspace_id: string } };
+}
+export interface OversiktDagsrapportRequested extends BaseEvent {
+  event: "oversikt.dagsrapport_requested";
+  properties: { data: { date_iso: string } };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9906,7 +9956,19 @@ export type SmartoutEvent =
   | OppgaverTaskReTimed
   // ─── Oppgaver Filter + CTA events (P11 TopBar D2) ────────────────────────
   | OppgaverLocationFilterChanged
-  | OppgaverCloseDayClicked;
+  | OppgaverCloseDayClicked
+  // ─── Oversikt (campaign/master-refactor — oversikt-v2 port) ──────────────
+  | OversiktViewed
+  | OversiktBudgetEmptyStateShown
+  | OversiktBriefWhyToggled
+  | OversiktBriefActionTaken
+  | OversiktPulseTileClicked
+  | OversiktActionQueueRowClicked
+  | OversiktActionCtaClicked
+  | OversiktNavLinkClicked
+  | OversiktGapFillRequested
+  | OversiktReceiptNudgeSent
+  | OversiktDagsrapportRequested;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -16156,5 +16218,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "oppgaver.close_day_clicked": {
     destinations: ["posthog", "logger"],
     category: "oppgaver",
+  },
+  // ─── Oversikt (campaign/master-refactor — oversikt-v2 port) ──────────────
+  // All events: posthog + logger (nav/view/intent — no DB write).
+  "oversikt.viewed": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.budget_empty_state_shown": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "oversikt.brief_why_toggled": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.brief_action_taken": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.pulse_tile_clicked": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.action_queue_row_clicked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "oversikt.action_cta_clicked": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.nav_link_clicked": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oversikt.gap_fill_requested": { destinations: ["posthog", "logger"], category: "scheduling" },
+  "oversikt.receipt_nudge_sent": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
+  },
+  "oversikt.dagsrapport_requested": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
   },
 };

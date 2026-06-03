@@ -317,9 +317,13 @@ if [ -z "$SKIP_DESIGN_AUDIT" ]; then
       | head -5 || true)
 
     # Inline framer-motion duration / ease arrays outside motionTokens.*
+    # WCAG 2.3.3 exemption: the canonical prefers-reduced-motion reset uses CSS
+    # `transition-duration: 0.01ms` / `animation-duration: 0.01ms` — the a11y
+    # kill-switch, NOT framer-motion drift. Exclude the CSS duration longhands.
     TIMING_HITS=$(echo "$ADDED_LINES" \
       | grep -E '(duration:\s*0\.|ease:\s*\[)' \
       | grep -v 'motionTokens\.' \
+      | grep -v -E '(transition-duration|animation-duration)' \
       | head -5 || true)
 
     # §10.4 transition-all (added 2026-05-14 — council recommendation, P2 strand 1 extension)
