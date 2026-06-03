@@ -1,0 +1,92 @@
+# Page Polish Run — dashboard/tasks
+# Dedicated unified-task route. REUSE-FIRST: mounts the existing TodoTaskView 1:1
+# (already polished + telemetry-wired). Non-browser phases done; browser phases deferred.
+
+route: /dashboard/tasks
+status: in_progress
+verified: true
+started_at: 2026-06-03T00:00:00+02:00
+verified_at: 2026-06-03T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/tasks
+  components_count: 2  # page.tsx (Server) + _components/TasksPageClient.tsx (Client) — reuses _components/todo/*
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/tasks/page.tsx (Server Component, resolveDashboardContext + withPagePerf + Suspense skeleton)
+  shell: TasksPageClient mounts the existing TodoTaskView + TodoToolsBridge (reuse-first, 1:1, no fork)
+  state_machine:
+    - loading      # Suspense fallback skeleton
+    - ready        # cascade tasks rendered via TodoTaskView
+    - empty        # TodoEmptyState (no cascade tasks)
+  has_mutations: true   # complete / status-change via TodoTaskView's existing capability path (reused)
+  reuse_note: "Zero new UI. The route is a thin shell over the already-polished Todo variant; all cards/groups/empty-state inherited."
+
+# Step 3 — Skills
+skills_loaded: [smartout-nordic-split, smartout-database-guide, register-events]
+
+# Step 4 — Speed test (DEFERRED — no browser in this environment)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null }
+  deferred_reason: "No Chromium/Lighthouse in this environment. Defer to a browser-capable session."
+bottlenecks: []
+
+# Step 5 — Datapoints
+datapoints:
+  - { name: tasks, source_rpc: resolve_cascade_tasks, hook: use-cascade-tasks, type: query }
+server_actions: []
+
+# Step 6 — Design audit (Phase 4)
+design:
+  zinc_hits: 0
+  hardcoded_color_hits: 0
+  motion_token_hits: 0
+  emoji_hits: 0
+  finding: "clean — no new markup; reuses TodoTaskView which is Nordic-Split compliant. Only a Server shell + a 'use client' boundary added."
+
+# Step 7 — Telemetry (Phase 5)
+telemetry:
+  events_in_registry: reused
+  events_missing_from_registry: []
+  emit_calls: "reused — TodoTaskView emits task_surface viewed (-> activity_trail, L3-capable) + task_surface snapshot on mount; oppgaver.error_retry on retry. No new events, no phantom."
+  audit_result: "No 3-site registration needed — all events pre-registered + emitting from the reused TodoTaskView."
+
+# Step 8 — Page knowledge (Phase 6)
+page_knowledge:
+  header: "Å gjøre"
+  description: "Alle oppgavene dine på ett sted — samlet på tvers av kilder, gruppert og klare til å huke av."
+  empty_copy: "Ingen oppgaver akkurat nå (TodoEmptyState — reused)."
+  notes: "Header/description inherited from TodoTaskView's own page knowledge; the route adds a sidebar-reachable home for it."
+
+# Step 9 — Harness tools (Phase 7)
+harness_tools:
+  registered: true
+  note: "TodoToolsBridge reused — the task tools are registered on this route (Botsson-operable). Consumer pipe deferred (ADR-0327) as elsewhere."
+
+# Step 11 — Verification checklist
+checklist:
+  motion_tokens_used: true
+  telemetry_emit_per_mutation: true      # reused, task_surface viewed -> activity_trail
+  page_knowledge_written: true
+  harness_tools_registered: true          # TodoToolsBridge reused
+  site_map_registered: false              # TODO next pass — add /dashboard/tasks to .botsson/site-map.json
+  typecheck_exit_0: true                  # web + telemetry EXIT 0
+  reachable: true                          # sidebar-config item_tasks added (not an orphan)
+
+# Files changed this session
+files_changed:
+  - apps/web/src/app/dashboard/tasks/page.tsx                    # NEW
+  - apps/web/src/app/dashboard/tasks/_components/TasksPageClient.tsx  # NEW
+  - apps/web/src/components/dashboard/sidebar-config.ts          # EDIT — item_tasks entry
+  - packages/i18n/locales/{nb,en}/dashboard.json                # EDIT — item_tasks label
+  - .claude/page-polish/dashboard-tasks.run.yml                 # NEW (this file)
+
+notes: |
+  REUSE-FIRST: zero forked UI. The route is the sidebar-reorg's one new route, surfacing the existing
+  Todo variant standalone + reachable. Browser phases (1-4) deferred (no Chromium). DEFERRED next pass:
+  site-map.json entry + the multi-source list_mine layer (currently cascade-only — surfaced finding,
+  not faked). L3: task_surface viewed already routes to activity_trail; proof pending live Supabase.

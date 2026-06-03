@@ -151,9 +151,15 @@ export const SIDEBAR_GROUPS_ADMIN: SidebarGroupDef[] = [
     standalone: true,
     items: [
       {
+        labelKey: "sidebar.item_tasks",
+        href: "/dashboard/tasks",
+        icon: ListTodo,
+        status: "live",
+      },
+      {
         labelKey: "sidebar.item_oppgaver",
         href: "/dashboard/oppgaver",
-        icon: ListTodo,
+        icon: CalendarDays,
         status: "live",
       },
     ],
