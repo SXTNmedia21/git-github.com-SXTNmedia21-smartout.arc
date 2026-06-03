@@ -10,6 +10,8 @@ import { useContext, useEffect, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
+
+const noop = () => {};
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
@@ -118,7 +120,20 @@ export function TodoTaskView() {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <AlertCircle className="text-destructive h-10 w-10" />
         <p className="text-muted-foreground mt-4 text-sm">{t("todo.error_loading")}</p>
-        <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={() => {
+            void emit({
+              event: "oppgaver.error_retry",
+              workspace_id: null,
+              actor_id: null,
+              properties: { data: {} },
+            }).catch(noop);
+            refetch();
+          }}
+        >
           {t("todo.error_retry")}
         </Button>
       </div>

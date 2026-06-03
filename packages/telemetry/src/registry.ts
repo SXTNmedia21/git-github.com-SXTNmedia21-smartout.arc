@@ -8978,6 +8978,64 @@ export interface OversiktDagsrapportRequested extends BaseEvent {
   properties: { data: { date_iso: string } };
 }
 
+// ─── Strategic (Innsikt) — campaign/master-refactor WAVE-1 telemetry ─────────
+// All events: posthog + logger (nav/view/click — no new DB write).
+// kpi_target updated + workspace_budget updated already emit from mutations — not duplicated.
+export interface StrategicKpiCardClicked extends BaseEvent {
+  event: "strategic.kpi_card_clicked";
+  properties: { data: { metric: string } };
+}
+export interface StrategicSeasonCardViewed extends BaseEvent {
+  event: "strategic.season_card_viewed";
+  properties: { data: { season_name: string | null } };
+}
+export interface StrategicBudgetToggled extends BaseEvent {
+  event: "strategic.budget_toggled";
+  properties: { data: { visible: boolean } };
+}
+export interface StrategicSettingsOpened extends BaseEvent {
+  event: "strategic.settings_opened";
+  properties: { data: Record<string, never> };
+}
+export interface StrategicKpiConfigureOpened extends BaseEvent {
+  event: "strategic.kpi_configure_opened";
+  properties: { data: { metric: string } };
+}
+export interface StrategicAbsenceRateViewed extends BaseEvent {
+  event: "strategic.absence_rate_viewed";
+  properties: { data: { rate: number | null } };
+}
+export interface StrategicTurnoverViewed extends BaseEvent {
+  event: "strategic.turnover_viewed";
+  properties: { data: { rate: number | null } };
+}
+export interface StrategicPipelineViewed extends BaseEvent {
+  event: "strategic.pipeline_viewed";
+  properties: { data: { active_staff: number | null } };
+}
+
+// ─── Oppgaver group/error events — WAVE-1 ────────────────────────────────────
+// task_surface.* events already wired in TodoTaskView — not duplicated.
+export interface OppgaverGroupCollapsed extends BaseEvent {
+  event: "oppgaver.group_collapsed";
+  properties: { data: { group: string; collapsed: boolean } };
+}
+export interface OppgaverErrorRetry extends BaseEvent {
+  event: "oppgaver.error_retry";
+  properties: { data: Record<string, never> };
+}
+
+// ─── Reconciliation view events — WAVE-1 ────────────────────────────────────
+// reconciliation admin_action already wired from approve/reject mutations — not duplicated.
+export interface ReconciliationViewed extends BaseEvent {
+  event: "reconciliation.viewed";
+  properties: { data: { date_iso: string } };
+}
+export interface ReconciliationDateNavigated extends BaseEvent {
+  event: "reconciliation.date_navigated";
+  properties: { data: { date_iso: string; direction: "prev" | "next" | "reset" } };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -9968,7 +10026,22 @@ export type SmartoutEvent =
   | OversiktNavLinkClicked
   | OversiktGapFillRequested
   | OversiktReceiptNudgeSent
-  | OversiktDagsrapportRequested;
+  | OversiktDagsrapportRequested
+  // ─── Strategic (Innsikt) — WAVE-1 ─────────────────────────────────────────
+  | StrategicKpiCardClicked
+  | StrategicSeasonCardViewed
+  | StrategicBudgetToggled
+  | StrategicSettingsOpened
+  | StrategicKpiConfigureOpened
+  | StrategicAbsenceRateViewed
+  | StrategicTurnoverViewed
+  | StrategicPipelineViewed
+  // ─── Oppgaver group/error — WAVE-1 ─────────────────────────────────────────
+  | OppgaverGroupCollapsed
+  | OppgaverErrorRetry
+  // ─── Reconciliation view — WAVE-1 ──────────────────────────────────────────
+  | ReconciliationViewed
+  | ReconciliationDateNavigated;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -16243,5 +16316,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "oversikt.dagsrapport_requested": {
     destinations: ["posthog", "logger"],
     category: "operations",
+  },
+  // ─── Strategic (Innsikt) — WAVE-1 ─────────────────────────────────────────
+  // All events: posthog + logger (nav/view/click — no DB write).
+  "strategic.kpi_card_clicked": { destinations: ["posthog", "logger"], category: "navigation" },
+  "strategic.season_card_viewed": { destinations: ["posthog", "logger"], category: "navigation" },
+  "strategic.budget_toggled": { destinations: ["posthog", "logger"], category: "navigation" },
+  "strategic.settings_opened": { destinations: ["posthog", "logger"], category: "navigation" },
+  "strategic.kpi_configure_opened": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "strategic.absence_rate_viewed": { destinations: ["posthog", "logger"], category: "operations" },
+  "strategic.turnover_viewed": { destinations: ["posthog", "logger"], category: "operations" },
+  "strategic.pipeline_viewed": { destinations: ["posthog", "logger"], category: "operations" },
+  // ─── Oppgaver group/error — WAVE-1 ─────────────────────────────────────────
+  "oppgaver.group_collapsed": { destinations: ["posthog", "logger"], category: "navigation" },
+  "oppgaver.error_retry": { destinations: ["posthog", "logger"], category: "operations" },
+  // ─── Reconciliation view — WAVE-1 ──────────────────────────────────────────
+  "reconciliation.viewed": { destinations: ["posthog", "logger"], category: "navigation" },
+  "reconciliation.date_navigated": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
 };

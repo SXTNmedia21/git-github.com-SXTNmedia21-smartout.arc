@@ -9,10 +9,13 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { CheckCircle2, ChevronDown } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
+import { emit } from "@smartout/telemetry";
 import { groupIcons } from "./todo-icons";
 import { TodoTaskCard } from "./TodoTaskCard";
 import { resolveKey } from "./translate-todo";
 import type { TaskGroupSummary } from "@smartout/types";
+
+const noop = () => {};
 
 type TodoGroupSectionProps = {
   group: TaskGroupSummary;
@@ -54,7 +57,16 @@ export function TodoGroupSection({ group, index }: TodoGroupSectionProps) {
       {/* Group header — clickable to toggle collapse */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          void emit({
+            event: "oppgaver.group_collapsed",
+            workspace_id: null,
+            actor_id: null,
+            properties: { data: { group: group.group, collapsed: !next } },
+          }).catch(noop);
+        }}
         aria-expanded={isOpen}
         aria-controls={`todo-group-${group.group}`}
         aria-label={`${t(resolveKey(group.label_key))} — ${group.done} ${t("todo.completion", { done: String(group.done), total: String(group.total) })}${group.tasks.length > 0 ? `, ${group.tasks.length} ${t("todo.pending_tasks")}` : ""}`}

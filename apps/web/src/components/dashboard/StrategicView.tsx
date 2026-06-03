@@ -21,6 +21,7 @@ import {
   KpiAccentTile,
   type KpiAccent,
 } from "@smartout/ui";
+import { emit } from "@smartout/telemetry";
 import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipeline";
 import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
 import { useKpiTargets, type KpiMetric } from "@/app/dashboard/_hooks/use-kpi-targets";
@@ -35,6 +36,8 @@ import { DashboardCard } from "./DashboardCard";
 import { SeasonCard } from "./SeasonCard";
 import { StrategicToolsBridge } from "./_tools/strategic-tools-bridge";
 
+const noop = () => {};
+
 export function StrategicView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
@@ -48,6 +51,51 @@ export function StrategicView() {
   const { data: turnoverData } = useStaffTurnover();
   const { data: taskCompletionData } = useTaskCompletion();
   const { data: timeToJobReadyData } = useTimeToJobReady();
+
+  // ── Telemetry: view events when data arrives ──
+  useEffect(() => {
+    if (absenceData) {
+      void emit({
+        event: "strategic.absence_rate_viewed",
+        workspace_id: null,
+        actor_id: null,
+        properties: { data: { rate: absenceData.rate } },
+      }).catch(noop);
+    }
+  }, [absenceData]);
+
+  useEffect(() => {
+    if (turnoverData) {
+      void emit({
+        event: "strategic.turnover_viewed",
+        workspace_id: null,
+        actor_id: null,
+        properties: { data: { rate: turnoverData.rate } },
+      }).catch(noop);
+    }
+  }, [turnoverData]);
+
+  useEffect(() => {
+    if (pipeline) {
+      void emit({
+        event: "strategic.pipeline_viewed",
+        workspace_id: null,
+        actor_id: null,
+        properties: { data: { active_staff: pipeline.activeStaff } },
+      }).catch(noop);
+    }
+  }, [pipeline]);
+
+  useEffect(() => {
+    if (activeSeason !== undefined) {
+      void emit({
+        event: "strategic.season_card_viewed",
+        workspace_id: null,
+        actor_id: null,
+        properties: { data: { season_name: activeSeason?.name ?? null } },
+      }).catch(noop);
+    }
+  }, [activeSeason]);
 
   function handleTargetSave(metric: KpiMetric, value: number) {
     updateTarget.mutate({ metric, value });
@@ -103,7 +151,16 @@ export function StrategicView() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowBudget(!showBudget)}
+            onClick={() => {
+              const next = !showBudget;
+              setShowBudget(next);
+              void emit({
+                event: "strategic.budget_toggled",
+                workspace_id: null,
+                actor_id: null,
+                properties: { data: { visible: next } },
+              }).catch(noop);
+            }}
             title="Budsjettinnstillinger"
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
               showBudget
@@ -115,7 +172,15 @@ export function StrategicView() {
             <span className="hidden sm:inline">Budsjett</span>
           </button>
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={() => {
+              setIsSettingsOpen(true);
+              void emit({
+                event: "strategic.settings_opened",
+                workspace_id: null,
+                actor_id: null,
+                properties: { data: {} },
+              }).catch(noop);
+            }}
             className="border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
           >
             <Settings className="h-3.5 w-3.5" />
@@ -525,7 +590,21 @@ function KPICard({
           unit: split.unit,
         }}
         secondary={{ label: "Mål", value: targetValueLabel, unit }}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          void emit({
+            event: "strategic.kpi_card_clicked",
+            workspace_id: null,
+            actor_id: null,
+            properties: { data: { metric } },
+          }).catch(noop);
+          void emit({
+            event: "strategic.kpi_configure_opened",
+            workspace_id: null,
+            actor_id: null,
+            properties: { data: { metric } },
+          }).catch(noop);
+        }}
       />
       <ManualValueDialog
         open={open}

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion as motionTokens } from "@smartout/design-tokens";
-import React, { useState, useMemo, useCallback, useContext } from "react";
+import React, { useState, useMemo, useCallback, useContext, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useDepartmentShifts } from "@/app/dashboard/_hooks/use-department-shifts";
 import {
   useApproveReconciliation,
@@ -83,6 +84,8 @@ function formatTime(time: string): string {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
+const noop = () => {};
+
 export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
   const { workspace } = useWorkspace();
   const { profileId } = useContext(DashboardContext);
@@ -90,6 +93,17 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
   // Default to yesterday — the morning routine starts here
   const [dateOffset, setDateOffset] = useState(-1);
   const selectedDate = getDateOffset(dateOffset);
+
+  // ── Telemetry: page view on mount ──
+  useEffect(() => {
+    void emit({
+      event: "reconciliation.viewed",
+      workspace_id: null,
+      actor_id: null,
+      properties: { data: { date_iso: selectedDate } },
+    }).catch(noop);
+    // mount-only: fire once on first render
+  }, []);
 
   const [decisions, setDecisions] = useState<ShiftDecisions>({});
   const [handoffDraft, setHandoffDraft] = useState<HandoffDraft | null>(null);
@@ -221,7 +235,16 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
         {/* Date navigation */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => changeDate(dateOffset - 1)}
+            onClick={() => {
+              const newOffset = dateOffset - 1;
+              changeDate(newOffset);
+              void emit({
+                event: "reconciliation.date_navigated",
+                workspace_id: null,
+                actor_id: null,
+                properties: { data: { date_iso: getDateOffset(newOffset), direction: "prev" } },
+              }).catch(noop);
+            }}
             className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
             aria-label="Forrige dag"
           >
@@ -241,7 +264,16 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
           </div>
 
           <button
-            onClick={() => changeDate(dateOffset + 1)}
+            onClick={() => {
+              const newOffset = dateOffset + 1;
+              changeDate(newOffset);
+              void emit({
+                event: "reconciliation.date_navigated",
+                workspace_id: null,
+                actor_id: null,
+                properties: { data: { date_iso: getDateOffset(newOffset), direction: "next" } },
+              }).catch(noop);
+            }}
             className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
             aria-label="Neste dag"
           >
@@ -250,7 +282,15 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
 
           {dateOffset !== -1 && (
             <button
-              onClick={() => changeDate(-1)}
+              onClick={() => {
+                changeDate(-1);
+                void emit({
+                  event: "reconciliation.date_navigated",
+                  workspace_id: null,
+                  actor_id: null,
+                  properties: { data: { date_iso: getDateOffset(-1), direction: "reset" } },
+                }).catch(noop);
+              }}
               className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
             >
               I går
