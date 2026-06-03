@@ -22,7 +22,10 @@ const PALETTE = [
   "green","emerald","teal","cyan","sky","blue","indigo","violet","purple","fuchsia","pink","rose",
 ].join("|");
 const RE_PALETTE = new RegExp(`\\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|shadow|accent|caret|decoration|placeholder)-(?:${PALETTE})-[0-9]{2,3}\\b`, "g");
-const RE_HEX = /#[0-9a-fA-F]{3,8}\b/g;
+// Hex ONLY in colour contexts — full 6/8-digit hex (unambiguous colour) OR a Tailwind arbitrary
+// `[#...]` of any length. A bare 3-digit `#214` in a text string (e.g. "Avvik #214") is an
+// issue-ref, NOT a colour — do not false-positive on it (the hook #10 a11y-trap class).
+const RE_HEX = /\[#[0-9a-fA-F]{3,8}\]|#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\b/g;
 const RE_OKLCH = /\boklch\(/g;
 
 function fileArgs() {
