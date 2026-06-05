@@ -1,0 +1,265 @@
+/* ===========================================================================
+   Smartout Mobile — ONBOARDING / AUTH layer
+   Continues the mobile design language (mobile.css + shared styles.css tokens).
+   Auth-only primitives prefixed `.a-`. Reuses .m-app phone canvas, .m-btn, .m-card.
+   =========================================================================== */
+
+/* ---- screen scaffold (no bottom nav in auth) ---- */
+.a-screen { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.a-body {
+  flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px 22px 16px; display: flex; flex-direction: column;
+  scrollbar-width: none; animation: a-in 420ms cubic-bezier(.16,1,.3,1) both;
+}
+.a-body::-webkit-scrollbar { display: none; }
+.a-body.a-center { justify-content: center; }
+/* transform-only entrance — never gate visibility on opacity (content must
+   stay visible even if the entrance animation is throttled/paused) */
+@keyframes a-in { from { transform: translateY(10px); } to { transform: none; } }
+@keyframes a-in-x { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+
+/* top bar (back / step / skip) */
+.a-top { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 16px 16px 4px; min-height: 56px; }
+.a-back { width: 40px; height: 40px; border-radius: var(--r-full); display: inline-flex; align-items: center; justify-content: center; color: var(--fg); }
+.a-back:active { background: var(--secondary); }
+.a-skip { margin-left: auto; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 6px; }
+.a-steps { margin: 0 auto; display: flex; gap: 5px; }
+.a-steps i { width: 7px; height: 7px; border-radius: 9px; background: var(--border-strong); transition: all 300ms cubic-bezier(.16,1,.3,1); }
+.a-steps i.on { width: 20px; background: var(--orange); }
+
+/* footer (sticky primary action) */
+.a-foot {
+  flex: 0 0 auto; padding: 12px 22px calc(20px + env(safe-area-inset-bottom,0px));
+  display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(to top, var(--bg) 72%, transparent);
+}
+.a-foot-note { text-align: center; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.a-foot-note a, .a-link { color: var(--orange); font-weight: 600; }
+
+/* ---- brand lockup ---- */
+.a-brand { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 8px 0 22px; }
+.a-mark {
+  width: 64px; height: 64px; border-radius: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, var(--orange-light), var(--orange));
+  box-shadow: 0 12px 28px -8px color-mix(in oklab, var(--orange) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.a-mark.sm { width: 44px; height: 44px; border-radius: 14px; }
+.a-wordmark { font-family: var(--font-heading); font-size: 30px; letter-spacing: -.01em; line-height: 1; }
+
+/* ---- headings ---- */
+.a-h1 { font-family: var(--font-heading); font-size: 32px; font-weight: 400; line-height: 1.06; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.a-h1 .a-accent { color: var(--orange); font-style: italic; }
+.a-lead { font-size: 14.5px; color: var(--muted); line-height: 1.5; margin: 9px 0 0; text-wrap: pretty; }
+.a-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); margin-bottom: 10px; }
+
+/* ---- choice cards (welcome) ---- */
+.a-choices { display: flex; flex-direction: column; gap: 11px; margin-top: 4px; }
+.a-choice {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 16px; border-radius: var(--r-card);
+  background: var(--card); border: 1px solid var(--border); box-shadow: var(--sh-sm);
+  transition: transform 130ms, border-color 150ms, box-shadow 150ms;
+}
+.a-choice:active { transform: scale(.985); }
+.a-choice.primary { background: linear-gradient(150deg, var(--orange), var(--orange-dark)); border-color: transparent; color: #fff; box-shadow: 0 10px 26px -10px color-mix(in oklab, var(--orange) 80%, transparent); }
+.a-choice-ic {
+  width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--orange-soft); color: var(--orange);
+}
+.a-choice.primary .a-choice-ic { background: rgba(255,255,255,.2); color: #fff; }
+.a-choice-body { flex: 1; min-width: 0; }
+.a-choice-t { font-size: 15.5px; font-weight: 650; line-height: 1.2; }
+.a-choice-s { font-size: 12.5px; margin-top: 3px; line-height: 1.35; color: var(--muted); }
+.a-choice.primary .a-choice-s { color: rgba(255,255,255,.82); }
+.a-choice-go { flex: 0 0 auto; color: var(--muted-soft); }
+.a-choice.primary .a-choice-go { color: rgba(255,255,255,.7); }
+
+/* admin entry choice on welcome (quieter, secure cue) */
+.a-admin-row { margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.a-admin-row button { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--muted); padding: 9px 14px; border-radius: var(--r-full); border: 1px solid var(--border); background: var(--card); }
+
+/* ---- form fields ---- */
+.a-field { margin-top: 14px; }
+.a-field > label { display: block; font-size: 12.5px; font-weight: 600; color: var(--fg); margin-bottom: 7px; }
+.a-input {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  height: 52px; padding: 0 14px; border-radius: 14px;
+  background: var(--card); border: 1.5px solid var(--border);
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.a-input:focus-within { border-color: var(--orange); box-shadow: 0 0 0 4px color-mix(in oklab, var(--orange) 14%, transparent); }
+.a-input.err { border-color: var(--error); box-shadow: 0 0 0 4px color-mix(in oklab, var(--error) 12%, transparent); }
+.a-input > svg { color: var(--muted); flex: 0 0 auto; }
+.a-input input {
+  flex: 1; border: none; background: none; outline: none; min-width: 0;
+  font-family: var(--font-sans); font-size: 15.5px; color: var(--fg);
+}
+.a-input input::placeholder { color: var(--muted-soft); }
+.a-input .a-eye { color: var(--muted); padding: 4px; }
+.a-input.locked { background: var(--secondary); }
+.a-input.locked input { color: var(--muted); }
+.a-fieldnote { font-size: 12px; margin-top: 7px; line-height: 1.4; }
+.a-fieldnote.err { color: var(--error); display: flex; align-items: center; gap: 5px; }
+.a-fieldnote.hint { color: var(--muted); }
+.a-textarea {
+  width: 100%; min-height: 96px; resize: none; padding: 13px 14px; border-radius: 14px;
+  background: var(--card); border: 1.5px solid var(--border); outline: none;
+  font-family: var(--font-sans); font-size: 15px; color: var(--fg); line-height: 1.5;
+}
+.a-textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 4px color-mix(in oklab, var(--orange) 14%, transparent); }
+
+/* ---- method tabs (Google / magic link / password) ---- */
+.a-social {
+  height: 52px; width: 100%; border-radius: 14px; border: 1.5px solid var(--border);
+  background: var(--card); display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 15px; font-weight: 600; color: var(--fg); transition: transform 130ms, background 140ms;
+}
+.a-social:active { transform: scale(.98); background: var(--secondary); }
+.a-or { display: flex; align-items: center; gap: 12px; margin: 16px 0 4px; color: var(--muted-soft); font-size: 12px; font-weight: 600; }
+.a-or::before, .a-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ---- OTP / PIN ---- */
+.a-otp { display: flex; gap: 9px; justify-content: center; margin: 6px 0 4px; }
+.a-otp .d {
+  flex: 1; max-width: 50px; aspect-ratio: 1/1.15; border-radius: 13px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--fg);
+  transition: all 150ms;
+}
+.a-otp .d.on { border-color: var(--orange); box-shadow: 0 0 0 4px color-mix(in oklab, var(--orange) 12%, transparent); }
+.a-otp .d.cur { border-color: var(--orange); }
+.a-otp .d .caret { width: 2px; height: 24px; background: var(--orange); border-radius: 2px; animation: a-blink 1.1s steps(1) infinite; }
+@keyframes a-blink { 50% { opacity: 0; } }
+
+/* PIN dots */
+.a-pin-dots { display: flex; gap: 14px; justify-content: center; margin: 4px 0 22px; }
+.a-pin-dots .pd { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--border-strong); transition: all 200ms; }
+.a-pin-dots .pd.on { background: var(--orange); border-color: var(--orange); transform: scale(1.05); }
+.a-pin-dots.err .pd { border-color: var(--error); animation: a-shake .4s; }
+@keyframes a-shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
+
+/* keypad */
+.a-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 300px; margin: 0 auto; width: 100%; }
+.a-key {
+  aspect-ratio: 1/1; max-height: 70px; border-radius: var(--r-full);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 26px; font-weight: 600; color: var(--fg);
+  background: var(--card); border: 1px solid var(--border); transition: transform 100ms, background 120ms;
+}
+.a-key:active { transform: scale(.93); background: var(--secondary); }
+.a-key.blank { background: none; border: none; }
+.a-key.fn { font-size: 15px; color: var(--muted); background: none; border: none; }
+
+/* ---- workspace result / context cards ---- */
+.a-ws { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 14px; border-radius: var(--r-card); background: var(--card); border: 1px solid var(--border); }
+.a-ws:active { background: var(--secondary); }
+.a-ws.sel { border-color: var(--orange); box-shadow: 0 0 0 3px color-mix(in oklab, var(--orange) 12%, transparent); }
+.a-ws-logo { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 20px; color: #fff; }
+.a-ws-body { flex: 1; min-width: 0; }
+.a-ws-t { font-size: 15px; font-weight: 650; }
+.a-ws-s { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+/* invitation context header (logo + inviter + role) */
+.a-invite-ctx {
+  border-radius: var(--r-card); padding: 20px; text-align: center;
+  background: linear-gradient(160deg, color-mix(in oklab, var(--orange) 10%, var(--card)), var(--card) 75%);
+  border: 1px solid color-mix(in oklab, var(--orange) 22%, var(--border));
+}
+.a-invite-ctx .lg { width: 60px; height: 60px; border-radius: 18px; margin: 0 auto 14px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 26px; color: #fff; box-shadow: var(--sh-md); }
+.a-invite-ctx .who { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.a-invite-ctx .who b { color: var(--fg); font-weight: 650; }
+.a-invite-ctx .role-pill { display: inline-flex; margin-top: 12px; }
+
+/* summary rows (confirm-before-join) */
+.a-summary { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+.a-summary-row { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-bottom: 1px solid var(--border); }
+.a-summary-row:last-child { border-bottom: none; }
+.a-summary-row .k { font-size: 13px; color: var(--muted); flex: 1; }
+.a-summary-row .v { font-size: 13.5px; font-weight: 600; }
+
+/* ---- big status states (sent / pending / success / error) ---- */
+.a-state-ic {
+  width: 96px; height: 96px; border-radius: var(--r-full); margin: 0 auto 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.a-state-ic.ok { background: color-mix(in oklab, var(--success) 13%, transparent); color: var(--success); }
+.a-state-ic.warn { background: color-mix(in oklab, var(--warning) 14%, transparent); color: var(--warning); }
+.a-state-ic.err { background: color-mix(in oklab, var(--error) 12%, transparent); color: var(--error); }
+.a-state-ic.brand { background: color-mix(in oklab, var(--orange) 13%, transparent); color: var(--orange); }
+.a-state-ic .ring { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid currentColor; opacity: .18; animation: a-ring 2.6s ease-in-out infinite; }
+@keyframes a-ring { 0%,100%{ transform: scale(1); opacity:.18 } 50%{ transform: scale(1.08); opacity:.05 } }
+.a-state-h { font-family: var(--font-heading); font-size: 30px; line-height: 1.08; text-align: center; letter-spacing: -.01em; margin: 0; }
+.a-state-p { font-size: 14.5px; color: var(--muted); text-align: center; line-height: 1.55; margin: 11px auto 0; max-width: 320px; }
+.a-state-p b { color: var(--fg); font-weight: 600; }
+
+/* email chip in confirmation */
+.a-mailchip { display: inline-flex; align-items: center; gap: 8px; margin: 16px auto 0; padding: 9px 14px; border-radius: var(--r-full); background: var(--secondary); font-size: 13.5px; font-weight: 600; }
+/* "kode sendt" confirmation pill (inline code stage) */
+.a-sentchip { display: inline-flex; align-items: center; gap: 7px; align-self: center; padding: 6px 13px; border-radius: var(--r-full); background: color-mix(in oklab, var(--success) 13%, transparent); color: var(--success); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+
+/* ---- admin secure treatment (distinct but connected) ---- */
+.a-admin-shell .a-mark { background: linear-gradient(160deg, #3a2f25, #1d1712); box-shadow: 0 12px 28px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12); }
+.a-secure-badge {
+  display: inline-flex; align-items: center; gap: 7px; margin: 0 auto;
+  padding: 7px 13px; border-radius: var(--r-full);
+  background: color-mix(in oklab, var(--orange) 12%, transparent); color: var(--orange);
+  font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+}
+.a-secure-note { display: flex; gap: 10px; align-items: flex-start; padding: 13px 14px; border-radius: 14px; background: var(--secondary); font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-top: 16px; }
+.a-secure-note svg { flex: 0 0 auto; margin-top: 1px; color: var(--orange); }
+
+/* loading spinner inside buttons */
+.a-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.4px solid rgba(255,255,255,.4); border-top-color: #fff; animation: a-spin 700ms linear infinite; }
+.a-spin.dark { border-color: color-mix(in oklab, var(--fg) 25%, transparent); border-top-color: var(--fg); }
+@keyframes a-spin { to { transform: rotate(360deg); } }
+
+/* empty search state */
+.a-empty-search { text-align: center; padding: 30px 16px; color: var(--muted); }
+.a-empty-search svg { color: var(--muted-soft); margin-bottom: 12px; }
+
+/* search input pinned */
+.a-search { display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 14px; border-radius: 14px; background: var(--secondary); border: 1.5px solid transparent; margin-bottom: 6px; }
+.a-search:focus-within { background: var(--card); border-color: var(--orange); }
+.a-search input { flex: 1; border: none; background: none; outline: none; font-family: var(--font-sans); font-size: 15px; color: var(--fg); }
+.a-search input::placeholder { color: var(--muted-soft); }
+.a-search-facets { display: flex; gap: 7px; flex-wrap: wrap; margin: 2px 0 12px; }
+
+/* small dev affordance: theme toggle + restart (chrome, not part of product) */
+.a-dev { position: absolute; top: 10px; right: 10px; z-index: 60; display: flex; gap: 6px; }
+.a-dev button { width: 32px; height: 32px; border-radius: var(--r-full); background: color-mix(in oklab, var(--bg) 70%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--border); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+
+/* ---- screen-jump drawer (preview-only navigator) ---- */
+.a-jump-h { display: flex; align-items: center; gap: 10px; padding: 4px 18px 4px; }
+.a-jump-h h3 { margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 400; letter-spacing: -.01em; line-height: 1; white-space: nowrap; flex: 0 0 auto; }
+.a-jump-badge { font-size: 9px; font-weight: 700; letter-spacing: .11em; color: var(--orange); background: var(--orange-soft); padding: 4px 8px; border-radius: var(--r-full); white-space: nowrap; }
+.a-jump-x { width: 34px; height: 34px; border-radius: var(--r-full); flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); background: var(--secondary); }
+.a-jump-x:active { transform: scale(.92); }
+.a-jump-sub { margin: 0; padding: 0 18px 8px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.a-jump-group { margin-top: 16px; }
+.a-jump-group:first-of-type { margin-top: 4px; }
+.a-jump-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--muted-soft); padding: 0 6px 9px; }
+.a-jump-list { display: flex; flex-direction: column; gap: 5px; }
+.a-jump-item {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  padding: 9px 11px; border-radius: 15px; border: 1px solid transparent;
+  transition: background 130ms, border-color 130ms, transform 90ms;
+}
+.a-jump-item:active { transform: scale(.99); }
+.a-jump-item:hover { background: var(--secondary); }
+.a-jump-item.on { background: var(--orange-soft); border-color: color-mix(in oklab, var(--orange) 26%, transparent); }
+.a-jump-ic {
+  width: 40px; height: 40px; border-radius: 12px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--secondary); color: var(--muted); transition: background 130ms, color 130ms;
+}
+.a-jump-num { font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+.a-jump-item.on .a-jump-ic { background: var(--orange); color: #fff; box-shadow: 0 4px 12px -4px color-mix(in oklab, var(--orange) 75%, transparent); }
+.a-jump-body { flex: 1; min-width: 0; }
+.a-jump-t { font-size: 14.5px; font-weight: 600; line-height: 1.2; color: var(--fg); }
+.a-jump-item.on .a-jump-t { color: var(--orange); }
+.a-jump-go { flex: 0 0 auto; color: var(--muted-soft); display: inline-flex; }
+.a-jump-item.on .a-jump-go { color: var(--orange); }

@@ -1,0 +1,121 @@
+{
+  "domain": "planlegging",
+  "design_files": [
+    "planlegging.jsx",
+    "planlegging-data.jsx",
+    "planlegging-panels.jsx",
+    "planlegging-season.jsx",
+    "planlegging-views.jsx"
+  ],
+  "interactive_elements_total": 43,
+  "elements_mapped": 43,
+  "mutations": 14,
+  "events_required": 29,
+  "events_in_registry": 16,
+  "events_missing_from_registry": [
+    "planlegging view_changed",
+    "planlegging layer_toggled",
+    "planlegging saved_view_applied",
+    "planlegging filter_applied",
+    "planlegging filter_reset",
+    "planlegging date_navigated",
+    "planlegging today_clicked",
+    "planlegging attention_panel_opened",
+    "planlegging attention_item_actioned",
+    "planlegging opening_hours_saved",
+    "planlegging opening_hours_exception_added",
+    "planlegging machine_room_opened",
+    "planlegging machine_room_draft_saved",
+    "booking confirmed",
+    "booking cancelled",
+    "absence approved",
+    "absence rejected",
+    "season goal_toggled",
+    "season operating_hours_override_added",
+    "planlegging create_button_used",
+    "planlegging botsson_cta_clicked",
+    "planlegging botsson_dismissed",
+    "planlegging cross_domain_navigate",
+    "planlegging empty_state_show_all_clicked",
+    "booking machine_room_propagated"
+  ],
+  "hooks_found": 4,
+  "hooks_missing": [
+    "booking create hook (planning_event or schedule_day_booking — no hook for Planlegging BookingCreatePanel)",
+    "leave approve/reject hook (absence table — design uses toast, no useMutation wired)",
+    "opening_hours save hook (day_factor / hour_factor tables — no hook in scope)",
+    "machine room propagate hook (season_budget.upsert — uses use-budget.ts:103 UNGATED DIRECT UPSERT)"
+  ],
+  "noop_candidates": [
+    "pl-dd-scrim click (closes dropdown — pure UI, no data)",
+    "pl-over-scrim click (closes panel — pure UI, no data)",
+    "PL.weekCounts() call (computed in render, no interaction)",
+    "CalSkeleton render (loading animation — no click target)",
+    "HourLines render (visual only)",
+    "ClosedZones render (visual only)",
+    "NOW indicator render (visual only)",
+    "pl-m-more '+N til' — non-interactive overflow count display",
+    "season seeded-from badge (read-only display)",
+    "status pill renders (read-only display in SeasonPanel)",
+    "pl-ohrow display rows (reading, no edit on the 'hours' tab rows themselves)",
+    "pl-evrow display rows (events tab, read-only list)",
+    "pl-srow summary rows in SeasonPanel (read-only KPI display)",
+    "BotCard state='done' resolved display (post-confirmation feedback, not interactive)"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": false,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": false,
+    "baseline_count_recorded": true
+  },
+  "gate": "FAIL",
+  "blockers": [
+    {
+      "id": "B1",
+      "severity": "critical",
+      "category": "ungated-write",
+      "description": "use-budget.ts:103 — direct .upsert() to workspace_budget with no C4-authority gate. Called from MachineRoom 'Propager til budsjett' button. This is the F0.3 offender documented in the spec. Any Planlegging control wired through this path is ungated.",
+      "affected_controls": ["MR-11 — Machine Room: Propager til budsjett"],
+      "status": "F0.3 — budget-tiles domain; blocked pending F0.3 gate work"
+    },
+    {
+      "id": "B2",
+      "severity": "critical",
+      "category": "missing-hook",
+      "description": "BookingCreatePanel (PL-25 — 'Opprett booking') has no backend hook. The panel shows a form and fires a toast on submit but calls no mutation, no RPC, no edge function. No hook exists for booking creation in the planlegging domain (calendar/_hooks/use-calendar-overlays.ts is read-only; schedule_day_booking is the production target).",
+      "affected_controls": ["PL-25 — BookingCreatePanel: Opprett booking"],
+      "status": "MISSING — requires booking creation hook before this control can be wired"
+    },
+    {
+      "id": "B3",
+      "severity": "critical",
+      "category": "missing-hook",
+      "description": "Leave approve/reject (PL-29/PL-30) buttons in DetailPanel fire toasts but have no mutation or absence-table hook wired. The production hook (use-absence.ts or similar) is not in scope for this domain.",
+      "affected_controls": [
+        "PL-29 — DetailPanel (leave): Godkjenn",
+        "PL-30 — DetailPanel (leave): Avslå"
+      ],
+      "status": "MISSING — requires absence mutation hook"
+    },
+    {
+      "id": "B4",
+      "severity": "high",
+      "category": "missing-events",
+      "description": "25 events required for full coverage are absent from the telemetry registry. Season-financials path (season activated / archived / goals / season_budget / operating_hours) is largely covered (16 registry hits). Budget-tiles path (machine room propagate) is intentionally blocked (F0.4). Calendar navigation, layer toggles, filter, saved-view, attention, booking confirm/cancel, leave approve/reject and Botsson CTA interactions have no registry entries.",
+      "affected_controls": "See events_missing_from_registry array — all 25 need registry additions",
+      "status": "MISSING — split: season-financials subset unblocked; budget-tiles subset F0.4"
+    },
+    {
+      "id": "B5",
+      "severity": "high",
+      "category": "missing-hook",
+      "description": "OpeningHoursPanel save (PL-40) and 'Legg til unntak' (PL-41) fire toasts but have no backend hook. The target tables (HOURS_EXC / day_factor-based operating_hours or a dedicated opening_hours table) are not wired.",
+      "affected_controls": [
+        "PL-40 — OpeningHoursPanel: Lagre",
+        "PL-41 — OpeningHoursPanel: Legg til unntak"
+      ],
+      "status": "MISSING — requires opening_hours mutation hook"
+    }
+  ]
+}

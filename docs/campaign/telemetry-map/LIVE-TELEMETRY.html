@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartOut · Live Telemetry</title>
+<style>
+  :root{--bg:#0b0e14;--panel:#141925;--line:#222a3a;--ink:#e6edf3;--dim:#8b98ad;
+        --ok:#3fb950;--warn:#d29922;--err:#f85149;--accent:#58a6ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--line)}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px}
+  .pill{font-size:11px;padding:2px 8px;border-radius:99px;background:#1c2333;color:var(--dim)}
+  .live{color:var(--ok)} .stale{color:var(--warn)} .dead{color:var(--err)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:18px 22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h2{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+  .big{font-size:34px;font-weight:700} .sub{color:var(--dim);font-size:12px}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+  .bar{height:6px;border-radius:4px;background:var(--accent);margin-top:3px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:500}
+  .tag{font-size:10.5px;padding:1px 6px;border-radius:5px;background:#1c2333;color:var(--accent)}
+  .mut{color:var(--dim)} .wide{grid-column:1/-1}
+  .stream td:first-child{color:var(--dim);white-space:nowrap}
+  .note{padding:0 22px 18px;color:var(--dim);font-size:12px}
+  code{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>SmartOut · LIVE TELEMETRY</h1>
+  <span class="pill" id="status">connecting…</span>
+  <span class="pill" id="stamp"></span>
+  <span class="pill">source: activity_trail (Supabase)</span>
+</header>
+
+<div class="grid" id="cards">
+  <div class="card"><h2>activity_trail</h2><div class="big" id="at">–</div><div class="sub">main DB sink · 749 registry events route here</div></div>
+  <div class="card"><h2>engine_event</h2><div class="big" id="ee">–</div><div class="sub">engine sink · 266 events</div></div>
+  <div class="card"><h2>event types live</h2><div class="big" id="types">–</div><div class="sub" id="span"></div></div>
+  <div class="card"><h2>PostHog (extern)</h2><div class="big">871</div><div class="sub">registry events → external; not in DB</div></div>
+
+  <div class="card wide"><h2>by category</h2><div id="bycat"></div></div>
+  <div class="card wide"><h2>by event type (top 25)</h2><table id="byevt"><tbody></tbody></table></div>
+  <div class="card wide"><h2>recent events (last 50)</h2>
+    <table class="stream"><thead><tr><th>time</th><th>event</th><th>category</th><th>actor</th><th>entity</th></tr></thead>
+    <tbody id="recent"></tbody></table>
+  </div>
+</div>
+
+<div class="note">
+  Telemetry router: <code>packages/telemetry/src/emit.ts</code> fans 987 registry events to 5 sinks —
+  posthog · activity_trail · engine_event · billing_activity_log · logger. This panel reads the
+  queryable DB sinks. Run <code>./live-feed.sh --watch</code> to keep <code>live.json</code> fresh.
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+async function tick(){
+  try{
+    const r=await fetch('live.json?_='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(d.error){ setStatus('dead','feed error'); return; }
+
+    $('at').textContent   = (d.sinks?.activity_trail ?? 0).toLocaleString();
+    $('ee').textContent   = (d.sinks?.engine_event ?? 0).toLocaleString();
+    $('types').textContent= d.span?.event_types ?? 0;
+    $('span').textContent = d.span ? `${(d.span.first||'').slice(0,10)} → ${(d.span.last||'').slice(0,10)} · ${d.span.workspaces} ws` : '';
+
+    const max=Math.max(1,...(d.by_category||[]).map(c=>c.n));
+    $('bycat').innerHTML=(d.by_category||[]).map(c=>
+      `<div class="row"><span>${esc(c.category)}</span><span>${c.n.toLocaleString()}</span></div>
+       <div class="bar" style="width:${(c.n/max*100).toFixed(1)}%"></div>`).join('')||'<span class="mut">no rows</span>';
+
+    $('byevt').querySelector('tbody').innerHTML=(d.by_event||[]).map(e=>
+      `<tr><td><span class="tag">${esc(e.event)}</span></td><td style="text-align:right">${e.n.toLocaleString()}</td></tr>`
+    ).join('')||'<tr><td class="mut">no events</td></tr>';
+
+    $('recent').innerHTML=(d.recent||[]).map(e=>
+      `<tr><td>${esc(e.ts)}</td><td><span class="tag">${esc(e.event)}</span></td>
+       <td class="mut">${esc(e.category)}</td><td class="mut">${esc(e.actor)}</td><td class="mut">${esc(e.entity)}</td></tr>`
+    ).join('')||'<tr><td class="mut">no recent events</td></tr>';
+
+    const age=Date.now()-Date.parse(d.generated_at);
+    setStatus(age<15000?'live':'stale', age<15000?'live':'stale '+Math.round(age/1000)+'s');
+    $('stamp').textContent='fed '+(d.generated_at||'').replace('T',' ').replace('Z',' UTC');
+  }catch(e){ setStatus('dead', String(e.message||e)); }
+}
+function setStatus(cls,txt){ const s=$('status'); s.className='pill '+cls; s.textContent='● '+txt; }
+tick(); setInterval(tick,5000);
+</script>
+</body>
+</html>

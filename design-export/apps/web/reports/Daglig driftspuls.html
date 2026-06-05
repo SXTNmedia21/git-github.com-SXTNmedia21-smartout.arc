@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Daglig driftspuls — Nord Gruppen · fre 30. mai</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2; --event:#c18200; --lager:#008388;
+    --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; }
+  .bar .sub{ font-size:12px; color:#b8b2aa; }
+  .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; }
+  .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; }
+  .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; }
+
+  /* A4 landscape */
+  .sheet{ width:297mm; min-height:210mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:13mm 14mm 11mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  .lh{ display:flex; align-items:center; gap:13px; padding-bottom:12px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:34px;height:34px;border-radius:9px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:13px;height:13px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; }
+  .lh-eyebrow{ font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  .lh-title{ font-family:var(--h); font-weight:400; font-size:30px; letter-spacing:-0.02em; line-height:1; margin-top:3px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.6; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+  .lh-date{ font-family:var(--m); font-size:13px; font-weight:600; color:var(--fg); }
+
+  .grid{ display:grid; grid-template-columns:1.32fr 1fr; gap:14px; margin-top:14px; }
+
+  /* botsson focus */
+  .focus{ grid-column:1 / -1; background:var(--orange-soft); border:1px solid rgba(249,115,22,0.22); border-radius:12px; padding:12px 15px; display:flex; gap:12px; align-items:center; }
+  .focus-av{ width:28px;height:28px;border-radius:8px;background:var(--orange); color:#fff; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .focus-av svg{ width:17px;height:17px; }
+  .focus .tag{ font-size:8.5px; font-weight:700; letter-spacing:.14em; color:var(--orange-dark); }
+  .focus p{ margin:2px 0 0; font-size:12.5px; line-height:1.5; }
+  .focus .hl{ background:rgba(231,0,11,0.10); color:var(--error); font-weight:600; padding:0 4px; border-radius:4px; }
+  .focus strong{ font-weight:700; }
+
+  .panel{ border:1px solid var(--border); border-radius:13px; padding:13px 15px; }
+  .panel-h{ display:flex; align-items:baseline; gap:9px; margin-bottom:11px; }
+  .panel-h h3{ font-family:var(--h); font-weight:400; font-size:17px; letter-spacing:-0.01em; margin:0; white-space:nowrap; }
+  .panel-h .meta{ margin-left:auto; font-size:10px; color:var(--muted-soft); font-family:var(--m); }
+
+  /* KPI tiles row */
+  .kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
+  .kpi{ border:1px solid var(--border); border-radius:11px; padding:10px 12px; position:relative; overflow:hidden; }
+  .kpi .edge{ position:absolute; left:0;top:0;bottom:0;width:3px; }
+  .kpi .lbl{ font-size:8.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .kpi .val{ font-family:var(--m); font-size:22px; font-weight:700; letter-spacing:-0.02em; line-height:1; margin-top:7px; }
+  .kpi .val .u{ font-size:11px; font-weight:500; color:var(--muted-soft); }
+  .kpi .sub{ font-size:9.5px; color:var(--muted); margin-top:6px; }
+  .val.crit{ color:var(--error);} .val.warn{ color:var(--warning);} .val.ok{ color:var(--success);}
+
+  /* hourly heat chart */
+  .heat-legend{ display:flex; gap:15px; font-size:10.5px; color:var(--muted); margin-bottom:9px; }
+  .heat-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .heat-legend i{ width:11px;height:11px;border-radius:3px;display:inline-block; }
+  .heat{ display:flex; align-items:flex-end; gap:7px; height:172px; padding-top:8px; }
+  .hcol{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; height:100%; }
+  .hbars{ flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; position:relative; }
+  .hb{ width:42%; border-radius:3px 3px 0 0; }
+  .hb.dem{ background:rgba(249,115,22,0.28); }
+  .hb.sta{ background:var(--fg); opacity:.82; }
+  .hb.gap{ background:var(--error); }
+  .hcol .hh{ font-family:var(--m); font-size:9px; color:var(--muted); }
+  .hcol .flag{ position:absolute; top:-12px; font-size:8px; font-weight:700; }
+  .flag.under{ color:var(--error); } .flag.over{ color:var(--warning); }
+
+  /* venue status table */
+  .vt{ width:100%; border-collapse:collapse; }
+  .vt th{ text-align:right; font-size:8px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--border-strong); white-space:nowrap; }
+  .vt th:first-child{ text-align:left; }
+  .vt td{ padding:9px 8px; border-bottom:1px solid var(--border); font-family:var(--m); font-size:11.5px; text-align:right; font-variant-numeric:tabular-nums; }
+  .vt td:first-child{ text-align:left; font-family:var(--s); }
+  .vt tr:last-child td{ border-bottom:none; }
+  .vt .vn{ display:inline-flex; align-items:center; gap:8px; }
+  .vt .vd{ width:8px;height:8px;border-radius:50%; flex-shrink:0; }
+  .vt .nm{ font-weight:600; font-size:12px; }
+  .pill{ font-size:8.5px; font-weight:700; padding:2px 7px; border-radius:999px; }
+  .pill.ok{ color:var(--success); background:rgba(17,173,50,0.12); }
+  .pill.warn{ color:var(--warning); background:rgba(193,130,0,0.14); }
+  .pill.crit{ color:var(--error); background:rgba(231,0,11,0.10); }
+  .cw{ color:var(--warning);} .cc{ color:var(--error);} .co{ color:var(--success);}
+
+  /* recommendations */
+  .recs{ grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .rec{ border:1px solid var(--border); border-radius:11px; padding:11px 13px; display:flex; gap:10px; position:relative; overflow:hidden; }
+  .rec::before{ content:""; position:absolute; left:0;top:0;bottom:0;width:3px; }
+  .rec.crit::before{ background:var(--error);} .rec.warn::before{ background:var(--warning);} .rec.info::before{ background:var(--info);}
+  .rec-ic{ width:26px;height:26px;border-radius:7px; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .rec.crit .rec-ic{ background:rgba(231,0,11,0.10); color:var(--error);}
+  .rec.warn .rec-ic{ background:rgba(193,130,0,0.13); color:var(--warning);}
+  .rec.info .rec-ic{ background:rgba(39,132,213,0.12); color:var(--info);}
+  .rec-ic svg{ width:14px;height:14px; }
+  .rec .t{ font-size:12px; font-weight:600; line-height:1.3; }
+  .rec .s{ font-size:10.5px; color:var(--muted); line-height:1.4; margin-top:3px; }
+  .rec .imp{ font-family:var(--m); font-size:10.5px; font-weight:700; color:var(--fg); margin-top:5px; display:inline-block; }
+
+  .pagefoot{ position:absolute; left:14mm; right:14mm; bottom:6mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); }
+
+  @page{ size:A4 landscape; margin:0; }
+  @media print{
+    body{ background:#fff; }
+    .bar{ display:none; }
+    .stage{ padding:0; }
+    .sheet{ box-shadow:none; width:auto; min-height:auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Daglig driftspuls</b> <span class="sub">· Nord Gruppen · fre 30. mai</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg>
+      Lagre som PDF
+    </button>
+  </div>
+
+  <div class="stage">
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-eyebrow">Daglig driftspuls · automatisk kl. 06:00</div>
+          <div class="lh-title">I dag på tvers av Nord Gruppen</div>
+        </div>
+        <div class="lh-right">
+          <div class="lh-date">Fredag 30. mai 2026</div>
+          Generert <b>06:00</b> av Mr. Botsson<br/>
+          4 steder · oppdateres løpende
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- botsson focus -->
+        <div class="focus">
+          <span class="focus-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+          <div>
+            <span class="tag">BOTSSON · DAGENS FOKUS</span>
+            <p>Fredag blir gruppens travleste dag. <span class="hl">Bistro Nord er underbemannet 18–19</span> mot forventet topp, men <strong>overbemannet 14–16</strong>. Kjøl 3-avviket fra i natt må lukkes før Bama leverer <strong>09:30</strong>. Brygga og Express er godt dekket.</p>
+          </div>
+        </div>
+
+        <!-- left column: KPIs + hourly heat -->
+        <div>
+          <div class="panel" style="margin-bottom:14px;">
+            <div class="panel-h"><h3>Pulsen nå</h3><span class="meta">gruppe · kl. 08:14</span></div>
+            <div class="kpis">
+              <div class="kpi"><span class="edge" style="background:var(--success)"></span><div class="lbl">Prognose oms.</div><div class="val">228<span class="u">k</span></div><div class="sub">i dag · 86 % sikkerhet</div></div>
+              <div class="kpi"><span class="edge" style="background:var(--success)"></span><div class="lbl">Gjester</div><div class="val">612</div><div class="sub">forventet i dag</div></div>
+              <div class="kpi"><span class="edge" style="background:var(--success)"></span><div class="lbl">På vakt nå</div><div class="val ok">19<span class="u">/22</span></div><div class="sub">3 starter 16:00</div></div>
+              <div class="kpi"><span class="edge" style="background:var(--warning)"></span><div class="lbl">Dekning</div><div class="val warn">92<span class="u">%</span></div><div class="sub">hull bar 18–19</div></div>
+              <div class="kpi"><span class="edge" style="background:var(--error)"></span><div class="lbl">Åpne avvik</div><div class="val crit">3</div><div class="sub">1 forsinket</div></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><h3>Bemanning mot etterspørsel</h3><span class="meta">Bistro Nord · time for time</span></div>
+            <div class="heat-legend">
+              <span><i style="background:rgba(249,115,22,0.28)"></i>Etterspørsel</span>
+              <span><i style="background:var(--fg)"></i>Bemannet</span>
+              <span><i style="background:var(--error)"></i>Underbemannet</span>
+            </div>
+            <div class="heat" id="heat"></div>
+          </div>
+        </div>
+
+        <!-- right column: venue status -->
+        <div class="panel">
+          <div class="panel-h"><h3>Steder i dag</h3><span class="meta">status · fredag</span></div>
+          <table class="vt">
+            <thead><tr><th>Sted</th><th>Åpning</th><th>På vakt</th><th>Dekning</th><th>Avvik</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="vn"><span class="vd" style="background:#f97316"></span><span class="nm">Bistro Nord</span></span></td>
+                <td>11–23</td><td>5/6</td><td><span class="cw">91 %</span></td><td><span class="cc">3</span></td><td><span class="pill warn">Følg med</span></td>
+              </tr>
+              <tr>
+                <td><span class="vn"><span class="vd" style="background:#00ab93"></span><span class="nm">Bistro Brygga</span></span></td>
+                <td>11–24</td><td>7/7</td><td><span class="co">96 %</span></td><td>0</td><td><span class="pill ok">Klar</span></td>
+              </tr>
+              <tr>
+                <td><span class="vn"><span class="vd" style="background:#864ad2"></span><span class="nm">Kafé Torget</span></span></td>
+                <td>08–18</td><td>4/4</td><td><span class="cw">93 %</span></td><td>1</td><td><span class="pill ok">Klar</span></td>
+              </tr>
+              <tr>
+                <td><span class="vn"><span class="vd" style="background:#c18200"></span><span class="nm">Nord Express</span></span></td>
+                <td>10–22</td><td>3/3</td><td><span class="co">98 %</span></td><td>0</td><td><span class="pill ok">Klar</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:13px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:22px;">
+            <div><div style="font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">Gruppe på vakt</div><div style="font-family:var(--m);font-size:18px;font-weight:700;margin-top:5px;">19 / 22</div></div>
+            <div><div style="font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">Snittdekning</div><div style="font-family:var(--m);font-size:18px;font-weight:700;margin-top:5px;color:var(--success);">95 %</div></div>
+            <div><div style="font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">Leveranser</div><div style="font-family:var(--m);font-size:18px;font-weight:700;margin-top:5px;">2</div></div>
+          </div>
+        </div>
+
+        <!-- recommendations -->
+        <div class="recs">
+          <div class="rec crit">
+            <span class="rec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14V5a2 2 0 0 0-4 0v9a4 4 0 1 0 4 0z"/></svg></span>
+            <div><div class="t">Lukk Kjøl 3-avviket før 09:30</div><div class="s">Løs pakning ga temperaturavvik i natt. Fikses nå, unngår varekast ved Bama-levering.</div><span class="imp">Avvik #214 · Nord</span></div>
+          </div>
+          <div class="rec warn">
+            <span class="rec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6M17.5 20a5.5 5.5 0 0 0-3-4.9"/></svg></span>
+            <div><div class="t">Be én sal-vakt starte 17 i stedet for 15</div><div class="s">Overbemannet 14–16 ved Nord. Forskyvning dekker kveldstoppen 18–19 uten ekstra timer.</div><span class="imp">≈ 1 600 kr spart</span></div>
+          </div>
+          <div class="rec info">
+            <span class="rec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></span>
+            <div><div class="t">Tilby kveldsvakt til Jonas H.</div><div class="s">Bar 18–19 er udekket. Jonas er kvalifisert og under 37,5 t — sender forespørsel han kan godta i appen.</div><span class="imp">Dekker hullet</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Daglig driftspuls · Nord Gruppen</span><span>Fredag 30.05.2026 · automatisk utsending kl. 06:00</span></div>
+    </div>
+  </div>
+
+<script>
+  (function(){
+    // hourly demand vs staffed (Bistro Nord, Fre) — RAP_HOURLY
+    var H=[
+      {h:"11",d:38,s:52},{h:"12",d:64,s:60},{h:"13",d:71,s:64},{h:"14",d:44,s:60},
+      {h:"15",d:31,s:52},{h:"16",d:42,s:48},{h:"17",d:68,s:64},{h:"18",d:92,s:80},
+      {h:"19",d:96,s:88},{h:"20",d:78,s:88},{h:"21",d:54,s:76},{h:"22",d:36,s:52}
+    ];
+    var max=100, host=document.getElementById("heat");
+    H.forEach(function(x){
+      var under = x.s < x.d - 6;       // demand clearly exceeds staffing
+      var over  = x.s > x.d + 14;      // heavily overstaffed
+      var col=document.createElement("div"); col.className="hcol";
+      var bars=document.createElement("div"); bars.className="hbars";
+      if(under){ var f=document.createElement("span"); f.className="flag under"; f.textContent="!"; bars.appendChild(f); }
+      else if(over){ var fo=document.createElement("span"); fo.className="flag over"; fo.textContent="•"; bars.appendChild(fo); }
+      var dem=document.createElement("span"); dem.className="hb dem"; dem.style.height=(x.d/max*100)+"%";
+      var sta=document.createElement("span"); sta.className="hb sta"+(under?" gap":""); sta.style.height=(x.s/max*100)+"%";
+      bars.appendChild(dem); bars.appendChild(sta);
+      var hh=document.createElement("div"); hh.className="hh"; hh.textContent=x.h;
+      col.appendChild(bars); col.appendChild(hh); host.appendChild(col);
+    });
+  })();
+</script>
+</body>
+</html>

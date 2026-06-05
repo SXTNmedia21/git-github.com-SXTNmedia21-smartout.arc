@@ -1,0 +1,79 @@
+{
+  "domain": "hms",
+  "design_files": [
+    "hms.jsx",
+    "hms-avvik.jsx",
+    "hms-dashboard.jsx",
+    "hms-entities.jsx",
+    "hms-protocol.jsx",
+    "hms-shared.jsx",
+    "hms-tracking.jsx",
+    "hms-wizard.jsx"
+  ],
+  "interactive_elements_total": 145,
+  "elements_mapped": 145,
+  "mutations": 38,
+  "events_required": 38,
+  "events_in_registry": 38,
+  "events_missing_from_registry": [],
+  "hooks_found": 5,
+  "hooks_reused": [
+    "use-deviations.ts",
+    "use-create-deviation.ts",
+    "use-update-deviation.ts",
+    "use-complete-task.ts",
+    "use-readiness-score.ts",
+    "use-session-tasks.ts",
+    "use-procedure-steps.ts"
+  ],
+  "hooks_missing": [],
+  "hooks_delivered": [
+    "use-create-protocol.ts — delivered 2026-06-01; delegates to createProtocolAction (gateAction + admin INSERT + awaited emit(hms.protocol.created)). Follows use-complete-task.ts gated template pattern."
+  ],
+  "noop_candidates": [
+    "Tab nav (hms.jsx:129) — 5 buttons — pure nav",
+    "KPI Pulses (hms-dashboard.jsx:109-113) — 5 buttons — pure nav",
+    "Protocol library expand/collapse (hms-protocol.jsx:14) — accordion toggle",
+    "Protocol detail tab nav (hms-protocol.jsx:199) — 11 tab buttons",
+    "Training/Readiness view switch (hms-tracking.jsx:100)",
+    "Training/Avvik/Activity filter chips — combined ~22 filter toggles",
+    "Wizard form fields (hms-wizard.jsx) — 15 form inputs/toggles",
+    "AvvikDrawer owner edit toggle (hms-avvik.jsx:267)",
+    "Comment compose option chips (hms-shared.jsx:312-315)"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": true,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": true,
+    "baseline_count_recorded": true
+  },
+  "gate": "GREEN",
+  "gate_verified_at": "2026-06-01T00:00:00Z",
+  "gate_notes": "Stale control.json reconciled: all 20 claimed-missing events were already in registry.ts (5th stale occurrence across campaign). use-create-protocol.ts built and delivered: gateAction + createAdminClient INSERT + awaited emit(hms.protocol.created). Evidence tier enum corrected from assumed values to actual DB enum. Static gate battery clean: tsc --noEmit exit 0, no direct browser writes, gateAction+emit present.",
+  "e2e_gate": "ENV-BLOCKED + SEED-BLOCKED: (1) live login requires smartout op token (97 op:// refs); (2) haccp_log / knowledge_test_attempt / confirmation_signature tables have 0 seed rows — E2E exercises hollow for HACCP/quiz/manual compliance widgets. Needs F0.4 seed PR before live E2E can pass.",
+  "remaining_seed_blockers": [
+    {
+      "id": "F0.4-HMS-1",
+      "type": "seed-blocker",
+      "table": "haccp_log",
+      "seed_rows": 0,
+      "action": "Insert >=3 seed rows with valid session_id, protocol_id, recorded_at, recorded_by"
+    },
+    {
+      "id": "F0.4-HMS-2",
+      "type": "seed-blocker",
+      "table": "knowledge_test_attempt",
+      "seed_rows": 0,
+      "action": "Insert >=2 seed rows: one passed, one failed. Link to existing quiz + profile."
+    },
+    {
+      "id": "F0.4-HMS-3",
+      "type": "seed-blocker",
+      "table": "confirmation_signature",
+      "seed_rows": 0,
+      "action": "Insert >=2 seed rows per manual per profile."
+    }
+  ],
+  "blockers": []
+}

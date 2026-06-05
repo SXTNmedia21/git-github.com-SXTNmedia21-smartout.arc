@@ -1,0 +1,184 @@
+{
+  "domain": "kommunikasjon",
+  "app_subdir": "apps/web/src/app/dashboard/komm",
+  "generated_at": "2026-05-31T23:51:57Z",
+  "aggregate": {
+    "required": 25,
+    "defined_in_registry": 25,
+    "emitted_in_ui": 7,
+    "not_emitted_count": 18,
+    "emit_coverage_pct": 28.0
+  },
+  "not_emitted": [
+    "announcement.archived",
+    "announcement.comment_added",
+    "announcement.draft_saved",
+    "announcement.reminder_sent",
+    "announcement.republished",
+    "announcement.scheduled",
+    "channel.message.deleted",
+    "channel.message.pinned",
+    "channel.message.unpinned",
+    "channel.reopened",
+    "channel.updated",
+    "helpdesk.ai_draft_accepted",
+    "helpdesk.ai_draft_dismissed",
+    "helpdesk.case.priority_changed",
+    "helpdesk.case.reopened",
+    "helpdesk.internal_note_added",
+    "helpdesk.query.reassigned",
+    "helpdesk.query.replied"
+  ],
+  "events": [
+    {
+      "key": "announcement.archived",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "announcement.comment_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "announcement.draft_saved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "announcement.reminder_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "announcement.republished",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "announcement.scheduled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.ai_policy_updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_actions/ai-policy-channel-actions.ts:185"
+    },
+    {
+      "key": "channel.archived",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_actions/general-channel-actions.ts:280"
+    },
+    {
+      "key": "channel.created",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_hooks/use-create-channel.ts:40"
+    },
+    {
+      "key": "channel.helpdesk.disabled",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_actions/helpdesk-channel-actions.ts:441"
+    },
+    {
+      "key": "channel.helpdesk.enabled",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_actions/helpdesk-channel-actions.ts:320"
+    },
+    {
+      "key": "channel.message.deleted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.message.pinned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.message.sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/_hooks/use-send-message.ts:42"
+    },
+    {
+      "key": "channel.message.unpinned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.reopened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.ai_draft_accepted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.ai_draft_dismissed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.case.priority_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.case.reopened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.internal_note_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.query.reassigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.query.replied",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "helpdesk.query.resolved",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/komm/thread/[channelId]/_actions/resolve-ticket.ts:122"
+    }
+  ]
+}

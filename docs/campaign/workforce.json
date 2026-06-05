@@ -1,0 +1,116 @@
+{
+  "updated_at": "2026-06-03",
+  "registered": 18,
+  "active": 3,
+  "max_workers": 3,
+  "agents": [
+    {
+      "agent": "frontend-designer",
+      "model": "sonnet",
+      "role": "Use this agent when building, designing, or polishing fronte",
+      "active": true
+    },
+    {
+      "agent": "supervisor",
+      "model": "inherit",
+      "role": "Use this agent when you need to review agent output for corr",
+      "active": true
+    },
+    {
+      "agent": "system-steward",
+      "model": "opus",
+      "role": "Use this agent to verify plans before implementation, audit ",
+      "active": true
+    },
+    {
+      "agent": "botsson-harness-builder",
+      "model": "inherit",
+      "role": "Use this agent when building, wiring, or repairing any part ",
+      "active": false
+    },
+    {
+      "agent": "ci-incident-conductor",
+      "model": "inherit",
+      "role": "The CI incident conductor. Owns failed-CI triage, classifica",
+      "active": false
+    },
+    {
+      "agent": "deploy-conductor",
+      "model": "inherit",
+      "role": "The deployment conductor. Owns the enforced pipeline (ADR-02",
+      "active": false
+    },
+    {
+      "agent": "journey-inference",
+      "model": "sonnet",
+      "role": "Proactive journey health agent. Runs weekly rounds to verify",
+      "active": false
+    },
+    {
+      "agent": "lovsen",
+      "model": "inherit",
+      "role": "Norsk arbeidsrett-spesialist for Smartout hospitality. Full ",
+      "active": false
+    },
+    {
+      "agent": "mobile-sitemap-ux-auditor",
+      "model": "inherit",
+      "role": "Use this agent when reviewing, auditing, or restructuring th",
+      "active": false
+    },
+    {
+      "agent": "narrator",
+      "model": "haiku",
+      "role": "Kommunicerar utvecklingsprogress och status i engagerande na",
+      "active": false
+    },
+    {
+      "agent": "sdsm-orchestrator",
+      "model": "inherit",
+      "role": "Drives the Smartout Development State Machine (SDSM) end-to-",
+      "active": false
+    },
+    {
+      "agent": "sxtn-architect",
+      "model": "sonnet",
+      "role": "SDSM S2–S5 architecture subagent — one agent, four modes, di",
+      "active": false
+    },
+    {
+      "agent": "sxtn-builder",
+      "model": "sonnet",
+      "role": "SDSM S6 Phase-A build subagent — one agent, three modes, dis",
+      "active": false
+    },
+    {
+      "agent": "sxtn-harness-builder",
+      "model": "opus",
+      "role": "Autonomous harness controller for the sxtn plugin — the agen",
+      "active": false
+    },
+    {
+      "agent": "sxtn-orchestrator",
+      "model": "opus",
+      "role": "Drives the SDSM state machine end-to-end AND keeps work movi",
+      "active": false
+    },
+    {
+      "agent": "sxtn-refactor-driver",
+      "model": "opus",
+      "role": "Brownfield design-driven refactor driver. Use when implement",
+      "active": false
+    },
+    {
+      "agent": "sxtn-top-orchestrator",
+      "model": "opus",
+      "role": "PROJECT (SmartOut frontend design-implementation campaign). ",
+      "active": false
+    },
+    {
+      "agent": "system-agent-coordinator",
+      "model": "inherit",
+      "role": "Use this agent when working on the AI agent architecture ins",
+      "active": false
+    }
+  ]
+}

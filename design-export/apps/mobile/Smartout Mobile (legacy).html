@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Mobil</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../web/shared/styles.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: #0e0c0a; display: flex; align-items: center; justify-content: center; }
+  @keyframes authspin { to { transform: rotate(360deg); } }
+  @keyframes skshimmer { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @keyframes authfade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* phone frame */
+  .m-phone {
+    position: relative; width: 100%; max-width: 420px; height: 100vh; max-height: 920px;
+    margin: 0 auto; background: var(--bg); display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+  @media (min-width: 460px) { .m-phone { border-radius: 28px; height: min(900px, 96vh); border: 1px solid rgba(255,255,255,0.08); } }
+
+  .m-top { flex-shrink: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); background: var(--card); }
+  .m-top-btn { position: relative; width: 38px; height: 38px; border-radius: 10px; border: none; background: none; color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .m-top-btn:hover { background: var(--secondary); }
+  .m-top-title { font-family: var(--font-heading); font-size: 19px; letter-spacing: -0.01em; color: var(--fg); }
+  .m-badge { position: absolute; top: 5px; right: 5px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background: var(--error); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--card); }
+
+  .m-screen { flex: 1; overflow-y: auto; padding: 18px 16px 26px; }
+  .m-screen::-webkit-scrollbar { width: 0; }
+  .m-greet { margin-bottom: 16px; }
+  .m-hero { border-radius: 18px; background: linear-gradient(135deg, var(--orange), #c2410c); padding: 20px; display: grid; gap: 10px; margin-bottom: 16px; }
+  .m-hero.alt { background: var(--card); border: 1px solid var(--border); }
+  .m-quick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .m-quick-tile { border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 78px; }
+  .m-quick-ic { width: 30px; height: 30px; border-radius: 9px; background: var(--orange-soft); display: inline-flex; align-items: center; justify-content: center; }
+  [data-theme="dark"] .m-quick-ic { background: rgba(249,115,22,0.16); }
+  .m-quick-lbl { font-size: 13px; font-weight: 600; color: var(--fg); }
+  .m-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .m-list-row { display: flex; align-items: center; gap: 12px; padding: 13px 4px; border-bottom: 1px solid var(--border); }
+  .mk-bar { display: inline-block; border-radius: 6px; background: var(--secondary); animation: skshimmer 1.8s ease-in-out infinite; }
+  .mk-dot { width: 30px; height: 30px; border-radius: 9px; background: var(--secondary); flex-shrink: 0; animation: skshimmer 1.8s ease-in-out infinite; }
+  .m-tag { margin-top: 16px; font-family: var(--font-mono); font-size: 10.5px; color: var(--muted-soft); }
+
+  .m-tabbar { flex-shrink: 0; height: 64px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px calc(env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--card); }
+  .m-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; border: none; background: none; cursor: pointer; color: var(--muted); font-family: inherit; font-size: 9.5px; font-weight: 600; letter-spacing: .02em; }
+  .m-tab.on { color: var(--orange); }
+  .m-fab { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--bg); background: var(--orange); cursor: pointer; margin-top: -22px; box-shadow: 0 4px 16px rgba(249,115,22,0.4); display: inline-flex; align-items: center; justify-content: center; }
+  .m-mark { width: 18px; height: 18px; border-radius: 5px; background: #fff; transform: rotate(45deg); }
+</style>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#1a1510"/>
+    <rect x="33" y="14" width="34" height="72" rx="7" fill="#fdfcfa"/>
+    <rect x="38" y="22" width="24" height="16" rx="3" fill="#f97316"/>
+    <rect x="38" y="42" width="11" height="11" rx="2.5" fill="#f5f3f0"/>
+    <rect x="51" y="42" width="11" height="11" rx="2.5" fill="#f5f3f0"/>
+    <circle cx="50" cy="80" r="4" fill="#f97316"/>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="refs/auth.jsx"></script>
+<script type="text/babel" src="refs/mobile-shell.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+{
+  "domain": "hms",
+  "app_subdir": "apps/web/src/app/dashboard/hms",
+  "generated_at": "2026-05-31T23:52:05Z",
+  "aggregate": {
+    "required": 20,
+    "defined_in_registry": 20,
+    "emitted_in_ui": 0,
+    "not_emitted_count": 20,
+    "emit_coverage_pct": 0.0
+  },
+  "not_emitted": [
+    "hms.activity.exported",
+    "hms.ai.action_confirmed",
+    "hms.ai.suggestion_dismissed",
+    "hms.category.viewed",
+    "hms.comment.resolved",
+    "hms.comment.sent",
+    "hms.deviation.comment_added",
+    "hms.evidence.archive_opened",
+    "hms.legal.external_link_opened",
+    "hms.manual.started",
+    "hms.protocol.created",
+    "hms.protocol.wizard_abandoned",
+    "hms.protocol.wizard_started",
+    "hms.quiz.retried",
+    "hms.quiz.started",
+    "hms.readiness.reminder_sent",
+    "hms.task.created",
+    "hms.training.completed",
+    "hms.training.export_requested",
+    "hms.training.started"
+  ],
+  "events": [
+    {
+      "key": "hms.activity.exported",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.ai.action_confirmed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.ai.suggestion_dismissed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.category.viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.comment.resolved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.comment.sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.deviation.comment_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.evidence.archive_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.legal.external_link_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.manual.started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.protocol.created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.protocol.wizard_abandoned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.protocol.wizard_started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.quiz.retried",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.quiz.started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.readiness.reminder_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.task.created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.training.completed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.training.export_requested",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hms.training.started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

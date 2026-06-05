@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lønnsgrunnlag — Jonas H. · april 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5; --purple:#8b5cf6;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2;
+    --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; } .bar .sub{ font-size:12px; color:#b8b2aa; } .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; } .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; } .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:17mm 16mm 14mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  .lh{ display:flex; align-items:flex-start; gap:14px; padding-bottom:15px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:36px;height:36px;border-radius:10px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:13px;height:13px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; } .lh-brand{ font-size:13px; font-weight:700; } .lh-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.6; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+
+  .title{ margin:18px 0 0; }
+  .eyebrow{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  h1{ font-family:var(--h); font-weight:400; font-size:38px; letter-spacing:-0.02em; line-height:1.02; margin:7px 0 0; }
+  .who{ display:flex; align-items:center; gap:12px; margin-top:14px; }
+  .who .av{ width:42px;height:42px;border-radius:11px; display:flex;align-items:center;justify-content:center; color:#fff; font-weight:700; font-size:15px; flex-shrink:0; }
+  .who .nm{ font-size:15px; font-weight:600; }
+  .who .rl{ font-size:11.5px; color:var(--muted); margin-top:1px; }
+
+  section{ margin-top:22px; }
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:12px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+  .sec-h .n{ font-family:var(--m); font-size:11px; font-weight:600; color:var(--orange-dark); }
+  .sec-h h2{ font-family:var(--h); font-weight:400; font-size:20px; letter-spacing:-0.01em; margin:0; white-space:nowrap; }
+  .sec-h .meta{ margin-left:auto; font-size:10.5px; color:var(--muted-soft); font-family:var(--m); }
+
+  .tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .tile{ border:1px solid var(--border); border-radius:12px; padding:13px 14px; position:relative; overflow:hidden; }
+  .tile.hero{ background:var(--fg); border-color:var(--fg); }
+  .tile .lbl{ font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+  .tile.hero .lbl{ color:rgba(255,255,255,0.62); }
+  .tile .val{ font-family:var(--m); font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1; margin-top:8px; }
+  .tile.hero .val{ color:#fff; } .tile .val .u{ font-size:12px; color:var(--muted-soft); }
+  .tile .sub{ font-size:9.5px; color:var(--muted); margin-top:6px; }
+  .tile.hero .sub{ color:rgba(255,255,255,0.6); }
+
+  /* hours breakdown */
+  .hours{ display:grid; grid-template-columns:repeat(6,1fr); gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .hr{ padding:12px 14px; border-right:1px solid var(--border); }
+  .hr:last-child{ border-right:none; }
+  .hr .l{ font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .hr .v{ font-family:var(--m); font-size:18px; font-weight:700; margin-top:7px; }
+  .hr .v .u{ font-size:10px; color:var(--muted-soft); }
+  .hr.accent .v{ color:var(--orange-dark); }
+
+  table{ width:100%; border-collapse:collapse; }
+  .t th{ text-align:right; font-size:8.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:9px 9px; border-bottom:1px solid var(--border-strong); white-space:nowrap; }
+  .t th:first-child{ text-align:left; }
+  .t td{ padding:10px 9px; border-bottom:1px solid var(--border); font-family:var(--m); font-size:11.5px; text-align:right; font-variant-numeric:tabular-nums; }
+  .t td:first-child{ text-align:left; font-family:var(--s); }
+  .t tr:last-child td{ border-bottom:none; }
+  .tags{ display:inline-flex; gap:4px; }
+  .tg{ font-size:8px; font-weight:700; letter-spacing:.03em; padding:2px 6px; border-radius:5px; }
+  .tg.kveld{ color:var(--info); background:rgba(39,132,213,0.12); }
+  .tg.helg{ color:var(--purple); background:rgba(139,92,246,0.12); }
+  .tg.hellig{ color:var(--warning); background:rgba(193,130,0,0.13); }
+  .tg.ot{ color:var(--error); background:rgba(231,0,11,0.10); }
+  .warnrow td{ color:var(--warning); }
+  .warn-note{ font-size:9.5px; color:var(--warning); font-family:var(--s); margin-top:3px; }
+
+  /* pay lines */
+  .lines{ border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .ln{ display:flex; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:13px; }
+  .ln:last-child{ border-bottom:none; }
+  .ln .c{ font-family:var(--m); font-size:10px; color:var(--muted-soft); width:108px; flex-shrink:0; }
+  .ln .lab{ flex:1; }
+  .ln .kr{ font-family:var(--m); font-weight:600; font-variant-numeric:tabular-nums; }
+  .ln.neg .kr{ color:var(--error); }
+  .ln.tot{ background:var(--secondary); font-weight:700; }
+  .ln.tot .lab{ font-weight:700; }
+  .ln.net{ background:var(--fg); }
+  .ln.net .lab, .ln.net .kr{ color:#fff; font-size:15px; font-weight:700; }
+  .ln.net .c{ color:rgba(255,255,255,0.5); }
+
+  .note{ display:flex; gap:11px; padding:12px 14px; border-radius:11px; border:1px solid; align-items:flex-start; margin-top:10px; }
+  .note.info{ background:rgba(39,132,213,0.06); border-color:rgba(39,132,213,0.2); }
+  .note .ic{ flex-shrink:0; margin-top:1px; color:var(--info); }
+  .note .bt{ font-size:12.5px; font-weight:600; } .note .bs{ font-size:11.5px; color:var(--muted); line-height:1.45; margin-top:2px; }
+
+  .foot{ margin-top:24px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:16px; align-items:flex-end; }
+  .foot .l{ font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .foot .v{ font-family:var(--m); font-size:13px; font-weight:600; margin-top:5px; }
+  .foot .conf{ margin-left:auto; text-align:right; font-size:9.5px; color:var(--muted-soft); line-height:1.6; max-width:50ch; }
+  .pagefoot{ position:absolute; left:16mm; right:16mm; bottom:8mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); }
+
+  @page{ size:A4; margin:0; }
+  @media print{ body{ background:#fff; } .bar{ display:none; } .stage{ padding:0; } .sheet{ box-shadow:none; width:auto; min-height:auto; } }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Lønnsgrunnlag</b> <span class="sub">· Jonas H. · april 2026</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg> Lagre som PDF</button>
+  </div>
+
+  <div class="stage">
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id"><div class="lh-brand">Smartout · Bistro Nord</div><div class="lh-meta">Lønnsgrunnlag — utbetaling 15. mai 2026</div></div>
+        <div class="lh-right">Ansatt <b>BN-0207</b><br/>Periode <b>01.–30.04.2026</b><br/>Status: <b>til godkjenning</b></div>
+      </div>
+
+      <div class="title">
+        <div class="eyebrow">Lønnsgrunnlag · april 2026</div>
+        <h1>Grunnlaget for lønnen din</h1>
+        <div class="who">
+          <span class="av" style="background:#3B82F6">JH</span>
+          <div><div class="nm">Jonas Halvorsen</div><div class="rl">Kokk · Kjøkken · fastlønn 100 % · timesats 258 kr</div></div>
+        </div>
+      </div>
+
+      <section data-rsec="sum">
+        <div class="sec-h"><span class="n">01</span><h2>Oppsummering</h2><span class="meta">utbetales 15.05</span></div>
+        <div class="tiles">
+          <div class="tile"><div class="lbl">Brutto</div><div class="val">49 221<span class="u"> kr</span></div><div class="sub">før skatt og trekk</div></div>
+          <div class="tile"><div class="lbl">Trekk</div><div class="val" style="color:var(--error)">−14 176<span class="u"> kr</span></div><div class="sub">skatt · pensjon · fagf.</div></div>
+          <div class="tile hero"><div class="lbl">Utbetalt netto</div><div class="val">35 045<span class="u"> kr</span></div><div class="sub">til konto 15.05.2026</div></div>
+          <div class="tile"><div class="lbl">Timer faktisk</div><div class="val">168,0<span class="u"> t</span></div><div class="sub">planlagt 162,5 t</div></div>
+        </div>
+      </section>
+
+      <section data-rsec="timer">
+        <div class="sec-h"><span class="n">02</span><h2>Timegrunnlag</h2><span class="meta">april 2026</span></div>
+        <div class="hours">
+          <div class="hr"><div class="l">Planlagt</div><div class="v">162,5<span class="u"> t</span></div></div>
+          <div class="hr"><div class="l">Faktisk</div><div class="v">168,0<span class="u"> t</span></div></div>
+          <div class="hr accent"><div class="l">Kveld</div><div class="v">12,0<span class="u"> t</span></div></div>
+          <div class="hr accent"><div class="l">Helg</div><div class="v">16,5<span class="u"> t</span></div></div>
+          <div class="hr accent"><div class="l">Helligdag</div><div class="v">8,0<span class="u"> t</span></div></div>
+          <div class="hr accent"><div class="l">Overtid</div><div class="v">5,5<span class="u"> t</span></div></div>
+        </div>
+      </section>
+
+      <section data-rsec="tillegg">
+        <div class="sec-h"><span class="n">03</span><h2>Vakter som utløste tillegg</h2><span class="meta">utvalg · 5 av 21 vakter</span></div>
+        <table class="t">
+          <thead><tr><th>Dato</th><th>Tid</th><th style="text-align:left;padding-left:18px;">Tillegg</th><th>Planlagt</th><th>Faktisk</th></tr></thead>
+          <tbody>
+            <tr><td>01.04 ti</td><td>14:00–22:00</td><td style="text-align:left;padding-left:18px;"><span class="tags"><span class="tg kveld">Kveld</span></span></td><td>8,0</td><td>8,0</td></tr>
+            <tr><td>05.04 lø</td><td>14:00–23:00</td><td style="text-align:left;padding-left:18px;"><span class="tags"><span class="tg kveld">Kveld</span><span class="tg helg">Helg</span><span class="tg ot">OT 0,5t</span></span></td><td>9,0</td><td>9,5</td></tr>
+            <tr><td>13.04 sø</td><td>11:00–19:00</td><td style="text-align:left;padding-left:18px;"><span class="tags"><span class="tg helg">Helg</span></span> <span style="font-size:9px;color:var(--muted)">Palmesøndag</span></td><td>8,0</td><td>8,0</td></tr>
+            <tr><td>17.04 to</td><td>14:00–22:00</td><td style="text-align:left;padding-left:18px;"><span class="tags"><span class="tg kveld">Kveld</span><span class="tg hellig">Helligdag ×2</span></span> <span style="font-size:9px;color:var(--muted)">Skjærtorsdag</span></td><td>8,0</td><td>8,0</td></tr>
+            <tr class="warnrow"><td>20.04 sø</td><td>11:00–19:00</td><td style="text-align:left;padding-left:18px;"><span class="tags"><span class="tg helg">Helg</span></span> <span style="font-size:9px;">⚠ stempling mangler</span></td><td>8,0</td><td>8,0*</td></tr>
+          </tbody>
+        </table>
+        <div class="warn-note">* 20.04: ut-stempling manglet — Smartout brukte planlagt sluttid 19:00. Gi beskjed til leder hvis dette er feil.</div>
+      </section>
+
+      <section data-rsec="linjer">
+        <div class="sec-h"><span class="n">04</span><h2>Lønnslinjer</h2><span class="meta">derivert av Smartout</span></div>
+        <div class="lines">
+          <div class="ln"><span class="c">BASE_HOURLY</span><span class="lab">Grunnlønn · 168,0 t × 258 kr</span><span class="kr">43 344</span></div>
+          <div class="ln"><span class="c">SUPP_KVELD</span><span class="lab">Kveldstillegg · 12,0 t × 25 %</span><span class="kr">774</span></div>
+          <div class="ln"><span class="c">SUPP_HELG</span><span class="lab">Helgtillegg · 16,5 t × 50 %</span><span class="kr">2 129</span></div>
+          <div class="ln"><span class="c">SUPP_HELLIG</span><span class="lab">Helligdagstillegg · 8,0 t × 100 %</span><span class="kr">2 064</span></div>
+          <div class="ln"><span class="c">SUPP_OT</span><span class="lab">Overtid · 5,5 t × 50 %</span><span class="kr">710</span></div>
+          <div class="ln"><span class="c">MANUAL</span><span class="lab">Manuelt · ekstra hjelp Skjærtorsdag</span><span class="kr">200</span></div>
+          <div class="ln tot"><span class="c"></span><span class="lab">Brutto</span><span class="kr">49 221</span></div>
+          <div class="ln neg"><span class="c">TAX</span><span class="lab">Forskuddsskatt (tabelltrekk)</span><span class="kr">−13 042</span></div>
+          <div class="ln neg"><span class="c">PENSJON</span><span class="lab">Tjenestepensjon · 2 %</span><span class="kr">−984</span></div>
+          <div class="ln neg"><span class="c">FAGF</span><span class="lab">Fagforeningskontingent</span><span class="kr">−150</span></div>
+          <div class="ln net"><span class="c">NET</span><span class="lab">Utbetalt netto</span><span class="kr">35 045</span></div>
+        </div>
+
+        <div class="note info">
+          <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none"/></svg></span>
+          <div><div class="bt">Skjærtorsdag-tillegget er bekreftet</div><div class="bs">Du signerte tillegget for arbeid på rød dag (17.04) i Smartout 14.04. Helligdagstillegget på 8,0 t × 100 % inngår i grunnlaget over.</div></div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <div><div class="l">Pluss/minus-bank</div><div class="v" style="color:var(--success)">+6 t 30 m</div></div>
+        <div><div class="l">Ferie igjen</div><div class="v">18 dager</div></div>
+        <div class="conf">Dette er et lønnsgrunnlag, ikke en endelig lønnsslipp. Endelig slipp blir tilgjengelig når perioden er låst. Spørsmål? Ta kontakt med Maria A. (driftsleder). Generert av Smartout 30.04.2026.</div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Lønnsgrunnlag · Jonas Halvorsen</span><span>April 2026 · BN-0207 · konfidensielt</span></div>
+    </div>
+  </div>
+  <script>
+    // Section filter hook for the in-app report viewer (openReportDoc).
+    window.applyReportFilter = function (keys) {
+      var all = !keys || keys.length === 0 || keys.indexOf("*") !== -1;
+      document.querySelectorAll("section[data-rsec]").forEach(function (sec) {
+        sec.style.display = (all || keys.indexOf(sec.getAttribute("data-rsec")) !== -1) ? "" : "none";
+      });
+    };
+  </script>
+</body>
+</html>

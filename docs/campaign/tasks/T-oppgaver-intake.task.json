@@ -1,0 +1,34 @@
+{
+  "id": "T-oppgaver-intake",
+  "kind": "design-intake",
+  "label": "oppgaver",
+  "unit": "oppgaver",
+  "host_repo": "/home/sxtnl/dev/smartout.ai",
+  "host_branch": "development",
+  "live_route": "apps/web/src/app/dashboard/oppgaver",
+  "live_surface": "ManagerTimelineShell (Dagslinje only — 1 of 4 design tabs)",
+  "design_source": "design-export/apps/web/pages/oppgaver.jsx + oppgaver-form.jsx",
+  "design_tabs": ["Oversikt", "Oppgaver", "Dagslinje", "Rutiner"],
+  "scope_gap": "Live builds Dagslinje (ManagerTimeline) only. Oversikt / Oppgaver-list / Rutiner tabs NOT built — backlog, not greenfield.",
+  "ask": "Run Sixten Design Intake T0-T6 on oppgaver end-to-end. Prove the built surface (Dagslinje), honest-flag the 3 unbuilt tabs.",
+  "assigned_to": "orchestrator",
+  "gate_confidence": 95,
+  "advance_rule": "Each stage verify >= gate → AWAITING-HUMAN → Pontus advances. One red/blocked = no advance.",
+  "stages": [
+    { "n": 0, "stage": "INTAKE", "does": "register unit", "verify": "this file exists + fields set", "status": "green", "result": "unit registered: design 4-tab, live=ManagerTimeline (Dagslinje)" },
+    { "n": 1, "stage": "KARTLEGG", "does": "map elements+connections+telemetry in target repo", "verify": "telemetry-map/oppgaver/control.json", "status": "green", "result": "oracle GREEN 2026-06-01: 38 elem, 14 mut, 19/19 events, ADRs closed. Scope-gap surfaced: 3 of 4 design tabs unbuilt." },
+    { "n": 2, "stage": "FIDELITY", "does": "8-dim live-vs-design on Dagslinje", "verify": "mechanical grep + Playwright 8-dim", "status": "partial", "result": "T2a mechanical GREEN: 0 hex/oklch, 0 zinc/gray, 0 motion-drift, 0 non-Lucide, 0 UI-emoji (the 1 hit is a code comment). T2b visual-pixel 8-dim NEEDS-CAPTURE: requires logged-in Playwright on :3060 (auth session). Live ManagerTimeline is a bespoke chart, not a 1:1 port of design Dagslinje tab -> expect visual drift = backlog." },
+    { "n": 3, "stage": "DATA", "does": "DB-render-probe real-or-empty", "verify": "psql simulated-RLS", "status": "green", "result": "REAL rows under simulated RLS: session_task=21, schedule_shift=39, profile=15, department=4, activity_trail=1678. No ghost, no empty." },
+    { "n": 4, "stage": "FUNKSJON", "does": "emit-coverage events+hooks", "verify": "registry grep", "status": "green", "result": "19/19 oppgaver+task events in EVENT_ROUTING. 8 route to activity_trail. P3 hooks flagged in oracle (not blockers)." },
+    { "n": 5, "stage": "TEST", "does": "L3 each event -> activity_trail row", "verify": "node emit + DB assert", "status": "green", "result": "8/8 activity_trail-routed events landed real rows (delta 1680->1688) via real emit() pipeline, Anna actor, real entities. L3 PROVEN." },
+    { "n": 6, "stage": "G8", "does": "human accept (C4)", "verify": "Pontus button", "status": "awaiting-human", "result": "5 stages green, T2 partial (mechanical green, visual needs-capture). Awaiting Pontus accept + T2b decision." }
+  ],
+  "status": "awaiting-human",
+  "last_run": {
+    "ran_at": "2026-06-04",
+    "green": ["T0", "T1", "T3", "T4", "T5"],
+    "partial": ["T2 (2a green, 2b needs-capture)"],
+    "awaiting": ["T6 human accept"],
+    "backlog": ["3 unbuilt design tabs: Oversikt, Oppgaver-list, Rutiner", "T2b Playwright visual 8-dim (auth session)", "P3 hooks per oracle"]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "domain": "min-dag",
+  "design_files": [
+    "apps/web/pages/min-dag.jsx",
+    "apps/mobile/refs/day-widgets.jsx",
+    "apps/mobile/refs/home-screens.jsx"
+  ],
+  "interactive_elements_total": 21,
+  "elements_mapped": 21,
+  "mutations": 5,
+  "events_required": 15,
+  "events_in_registry": 15,
+  "events_missing_from_registry": [],
+  "hooks_found": 5,
+  "hooks_missing": [],
+  "noop_candidates": [
+    "EL-09: brief source list reveal (setShowWhy local toggle — no DB, no side-effect)",
+    "EL-10: TaskItem expand chevron (setOpen local toggle — no DB, no side-effect)",
+    "EL-20: mobile week-strip date select (MobileWeekStrip — display-only, no route change)",
+    "EL-21: mobile tab-bar buttons (MobileTabBar — navigation shell, no domain mutation)"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": true,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": true,
+    "baseline_count_recorded": true
+  },
+  "gate": "GREEN",
+  "blockers": []
+}

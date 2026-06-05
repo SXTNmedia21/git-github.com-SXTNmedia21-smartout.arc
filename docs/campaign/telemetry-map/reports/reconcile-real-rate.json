@@ -1,0 +1,113 @@
+{
+  "reconciled_at": "2026-06-01T00:26:29Z",
+  "source_of_truth": "packages/telemetry/src/registry.ts",
+  "events_required_total": 291,
+  "stated_in_registry_total": 169,
+  "real_in_registry_total": 269,
+  "false_missing_total": 112,
+  "genuinely_missing_total": 22,
+  "stated_rate_pct": 58,
+  "real_rate_pct": 92.4,
+  "per_domain": [
+    {
+      "domain": "vaktplan",
+      "stated_in_registry": 58,
+      "required": 91,
+      "false_missing": 11,
+      "genuinely_missing": 21,
+      "real_in_registry": 70,
+      "stated_rate_pct": 63.7,
+      "real_rate_pct": 76.9
+    },
+    {
+      "domain": "lonn",
+      "stated_in_registry": 10,
+      "required": 13,
+      "false_missing": 2,
+      "genuinely_missing": 1,
+      "real_in_registry": 12,
+      "stated_rate_pct": 76.9,
+      "real_rate_pct": 92.3
+    },
+    {
+      "domain": "ansatte",
+      "stated_in_registry": 14,
+      "required": 34,
+      "false_missing": 20,
+      "genuinely_missing": 0,
+      "real_in_registry": 34,
+      "stated_rate_pct": 41.1,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "avstemming",
+      "stated_in_registry": 8,
+      "required": 19,
+      "false_missing": 11,
+      "genuinely_missing": 0,
+      "real_in_registry": 19,
+      "stated_rate_pct": 42.1,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "hms",
+      "stated_in_registry": 19,
+      "required": 38,
+      "false_missing": 20,
+      "genuinely_missing": 0,
+      "real_in_registry": 38,
+      "stated_rate_pct": 50,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "kommunikasjon",
+      "stated_in_registry": 8,
+      "required": 22,
+      "false_missing": 14,
+      "genuinely_missing": 0,
+      "real_in_registry": 22,
+      "stated_rate_pct": 36.3,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "min-dag",
+      "stated_in_registry": 8,
+      "required": 15,
+      "false_missing": 7,
+      "genuinely_missing": 0,
+      "real_in_registry": 15,
+      "stated_rate_pct": 53.3,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "oppgaver",
+      "stated_in_registry": 17,
+      "required": 19,
+      "false_missing": 2,
+      "genuinely_missing": 0,
+      "real_in_registry": 19,
+      "stated_rate_pct": 89.4,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "oversikt",
+      "stated_in_registry": 11,
+      "required": 11,
+      "false_missing": 0,
+      "genuinely_missing": 0,
+      "real_in_registry": 11,
+      "stated_rate_pct": 100,
+      "real_rate_pct": 100
+    },
+    {
+      "domain": "planlegging",
+      "stated_in_registry": 16,
+      "required": 29,
+      "false_missing": 25,
+      "genuinely_missing": 0,
+      "real_in_registry": 29,
+      "stated_rate_pct": 55.1,
+      "real_rate_pct": 100
+    }
+  ]
+}

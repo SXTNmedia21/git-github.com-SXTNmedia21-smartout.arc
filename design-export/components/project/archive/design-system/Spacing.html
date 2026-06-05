@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Spacing, Radius, Shadows</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { padding: 48px 56px; }
+  .ds-title { font-family: var(--font-heading); font-size: 44px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .ds-sub { color: var(--muted); font-size: 15px; margin: 0 0 36px; max-width: 620px; }
+  .ds-section { margin-bottom: 48px; }
+  .ds-section-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  .sp-row { display: grid; grid-template-columns: 140px 80px 1fr 140px; gap: 20px; padding: 14px 0; border-top: 1px solid var(--border); align-items: center; }
+  .sp-row:last-child { border-bottom: 1px solid var(--border); }
+  .sp-token { font-size: 13px; font-weight: 600; }
+  .sp-val { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+  .sp-bar { background: var(--orange); height: 14px; border-radius: 2px; }
+  .sp-use { font-size: 12px; color: var(--muted); }
+
+  .r-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .r-cell { border: 1px solid var(--border); padding: 20px 16px; background: var(--card); border-radius: var(--r-card); }
+  .r-swatch { height: 64px; background: color-mix(in oklab, var(--orange) 12%, transparent); border: 1px solid color-mix(in oklab, var(--orange) 40%, var(--border)); margin-bottom: 12px; }
+  .r-name { font-size: 12px; font-weight: 600; }
+  .r-val { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .sh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .sh-cell { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 32px 20px; }
+  .sh-box { height: 90px; background: var(--card); border-radius: var(--r-card); border: 1px solid var(--border); margin-bottom: 16px; }
+  .sh-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .sh-val { font-family: var(--font-mono); font-size: 11px; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1 class="ds-title">Spacing, radius & skygger</h1>
+  <p class="ds-sub">Fem spacing-tokens. Seks radius-tokens. Fem skygge-nivåer. Aldri hardkode — alltid referer token.</p>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Spacing — web & mobil</div>
+    <div class="sp-row"><div class="sp-token">Page</div><div class="sp-val">32px</div><div class="sp-bar" style="width:32px"></div><div class="sp-use">Horisontal sidemargin · skjermmargin</div></div>
+    <div class="sp-row"><div class="sp-token">Section</div><div class="sp-val">24px</div><div class="sp-bar" style="width:24px"></div><div class="sp-use">Mellom seksjoner</div></div>
+    <div class="sp-row"><div class="sp-token">Card</div><div class="sp-val">20px</div><div class="sp-bar" style="width:20px"></div><div class="sp-use">Intern kortpadding</div></div>
+    <div class="sp-row"><div class="sp-token">Element</div><div class="sp-val">12px</div><div class="sp-bar" style="width:12px"></div><div class="sp-use">Mellom relaterte elementer</div></div>
+    <div class="sp-row"><div class="sp-token">Tight</div><div class="sp-val">8px</div><div class="sp-bar" style="width:8px"></div><div class="sp-use">Kompakt avstand</div></div>
+    <div class="sp-row"><div class="sp-token">XS (mobil)</div><div class="sp-val">4px</div><div class="sp-bar" style="width:4px"></div><div class="sp-use">Minimal avstand</div></div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Border radius</div>
+    <div class="r-grid">
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 6px"></div><div class="r-name">SM</div><div class="r-val">6px</div><div class="r-val">Badges, små</div></div>
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 8px"></div><div class="r-name">MD</div><div class="r-val">8px</div><div class="r-val">Input, chips</div></div>
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 10px"></div><div class="r-name">LG</div><div class="r-val">10px</div><div class="r-val">Knapper</div></div>
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 14px"></div><div class="r-name">XL</div><div class="r-val">14px</div><div class="r-val">Modaler</div></div>
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 16px"></div><div class="r-name">Card</div><div class="r-val">16px</div><div class="r-val">Alle kort</div></div>
+      <div class="r-cell"><div class="r-swatch" style="border-radius: 9999px; height: 28px; margin-top: 36px;"></div><div class="r-name">Full</div><div class="r-val">9999px</div><div class="r-val">Piller, avatarer</div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Skygger</div>
+    <div class="sh-grid">
+      <div class="sh-cell"><div class="sh-box" style="box-shadow: 0 1px 2px rgba(0,0,0,0.05)"></div><div class="sh-name">SM</div><div class="sh-val">0 1px 2px rgba(0,0,0,.05)<br/>Subtile elementer</div></div>
+      <div class="sh-cell"><div class="sh-box" style="box-shadow: 0 4px 6px rgba(0,0,0,0.1)"></div><div class="sh-name">MD</div><div class="sh-val">0 4px 6px rgba(0,0,0,.1)<br/>Kort, dropdown</div></div>
+      <div class="sh-cell"><div class="sh-box" style="box-shadow: 0 10px 15px rgba(0,0,0,0.1)"></div><div class="sh-name">LG</div><div class="sh-val">0 10px 15px rgba(0,0,0,.1)<br/>Modaler, flytende</div></div>
+      <div class="sh-cell"><div class="sh-box" style="box-shadow: 0 2px 12px rgba(249,115,22,0.25); background: #f97316"></div><div class="sh-name" style="color: var(--orange)">Brand glow</div><div class="sh-val">0 2px 12px rgba(249,115,22,.25)<br/>CTA-knapper</div></div>
+      <div class="sh-cell"><div class="sh-box" style="box-shadow: 0 8px 24px rgba(0,0,0,0.15)"></div><div class="sh-name">Card hover</div><div class="sh-val">0 8px 24px rgba(0,0,0,.15)<br/>Kort ved hover</div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Motion — spring-konfigurasjoner</div>
+    <div class="sh-grid">
+      <div class="sh-cell"><div class="sh-name">Standard</div><div class="sh-val">stiffness 35 · damping 22 · mass 2.2<br/>Panelskift, store overganger</div></div>
+      <div class="sh-cell"><div class="sh-name">Snappy</div><div class="sh-val">stiffness 45 · damping 24 · mass 2.0<br/>Innhold, steg-overganger</div></div>
+      <div class="sh-cell"><div class="sh-name">Gentle</div><div class="sh-val">stiffness 30 · damping 20 · mass 2.5<br/>Ekspandering, wizard-steg</div></div>
+    </div>
+  </section>
+</body>
+</html>

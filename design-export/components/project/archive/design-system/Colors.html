@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Farger</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { padding: 48px 56px; }
+  .ds-title { font-family: var(--font-heading); font-size: 44px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .ds-sub { color: var(--muted); font-size: 15px; margin: 0 0 36px; max-width: 620px; }
+  .ds-section { margin-bottom: 40px; }
+  .ds-section-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+  .sw { border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; background: var(--card); }
+  .sw-chip { height: 80px; }
+  .sw-meta { padding: 12px 14px; }
+  .sw-name { font-size: 13px; font-weight: 600; }
+  .sw-hex { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .sw-use { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .surface-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+  .surface-cell { background: var(--card); padding: 20px 16px; }
+  .surface-cell .label { font-size: 11px; color: var(--muted); letter-spacing: 0.3px; margin-bottom: 12px; text-transform: uppercase; font-weight: 600; }
+  .surface-swatch { height: 48px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+  .surface-hex { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1 class="ds-title">Farger</h1>
+  <p class="ds-sub">Nordic Split bruker varme undertoner gjennomgående. Nøytralfarger har hue 45–60 (gylden/beige) — aldri kald grå eller blå-grå.</p>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Brand</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#f97316"></div><div class="sw-meta"><div class="sw-name">Orange</div><div class="sw-hex">#f97316</div><div class="sw-use">Primær CTA, aktive elementer, merke</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#fb923c"></div><div class="sw-meta"><div class="sw-name">Orange Light</div><div class="sw-hex">#fb923c</div><div class="sw-use">Hover, lys variant</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#c2410c"></div><div class="sw-meta"><div class="sw-name">Orange Dark</div><div class="sw-hex">#c2410c</div><div class="sw-use">Pressed, mørk variant</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#8b5cf6"></div><div class="sw-meta"><div class="sw-name">Purple</div><div class="sw-hex">#8b5cf6</div><div class="sw-use">Sekundær aksent, feature-seksjoner</div></div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Semantisk</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#11ad32"></div><div class="sw-meta"><div class="sw-name">Success</div><div class="sw-hex">#11ad32</div><div class="sw-use">Fullført, godkjent, aktiv</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#c18200"></div><div class="sw-meta"><div class="sw-name">Warning</div><div class="sw-hex">#c18200</div><div class="sw-use">Advarsel, venter, offboarding</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#e7000b"></div><div class="sw-meta"><div class="sw-name">Error</div><div class="sw-hex">#e7000b</div><div class="sw-use">Feil, destruktiv handling</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#2784d5"></div><div class="sw-meta"><div class="sw-name">Info</div><div class="sw-hex">#2784d5</div><div class="sw-use">Informasjon, trainee-status</div></div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Lys modus — overflater</div>
+    <div class="surface-row">
+      <div class="surface-cell"><div class="label">Background</div><div class="surface-swatch" style="background:#fdfcfa"></div><div class="surface-hex">#fdfcfa</div></div>
+      <div class="surface-cell"><div class="label">Foreground</div><div class="surface-swatch" style="background:#1c1814"></div><div class="surface-hex">#1c1814</div></div>
+      <div class="surface-cell"><div class="label">Secondary</div><div class="surface-swatch" style="background:#f5f3f0"></div><div class="surface-hex">#f5f3f0</div></div>
+      <div class="surface-cell"><div class="label">Muted text</div><div class="surface-swatch" style="background:#7a756e"></div><div class="surface-hex">#7a756e</div></div>
+      <div class="surface-cell"><div class="label">Border</div><div class="surface-swatch" style="background:#e8e5e1"></div><div class="surface-hex">#e8e5e1</div></div>
+      <div class="surface-cell"><div class="label">Sidebar</div><div class="surface-swatch" style="background:#f7f5f2"></div><div class="surface-hex">#f7f5f2</div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Mørk modus — overflater</div>
+    <div class="surface-row" style="background:#2a2520">
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Background</div><div class="surface-swatch" style="background:#151210; border-color:rgba(255,255,255,.08)"></div><div class="surface-hex" style="color:#908a82">#151210</div></div>
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Foreground</div><div class="surface-swatch" style="background:#f0eeeb; border-color:rgba(255,255,255,.08)"></div><div class="surface-hex" style="color:#908a82">#f0eeeb</div></div>
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Card</div><div class="surface-swatch" style="background:#1e1a15; border-color:rgba(255,255,255,.08)"></div><div class="surface-hex" style="color:#908a82">#1e1a15</div></div>
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Secondary</div><div class="surface-swatch" style="background:#262626; border-color:rgba(255,255,255,.08)"></div><div class="surface-hex" style="color:#908a82">#262626</div></div>
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Muted</div><div class="surface-swatch" style="background:#908a82"></div><div class="surface-hex" style="color:#908a82">#908a82</div></div>
+      <div class="surface-cell" style="background:#1e1a15; color:#f0eeeb"><div class="label" style="color:#908a82">Border</div><div class="surface-swatch" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.08)"></div><div class="surface-hex" style="color:#908a82">rgba 08</div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Avdelinger</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#ee560c"></div><div class="sw-meta"><div class="sw-name">Kjøkken</div><div class="sw-hex">#ee560c</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#00ab93"></div><div class="sw-meta"><div class="sw-name">Sal</div><div class="sw-hex">#00ab93</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#864ad2"></div><div class="sw-meta"><div class="sw-name">Bar</div><div class="sw-hex">#864ad2</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#c18200"></div><div class="sw-meta"><div class="sw-name">Event</div><div class="sw-hex">#c18200</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#008388"></div><div class="sw-meta"><div class="sw-name">Lager</div><div class="sw-hex">#008388</div></div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Status & prioritet</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#2784d5"></div><div class="sw-meta"><div class="sw-name">Trainee</div><div class="sw-hex">#2784d5</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#11ad32"></div><div class="sw-meta"><div class="sw-name">Active</div><div class="sw-hex">#11ad32</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#717171"></div><div class="sw-meta"><div class="sw-name">Inactive</div><div class="sw-hex">#717171</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#c18200"></div><div class="sw-meta"><div class="sw-name">Offboarding</div><div class="sw-hex">#c18200</div></div></div>
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,324 @@
+{
+  "domain": "planlegging",
+  "app_subdir": "apps/web/src/app/dashboard/planning",
+  "generated_at": "2026-05-31T23:52:11Z",
+  "aggregate": {
+    "required": 44,
+    "defined_in_registry": 39,
+    "emitted_in_ui": 0,
+    "not_emitted_count": 44,
+    "emit_coverage_pct": 0.0
+  },
+  "not_emitted": [
+    "absence approved",
+    "absence rejected",
+    "booking cancelled",
+    "booking confirmed",
+    "booking created",
+    "booking machine_room_propagated",
+    "calendar item_viewed",
+    "calendar view_changed",
+    "day_factors updated",
+    "hour_factors updated",
+    "planlegging attention_item_actioned",
+    "planlegging attention_panel_opened",
+    "planlegging botsson_cta_clicked",
+    "planlegging botsson_dismissed",
+    "planlegging create_button_used",
+    "planlegging cross_domain_navigate",
+    "planlegging date_navigated",
+    "planlegging empty_state_show_all_clicked",
+    "planlegging export_requested",
+    "planlegging filter_applied",
+    "planlegging filter_reset",
+    "planlegging item_edit_opened",
+    "planlegging layer_toggled",
+    "planlegging machine_room_draft_saved",
+    "planlegging machine_room_opened",
+    "planlegging opening_hours_day_edit_opened",
+    "planlegging opening_hours_exception_added",
+    "planlegging opening_hours_panel_opened",
+    "planlegging opening_hours_saved",
+    "planlegging saved_view_applied",
+    "planlegging settings_opened",
+    "planlegging today_clicked",
+    "planlegging view_changed",
+    "season activated",
+    "season archived",
+    "season block_clicked",
+    "season goal_toggled",
+    "season operating_hours_override_added",
+    "season operating_hours_updated",
+    "season pin_clicked",
+    "season tab_changed",
+    "season_budget updated",
+    "season_goal created",
+    "workspace_budget updated"
+  ],
+  "events": [
+    {
+      "key": "absence approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "absence rejected",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "booking cancelled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "booking confirmed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "booking created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "booking machine_room_propagated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "calendar item_viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "calendar view_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "day_factors updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "hour_factors updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging attention_item_actioned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging attention_panel_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging botsson_cta_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging botsson_dismissed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging create_button_used",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging cross_domain_navigate",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging date_navigated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging empty_state_show_all_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging export_requested",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging filter_applied",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging filter_reset",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging item_edit_opened",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging layer_toggled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging machine_room_draft_saved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging machine_room_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging opening_hours_day_edit_opened",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging opening_hours_exception_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging opening_hours_panel_opened",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging opening_hours_saved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging saved_view_applied",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging settings_opened",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging today_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "planlegging view_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season activated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season archived",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season block_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season goal_toggled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season operating_hours_override_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season operating_hours_updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season pin_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season tab_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season_budget updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "season_goal created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "workspace_budget updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

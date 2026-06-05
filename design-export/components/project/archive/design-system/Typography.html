@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Typografi</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { padding: 48px 56px; }
+  .ds-title { font-family: var(--font-heading); font-size: 44px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .ds-sub { color: var(--muted); font-size: 15px; margin: 0 0 36px; max-width: 620px; }
+  .ds-section { margin-bottom: 40px; }
+  .ds-section-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  .font-specimen { display: grid; grid-template-columns: 160px 1fr; gap: 32px; padding: 28px 0; border-top: 1px solid var(--border); align-items: baseline; }
+  .font-specimen:last-child { border-bottom: 1px solid var(--border); }
+  .font-specimen .lhs { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.3px; line-height: 1.5; }
+  .font-specimen .lhs strong { font-family: var(--font-sans); font-size: 14px; color: var(--fg); font-weight: 600; display: block; margin-bottom: 4px; letter-spacing: 0; }
+
+  .scale-row { display: grid; grid-template-columns: 220px 1fr; gap: 28px; padding: 18px 0; border-top: 1px solid var(--border); align-items: baseline; }
+  .scale-row:last-child { border-bottom: 1px solid var(--border); }
+  .scale-meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .scale-meta strong { font-family: var(--font-sans); font-weight: 600; color: var(--fg); font-size: 13px; display: block; margin-bottom: 2px; letter-spacing: 0; }
+
+  .hero { font-family: var(--font-heading); font-size: 88px; line-height: 1.02; letter-spacing: -0.02em; }
+  .page { font-family: var(--font-heading); font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; }
+  .section { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .card-t { font-size: 20px; font-weight: 600; }
+  .body-lg { font-size: 16px; }
+  .body { font-size: 15px; }
+  .ui { font-size: 14px; font-weight: 500; }
+  .caption-t { font-size: 12px; color: var(--muted); }
+  .badge-t { font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .kpi-t { font-family: var(--font-mono); font-size: 34px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .data-t { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <h1 class="ds-title">Typografi</h1>
+  <p class="ds-sub">Tre familier, aldri flere. Instrument Serif gir editorial authority. Geist Sans er UI-arbeidshesten. Geist Mono bærer alle tall og data.</p>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Familier</div>
+
+    <div class="font-specimen">
+      <div class="lhs"><strong>Instrument Serif</strong>Overskrifter · hero · merke-øyeblikk</div>
+      <div style="font-family: var(--font-heading); font-size: 56px; line-height: 1.05; letter-spacing: -0.02em;">En rolig autoritet med varme</div>
+    </div>
+
+    <div class="font-specimen">
+      <div class="lhs"><strong>Geist Sans</strong>UI-tekst · labels · knapper · brødtekst</div>
+      <div>
+        <div style="font-size: 20px; font-weight: 600; margin-bottom: 6px;">Ren og moderne sans-serif</div>
+        <div style="font-size: 14px; color: var(--muted);">400 regular · 500 medium · 600 semibold · 700 bold</div>
+      </div>
+    </div>
+
+    <div class="font-specimen">
+      <div class="lhs"><strong>Geist Mono</strong>Tall · KPI · timer · beløp · data</div>
+      <div>
+        <div style="font-family: var(--font-mono); font-size: 24px; font-weight: 700; letter-spacing: -0.02em;">94 200,00 kr · 31.4% · 82.5t</div>
+        <div style="font-size: 14px; color: var(--muted); margin-top: 4px;">tabular-nums · presis og tillitvekkende</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Typeskala</div>
+
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Hero</strong>56–96px · 400 · Instrument Serif</div>
+      <div class="hero">Avstemming</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Page Heading</strong>32px · 700 · Instrument Serif</div>
+      <div class="page">Fredag 17. april</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Section</strong>24px · 700 · Geist Sans</div>
+      <div class="section">Registrert omsetning</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Card Title</strong>20px · 600 · Geist Sans</div>
+      <div class="card-t">Preflight blokkere</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Body Large</strong>16px · 400 · Geist Sans</div>
+      <div class="body-lg">Fredagsskiftet leverte 94 200 kr mot budsjett 88 200 kr.</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Body</strong>15px · 400 · Geist Sans</div>
+      <div class="body">Kontantkassen viste −318 kr diff mot forventet beløp. Mønster siden tirsdag.</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>UI Text</strong>14px · 500 · Geist Sans</div>
+      <div class="ui">Godkjenn dagen</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Caption</strong>12px · 400 · Geist Sans · muted</div>
+      <div class="caption-t">Åpnet av Iselin Hagen · 14:02</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Badge</strong>9px · 600 · Uppercase · tracking 2px</div>
+      <div class="badge-t">Avdeling · Kjøkken</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>KPI Number</strong>28–36px · 900 · Geist Mono</div>
+      <div class="kpi-t">94 200 kr</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><strong>Data</strong>14px · 400 · Geist Mono · tabular</div>
+      <div class="data-t">82.50 · 31.4% · 287 tx · 328 kr snitt</div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Bokstavmellomrom</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="card"><div class="caption" style="margin-bottom: 8px;">Overskrifter</div><div style="font-family: var(--font-heading); font-size: 28px; letter-spacing: -0.02em;">Tight −0.02em</div></div>
+      <div class="card"><div class="caption" style="margin-bottom: 8px;">Seksjonslabels</div><div style="font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;">TRACKING 2px</div></div>
+      <div class="card"><div class="caption" style="margin-bottom: 8px;">Brødtekst</div><div style="font-size: 15px;">Normal spacing</div></div>
+    </div>
+  </section>
+</body>
+</html>

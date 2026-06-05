@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8" />
+<title>Smartout · Payroll Phase 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" />
+<style>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Smartout — Nordic Split Design System
+   Tokens: colors, typography, spacing, radius, shadows
+   Derived from packages/design-tokens/src/tokens.ts
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── Webfonts (Instrument Serif via Google; Geist via Vercel CDN) ── */
+
+:root {
+  /* ── Base tokens: Surfaces (Light — warm cream) ── */
+  --background:   oklch(0.99 0.004 60);
+  --foreground:   oklch(0.145 0.01 50);
+  --card:         oklch(0.99 0.004 60);
+  --secondary:    oklch(0.965 0.005 58);
+  --muted:        oklch(0.965 0.005 58);
+  --muted-fg:     oklch(0.52 0.01 52);
+  --border:       oklch(0.91 0.006 55);
+  --input:        oklch(0.91 0.006 55);
+  --ring:         oklch(0.65 0.22 40);
+
+  /* ── Sidebar (warm) ── */
+  --sidebar:        oklch(0.975 0.006 57);
+  --sidebar-accent: oklch(0.955 0.008 56);
+  --sidebar-border: oklch(0.905 0.007 54);
+
+  /* ── Brand ── */
+  --brand-orange:        oklch(0.65 0.22 40);   /* #f97316 */
+  --brand-orange-light:  oklch(0.75 0.18 40);   /* #fb923c */
+  --brand-orange-dark:   oklch(0.55 0.22 40);   /* #c2410c */
+  --brand-purple:        oklch(0.55 0.25 300);
+  --brand-purple-light:  oklch(0.65 0.20 300);
+  --brand-purple-dark:   oklch(0.45 0.25 300);
+
+  /* ── Semantic ── */
+  --success:     oklch(0.68 0.15 145);
+  --warning:     oklch(0.75 0.15 75);
+  --destructive: oklch(0.60 0.20 25);
+  --info:        oklch(0.65 0.13 225);
+
+  /* ── Domain: Departments ── */
+  --dept-kitchen: oklch(0.65 0.20 40);
+  --dept-floor:   oklch(0.65 0.15 180);
+  --dept-bar:     oklch(0.55 0.20 300);
+  --dept-event:   oklch(0.65 0.18 85);
+  --dept-storage: oklch(0.55 0.10 200);
+
+  /* ── Domain: Profile Status ── */
+  --status-trainee:     oklch(0.60 0.15 250);
+  --status-active:      oklch(0.65 0.20 145);
+  --status-inactive:    oklch(0.55 0 0);
+  --status-offboarding: oklch(0.65 0.18 85);
+
+  /* ── Priority ── */
+  --priority-urgent: oklch(0.577 0.245 27.325);
+  --priority-high:   oklch(0.65 0.22 40);
+  --priority-normal: oklch(0.60 0.15 250);
+  --priority-low:    oklch(0.55 0 0);
+
+  /* ── Panel & Glow (Nordic Split dark surface) ── */
+  --panel:      oklch(0.18 0.03 50);
+  --panel-deep: oklch(0.06 0.015 50);
+  --glow-warm:  oklch(0.45 0.18 40);
+  --glow-deep:  oklch(0.35 0.14 35);
+
+  /* ── Typography — families ── */
+  --font-heading: "Instrument Serif", Georgia, serif;
+  --font-body:    "Geist", "Geist Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-mono:    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── Typography — scale ── */
+  --fs-hero:         clamp(3.5rem, 6vw, 6rem);  /* 56-96 */
+  --fs-brand-panel:  2.625rem;                   /* 42 */
+  --fs-page:         2rem;                        /* 32 */
+  --fs-section:      1.5rem;                      /* 24 */
+  --fs-card-title:   1.25rem;                     /* 20 */
+  --fs-subsection:   1.125rem;                    /* 18 */
+  --fs-body-lg:      1rem;                        /* 16 */
+  --fs-body:         0.9375rem;                   /* 15 */
+  --fs-ui:           0.875rem;                    /* 14 */
+  --fs-label:        0.8125rem;                   /* 13 */
+  --fs-caption:      0.75rem;                     /* 12 */
+  --fs-meta:         0.6875rem;                   /* 11 */
+  --fs-section-label:0.625rem;                    /* 10 */
+  --fs-badge:        0.5625rem;                   /* 9  */
+  --fs-kpi:          1.875rem;                    /* 30 */
+
+  /* ── Spacing ── */
+  --space-page:    2rem;      /* 32 */
+  --space-section: 1.5rem;    /* 24 */
+  --space-card:    1.25rem;   /* 20 */
+  --space-element: 0.75rem;   /* 12 */
+  --space-tight:   0.5rem;    /* 8  */
+  --space-xs:      0.25rem;   /* 4  */
+
+  /* ── Radius ── */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   10px;
+  --radius-xl:   14px;
+  --radius-card: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm:        0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:        0 4px 6px rgba(0,0,0,0.10);
+  --shadow-lg:        0 10px 15px rgba(0,0,0,0.10);
+  --shadow-card-hover:0 8px 24px rgba(0,0,0,0.15);
+  --shadow-brand-glow:0 2px 12px rgba(249,115,22,0.25);
+  --shadow-fab:       0 4px 16px rgba(249,115,22,0.40);
+
+  /* ── Motion ── */
+  --ease-primary:    cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-expo:       cubic-bezier(0.16, 1, 0.30, 1);
+  --ease-elastic:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-panel-flex: cubic-bezier(0.22, 0.68, 0.35, 1);
+  --dur-press:    150ms;
+  --dur-hover:    300ms;
+  --dur-exit:     300ms;
+  --dur-enter:    500ms;
+  --dur-flex:     1200ms;
+}
+
+.dark,
+.dark-section {
+  --background: oklch(0.12 0.015 50);
+  --foreground: oklch(0.95 0.005 55);
+  --card:       oklch(0.16 0.02 50);
+  --secondary:  oklch(0.269 0 0);
+  --muted:      oklch(0.269 0 0);
+  --muted-fg:   oklch(0.60 0.01 52);
+  --border:     oklch(1 0 0 / 8%);
+  --input:      oklch(1 0 0 / 10%);
+  --ring:       oklch(0.556 0 0);
+
+  --sidebar:        oklch(0.16 0.02 50);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+
+  --dept-kitchen: oklch(0.72 0.16 40);
+  --dept-floor:   oklch(0.72 0.14 180);
+  --dept-bar:     oklch(0.65 0.22 300);
+  --dept-event:   oklch(0.75 0.16 85);
+  --dept-storage: oklch(0.65 0.10 200);
+  color-scheme: dark;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SEMANTIC TYPE STYLES
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+html, body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--foreground);
+  background: var(--background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-heading { font-family: var(--font-heading); }
+.font-mono    { font-family: var(--font-mono); }
+
+.t-hero {
+  font-family: var(--font-heading);
+  font-size: var(--fs-hero);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+.t-brand-panel {
+  font-family: var(--font-heading);
+  font-size: var(--fs-brand-panel);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.t-page {
+  font-family: var(--font-heading);
+  font-size: var(--fs-page);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.t-section {
+  font-size: var(--fs-section);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.t-card-title {
+  font-size: var(--fs-card-title);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.t-subsection {
+  font-size: var(--fs-subsection);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.t-body-lg {
+  font-size: var(--fs-body-lg);
+  line-height: 1.55;
+}
+.t-body {
+  font-size: var(--fs-body);
+  line-height: 1.55;
+}
+.t-ui {
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.t-label {
+  font-size: var(--fs-label);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted-fg);
+}
+.t-caption {
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  color: var(--muted-fg);
+}
+.t-meta {
+  font-size: var(--fs-meta);
+  line-height: 1.4;
+  color: var(--muted-fg);
+}
+.t-section-label {
+  font-size: var(--fs-section-label);
+  font-weight: 600;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.125em; /* ~2px */
+  color: var(--muted-fg);
+}
+.t-badge {
+  font-size: var(--fs-badge);
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+.t-kpi {
+  font-family: var(--font-mono);
+  font-size: var(--fs-kpi);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.t-data {
+  font-family: var(--font-mono);
+  font-size: var(--fs-ui);
+  font-weight: 400;
+}
+
+</style>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; height: 100%; overflow: hidden; }
+  #root { width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="payroll-web.jsx"></script>
+<script type="text/babel" src="payroll-period-detail.jsx"></script>
+<script type="text/babel" src="payroll-drilldown.jsx"></script>
+<script type="text/babel" src="payroll-deviations.jsx"></script>
+<script type="text/babel" src="payroll-supplement-form.jsx"></script>
+<script type="text/babel" src="payroll-settings.jsx"></script>
+<script type="text/babel" src="payroll-mobile.jsx"></script>
+
+<script type="text/babel">
+function PayrollWebHost() {
+  return (
+    <div style={{ width: "100%", height: "100%", overflow: "auto", background: "var(--background)", display: "flex", justifyContent: "center" }}>
+      <PayrollPeriodDetail />
+    </div>
+  );
+}
+
+function Root() {
+  return (
+    <DesignCanvas>
+      <DCSection id="overview" title="Overview" subtitle="Sitemap · how 14 surfaces close one period">
+        <DCArtboard id="wireframe" label="Sitemap · Phase 1 · payroll-mvp" width={1320} height={880}>
+          <Wireframe />
+        </DCArtboard>
+        <DCPostIt top={-30} left={60} rotate={-3} width={260}>
+          Calc-engine deriverer · mennesket bekrefter avvik og låser. Én primær flow, alt annet henger på.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="close-flow" title="Web · close-the-period flow" subtitle="The daily/monthly job for daglig leder. 1320 × 880.">
+        <DCArtboard id="01-list" label="01 · Lønnsperioder · index" width={1320} height={880}>
+          <PayrollPeriodList />
+        </DCArtboard>
+        <DCArtboard id="02-detail" label="02 · Periode-detalj · Linjer" width={1320} height={880}>
+          <PayrollPeriodDetail />
+        </DCArtboard>
+        <DCArtboard id="03-drill" label="03 · Drilldown · per ansatt" width={1320} height={880}>
+          <EmployeeDrilldown />
+        </DCArtboard>
+        <DCArtboard id="04-dev" label="04 · Avvik · ack" width={1320} height={880}>
+          <PayrollDeviations />
+        </DCArtboard>
+        <DCArtboard id="05-lock" label="05 · Lås periode · bekreftelse" width={1320} height={880}>
+          <LockPeriodModal />
+        </DCArtboard>
+        <DCPostIt top={-30} left={60} rotate={-2} width={260}>
+          The whole thing is one page with tabs — Linjer, Avvik, Logg. Drilldown + Lås ride on top as drawers.
+        </DCPostIt>
+        <DCPostIt top={520} right={-20} rotate={3} width={220}>
+          Avvik må null før lås-knappen blir lilla. Hard rule, no exceptions.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="profile" title="Web · profile + manual edits" subtitle="When the engine isn't enough">
+        <DCArtboard id="06-supp" label="06 · Manuelt tillegg · modal" width={1320} height={880}>
+          <ManualSupplementForm />
+        </DCArtboard>
+        <DCArtboard id="07-profil" label="07 · Lønnsprofil + Timebank · per ansatt" width={1320} height={880}>
+          <EmployeeLonnsprofil />
+        </DCArtboard>
+        <DCPostIt top={-30} left={60} rotate={-2} width={240}>
+          Lønnsprofil er kilden til alle defaults — endres her, ikke i hver periode.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="config" title="Web · configuration" subtitle="Set once, runs forever">
+        <DCArtboard id="08-settings" label="08 · Innstillinger · periode" width={1320} height={880}>
+          <PayrollSettings />
+        </DCArtboard>
+        <DCArtboard id="09-rules" label="09 · Tillegg-regler + tester" width={1320} height={880}>
+          <SupplementRules />
+        </DCArtboard>
+        <DCArtboard id="10-bot" label="10 · Bot-Sson · lønnsassistent" width={1320} height={880}>
+          <BotsonChat />
+        </DCArtboard>
+        <DCPostIt top={-30} left={60} rotate={-3} width={260}>
+          Trace-ruten viser nøyaktig hvordan en regel deriverer for én vakt — gull for tillit.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="mobile" title="Mobile · iOS" subtitle="375 × 812 — ansatt's lønn-tab + manager's bekreftelser">
+        <DCArtboard id="11-lonn" label="11 · Lønn · slipper-liste" width={375} height={812}>
+          <MobileLonn />
+        </DCArtboard>
+        <DCArtboard id="12-slip" label="12 · Lønnsslipp · detalj" width={375} height={812}>
+          <MobilePayslip />
+        </DCArtboard>
+        <DCArtboard id="13-bank" label="13 · Timebank · historikk" width={375} height={812}>
+          <MobileTimebank />
+        </DCArtboard>
+        <DCArtboard id="14-ot" label="14 · Bekreft OT · push" width={375} height={812}>
+          <MobileApprove />
+        </DCArtboard>
+        <DCPostIt top={-30} left={60} rotate={-2} width={240}>
+          Lønn er en egen tab — ansatte sjekker den hver utbetaling. Hero-kortet viser foreløpig sum live.
+        </DCPostIt>
+        <DCPostIt top={420} right={-40} rotate={3} width={220}>
+          OT-bekreftelse fra push: en handling, en knapp. Begrunnelse rett over.
+        </DCPostIt>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PayrollWebHost />);
+/* legacy canvas render disabled */
+
+</script>
+</body>
+</html>

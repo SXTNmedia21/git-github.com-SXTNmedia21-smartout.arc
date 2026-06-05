@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smartout — Avstemming mobil</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      /* Mobile tokens — overridden when [data-theme="dark"] is set on <html> */
+      --m-bg: #fdfcfa;
+      --m-card: #ffffff;
+      --m-fg: #1c1814;
+      --m-muted: #7a756e;
+      --m-border: #e8e5e1;
+      --m-secondary: #f5f3f0;
+      --m-orange: #f97316;
+      --m-orange-light: #fb923c;
+      --m-success: #11ad32;
+      --m-warning: #c18200;
+      --m-error: #e7000b;
+      --m-info: #2784d5;
+      --m-dept-kjokken: #ee560c;
+
+      --page-bg: #f5f3f0;
+      --page-fg: #1c1814;
+      --page-muted: #7a756e;
+      --page-card: #fdfcfa;
+      --page-border: #e8e5e1;
+      --page-hover: #f5f3f0;
+    }
+    [data-theme="dark"] {
+      --m-bg: #14110e;
+      --m-card: #1c1814;
+      --m-fg: #f5f1ea;
+      --m-muted: #8a8278;
+      --m-border: #2a2520;
+      --m-secondary: #201b16;
+      --m-orange: #fb923c;
+      --m-orange-light: #fdba74;
+      --m-success: #22c55e;
+      --m-warning: #eab308;
+      --m-error: #f87171;
+      --m-info: #60a5fa;
+      --m-dept-kjokken: #fb923c;
+
+      --page-bg: #0c0a08;
+      --page-fg: #f5f1ea;
+      --page-muted: #8a8278;
+      --page-card: #1c1814;
+      --page-border: #2a2520;
+      --page-hover: #201b16;
+    }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--page-bg); font-family: "Geist", -apple-system, system-ui, sans-serif; color: var(--page-fg); -webkit-font-smoothing: antialiased; transition: background 240ms, color 240ms; }
+    * { box-sizing: border-box; }
+    button { font-family: inherit; border: none; background: none; cursor: pointer; padding: 0; color: inherit; }
+    input, textarea { font-family: inherit; color: inherit; }
+
+    .page {
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+      display: flex; flex-direction: column; gap: 32px; align-items: center;
+    }
+    .head {
+      max-width: 1600px; width: 100%;
+      display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
+      flex-wrap: wrap;
+    }
+    .head h1 {
+      font-family: "Instrument Serif", serif; font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; font-weight: 400; margin: 0;
+    }
+    .head .sub { color: var(--page-muted); font-size: 15px; max-width: 620px; line-height: 1.5; margin-top: 6px; }
+    .head-right a { color: var(--m-orange); font-size: 13px; font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+
+    /* Tweaks panel */
+    .tweaks {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--page-card); border: 1px solid var(--page-border);
+      border-radius: 16px; padding: 16px 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      display: none; flex-direction: column; gap: 12px;
+      min-width: 220px; z-index: 100;
+    }
+    .tweaks.open { display: flex; }
+    .tweaks-title {
+      font-family: "Instrument Serif", serif; font-size: 18px; letter-spacing: -0.01em;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .tweaks-title button {
+      width: 24px; height: 24px; border-radius: 999px; color: var(--page-muted);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .tweaks-title button:hover { background: var(--page-hover); color: var(--page-fg); }
+    .tweak-group-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--page-muted); margin-bottom: 6px;
+    }
+    .tweak-row { display: flex; gap: 6px; }
+    .tweak-pill {
+      flex: 1; padding: 8px 12px; border-radius: 10px;
+      font-size: 12px; font-weight: 600; color: var(--page-muted);
+      border: 1px solid var(--page-border); background: transparent;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 150ms, color 150ms, border-color 150ms;
+    }
+    .tweak-pill:hover { color: var(--page-fg); background: var(--page-hover); }
+    .tweak-pill.active { background: var(--page-fg); color: var(--page-bg); border-color: var(--page-fg); }
+
+    .switcher {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 6px; background: var(--page-card); border: 1px solid var(--page-border); border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+    }
+    .switcher button {
+      padding: 8px 14px; border-radius: 9px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+      color: var(--page-muted); display: inline-flex; gap: 8px; align-items: center;
+      transition: background 200ms, color 200ms;
+    }
+    .switcher button .num {
+      font-family: "Geist Mono", monospace; font-size: 10px; opacity: 0.6;
+    }
+    .switcher button.active { background: var(--page-fg); color: var(--page-bg); }
+    .switcher button.active .num { opacity: 0.7; }
+    .switcher button:hover:not(.active) { color: var(--page-fg); background: var(--page-hover); }
+
+    .canvas {
+      max-width: 1600px; width: 100%;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 40px;
+      justify-items: center;
+    }
+
+    .cell { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    .cell-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--page-muted);
+    }
+    .cell-label .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: var(--m-orange); margin-right: 8px; vertical-align: middle; }
+
+    .device-wrap {
+      transform-origin: top center;
+    }
+
+    .single-mode .canvas { display: flex; justify-content: center; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const SCREENS = [
+      { key: 'clockout',   label: 'Stemplet ut',    num: '00' },
+      { key: 'summary',    label: 'Oversikt',       num: '01' },
+      { key: 'sales',      label: 'Omsetning',      num: '02' },
+      { key: 'cash',       label: 'Kontanttelling', num: '03' },
+      { key: 'deviations', label: 'Avvik',          num: '04' },
+      { key: 'review',     label: 'Se gjennom',     num: '05' },
+      { key: 'done',       label: 'Sendt',          num: '06' },
+    ];
+
+    function Phone({ screen, label, num, dark }) {
+      return (
+        <div className="cell" data-screen-label={`${num} ${label}`}>
+          <div className="cell-label"><span className="dot"></span>{num} · {label}</div>
+          <div className="device-wrap">
+            <IOSDevice width={390} height={844} dark={dark}>
+              <MobileApp initial={screen} />
+            </IOSDevice>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+        "theme": "light"
+      }/*EDITMODE-END*/;
+
+      const initialView = localStorage.getItem('mobile-view') || 'all';
+      const initialScreen = localStorage.getItem('mobile-screen') || 'summary';
+      const [view, setView] = React.useState(initialView); // 'all' or screen key
+      const [focusScreen, setFocusScreen] = React.useState(initialScreen);
+
+      const [tweaks, setTweaks] = React.useState(() => {
+        try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('mobile-tweaks') || '{}') }; }
+        catch { return TWEAK_DEFAULTS; }
+      });
+      const [tweaksOpen, setTweaksOpen] = React.useState(false);
+
+      const setTweak = (k, v) => {
+        const next = { ...tweaks, [k]: v };
+        setTweaks(next);
+        try { localStorage.setItem('mobile-tweaks', JSON.stringify(next)); } catch {}
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+      };
+
+      React.useEffect(() => { localStorage.setItem('mobile-view', view); }, [view]);
+      React.useEffect(() => { if (view !== 'all') localStorage.setItem('mobile-screen', view); }, [view]);
+
+      // Apply theme to <html>
+      React.useEffect(() => {
+        document.documentElement.setAttribute('data-theme', tweaks.theme);
+      }, [tweaks.theme]);
+
+      // Edit-mode protocol
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+          if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+        };
+        window.addEventListener('message', onMsg);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+
+      return (
+        <div className={`page ${view !== 'all' ? 'single-mode' : ''}`}>
+          <div className="head">
+            <div>
+              <h1>Avstemming — mobil</h1>
+              <div className="sub">Når en skiftleder stempler ut, åpnes avstemming automatisk. Ansvaret er tildelt siste skiftleder for avdelingen. 6 steg, 4–6 minutter.</div>
+            </div>
+            <div className="head-right">
+              <a href="Avstemming.html">← Web-visning</a>
+            </div>
+          </div>
+
+          <div className="switcher">
+            <button className={view === 'all' ? 'active' : ''} onClick={() => setView('all')}>
+              Alle skjermer
+            </button>
+            {SCREENS.map(s => (
+              <button key={s.key} className={view === s.key ? 'active' : ''} onClick={() => setView(s.key)}>
+                <span className="num">{s.num}</span>{s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="canvas">
+            {view === 'all'
+              ? SCREENS.map(s => <Phone key={s.key} screen={s.key} label={s.label} num={s.num} dark={tweaks.theme === 'dark'} />)
+              : (() => {
+                  const s = SCREENS.find(x => x.key === view);
+                  return <Phone screen={s.key} label={s.label} num={s.num} dark={tweaks.theme === 'dark'} />;
+                })()
+            }
+          </div>
+
+          <div className={`tweaks ${tweaksOpen ? 'open' : ''}`}>
+            <div className="tweaks-title">
+              Tweaks
+              <button onClick={() => setTweaksOpen(false)} title="Skjul">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div>
+              <div className="tweak-group-label">Tema</div>
+              <div className="tweak-row">
+                <button className={`tweak-pill ${tweaks.theme === 'light' ? 'active' : ''}`} onClick={() => setTweak('theme', 'light')}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                  Lys
+                </button>
+                <button className={`tweak-pill ${tweaks.theme === 'dark' ? 'active' : ''}`} onClick={() => setTweak('theme', 'dark')}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  Mørk
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

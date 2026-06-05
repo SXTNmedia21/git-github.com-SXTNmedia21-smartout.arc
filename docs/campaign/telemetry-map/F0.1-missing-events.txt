@@ -1,0 +1,102 @@
+absence approved
+absence approved (profile ReqRow godkjenn — type depends on req.kind)
+absence rejected
+absence rejected (profile ReqRow avslå — type depends on req.kind)
+announcement.archived
+announcement.comment_added
+announcement.draft_saved
+announcement.reminder_sent
+announcement.republished
+announcement.scheduled
+booking cancelled
+booking confirmed
+booking machine_room_propagated
+botsson.tool_invoked (foreslå fiks — deferred, registry has event but call site stub)
+channel.reopened
+channel.updated
+communication sent (profile footer melding — deferred)
+communication sent (send oppdatering — deferred)
+contract_attachment.upload_initiated
+contract_template.auto_attach_toggled
+contract_template.draft_saved
+contract_template.published
+contracts.export.initiated
+handoff escalated
+handoff rejected
+handoff reminder_sent
+handoff resolved
+helpdesk.ai_draft_accepted
+helpdesk.ai_draft_dismissed
+helpdesk.case.priority_changed
+helpdesk.case.reopened
+helpdesk.internal_note_added
+helpdesk.query.replied
+people.absence.registered
+people.audit.exported
+people.botsson.action_invoked
+people.bulk.department_set
+people.bulk.message_sent
+people.bulk.training_assigned
+people.competence.added
+people.document.sent
+people.employee.onboarding_wizard_started
+people.message.sent
+people.recert.deadline_extended
+people.recert.reminder_sent
+people.recert.scheduled
+people.task.assigned
+people.task.daily_list_added
+planlegging attention_item_actioned
+planlegging attention_panel_opened
+planlegging botsson_cta_clicked
+planlegging botsson_dismissed
+planlegging create_button_used
+planlegging cross_domain_navigate
+planlegging date_navigated
+planlegging empty_state_show_all_clicked
+planlegging filter_applied
+planlegging filter_reset
+planlegging layer_toggled
+planlegging machine_room_draft_saved
+planlegging machine_room_opened
+planlegging opening_hours_exception_added
+planlegging opening_hours_saved
+planlegging saved_view_applied
+planlegging today_clicked
+planlegging view_changed
+profile.schedule_viewed
+reconciliation bulk_approved
+reconciliation exported
+reconciliation occupational_closed
+reconciliation policy_updated
+reconciliation revenue_adjusted
+reconciliation season_closed
+reconciliation shift_proposal_sent
+roster updated (profile avtale edit — stub)
+roster updated (profile tilgj edit — stub)
+schedule.export_opened
+schedule.filter_changed
+schedule.gap_fill_initiated
+schedule.grouping_changed
+schedule.pdf_exported
+schedule.publish_modal_opened
+schedule.week_added
+schedule.week_navigated
+schedule.week_removed
+scheduler.planner_opened
+season goal_toggled
+season operating_hours_override_added
+session_task completed (task toggle in oppgaver — deferred)
+shift supplement_claimed (manual lonn adjustment — deferred)
+shift updated (revert sub-action — needs sub-type field)
+shift updated (settings.audit sub-field — needs sub-type field)
+shift updated (settings.marketplace sub-field — needs sub-type field)
+shift updated (settings.notify sub-field — needs sub-type field)
+shift updated (settings.swap sub-field — needs sub-type field)
+shift updated (settings.template sub-field — needs sub-type field)
+shift updated (unpublish sub-action — needs dedicated event or sub-type field)
+shift_offer.posted (del på nytt — stub, re-share notification)
+shift_swap.approved (profile ReqRow godkjenn — not wired to hook)
+shift_swap.rejected (profile ReqRow avslå — not wired to hook)
+task created (add oppgave — deferred)
+task created (profile follow-up — deferred)

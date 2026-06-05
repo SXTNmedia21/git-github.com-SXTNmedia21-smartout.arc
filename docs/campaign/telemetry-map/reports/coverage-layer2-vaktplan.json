@@ -1,0 +1,117 @@
+{
+  "domain": "vaktplan",
+  "event_prefixes": [
+    "vaktplan",
+    "schedule",
+    "scheduler",
+    "shift_swap"
+  ],
+  "search_dirs": [
+    "apps/web/src",
+    "apps/mobile/src"
+  ],
+  "generated_at": "2026-06-03T03:51:44Z",
+  "layer": 2,
+  "layer_note": "Layer 2 = static grep for emit() call-sites in app source. Layer 3 (event lands a row in activity_trail) requires a running app and is out of scope for this static gate.",
+  "aggregate": {
+    "events_defined": 14,
+    "events_emitted": 8,
+    "events_phantom": 6,
+    "coverage_layer2_pct": 57.1,
+    "gate": "FAIL"
+  },
+  "phantom_events": [
+    "scheduler.diagnose.requested",
+    "scheduler.proposal.accepted",
+    "scheduler.proposal.proposed",
+    "scheduler.proposal.rejected",
+    "scheduler.template.applied",
+    "scheduler.template.listed"
+  ],
+  "events": [
+    {
+      "key": "schedule rollback",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-audit-log.ts:75",
+      "emit_count": 1
+    },
+    {
+      "key": "schedule.density_changed",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_actions/set-schedule-density.ts:99",
+      "emit_count": 1
+    },
+    {
+      "key": "scheduler.diagnose.requested",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "scheduler.proposal.accepted",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "scheduler.proposal.proposed",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "scheduler.proposal.rejected",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "scheduler.template.applied",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "scheduler.template.listed",
+      "emitted": false,
+      "emit_site": null,
+      "emit_count": 0
+    },
+    {
+      "key": "shift_swap.accepted",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:251",
+      "emit_count": 2
+    },
+    {
+      "key": "shift_swap.approved",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:311",
+      "emit_count": 1
+    },
+    {
+      "key": "shift_swap.cancelled",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:372",
+      "emit_count": 2
+    },
+    {
+      "key": "shift_swap.executed",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:321",
+      "emit_count": 1
+    },
+    {
+      "key": "shift_swap.rejected",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:262",
+      "emit_count": 3
+    },
+    {
+      "key": "shift_swap.requested",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:205",
+      "emit_count": 2
+    }
+  ]
+}

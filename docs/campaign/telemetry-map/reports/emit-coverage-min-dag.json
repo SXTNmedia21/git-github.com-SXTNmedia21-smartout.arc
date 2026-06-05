@@ -1,0 +1,79 @@
+{
+  "domain": "min-dag",
+  "app_subdir": "apps/web/src/components/day",
+  "generated_at": "2026-05-31T23:52:15Z",
+  "aggregate": {
+    "required": 9,
+    "defined_in_registry": 9,
+    "emitted_in_ui": 0,
+    "not_emitted_count": 9,
+    "emit_coverage_pct": 0.0
+  },
+  "not_emitted": [
+    "min_dag.brief.why_opened",
+    "min_dag.nav.quick_action",
+    "min_dag.news.item_opened",
+    "min_dag.task.comment_submitted",
+    "min_dag.task.expanded",
+    "min_dag.task.manual_opened",
+    "mobile.shift.break_requested",
+    "notification.marked_read",
+    "shift break_started"
+  ],
+  "events": [
+    {
+      "key": "min_dag.brief.why_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "min_dag.nav.quick_action",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "min_dag.news.item_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "min_dag.task.comment_submitted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "min_dag.task.expanded",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "min_dag.task.manual_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "mobile.shift.break_requested",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "notification.marked_read",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift break_started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dagsrapport — Bistro Nord · torsdag 30. mai 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2; --event:#c18200; --lager:#008388;
+    --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  /* toolbar */
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; }
+  .bar .sub{ font-size:12px; color:#b8b2aa; }
+  .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; }
+  .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; }
+  .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+
+  /* embedded in the app's popup — hide own toolbar, tighten top */
+  body.embed{ background:transparent; }
+  body.embed .bar{ display:none; }
+  body.embed .stage{ padding:20px 0 40px; gap:20px; }
+
+  /* A4 portrait */
+  .sheet{ width:210mm; min-height:297mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:13mm 14mm 14mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  /* letterhead */
+  .lh{ display:flex; align-items:flex-start; gap:13px; padding-bottom:12px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:34px;height:34px;border-radius:9px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:13px;height:13px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; }
+  .lh-eyebrow{ font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  .lh-title{ font-family:var(--h); font-weight:400; font-size:31px; letter-spacing:-0.02em; line-height:1; margin-top:3px; }
+  .lh-sub{ font-size:11px; color:var(--muted); margin-top:5px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.65; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+  .lh-date{ font-family:var(--m); font-size:13px; font-weight:600; color:var(--fg); }
+
+  /* facts ribbon under letterhead */
+  .ribbon{ display:flex; flex-wrap:wrap; gap:0; margin-top:11px; border:1px solid var(--border); border-radius:11px; overflow:hidden; }
+  .ribbon .cell{ flex:1; min-width:108px; padding:9px 13px; border-right:1px solid var(--border); }
+  .ribbon .cell:last-child{ border-right:none; }
+  .ribbon .rl{ font-size:8px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  .ribbon .rl svg{ width:11px; height:11px; color:var(--muted-soft); }
+  .ribbon .rv{ font-family:var(--m); font-size:15px; font-weight:600; margin-top:4px; letter-spacing:-0.01em; }
+  .ribbon .rv .u{ font-size:10px; color:var(--muted-soft); font-weight:500; }
+  .ribbon .rs{ font-size:9px; color:var(--muted); margin-top:1px; }
+  .rv.ok{ color:var(--success);} .rv.warn{ color:var(--warning);} .rv.crit{ color:var(--error);}
+
+  /* botsson focus */
+  .focus{ margin-top:13px; background:var(--orange-soft); border:1px solid rgba(249,115,22,0.22); border-radius:12px; padding:11px 14px; display:flex; gap:11px; align-items:flex-start; }
+  .focus-av{ width:27px;height:27px;border-radius:8px;background:var(--orange); color:#fff; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .focus-av svg{ width:16px;height:16px; }
+  .focus .tag{ font-size:8.5px; font-weight:700; letter-spacing:.14em; color:var(--orange-dark); }
+  .focus p{ margin:2px 0 0; font-size:12px; line-height:1.5; }
+  .focus .hl{ background:rgba(231,0,11,0.10); color:var(--error); font-weight:600; padding:0 4px; border-radius:4px; }
+  .focus strong{ font-weight:700; }
+
+  .cols{ display:grid; grid-template-columns:1.18fr 1fr; gap:14px; margin-top:14px; }
+
+  /* generic section */
+  .sec{ margin-top:16px; }
+  .sec-h{ display:flex; align-items:baseline; gap:9px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border-strong); }
+  .sec-h h3{ font-family:var(--h); font-weight:400; font-size:18px; letter-spacing:-0.01em; margin:0; white-space:nowrap; }
+  .sec-h .meta{ margin-left:auto; font-size:9.5px; color:var(--muted-soft); font-family:var(--m); text-transform:uppercase; letter-spacing:.06em; }
+  .sec-h .badge{ margin-left:auto; }
+  .sec-h .badge{ font-size:8.5px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .badge.crit{ color:var(--error); background:rgba(231,0,11,0.10);} .badge.warn{ color:var(--warning); background:rgba(193,130,0,0.14);}
+
+  /* roster */
+  .roster-dep{ font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:6px; margin:11px 0 6px; }
+  .roster-dep:first-child{ margin-top:0; }
+  .roster-dep .dd{ width:8px; height:8px; border-radius:2px; }
+  .rrow{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; padding:5px 0; }
+  .rrow + .rrow{ border-top:1px dotted var(--border); }
+  .rperson{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .rav{ width:26px; height:26px; border-radius:7px; color:#fff; font-size:9.5px; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:var(--m); flex-shrink:0; }
+  .rname{ font-size:12px; font-weight:600; }
+  .rrole{ font-size:9.5px; color:var(--muted); }
+  .rtime{ font-family:var(--m); font-size:11.5px; font-weight:600; text-align:right; white-space:nowrap; }
+  .rtag{ font-size:8px; font-weight:700; padding:1px 6px; border-radius:999px; margin-left:6px; }
+  .rtag.lead{ color:var(--orange-dark); background:var(--orange-soft); }
+  .rgap{ background:rgba(231,0,11,0.05); border:1px dashed var(--error); border-radius:9px; padding:8px 10px; margin-top:9px; display:flex; align-items:center; gap:9px; }
+  .rgap .gi{ color:var(--error); flex-shrink:0; }
+  .rgap .gt{ font-size:11px; font-weight:600; color:var(--error); }
+  .rgap .gs{ font-size:9.5px; color:var(--muted); }
+
+  /* mini list (deliveries / avvik) */
+  .ev{ display:flex; gap:10px; padding:8px 0; }
+  .ev + .ev{ border-top:1px dotted var(--border); }
+  .ev-time{ font-family:var(--m); font-size:11px; font-weight:700; flex-shrink:0; width:42px; }
+  .ev-dot{ width:7px; height:7px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .ev-main .et{ font-size:11.5px; font-weight:600; line-height:1.3; }
+  .ev-main .es{ font-size:9.5px; color:var(--muted); margin-top:2px; line-height:1.4; }
+  .chk{ width:13px; height:13px; border:1.5px solid var(--border-strong); border-radius:4px; flex-shrink:0; margin-top:2px; }
+
+  .avrow{ display:flex; gap:10px; padding:9px 0; }
+  .avrow + .avrow{ border-top:1px dotted var(--border); }
+  .av-ic{ width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .av-ic svg{ width:13px; height:13px; }
+  .av-ic.crit{ background:rgba(231,0,11,0.10); color:var(--error); }
+  .av-ic.warn{ background:rgba(193,130,0,0.13); color:var(--warning); }
+  .av-main .at{ font-size:11.5px; font-weight:600; line-height:1.3; }
+  .av-main .as{ font-size:9.5px; color:var(--muted); margin-top:2px; }
+  .av-frist{ font-family:var(--m); font-size:9.5px; font-weight:700; margin-left:auto; white-space:nowrap; }
+  .av-frist.crit{ color:var(--error); } .av-frist.warn{ color:var(--warning); }
+
+  /* reservations table */
+  .rt{ width:100%; border-collapse:collapse; }
+  .rt th{ text-align:left; font-size:8px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:6px 9px; border-bottom:1.5px solid var(--border-strong); white-space:nowrap; }
+  .rt th.r, .rt td.r{ text-align:right; }
+  .rt th.c, .rt td.c{ text-align:center; }
+  .rt td{ padding:7px 9px; border-bottom:1px solid var(--border); font-size:11px; vertical-align:top; }
+  .rt tr:last-child td{ border-bottom:none; }
+  .rt .time{ font-family:var(--m); font-weight:700; font-size:11.5px; white-space:nowrap; }
+  .rt .guest{ font-weight:600; font-size:11.5px; }
+  .rt .cov{ font-family:var(--m); font-weight:700; font-size:12px; }
+  .rt .note{ color:var(--muted); font-size:10px; line-height:1.4; }
+  .rt .flag{ display:inline-block; font-size:8px; font-weight:700; padding:1px 6px; border-radius:999px; margin-right:4px; white-space:nowrap; }
+  .flag-allergi{ color:var(--error); background:rgba(231,0,11,0.10); }
+  .flag-vip{ color:var(--orange-dark); background:var(--orange-soft); }
+  .flag-stort{ color:var(--bar); background:rgba(134,74,210,0.10); }
+  .flag-fest{ color:var(--info); background:rgba(39,132,213,0.10); }
+  .flag-tilg{ color:var(--lager); background:rgba(0,131,136,0.10); }
+  .rt tbody tr.lunch td{ background:rgba(0,171,147,0.03); }
+  .rt .sumrow td{ border-top:1.5px solid var(--border-strong); border-bottom:none; font-weight:700; padding-top:8px; }
+  .rt .sumrow .cov{ color:var(--orange-dark); }
+
+  /* checklist grid */
+  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:7px 22px; }
+  .crow{ display:flex; align-items:flex-start; gap:9px; padding:6px 0; border-bottom:1px dotted var(--border); }
+  .crow .cb{ width:15px; height:15px; border:1.6px solid var(--border-strong); border-radius:4px; flex-shrink:0; margin-top:1px; }
+  .crow .ct{ font-size:11px; font-weight:500; line-height:1.35; }
+  .crow .cw{ font-size:9.5px; color:var(--muted); font-weight:600; }
+  .crow.must .cb{ border-color:var(--error); }
+  .crow.must .ct{ font-weight:600; }
+
+  /* kitchen notes */
+  .kn{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .kn-block .knh{ font-size:9px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .kn-line{ font-size:11.5px; padding:4px 0; border-bottom:1px dotted var(--border); display:flex; gap:8px; }
+  .kn-line .kk{ font-weight:600; min-width:62px; }
+  .kn-86{ display:flex; flex-wrap:wrap; gap:6px; }
+  .kn-86 .tag{ font-size:10px; font-weight:600; padding:3px 9px; border-radius:7px; background:rgba(231,0,11,0.07); color:var(--error); border:1px solid rgba(231,0,11,0.18); }
+  .kn-86 .tag.soon{ background:rgba(193,130,0,0.08); color:var(--warning); border-color:rgba(193,130,0,0.2); }
+
+  /* handover note lines */
+  .lines{ margin-top:4px; }
+  .lines .ln{ height:24px; border-bottom:1px solid var(--border); }
+
+  /* sign-off */
+  .signoff{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:8px; }
+  .sig{ }
+  .sig .sigline{ border-bottom:1.5px solid var(--fg); height:30px; }
+  .sig .sigl{ font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-top:6px; }
+  .closing{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:4px; }
+  .cbox{ border:1px solid var(--border); border-radius:9px; padding:9px 11px; }
+  .cbox .cbl{ font-size:8.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+  .cbox .cbf{ border-bottom:1px solid var(--border-strong); height:22px; margin-top:8px; }
+
+  /* events (Eventer & selskaper) */
+  .evt{ display:flex; gap:13px; padding:11px 0; align-items:flex-start; }
+  .evt + .evt{ border-top:1px solid var(--border); }
+  .evt-time{ flex-shrink:0; width:64px; }
+  .evt-time .t{ font-family:var(--m); font-size:13px; font-weight:700; }
+  .evt-main{ flex:1; min-width:0; }
+  .evt-main .en{ font-size:13px; font-weight:700; letter-spacing:-0.01em; }
+  .evt-main .ed{ font-size:10.5px; color:var(--muted); margin-top:4px; line-height:1.5; }
+  .evt-cov{ flex-shrink:0; text-align:right; padding-left:6px; }
+  .evt-cov .c{ font-family:var(--m); font-size:18px; font-weight:700; line-height:1; }
+  .evt-cov .cl{ font-size:8.5px; color:var(--muted-soft); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; }
+
+  /* allergy & dietary */
+  .alg{ display:flex; gap:11px; padding:10px 0; align-items:flex-start; }
+  .alg + .alg{ border-top:1px solid var(--border); }
+  .alg-ic{ width:26px; height:26px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .alg-ic svg{ width:14px; height:14px; }
+  .alg-ic.crit{ background:rgba(231,0,11,0.1); color:var(--error); }
+  .alg-ic.info{ background:rgba(39,132,213,0.1); color:var(--info); }
+  .alg-main{ flex:1; }
+  .alg-main .at{ font-size:12px; font-weight:700; }
+  .alg-main .at .who{ color:var(--error); }
+  .alg-main .as{ font-size:10.5px; color:var(--muted); margin-top:3px; line-height:1.45; }
+  .alg-time{ font-family:var(--m); font-size:11px; font-weight:700; flex-shrink:0; width:46px; text-align:right; padding-top:5px; }
+  .alg-note{ margin-top:11px; padding-top:10px; border-top:1px dotted var(--border); font-size:10px; color:var(--muted); font-style:italic; line-height:1.5; }
+
+  /* filtered (single-/multi-section) view */
+  body.filtered .cols{ display:block; }
+  body.filtered .cols > div{ margin-bottom:6px; }
+  .sheet[hidden]{ display:none !important; }
+
+  .pagefoot{ position:absolute; left:14mm; right:14mm; bottom:7mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); border-top:1px solid var(--border); padding-top:6px; }
+
+  @page{ size:A4 portrait; margin:0; }
+  @media print{
+    body{ background:#fff; }
+    .bar{ display:none; }
+    .stage{ padding:0; gap:0; }
+    .sheet{ box-shadow:none; width:auto; min-height:auto; page-break-after:always; }
+    .sheet:last-child{ page-break-after:auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Dagsrapport</b> <span class="sub">· Bistro Nord · torsdag 30. mai</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg>
+      Skriv ut / lagre som PDF
+    </button>
+  </div>
+
+  <div class="stage">
+
+    <!-- ============ PAGE 1 — pre-service brief ============ -->
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-eyebrow">Dagsrapport · drift før åpning</div>
+          <div class="lh-title">Bistro Nord — dagen i dag</div>
+          <div class="lh-sub">Vaktansvarlig <b style="font-family:var(--m);font-weight:600;color:var(--fg)">Maria A.</b> · kjøkkenansvarlig Jonas H. · skrives ut før service</div>
+        </div>
+        <div class="lh-right">
+          <div class="lh-date">Torsdag 30. mai 2026</div>
+          Generert <b>08:14</b> av Mr. Botsson<br/>
+          Åpent <b>11:00–23:00</b> · kjøkken til <b>21:30</b><br/>
+          Vær: 14°C, lett regn ettermiddag
+        </div>
+      </div>
+
+      <!-- facts ribbon -->
+      <div class="ribbon">
+        <div class="cell">
+          <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M5 5h14a2 2 0 0 1 0 4H5a2 2 0 0 0 0 4h14"/></svg>Prognose oms.</div>
+          <div class="rv">52 400<span class="u"> kr</span></div>
+          <div class="rs">torsdag · 84 % sikkerhet</div>
+        </div>
+        <div class="cell">
+          <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6"/></svg>Forventet gjester</div>
+          <div class="rv">~96</div>
+          <div class="rs">78 booket + walk-in</div>
+        </div>
+        <div class="cell">
+          <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Reservasjoner</div>
+          <div class="rv">11<span class="u"> bord</span></div>
+          <div class="rs">2 selskap (8 + 12)</div>
+        </div>
+        <div class="cell">
+          <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M3 21a6 6 0 0 1 12 0"/><path d="M16 3.5a3 3 0 0 1 0 7M21 21a6 6 0 0 0-5-5.9"/></svg>På vakt</div>
+          <div class="rv warn">4<span class="u"> / 5</span></div>
+          <div class="rs">bar kveld udekket</div>
+        </div>
+        <div class="cell">
+          <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Åpne avvik</div>
+          <div class="rv crit">2</div>
+          <div class="rs">1 må løses før 09:30</div>
+        </div>
+      </div>
+
+      <!-- botsson focus -->
+      <div class="focus" data-sec="fokus">
+        <span class="focus-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+        <div>
+          <span class="tag">BOTSSON · DAGENS FOKUS</span>
+          <p>Rolig lunsj, travlere kveld med to selskap. <span class="hl">Kjøl 3 må bekreftes under +4 °C før Bama leverer 09:30</span> — ellers risiko for varekast. <strong>Bar 17–23 mangler bartender</strong>; Jonas H. er kvalifisert og ledig. Husk nøtteallergi kl. 19:00 (Solberg) og bursdagskake til Andersen kl. 20:00.</p>
+        </div>
+      </div>
+
+      <!-- two columns: roster | deliveries+avvik -->
+      <div class="cols">
+        <!-- roster -->
+        <div data-sec="bemanning">
+          <div class="sec-h" style="margin-top:2px;"><h3>Bemanning i dag</h3><span class="meta">4 på vakt · 1 hull</span></div>
+
+          <div class="roster-dep"><span class="dd" style="background:var(--sal)"></span>Sal</div>
+          <div class="rrow">
+            <div class="rperson"><span class="rav" style="background:#FF7849">MA</span><span><span class="rname">Maria A.<span class="rtag lead">Vaktansvarlig</span></span><br/><span class="rrole">Driftsleder</span></span></div>
+            <span class="rtime">09:00–17:00</span>
+          </div>
+          <div class="rrow">
+            <div class="rperson"><span class="rav" style="background:#10B981">SL</span><span><span class="rname">Selma L.</span><br/><span class="rrole">Servitør · stenge</span></span></div>
+            <span class="rtime">16:00–23:00</span>
+          </div>
+
+          <div class="roster-dep"><span class="dd" style="background:var(--kjokken)"></span>Kjøkken</div>
+          <div class="rrow">
+            <div class="rperson"><span class="rav" style="background:#3B82F6">JH</span><span><span class="rname">Jonas H.</span><br/><span class="rrole">Kokk · kjøkkenansvarlig</span></span></div>
+            <span class="rtime">11:00–20:00</span>
+          </div>
+
+          <div class="roster-dep"><span class="dd" style="background:var(--sal)"></span>Renhold</div>
+          <div class="rrow">
+            <div class="rperson"><span class="rav" style="background:#EAB308">IB</span><span><span class="rname">Ida B.</span><br/><span class="rrole">Renhold · morgenrigg</span></span></div>
+            <span class="rtime">08:00–14:00</span>
+          </div>
+
+          <div class="roster-dep"><span class="dd" style="background:var(--bar)"></span>Bar</div>
+          <div class="rgap">
+            <span class="gi"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></span>
+            <span><span class="gt">Kveldsvakt bar 17:00–23:00 udekket</span><br/><span class="gs">Tilbudt Jonas H. (kvalifisert, under 37,5 t) — venter svar. Plan B: ring Kari.</span></span>
+          </div>
+        </div>
+
+        <!-- deliveries + avvik -->
+        <div>
+          <div data-sec="leveranser">
+          <div class="sec-h" style="margin-top:2px;"><h3>Leveranser</h3><span class="meta">mottakskontroll</span></div>
+          <div class="ev">
+            <span class="ev-time">09:30</span><span class="ev-dot" style="background:var(--lager)"></span>
+            <div class="ev-main"><div class="et">Bama — frukt &amp; grønt</div><div class="es">Temperaturmål + antall mot pakkseddel. Maria signerer.</div></div>
+            <span class="chk"></span>
+          </div>
+          <div class="ev">
+            <span class="ev-time">10:15</span><span class="ev-dot" style="background:var(--lager)"></span>
+            <div class="ev-main"><div class="et">Tine — meieri &amp; kjøl</div><div class="es">Kjølekjede &lt; +4 °C. Inn på Kjøl 1 (ikke Kjøl 3).</div></div>
+            <span class="chk"></span>
+          </div>
+          <div class="ev">
+            <span class="ev-time">14:00</span><span class="ev-dot" style="background:var(--event)"></span>
+            <div class="ev-main"><div class="et">Vinmonopolet — bestilling 4412</div><div class="es">6 fl. til firmamiddag Nordkraft kl. 19:30. Sjekk mot meny.</div></div>
+            <span class="chk"></span>
+          </div>
+
+          </div>
+          <div data-sec="avvik">
+          <div class="sec-h" style="margin-top:15px;"><h3>Avvik å lukke</h3><span class="badge crit">2 åpne</span></div>
+          <div class="avrow">
+            <span class="av-ic crit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M14 14V5a2 2 0 0 0-4 0v9a4 4 0 1 0 4 0z"/></svg></span>
+            <div class="av-main"><div class="at">Temperaturavvik — Kjøl 3 over +4 °C</div><div class="as">Kjøkken sone A · oppdaget 08:10 · Jonas/Maria</div></div>
+            <span class="av-frist crit">før 09:30</span>
+          </div>
+          <div class="avrow">
+            <span class="av-ic warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6a1.4 1.4 0 0 0 2 2l6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg></span>
+            <div class="av-main"><div class="at">Avvik #214 — løs pakning på Kjøl 3</div><div class="as">Vedlikehold · oppfølging fra i går · Maria</div></div>
+            <span class="av-frist warn">frist 12:00</span>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- reservations -->
+      <div class="sec" data-sec="bookinger">
+        <div class="sec-h"><h3>Reservasjoner</h3><span class="meta">torsdag · 11 bord · 78 couverter</span></div>
+        <table class="rt">
+          <thead>
+            <tr><th>Tid</th><th>Gjest</th><th class="c">Antall</th><th>Bord</th><th>Merknad</th></tr>
+          </thead>
+          <tbody>
+            <tr class="lunch"><td class="time">12:00</td><td class="guest">Hansen</td><td class="c cov">2</td><td>7</td><td class="note">Lunsj</td></tr>
+            <tr class="lunch"><td class="time">12:30</td><td class="guest">Statsbygg</td><td class="c cov">6</td><td>11</td><td class="note"><span class="flag flag-vip">Faktura</span>Forretningslunsj · rask servering, tilbake 14:00</td></tr>
+            <tr class="lunch"><td class="time">13:00</td><td class="guest">Berg</td><td class="c cov">4</td><td>5</td><td class="note">Lunsj</td></tr>
+            <tr><td class="time">18:00</td><td class="guest">Lie</td><td class="c cov">2</td><td>2</td><td class="note">Vindusbord ønsket</td></tr>
+            <tr><td class="time">18:30</td><td class="guest">Andersen</td><td class="c cov">8</td><td>14+15</td><td class="note"><span class="flag flag-fest">Bursdag</span>Tar med kake — server kl. 20:00, 8 tallerkener</td></tr>
+            <tr><td class="time">19:00</td><td class="guest">Solberg</td><td class="c cov">4</td><td>6</td><td class="note"><span class="flag flag-allergi">Nøtteallergi</span>1 gjest — egen merking til kjøkken</td></tr>
+            <tr><td class="time">19:00</td><td class="guest">Dahl</td><td class="c cov">2</td><td>3</td><td class="note">—</td></tr>
+            <tr><td class="time">19:30</td><td class="guest">Nordkraft</td><td class="c cov">12</td><td>Selskapsrom</td><td class="note"><span class="flag flag-stort">Selskap</span>Satt 3-retters + vinpakke · 1 vegetar · faktura</td></tr>
+            <tr><td class="time">20:00</td><td class="guest">Kristiansen</td><td class="c cov">6</td><td>4</td><td class="note"><span class="flag flag-tilg">Rullestol</span>Bord 4 (trinnfri) reservert</td></tr>
+            <tr><td class="time">20:30</td><td class="guest">Eriksen</td><td class="c cov">2</td><td>9</td><td class="note"><span class="flag flag-fest">Forlovelse</span>Musserende ved ankomst — avtalt med Selma</td></tr>
+            <tr><td class="time">21:00</td><td class="guest">Walk-in / buffer</td><td class="c cov">30</td><td>bar + 10,12,13</td><td class="note">Hold kapasitet til drop-in</td></tr>
+            <tr class="sumrow"><td colspan="2">Sum booket (eks. walk-in)</td><td class="c cov">48</td><td colspan="2" class="note" style="color:var(--fg);font-weight:600;">Lunsj 12 · kveld 36 · + ~30 walk-in forventet</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Dagsrapport · Bistro Nord</span><span>Torsdag 30.05.2026 · <span class="pg">side 1/3</span> · generert 08:14</span></div>
+    </div>
+
+
+    </div>
+
+    <!-- ============ PAGE 2 — guests & considerations ============ -->
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-eyebrow">Dagsrapport · gjester &amp; hensyn</div>
+          <div class="lh-title">Gjester i dag</div>
+          <div class="lh-sub">Eventer, allergi og kjøkkenets dagsnotater — brief før service</div>
+        </div>
+        <div class="lh-right">
+          <div class="lh-date">Torsdag 30. mai 2026</div>
+          Bistro Nord · vaktansvarlig <b>Maria A.</b><br/>
+          Til sal + kjøkken
+        </div>
+      </div>
+
+      <!-- events -->
+      <div class="sec" data-sec="eventer" style="margin-top:14px;">
+        <div class="sec-h"><h3>Eventer &amp; selskaper</h3><span class="meta">torsdag · 4 arrangementer</span></div>
+        <div class="evt">
+          <div class="evt-time"><div class="t">12:30</div><span class="flag flag-vip">Lunsj</span></div>
+          <div class="evt-main"><div class="en">Forretningslunsj — Statsbygg</div><div class="ed">Bord 11 · faktura. Rask servering — gjestene må være tilbake 14:00. À la carte, kaffe settes fram ved dessert.</div></div>
+          <div class="evt-cov"><div class="c">6</div><div class="cl">couv.</div></div>
+        </div>
+        <div class="evt">
+          <div class="evt-time"><div class="t">18:30</div><span class="flag flag-fest">Bursdag</span></div>
+          <div class="evt-main"><div class="en">Bursdagsmiddag — Andersen</div><div class="ed">Bord 14+15. Gjestene tar med kake — server kl. 20:00 med 8 tallerkener + lys. Selma koordinerer.</div></div>
+          <div class="evt-cov"><div class="c">8</div><div class="cl">couv.</div></div>
+        </div>
+        <div class="evt">
+          <div class="evt-time"><div class="t">19:30</div><span class="flag flag-stort">Selskap</span></div>
+          <div class="evt-main"><div class="en">Firmamiddag — Nordkraft</div><div class="ed">Selskapsrom · satt 3-retters + vinpakke (vin leveres 14:00). 1 vegetar bekreftet. Faktura — ordrenr. fra Maria.</div></div>
+          <div class="evt-cov"><div class="c">12</div><div class="cl">couv.</div></div>
+        </div>
+        <div class="evt">
+          <div class="evt-time"><div class="t">20:30</div><span class="flag flag-fest">Forlovelse</span></div>
+          <div class="evt-main"><div class="en">Forlovelse — Eriksen</div><div class="ed">Bord 9 · musserende ved ankomst (avtalt med Selma). Diskret servering, vindusplass.</div></div>
+          <div class="evt-cov"><div class="c">2</div><div class="cl">couv.</div></div>
+        </div>
+      </div>
+
+      <!-- allergies & dietary -->
+      <div class="sec" data-sec="allergi">
+        <div class="sec-h"><h3>Allergi &amp; kostholdshensyn</h3><span class="badge crit">1 kritisk</span></div>
+        <div class="alg">
+          <span class="alg-time">19:00</span>
+          <span class="alg-ic crit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+          <div class="alg-main"><div class="at"><span class="who">Nøtteallergi</span> — Solberg, bord 6 (1 gjest)</div><div class="as">Egen merking til kjøkken. NB: forretten inneholder valnøtt — server alternativ forrett til denne gjesten. Bekreft med Jonas.</div></div>
+        </div>
+        <div class="alg">
+          <span class="alg-time">19:30</span>
+          <span class="alg-ic info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4c0 3 4 7 4 7s4-4 4-7a4 4 0 0 0-4-4zM7 21c1.5-2 3-3 5-3s3.5 1 5 3"/></svg></span>
+          <div class="alg-main"><div class="at">Vegetar — Nordkraft, selskapsrom (1 gjest)</div><div class="as">Vegetarisk hovedrett i selskapsmenyen — bekreftet med kjøkken.</div></div>
+        </div>
+        <div class="alg-note">Alle allergener merkes per rett i menyen. Ved tvil: spør kjøkkenansvarlig (Jonas H.). Fullstendig allergenoversikt henger på kjøkkenpass.</div>
+      </div>
+
+      <!-- kitchen notes -->
+      <div class="sec" data-sec="meny">
+        <div class="sec-h"><h3>Kjøkken &amp; meny</h3><span class="meta">dagens · 86</span></div>
+        <div class="kn">
+          <div class="kn-block">
+            <div class="knh">Dagens</div>
+            <div class="kn-line"><span class="kk">Lunsj</span><span>Fiskesuppe m/ aioli &amp; surdeig</span></div>
+            <div class="kn-line"><span class="kk">Forrett</span><span>Bakte rødbeter, chèvre, valnøtt</span></div>
+            <div class="kn-line"><span class="kk">Hovedrett</span><span>Helstekt torsk · Entrecôte 250 g</span></div>
+            <div class="kn-line"><span class="kk">Dessert</span><span>Sjokoladefondant</span></div>
+          </div>
+          <div class="kn-block">
+            <div class="knh">86 / utsolgt &amp; obs</div>
+            <div class="kn-86">
+              <span class="tag">86 Østers</span>
+              <span class="tag">86 Tartar</span>
+              <span class="tag soon">Begrenset: Entrecôte (12)</span>
+              <span class="tag soon">Venter: vin til Nordkraft</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Dagsrapport · Bistro Nord</span><span>Torsdag 30.05.2026 · <span class="pg">side 2/3</span> · gjester &amp; hensyn</span></div>
+    </div>
+
+    <!-- ============ PAGE 3 — checklists & handover ============ -->
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-eyebrow">Dagsrapport · sjekklister &amp; overlevering</div>
+          <div class="lh-title">Klar for service</div>
+          <div class="lh-sub">Kryss av før åpning · fyll inn ved stenging</div>
+        </div>
+        <div class="lh-right">
+          <div class="lh-date">Torsdag 30. mai 2026</div>
+          Bistro Nord · vaktansvarlig <b>Maria A.</b><br/>
+          Henger på kjøkkenpass + bar
+        </div>
+      </div>
+
+      <!-- opening checklist -->
+      <div class="sec" data-sec="apning" style="margin-top:14px;">
+        <div class="sec-h"><h3>Åpningsrutiner</h3><span class="meta">før 11:00</span></div>
+        <div class="checks">
+          <div class="crow must"><span class="cb"></span><span><span class="ct">Temperaturlogg kjøl &amp; frys</span> <span class="cw">· Jonas, 10:30</span></span></div>
+          <div class="crow must"><span class="cb"></span><span><span class="ct">Bekreft Kjøl 3 under +4 °C etter avvik</span> <span class="cw">· Jonas/Maria</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Mise en place / prep kjøkken</span> <span class="cw">· Jonas</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Dekke bord etter bordkart</span> <span class="cw">· Selma/Ida</span></span></div>
+          <div class="crow must"><span class="cb"></span><span><span class="ct">Float i kasse + kortterminal testet</span> <span class="cw">· Maria</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Gå gjennom reservasjoner &amp; bordkart</span> <span class="cw">· Maria/Selma</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Dagens-tavle &amp; meny oppdatert</span> <span class="cw">· Jonas</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Toaletter, inngang &amp; uteservering</span> <span class="cw">· Ida</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Musikk, lys &amp; temperatur i lokalet</span> <span class="cw">· Selma</span></span></div>
+          <div class="crow"><span class="cb"></span><span><span class="ct">Brief alle på vakt: selskap + allergi</span> <span class="cw">· Maria, 11:00</span></span></div>
+        </div>
+      </div>
+
+      <!-- handover notes -->
+      <div class="sec" data-sec="notater">
+        <div class="sec-h"><h3>Notater &amp; overlevering</h3><span class="meta">skriv for hånd</span></div>
+        <div class="lines">
+          <div class="ln"></div><div class="ln"></div><div class="ln"></div>
+        </div>
+      </div>
+
+      <!-- closing / sign-off -->
+      <div class="sec" data-sec="stenging">
+        <div class="sec-h"><h3>Stenging &amp; oppgjør</h3><span class="meta">fylles inn ved vaktslutt</span></div>
+        <div class="closing">
+          <div class="cbox"><div class="cbl">Faktisk omsetning</div><div class="cbf"></div></div>
+          <div class="cbox"><div class="cbl">Antall gjester</div><div class="cbf"></div></div>
+          <div class="cbox"><div class="cbl">Kontantdiff.</div><div class="cbf"></div></div>
+          <div class="cbox"><div class="cbl">Nye avvik</div><div class="cbf"></div></div>
+        </div>
+        <div class="checks" style="margin-top:14px;">
+          <div class="crow"><span class="cb"></span><span class="ct">Kasseoppgjør &amp; dagsavslutning kjørt</span></div>
+          <div class="crow"><span class="cb"></span><span class="ct">Kjøl/frys-temp loggført ved stenging</span></div>
+          <div class="crow"><span class="cb"></span><span class="ct">Kjøkken rengjort &amp; fettutskiller sjekket</span></div>
+          <div class="crow"><span class="cb"></span><span class="ct">Avvik &amp; svinn registrert i Smartout</span></div>
+          <div class="crow"><span class="cb"></span><span class="ct">Lokale låst, alarm + lys/ovn av</span></div>
+          <div class="crow"><span class="cb"></span><span class="ct">Overlevering til i morgen notert</span></div>
+        </div>
+        <div class="signoff">
+          <div class="sig"><div class="sigline"></div><div class="sigl">Vaktansvarlig (sign.)</div></div>
+          <div class="sig"><div class="sigline"></div><div class="sigl">Kjøkkenansvarlig (sign.)</div></div>
+          <div class="sig"><div class="sigline"></div><div class="sigl">Klokkeslett stengt</div></div>
+        </div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Dagsrapport · Bistro Nord</span><span>Torsdag 30.05.2026 · <span class="pg">side 3/3</span> · oppbevares til avstemming</span></div>
+    </div>
+
+  </div>
+  <script>
+    (function () {
+      if (window.self !== window.top) document.body.classList.add("embed");
+      var SECTIONS = ['fokus','bemanning','leveranser','avvik','bookinger','eventer','allergi','meny','apning','notater','stenging'];
+      function applyFilter(keys) {
+        var all = !keys || !keys.length || keys.indexOf('*') >= 0;
+        document.body.classList.toggle('filtered', !all);
+        SECTIONS.forEach(function (k) {
+          var show = all || keys.indexOf(k) >= 0;
+          document.querySelectorAll('[data-sec="' + k + '"]').forEach(function (el) { el.style.display = show ? '' : 'none'; });
+        });
+        var list = [];
+        document.querySelectorAll('.sheet').forEach(function (sh) {
+          var anyVis = false;
+          sh.querySelectorAll('[data-sec]').forEach(function (s) { if (s.style.display !== 'none') anyVis = true; });
+          var vis = all || anyVis;
+          sh.hidden = !vis;
+          if (vis) list.push(sh);
+        });
+        list.forEach(function (sh, i) { var pg = sh.querySelector('.pg'); if (pg) pg.textContent = 'side ' + (i + 1) + '/' + list.length; });
+      }
+      window.applyDagsrapportFilter = applyFilter;
+    })();
+  </script>
+</body>
+</html>

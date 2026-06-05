@@ -1,0 +1,112 @@
+{
+  "domain": "oppgaver",
+  "app_subdir": "apps/web/src/app/dashboard/oppgaver",
+  "generated_at": "2026-05-31T23:52:07Z",
+  "aggregate": {
+    "required": 15,
+    "defined_in_registry": 15,
+    "emitted_in_ui": 9,
+    "not_emitted_count": 6,
+    "emit_coverage_pct": 60.0
+  },
+  "not_emitted": [
+    "oppgaver.subtask_toggled",
+    "oppgaver.task_completed",
+    "oppgaver.task_re_timed",
+    "session_task.assigned",
+    "session_task.created",
+    "task.added_manual"
+  ],
+  "events": [
+    {
+      "key": "oppgaver.area_filter_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/ManagerTimelineShell.tsx:236"
+    },
+    {
+      "key": "oppgaver.close_day_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/TimelineTopBar.tsx:77"
+    },
+    {
+      "key": "oppgaver.context_pinned",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_tools/oppgaver-tools-bridge.tsx:112"
+    },
+    {
+      "key": "oppgaver.location_filter_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/LocationSwitcherPill.tsx:92"
+    },
+    {
+      "key": "oppgaver.pulse_now_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/TimelineToolbar.tsx:138"
+    },
+    {
+      "key": "oppgaver.subtask_toggled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oppgaver.task_completed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oppgaver.task_focused",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/ManagerTimelineShell.tsx:259"
+    },
+    {
+      "key": "oppgaver.task_re_timed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oppgaver.template_apply_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/TimelineToolbar.tsx:125"
+    },
+    {
+      "key": "oppgaver.view_mode_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/ManagerTimelineShell.tsx:204"
+    },
+    {
+      "key": "oppgaver.view_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/oppgaver/_components/ManagerTimelineShell.tsx:146"
+    },
+    {
+      "key": "session_task.assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "session_task.created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "task.added_manual",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

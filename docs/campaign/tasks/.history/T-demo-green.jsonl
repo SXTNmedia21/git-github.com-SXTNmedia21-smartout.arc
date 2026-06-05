@@ -1,0 +1,2 @@
+{"ts": "2026-06-03T15:00:19Z", "actor": "pontus", "field": "created", "old": null, "new": "Reference: the green path — a verify-script that returns 100."}
+{"ts": "2026-06-03T15:00:19Z", "actor": "pontus", "field": "verify_run", "old": null, "new": {"rc": 0, "last_run": {"percent": 100, "confidence": 100, "cleared": true, "has_script": true}}}

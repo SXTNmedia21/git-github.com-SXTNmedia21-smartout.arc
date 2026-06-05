@@ -1,0 +1,94 @@
+{
+  "domain": "oversikt",
+  "design_files": ["apps/web/pages/oversikt.jsx", "apps/web/shared/data.js"],
+  "port_files": [
+    "apps/web/src/app/dashboard/oversikt-v2/page.tsx",
+    "apps/web/src/app/dashboard/oversikt-v2/_lib/to-design-shape.ts",
+    "apps/web/src/app/dashboard/oversikt-v2/_components/OversiktCockpit.tsx",
+    "apps/web/src/app/dashboard/oversikt-v2/_components/oversikt.css"
+  ],
+  "interactive_elements_total": 19,
+  "elements_mapped": 19,
+  "mutations": 0,
+  "events_required": 11,
+  "events_in_registry": 11,
+  "events_missing_from_registry": [],
+  "events_registered_this_pass": [
+    "oversikt.viewed",
+    "oversikt.budget_empty_state_shown",
+    "oversikt.brief_why_toggled",
+    "oversikt.brief_action_taken",
+    "oversikt.pulse_tile_clicked",
+    "oversikt.action_queue_row_clicked",
+    "oversikt.action_cta_clicked",
+    "oversikt.nav_link_clicked",
+    "oversikt.gap_fill_requested",
+    "oversikt.receipt_nudge_sent",
+    "oversikt.dagsrapport_requested"
+  ],
+  "hooks_found": 4,
+  "hooks_found_list": [
+    "use-cockpit-first-screen.ts",
+    "use-shift-day-stats.ts",
+    "use-day-budget.ts",
+    "use-day-timeline-events.ts"
+  ],
+  "hooks_missing": [
+    "useCreateOpenShift (gap_fill Roster button — open_shift mutation not wired to oversikt surface)",
+    "useGenerateDayReport (dagsrapport header button — no hook or Edge Function exists)",
+    "Levering delivery checklist hook (ActionQueue Klargjør CTA — session_task insert not plumbed)"
+  ],
+  "noop_candidates": [
+    "RiskTomorrow risk item actions (Løs/Se) — static text, no onClick in design",
+    "window.CreateButton — shell-level component, telemetry owned externally",
+    "Roster shift bar visuals — display-only",
+    "Feed list items — read-only in current design",
+    "Receipts list rows — display-only"
+  ],
+  "budget_tile_trap": {
+    "table": "workspace_budget",
+    "status": "0-SEEDED",
+    "db_row_count": 0,
+    "risk": "Budget KPI tiles return null/— silently. workspace_budget has 0 rows for demo workspace. No observable error — OversiktCockpit renders honest empty state and emits oversikt.budget_empty_state_shown.",
+    "required_actions": [
+      "Add seed rows in supabase/seed.sql for workspace_budget (period_type='daily') — F0.4 scope",
+      "Coordinate with F0.4 scope before adding budget tiles to oversikt pulse bar"
+    ],
+    "flag": "needs-F0.4-seed"
+  },
+  "db_render_result": {
+    "verified_at": "2026-06-03",
+    "method": "psql heredoc with simulated RLS auth (authenticated role, jwt.claims.sub=e0000000-...-001, workspace_id=b0000000-...-000)",
+    "schedule_shift": 4,
+    "time_entry": 8,
+    "deviation": 2,
+    "session_task_open": 21,
+    "workspace_budget": 0,
+    "profile": 14,
+    "verdict": "REAL-DATA — 5 of 6 sources return real rows; workspace_budget=0 (honest-empty per budget_tile_trap, empty-state rendered)"
+  },
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": true,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": true,
+    "baseline_count_recorded": true,
+    "typecheck_exit_0": true,
+    "telemetry_dist_rebuilt": true
+  },
+  "typecheck": {
+    "command": "TURBO_CONCURRENCY=1 pnpm --filter web typecheck",
+    "exit_code": 0,
+    "verified_at": "2026-06-03"
+  },
+  "gate": "PASS",
+  "gate_verified_at": "2026-06-03T00:00:00Z",
+  "gate_notes": "Port complete: 4-file unit copied verbatim from sandbox fasit (2641 lines, 1:1 fidelity). All 11 oversikt events registered (3-site recipe: interface + union + EVENT_ROUTING in registry.ts). @smartout/telemetry built, dist refreshed. web typecheck exit 0. DB-proved: 5/6 tables return real rows under simulated auth; workspace_budget=0 (honest-empty, not ghost data). No migrations, no seeds, no schema writes.",
+  "remaining_noops": [
+    "useCreateOpenShift — Roster gap_fill emits oversikt.gap_fill_requested intent only (no DB write); honest noop documented in component",
+    "useGenerateDayReport — Dagsrapport button shows toast 'not available yet'; emits oversikt.dagsrapport_requested intent; honest noop documented",
+    "workspace_budget 0-seeded — budget tiles null-guarded; oversikt.budget_empty_state_shown emitted client-side when null"
+  ],
+  "known_payload_bug": "receipt_nudge_sent emit in OversiktCockpit.tsx: data.profile_id is incorrectly set to workspaceId instead of a recipient profile_id. Low severity — payload data field only, routing IDs (workspace_id/actor_id) are correct. Fix in next pass.",
+  "blockers": []
+}

@@ -1,0 +1,248 @@
+{
+  "domain": "ansatte",
+  "app_subdir": "apps/web/src/app/dashboard/people",
+  "generated_at": "2026-05-31T23:52:00Z",
+  "aggregate": {
+    "required": 34,
+    "defined_in_registry": 33,
+    "emitted_in_ui": 6,
+    "not_emitted_count": 28,
+    "emit_coverage_pct": 17.6
+  },
+  "not_emitted": [
+    "admin.pii_reveal",
+    "auth.users",
+    "channel.call.ended",
+    "contract.send_initiated",
+    "contract_attachment.upload_initiated",
+    "contract_template.auto_attach_toggled",
+    "contract_template.draft_saved",
+    "contract_template.published",
+    "contracts.compose.template_selected",
+    "contracts.export.initiated",
+    "legal_function assigned",
+    "people.absence.registered",
+    "people.audit.exported",
+    "people.botsson.action_invoked",
+    "people.bulk.department_set",
+    "people.bulk.message_sent",
+    "people.bulk.training_assigned",
+    "people.competence.added",
+    "people.document.sent",
+    "people.employee.onboarding_wizard_started",
+    "people.message.sent",
+    "people.recert.deadline_extended",
+    "people.recert.reminder_sent",
+    "people.recert.scheduled",
+    "people.task.assigned",
+    "people.task.daily_list_added",
+    "profile activated",
+    "protocol assigned"
+  ],
+  "events": [
+    {
+      "key": "admin.pii_reveal",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "auth.users",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "channel.call.ended",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contract.botsson_chip_invoked",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/contracts/_components/BotssonAmbientChip.tsx:52"
+    },
+    {
+      "key": "contract.send_initiated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contract_attachment.upload_initiated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contract_template.auto_attach_toggled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contract_template.draft_saved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contract_template.published",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contracts.compose.submitted",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/contracts/_hooks/use-employment-contracts.ts:109"
+    },
+    {
+      "key": "contracts.compose.template_selected",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contracts.export.initiated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "contracts.resend.submitted",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/contracts/_components/contracts-data-table.tsx:416"
+    },
+    {
+      "key": "contracts.template.opened_in_admin",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/contracts/_components/MalerTab.tsx:981"
+    },
+    {
+      "key": "contracts.template.viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/contracts/_components/MalerTab.tsx:913"
+    },
+    {
+      "key": "legal_function assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.absence.registered",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.audit.exported",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.botsson.action_invoked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.bulk.department_set",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.bulk.message_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.bulk.training_assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.competence.added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.document.sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.employee.onboarding_wizard_started",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.message.sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.recert.deadline_extended",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.recert.reminder_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.recert.scheduled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.task.assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "people.task.daily_list_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "profile activated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "profile reactivated",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/people/_actions/people-actions.ts:701"
+    },
+    {
+      "key": "protocol assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Komponenter</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { padding: 48px 56px; }
+  .ds-title { font-family: var(--font-heading); font-size: 44px; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .ds-sub { color: var(--muted); font-size: 15px; margin: 0 0 36px; max-width: 620px; }
+  .ds-section { margin-bottom: 48px; }
+  .ds-section-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .demo { padding: 24px; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--card); display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .demo-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <h1 class="ds-title">Komponenter</h1>
+  <p class="ds-sub">Atomer og molekyler brukt i Avstemming og resten av dashbordet. Alltid CSS-variabler, aldri hardkodet farge.</p>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Knapper</div>
+    <div class="demo-grid">
+      <div class="demo"><div class="demo-label">Primær</div><button class="btn btn-primary">Godkjenn dagen</button><button class="btn btn-primary btn-lg">Godkjenn dagen</button><button class="btn btn-primary" disabled>Disabled</button></div>
+      <div class="demo"><div class="demo-label">Sekundær</div><button class="btn btn-secondary">Juster omsetning</button><button class="btn btn-secondary btn-sm">Godkjenn</button></div>
+      <div class="demo"><div class="demo-label">Ghost</div><button class="btn btn-ghost">Be om avklaring</button><button class="btn btn-ghost btn-sm">Mer</button></div>
+      <div class="demo"><div class="demo-label">Destructive</div><button class="btn btn-destructive">Avvis</button></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Status pills</div>
+    <div class="demo">
+      <span class="status-pill status-open">Åpen</span>
+      <span class="status-pill status-submitted">Innsendt</span>
+      <span class="status-pill status-awaiting">Venter</span>
+      <span class="status-pill status-approved">Godkjent</span>
+      <span class="status-pill status-locked">Låst</span>
+      <span class="status-pill status-unreconciled">Ikke avstemt</span>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Inputfelter</div>
+    <div class="demo-grid">
+      <div class="demo" style="align-items: stretch;">
+        <label class="field-label">Approval notes</label>
+        <input class="input" placeholder="Valgfri kommentar…" />
+      </div>
+      <div class="demo" style="align-items: stretch;">
+        <label class="field-label">Reject reason</label>
+        <textarea class="textarea" placeholder="Minst 10 tegn…"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Badges & chips</div>
+    <div class="demo">
+      <span class="chip active">Alle</span>
+      <span class="chip">Venter <span class="chip-count">3</span></span>
+      <span class="chip">Godkjent</span>
+      <div style="display: flex; gap: 6px; margin-top: 6px;">
+        <span class="status-pill status-approved">Fullført</span>
+        <span class="status-pill status-awaiting">Venter</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">KPI-kort</div>
+    <div class="kpi-strip" style="border: 1px solid var(--border); border-radius: var(--r-card); padding: 24px; margin: 0;">
+      <div class="kpi-item"><div class="kpi-label">Omsetning</div><div class="kpi-value">94 200<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:6px;">kr</span></div><div class="kpi-sub"><span class="kpi-delta-up">+6.8%</span> · Budsjett 88 200 kr</div></div>
+      <div class="kpi-item"><div class="kpi-label">Timer</div><div class="kpi-value">82.5<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:6px;">t</span></div><div class="kpi-sub"><span class="kpi-delta-down">+3.2t</span> · Planlagt 79.3t</div></div>
+      <div class="kpi-item"><div class="kpi-label">Labor</div><div class="kpi-value">31.4<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:6px;">%</span></div><div class="kpi-sub"><span class="kpi-delta-down">+3.4pp</span> · Mål 28%</div></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Avvik-kort (severity bar)</div>
+    <div class="dev-item sev-critical" style="max-width: 640px;">
+      <div class="sev-bar"></div>
+      <div>
+        <div class="dev-item-title">Skiftleder ikke registrert for kveldsskift</div>
+        <div class="dev-item-desc">Fredag kveld manglet registrert skiftleder fra 18:00. Iselin Hagen tok ansvar uformelt.</div>
+        <div class="dev-item-meta"><span>Marcus Lien</span><span>·</span><span class="mono">21:14</span></div>
+      </div>
+      <div class="row" style="gap: 6px;"><button class="btn btn-sm btn-secondary">Løs</button></div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Avatars</div>
+    <div class="demo" style="flex-direction: row; align-items: center;">
+      <div class="avatar" style="width: 24px; height: 24px; font-size: 10px;">PS</div>
+      <div class="avatar">PS</div>
+      <div class="avatar" style="width: 40px; height: 40px; font-size: 14px;">PS</div>
+      <div class="avatar" style="width: 64px; height: 64px; font-size: 22px;">PS</div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-section-label">Preflight banner</div>
+    <div class="preflight blocked" style="max-width: 680px;">
+      <div class="preflight-title">
+        <span style="color: var(--warning);">⬤</span> 2 punkter må løses før godkjenning
+      </div>
+      <div class="preflight-sub">Klikk på hvert punkt for å hoppe til riktig sted.</div>
+      <div class="preflight-list">
+        <div class="preflight-row"><div style="color: var(--warning);">⬤</div><div><div class="preflight-row-text">2 blokkerende avvik må løses</div></div><div class="preflight-row-hint">Kontantdiff · Skiftleder</div><div>›</div></div>
+        <div class="preflight-row done"><div style="color: var(--success);">✓</div><div><div class="preflight-row-text">Omsetning registrert</div></div><div class="preflight-row-hint">94 200 kr</div><div></div></div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

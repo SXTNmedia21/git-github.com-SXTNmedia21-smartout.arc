@@ -1,0 +1,269 @@
+{
+  "domain": "vaktplan",
+  "app_subdir": "apps/web/src/app/dashboard/schedule",
+  "generated_at": "2026-05-31T23:51:55Z",
+  "aggregate": {
+    "required": 39,
+    "defined_in_registry": 39,
+    "emitted_in_ui": 20,
+    "not_emitted_count": 19,
+    "emit_coverage_pct": 51.3
+  },
+  "not_emitted": [
+    "botsson.tool_invoked",
+    "communication sent",
+    "roster updated",
+    "schedule.gap_fill_initiated",
+    "schedule.week_added",
+    "schedule.week_removed",
+    "scheduler.proposal.accepted",
+    "scheduler.proposal.proposed",
+    "scheduler.proposal.rejected",
+    "scheduler.template.applied",
+    "session_task completed",
+    "shift assigned",
+    "shift detail_viewed",
+    "shift list_viewed",
+    "shift supplement_claimed",
+    "shift_lifecycle approved",
+    "shift_offer.approved",
+    "shift_offer.posted",
+    "task created"
+  ],
+  "events": [
+    {
+      "key": "absence approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-absences.ts:230"
+    },
+    {
+      "key": "absence rejected",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-absences.ts:306"
+    },
+    {
+      "key": "botsson.tool_invoked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "communication sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "open_shift assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-open-shifts.ts:282"
+    },
+    {
+      "key": "page viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:405"
+    },
+    {
+      "key": "profile.schedule_viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_components/employee-drawer.tsx:69"
+    },
+    {
+      "key": "roster updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "schedule.density_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_actions/set-schedule-density.ts:99"
+    },
+    {
+      "key": "schedule.export_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:2090"
+    },
+    {
+      "key": "schedule.filter_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:377"
+    },
+    {
+      "key": "schedule.gap_fill_initiated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "schedule.grouping_changed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_components/planner-command-bar.tsx:69"
+    },
+    {
+      "key": "schedule.pdf_exported",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:2101"
+    },
+    {
+      "key": "schedule.publish_modal_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:826"
+    },
+    {
+      "key": "schedule.week_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "schedule.week_navigated",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/page.tsx:1140"
+    },
+    {
+      "key": "schedule.week_removed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "scheduler.planner_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_components/planner-command-bar.tsx:55"
+    },
+    {
+      "key": "scheduler.proposal.accepted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "scheduler.proposal.proposed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "scheduler.proposal.rejected",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "scheduler.template.applied",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "session_task completed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift assigned",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift created",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shifts.ts:110"
+    },
+    {
+      "key": "shift deleted",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shifts.ts:266"
+    },
+    {
+      "key": "shift detail_viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift list_viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift published",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shifts.ts:440"
+    },
+    {
+      "key": "shift supplement_claimed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shifts.ts:197"
+    },
+    {
+      "key": "shift_lifecycle approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift_offer.approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift_offer.posted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift_swap.approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:311"
+    },
+    {
+      "key": "shift_swap.rejected",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:262"
+    },
+    {
+      "key": "shift_swap.requested",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/schedule/_hooks/use-shift-swap.ts:205"
+    },
+    {
+      "key": "task created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

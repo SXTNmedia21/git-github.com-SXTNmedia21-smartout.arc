@@ -1,0 +1,87 @@
+{
+  "id": "T-dashboard-fidelity",
+  "kind": "page-fidelity",
+  "label": "dashboard",
+  "page": "apps/web/src/app/dashboard",
+  "design_source": "design-export/apps/web/shared/shell.css",
+  "ask": "Verify the dashboard port matches the design across all 8 fidelity dimensions.",
+  "assigned_to": "orchestrator",
+  "gate_confidence": 95,
+  "advance_rule": "ALL 8 subtasks GREEN (confidence>=95) → then AWAITING-HUMAN-APPROVAL → Pontus approves → advance. One red = NOT READY, no advance.",
+  "subtasks": [
+    {
+      "n": 1,
+      "dim": "farge",
+      "measures": "token-verdi + palett-range (høyeste/laveste tone)",
+      "design_source": "shell.css var(--*)",
+      "pass": "eksakt token, 0 rå",
+      "verify_script": "verify/dashboard-farge.sh",
+      "status": "pending"
+    },
+    {
+      "n": 2,
+      "dim": "font",
+      "measures": "family · size(px) · weight · line-height · letter-spacing",
+      "design_source": "CSS font-*",
+      "pass": "alle 5 matcher",
+      "verify_script": "verify/dashboard-font.sh",
+      "status": "pending"
+    },
+    {
+      "n": 3,
+      "dim": "padding",
+      "measures": "px per side (topp/høyre/bunn/venstre)",
+      "design_source": "CSS padding:",
+      "pass": "eksakt px",
+      "verify_script": "verify/dashboard-padding.sh",
+      "status": "pending"
+    },
+    {
+      "n": 4,
+      "dim": "avstand",
+      "measures": "gap + margin mellom elementer",
+      "design_source": "CSS gap/margin",
+      "pass": "eksakt px",
+      "verify_script": "verify/dashboard-avstand.sh",
+      "status": "pending"
+    },
+    {
+      "n": 5,
+      "dim": "border-radius",
+      "measures": "runding px per hjørne",
+      "design_source": "CSS border-radius:",
+      "pass": "eksakt px",
+      "verify_script": "verify/dashboard-border-radius.sh",
+      "status": "pending"
+    },
+    {
+      "n": 6,
+      "dim": "skygge",
+      "measures": "box-shadow-verdier",
+      "design_source": "CSS box-shadow:",
+      "pass": "matcher",
+      "verify_script": "verify/dashboard-skygge.sh",
+      "status": "pending"
+    },
+    {
+      "n": 7,
+      "dim": "layout",
+      "measures": "flex/grid/order/align — hvor knappen sitter",
+      "design_source": "CSS struktur",
+      "pass": "samme plassering",
+      "verify_script": "verify/dashboard-layout.sh",
+      "status": "pending"
+    },
+    {
+      "n": 8,
+      "dim": "tekst",
+      "measures": "innhold + lengde (truncation, antall bokstaver)",
+      "design_source": "design-data.js",
+      "pass": "samme copy/lengde",
+      "verify_script": "verify/dashboard-tekst.sh",
+      "status": "pending"
+    }
+  ],
+  "status": "assigned",
+  "note": "Orchestrator runs run-verify + owns the 8 verify-scripts (color done, dimension-extractor + Playwright next). App up on 3060 → Playwright dims runnable."
+}

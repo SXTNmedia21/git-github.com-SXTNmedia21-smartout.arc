@@ -1,0 +1,52 @@
+{
+  "domain": "oppgaver",
+  "design_files": [
+    "Smartout.ai_re-designe/apps/web/pages/oppgaver.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/oppgaver-form.jsx"
+  ],
+  "interactive_elements_total": 38,
+  "elements_mapped": 38,
+  "mutations": 14,
+  "events_required": 19,
+  "events_in_registry": 19,
+  "events_missing_from_registry": [],
+  "hooks_found": 4,
+  "hooks_missing": [
+    "No hook exists for: routine toggle (activate/pause), duplicate task, subtask toggle, reschedule-via-DnD (task.session_task_updated registered but hook not built), add comment, add evidence, bulk-done, bulk-assign, flow player completion, form sign+complete, send-reminder, move-to-dagslinje, suggest-routine (Botsson), new-routine wizard, Botsson assign accept/dismiss — P3 future sorties, not production blockers"
+  ],
+  "noop_candidates": [
+    "Tab navigation (oversikt/dag/dagslinje/oppgaver/rutiner) — nav state, no DB mutation; recommend oppgaver.view_mode_changed",
+    "Filter chips (all/me/critical/inprogress/overdue/done) — local filter state; recommend oppgaver.area_filter_changed",
+    "Origin filter (proaktivt/reaktivt) — local filter state only",
+    "Sort menu (prioritet/frist/ansvarlig) — local sort state only",
+    "Search input — local filter only",
+    "Dagslinje group-by mode selector (ansatt/avdeling/omrade/lag) — local state; recommend oppgaver.view_mode_changed",
+    "Routine category / cadence filter chips — local filter only",
+    "Overview pulse cards (click to setTab) — nav state only",
+    "Routine status panel row click (navigate to routine) — nav only",
+    "ChapterLink / handbook link opens — nav/read only; recommend oppgaver.context_pinned",
+    "Drawer: open (onOpen) — read-path; recommend oppgaver.task_focused",
+    "Drawer: close (onClose) — nav only",
+    "Drawer: edit toggle (pen icon) — local UI state only",
+    "Drawer: 'Følg' bell button — fire-and-forget toast; no persistence built",
+    "FlowPlayer: prev/next navigation steps — local state",
+    "ChapterViewer: 'Åpne i Bibliotek' — navigation",
+    "FormViewer: close — nav only",
+    "Routine 'Foreslå rutine' button — Botsson stub, toast only",
+    "Routine 'Ny rutine' button — toast stub only",
+    "Routine 'Se generert oppgave' arrow — nav/task open",
+    "Dagslinje drag chip (onDragStart/End) — drag state only; drop writes DnD reschedule"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": true,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": true,
+    "baseline_count_recorded": true
+  },
+  "gate": "GREEN",
+  "gate_verified_at": "2026-06-01T00:00:00Z",
+  "gate_notes": "ADR-0099/0114/0134/0151 violations closed for useCreateQuickTask (addTaskAction) and useAssignTask (assignTaskAction). P3 hooks (bulk-complete, DnD, subtask etc.) are explicitly flagged as future sorties — not fan-out blockers.",
+  "blockers": [],
+  "e2e_gate": "ENV-BLOCKED — live login requires smartout op token (97 op:// refs). Static gates pass: typecheck clean, no direct browser writes, server action delegation verified."
+}

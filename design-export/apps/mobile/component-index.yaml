@@ -1,0 +1,1518 @@
+generated_at: 2026-05-30T16:47:23.498Z
+source_dir: apps/mobile/
+entries:
+  - index_key: "auth-202605301647230219"
+    component_id: "button.auth.disabled-e-currenttarget"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230220"
+    component_id: "button.auth.go-signup-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230221"
+    component_id: "button.auth.go-welcome-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230222"
+    component_id: button.auth.style
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230223"
+    component_id: "button.auth.style-glemt-passord"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230224"
+    component_id: "button.auth.go-welcome-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230225"
+    component_id: "button.auth.go-login-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230226"
+    component_id: "button.auth.setsecs-30-disabled"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230227"
+    component_id: "button.auth.setsel-i-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230228"
+    component_id: "button.auth.setindustry-ind-style"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230229"
+    component_id: "button.auth.setdepts-on-depts"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230230"
+    component_id: "button.auth.seti-i-1"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230231"
+    component_id: "button.auth.hopp-over"
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230232"
+    component_id: input.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230233"
+    component_id: input.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230234"
+    component_id: input.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230235"
+    component_id: input.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230236"
+    component_id: input.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-202605301647230237"
+    component_id: textarea.auth.field
+    feature: auth
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230211"
+    component_id: "button.auth-screens.jeg-har-en"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230212"
+    component_id: "button.auth-screens.finn-min-arbeidsplass"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230213"
+    component_id: "button.auth-screens.logg-inn-direkte"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230214"
+    component_id: "button.auth-screens.click"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230215"
+    component_id: "button.auth-screens.click"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230216"
+    component_id: "button.auth-screens.click"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230217"
+    component_id: "button.auth-screens.apne-kamera"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "auth-screens-202605301647230218"
+    component_id: "button.auth-screens.click"
+    feature: "auth-screens"
+    tier: default
+    module: auth
+  - index_key: "avstemming-mobile-202605301647230238"
+    component_id: "button.avstemming-mobile.ack"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230239"
+    component_id: "button.avstemming-mobile.disabled-undefined-on"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230240"
+    component_id: "button.avstemming-mobile.avbryt"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230241"
+    component_id: "button.avstemming-mobile.set-style-fjern"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230242"
+    component_id: "button.avstemming-mobile.bump-d-v"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230243"
+    component_id: "button.avstemming-mobile.bump-d-v"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230244"
+    component_id: "button.avstemming-mobile.set-style-angre"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230245"
+    component_id: "button.avstemming-mobile.set-style-avvis"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230246"
+    component_id: "button.avstemming-mobile.set-style-bekreft"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230247"
+    component_id: "input.avstemming-mobile.field"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-mobile-202605301647230248"
+    component_id: "textarea.avstemming-mobile.field"
+    feature: "avstemming-mobile"
+    tier: default
+    module: avstemming
+  - index_key: "day-widgets-202605301647230249"
+    component_id: "button.day-widgets.lose"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230250"
+    component_id: "button.day-widgets.color-fff-strokewidth"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230251"
+    component_id: "button.day-widgets.setopen-open-style"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230252"
+    component_id: "button.day-widgets.se-detaljer"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230253"
+    component_id: "button.day-widgets.marker-som-lost"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230254"
+    component_id: "button.day-widgets.settype-t-key"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230255"
+    component_id: "button.day-widgets.send"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230256"
+    component_id: "button.day-widgets.bekreft-og-send"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230257"
+    component_id: "button.day-widgets.spor-om-revisjon"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230258"
+    component_id: "button.day-widgets.godkjenn-oppgjor"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230259"
+    component_id: "input.day-widgets.field"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "day-widgets-202605301647230260"
+    component_id: "textarea.day-widgets.field"
+    feature: "day-widgets"
+    tier: default
+    module: day
+  - index_key: "flows-202605301647230000"
+    component_id: "button.flows.setchecks-m"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230001"
+    component_id: "button.flows.setphase-total-step"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230002"
+    component_id: button.flows.forrige
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230003"
+    component_id: button.flows.next
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230004"
+    component_id: "button.flows.lest-og-forstatt"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230005"
+    component_id: button.flows.lukk
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230006"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230007"
+    component_id: "button.flows.toast-apner-task"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230008"
+    component_id: "button.flows.setflow-true-steg"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230009"
+    component_id: "button.flows.setsubs-m"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230010"
+    component_id: "button.flows.toast-apner-kamera"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230011"
+    component_id: button.flows.send
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230012"
+    component_id: "button.flows.markert-ferdig-onclose"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230013"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230014"
+    component_id: "button.flows.setpri-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230015"
+    component_id: "button.flows.settolist-v-v"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230016"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230017"
+    component_id: "button.flows.opprett-oppgave"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230018"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230019"
+    component_id: "button.flows.setcond-m-sw"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230020"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230021"
+    component_id: "button.flows.send-foresporsel"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230022"
+    component_id: "button.flows.set-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230023"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230024"
+    component_id: "button.flows.meld-avvik"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230025"
+    component_id: "button.flows.toast-apner-kamera"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230026"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230027"
+    component_id: "button.flows.send-soknad"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230028"
+    component_id: "button.flows.onopenchat-r-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230029"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230030"
+    component_id: button.flows.submit
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230031"
+    component_id: "button.flows.setpick-s-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230032"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230033"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230034"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230035"
+    component_id: "button.flows.toast-notat-lagret"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230036"
+    component_id: button.flows.lose
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230037"
+    component_id: "button.flows.settype-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230038"
+    component_id: button.flows.avbryt
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230039"
+    component_id: "button.flows.send-til-godkjenning"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230040"
+    component_id: "button.flows.toast-state-connected"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230041"
+    component_id: button.flows.click
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230042"
+    component_id: "button.flows.toast-hoyttaler-pa"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230043"
+    component_id: button.flows.lukk
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230044"
+    component_id: "button.flows.stemple-inn"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230045"
+    component_id: "button.flows.avslutt-pause"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230046"
+    component_id: "button.flows.doaction-a-id"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230047"
+    component_id: "button.flows.stemple-ut"
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230048"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230049"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230050"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230051"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230052"
+    component_id: select.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230053"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230054"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230055"
+    component_id: select.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230056"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230057"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230058"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230059"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230060"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230061"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230062"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230063"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230064"
+    component_id: input.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "flows-202605301647230065"
+    component_id: textarea.flows.field
+    feature: flows
+    tier: default
+    module: flows
+  - index_key: "hjem-202605301647230066"
+    component_id: "button.hjem.marker-ferdig"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230067"
+    component_id: button.hjem.pen
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230068"
+    component_id: button.hjem.null
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230069"
+    component_id: "button.hjem.navigate-it-id"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230070"
+    component_id: "button.hjem.openoverlay-punch-stemple"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230071"
+    component_id: "button.hjem.navigate-vakter-se"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230072"
+    component_id: "button.hjem.navigate-oppgaver-se"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230073"
+    component_id: "button.hjem.navigate-chat-kunngjoringer"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230074"
+    component_id: "button.hjem.navigate-chat-kunngjoringer"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230075"
+    component_id: "button.hjem.toast-gratulerer-lars"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230076"
+    component_id: "button.hjem.toast-foreslar-vaktendring"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230077"
+    component_id: "button.hjem.navigate-oppgaver-vis"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230078"
+    component_id: "button.hjem.setopen-o-o"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230079"
+    component_id: "button.hjem.navigate-vakter-sal"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230080"
+    component_id: "button.hjem.navigate-oppgaver-temperaturkontroll"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230081"
+    component_id: "button.hjem.toast-apner-avvik"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "hjem-202605301647230082"
+    component_id: "button.hjem.navigate-vakter-vaktplan"
+    feature: hjem
+    tier: default
+    module: hjem
+  - index_key: "home-screens-202605301647230261"
+    component_id: "button.home-screens.onselect-onselect-d"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230262"
+    component_id: "button.home-screens.se-vaktdetaljer"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230263"
+    component_id: "button.home-screens.ta-pause"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230264"
+    component_id: "button.home-screens.klokk-ut"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230265"
+    component_id: "button.home-screens.se-alle-oppgaver"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230266"
+    component_id: "button.home-screens.rapport-r-avvik"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230267"
+    component_id: "button.home-screens.meld-til-leder"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "home-screens-202605301647230268"
+    component_id: "button.home-screens.click"
+    feature: "home-screens"
+    tier: default
+    module: home
+  - index_key: "mobile-shell-202605301647230269"
+    component_id: "button.mobile-shell.click"
+    feature: "mobile-shell"
+    tier: default
+    module: mobile
+  - index_key: "mobile-shell-202605301647230270"
+    component_id: "button.mobile-shell.4"
+    feature: "mobile-shell"
+    tier: default
+    module: mobile
+  - index_key: "mobile-shell-202605301647230271"
+    component_id: "button.mobile-shell.setroute-minside"
+    feature: "mobile-shell"
+    tier: default
+    module: mobile
+  - index_key: "mobile-shell-202605301647230272"
+    component_id: "button.mobile-shell.setroute-t-id"
+    feature: "mobile-shell"
+    tier: default
+    module: mobile
+  - index_key: "onboarding-202605301647230083"
+    component_id: button.onboarding.tilbake
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230084"
+    component_id: button.onboarding.kip
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230085"
+    component_id: "button.onboarding.setshow-s-s"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230086"
+    component_id: "button.onboarding.loading-disabled-undefined"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230087"
+    component_id: "button.onboarding.nav-login-logg"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230088"
+    component_id: "button.onboarding.nav-inviteentry-jeg"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230089"
+    component_id: "button.onboarding.nav-search-finn"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230090"
+    component_id: "button.onboarding.nav-adminchoice-admin"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230091"
+    component_id: "button.onboarding.nav-loadinggoogle-fortsett"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230092"
+    component_id: "button.onboarding.nav-reset-glemt"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230093"
+    component_id: "button.onboarding.nav-sendcode-send"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230094"
+    component_id: button.onboarding.sms
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230095"
+    component_id: "button.onboarding.e-post"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230096"
+    component_id: "button.onboarding.nav-otp-har"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230097"
+    component_id: "button.onboarding.nav-inviteconfirm-skann"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230098"
+    component_id: "button.onboarding.nav-welcome-dette"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230099"
+    component_id: button.onboarding.setq
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230100"
+    component_id: "button.onboarding.setfacet-id"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230101"
+    component_id: "button.onboarding.nav-request"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230102"
+    component_id: "button.onboarding.nav-search-valgt"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230103"
+    component_id: "button.onboarding.nav-adminpin-bruk"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230104"
+    component_id: "button.onboarding.nav-adminlogin-logg"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230105"
+    component_id: "button.onboarding.press-string-n"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230106"
+    component_id: "button.onboarding.nav-adminlogin-glemt"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230107"
+    component_id: "button.onboarding.press-0-0"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230108"
+    component_id: "button.onboarding.press-del"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230109"
+    component_id: "button.onboarding.nav-w-role"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230110"
+    component_id: "button.onboarding.nav-welcome-start"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230111"
+    component_id: "button.onboarding.settheme-t-t"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230112"
+    component_id: "button.onboarding.setmenu-m-m"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230113"
+    component_id: "button.onboarding.setmenu-false"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230114"
+    component_id: "button.onboarding.jump-k-c"
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230115"
+    component_id: input.onboarding.field
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230116"
+    component_id: input.onboarding.field
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230117"
+    component_id: input.onboarding.field
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230118"
+    component_id: input.onboarding.field
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "onboarding-202605301647230119"
+    component_id: textarea.onboarding.field
+    feature: onboarding
+    tier: default
+    module: onboarding
+  - index_key: "pages-202605301647230120"
+    component_id: button.pages.oggle
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230121"
+    component_id: button.pages.pen
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230122"
+    component_id: "button.pages.setsel-i-style"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230123"
+    component_id: "button.pages.openoverlay-punch-stemple"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230124"
+    component_id: "button.pages.openoverlay-shiftoffer-be"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230125"
+    component_id: "button.pages.openoverlay-claim-ta"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230126"
+    component_id: "button.pages.openoverlay-shiftoffer-legg"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230127"
+    component_id: "button.pages.setfilter-id"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230128"
+    component_id: "button.pages.openoverlay-newtask-ny"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230129"
+    component_id: "button.pages.settab-id"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230130"
+    component_id: "button.pages.setopen-c-c"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230131"
+    component_id: "button.pages.toast-apner-kunngjoring"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230132"
+    component_id: "button.pages.toast-apner-kunngjoring"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230133"
+    component_id: "button.pages.toast-apner-profil"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230134"
+    component_id: button.pages.ansatt
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230135"
+    component_id: button.pages.leder
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230136"
+    component_id: "button.pages.navigate-lonn-min"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230137"
+    component_id: "button.pages.navigate-trening-opplaering"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230138"
+    component_id: "button.pages.navigate-sikkerhet-hms"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230139"
+    component_id: "button.pages.toast-apner-dokumenter"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230140"
+    component_id: "button.pages.toggle-theme"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230141"
+    component_id: "button.pages.toast-innstillinger-innstillinger"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230142"
+    component_id: "button.pages.toast-logget-ut"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230143"
+    component_id: button.pages.lose
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230144"
+    component_id: "button.pages.setstatus-id"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230145"
+    component_id: button.pages.avbryt
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230146"
+    component_id: "button.pages.onsave-status-lagre"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230147"
+    component_id: button.pages.lose
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230148"
+    component_id: "button.pages.toast-melder-fra"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230149"
+    component_id: button.pages.ok
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230150"
+    component_id: "button.pages.setview-uke-uke"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230151"
+    component_id: "button.pages.setview-mnd-maned"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230152"
+    component_id: "button.pages.setselday-w-n"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230153"
+    component_id: "button.pages.setselday-n-style"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230154"
+    component_id: "button.pages.setfilter-id"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230155"
+    component_id: "button.pages.setavailday-selday-din"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230156"
+    component_id: "button.pages.a-kind-vakt"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230157"
+    component_id: button.pages.tilbake
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230158"
+    component_id: "button.pages.toast-starter-samtale"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230159"
+    component_id: "button.pages.toast-starter-videosamtale"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230160"
+    component_id: "button.pages.toast-sok-i"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230161"
+    component_id: "button.pages.toast-legg-ved"
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230162"
+    component_id: button.pages.send
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230163"
+    component_id: input.pages.field
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230164"
+    component_id: input.pages.field
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230165"
+    component_id: textarea.pages.field
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "pages-202605301647230166"
+    component_id: input.pages.field
+    feature: pages
+    tier: default
+    module: pages
+  - index_key: "primitives-202605301647230273"
+    component_id: "button.primitives.size-size"
+    feature: primitives
+    tier: default
+    module: primitives
+  - index_key: "primitives-202605301647230274"
+    component_id: "button.primitives.onchange-onchange-t"
+    feature: primitives
+    tier: default
+    module: primitives
+  - index_key: "screens-202605301647230167"
+    component_id: button.screens.lose
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230168"
+    component_id: "button.screens.man-setflow-true"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230169"
+    component_id: "button.screens.toast-starter-kunnskapstest"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230170"
+    component_id: "button.screens.toast-apner-kapittel"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230171"
+    component_id: "button.screens.toast-laster-ned"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230172"
+    component_id: "button.screens.man-setflow-true"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230173"
+    component_id: "button.screens.toast-alle-kurs"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230174"
+    component_id: "button.screens.setcourse-c-v"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230175"
+    component_id: "button.screens.setproc-proc-content"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230176"
+    component_id: "button.screens.toast-laster-ned"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230177"
+    component_id: "button.screens.navigate-oppgaver-start"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230178"
+    component_id: "button.screens.toast-apner-avviksliste"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230179"
+    component_id: "button.screens.toast-apner-vernerunde"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230180"
+    component_id: "button.screens.toggle-k-style"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230181"
+    component_id: "button.screens.meld-avvik"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230182"
+    component_id: "button.screens.toast-apner-lonnsgrunnlag"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230183"
+    component_id: "button.screens.toast-apner-timebank"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230184"
+    component_id: "button.screens.toast-apner-fravaerssaldo"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230185"
+    component_id: "button.screens.toast-ny-fravaerssoknad"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230186"
+    component_id: "button.screens.toast-alle-lonnsgrunnlag"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230187"
+    component_id: "button.screens.toast-apner-p"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230188"
+    component_id: "button.screens.toast-apner-arbeidskontrakt"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230189"
+    component_id: "button.screens.toast-apner-tariff"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230190"
+    component_id: "button.screens.toast-personvern-og"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230191"
+    component_id: button.screens.lose
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230192"
+    component_id: "button.screens.togglesub-s"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230193"
+    component_id: "button.screens.setflow-true-veiledning"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230194"
+    component_id: "button.screens.setfull-true-style"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "screens-202605301647230195"
+    component_id: "button.screens.marker-ferdig"
+    feature: screens
+    tier: default
+    module: screens
+  - index_key: "shell-202605301647230196"
+    component_id: button.shell.tilbake
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230197"
+    component_id: "button.shell.mr-botsson"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230198"
+    component_id: "button.shell.navigate-mer-aria"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230199"
+    component_id: "button.shell.mr-botsson"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230200"
+    component_id: "button.shell.endhold-true-onpointerleave"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230201"
+    component_id: "button.shell.navigate-t-id"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230202"
+    component_id: button.shell.lose
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230203"
+    component_id: button.shell.click
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230204"
+    component_id: "button.shell.ask-q"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230205"
+    component_id: "button.shell.ask-val"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230206"
+    component_id: button.shell.lose
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230207"
+    component_id: "button.shell.fire-a"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230208"
+    component_id: "button.shell.spor-mr-botsson"
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230209"
+    component_id: button.shell.angre
+    feature: shell
+    tier: default
+    module: shell
+  - index_key: "shell-202605301647230210"
+    component_id: input.shell.field
+    feature: shell
+    tier: default
+    module: shell
+consistency_gate:
+  - component_id: "button.auth-screens.click"
+    occurrences:
+      - "auth-screens-202605301647230214"
+      - "auth-screens-202605301647230215"
+      - "auth-screens-202605301647230216"
+      - "auth-screens-202605301647230218"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.auth.go-welcome-style"
+    occurrences:
+      - "auth-202605301647230221"
+      - "auth-202605301647230224"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.avstemming-mobile.bump-d-v"
+    occurrences:
+      - "avstemming-mobile-202605301647230242"
+      - "avstemming-mobile-202605301647230243"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.flows.avbryt
+    occurrences:
+      - "flows-202605301647230016"
+      - "flows-202605301647230020"
+      - "flows-202605301647230023"
+      - "flows-202605301647230026"
+      - "flows-202605301647230029"
+      - "flows-202605301647230034"
+      - "flows-202605301647230038"
+    message: Duplicate component_id — same UX must reuse one component (found 7 occurrences)
+  - component_id: button.flows.lose
+    occurrences:
+      - "flows-202605301647230006"
+      - "flows-202605301647230013"
+      - "flows-202605301647230018"
+      - "flows-202605301647230032"
+      - "flows-202605301647230033"
+      - "flows-202605301647230036"
+    message: Duplicate component_id — same UX must reuse one component (found 6 occurrences)
+  - component_id: button.flows.lukk
+    occurrences:
+      - "flows-202605301647230005"
+      - "flows-202605301647230043"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.flows.toast-apner-kamera"
+    occurrences:
+      - "flows-202605301647230010"
+      - "flows-202605301647230025"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hjem.navigate-chat-kunngjoringer"
+    occurrences:
+      - "hjem-202605301647230073"
+      - "hjem-202605301647230074"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.pages.lose
+    occurrences:
+      - "pages-202605301647230143"
+      - "pages-202605301647230147"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.pages.setfilter-id"
+    occurrences:
+      - "pages-202605301647230127"
+      - "pages-202605301647230154"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.pages.toast-apner-kunngjoring"
+    occurrences:
+      - "pages-202605301647230131"
+      - "pages-202605301647230132"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.screens.lose
+    occurrences:
+      - "screens-202605301647230167"
+      - "screens-202605301647230191"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.screens.man-setflow-true"
+    occurrences:
+      - "screens-202605301647230168"
+      - "screens-202605301647230172"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.screens.toast-laster-ned"
+    occurrences:
+      - "screens-202605301647230171"
+      - "screens-202605301647230176"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.shell.lose
+    occurrences:
+      - "shell-202605301647230202"
+      - "shell-202605301647230206"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.shell.mr-botsson"
+    occurrences:
+      - "shell-202605301647230197"
+      - "shell-202605301647230199"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: input.auth.field
+    occurrences:
+      - "auth-202605301647230232"
+      - "auth-202605301647230233"
+      - "auth-202605301647230234"
+      - "auth-202605301647230235"
+      - "auth-202605301647230236"
+    message: Duplicate component_id — same UX must reuse one component (found 5 occurrences)
+  - component_id: input.flows.field
+    occurrences:
+      - "flows-202605301647230048"
+      - "flows-202605301647230049"
+      - "flows-202605301647230051"
+      - "flows-202605301647230054"
+      - "flows-202605301647230057"
+      - "flows-202605301647230058"
+      - "flows-202605301647230060"
+      - "flows-202605301647230061"
+      - "flows-202605301647230064"
+    message: Duplicate component_id — same UX must reuse one component (found 9 occurrences)
+  - component_id: input.onboarding.field
+    occurrences:
+      - "onboarding-202605301647230115"
+      - "onboarding-202605301647230116"
+      - "onboarding-202605301647230117"
+      - "onboarding-202605301647230118"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: input.pages.field
+    occurrences:
+      - "pages-202605301647230163"
+      - "pages-202605301647230164"
+      - "pages-202605301647230166"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: select.flows.field
+    occurrences:
+      - "flows-202605301647230052"
+      - "flows-202605301647230055"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: textarea.flows.field
+    occurrences:
+      - "flows-202605301647230050"
+      - "flows-202605301647230053"
+      - "flows-202605301647230056"
+      - "flows-202605301647230059"
+      - "flows-202605301647230062"
+      - "flows-202605301647230063"
+      - "flows-202605301647230065"
+    message: Duplicate component_id — same UX must reuse one component (found 7 occurrences)

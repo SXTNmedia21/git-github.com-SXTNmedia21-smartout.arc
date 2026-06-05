@@ -1,0 +1,5125 @@
+generated_at: 2026-05-30T16:47:19.934Z
+source_dir: apps/web/pages/
+entries:
+  - index_key: "ansatte-contracts-202605301647190000"
+    component_id: "button.ansatte-contracts.lose"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190001"
+    component_id: "button.ansatte-contracts.setform-f"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190002"
+    component_id: "button.ansatte-contracts.setpay-p"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190003"
+    component_id: "button.ansatte-contracts.setattach-a-a"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190004"
+    component_id: "button.ansatte-contracts.generer-fra-mal"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190005"
+    component_id: "button.ansatte-contracts.last-opp-fil"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190006"
+    component_id: "button.ansatte-contracts.avbryt"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190007"
+    component_id: "button.ansatte-contracts.send-true-lagre"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190008"
+    component_id: "button.ansatte-contracts.send-false-send"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190009"
+    component_id: "button.ansatte-contracts.setview-avtaler-avtaler"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190010"
+    component_id: "button.ansatte-contracts.setview-maler-maler"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190011"
+    component_id: "button.ansatte-contracts.setadd-true-legg"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190012"
+    component_id: "button.ansatte-contracts.setedittpl-null-ny"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190013"
+    component_id: "button.ansatte-contracts.setfilter-f-id"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190014"
+    component_id: "button.ansatte-contracts.click"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-contracts-202605301647190015"
+    component_id: "select.ansatte-contracts.field"
+    feature: "ansatte-contracts"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190016"
+    component_id: "button.ansatte-controls.lose"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190017"
+    component_id: "button.ansatte-controls.avbryt"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190018"
+    component_id: "button.ansatte-controls.ave"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190019"
+    component_id: "button.ansatte-controls.window-anctl-open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190020"
+    component_id: "button.ansatte-controls.window-anctl-open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190021"
+    component_id: "button.ansatte-controls.window-anctl-open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190022"
+    component_id: "button.ansatte-controls.setacc-a-id"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190023"
+    component_id: "button.ansatte-controls.setauth-a-id"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190024"
+    component_id: "button.ansatte-controls.click"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190025"
+    component_id: "button.ansatte-controls.settype-id"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190026"
+    component_id: "button.ansatte-controls.toast-apner-personalhandbok"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190027"
+    component_id: "button.ansatte-controls.click"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190028"
+    component_id: "button.ansatte-controls.close"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190029"
+    component_id: "button.ansatte-controls.tilbake"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190030"
+    component_id: "button.ansatte-controls.onfirm"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190031"
+    component_id: "button.ansatte-controls.alle-tildelinger"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190032"
+    component_id: "button.ansatte-controls.setf-x-id"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190033"
+    component_id: "button.ansatte-controls.tilbake"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190034"
+    component_id: "button.ansatte-controls.lagt-i-dagsliste"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190035"
+    component_id: "button.ansatte-controls.alle-tildelinger"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190036"
+    component_id: "button.ansatte-controls.close-forleng-frist"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190037"
+    component_id: "button.ansatte-controls.setwhen-p"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190038"
+    component_id: "button.ansatte-controls.click"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190039"
+    component_id: "button.ansatte-controls.click"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190040"
+    component_id: "button.ansatte-controls.click"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190041"
+    component_id: "button.ansatte-controls.window-anctl-open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190042"
+    component_id: "button.ansatte-controls.close"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190043"
+    component_id: "button.ansatte-controls.send"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190044"
+    component_id: "select.ansatte-controls.field"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190045"
+    component_id: "input.ansatte-controls.field"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190046"
+    component_id: "input.ansatte-controls.field"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190047"
+    component_id: "input.ansatte-controls.field"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190048"
+    component_id: "modal.ansatte-controls.profilkontrollsenter"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190049"
+    component_id: "modal.ansatte-controls.tilgangsredigering"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190050"
+    component_id: "modal.ansatte-controls.rediger-plassering"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190051"
+    component_id: "modal.ansatte-controls.legg-til-kompetanse"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190052"
+    component_id: "modal.ansatte-controls.registrer-fravaer"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190053"
+    component_id: "modal.ansatte-controls.tildel"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190054"
+    component_id: "modal.ansatte-controls.open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190055"
+    component_id: "modal.ansatte-controls.open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190056"
+    component_id: "modal.ansatte-controls.planlegg-re-sertifisering"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190057"
+    component_id: "modal.ansatte-controls.open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-controls-202605301647190058"
+    component_id: "modal.ansatte-controls.open"
+    feature: "ansatte-controls"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190059"
+    component_id: "button.ansatte-directory.onopen-pk-se"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190060"
+    component_id: "button.ansatte-directory.setsurface-ansatte-ansatte"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190061"
+    component_id: "button.ansatte-directory.setsurface-kontrakter-kontrakter"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190062"
+    component_id: "button.ansatte-directory.toast-ny-ansatt"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190063"
+    component_id: "button.ansatte-directory.toast-eksporterer-kontrakter"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190064"
+    component_id: "button.ansatte-directory.settab-t-id"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190065"
+    component_id: "button.ansatte-directory.setdeptopen-o-o"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190066"
+    component_id: "button.ansatte-directory.alle-avdelinger"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190067"
+    component_id: "button.ansatte-directory.click"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190068"
+    component_id: "button.ansatte-directory.setview-table-tabell"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190069"
+    component_id: "button.ansatte-directory.setview-cards-kort"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190070"
+    component_id: "button.ansatte-directory.bulk-tildelt-opplaering"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190071"
+    component_id: "button.ansatte-directory.bulk-sendt-melding"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190072"
+    component_id: "button.ansatte-directory.bulk-satt-avdeling"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190073"
+    component_id: "button.ansatte-directory.setsel"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-directory-202605301647190074"
+    component_id: "input.ansatte-directory.field"
+    feature: "ansatte-directory"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190075"
+    component_id: "button.ansatte-panels.toast-a-t"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190076"
+    component_id: "button.ansatte-panels.paminn"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190077"
+    component_id: "button.ansatte-panels.forleng"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190078"
+    component_id: "button.ansatte-panels.planlegg"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190079"
+    component_id: "button.ansatte-panels.toast-botsson-foreslar"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190080"
+    component_id: "button.ansatte-panels.setaddopen-true-ny"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190081"
+    component_id: "button.ansatte-panels.toast-paminnelse-om"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels-202605301647190082"
+    component_id: "button.ansatte-panels.toast-avtale-sendt"
+    feature: "ansatte-panels"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190083"
+    component_id: "button.ansatte-panels2.window-anctl-open"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190084"
+    component_id: "button.ansatte-panels2.window-anctl-open"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190085"
+    component_id: "button.ansatte-panels2.window-anctl-open"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190086"
+    component_id: "button.ansatte-panels2.window-anctl-open"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190087"
+    component_id: "button.ansatte-panels2.toast-apner-revisjonslogg"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190088"
+    component_id: "button.ansatte-panels2.isshown-setshown-s"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-panels2-202605301647190089"
+    component_id: "button.ansatte-panels2.toast-eksporterer-revisjonslogg"
+    feature: "ansatte-panels2"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190090"
+    component_id: "button.ansatte-profile.primary"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190091"
+    component_id: "button.ansatte-profile.window-anctl-open"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190092"
+    component_id: "button.ansatte-profile.window-anctl-open"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190093"
+    component_id: "button.ansatte-profile.window-anctl-open"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190094"
+    component_id: "button.ansatte-profile.alle-ansatte"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190095"
+    component_id: "button.ansatte-profile.settab-t-id"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-profile-202605301647190096"
+    component_id: "button.ansatte-profile.toast-mr-botsson"
+    feature: "ansatte-profile"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-shared-202605301647190097"
+    component_id: "button.ansatte-shared.avbryt"
+    feature: "ansatte-shared"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-shared-202605301647190098"
+    component_id: "button.ansatte-shared.click"
+    feature: "ansatte-shared"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190099"
+    component_id: "button.ansatte-templates.onedit-null-ny"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190100"
+    component_id: "button.ansatte-templates.maler"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190101"
+    component_id: "button.ansatte-templates.setpreview-p-p"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190102"
+    component_id: "button.ansatte-templates.toast-mal-lagret"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190103"
+    component_id: "button.ansatte-templates.onclose-publiser"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190104"
+    component_id: "button.ansatte-templates.insert"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190105"
+    component_id: "button.ansatte-templates.insert-l-label"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "ansatte-templates-202605301647190106"
+    component_id: "button.ansatte-templates.click"
+    feature: "ansatte-templates"
+    tier: default
+    module: ansatte
+  - index_key: "avstemming-202605301647190172"
+    component_id: "button.avstemming.toast-eksport-startet"
+    feature: avstemming
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-202605301647190173"
+    component_id: button.avstemming.click
+    feature: avstemming
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190107"
+    component_id: "button.avstemming-daglig.setstatusf-k"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190108"
+    component_id: "button.avstemming-daglig.godkjenn-valgte"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190109"
+    component_id: "button.avstemming-daglig.settab-k"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190110"
+    component_id: "button.avstemming-daglig.api-requesthandoff-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190111"
+    component_id: "button.avstemming-daglig.api-rejectday-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190112"
+    component_id: "button.avstemming-daglig.api-lockday-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190113"
+    component_id: "button.avstemming-daglig.api-approveday-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190114"
+    component_id: "button.avstemming-daglig.api-toast-eksportert"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190115"
+    component_id: "button.avstemming-daglig.api-gotab-avvik"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190116"
+    component_id: "button.avstemming-daglig.api-approveday-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190117"
+    component_id: "button.avstemming-daglig.api-adjustrevenue-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190118"
+    component_id: "button.avstemming-daglig.api-shiftapprove-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190119"
+    component_id: "button.avstemming-daglig.api-shiftapprove-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190120"
+    component_id: "button.avstemming-daglig.api-editshift-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190121"
+    component_id: "button.avstemming-daglig.api-requesthandoff-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190122"
+    component_id: "button.avstemming-daglig.api-requesthandoff-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190123"
+    component_id: "button.avstemming-daglig.onresolve-d"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190124"
+    component_id: "button.avstemming-daglig.onresolve-d"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190125"
+    component_id: "button.avstemming-daglig.api-requesthandoff-day"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-daglig-202605301647190126"
+    component_id: "input.avstemming-daglig.field"
+    feature: "avstemming-daglig"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190127"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190128"
+    component_id: "button.avstemming-forms.onsubmit-shift-uid"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190129"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190130"
+    component_id: "button.avstemming-forms.onsubmit-lagre-justering"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190131"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190132"
+    component_id: "button.avstemming-forms.onsubmit-dev-id"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190133"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190134"
+    component_id: "button.avstemming-forms.onsubmit-start-handoff"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190135"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190136"
+    component_id: "button.avstemming-forms.onsubmit-reason-avvis"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190137"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190138"
+    component_id: "button.avstemming-forms.las-permanent"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190139"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190140"
+    component_id: "button.avstemming-forms.godkjenn"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190141"
+    component_id: "button.avstemming-forms.add-supp"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190142"
+    component_id: "button.avstemming-forms.avbryt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190143"
+    component_id: "button.avstemming-forms.onsubmit-godkjenn-vakt"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190144"
+    component_id: "button.avstemming-forms.onsubmit-send-forslag"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190145"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190146"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190147"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190148"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190149"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190150"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190151"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190152"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190153"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190154"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190155"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190156"
+    component_id: "textarea.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190157"
+    component_id: "select.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-forms-202605301647190158"
+    component_id: "input.avstemming-forms.field"
+    feature: "avstemming-forms"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190159"
+    component_id: "button.avstemming-more.setstep-s-s"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190160"
+    component_id: "button.avstemming-more.setstep-s-s"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190161"
+    component_id: "button.avstemming-more.toast-lukket-lukk"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190162"
+    component_id: "button.avstemming-more.setstep-s-s"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190163"
+    component_id: "button.avstemming-more.setstep-s-s"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190164"
+    component_id: "button.avstemming-more.lukket-planfaktor-oppdatert"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190165"
+    component_id: "button.avstemming-more.setfilter-k"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190166"
+    component_id: "button.avstemming-more.godkjenn-handoff"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190167"
+    component_id: "button.avstemming-more.toast-eskalert-til"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190168"
+    component_id: "button.avstemming-more.toast-paminnelse-sendt"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190169"
+    component_id: "button.avstemming-more.toast-handoff-avvist"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-more-202605301647190170"
+    component_id: "input.avstemming-more.field"
+    feature: "avstemming-more"
+    tier: default
+    module: avstemming
+  - index_key: "avstemming-shared-202605301647190171"
+    component_id: "button.avstemming-shared.segmented-function-seg"
+    feature: "avstemming-shared"
+    tier: default
+    module: avstemming
+  - index_key: "handbook-202605301647190266"
+    component_id: "button.handbook.open-exit"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190267"
+    component_id: "button.handbook.nav-dashboard-style"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190268"
+    component_id: "button.handbook.setq-style"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190269"
+    component_id: button.handbook.click
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190270"
+    component_id: "button.handbook.nav-create"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190271"
+    component_id: "button.handbook.nav-dashboard"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190272"
+    component_id: "button.handbook.title-fullstendig"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190273"
+    component_id: "button.handbook.nav-book-b"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190274"
+    component_id: "button.handbook.nav-gaps"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190275"
+    component_id: "button.handbook.nav-settings"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190276"
+    component_id: "button.handbook.open-bot"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-202605301647190277"
+    component_id: "input.handbook.sok-i-handboker"
+    feature: handbook
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190174"
+    component_id: "button.handbook-create.lukk"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190175"
+    component_id: "button.handbook-create.click"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190176"
+    component_id: "button.handbook-create.setmethod-m-id"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190177"
+    component_id: "button.handbook-create.startsuggestion-s-start"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190178"
+    component_id: "button.handbook-create.avbryt"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190179"
+    component_id: "select.handbook-create.field"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-create-202605301647190180"
+    component_id: "input.handbook-create.field"
+    feature: "handbook-create"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190181"
+    component_id: "button.handbook-editor.setadmin-a-a"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190182"
+    component_id: "button.handbook-editor.toast-nytt-sporsmal"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190183"
+    component_id: "button.handbook-editor.ta-kunnskapssjekk"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190184"
+    component_id: "button.handbook-editor.pick-cur-j"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190185"
+    component_id: "button.handbook-editor.setcur-c-c"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190186"
+    component_id: "button.handbook-editor.setcur-c-c"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190187"
+    component_id: "button.handbook-editor.fullfor"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190188"
+    component_id: "button.handbook-editor.setmode-intro"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190189"
+    component_id: "button.handbook-editor.nav-dashboard-til"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190190"
+    component_id: "button.handbook-editor.nav-dashboard-bibliotek"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190191"
+    component_id: "button.handbook-editor.nav-book-b"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190192"
+    component_id: "button.handbook-editor.setdrawer-true-versjoner"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190193"
+    component_id: "button.handbook-editor.toast-eksport-startet"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190194"
+    component_id: "button.handbook-editor.setmodal-archive"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190195"
+    component_id: "button.handbook-editor.sammenlign"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190196"
+    component_id: "button.handbook-editor.overta"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190197"
+    component_id: "button.handbook-editor.setsuperadmin-s-s"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190198"
+    component_id: "button.handbook-editor.setshowai-s-s"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190199"
+    component_id: "button.handbook-editor.toast-botsson-oversetter"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190200"
+    component_id: "button.handbook-editor.toast-botsson-forenkler"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190201"
+    component_id: "button.handbook-editor.godta"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190202"
+    component_id: "button.handbook-editor.avvis"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190203"
+    component_id: "button.handbook-editor.toast-du-kan"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190204"
+    component_id: "button.handbook-editor.syslocked-toast-systemmanualen"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190205"
+    component_id: "button.handbook-editor.be-om-endringer"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190206"
+    component_id: "button.handbook-editor.click"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190207"
+    component_id: "button.handbook-editor.setreladd-v-v"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190208"
+    component_id: "button.handbook-editor.toast-kunnskapstest-ligger"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190209"
+    component_id: "button.handbook-editor.toast-velg-fil"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190210"
+    component_id: "button.handbook-editor.kommenter"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190211"
+    component_id: "button.handbook-editor.setdrawer-false"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190212"
+    component_id: "button.handbook-editor.gjenopprett"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190213"
+    component_id: "button.handbook-editor.opprett-ny-versjon"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-editor-202605301647190214"
+    component_id: "textarea.handbook-editor.skriv-en-kommentar"
+    feature: "handbook-editor"
+    tier: default
+    module: handbook
+  - index_key: "handbook-shared-202605301647190215"
+    component_id: "button.handbook-shared.avbryt"
+    feature: "handbook-shared"
+    tier: default
+    module: handbook
+  - index_key: "handbook-shared-202605301647190216"
+    component_id: "button.handbook-shared.onfirm"
+    feature: "handbook-shared"
+    tier: default
+    module: handbook
+  - index_key: "handbook-shared-202605301647190217"
+    component_id: "button.handbook-shared.click"
+    feature: "handbook-shared"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190218"
+    component_id: "button.handbook-views.veiviser-v-lest"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190219"
+    component_id: "button.handbook-views.veiviser-v-lest"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190220"
+    component_id: "button.handbook-views.nav-book-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190221"
+    component_id: "button.handbook-views.nav-gaps-se"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190222"
+    component_id: "button.handbook-views.nav-wizard-hms"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190223"
+    component_id: "button.handbook-views.nav-create-nytt"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190224"
+    component_id: "button.handbook-views.nav-settings-eksporter"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190225"
+    component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190226"
+    component_id: "button.handbook-views.nav-booksettings-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190227"
+    component_id: "button.handbook-views.toast-eksport-startet"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190228"
+    component_id: "button.handbook-views.nav-wizard-hms"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190229"
+    component_id: "button.handbook-views.nav-create-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190230"
+    component_id: "button.handbook-views.nav-create-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190231"
+    component_id: "button.handbook-views.setsettings-false"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190232"
+    component_id: "button.handbook-views.ny-handbok"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190233"
+    component_id: "button.handbook-views.click"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190234"
+    component_id: "button.handbook-views.togglecap-rid-cid"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190235"
+    component_id: "button.handbook-views.togglechvis-ch-id"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190236"
+    component_id: "button.handbook-views.toast-eksporterer-handbok"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190237"
+    component_id: "button.handbook-views.toast-revisjonslogg-eksportert"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190238"
+    component_id: "button.handbook-views.arkiver-handbok"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190239"
+    component_id: "button.handbook-views.setsettings-false-avbryt"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190240"
+    component_id: "button.handbook-views.lagre"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190241"
+    component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190242"
+    component_id: "button.handbook-views.toast-apnet"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190243"
+    component_id: "button.handbook-views.toast-forslag-avvist"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190244"
+    component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190245"
+    component_id: "button.handbook-views.nav-book-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190246"
+    component_id: "button.handbook-views.toast-b-conf"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190247"
+    component_id: "button.handbook-views.setrewritefor-rewritefor-b"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190248"
+    component_id: "button.handbook-views.dorewrite-b-o"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190249"
+    component_id: "button.handbook-views.lagret-som-utkast"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190250"
+    component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190251"
+    component_id: "button.handbook-views.toast-ny-mal"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190252"
+    component_id: "button.handbook-views.toast-dokument-opprettet"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190253"
+    component_id: "button.handbook-views.toast-samlet-pdf"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190254"
+    component_id: "button.handbook-views.toast-revisjonslogg-eksportert"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190255"
+    component_id: "button.handbook-views.toast-apner-arkiv"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190256"
+    component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190257"
+    component_id: "button.handbook-views.nav-book-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190258"
+    component_id: "button.handbook-views.click"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190259"
+    component_id: "button.handbook-views.togglecap-rid-cid"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190260"
+    component_id: "button.handbook-views.togglechvis-ch-id"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190261"
+    component_id: "button.handbook-views.toast-eksporterer-handbok"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190262"
+    component_id: "button.handbook-views.toast-revisjonslogg-eksportert"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190263"
+    component_id: "button.handbook-views.nav-dashboard-arkiver"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190264"
+    component_id: "button.handbook-views.nav-book-book"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "handbook-views-202605301647190265"
+    component_id: "button.handbook-views.lagre-endringer"
+    feature: "handbook-views"
+    tier: default
+    module: handbook
+  - index_key: "hms-202605301647190403"
+    component_id: "button.hms.openentity-handbook-bibliotek"
+    feature: hms
+    tier: default
+    module: hms
+  - index_key: "hms-202605301647190404"
+    component_id: "button.hms.setwizard-true-ny"
+    feature: hms
+    tier: default
+    module: hms
+  - index_key: "hms-202605301647190405"
+    component_id: "button.hms.settab-id-null"
+    feature: hms
+    tier: default
+    module: hms
+  - index_key: "hms-202605301647190406"
+    component_id: drawer.hms.open
+    feature: hms
+    tier: default
+    module: hms
+  - index_key: "hms-202605301647190407"
+    component_id: drawer.hms.open
+    feature: hms
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190278"
+    component_id: "button.hms-avvik.setcatf-all-alle"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190279"
+    component_id: "button.hms-avvik.setcatf-catf-id"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190280"
+    component_id: "button.hms-avvik.setsevf-sevf-k"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190281"
+    component_id: "button.hms-avvik.setmeld-true-meld"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190282"
+    component_id: "button.hms-avvik.click"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190283"
+    component_id: "button.hms-avvik.click"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190284"
+    component_id: "button.hms-avvik.click"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190285"
+    component_id: "button.hms-avvik.lose"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190286"
+    component_id: "button.hms-avvik.onmove-d-id"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190287"
+    component_id: "button.hms-avvik.onmove-d-id"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190288"
+    component_id: "button.hms-avvik.setedit-true-endre"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190289"
+    component_id: "button.hms-avvik.click"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190290"
+    component_id: "button.hms-avvik.add-comment"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190291"
+    component_id: "button.hms-avvik.apne-full-kommentartrad"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190292"
+    component_id: "button.hms-avvik.lose"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190293"
+    component_id: "button.hms-avvik.setcatv-id-style"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190294"
+    component_id: "button.hms-avvik.setsev-k-style"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190295"
+    component_id: "button.hms-avvik.setowner-uid"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190296"
+    component_id: "button.hms-avvik.avbryt"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190297"
+    component_id: "button.hms-avvik.meld-inn-til"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190298"
+    component_id: "input.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190299"
+    component_id: "input.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190300"
+    component_id: "select.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190301"
+    component_id: "select.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190302"
+    component_id: "input.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-avvik-202605301647190303"
+    component_id: "textarea.hms-avvik.field"
+    feature: "hms-avvik"
+    tier: default
+    module: hms
+  - index_key: "hms-dashboard-202605301647190304"
+    component_id: "button.hms-dashboard.click"
+    feature: "hms-dashboard"
+    tier: default
+    module: hms
+  - index_key: "hms-dashboard-202605301647190305"
+    component_id: "button.hms-dashboard.opentab-avvik-alle"
+    feature: "hms-dashboard"
+    tier: default
+    module: hms
+  - index_key: "hms-dashboard-202605301647190306"
+    component_id: "button.hms-dashboard.opentab-logg-hele"
+    feature: "hms-dashboard"
+    tier: default
+    module: hms
+  - index_key: "hms-dashboard-202605301647190307"
+    component_id: "button.hms-dashboard.tilbake-til-hms"
+    feature: "hms-dashboard"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190308"
+    component_id: "button.hms-entities.parent"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190309"
+    component_id: "button.hms-entities.disabled-undefined-on"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190310"
+    component_id: "button.hms-entities.toast-apner-full"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190311"
+    component_id: "button.hms-entities.openentity-rutine-pr"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190312"
+    component_id: "button.hms-entities.marker-rutine-fullfort"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190313"
+    component_id: "button.hms-entities.sw"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190314"
+    component_id: "button.hms-entities.lose"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190315"
+    component_id: "button.hms-entities.start-opplaering"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190316"
+    component_id: "button.hms-entities.ontakequiz-ontakequiz-quizid"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190317"
+    component_id: "button.hms-entities.lukk"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190318"
+    component_id: "button.hms-entities.setidx-i-i"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190319"
+    component_id: "button.hms-entities.next"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190320"
+    component_id: "button.hms-entities.setplaying-true-start"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190321"
+    component_id: "button.hms-entities.settaking-true-ta"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190322"
+    component_id: "button.hms-entities.setshowans-v-v"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190323"
+    component_id: "button.hms-entities.lose"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190324"
+    component_id: "button.hms-entities.setphase-q-start"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190325"
+    component_id: "button.hms-entities.pick-ci-style"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190326"
+    component_id: "button.hms-entities.ta-pa-nytt"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190327"
+    component_id: "button.hms-entities.lukk"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190328"
+    component_id: "button.hms-entities.qidx-0-setphase"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190329"
+    component_id: "button.hms-entities.advance"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190330"
+    component_id: "button.hms-entities.lose"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190331"
+    component_id: "button.hms-entities.les-manualen"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190332"
+    component_id: "button.hms-entities.lukk"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190333"
+    component_id: "button.hms-entities.setidx-i-i"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190334"
+    component_id: "button.hms-entities.next"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190335"
+    component_id: "button.hms-entities.setplaying-true-les"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-entities-202605301647190336"
+    component_id: "button.hms-entities.click"
+    feature: "hms-entities"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190337"
+    component_id: "button.hms-protocol.onopen-p-id"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190338"
+    component_id: "button.hms-protocol.setcatf-all-alle"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190339"
+    component_id: "button.hms-protocol.setcatf-id-style"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190340"
+    component_id: "button.hms-protocol.openbib-openbib-bibliotek"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190341"
+    component_id: "button.hms-protocol.onnewprotocol-onnewprotocol-ny"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190342"
+    component_id: "button.hms-protocol.tilbake"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190343"
+    component_id: "button.hms-protocol.openentity-openentity-handbook"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190344"
+    component_id: "button.hms-protocol.opencomments-kommenter"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190345"
+    component_id: "button.hms-protocol.settab-id"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-protocol-202605301647190346"
+    component_id: "input.hms-protocol.field"
+    feature: "hms-protocol"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190347"
+    component_id: "button.hms-shared.s"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190348"
+    component_id: "button.hms-shared.click"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190349"
+    component_id: "button.hms-shared.ink"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190350"
+    component_id: "button.hms-shared.s-ref-onopenproto"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190351"
+    component_id: "button.hms-shared.act-a"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190352"
+    component_id: "button.hms-shared.setdismissed-d-avvis"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190353"
+    component_id: "button.hms-shared.click"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190354"
+    component_id: "button.hms-shared.lose"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190355"
+    component_id: "button.hms-shared.toggleresolve-c-id"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190356"
+    component_id: "button.hms-shared.setprio-id"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190357"
+    component_id: "button.hms-shared.setinternal-v-v"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190358"
+    component_id: "button.hms-shared.setowneron-v-v"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190359"
+    component_id: "button.hms-shared.vedlegg"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190360"
+    component_id: "button.hms-shared.send"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-shared-202605301647190361"
+    component_id: "textarea.hms-shared.field"
+    feature: "hms-shared"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190362"
+    component_id: "button.hms-tracking.sw"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190363"
+    component_id: "button.hms-tracking.click"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190364"
+    component_id: "button.hms-tracking.setview-completion-gjennomforing"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190365"
+    component_id: "button.hms-tracking.setview-readiness-beredskap"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190366"
+    component_id: "button.hms-tracking.toast-eksporterer-opplaeringsstatus"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190367"
+    component_id: "button.hms-tracking.setkindf-all-alle"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190368"
+    component_id: "button.hms-tracking.setkindf-k"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190369"
+    component_id: "button.hms-tracking.setcatf-catf-id"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190370"
+    component_id: "button.hms-tracking.setstatusf-s"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190371"
+    component_id: "button.hms-tracking.toast-paminnelse-sendt"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190372"
+    component_id: "button.hms-tracking.toast-fullfort-fra"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190373"
+    component_id: "button.hms-tracking.setview-liste-oppgaveliste"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190374"
+    component_id: "button.hms-tracking.setview-mobil-mobilvisning"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190375"
+    component_id: "button.hms-tracking.setcatf-all-alle"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190376"
+    component_id: "button.hms-tracking.setcatf-catf-id"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190377"
+    component_id: "button.hms-tracking.setkindf-k"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190378"
+    component_id: "button.hms-tracking.toast-logg-eksportert"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190379"
+    component_id: "button.hms-tracking.setcatf-all-alle"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190380"
+    component_id: "button.hms-tracking.setcatf-catf-id"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190381"
+    component_id: "input.hms-tracking.field"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-tracking-202605301647190382"
+    component_id: "input.hms-tracking.field"
+    feature: "hms-tracking"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190383"
+    component_id: "button.hms-wizard.lose"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190384"
+    component_id: "button.hms-wizard.kapitler-sw"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190385"
+    component_id: "button.hms-wizard.sethbmode-new-opprett"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190386"
+    component_id: "button.hms-wizard.dokumenter-sw"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190387"
+    component_id: "button.hms-wizard.setchmode-new-opprett"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190388"
+    component_id: "button.hms-wizard.setcatid-id"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190389"
+    component_id: "button.hms-wizard.setimportance-id-style"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190390"
+    component_id: "button.hms-wizard.setpolicies-ps-ps"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190391"
+    component_id: "button.hms-wizard.setpolicies-ps-ps"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190392"
+    component_id: "button.hms-wizard.setlegalsel-s-style"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190393"
+    component_id: "button.hms-wizard.setprocsel-s-style"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190394"
+    component_id: "button.hms-wizard.setstep-s-s"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190395"
+    component_id: "button.hms-wizard.avbryt"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190396"
+    component_id: "button.hms-wizard.setstep-s-s"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190397"
+    component_id: "button.hms-wizard.opprett-protokoll"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190398"
+    component_id: "input.hms-wizard.field"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190399"
+    component_id: "input.hms-wizard.field"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190400"
+    component_id: "input.hms-wizard.field"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190401"
+    component_id: "select.hms-wizard.field"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "hms-wizard-202605301647190402"
+    component_id: "input.hms-wizard.field"
+    feature: "hms-wizard"
+    tier: default
+    module: hms
+  - index_key: "kommunikasjon-202605301647190481"
+    component_id: "button.kommunikasjon.setchmodal-ny-kanal"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190482"
+    component_id: "button.kommunikasjon.setcompose-ny-kunngjoring"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190483"
+    component_id: "button.kommunikasjon.settab-k"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190484"
+    component_id: button.kommunikasjon.click
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190485"
+    component_id: "button.kommunikasjon.send-paminnelse"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190486"
+    component_id: button.kommunikasjon.avvis
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190487"
+    component_id: "button.kommunikasjon.onopen-a-id"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190488"
+    component_id: button.kommunikasjon.alle
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190489"
+    component_id: "button.kommunikasjon.se-alle"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190490"
+    component_id: "button.kommunikasjon.setstatusf-k"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190491"
+    component_id: "button.kommunikasjon.ny-kunngjoring"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190492"
+    component_id: "button.kommunikasjon.data-on"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190493"
+    component_id: "button.kommunikasjon.onopen-c-apne"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190494"
+    component_id: "button.kommunikasjon.onarchive-c-gjenapne"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190495"
+    component_id: "button.kommunikasjon.setopen-o-o"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190496"
+    component_id: button.kommunikasjon.rediger
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190497"
+    component_id: button.kommunikasjon.click
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190498"
+    component_id: "input.kommunikasjon.sok-i-kunngjoringer"
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190499"
+    component_id: select.kommunikasjon.field
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-202605301647190500"
+    component_id: select.kommunikasjon.field
+    feature: kommunikasjon
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190408"
+    component_id: "button.kommunikasjon-case.lukk"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190409"
+    component_id: "button.kommunikasjon-case.settab-k"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190410"
+    component_id: "button.kommunikasjon-case.setwhy-v-v"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190411"
+    component_id: "button.kommunikasjon-case.sett-inn-og"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190412"
+    component_id: "button.kommunikasjon-case.ondismissdraft-ondismissdraft-c"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190413"
+    component_id: "button.kommunikasjon-case.click"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190414"
+    component_id: "button.kommunikasjon-case.send"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190415"
+    component_id: "button.kommunikasjon-case.setreassignopen-o-o"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190416"
+    component_id: "button.kommunikasjon-case.click"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190417"
+    component_id: "button.kommunikasjon-case.setprioopen-o-o"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190418"
+    component_id: "button.kommunikasjon-case.click"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190419"
+    component_id: "button.kommunikasjon-case.onresolve-c-los"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190420"
+    component_id: "button.kommunikasjon-case.onreopen-c-gjenapne"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190421"
+    component_id: "input.kommunikasjon-case.internt-notat"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-case-202605301647190422"
+    component_id: "textarea.kommunikasjon-case.field"
+    feature: "kommunikasjon-case"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190423"
+    component_id: "button.kommunikasjon-compose.sw"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190424"
+    component_id: "button.kommunikasjon-compose.set-k-id"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190425"
+    component_id: "button.kommunikasjon-compose.lukk"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190426"
+    component_id: "button.kommunikasjon-compose.setchannelid-c-id"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190427"
+    component_id: "button.kommunikasjon-compose.setpriority-priority-operational"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190428"
+    component_id: "button.kommunikasjon-compose.setpinned-pinned-fest"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190429"
+    component_id: "button.kommunikasjon-compose.setscheduled-scheduled-planlegg"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190430"
+    component_id: "button.kommunikasjon-compose.onsubmit-build-draft"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190431"
+    component_id: "button.kommunikasjon-compose.onsubmit-build-scheduled"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190432"
+    component_id: "button.kommunikasjon-compose.onsubmit-build-published"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190433"
+    component_id: "button.kommunikasjon-compose.lukk"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190434"
+    component_id: "button.kommunikasjon-compose.setkind-k-id"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190435"
+    component_id: "button.kommunikasjon-compose.setdeptid-d-id"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190436"
+    component_id: "button.kommunikasjon-compose.avbryt"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190437"
+    component_id: "button.kommunikasjon-compose.onsubmit-name-slug"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190438"
+    component_id: "input.kommunikasjon-compose.kort-og-tydelig"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190439"
+    component_id: "textarea.kommunikasjon-compose.hva-nar-hvem"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190440"
+    component_id: "input.kommunikasjon-compose.f-eks-1"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190441"
+    component_id: "input.kommunikasjon-compose.kanalnavn"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-compose-202605301647190442"
+    component_id: "textarea.kommunikasjon-compose.hva-er-denne"
+    feature: "kommunikasjon-compose"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190443"
+    component_id: "button.kommunikasjon-detail.lukk"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190444"
+    component_id: "button.kommunikasjon-detail.settab-k"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190445"
+    component_id: "button.kommunikasjon-detail.click"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190446"
+    component_id: "button.kommunikasjon-detail.onremind-ann-paminn"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190447"
+    component_id: "button.kommunikasjon-detail.onrepublish-ann-gjenopprett"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190448"
+    component_id: "button.kommunikasjon-detail.onedit-ann-rediger"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190449"
+    component_id: "button.kommunikasjon-detail.ontogglepin-ann"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190450"
+    component_id: "button.kommunikasjon-detail.onarchive-ann-arkiv"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-detail-202605301647190451"
+    component_id: "input.kommunikasjon-detail.skriv-en-kommentar"
+    feature: "kommunikasjon-detail"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-shared-202605301647190452"
+    component_id: "button.kommunikasjon-shared.avbryt"
+    feature: "kommunikasjon-shared"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-shared-202605301647190453"
+    component_id: "button.kommunikasjon-shared.click"
+    feature: "kommunikasjon-shared"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-shared-202605301647190454"
+    component_id: "button.kommunikasjon-shared.onchange-k-s"
+    feature: "kommunikasjon-shared"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190469"
+    component_id: "button.kommunikasjon-skranke.setsub-k"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190470"
+    component_id: "button.kommunikasjon-skranke.p-f-ongotoqueue"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190471"
+    component_id: "button.kommunikasjon-skranke.apne-sak"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190472"
+    component_id: "button.kommunikasjon-skranke.avvis"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190473"
+    component_id: "button.kommunikasjon-skranke.ongotoqueue-mine-min"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190474"
+    component_id: "button.kommunikasjon-skranke.ongotoqueue-mine-se"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190475"
+    component_id: "button.kommunikasjon-skranke.onconfigure-d-aria"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190476"
+    component_id: "button.kommunikasjon-skranke.apne-ko"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190477"
+    component_id: "button.kommunikasjon-skranke.setstatusf-k"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190478"
+    component_id: "input.kommunikasjon-skranke.sok-i-saker"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190479"
+    component_id: "select.kommunikasjon-skranke.field"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-202605301647190480"
+    component_id: "select.kommunikasjon-skranke.field"
+    feature: "kommunikasjon-skranke"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190455"
+    component_id: "button.kommunikasjon-skranke-views.ny-skranke"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190456"
+    component_id: "button.kommunikasjon-skranke-views.onedit-d-konfigurer"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190457"
+    component_id: "button.kommunikasjon-skranke-views.onupgrade-n-gjor"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190458"
+    component_id: "button.kommunikasjon-skranke-views.lukk"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190459"
+    component_id: "button.kommunikasjon-skranke-views.setpreset-p-id"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190460"
+    component_id: "button.kommunikasjon-skranke-views.toggleowner-id"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190461"
+    component_id: "button.kommunikasjon-skranke-views.togglecat-c-id"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190462"
+    component_id: "button.kommunikasjon-skranke-views.setai-m-id"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190463"
+    component_id: "button.kommunikasjon-skranke-views.avbryt"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190464"
+    component_id: "button.kommunikasjon-skranke-views.save"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190465"
+    component_id: "input.kommunikasjon-skranke-views.hr-og-personal"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190466"
+    component_id: "input.kommunikasjon-skranke-views.personal"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190467"
+    component_id: "input.kommunikasjon-skranke-views.field"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "kommunikasjon-skranke-views-202605301647190468"
+    component_id: "input.kommunikasjon-skranke-views.field"
+    feature: "kommunikasjon-skranke-views"
+    tier: default
+    module: kommunikasjon
+  - index_key: "lonn-202605301647190536"
+    component_id: "button.lonn.window-open-window"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190537"
+    component_id: "button.lonn.toast-eksport-startet"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190538"
+    component_id: "button.lonn.setlockopen-true"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190539"
+    component_id: "button.lonn.setlocked-false-apne"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190540"
+    component_id: "button.lonn.settab-k"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190541"
+    component_id: "button.lonn.setopen-o-o"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-202605301647190542"
+    component_id: "button.lonn.til-april-2026"
+    feature: lonn
+    tier: default
+    module: lonn
+  - index_key: "lonn-config-202605301647190501"
+    component_id: "button.lonn-config.toast-tester-regler"
+    feature: "lonn-config"
+    tier: default
+    module: lonn
+  - index_key: "lonn-config-202605301647190502"
+    component_id: "button.lonn-config.toast-ny-regel"
+    feature: "lonn-config"
+    tier: default
+    module: lonn
+  - index_key: "lonn-config-202605301647190503"
+    component_id: "button.lonn-config.setperiodtype-s"
+    feature: "lonn-config"
+    tier: default
+    module: lonn
+  - index_key: "lonn-config-202605301647190504"
+    component_id: "button.lonn-config.toast-innstillinger-lagret"
+    feature: "lonn-config"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190505"
+    component_id: "button.lonn-overlays.lose"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190506"
+    component_id: "button.lonn-overlays.apne-profil"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190507"
+    component_id: "button.lonn-overlays.onsupplement-uid-manuelt"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190508"
+    component_id: "button.lonn-overlays.lose"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190509"
+    component_id: "button.lonn-overlays.avbryt"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190510"
+    component_id: "button.lonn-overlays.lagre-uten-a"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190511"
+    component_id: "button.lonn-overlays.las"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190512"
+    component_id: "button.lonn-overlays.lose"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190513"
+    component_id: "button.lonn-overlays.setvis-t"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190514"
+    component_id: "button.lonn-overlays.avbryt"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190515"
+    component_id: "button.lonn-overlays.onsubmit-legg-til"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190516"
+    component_id: "input.lonn-overlays.field"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-overlays-202605301647190517"
+    component_id: "input.lonn-overlays.field"
+    feature: "lonn-overlays"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190518"
+    component_id: "button.lonn-views.click"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190519"
+    component_id: "button.lonn-views.onassist-helligopen-map"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190520"
+    component_id: "button.lonn-views.las"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190521"
+    component_id: "button.lonn-views.ongotab-avvik-vis"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190522"
+    component_id: "button.lonn-views.avvis"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190523"
+    component_id: "button.lonn-views.ongotab-linjer-apne"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190524"
+    component_id: "button.lonn-views.onopenemp-d-uid"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190525"
+    component_id: "button.lonn-views.onconfirmdev-d-id"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190526"
+    component_id: "button.lonn-views.setdevf-k"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190527"
+    component_id: "button.lonn-views.onsupplement-null-manuelt"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190528"
+    component_id: "button.lonn-views.las"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190529"
+    component_id: "button.lonn-views.onconfirmall-helligdag-kollisjon"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190530"
+    component_id: "button.lonn-views.onopenemp-d-uid"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190531"
+    component_id: "button.lonn-views.onconfirm-d-id"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190532"
+    component_id: "button.lonn-views.onconfirm-d-id"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190533"
+    component_id: "button.lonn-views.onopenemp-d-uid"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190534"
+    component_id: "button.lonn-views.toast-vakt-avvist"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "lonn-views-202605301647190535"
+    component_id: "input.lonn-views.field"
+    feature: "lonn-views"
+    tier: default
+    module: lonn
+  - index_key: "min-dag-202605301647190543"
+    component_id: "button.min-dag.setshowwhy-s-s"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190544"
+    component_id: "button.min-dag.spor-botsson-om"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190545"
+    component_id: "button.min-dag.toast-hopper-til"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190546"
+    component_id: "button.min-dag.aria-label-marker"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190547"
+    component_id: "button.min-dag.click"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190548"
+    component_id: "button.min-dag.toast-apner-manual"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190549"
+    component_id: "button.min-dag.toast-kommentar-lagt"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190550"
+    component_id: "button.min-dag.null"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190551"
+    component_id: "button.min-dag.toast-stemplet-inn"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190552"
+    component_id: "button.min-dag.setroute-mine-vakter"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190553"
+    component_id: "button.min-dag.setroute-mine-vakter"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190554"
+    component_id: "button.min-dag.alle"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190555"
+    component_id: "button.min-dag.toast-apner-kunngjoring"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190556"
+    component_id: "button.min-dag.toast-gratulerer-petter"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-dag-202605301647190557"
+    component_id: "button.min-dag.jonas-la-igjen"
+    feature: "min-dag"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190558"
+    component_id: "button.min-lonn.toast-sendt-til"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190559"
+    component_id: "button.min-lonn.sign-r-tillegg"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190560"
+    component_id: "button.min-lonn.setsigned-false-angre"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190561"
+    component_id: "button.min-lonn.toast-foresporsel-om"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190562"
+    component_id: "button.min-lonn.setopenslip-null"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "min-lonn-202605301647190563"
+    component_id: "button.min-lonn.lonnsgrunnlag-reports-l"
+    feature: "min-lonn"
+    tier: default
+    module: min
+  - index_key: "oppgaver-202605301647190581"
+    component_id: button.oppgaver.sw
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190582"
+    component_id: button.oppgaver.click
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190583"
+    component_id: button.oppgaver.click
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190584"
+    component_id: "button.oppgaver.toast-renhold-tildelt"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190585"
+    component_id: "button.oppgaver.toast-forslaget-avvist"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190586"
+    component_id: "button.oppgaver.settab-rutiner-se"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190587"
+    component_id: "button.oppgaver.settab-rutiner-alle"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190588"
+    component_id: "button.oppgaver.setaopen-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190589"
+    component_id: "button.oppgaver.setpopen-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190590"
+    component_id: "button.oppgaver.setwopen-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190591"
+    component_id: "button.oppgaver.opprett-tildel"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190592"
+    component_id: "button.oppgaver.setsortopen-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190593"
+    component_id: "button.oppgaver.coord-exitcoord-setcoord"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190594"
+    component_id: "button.oppgaver.setfilter-f-id"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190595"
+    component_id: "button.oppgaver.setorigin-f-id"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190596"
+    component_id: "button.oppgaver.marker-ferdig"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190597"
+    component_id: "button.oppgaver.oppgaver-flyttet-til"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190598"
+    component_id: "button.oppgaver.setopen-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190599"
+    component_id: "button.oppgaver.toast-botsson-kladder"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190600"
+    component_id: "button.oppgaver.toast-ny-rutine"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190601"
+    component_id: "button.oppgaver.setcat-all-alle"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190602"
+    component_id: "button.oppgaver.setcat-c"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190603"
+    component_id: "button.oppgaver.setcad-all-alle"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190604"
+    component_id: "button.oppgaver.setcad-c"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190605"
+    component_id: "button.oppgaver.onopentask-r-task"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190606"
+    component_id: "button.oppgaver.setedit-v-v"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190607"
+    component_id: button.oppgaver.lose
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190608"
+    component_id: "button.oppgaver.setstatus-k"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190609"
+    component_id: "button.oppgaver.setpri-k"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190610"
+    component_id: "button.oppgaver.setassignee-uid"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190611"
+    component_id: "button.oppgaver.setstatus-inprogress-marker"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190612"
+    component_id: "button.oppgaver.setedit-true-rediger"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190613"
+    component_id: "button.oppgaver.toast-kamera-apnet"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190614"
+    component_id: "button.oppgaver.toast-vedlegg-lagt"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190615"
+    component_id: "button.oppgaver.toast-signert-sign"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190616"
+    component_id: "button.oppgaver.addmedia-bilde-bilde"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190617"
+    component_id: "button.oppgaver.addmedia-video-video"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190618"
+    component_id: "button.oppgaver.komment-r"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190619"
+    component_id: "button.oppgaver.toast-du-folger"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190620"
+    component_id: "button.oppgaver.setstatus-todo-gjenapne"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190621"
+    component_id: "button.oppgaver.marker-ferdig"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190622"
+    component_id: "button.oppgaver.setmode-k"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190623"
+    component_id: "button.oppgaver.settab-rutiner-rutiner"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190624"
+    component_id: "button.oppgaver.settab-t-id"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190625"
+    component_id: "input.oppgaver.hva-ma-gjores"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190626"
+    component_id: "input.oppgaver.sok-i-oppgaver"
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190627"
+    component_id: textarea.oppgaver.field
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-202605301647190628"
+    component_id: drawer.oppgaver.open
+    feature: oppgaver
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190564"
+    component_id: "button.oppgaver-form.onchange-ok-ok"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190565"
+    component_id: "button.oppgaver-form.onchange-avvik-avvik"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190566"
+    component_id: "button.oppgaver-form.onchange"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190567"
+    component_id: "button.oppgaver-form.onchange-q-code"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190568"
+    component_id: "button.oppgaver-form.ferdig"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190569"
+    component_id: "button.oppgaver-form.lose"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190570"
+    component_id: "button.oppgaver-form.sign-r"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190571"
+    component_id: "button.oppgaver-form.lose"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190572"
+    component_id: "button.oppgaver-form.setans-a-classname"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190573"
+    component_id: "button.oppgaver-form.seti-x-math"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190574"
+    component_id: "button.oppgaver-form.seti-x-x"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190575"
+    component_id: "button.oppgaver-form.riktige-lesekvittering-registrert"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190576"
+    component_id: "button.oppgaver-form.title-apne-i"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190577"
+    component_id: "button.oppgaver-form.lose"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190578"
+    component_id: "button.oppgaver-form.apne-i-bibliotek"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190579"
+    component_id: "input.oppgaver-form.field"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oppgaver-form-202605301647190580"
+    component_id: "textarea.oppgaver-form.kort-begrunnelse-valgfri"
+    feature: "oppgaver-form"
+    tier: default
+    module: oppgaver
+  - index_key: "oversikt-202605301647190629"
+    component_id: "button.oversikt.setshowwhy-s-s"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190630"
+    component_id: "button.oversikt.toast-a-toast"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190631"
+    component_id: "button.oversikt.setroute-oppgaver-alle"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190632"
+    component_id: button.oversikt.toast
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190633"
+    component_id: "button.oversikt.toast-foresporsel-sendt"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190634"
+    component_id: "button.oversikt.setroute-kommunikasjon-alle"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190635"
+    component_id: "button.oversikt.som-ikke-har"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "oversikt-202605301647190636"
+    component_id: "button.oversikt.toast-dagsrapport-generert"
+    feature: oversikt
+    tier: default
+    module: oversikt
+  - index_key: "planlegging-202605301647190693"
+    component_id: "button.planlegging.setmenu-m-m"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190694"
+    component_id: button.planlegging.click
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190695"
+    component_id: "button.planlegging.nav-1-title"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190696"
+    component_id: "button.planlegging.nav-1-title"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190697"
+    component_id: "button.planlegging.i-dag"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190698"
+    component_id: "button.planlegging.applysaved-v-sw"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190699"
+    component_id: "button.planlegging.setmenu-null-vis"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190700"
+    component_id: "button.planlegging.toggletype-t-sw"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190701"
+    component_id: "button.planlegging.setshow-alle"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190702"
+    component_id: "button.planlegging.setshow-ingen"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190703"
+    component_id: "button.planlegging.togglefilter-key-val"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190704"
+    component_id: "button.planlegging.setfilters-emptysets-nullstill"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190705"
+    component_id: "button.planlegging.setmenu-null-ferdig"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190706"
+    component_id: "button.planlegging.apningstider-standard-uke"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190707"
+    component_id: "button.planlegging.arshjul-sesonger-arsplan"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190708"
+    component_id: "button.planlegging.eksporter-pdf-gjeldende"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190709"
+    component_id: button.planlegging.kalenderinnstillinger
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190710"
+    component_id: "button.planlegging.setattnopen-true-title"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-202605301647190711"
+    component_id: "button.planlegging.setshow-vis-alt"
+    feature: planlegging
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190637"
+    component_id: "button.planlegging-panels.click"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190638"
+    component_id: "button.planlegging-panels.setstate-dismissed-ikke"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190639"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190640"
+    component_id: "button.planlegging-panels.goroute-vaktplan-apne"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190641"
+    component_id: "button.planlegging-panels.toast-vakt-apnet"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190642"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190643"
+    component_id: "button.planlegging-panels.ring"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190644"
+    component_id: "button.planlegging-panels.toast-booking-bekreftet"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190645"
+    component_id: "button.planlegging-panels.toast-booking-apnet"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190646"
+    component_id: "button.planlegging-panels.toast-booking-avlyst"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190647"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190648"
+    component_id: "button.planlegging-panels.goroute-vaktplan-til"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190649"
+    component_id: "button.planlegging-panels.toast-event-apnet"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190650"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190651"
+    component_id: "button.planlegging-panels.toast-fravaer-godkjent"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190652"
+    component_id: "button.planlegging-panels.toast-fravaer-avslatt"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190653"
+    component_id: "button.planlegging-panels.goroute-vaktplan-title"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190654"
+    component_id: "button.planlegging-panels.lukk"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190655"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190656"
+    component_id: "button.planlegging-panels.goroute-vaktplan-planlegg"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190657"
+    component_id: "button.planlegging-panels.toast-apner-arshjul"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190658"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190659"
+    component_id: "button.planlegging-panels.toast-apner-i"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190660"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190661"
+    component_id: "button.planlegging-panels.do-action"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190662"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190663"
+    component_id: "button.planlegging-panels.setbtype-t"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190664"
+    component_id: "button.planlegging-panels.setdep-d-id"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190665"
+    component_id: "button.planlegging-panels.setst-s-math"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190666"
+    component_id: "button.planlegging-panels.setst-s-math"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190667"
+    component_id: "button.planlegging-panels.setguests-g-math"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190668"
+    component_id: "button.planlegging-panels.setguests-g-g"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190669"
+    component_id: "button.planlegging-panels.avbryt"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190670"
+    component_id: "button.planlegging-panels.gj-onclose-opprett"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190671"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190672"
+    component_id: "button.planlegging-panels.toast-apnet-for"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190673"
+    component_id: "button.planlegging-panels.toast-unntak-apnet"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190674"
+    component_id: "button.planlegging-panels.toast-nytt-unntak"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190675"
+    component_id: "button.planlegging-panels.avbryt"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190676"
+    component_id: "button.planlegging-panels.lagre"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190677"
+    component_id: "button.planlegging-panels.lose"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-panels-202605301647190678"
+    component_id: "button.planlegging-panels.lukk"
+    feature: "planlegging-panels"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190679"
+    component_id: "button.planlegging-season.lukk"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190680"
+    component_id: "button.planlegging-season.lagre-utkast"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190681"
+    component_id: "button.planlegging-season.onclose-propager-til"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190682"
+    component_id: "button.planlegging-season.lose"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190683"
+    component_id: "button.planlegging-season.settab-t-k"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190684"
+    component_id: "button.planlegging-season.do-activate"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190685"
+    component_id: "button.planlegging-season.setmachine-true-machine"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190686"
+    component_id: "button.planlegging-season.toast-ny-dato"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190687"
+    component_id: "button.planlegging-season.togglegoal-g-id"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190688"
+    component_id: "button.planlegging-season.toast-nytt-mal"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190689"
+    component_id: "button.planlegging-season.goroute-vaktplan-planlegg"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190690"
+    component_id: "button.planlegging-season.setmachine-true-machine"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190691"
+    component_id: "input.planlegging-season.field"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "planlegging-season-202605301647190692"
+    component_id: "input.planlegging-season.field"
+    feature: "planlegging-season"
+    tier: default
+    module: planlegging
+  - index_key: "rapporter-202605301647190751"
+    component_id: "button.rapporter.setopen-o-o"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190752"
+    component_id: "button.rapporter.opendoc-email-forhandsvis"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190753"
+    component_id: button.rapporter.eksporter
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190754"
+    component_id: "button.rapporter.settab-bygger-bygg"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190755"
+    component_id: "button.rapporter.setscope-v-id"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190756"
+    component_id: "button.rapporter.setrole-drift-drift"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190757"
+    component_id: "button.rapporter.setrole-eier-eier"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-202605301647190758"
+    component_id: "button.rapporter.settab-k-role"
+    feature: rapporter
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190712"
+    component_id: "button.rapporter-bygger.setopen-o-o"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190713"
+    component_id: "button.rapporter-bygger.setgroupby-g"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190714"
+    component_id: "button.rapporter-bygger.togglemetric-m-id"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190715"
+    component_id: "button.rapporter-bygger.toast-rapport-lagret"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190716"
+    component_id: "button.rapporter-bygger.toast-apne-i"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-bygger-202605301647190717"
+    component_id: "button.rapporter-bygger.toast-rapport-eksportert"
+    feature: "rapporter-bygger"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190718"
+    component_id: "button.rapporter-datakilder.last-opp-fil"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190719"
+    component_id: "button.rapporter-datakilder.lose"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190720"
+    component_id: "button.rapporter-datakilder.toast-mappet-map"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190721"
+    component_id: "button.rapporter-datakilder.toast-synkroniserer-synk"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190722"
+    component_id: "button.rapporter-datakilder.toast-mapping-lagret"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-datakilder-202605301647190723"
+    component_id: "button.rapporter-datakilder.toast-koblet-fra"
+    feature: "rapporter-datakilder"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-drilldown-202605301647190724"
+    component_id: "button.rapporter-drilldown.toast-eksportert-til"
+    feature: "rapporter-drilldown"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-drilldown-202605301647190725"
+    component_id: "button.rapporter-drilldown.lose"
+    feature: "rapporter-drilldown"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190726"
+    component_id: "button.rapporter-insikt.toast-botsson-kjorer"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190727"
+    component_id: "button.rapporter-insikt.setfilter-k"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190728"
+    component_id: "button.rapporter-insikt.onact-i-approved"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190729"
+    component_id: "button.rapporter-insikt.onact-i-assigned"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190730"
+    component_id: "button.rapporter-insikt.onact-i-dismissed"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-insikt-202605301647190731"
+    component_id: "button.rapporter-insikt.onact-i-status"
+    feature: "rapporter-insikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-oversikt-202605301647190732"
+    component_id: "button.rapporter-oversikt.setshowwhy-s-s"
+    feature: "rapporter-oversikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-oversikt-202605301647190733"
+    component_id: "button.rapporter-oversikt.if-done-a"
+    feature: "rapporter-oversikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-oversikt-202605301647190734"
+    component_id: "button.rapporter-oversikt.ongotab-innsikt-se"
+    feature: "rapporter-oversikt"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190735"
+    component_id: "button.rapporter-planlagte.setcreateopen-true-ny"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190736"
+    component_id: "button.rapporter-planlagte.preview-email"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190737"
+    component_id: "button.rapporter-planlagte.openreport-s"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190738"
+    component_id: "button.rapporter-planlagte.togglepause-s-id"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190739"
+    component_id: "button.rapporter-planlagte.toast-levering-forsokt"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190740"
+    component_id: "button.rapporter-planlagte.lose"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190741"
+    component_id: "button.rapporter-planlagte.setpreset-p-name"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190742"
+    component_id: "button.rapporter-planlagte.click"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190743"
+    component_id: "button.rapporter-planlagte.setwhen-w"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190744"
+    component_id: "button.rapporter-planlagte.setformat-f"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190745"
+    component_id: "button.rapporter-planlagte.setscope-s"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190746"
+    component_id: "button.rapporter-planlagte.window-open-window"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190747"
+    component_id: "button.rapporter-planlagte.window-open-window"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190748"
+    component_id: "button.rapporter-planlagte.avbryt"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-planlagte-202605301647190749"
+    component_id: "button.rapporter-planlagte.planlegg-utsending"
+    feature: "rapporter-planlagte"
+    tier: default
+    module: rapporter
+  - index_key: "rapporter-shared-202605301647190750"
+    component_id: "button.rapporter-shared.ink"
+    feature: "rapporter-shared"
+    tier: default
+    module: rapporter
+  - index_key: "vaktplan-202605301647190899"
+    component_id: button.vaktplan.click
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190900"
+    component_id: button.vaktplan.click
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190901"
+    component_id: button.vaktplan.click
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190902"
+    component_id: "button.vaktplan.setmode-k-null"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190903"
+    component_id: "button.vaktplan.shiftweek-1"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190904"
+    component_id: "button.vaktplan.shiftweek-1"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190905"
+    component_id: "button.vaktplan.setplanner-true-ai"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190906"
+    component_id: "button.vaktplan.setprintopen-true"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190907"
+    component_id: "button.vaktplan.publish-null-disabled"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190908"
+    component_id: "button.vaktplan.setgroupby-k"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190909"
+    component_id: "button.vaktplan.toggledep-k"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190910"
+    component_id: "button.vaktplan.setspan-k"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190911"
+    component_id: "button.vaktplan.setdensityopen-o-o"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190912"
+    component_id: "button.vaktplan.setdensity-d"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190913"
+    component_id: "button.vaktplan.setdensity-kompakt-visning"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190914"
+    component_id: "button.vaktplan.setdensity-vis-alt"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190915"
+    component_id: "button.vaktplan.setbanner-null"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190916"
+    component_id: "button.vaktplan.openctl-null-detaljer"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190917"
+    component_id: "button.vaktplan.fillgap-g"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190918"
+    component_id: "button.vaktplan.toast-paminnelse-sendt"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190919"
+    component_id: "button.vaktplan.setoffermodal-o-behandle"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190920"
+    component_id: "button.vaktplan.resolveswap-w-id"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-202605301647190921"
+    component_id: "button.vaktplan.resolveswap-w-id"
+    feature: vaktplan
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190759"
+    component_id: "button.vaktplan-availability.setflags-f"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190760"
+    component_id: "button.vaktplan-availability.avslutt"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190761"
+    component_id: "button.vaktplan-availability.setpreset-k"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190762"
+    component_id: "button.vaktplan-availability.setdepfilter-f"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190763"
+    component_id: "button.vaktplan-availability.title-apne-profil"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190764"
+    component_id: "button.vaktplan-availability.click"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190765"
+    component_id: "button.vaktplan-availability.se-vakter"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190766"
+    component_id: "button.vaktplan-availability.onassign-selrow-e"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190767"
+    component_id: "button.vaktplan-availability.onopenprofile-selrow-e"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190768"
+    component_id: "button.vaktplan-availability.onopenshift-s-id"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-availability-202605301647190769"
+    component_id: "button.vaktplan-availability.onassign-selrow-e"
+    feature: "vaktplan-availability"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190770"
+    component_id: "button.vaktplan-controller.lose"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190771"
+    component_id: "button.vaktplan-controller.sw"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190772"
+    component_id: "button.vaktplan-controller.slett"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190773"
+    component_id: "button.vaktplan-controller.avbryt"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190774"
+    component_id: "button.vaktplan-controller.save"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190775"
+    component_id: "button.vaktplan-controller.lose"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190776"
+    component_id: "button.vaktplan-controller.onclose-send-kurskrav"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190777"
+    component_id: "button.vaktplan-controller.satt-pa-vakten"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190778"
+    component_id: "button.vaktplan-controller.lukk"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190779"
+    component_id: "button.vaktplan-controller.onopenprofile-onopenprofile-empid"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190780"
+    component_id: "button.vaktplan-controller.lose"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190781"
+    component_id: "button.vaktplan-controller.settab-k"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190782"
+    component_id: "button.vaktplan-controller.setfixopen-fixopen-i"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190783"
+    component_id: "button.vaktplan-controller.a"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190784"
+    component_id: "button.vaktplan-controller.setemppick-p-p"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190785"
+    component_id: "button.vaktplan-controller.apen-vakt"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190786"
+    component_id: "button.vaktplan-controller.click"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190787"
+    component_id: "button.vaktplan-controller.min"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190788"
+    component_id: "button.vaktplan-controller.click"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190789"
+    component_id: "button.vaktplan-controller.aria-label"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190790"
+    component_id: "button.vaktplan-controller.vaktansvarlig-leder-vakten"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190791"
+    component_id: "button.vaktplan-controller.nokkel-stengeansvar-laser"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190792"
+    component_id: "button.vaktplan-controller.setfuncpanel-f-title"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190793"
+    component_id: "button.vaktplan-controller.setcompare-c-c"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190794"
+    component_id: "button.vaktplan-controller.settab-livslop-se"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190795"
+    component_id: "button.vaktplan-controller.setjustify-null"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190796"
+    component_id: "button.vaktplan-controller.setjustify-null-avbryt"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190797"
+    component_id: "button.vaktplan-controller.send-forslag"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190798"
+    component_id: "button.vaktplan-controller.setjustify-foresla-manuell"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190799"
+    component_id: "button.vaktplan-controller.setdagslinje-v-v"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190800"
+    component_id: "button.vaktplan-controller.sw"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190801"
+    component_id: "button.vaktplan-controller.settaskpanel-legg-til"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190802"
+    component_id: "button.vaktplan-controller.act-state-changed"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190803"
+    component_id: "button.vaktplan-controller.locked-setsettings-v"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190804"
+    component_id: "button.vaktplan-controller.click"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190805"
+    component_id: "input.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190806"
+    component_id: "select.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190807"
+    component_id: "input.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190808"
+    component_id: "textarea.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190809"
+    component_id: "input.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190810"
+    component_id: "input.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190811"
+    component_id: "select.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190812"
+    component_id: "select.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190813"
+    component_id: "select.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190814"
+    component_id: "textarea.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190815"
+    component_id: "select.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-controller-202605301647190816"
+    component_id: "textarea.vaktplan-controller.field"
+    feature: "vaktplan-controller"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190817"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190818"
+    component_id: "button.vaktplan-parts.settab-k"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190819"
+    component_id: "button.vaktplan-parts.onfillgap-g-finn"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190820"
+    component_id: "button.vaktplan-parts.onshift-s-se"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190821"
+    component_id: "button.vaktplan-parts.setdlshift-all-hele"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190822"
+    component_id: "button.vaktplan-parts.setdlshift-s-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190823"
+    component_id: "button.vaktplan-parts.setdlsort-x-x"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190824"
+    component_id: "button.vaktplan-parts.se-livslop"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190825"
+    component_id: "button.vaktplan-parts.ai"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190826"
+    component_id: "button.vaktplan-parts.publiser-dag"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190827"
+    component_id: "button.vaktplan-parts.onshift-null-ny"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190828"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190829"
+    component_id: "button.vaktplan-parts.setrow-i-aria"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190830"
+    component_id: "button.vaktplan-parts.setrow-i"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190831"
+    component_id: "button.vaktplan-parts.droft-med-botsson"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190832"
+    component_id: "button.vaktplan-parts.forkast"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190833"
+    component_id: "button.vaktplan-parts.godta-valgte"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190834"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190835"
+    component_id: "button.vaktplan-parts.setauto-k"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190836"
+    component_id: "button.vaktplan-parts.openprofile-id-title"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190837"
+    component_id: "button.vaktplan-parts.move-i-1"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190838"
+    component_id: "button.vaktplan-parts.move-i-1"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190839"
+    component_id: "button.vaktplan-parts.decline-id-title"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190840"
+    component_id: "button.vaktplan-parts.restore-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190841"
+    component_id: "button.vaktplan-parts.toast-vakten-delt"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190842"
+    component_id: "button.vaktplan-parts.lukk"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190843"
+    component_id: "button.vaktplan-parts.onassign-offer-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190844"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190845"
+    component_id: "button.vaktplan-parts.click"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190846"
+    component_id: "button.vaktplan-parts.setempid-apen-vakt"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190847"
+    component_id: "button.vaktplan-parts.setdep-k-style"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190848"
+    component_id: "button.vaktplan-parts.slett"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190849"
+    component_id: "button.vaktplan-parts.avbryt"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190850"
+    component_id: "button.vaktplan-parts.onsave-st-parseint"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190851"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190852"
+    component_id: "button.vaktplan-parts.onclose-godkjenn-for"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190853"
+    component_id: "button.vaktplan-parts.lukk"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190854"
+    component_id: "button.vaktplan-parts.lose"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190855"
+    component_id: "button.vaktplan-parts.ferdig"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190856"
+    component_id: "button.vaktplan-parts.toggle-r-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190857"
+    component_id: "button.vaktplan-parts.toggleopen-r-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190858"
+    component_id: "button.vaktplan-parts.toggle-r-id"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190859"
+    component_id: "button.vaktplan-parts.avbryt"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190860"
+    component_id: "button.vaktplan-parts.canpublish-confirm-publiser"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190861"
+    component_id: "input.vaktplan-parts.field"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190862"
+    component_id: "select.vaktplan-parts.field"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190863"
+    component_id: "input.vaktplan-parts.field"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190864"
+    component_id: "input.vaktplan-parts.field"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-parts-202605301647190865"
+    component_id: "input.vaktplan-parts.field"
+    feature: "vaktplan-parts"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-print-202605301647190866"
+    component_id: "button.vaktplan-print.setscope-k"
+    feature: "vaktplan-print"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-print-202605301647190867"
+    component_id: "button.vaktplan-print.setorient-k"
+    feature: "vaktplan-print"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-print-202605301647190868"
+    component_id: "button.vaktplan-print.setmetric-k"
+    feature: "vaktplan-print"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-print-202605301647190869"
+    component_id: "button.vaktplan-print.skriv-ut-lagre"
+    feature: "vaktplan-print"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-print-202605301647190870"
+    component_id: "button.vaktplan-print.lose"
+    feature: "vaktplan-print"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190871"
+    component_id: "button.vaktplan-profile.lose"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190872"
+    component_id: "button.vaktplan-profile.settab-k"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190873"
+    component_id: "button.vaktplan-profile.tildel-denne-vakten"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190874"
+    component_id: "button.vaktplan-profile.click"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190875"
+    component_id: "button.vaktplan-profile.click"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190876"
+    component_id: "button.vaktplan-profile.lagre-avtale"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190877"
+    component_id: "button.vaktplan-profile.toast-tilgjengelighetseditor-apnet"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190878"
+    component_id: "button.vaktplan-profile.toast-oppgave-fulgt"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190879"
+    component_id: "button.vaktplan-profile.onfullplan-onfullplan-empid"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190880"
+    component_id: "button.vaktplan-profile.onassign-onassign-emp"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190881"
+    component_id: "button.vaktplan-profile.toast-sender-melding"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190882"
+    component_id: "button.vaktplan-profile.ink"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190883"
+    component_id: "button.vaktplan-profile.godkjenn"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-profile-202605301647190884"
+    component_id: "button.vaktplan-profile.avsla"
+    feature: "vaktplan-profile"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190885"
+    component_id: "button.vaktplan-turnus.setsub-k"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190886"
+    component_id: "button.vaktplan-turnus.setgrp-k"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190887"
+    component_id: "button.vaktplan-turnus.skriv-ut-turnus"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190888"
+    component_id: "button.vaktplan-turnus.onpublish-null-publiser"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190889"
+    component_id: "button.vaktplan-turnus.60-else-uke"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190890"
+    component_id: "button.vaktplan-turnus.setsub-bygg-apne"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190891"
+    component_id: "button.vaktplan-turnus.setcollapsed-c"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190892"
+    component_id: "button.vaktplan-turnus.onpublish-null-publiser"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190893"
+    component_id: "button.vaktplan-turnus.removeweek-w-wk"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190894"
+    component_id: "button.vaktplan-turnus.addweek-prev-kopier"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190895"
+    component_id: "button.vaktplan-turnus.onopenctl-s-s"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190896"
+    component_id: "button.vaktplan-turnus.onopenctl-null-detaljer"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190897"
+    component_id: "button.vaktplan-turnus.setaddopen-o-o"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+  - index_key: "vaktplan-turnus-202605301647190898"
+    component_id: "button.vaktplan-turnus.addweek-k"
+    feature: "vaktplan-turnus"
+    tier: default
+    module: vaktplan
+consistency_gate:
+  - component_id: "button.ansatte-controls.alle-tildelinger"
+    occurrences:
+      - "ansatte-controls-202605301647190031"
+      - "ansatte-controls-202605301647190035"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.ansatte-controls.click"
+    occurrences:
+      - "ansatte-controls-202605301647190024"
+      - "ansatte-controls-202605301647190027"
+      - "ansatte-controls-202605301647190038"
+      - "ansatte-controls-202605301647190039"
+      - "ansatte-controls-202605301647190040"
+    message: Duplicate component_id — same UX must reuse one component (found 5 occurrences)
+  - component_id: "button.ansatte-controls.close"
+    occurrences:
+      - "ansatte-controls-202605301647190028"
+      - "ansatte-controls-202605301647190042"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.ansatte-controls.tilbake"
+    occurrences:
+      - "ansatte-controls-202605301647190029"
+      - "ansatte-controls-202605301647190033"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.ansatte-controls.window-anctl-open"
+    occurrences:
+      - "ansatte-controls-202605301647190019"
+      - "ansatte-controls-202605301647190020"
+      - "ansatte-controls-202605301647190021"
+      - "ansatte-controls-202605301647190041"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.ansatte-panels2.window-anctl-open"
+    occurrences:
+      - "ansatte-panels2-202605301647190083"
+      - "ansatte-panels2-202605301647190084"
+      - "ansatte-panels2-202605301647190085"
+      - "ansatte-panels2-202605301647190086"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.ansatte-profile.window-anctl-open"
+    occurrences:
+      - "ansatte-profile-202605301647190091"
+      - "ansatte-profile-202605301647190092"
+      - "ansatte-profile-202605301647190093"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.avstemming-daglig.api-approveday-day"
+    occurrences:
+      - "avstemming-daglig-202605301647190113"
+      - "avstemming-daglig-202605301647190116"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.avstemming-daglig.api-requesthandoff-day"
+    occurrences:
+      - "avstemming-daglig-202605301647190110"
+      - "avstemming-daglig-202605301647190121"
+      - "avstemming-daglig-202605301647190122"
+      - "avstemming-daglig-202605301647190125"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.avstemming-daglig.api-shiftapprove-day"
+    occurrences:
+      - "avstemming-daglig-202605301647190118"
+      - "avstemming-daglig-202605301647190119"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.avstemming-daglig.onresolve-d"
+    occurrences:
+      - "avstemming-daglig-202605301647190123"
+      - "avstemming-daglig-202605301647190124"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.avstemming-forms.avbryt"
+    occurrences:
+      - "avstemming-forms-202605301647190127"
+      - "avstemming-forms-202605301647190129"
+      - "avstemming-forms-202605301647190131"
+      - "avstemming-forms-202605301647190133"
+      - "avstemming-forms-202605301647190135"
+      - "avstemming-forms-202605301647190137"
+      - "avstemming-forms-202605301647190139"
+      - "avstemming-forms-202605301647190142"
+    message: Duplicate component_id — same UX must reuse one component (found 8 occurrences)
+  - component_id: "button.avstemming-more.setstep-s-s"
+    occurrences:
+      - "avstemming-more-202605301647190159"
+      - "avstemming-more-202605301647190160"
+      - "avstemming-more-202605301647190162"
+      - "avstemming-more-202605301647190163"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.handbook-editor.setcur-c-c"
+    occurrences:
+      - "handbook-editor-202605301647190185"
+      - "handbook-editor-202605301647190186"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.click"
+    occurrences:
+      - "handbook-views-202605301647190233"
+      - "handbook-views-202605301647190258"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.nav-book-book"
+    occurrences:
+      - "handbook-views-202605301647190220"
+      - "handbook-views-202605301647190245"
+      - "handbook-views-202605301647190257"
+      - "handbook-views-202605301647190264"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.handbook-views.nav-create-book"
+    occurrences:
+      - "handbook-views-202605301647190229"
+      - "handbook-views-202605301647190230"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.nav-dashboard-bibliotek"
+    occurrences:
+      - "handbook-views-202605301647190225"
+      - "handbook-views-202605301647190241"
+      - "handbook-views-202605301647190244"
+      - "handbook-views-202605301647190250"
+      - "handbook-views-202605301647190256"
+    message: Duplicate component_id — same UX must reuse one component (found 5 occurrences)
+  - component_id: "button.handbook-views.nav-wizard-hms"
+    occurrences:
+      - "handbook-views-202605301647190222"
+      - "handbook-views-202605301647190228"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.toast-eksporterer-handbok"
+    occurrences:
+      - "handbook-views-202605301647190236"
+      - "handbook-views-202605301647190261"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.toast-revisjonslogg-eksportert"
+    occurrences:
+      - "handbook-views-202605301647190237"
+      - "handbook-views-202605301647190254"
+      - "handbook-views-202605301647190262"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.handbook-views.togglecap-rid-cid"
+    occurrences:
+      - "handbook-views-202605301647190234"
+      - "handbook-views-202605301647190259"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.togglechvis-ch-id"
+    occurrences:
+      - "handbook-views-202605301647190235"
+      - "handbook-views-202605301647190260"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.handbook-views.veiviser-v-lest"
+    occurrences:
+      - "handbook-views-202605301647190218"
+      - "handbook-views-202605301647190219"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-avvik.click"
+    occurrences:
+      - "hms-avvik-202605301647190282"
+      - "hms-avvik-202605301647190283"
+      - "hms-avvik-202605301647190284"
+      - "hms-avvik-202605301647190289"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "button.hms-avvik.lose"
+    occurrences:
+      - "hms-avvik-202605301647190285"
+      - "hms-avvik-202605301647190292"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-avvik.onmove-d-id"
+    occurrences:
+      - "hms-avvik-202605301647190286"
+      - "hms-avvik-202605301647190287"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-entities.lose"
+    occurrences:
+      - "hms-entities-202605301647190314"
+      - "hms-entities-202605301647190323"
+      - "hms-entities-202605301647190330"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.hms-entities.lukk"
+    occurrences:
+      - "hms-entities-202605301647190317"
+      - "hms-entities-202605301647190327"
+      - "hms-entities-202605301647190332"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.hms-entities.next"
+    occurrences:
+      - "hms-entities-202605301647190319"
+      - "hms-entities-202605301647190334"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-entities.setidx-i-i"
+    occurrences:
+      - "hms-entities-202605301647190318"
+      - "hms-entities-202605301647190333"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-shared.click"
+    occurrences:
+      - "hms-shared-202605301647190348"
+      - "hms-shared-202605301647190353"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-tracking.setcatf-all-alle"
+    occurrences:
+      - "hms-tracking-202605301647190375"
+      - "hms-tracking-202605301647190379"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-tracking.setcatf-catf-id"
+    occurrences:
+      - "hms-tracking-202605301647190369"
+      - "hms-tracking-202605301647190376"
+      - "hms-tracking-202605301647190380"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.hms-tracking.setkindf-k"
+    occurrences:
+      - "hms-tracking-202605301647190368"
+      - "hms-tracking-202605301647190377"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-wizard.setpolicies-ps-ps"
+    occurrences:
+      - "hms-wizard-202605301647190390"
+      - "hms-wizard-202605301647190391"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.hms-wizard.setstep-s-s"
+    occurrences:
+      - "hms-wizard-202605301647190394"
+      - "hms-wizard-202605301647190396"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.kommunikasjon-case.click"
+    occurrences:
+      - "kommunikasjon-case-202605301647190413"
+      - "kommunikasjon-case-202605301647190416"
+      - "kommunikasjon-case-202605301647190418"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.kommunikasjon-compose.lukk"
+    occurrences:
+      - "kommunikasjon-compose-202605301647190425"
+      - "kommunikasjon-compose-202605301647190433"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.kommunikasjon.click
+    occurrences:
+      - "kommunikasjon-202605301647190484"
+      - "kommunikasjon-202605301647190497"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.lonn-overlays.avbryt"
+    occurrences:
+      - "lonn-overlays-202605301647190509"
+      - "lonn-overlays-202605301647190514"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.lonn-overlays.lose"
+    occurrences:
+      - "lonn-overlays-202605301647190505"
+      - "lonn-overlays-202605301647190508"
+      - "lonn-overlays-202605301647190512"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.lonn-views.las"
+    occurrences:
+      - "lonn-views-202605301647190520"
+      - "lonn-views-202605301647190528"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.lonn-views.onconfirm-d-id"
+    occurrences:
+      - "lonn-views-202605301647190531"
+      - "lonn-views-202605301647190532"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.lonn-views.onopenemp-d-uid"
+    occurrences:
+      - "lonn-views-202605301647190524"
+      - "lonn-views-202605301647190530"
+      - "lonn-views-202605301647190533"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.min-dag.setroute-mine-vakter"
+    occurrences:
+      - "min-dag-202605301647190552"
+      - "min-dag-202605301647190553"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.oppgaver-form.lose"
+    occurrences:
+      - "oppgaver-form-202605301647190569"
+      - "oppgaver-form-202605301647190571"
+      - "oppgaver-form-202605301647190577"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: button.oppgaver.click
+    occurrences:
+      - "oppgaver-202605301647190582"
+      - "oppgaver-202605301647190583"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.oppgaver.marker-ferdig"
+    occurrences:
+      - "oppgaver-202605301647190596"
+      - "oppgaver-202605301647190621"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.planlegging-panels.avbryt"
+    occurrences:
+      - "planlegging-panels-202605301647190669"
+      - "planlegging-panels-202605301647190675"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.planlegging-panels.lose"
+    occurrences:
+      - "planlegging-panels-202605301647190639"
+      - "planlegging-panels-202605301647190642"
+      - "planlegging-panels-202605301647190647"
+      - "planlegging-panels-202605301647190650"
+      - "planlegging-panels-202605301647190655"
+      - "planlegging-panels-202605301647190658"
+      - "planlegging-panels-202605301647190660"
+      - "planlegging-panels-202605301647190662"
+      - "planlegging-panels-202605301647190671"
+      - "planlegging-panels-202605301647190677"
+    message: Duplicate component_id — same UX must reuse one component (found 10 occurrences)
+  - component_id: "button.planlegging-panels.lukk"
+    occurrences:
+      - "planlegging-panels-202605301647190654"
+      - "planlegging-panels-202605301647190678"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.planlegging-panels.setst-s-math"
+    occurrences:
+      - "planlegging-panels-202605301647190665"
+      - "planlegging-panels-202605301647190666"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.planlegging-season.setmachine-true-machine"
+    occurrences:
+      - "planlegging-season-202605301647190685"
+      - "planlegging-season-202605301647190690"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.planlegging.nav-1-title"
+    occurrences:
+      - "planlegging-202605301647190695"
+      - "planlegging-202605301647190696"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.rapporter-planlagte.window-open-window"
+    occurrences:
+      - "rapporter-planlagte-202605301647190746"
+      - "rapporter-planlagte-202605301647190747"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-availability.onassign-selrow-e"
+    occurrences:
+      - "vaktplan-availability-202605301647190766"
+      - "vaktplan-availability-202605301647190769"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-controller.click"
+    occurrences:
+      - "vaktplan-controller-202605301647190786"
+      - "vaktplan-controller-202605301647190788"
+      - "vaktplan-controller-202605301647190804"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.vaktplan-controller.lose"
+    occurrences:
+      - "vaktplan-controller-202605301647190770"
+      - "vaktplan-controller-202605301647190775"
+      - "vaktplan-controller-202605301647190780"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.vaktplan-controller.sw"
+    occurrences:
+      - "vaktplan-controller-202605301647190771"
+      - "vaktplan-controller-202605301647190800"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-parts.avbryt"
+    occurrences:
+      - "vaktplan-parts-202605301647190849"
+      - "vaktplan-parts-202605301647190859"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-parts.lose"
+    occurrences:
+      - "vaktplan-parts-202605301647190817"
+      - "vaktplan-parts-202605301647190828"
+      - "vaktplan-parts-202605301647190834"
+      - "vaktplan-parts-202605301647190844"
+      - "vaktplan-parts-202605301647190851"
+      - "vaktplan-parts-202605301647190854"
+    message: Duplicate component_id — same UX must reuse one component (found 6 occurrences)
+  - component_id: "button.vaktplan-parts.lukk"
+    occurrences:
+      - "vaktplan-parts-202605301647190842"
+      - "vaktplan-parts-202605301647190853"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-parts.move-i-1"
+    occurrences:
+      - "vaktplan-parts-202605301647190837"
+      - "vaktplan-parts-202605301647190838"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-parts.toggle-r-id"
+    occurrences:
+      - "vaktplan-parts-202605301647190856"
+      - "vaktplan-parts-202605301647190858"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-profile.click"
+    occurrences:
+      - "vaktplan-profile-202605301647190874"
+      - "vaktplan-profile-202605301647190875"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan-turnus.onpublish-null-publiser"
+    occurrences:
+      - "vaktplan-turnus-202605301647190888"
+      - "vaktplan-turnus-202605301647190892"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: button.vaktplan.click
+    occurrences:
+      - "vaktplan-202605301647190899"
+      - "vaktplan-202605301647190900"
+      - "vaktplan-202605301647190901"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "button.vaktplan.resolveswap-w-id"
+    occurrences:
+      - "vaktplan-202605301647190920"
+      - "vaktplan-202605301647190921"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "button.vaktplan.shiftweek-1"
+    occurrences:
+      - "vaktplan-202605301647190903"
+      - "vaktplan-202605301647190904"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: drawer.hms.open
+    occurrences:
+      - "hms-202605301647190406"
+      - "hms-202605301647190407"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "input.ansatte-controls.field"
+    occurrences:
+      - "ansatte-controls-202605301647190045"
+      - "ansatte-controls-202605301647190046"
+      - "ansatte-controls-202605301647190047"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "input.avstemming-forms.field"
+    occurrences:
+      - "avstemming-forms-202605301647190145"
+      - "avstemming-forms-202605301647190147"
+      - "avstemming-forms-202605301647190148"
+      - "avstemming-forms-202605301647190151"
+      - "avstemming-forms-202605301647190153"
+      - "avstemming-forms-202605301647190155"
+      - "avstemming-forms-202605301647190158"
+    message: Duplicate component_id — same UX must reuse one component (found 7 occurrences)
+  - component_id: "input.hms-avvik.field"
+    occurrences:
+      - "hms-avvik-202605301647190298"
+      - "hms-avvik-202605301647190299"
+      - "hms-avvik-202605301647190302"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)
+  - component_id: "input.hms-tracking.field"
+    occurrences:
+      - "hms-tracking-202605301647190381"
+      - "hms-tracking-202605301647190382"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "input.hms-wizard.field"
+    occurrences:
+      - "hms-wizard-202605301647190398"
+      - "hms-wizard-202605301647190399"
+      - "hms-wizard-202605301647190400"
+      - "hms-wizard-202605301647190402"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "input.kommunikasjon-skranke-views.field"
+    occurrences:
+      - "kommunikasjon-skranke-views-202605301647190467"
+      - "kommunikasjon-skranke-views-202605301647190468"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "input.lonn-overlays.field"
+    occurrences:
+      - "lonn-overlays-202605301647190516"
+      - "lonn-overlays-202605301647190517"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "input.planlegging-season.field"
+    occurrences:
+      - "planlegging-season-202605301647190691"
+      - "planlegging-season-202605301647190692"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "input.vaktplan-controller.field"
+    occurrences:
+      - "vaktplan-controller-202605301647190805"
+      - "vaktplan-controller-202605301647190807"
+      - "vaktplan-controller-202605301647190809"
+      - "vaktplan-controller-202605301647190810"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "input.vaktplan-parts.field"
+    occurrences:
+      - "vaktplan-parts-202605301647190861"
+      - "vaktplan-parts-202605301647190863"
+      - "vaktplan-parts-202605301647190864"
+      - "vaktplan-parts-202605301647190865"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "modal.ansatte-controls.open"
+    occurrences:
+      - "ansatte-controls-202605301647190054"
+      - "ansatte-controls-202605301647190055"
+      - "ansatte-controls-202605301647190057"
+      - "ansatte-controls-202605301647190058"
+    message: Duplicate component_id — same UX must reuse one component (found 4 occurrences)
+  - component_id: "select.hms-avvik.field"
+    occurrences:
+      - "hms-avvik-202605301647190300"
+      - "hms-avvik-202605301647190301"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "select.kommunikasjon-skranke.field"
+    occurrences:
+      - "kommunikasjon-skranke-202605301647190479"
+      - "kommunikasjon-skranke-202605301647190480"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: select.kommunikasjon.field
+    occurrences:
+      - "kommunikasjon-202605301647190499"
+      - "kommunikasjon-202605301647190500"
+    message: Duplicate component_id — same UX must reuse one component (found 2 occurrences)
+  - component_id: "select.vaktplan-controller.field"
+    occurrences:
+      - "vaktplan-controller-202605301647190806"
+      - "vaktplan-controller-202605301647190811"
+      - "vaktplan-controller-202605301647190812"
+      - "vaktplan-controller-202605301647190813"
+      - "vaktplan-controller-202605301647190815"
+    message: Duplicate component_id — same UX must reuse one component (found 5 occurrences)
+  - component_id: "textarea.avstemming-forms.field"
+    occurrences:
+      - "avstemming-forms-202605301647190146"
+      - "avstemming-forms-202605301647190149"
+      - "avstemming-forms-202605301647190150"
+      - "avstemming-forms-202605301647190152"
+      - "avstemming-forms-202605301647190154"
+      - "avstemming-forms-202605301647190156"
+    message: Duplicate component_id — same UX must reuse one component (found 6 occurrences)
+  - component_id: "textarea.vaktplan-controller.field"
+    occurrences:
+      - "vaktplan-controller-202605301647190808"
+      - "vaktplan-controller-202605301647190814"
+      - "vaktplan-controller-202605301647190816"
+    message: Duplicate component_id — same UX must reuse one component (found 3 occurrences)

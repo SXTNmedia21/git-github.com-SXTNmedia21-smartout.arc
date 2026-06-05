@@ -1,0 +1,175 @@
+{
+  "computed_at": "2026-05-31T22:29:11Z",
+  "target_domains": 13,
+  "domains_mapped": 10,
+  "domains_passing": 0,
+  "events_required_total": 291,
+  "events_in_registry_total": 166,
+  "overall_completion_rate": 0.570446735395189,
+  "overall_completion_pct": 57,
+  "gate_100": false,
+  "per_domain": [
+    {
+      "domain": "kommunikasjon",
+      "events_required": 22,
+      "events_in_registry": 8,
+      "completion_rate": 0.36363636363636365,
+      "gate": "FAIL",
+      "blockers_count": 5,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "ansatte",
+      "events_required": 34,
+      "events_in_registry": 14,
+      "completion_rate": 0.4117647058823529,
+      "gate": "FAIL",
+      "blockers_count": 6,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "avstemming",
+      "events_required": 19,
+      "events_in_registry": 8,
+      "completion_rate": 0.42105263157894735,
+      "gate": "FAIL",
+      "blockers_count": 3,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "hms",
+      "events_required": 38,
+      "events_in_registry": 19,
+      "completion_rate": 0.5,
+      "gate": "FAIL",
+      "blockers_count": 5,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "min-dag",
+      "events_required": 15,
+      "events_in_registry": 8,
+      "completion_rate": 0.5333333333333333,
+      "gate": "FAIL",
+      "blockers_count": 3,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "planlegging",
+      "events_required": 29,
+      "events_in_registry": 16,
+      "completion_rate": 0.5517241379310345,
+      "gate": "FAIL",
+      "blockers_count": 5,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "vaktplan",
+      "events_required": 91,
+      "events_in_registry": 58,
+      "completion_rate": 0.6373626373626373,
+      "gate": "FAIL",
+      "blockers_count": 4,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "oversikt",
+      "events_required": 11,
+      "events_in_registry": 8,
+      "completion_rate": 0.7272727272727273,
+      "gate": "FAIL",
+      "blockers_count": 4,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "lonn",
+      "events_required": 13,
+      "events_in_registry": 10,
+      "completion_rate": 0.7692307692307693,
+      "gate": "FAIL",
+      "blockers_count": 10,
+      "control_points_pass": false,
+      "domain_pass": false
+    },
+    {
+      "domain": "oppgaver",
+      "events_required": 19,
+      "events_in_registry": 17,
+      "completion_rate": 0.8947368421052632,
+      "gate": "FAIL",
+      "blockers_count": 7,
+      "control_points_pass": false,
+      "domain_pass": false
+    }
+  ],
+  "friction": [
+    {
+      "domain": "ansatte",
+      "completion_rate": 0.4117647058823529,
+      "blockers_count": 6,
+      "missing_events": 20
+    },
+    {
+      "domain": "avstemming",
+      "completion_rate": 0.42105263157894735,
+      "blockers_count": 3,
+      "missing_events": 11
+    },
+    {
+      "domain": "hms",
+      "completion_rate": 0.5,
+      "blockers_count": 5,
+      "missing_events": 19
+    },
+    {
+      "domain": "kommunikasjon",
+      "completion_rate": 0.36363636363636365,
+      "blockers_count": 5,
+      "missing_events": 14
+    },
+    {
+      "domain": "lonn",
+      "completion_rate": 0.7692307692307693,
+      "blockers_count": 10,
+      "missing_events": 3
+    },
+    {
+      "domain": "min-dag",
+      "completion_rate": 0.5333333333333333,
+      "blockers_count": 3,
+      "missing_events": 7
+    },
+    {
+      "domain": "oppgaver",
+      "completion_rate": 0.8947368421052632,
+      "blockers_count": 7,
+      "missing_events": 2
+    },
+    {
+      "domain": "oversikt",
+      "completion_rate": 0.7272727272727273,
+      "blockers_count": 4,
+      "missing_events": 3
+    },
+    {
+      "domain": "planlegging",
+      "completion_rate": 0.5517241379310345,
+      "blockers_count": 5,
+      "missing_events": 13
+    },
+    {
+      "domain": "vaktplan",
+      "completion_rate": 0.6373626373626373,
+      "blockers_count": 4,
+      "missing_events": 33
+    }
+  ]
+}

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Avdelingslønnsomhet — Nord Gruppen · Uke 22</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2; --event:#c18200; --lager:#008388;
+    --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; } .bar .sub{ font-size:12px; color:#b8b2aa; } .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; } .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; } .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:16mm 15mm 13mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  .lh{ display:flex; align-items:flex-start; gap:14px; padding-bottom:14px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:36px;height:36px;border-radius:10px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:13px;height:13px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; } .lh-brand{ font-size:13px; font-weight:700; } .lh-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.6; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+
+  .title{ margin:16px 0 0; }
+  .eyebrow{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  h1{ font-family:var(--h); font-weight:400; font-size:38px; letter-spacing:-0.02em; line-height:1.02; margin:7px 0 0; }
+  .title-sub{ font-size:12.5px; color:var(--muted); margin-top:9px; max-width:64ch; line-height:1.5; }
+
+  section{ margin-top:21px; }
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:12px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+  .sec-h .n{ font-family:var(--m); font-size:11px; font-weight:600; color:var(--orange-dark); }
+  .sec-h h2{ font-family:var(--h); font-weight:400; font-size:20px; letter-spacing:-0.01em; margin:0; white-space:nowrap; }
+  .sec-h .meta{ margin-left:auto; font-size:10.5px; color:var(--muted-soft); font-family:var(--m); }
+
+  .brief{ background:var(--orange-soft); border:1px solid rgba(249,115,22,0.22); border-radius:13px; padding:14px 16px; display:flex; gap:12px; }
+  .brief-av{ width:30px;height:30px;border-radius:9px;background:var(--orange); color:#fff; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .brief-av svg{ width:18px;height:18px; }
+  .brief-tag{ font-size:8.5px; font-weight:700; letter-spacing:.14em; color:var(--orange-dark); }
+  .brief p{ margin:5px 0 0; font-size:12.5px; line-height:1.6; }
+  .brief .hl{ background:rgba(17,173,50,0.12); color:var(--success); font-weight:600; padding:0 4px; border-radius:4px; }
+  .brief .lo{ background:rgba(231,0,11,0.10); color:var(--error); font-weight:600; padding:0 4px; border-radius:4px; }
+  .brief strong{ font-weight:700; }
+
+  .tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; }
+  .tile{ border:1px solid var(--border); border-radius:12px; padding:12px 13px; position:relative; overflow:hidden; }
+  .tile.hero{ background:var(--fg); border-color:var(--fg); }
+  .tile .edge{ position:absolute; left:0;top:0;bottom:0;width:3px; }
+  .tile .lbl{ font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .tile.hero .lbl{ color:rgba(255,255,255,0.62); }
+  .tile .val{ font-family:var(--m); font-size:24px; font-weight:700; letter-spacing:-0.02em; line-height:1; margin-top:8px; }
+  .tile.hero .val{ color:#fff; } .tile .val .u{ font-size:12px; color:var(--muted-soft); }
+  .tile .sub{ font-size:9.5px; color:var(--muted); margin-top:7px; } .tile.hero .sub{ color:rgba(255,255,255,0.6); }
+  .tile .val.ok{ color:var(--success); }
+
+  /* waterfall */
+  .wf-wrap{ border:1px solid var(--border); border-radius:13px; padding:16px 18px 10px; }
+  .wf{ display:flex; align-items:flex-end; gap:10px; height:200px; }
+  .wf-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; }
+  .wf-bar-area{ flex:1; width:100%; display:flex; flex-direction:column; justify-content:flex-end; position:relative; }
+  .wf-bar{ width:100%; border-radius:4px 4px 0 0; position:relative; }
+  .wf-cap{ position:absolute; top:-17px; left:0; right:0; text-align:center; font-family:var(--m); font-size:10px; font-weight:700; }
+  .wf-x{ margin-top:8px; text-align:center; }
+  .wf-x .l{ font-size:9.5px; font-weight:600; color:var(--fg); }
+  .wf-x .s{ font-size:8.5px; color:var(--muted); font-family:var(--m); margin-top:2px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  .t th{ text-align:right; font-size:8.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:9px 8px; border-bottom:1px solid var(--border-strong); white-space:nowrap; }
+  .t th:first-child{ text-align:left; }
+  .t td{ padding:11px 8px; border-bottom:1px solid var(--border); font-family:var(--m); font-size:11.5px; text-align:right; font-variant-numeric:tabular-nums; }
+  .t td:first-child{ text-align:left; font-family:var(--s); }
+  .t tr.tot td{ background:var(--secondary); font-weight:700; border-bottom:none; }
+  .t .vn{ display:inline-flex; align-items:center; gap:9px; }
+  .t .vd{ width:9px;height:9px;border-radius:50%; flex-shrink:0; }
+  .t .nm{ font-weight:600; font-size:12.5px; } .t .ci{ font-size:10px; color:var(--muted); }
+  .t .db{ font-weight:700; } .co{ color:var(--success);} .cw{ color:var(--warning);} .cc{ color:var(--error);}
+  .rank{ font-family:var(--m); font-size:9px; color:var(--muted-soft); }
+  .mini{ display:inline-block; width:46px; height:6px; border-radius:3px; background:var(--secondary); position:relative; vertical-align:middle; margin-right:8px; overflow:hidden; }
+  .mini i{ position:absolute; left:0;top:0;bottom:0; border-radius:3px; }
+
+  /* stream bars */
+  .streams{ border:1px solid var(--border); border-radius:13px; padding:14px 16px; }
+  .stream{ display:grid; grid-template-columns:108px 1fr 150px; gap:13px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
+  .stream:last-child{ border-bottom:none; }
+  .stream-nm{ font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+  .stream-nm .d{ width:9px;height:9px;border-radius:50%; }
+  .stream-track{ position:relative; height:22px; background:var(--secondary); border-radius:6px; overflow:hidden; }
+  .stream-fill{ position:absolute; left:0;top:0;bottom:0; border-radius:6px; display:flex; align-items:center; padding-left:9px; }
+  .stream-fill .pct{ font-family:var(--m); font-size:10px; font-weight:700; color:#fff; }
+  .stream-val{ text-align:right; font-family:var(--m); font-size:11.5px; }
+  .stream-val .db{ font-weight:700; } .stream-val .t{ display:block; font-size:9px; color:var(--muted); margin-top:2px; }
+
+  .foot{ margin-top:22px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:18px; align-items:flex-end; }
+  .foot .l{ font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .foot .v{ font-family:var(--m); font-size:13px; font-weight:600; margin-top:5px; }
+  .foot .conf{ margin-left:auto; text-align:right; font-size:9.5px; color:var(--muted-soft); line-height:1.6; max-width:52ch; }
+  .pagefoot{ position:absolute; left:15mm; right:15mm; bottom:7mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); }
+
+  @page{ size:A4; margin:0; }
+  @media print{ body{ background:#fff; } .bar{ display:none; } .stage{ padding:0; } .sheet{ box-shadow:none; width:auto; min-height:auto; } }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Avdelingslønnsomhet</b> <span class="sub">· Nord Gruppen · Uke 22</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg> Lagre som PDF</button>
+  </div>
+
+  <div class="stage">
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id"><div class="lh-brand">Smartout · Nord Gruppen</div><div class="lh-meta">Lønnsomhet per sted &amp; inntektsstrøm · uke 22</div></div>
+        <div class="lh-right">Rapport <b>RAP-2026-W22-DB</b><br/>Periode <b>25.–31.05.2026</b><br/>av Mr. Botsson · POS + lønn</div>
+      </div>
+
+      <div class="title">
+        <div class="eyebrow">Avdelingslønnsomhet · uke 22</div>
+        <h1>Hvor tjener vi penger?</h1>
+        <div class="title-sub">Dekningsbidrag per sted og inntektsstrøm — omsetning minus varekost, lønn og annen direkte drift. Tallene er avledet fra POS og lønnskjøringen, og avstemmer med ukentlig lønnsrapport (28,1 % lønnsandel).</div>
+      </div>
+
+      <section>
+        <div class="sec-h"><span class="n">01</span><h2>Sammendrag</h2><span class="meta">gruppe · uke 22</span></div>
+        <div class="brief">
+          <span class="brief-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+          <div>
+            <span class="brief-tag">BOTSSON · LØNNSOMHETSVURDERING</span>
+            <p><span class="hl">Bistro Brygga er motoren</span> med 34,2 % dekningsbidrag og 175 200 kr — nær halve gruppens DB. <span class="lo">Kafé Torget ligger lavest</span> på 22,9 %: både varekost og lønnsandel er for høye for en kafé. Flytter vi 1 lunsjvakt og strammer porsjonssvinn, løftes Torget mot 27 % — anslagsvis 7 700 kr/uke.</p>
+          </div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile hero"><div class="lbl">Dekningsbidrag</div><div class="val">387 800<span class="u"> kr</span></div><div class="sub">30,2 % av omsetning</div></div>
+          <div class="tile"><span class="edge" style="background:var(--success)"></span><div class="lbl">Beste sted</div><div class="val ok">34,2<span class="u">%</span></div><div class="sub">Bistro Brygga</div></div>
+          <div class="tile"><span class="edge" style="background:var(--error)"></span><div class="lbl">Svakeste sted</div><div class="val" style="color:var(--error)">22,9<span class="u">%</span></div><div class="sub">Kafé Torget</div></div>
+          <div class="tile"><span class="edge" style="background:var(--warning)"></span><div class="lbl">Spenn DB-grad</div><div class="val">11,3<span class="u"> pp</span></div><div class="sub">mellom sterk og svak</div></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">02</span><h2>Fra omsetning til dekningsbidrag</h2><span class="meta">gruppe · kr</span></div>
+        <div class="wf-wrap">
+          <div class="wf" id="wf"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">03</span><h2>Lønnsomhet per sted</h2><span class="meta">25.–31. mai</span></div>
+        <table class="t">
+          <thead><tr><th>Sted</th><th>Omsetning</th><th>Varekost</th><th>Lønn</th><th>Annen drift</th><th>DB kr</th><th>DB-grad</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#00ab93"></span><span><span class="nm">Bistro Brygga</span> <span class="rank">#1</span><br/><span class="ci">Aker Brygge</span></span></span></td>
+              <td>512 300</td><td>143 400</td><td>137 300</td><td>56 400</td><td class="db">175 200</td>
+              <td><span class="mini"><i style="width:68%;background:var(--success)"></i></span><span class="co">34,2 %</span></td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#c18200"></span><span><span class="nm">Nord Express</span> <span class="rank">#2</span><br/><span class="ci">Storo · levering</span></span></span></td>
+              <td>173 000</td><td>60 600</td><td>41 700</td><td>17 300</td><td class="db">53 400</td>
+              <td><span class="mini"><i style="width:62%;background:var(--success)"></i></span><span class="co">30,9 %</span></td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#f97316"></span><span><span class="nm">Bistro Nord</span> <span class="rank">#3</span><br/><span class="ci">Grünerløkka</span></span></span></td>
+              <td>384 500</td><td>115 400</td><td>113 000</td><td>46 100</td><td class="db">110 000</td>
+              <td><span class="mini"><i style="width:57%;background:var(--warning)"></i></span><span class="cw">28,6 %</span></td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#864ad2"></span><span><span class="nm">Kafé Torget</span> <span class="rank">#4</span><br/><span class="ci">Sentrum</span></span></span></td>
+              <td>214 700</td><td>68 700</td><td>68 900</td><td>27 900</td><td class="db">49 200</td>
+              <td><span class="mini"><i style="width:46%;background:var(--error)"></i></span><span class="cc">22,9 %</span></td>
+            </tr>
+            <tr class="tot"><td>Gruppe totalt</td><td>1 284 500</td><td>388 100</td><td>360 900</td><td>147 700</td><td>387 800</td><td>30,2 %</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">04</span><h2>Bistro Nord per inntektsstrøm</h2><span class="meta">dekningsbidrag · flaggskip</span></div>
+        <div class="streams">
+          <div class="stream">
+            <span class="stream-nm"><span class="d" style="background:var(--kjokken)"></span>Mat</span>
+            <div class="stream-track"><span class="stream-fill" style="width:58%;background:var(--kjokken)"><span class="pct">31,0 % DB</span></span></div>
+            <span class="stream-val"><span class="db">69 200 kr</span><span class="t">oms 223 000 · varekost 33 %</span></span>
+          </div>
+          <div class="stream">
+            <span class="stream-nm"><span class="d" style="background:var(--bar)"></span>Drikke / bar</span>
+            <div class="stream-track"><span class="stream-fill" style="width:76%;background:var(--bar)"><span class="pct">38,0 % DB</span></span></div>
+            <span class="stream-val"><span class="db">41 000 kr</span><span class="t">oms 108 000 · varekost 24 %</span></span>
+          </div>
+          <div class="stream">
+            <span class="stream-nm"><span class="d" style="background:var(--event)"></span>Event / selskap</span>
+            <div class="stream-track"><span class="stream-fill" style="width:84%;background:var(--event)"><span class="pct">42,0 % DB</span></span></div>
+            <span class="stream-val"><span class="db">22 500 kr</span><span class="t">oms 53 500 · varekost 21 %</span></span>
+          </div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <div><div class="l">DB-grad gruppe</div><div class="v" style="color:var(--success)">30,2 %</div></div>
+        <div><div class="l">Mål</div><div class="v">31,0 %</div></div>
+        <div class="conf">Dekningsbidrag = omsetning − varekost − direkte lønn − annen direkte drift. Eks. felleskostnader og husleie. Avledet fra POS og lønnskjøring uke 22; avstemmer med ukentlig lønnsrapport. Generert av Smartout 30.05.2026.</div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Avdelingslønnsomhet · Nord Gruppen</span><span>Uke 22 · RAP-2026-W22-DB · konfidensielt</span></div>
+    </div>
+  </div>
+
+<script>
+  (function(){
+    // contribution waterfall: revenue → −cogs → −labor → −other → DB
+    var steps=[
+      {l:"Omsetning", s:"1 284 500", v:1284500, type:"start"},
+      {l:"Varekost", s:"−388 100", v:-388100, type:"sub"},
+      {l:"Lønn", s:"−360 900", v:-360900, type:"sub"},
+      {l:"Annen drift", s:"−147 700", v:-147700, type:"sub"},
+      {l:"Dekningsbidrag", s:"387 800", v:387800, type:"end"}
+    ];
+    var max=1284500, host=document.getElementById("wf");
+    var cum=0;
+    steps.forEach(function(st){
+      var col=document.createElement("div"); col.className="wf-col";
+      var area=document.createElement("div"); area.className="wf-bar-area";
+      var bar=document.createElement("div"); bar.className="wf-bar";
+      var top, h, color, bottomPad;
+      if(st.type==="start"){ top=st.v; h=st.v; cum=st.v; color="var(--fg)"; bottomPad=0; }
+      else if(st.type==="end"){ top=st.v; h=st.v; color="var(--success)"; bottomPad=0; }
+      else { var prev=cum; cum=cum+st.v; h=Math.abs(st.v); top=prev; color="rgba(231,0,11,0.28)"; bottomPad=cum; }
+      bar.style.height=(h/max*100)+"%";
+      bar.style.background=color;
+      if(st.type==="sub"){ bar.style.marginBottom=(bottomPad/max*100)+"%"; }
+      var cap=document.createElement("span"); cap.className="wf-cap"; cap.textContent=st.s;
+      cap.style.color = st.type==="sub" ? "var(--error)" : (st.type==="end"?"var(--success)":"var(--fg)");
+      bar.appendChild(cap);
+      area.appendChild(bar);
+      var x=document.createElement("div"); x.className="wf-x";
+      x.innerHTML='<div class="l">'+st.l+'</div>';
+      col.appendChild(area); col.appendChild(x); host.appendChild(col);
+    });
+  })();
+</script>
+</body>
+</html>

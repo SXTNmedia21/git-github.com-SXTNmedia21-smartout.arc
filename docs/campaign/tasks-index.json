@@ -1,0 +1,192 @@
+{
+  "updated_by": "gen-index.sh",
+  "tasks": [
+    {
+      "id": "T-001-port-shell",
+      "label": "T-001-port-shell",
+      "kind": "ui",
+      "assigned_to": "?",
+      "page": "",
+      "gate": 95,
+      "subtasks": 0,
+      "green": 0,
+      "cleared": false,
+      "ask": "Port the design SHELL (sidebar + header + subheader) onto live DashboardShell, 1:1.",
+      "subtasks_detail": []
+    },
+    {
+      "id": "T-dagsoversikt-fidelity",
+      "label": "dagsoversikt",
+      "kind": "page-fidelity",
+      "assigned_to": "orchestrator",
+      "page": "apps/web/src/app/dashboard/min-dag-v2",
+      "gate": 95,
+      "subtasks": 8,
+      "green": 0,
+      "cleared": false,
+      "ask": "Verify the dagsoversikt port matches the design across all 8 fidelity dimensions.",
+      "subtasks_detail": [
+        {
+          "dim": "farge",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 72,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "font",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 60,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "padding",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 75,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "avstand",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 75,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "border-radius",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 78,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "skygge",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 40,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "layout",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 55,
+            "green": false,
+            "has_script": true
+          }
+        },
+        {
+          "dim": "tekst",
+          "status": "red",
+          "last_run": {
+            "percent": 100,
+            "confidence": 80,
+            "green": false,
+            "has_script": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T-dashboard-fidelity",
+      "label": "dashboard",
+      "kind": "page-fidelity",
+      "assigned_to": "orchestrator",
+      "page": "apps/web/src/app/dashboard",
+      "gate": 95,
+      "subtasks": 8,
+      "green": 0,
+      "cleared": false,
+      "ask": "Verify the dashboard port matches the design across all 8 fidelity dimensions.",
+      "subtasks_detail": [
+        {
+          "dim": "farge",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "font",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "padding",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "avstand",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "border-radius",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "skygge",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "layout",
+          "status": "pending",
+          "last_run": {}
+        },
+        {
+          "dim": "tekst",
+          "status": "pending",
+          "last_run": {}
+        }
+      ]
+    },
+    {
+      "id": "T-demo-green",
+      "label": "T-demo-green",
+      "kind": "ui",
+      "assigned_to": "?",
+      "page": "",
+      "gate": 95,
+      "subtasks": 0,
+      "green": 0,
+      "cleared": true,
+      "ask": "Reference: the green path — a verify-script that returns 100.",
+      "subtasks_detail": []
+    },
+    {
+      "id": "T-oppgaver-intake",
+      "label": "oppgaver",
+      "kind": "design-intake",
+      "assigned_to": "orchestrator",
+      "page": "",
+      "gate": 95,
+      "subtasks": 0,
+      "green": 0,
+      "cleared": false,
+      "ask": "Run Sixten Design Intake T0-T6 on oppgaver end-to-end. Prove the built surface (Dagslinje), honest-flag the 3 unbuilt tabs.",
+      "subtasks_detail": []
+    }
+  ]
+}

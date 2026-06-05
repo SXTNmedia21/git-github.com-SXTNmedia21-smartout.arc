@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="shared/styles.css" />
+<link rel="stylesheet" href="shared/shell.css" />
+<link rel="stylesheet" href="pages/auth.css" />
+<link rel="stylesheet" href="shared/pages.css" />
+<link rel="stylesheet" href="pages/handbook.css" />
+<link rel="stylesheet" href="pages/vaktplan.css" />
+<link rel="stylesheet" href="pages/planlegging.css" />
+<link rel="stylesheet" href="pages/oppgaver.css" />
+<link rel="stylesheet" href="pages/kommunikasjon.css" />
+<link rel="stylesheet" href="pages/ansatte.css" />
+<link rel="stylesheet" href="pages/ansatte-contracts.css" />
+<link rel="stylesheet" href="pages/oppgaver-form.css" />
+<link rel="stylesheet" href="pages/hms.css" />
+<link rel="stylesheet" href="pages/lonn.css" />
+<link rel="stylesheet" href="pages/recon.css" />
+<link rel="stylesheet" href="pages/rapporter.css" />
+<link rel="stylesheet" href="pages/menykunnskap.css" />
+<link rel="stylesheet" href="pages/min-dag.css" />
+<link rel="stylesheet" href="pages/min-side.css" />
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#1a1510"/>
+    <rect x="14" y="20" width="20" height="60" rx="3" fill="#f7f5f2"/>
+    <rect x="40" y="20" width="46" height="60" rx="3" fill="#fdfcfa"/>
+    <circle cx="19" cy="30" r="2.4" fill="#f97316"/>
+    <rect x="44" y="26" width="30" height="5" rx="2" fill="#1c1814"/>
+    <rect x="44" y="37" width="38" height="9" rx="3" fill="#fff4e8" stroke="#f97316" stroke-width="1"/>
+    <rect x="44" y="51" width="18" height="11" rx="2.5" fill="#f5f3f0"/>
+    <rect x="64" y="51" width="18" height="11" rx="2.5" fill="#f5f3f0"/>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"><div id="so-splash"><img src="assets/smartout-icon.png" alt="Smartout" /><div class="so-splash-bar"><i></i></div></div></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="shared/data.js"></script>
+<script src="shared/handbook-data.js"></script>
+<script src="shared/ansatte-data.js"></script>
+<script src="shared/contracts-data.js"></script>
+<script src="shared/kommunikasjon-data.js"></script>
+<script src="shared/kommunikasjon-skranke-data.js"></script>
+<script src="shared/hms-data.js"></script>
+<script src="shared/lonn-data.js"></script>
+<script src="shared/recon-data.js"></script>
+<script src="shared/rapporter-data.js"></script>
+<script src="shared/menykunnskap-data.js"></script>
+<script src="shared/dagsrapport-modal.js"></script>
+<script type="text/babel" src="shared/shell.jsx"></script>
+<script type="text/babel" src="pages/oversikt.jsx"></script>
+<script type="text/babel" src="pages/oppgaver.jsx"></script>
+<script type="text/babel" src="pages/oppgaver-form.jsx"></script>
+<script type="text/babel" src="pages/ansatte-shared.jsx"></script>
+<script type="text/babel" src="pages/ansatte-panels.jsx"></script>
+<script type="text/babel" src="pages/ansatte-panels2.jsx"></script>
+<script type="text/babel" src="pages/ansatte-ct-shared.jsx"></script>
+<script type="text/babel" src="pages/ansatte-contracts.jsx"></script>
+<script type="text/babel" src="pages/ansatte-templates.jsx"></script>
+<script type="text/babel" src="pages/ansatte-ct-builder.jsx"></script>
+<script type="text/babel" src="pages/ansatte-ct-hire.jsx"></script>
+<script type="text/babel" src="pages/ansatte-ct-doc.jsx"></script>
+<script type="text/babel" src="pages/ansatte-ct-onboard.jsx"></script>
+<script type="text/babel" src="pages/ansatte-controls.jsx"></script>
+<script type="text/babel" src="pages/ansatte-profile.jsx"></script>
+<script type="text/babel" src="pages/ansatte-directory.jsx"></script>
+<script type="text/babel" src="pages/ansatte.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-parts.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-controller.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-profile.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-print.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-availability.jsx"></script>
+<script type="text/babel" src="pages/vaktplan-turnus.jsx"></script>
+<script type="text/babel" src="pages/vaktplan.jsx"></script>
+<script type="text/babel" src="pages/planlegging-data.jsx"></script>
+<script type="text/babel" src="pages/planlegging-views.jsx"></script>
+<script type="text/babel" src="pages/planlegging-panels.jsx"></script>
+<script type="text/babel" src="pages/planlegging-season.jsx"></script>
+<script type="text/babel" src="pages/planlegging.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-shared.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-compose.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-detail.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-skranke-views.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-case.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon-skranke.jsx"></script>
+<script type="text/babel" src="pages/kommunikasjon.jsx"></script>
+<script type="text/babel" src="pages/hms-shared.jsx"></script>
+<script type="text/babel" src="pages/hms-dashboard.jsx"></script>
+<script type="text/babel" src="pages/hms-protocol.jsx"></script>
+<script type="text/babel" src="pages/hms-tracking.jsx"></script>
+<script type="text/babel" src="pages/hms-avvik.jsx"></script>
+<script type="text/babel" src="pages/hms-entities.jsx"></script>
+<script type="text/babel" src="pages/hms-wizard.jsx"></script>
+<script type="text/babel" src="pages/hms.jsx"></script>
+<script type="text/babel" src="pages/lonn-shared.jsx"></script>
+<script type="text/babel" src="pages/lonn-views.jsx"></script>
+<script type="text/babel" src="pages/lonn-config.jsx"></script>
+<script type="text/babel" src="pages/lonn-overlays.jsx"></script>
+<script type="text/babel" src="pages/lonn.jsx"></script>
+<script type="text/babel" src="pages/min-lonn.jsx"></script>
+<script type="text/babel" src="pages/min-dag.jsx"></script>
+<script type="text/babel" src="pages/mine-vakter.jsx"></script>
+<script type="text/babel" src="pages/mine-kontrakter.jsx"></script>
+<script type="text/babel" src="pages/mitt-cv.jsx"></script>
+<script type="text/babel" src="pages/avstemming-shared.jsx"></script>
+<script type="text/babel" src="pages/avstemming-forms.jsx"></script>
+<script type="text/babel" src="pages/avstemming-daglig.jsx"></script>
+<script type="text/babel" src="pages/avstemming-more.jsx"></script>
+<script type="text/babel" src="pages/avstemming.jsx"></script>
+<script type="text/babel" src="pages/rapporter-shared.jsx"></script>
+<script type="text/babel" src="pages/rapporter-oversikt.jsx"></script>
+<script type="text/babel" src="pages/rapporter-insikt.jsx"></script>
+<script type="text/babel" src="pages/rapporter-drilldown.jsx"></script>
+<script type="text/babel" src="pages/rapporter-bygger.jsx"></script>
+<script type="text/babel" src="pages/rapporter-datakilder.jsx"></script>
+<script type="text/babel" src="pages/rapporter-planlagte.jsx"></script>
+<script type="text/babel" src="pages/rapporter.jsx"></script>
+<script type="text/babel" src="pages/menykunnskap-shared.jsx"></script>
+<script type="text/babel" src="pages/menykunnskap-views.jsx"></script>
+<script type="text/babel" src="pages/menykunnskap-flow.jsx"></script>
+<script type="text/babel" src="pages/menykunnskap-quiz.jsx"></script>
+<script type="text/babel" src="pages/min-laering.jsx"></script>
+<script type="text/babel" src="pages/handbook-shared.jsx"></script>
+<script type="text/babel" src="pages/handbook-views.jsx"></script>
+<script type="text/babel" src="pages/handbook-editor.jsx"></script>
+<script type="text/babel" src="pages/handbook-create.jsx"></script>
+<script type="text/babel" src="pages/handbook.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">window.__SmartoutBoot();</script>
+</body>
+</html>

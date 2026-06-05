@@ -1,0 +1,13 @@
+{
+  "id": "T-demo-green",
+  "kind": "ui",
+  "ask": "Reference: the green path — a verify-script that returns 100.",
+  "verify_script": "verify/T-demo-green.sh",
+  "gate_confidence": 95,
+  "last_run": {
+    "percent": 100,
+    "confidence": 100,
+    "cleared": true,
+    "has_script": true
+  }
+}

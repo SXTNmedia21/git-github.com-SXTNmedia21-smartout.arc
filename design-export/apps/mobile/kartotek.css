@@ -1,0 +1,99 @@
+/* =============================================================================
+   Smartout Mobile — HMS & Avvik (kartotek) screen
+   Builds on the shared Nordic Split tokens + .m-* mobile layer.
+   ============================================================================= */
+
+/* stat strip */
+.m-kt-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.m-kt-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); padding: 13px 8px; text-align: center; }
+.m-kt-stat b { display: block; font-size: 23px; font-weight: 700; letter-spacing: -.02em; }
+.m-kt-stat span { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+
+/* search */
+.m-kt-search { display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 13px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--card); }
+.m-kt-search input { flex: 1; min-width: 0; border: none; background: none; outline: none; font-family: var(--font-sans); font-size: 14.5px; color: var(--fg); }
+.m-kt-search input::placeholder { color: var(--muted-soft); }
+.m-kt-clear { width: 24px; height: 24px; border-radius: 50%; background: var(--secondary); color: var(--muted); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+/* filter chips */
+.m-kt-seg { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; -webkit-overflow-scrolling: touch; }
+.m-kt-seg::-webkit-scrollbar { display: none; }
+.m-kt-chip { flex: 0 0 auto; height: 34px; padding: 0 15px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 600; color: var(--muted); transition: all .12s; }
+.m-kt-chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* section count chip */
+.m-sec-count { font-size: 12px; font-weight: 700; color: var(--muted-soft); font-family: var(--font-mono); }
+
+/* registry rows */
+.m-kt-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--border); }
+.m-kt-row:last-child { border-bottom: none; }
+.m-kt-ic { width: 38px; height: 38px; border-radius: 11px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.m-kt-ic.sev-hoy { background: color-mix(in oklab, var(--error) 13%, transparent); color: var(--error); }
+.m-kt-ic.sev-middels { background: color-mix(in oklab, var(--warning) 15%, transparent); color: var(--warning); }
+.m-kt-ic.sev-lav { background: var(--secondary); color: var(--muted); }
+.m-kt-body { flex: 1; min-width: 0; }
+.m-kt-top { display: flex; align-items: center; gap: 8px; }
+.m-kt-id { font-size: 11px; color: var(--muted-soft); font-weight: 600; }
+.m-kt-title { font-size: 14.5px; font-weight: 600; margin-top: 2px; line-height: 1.3; }
+.m-kt-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.m-kt-meta-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+/* status chips (avvik registry) */
+.m-kt-stp { font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; }
+.kt-st-meldt { color: var(--warning); background: color-mix(in oklab, var(--warning) 14%, transparent); }
+.kt-st-arbeid { color: var(--orange-dark); background: var(--orange-soft); }
+[data-theme="dark"] .kt-st-arbeid { color: var(--orange-light); }
+.kt-st-lukket { color: var(--success); background: color-mix(in oklab, var(--success) 13%, transparent); }
+
+/* control result badge */
+.m-kt-res { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+.m-kt-res.ok { color: var(--success); background: color-mix(in oklab, var(--success) 12%, transparent); }
+.m-kt-res.funn { color: var(--warning); background: color-mix(in oklab, var(--warning) 13%, transparent); }
+
+/* ---------------- avvik detail (full-cover) ---------------- */
+.m-av-head { display: flex; align-items: flex-start; gap: 13px; }
+.m-av-sevic { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.m-av-sevic.sev-hoy { background: color-mix(in oklab, var(--error) 14%, transparent); color: var(--error); }
+.m-av-sevic.sev-middels { background: color-mix(in oklab, var(--warning) 15%, transparent); color: var(--warning); }
+.m-av-sevic.sev-lav { background: var(--secondary); color: var(--muted); }
+.m-av-title { font-family: var(--font-heading); font-size: 23px; line-height: 1.15; }
+.m-av-tags { display: flex; align-items: center; gap: 9px; margin-top: 6px; flex-wrap: wrap; }
+.m-av-cat { font-size: 12px; color: var(--muted); }
+
+/* lifecycle stepper */
+.m-av-steps { display: flex; align-items: flex-start; margin: 20px 0 4px; }
+.m-av-step { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.m-av-step-dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: var(--font-mono); background: var(--secondary); color: var(--muted-soft); border: 2px solid var(--border); z-index: 2; }
+.m-av-step.done .m-av-step-dot { background: var(--success); color: #fff; border-color: var(--success); }
+.m-av-step.on .m-av-step-dot { background: var(--orange); color: #fff; border-color: var(--orange); box-shadow: 0 0 0 4px var(--orange-soft); }
+.m-av-step-lbl { font-size: 11px; font-weight: 600; color: var(--muted); }
+.m-av-step.on .m-av-step-lbl { color: var(--fg); }
+.m-av-step-bar { position: absolute; top: 15px; left: 50%; width: 100%; height: 2px; background: var(--border); z-index: 1; }
+.m-av-step.done .m-av-step-bar { background: var(--success); }
+
+.m-av-desc { font-size: 14px; line-height: 1.55; color: var(--fg); margin: 18px 0 0; }
+.m-av-bot { display: flex; gap: 11px; padding: 13px 14px; border-radius: var(--r-lg); background: var(--orange-soft); border: 1px solid color-mix(in srgb, var(--orange) 22%, var(--border)); margin-top: 14px; }
+[data-theme="dark"] .m-av-bot { background: color-mix(in oklab, var(--orange) 10%, var(--card)); }
+.m-av-bot-ic { width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto; background: var(--orange); display: flex; align-items: center; justify-content: center; }
+.m-av-bot b { display: block; font-size: 12.5px; color: var(--orange-dark); }
+[data-theme="dark"] .m-av-bot b { color: var(--orange-light); }
+.m-av-bot span { font-size: 13px; line-height: 1.5; color: var(--fg); }
+
+.m-av-meta { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.m-av-meta-row { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.m-av-meta-row:last-child { border-bottom: none; }
+.m-av-meta-row span { color: var(--muted); }
+.m-av-meta-row b { font-weight: 600; }
+
+/* timeline */
+.m-av-tl { display: flex; flex-direction: column; }
+.m-av-tl-row { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.m-av-tl-row:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: 0; width: 2px; background: var(--border); }
+.m-av-tl-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; margin-top: 2px; background: var(--muted-soft); z-index: 1; }
+.m-av-tl-dot.st-meldt { background: var(--warning); }
+.m-av-tl-dot.st-arbeid { background: var(--orange); }
+.m-av-tl-dot.st-lukket { background: var(--success); }
+.m-av-tl-body { flex: 1; min-width: 0; }
+.m-av-tl-txt { font-size: 13px; line-height: 1.45; color: var(--fg); }
+.m-av-tl-txt b { font-weight: 650; }
+.m-av-tl-time { font-size: 11px; color: var(--muted-soft); margin-top: 2px; font-family: var(--font-mono); }

@@ -1,0 +1,59 @@
+{
+  "domain": "min-dag",
+  "event_prefixes": [
+    "min_dag"
+  ],
+  "search_dirs": [
+    "apps/web/src",
+    "apps/mobile/src"
+  ],
+  "generated_at": "2026-06-03T03:51:43Z",
+  "layer": 2,
+  "layer_note": "Layer 2 = static grep for emit() call-sites in app source. Layer 3 (event lands a row in activity_trail) requires a running app and is out of scope for this static gate.",
+  "aggregate": {
+    "events_defined": 6,
+    "events_emitted": 6,
+    "events_phantom": 0,
+    "coverage_layer2_pct": 100.0,
+    "gate": "PASS"
+  },
+  "phantom_events": [],
+  "events": [
+    {
+      "key": "min_dag.brief.why_opened",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:348",
+      "emit_count": 1
+    },
+    {
+      "key": "min_dag.nav.quick_action",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:381",
+      "emit_count": 1
+    },
+    {
+      "key": "min_dag.news.item_opened",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:392",
+      "emit_count": 1
+    },
+    {
+      "key": "min_dag.task.comment_submitted",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:370",
+      "emit_count": 1
+    },
+    {
+      "key": "min_dag.task.expanded",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:335",
+      "emit_count": 1
+    },
+    {
+      "key": "min_dag.task.manual_opened",
+      "emitted": true,
+      "emit_site": "apps/web/src/app/dashboard/min-dag-v2/_components/MinDagView.tsx:359",
+      "emit_count": 1
+    }
+  ]
+}

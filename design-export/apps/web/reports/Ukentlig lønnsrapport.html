@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ukentlig lønnsrapport — Nord Gruppen · Uke 22</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2; --event:#c18200; --lager:#008388;
+    --bg:#fdfcfa; --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  /* on-screen toolbar */
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; letter-spacing:-0.01em; }
+  .bar .sub{ font-size:12px; color:#b8b2aa; }
+  .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; }
+  .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; }
+  .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; gap:24px; }
+
+  /* A4 sheet */
+  .sheet{ width:210mm; min-height:297mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:17mm 16mm 14mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  /* letterhead */
+  .lh{ display:flex; align-items:flex-start; gap:14px; padding-bottom:16px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:38px;height:38px;border-radius:10px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:14px;height:14px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; }
+  .lh-brand{ font-size:13px; font-weight:700; letter-spacing:.02em; }
+  .lh-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.6; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+
+  /* title block */
+  .title{ margin:20px 0 4px; }
+  .eyebrow{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  h1{ font-family:var(--h); font-weight:400; font-size:42px; letter-spacing:-0.02em; line-height:1.02; margin:7px 0 0; }
+  .title-sub{ font-size:13px; color:var(--muted); margin-top:10px; max-width:62ch; line-height:1.55; }
+  .recip{ display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .recip .chip{ font-size:10.5px; font-weight:600; color:var(--muted); background:var(--secondary); border-radius:999px; padding:4px 11px; display:inline-flex; align-items:center; gap:6px; }
+  .recip .chip .d{ width:7px;height:7px;border-radius:50%; }
+
+  section{ margin-top:24px; }
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:13px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+  .sec-h .n{ font-family:var(--m); font-size:11px; font-weight:600; color:var(--orange-dark); }
+  .sec-h h2{ font-family:var(--h); font-weight:400; font-size:21px; letter-spacing:-0.01em; margin:0; }
+  .sec-h .meta{ margin-left:auto; font-size:10.5px; color:var(--muted-soft); font-family:var(--m); }
+
+  /* botsson summary */
+  .brief{ background:var(--orange-soft); border:1px solid rgba(249,115,22,0.22); border-radius:13px; padding:15px 17px; display:flex; gap:13px; }
+  .brief-av{ width:30px;height:30px;border-radius:9px;background:var(--orange); color:#fff; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .brief-av svg{ width:18px;height:18px; }
+  .brief-tag{ font-size:8.5px; font-weight:700; letter-spacing:.14em; color:var(--orange-dark); }
+  .brief p{ margin:5px 0 0; font-size:12.5px; line-height:1.6; color:var(--fg); }
+  .brief .hl{ background:rgba(231,0,11,0.10); color:var(--error); font-weight:600; padding:0 4px; border-radius:4px; }
+  .brief strong{ font-weight:700; }
+
+  /* KPI tiles */
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-top:14px; }
+  .kpi{ border:1px solid var(--border); border-radius:12px; padding:12px 13px; position:relative; overflow:hidden; }
+  .kpi .edge{ position:absolute; left:0;top:0;bottom:0;width:3px; }
+  .kpi .lbl{ font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .kpi .val{ font-family:var(--m); font-size:25px; font-weight:700; letter-spacing:-0.02em; line-height:1; margin-top:9px; }
+  .kpi .val .u{ font-size:12px; font-weight:500; color:var(--muted-soft); margin-left:2px; }
+  .kpi .foot{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:6px; }
+  .kpi .target{ font-size:9.5px; color:var(--muted); font-family:var(--m); }
+  .delta{ font-family:var(--m); font-size:10px; font-weight:700; padding:2px 6px; border-radius:999px; white-space:nowrap; }
+  .delta.up{ color:var(--success); background:rgba(17,173,50,0.10); }
+  .delta.down{ color:var(--error); background:rgba(231,0,11,0.09); }
+  .delta.warn{ color:var(--warning); background:rgba(193,130,0,0.12); }
+  .val.crit{ color:var(--error); } .val.warn{ color:var(--warning); } .val.ok{ color:var(--success); }
+
+  /* chart */
+  .chart-wrap{ border:1px solid var(--border); border-radius:13px; padding:15px 17px 10px; }
+  .legend{ display:flex; gap:16px; font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:11px;height:11px;border-radius:3px;display:inline-block; }
+  .legend i.line{ width:15px;height:3px;border-radius:2px; }
+  .chart svg{ display:block; width:100%; height:170px; overflow:visible; }
+  .chart .gl{ stroke:var(--border); stroke-width:1; }
+  .chart .axlbl{ fill:var(--muted); font:600 9px var(--m); }
+  .chart-mini{ display:flex; gap:26px; flex-wrap:wrap; padding:10px 2px 2px; border-top:1px solid var(--border); margin-top:8px; }
+  .cm .l{ font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+  .cm .v{ font-family:var(--m); font-size:15px; font-weight:700; letter-spacing:-0.01em; margin-top:4px; display:flex; align-items:baseline; gap:7px; }
+
+  /* tables */
+  table{ width:100%; border-collapse:collapse; }
+  .vt th{ text-align:right; font-size:8.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--border-strong); white-space:nowrap; }
+  .vt th:first-child{ text-align:left; }
+  .vt td{ padding:11px 10px; border-bottom:1px solid var(--border); font-family:var(--m); font-size:12px; text-align:right; font-variant-numeric:tabular-nums; }
+  .vt td:first-child{ text-align:left; font-family:var(--s); }
+  .vt tr.tot td{ background:var(--secondary); font-weight:700; border-bottom:none; }
+  .vt .vn{ display:inline-flex; align-items:center; gap:9px; }
+  .vt .vd{ width:9px;height:9px;border-radius:50%; flex-shrink:0; }
+  .vt .nm{ font-weight:600; font-size:12.5px; }
+  .vt .ci{ font-size:10px; color:var(--muted); }
+  .flag{ font-size:7.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--orange-dark); background:var(--orange-soft); padding:2px 5px; border-radius:4px; margin-left:7px; }
+  .cw{ color:var(--warning); } .cc{ color:var(--error); } .co{ color:var(--success); }
+
+  /* department bars */
+  .dept{ display:flex; flex-direction:column; gap:0; }
+  .dept-row{ display:grid; grid-template-columns:120px 1fr 122px; gap:13px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
+  .dept-row:last-child{ border-bottom:none; }
+  .dept-nm{ font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+  .dept-nm .d{ width:9px;height:9px;border-radius:50%; }
+  .dept-track{ position:relative; height:20px; background:var(--secondary); border-radius:6px; overflow:hidden; }
+  .dept-fill{ position:absolute; left:0;top:0;bottom:0; border-radius:6px; }
+  .dept-mark{ position:absolute; top:-2px;bottom:-2px; width:2px; background:var(--fg); opacity:.5; }
+  .dept-val{ text-align:right; font-family:var(--m); font-size:12px; font-weight:700; }
+  .dept-val .t{ display:block; font-size:9px; color:var(--muted); font-weight:500; }
+
+  /* findings */
+  .find{ display:flex; flex-direction:column; gap:9px; }
+  .f{ border:1px solid var(--border); border-radius:11px; padding:12px 14px; display:flex; gap:12px; position:relative; overflow:hidden; }
+  .f::before{ content:""; position:absolute; left:0;top:0;bottom:0; width:3px; }
+  .f.crit::before{ background:var(--error); } .f.warn::before{ background:var(--warning); }
+  .f-ic{ width:28px;height:28px;border-radius:8px; display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .f.crit .f-ic{ background:rgba(231,0,11,0.10); color:var(--error); }
+  .f.warn .f-ic{ background:rgba(193,130,0,0.12); color:var(--warning); }
+  .f-ic svg{ width:15px;height:15px; }
+  .f-main{ flex:1; min-width:0; }
+  .f-tl{ display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+  .f-sev{ font-size:8px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:2px 6px; border-radius:5px; }
+  .f.crit .f-sev{ color:var(--error); background:rgba(231,0,11,0.10); }
+  .f.warn .f-sev{ color:var(--warning); background:rgba(193,130,0,0.12); }
+  .f-where{ font-size:10px; color:var(--muted); display:inline-flex; align-items:center; gap:5px; }
+  .f-title{ font-size:13px; font-weight:600; letter-spacing:-0.005em; line-height:1.3; }
+  .f-rec{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:4px; }
+  .f-rec b{ color:var(--fg); }
+  .f-imp{ font-family:var(--m); font-size:12px; font-weight:700; color:var(--fg); white-space:nowrap; align-self:center; }
+
+  /* footer */
+  .foot{ margin-top:26px; padding-top:12px; border-top:1px solid var(--border); display:flex; align-items:flex-end; gap:16px; }
+  .foot .sig{ flex:1; }
+  .foot .sig .l{ font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .foot .sig .nm{ font-family:var(--h); font-size:18px; margin-top:6px; }
+  .foot .sig .rl{ font-size:10.5px; color:var(--muted); }
+  .foot .conf{ text-align:right; font-size:9.5px; color:var(--muted-soft); line-height:1.6; max-width:46ch; }
+  .pagefoot{ position:absolute; left:16mm; right:16mm; bottom:8mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); }
+
+  @page{ size:A4; margin:0; }
+  @media print{
+    body{ background:#fff; }
+    .bar{ display:none; }
+    .stage{ padding:0; gap:0; }
+    .sheet{ box-shadow:none; width:auto; min-height:auto; page-break-after:always; }
+    .sheet:last-child{ page-break-after:auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Ukentlig lønnsrapport</b> <span class="sub">· Nord Gruppen · Uke 22</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg>
+      Lagre som PDF
+    </button>
+  </div>
+
+  <div class="stage">
+    <!-- ============ PAGE 1 ============ -->
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-brand">Smartout · Nord Gruppen</div>
+          <div class="lh-meta">Bistro Nord · Bistro Brygga · Kafé Torget · Nord Express</div>
+        </div>
+        <div class="lh-right">
+          Rapport <b>RAP-2026-W22</b><br/>
+          Generert <b>fre 30.05.2026 · 06:00</b><br/>
+          av Mr. Botsson · godkjent Maria A.
+        </div>
+      </div>
+
+      <div class="title">
+        <div class="eyebrow">Ukentlig lønnsrapport · automatisk utsending</div>
+        <h1>Lønn &amp; bemanning — uke 22</h1>
+        <div class="title-sub">Lønnskostnad, timer og overtid per sted og avdeling for 25.–31. mai 2026, sammenstilt mot omsetning, budsjett og forrige uke. Funn og anbefalinger er generert av Mr. Botsson fra POS, vaktplan og lønn.</div>
+        <div class="recip">
+          <span class="chip"><span class="d" style="background:#f97316"></span>Eiere · 2</span>
+          <span class="chip"><span class="d" style="background:#00ab93"></span>Restaurantsjefer · 4</span>
+          <span class="chip"><span class="d" style="background:#864ad2"></span>Økonomi · 2</span>
+        </div>
+      </div>
+
+      <section>
+        <div class="sec-h"><span class="n">01</span><h2>Sammendrag</h2><span class="meta">gruppenivå</span></div>
+        <div class="brief">
+          <span class="brief-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+          <div>
+            <span class="brief-tag">BOTSSON · UKESVURDERING</span>
+            <p>Gruppen ligger på <strong>28,1 % lønnsandel</strong> — så vidt over målet på 28 %. Omsetningen steg <strong>6,1 %</strong>, men <span class="hl">Bistro Nord trekker opp</span> med 29,4 % lønnsandel (+2,3 pp), drevet av <strong>12,5 t overtid på kjøkken</strong>. Brygga og Express leverer under mål. Tre funn nedenfor frigjør anslagsvis <strong>27 400 kr/uke</strong> uten å svekke service.</p>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <span class="edge" style="background:var(--warning)"></span>
+            <div class="lbl">Lønnsandel</div>
+            <div class="val warn">28,1<span class="u">%</span></div>
+            <div class="foot"><span class="target">mål 28,0 %</span><span class="delta warn">+0,6 pp</span></div>
+          </div>
+          <div class="kpi">
+            <span class="edge" style="background:var(--error)"></span>
+            <div class="lbl">Lønn vs budsjett</div>
+            <div class="val crit">+38,2<span class="u">k kr</span></div>
+            <div class="foot"><span class="target">budsjett kr 360k</span><span class="delta down">+25,8k</span></div>
+          </div>
+          <div class="kpi">
+            <span class="edge" style="background:var(--error)"></span>
+            <div class="lbl">Overtid</div>
+            <div class="val crit">38,1<span class="u">t</span></div>
+            <div class="foot"><span class="target">mål 30 t</span><span class="delta down">+8,1 t</span></div>
+          </div>
+          <div class="kpi">
+            <span class="edge" style="background:var(--warning)"></span>
+            <div class="lbl">Dekningsgrad</div>
+            <div class="val warn">94<span class="u">%</span></div>
+            <div class="foot"><span class="target">mål 95 %</span><span class="delta up">+1 pp</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">02</span><h2>Omsetning vs lønnskostnad</h2><span class="meta">per dag · uke 22</span></div>
+        <div class="chart-wrap">
+          <div class="legend">
+            <span><i class="line" style="background:var(--orange)"></i>Omsetning</span>
+            <span><i style="background:var(--border-strong)"></i>Lønnskostnad</span>
+            <span><i style="background:rgba(231,0,11,0.30)"></i>Bemanningsgap</span>
+          </div>
+          <div class="chart"><svg id="trend" viewBox="0 0 760 170" preserveAspectRatio="none"></svg></div>
+          <div class="chart-mini">
+            <div class="cm"><div class="l">Omsetning uke</div><div class="v">kr 1 284 500 <span class="delta up">+6,1 %</span></div></div>
+            <div class="cm"><div class="l">Lønnskostnad</div><div class="v">kr 360 900 <span class="delta down">+5,1 %</span></div></div>
+            <div class="cm"><div class="l">Tetteste dag</div><div class="v">Lør · kr 251 600</div></div>
+            <div class="cm"><div class="l">Bemanningsgap</div><div class="v">Tor + Fre</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">03</span><h2>Per sted</h2><span class="meta">25.–31. mai</span></div>
+        <table class="vt">
+          <thead><tr><th>Sted</th><th>Lønn %</th><th>Oms./t</th><th>Snittbong</th><th>Overtid</th><th>Dekning</th><th>Omsetning</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#f97316"></span><span><span class="nm">Bistro Nord</span><span class="flag">Flaggskip</span><br/><span class="ci">Grünerløkka</span></span></span></td>
+              <td><span class="cw">29,4 %</span></td><td>842</td><td>412</td><td><span class="cc">18,5 t</span></td><td><span class="cw">91 %</span></td><td>384 500</td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#00ab93"></span><span><span class="nm">Bistro Brygga</span><br/><span class="ci">Aker Brygge</span></span></span></td>
+              <td><span class="co">26,8 %</span></td><td>921</td><td>468</td><td><span class="co">9,4 t</span></td><td><span class="co">96 %</span></td><td>512 300</td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#864ad2"></span><span><span class="nm">Kafé Torget</span><br/><span class="ci">Sentrum</span></span></span></td>
+              <td><span class="cc">31,6 %</span></td><td>612</td><td>188</td><td><span class="co">6,2 t</span></td><td><span class="cw">93 %</span></td><td>214 700</td>
+            </tr>
+            <tr>
+              <td><span class="vn"><span class="vd" style="background:#c18200"></span><span><span class="nm">Nord Express</span><br/><span class="ci">Storo · levering</span></span></span></td>
+              <td><span class="co">24,1 %</span></td><td>1 040</td><td>286</td><td><span class="co">4,0 t</span></td><td><span class="co">98 %</span></td><td>173 000</td>
+            </tr>
+            <tr class="tot"><td>Gruppe totalt</td><td>28,1 %</td><td>853</td><td>338</td><td>38,1 t</td><td>94 %</td><td>1 284 500</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="pagefoot"><span>Smartout · Ukentlig lønnsrapport · Nord Gruppen</span><span>Side 1 av 2 · RAP-2026-W22</span></div>
+    </div>
+
+    <!-- ============ PAGE 2 ============ -->
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id">
+          <div class="lh-brand">Smartout · Nord Gruppen</div>
+          <div class="lh-meta">Ukentlig lønnsrapport · uke 22 · forts.</div>
+        </div>
+        <div class="lh-right">Rapport <b>RAP-2026-W22</b><br/>Konfidensielt · kun mottakere</div>
+      </div>
+
+      <section style="margin-top:20px">
+        <div class="sec-h"><span class="n">04</span><h2>Avdelinger — Bistro Nord</h2><span class="meta">lønnsandel mot mål · driveren</span></div>
+        <div class="chart-wrap">
+          <div class="dept">
+            <div class="dept-row">
+              <span class="dept-nm"><span class="d" style="background:var(--kjokken)"></span>Kjøkken</span>
+              <div class="dept-track"><span class="dept-fill" style="width:84%;background:var(--warning)"></span><span class="dept-mark" style="left:69%"></span></div>
+              <span class="dept-val">41,2 %<span class="t">mål 34 % · 612 t · over</span></span>
+            </div>
+            <div class="dept-row">
+              <span class="dept-nm"><span class="d" style="background:var(--sal)"></span>Sal</span>
+              <div class="dept-track"><span class="dept-fill" style="width:50%;background:var(--sal);opacity:.8"></span><span class="dept-mark" style="left:53%"></span></div>
+              <span class="dept-val">24,6 %<span class="t">mål 26 % · 588 t</span></span>
+            </div>
+            <div class="dept-row">
+              <span class="dept-nm"><span class="d" style="background:var(--bar)"></span>Bar</span>
+              <div class="dept-track"><span class="dept-fill" style="width:45%;background:var(--bar);opacity:.8"></span><span class="dept-mark" style="left:49%"></span></div>
+              <span class="dept-val">22,1 %<span class="t">mål 24 % · 196 t</span></span>
+            </div>
+            <div class="dept-row">
+              <span class="dept-nm"><span class="d" style="background:var(--event)"></span>Event</span>
+              <div class="dept-track"><span class="dept-fill" style="width:38%;background:var(--event);opacity:.8"></span><span class="dept-mark" style="left:41%"></span></div>
+              <span class="dept-val">18,4 %<span class="t">mål 20 % · 78 t</span></span>
+            </div>
+            <div class="dept-row">
+              <span class="dept-nm"><span class="d" style="background:var(--lager)"></span>Lager</span>
+              <div class="dept-track"><span class="dept-fill" style="width:25%;background:var(--lager);opacity:.8"></span><span class="dept-mark" style="left:29%"></span></div>
+              <span class="dept-val">12,0 %<span class="t">mål 14 % · 52 t</span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><span class="n">05</span><h2>Funn &amp; anbefalinger</h2><span class="meta">Botsson · 94 % datadekning</span></div>
+        <div class="find">
+          <div class="f crit">
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+            <div class="f-main">
+              <div class="f-tl"><span class="f-sev">Kritisk</span><span class="f-where"><span class="vd" style="width:7px;height:7px;border-radius:50%;background:#f97316;display:inline-block"></span>Bistro Nord</span></div>
+              <div class="f-title">Lønnskostnaden steg 8,4 % mot forrige uke</div>
+              <div class="f-rec"><b>Anbefaling.</b> Reduser kjøkkenbemanning man–ons med 1 rolle og send vaktforlengelser til godkjenning før de iverksettes.</div>
+            </div>
+            <span class="f-imp">≈ 14 200 kr/uke</span>
+          </div>
+          <div class="f crit">
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span>
+            <div class="f-main">
+              <div class="f-tl"><span class="f-sev">Kritisk</span><span class="f-where"><span class="vd" style="width:7px;height:7px;border-radius:50%;background:#ee560c;display:inline-block"></span>Kjøkken · Nord</span></div>
+              <div class="f-title">Kjøkkenets lønnsandel 41,2 % drevet av overtid</div>
+              <div class="f-rec"><b>Anbefaling.</b> Tildel en ekstravakt fra vikarpoolen tor–lør og still inn overtidsvarsel ved 8 t. To ansatte nærmer seg AML-grensen.</div>
+            </div>
+            <span class="f-imp">≈ 9 800 kr/uke</span>
+          </div>
+          <div class="f warn">
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6M17.5 20a5.5 5.5 0 0 0-3-4.9"/></svg></span>
+            <div class="f-main">
+              <div class="f-tl"><span class="f-sev">Følg med</span><span class="f-where"><span class="vd" style="width:7px;height:7px;border-radius:50%;background:#f97316;display:inline-block"></span>Bistro Nord</span></div>
+              <div class="f-title">Fredagens middagsvakt overbemannet med 2,5 årsverk</div>
+              <div class="f-rec"><b>Anbefaling.</b> Forskyv 2 kveldsvakter fra 15:00 til 17:00. Etterspørselen faller etter lunsj 3 av 4 fredager — uten å svekke service.</div>
+            </div>
+            <span class="f-imp">≈ 3 400 kr/fre</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <div class="sig">
+          <div class="l">Godkjent av</div>
+          <div class="nm">Maria Andersen</div>
+          <div class="rl">Driftsleder · Nord Gruppen · 30.05.2026</div>
+        </div>
+        <div class="conf">Konfidensielt. Inneholder lønns- og persondata — kun for navngitte mottakere. Tall er derivert fra POS, vaktplan og lønn per 30.05 06:00 og kan justeres ved etterregistrering. Generert automatisk av Smartout.</div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Ukentlig lønnsrapport · Nord Gruppen</span><span>Side 2 av 2 · RAP-2026-W22</span></div>
+    </div>
+  </div>
+
+<script>
+  // ---- dual trend: omsetning (line) + lønn (bars), 7 days ----
+  (function(){
+    var days=[
+      {d:"Man",rev:142000,labor:37120,gap:0},
+      {d:"Tir",rev:138500,labor:37778,gap:0},
+      {d:"Ons",rev:161200,labor:40160,gap:0},
+      {d:"Tor",rev:174800,labor:45120,gap:1},
+      {d:"Fre",rev:228400,labor:67925,gap:1},
+      {d:"Lør",rev:251600,labor:71359,gap:0},
+      {d:"Søn",rev:188000,labor:61438,gap:0}
+    ];
+    var W=760,H=170,padL=6,padR=6,padT=12,padB=24;
+    var iw=W-padL-padR, ih=H-padT-padB, n=days.length;
+    var maxRev=Math.max.apply(null,days.map(function(d){return d.rev;}))*1.08;
+    var maxLabor=Math.max.apply(null,days.map(function(d){return d.labor;}))*1.7;
+    var bw=(iw/n)*0.42;
+    var x=function(i){return padL+(i+0.5)*(iw/n);};
+    var yRev=function(v){return padT+(1-v/maxRev)*ih;};
+    var svg=document.getElementById("trend");
+    var NS="http://www.w3.org/2000/svg";
+    function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+    [0,.25,.5,.75,1].forEach(function(t){ svg.appendChild(el("line",{class:"gl",x1:padL,x2:W-padR,y1:padT+t*ih,y2:padT+t*ih})); });
+    days.forEach(function(d,i){
+      var bh=(d.labor/maxLabor)*ih;
+      svg.appendChild(el("rect",{x:x(i)-bw/2,y:padT+ih-bh,width:bw,height:bh,rx:3,fill:d.gap?"rgba(231,0,11,0.32)":"#d4cfc7"}));
+      var tx=el("text",{class:"axlbl",x:x(i),y:H-7,"text-anchor":"middle"}); tx.textContent=d.d; svg.appendChild(tx);
+    });
+    var dd=days.map(function(d,i){return (i?"L":"M")+x(i).toFixed(1)+" "+yRev(d.rev).toFixed(1);}).join(" ");
+    svg.appendChild(el("path",{d:dd,fill:"none",stroke:"#f97316","stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round"}));
+    days.forEach(function(d,i){ svg.appendChild(el("circle",{cx:x(i),cy:yRev(d.rev),r:3.6,fill:"#fff",stroke:"#f97316","stroke-width":2.2})); });
+  })();
+</script>
+</body>
+</html>

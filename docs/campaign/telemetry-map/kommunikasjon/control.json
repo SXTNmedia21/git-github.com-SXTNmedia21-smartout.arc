@@ -1,0 +1,264 @@
+{
+  "domain": "kommunikasjon",
+  "design_files": [
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-compose.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-detail.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-shared.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-skranke.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-skranke-views.jsx",
+    "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-case.jsx"
+  ],
+  "interactive_elements_total": 46,
+  "elements_mapped": 46,
+  "mutations": 22,
+  "events_required": 22,
+  "events_in_registry": 8,
+  "events_missing_from_registry": [
+    "announcement.draft_saved",
+    "announcement.scheduled",
+    "announcement.archived",
+    "announcement.republished",
+    "announcement.reminder_sent",
+    "announcement.comment_added",
+    "helpdesk.query.replied",
+    "helpdesk.internal_note_added",
+    "helpdesk.ai_draft_accepted",
+    "helpdesk.ai_draft_dismissed",
+    "helpdesk.case.priority_changed",
+    "helpdesk.case.reopened",
+    "channel.updated",
+    "channel.reopened"
+  ],
+  "hooks_found": 5,
+  "hooks_missing": [
+    {
+      "mutation": "togglePin (announcement)",
+      "hook": "use-pin-message",
+      "status": "hook_exists_unwired",
+      "note": "Hook exists; design uses local state mock. Pin emit is in capability tool body per ADR-0415."
+    },
+    {
+      "mutation": "upsertAnn (publish)",
+      "hook": "use-send-announcement",
+      "status": "hook_exists_unwired",
+      "note": "Hook exists and calls publish_announcement_atomic RPC. Design uses local state mock."
+    },
+    {
+      "mutation": "upsertAnn (draft)",
+      "hook": null,
+      "status": "missing",
+      "note": "use-send-announcement does not support status=draft. No hook. Event also missing from registry."
+    },
+    {
+      "mutation": "upsertAnn (scheduled)",
+      "hook": null,
+      "status": "missing",
+      "note": "use-send-announcement has no scheduled_at param. No hook. Event also missing from registry."
+    },
+    {
+      "mutation": "archiveAnn",
+      "hook": null,
+      "status": "missing",
+      "note": "No useArchiveAnnouncement hook. Event announcement.archived missing from registry."
+    },
+    {
+      "mutation": "republishAnn",
+      "hook": null,
+      "status": "missing",
+      "note": "No useRepublishAnnouncement hook. Event announcement.republished missing from registry."
+    },
+    {
+      "mutation": "remind (announcement unread)",
+      "hook": null,
+      "status": "hollow_blocked",
+      "note": "FLAG-1: notification_outbox is 0-seeded for announcement reminders. Backend path does not exist. UI is hollow."
+    },
+    {
+      "mutation": "addComment (announcement)",
+      "hook": null,
+      "status": "hollow_design_fiction",
+      "note": "No comment table/column for announcement comments. Design fiction — no backend path."
+    },
+    {
+      "mutation": "upsertChannel (create)",
+      "hook": "use-create-channel",
+      "status": "hook_exists_unwired",
+      "note": "Hook exists. Design uses local state mock."
+    },
+    {
+      "mutation": "upsertChannel (edit/update)",
+      "hook": null,
+      "status": "missing",
+      "note": "No useUpdateChannel hook. No channel.updated event in registry."
+    },
+    {
+      "mutation": "toggleArchiveChannel (archive)",
+      "hook": null,
+      "status": "missing",
+      "note": "No useArchiveChannel hook. channel.archived event exists in registry."
+    },
+    {
+      "mutation": "toggleArchiveChannel (reopen)",
+      "hook": null,
+      "status": "missing",
+      "note": "No hook. No channel.reopened event in registry."
+    },
+    {
+      "mutation": "upsertDesk (create/configure)",
+      "hook": null,
+      "status": "missing",
+      "note": "No useConfigureDesk hook. channel.helpdesk.enabled event exists in registry."
+    },
+    {
+      "mutation": "sendReply (helpdesk case)",
+      "hook": null,
+      "status": "missing",
+      "note": "use-send-message is for chat, not helpdesk. No helpdesk reply hook. Event helpdesk.query.replied missing from registry."
+    },
+    {
+      "mutation": "addNote (helpdesk internal)",
+      "hook": null,
+      "status": "missing",
+      "note": "No internal note hook. Event missing from registry. No DB table for helpdesk internal notes."
+    },
+    {
+      "mutation": "changeStatus (helpdesk case)",
+      "hook": null,
+      "status": "hollow_no_schema",
+      "note": "No case status column in current schema. Requires ADR before implementing."
+    },
+    {
+      "mutation": "changePriority (helpdesk case)",
+      "hook": null,
+      "status": "missing",
+      "note": "No priority hook. Event helpdesk.case.priority_changed missing from registry."
+    },
+    {
+      "mutation": "resolveCase (helpdesk)",
+      "hook": null,
+      "status": "missing",
+      "note": "No useResolveCase hook. helpdesk.query.resolved event EXISTS in registry. Hook must be created."
+    },
+    {
+      "mutation": "reopenCase (helpdesk)",
+      "hook": null,
+      "status": "missing",
+      "note": "No hook. Event helpdesk.case.reopened missing from registry."
+    },
+    {
+      "mutation": "reassign (helpdesk case)",
+      "hook": null,
+      "status": "missing",
+      "note": "No useReassignCase hook. helpdesk.query.reassigned event EXISTS in registry. Hook must be created."
+    },
+    {
+      "mutation": "acceptDraft (AI draft)",
+      "hook": null,
+      "status": "missing",
+      "note": "No hook. Event helpdesk.ai_draft_accepted missing from registry."
+    },
+    {
+      "mutation": "dismissDraft (AI draft)",
+      "hook": null,
+      "status": "missing",
+      "note": "No hook. Event helpdesk.ai_draft_dismissed missing from registry."
+    }
+  ],
+  "noop_candidates": [
+    "tab navigation (oversikt/kunngjoringer/kanaler/skranke)",
+    "skranke sub-tab navigation (oversikt/ko/analyse/innstillinger)",
+    "KPI pulse buttons (navigation only)",
+    "Botsson dismiss (local state only)",
+    "search inputs (local filter only)",
+    "filter/sort selects (local only)",
+    "channel selector in KoCompose (form field)",
+    "audience picker tiles (form field)",
+    "options toggles in compose (form field)",
+    "channel kind selector in KoChannelModal (form field)",
+    "KoDeskModal form fields (name/slug/preset/owners/cats/sla/ai — all local until save)",
+    "KoCaseDrawer tabs (samtale/internt/logg)",
+    "KoCaseDrawer 'Hvorfor?' toggle",
+    "KoDetail tabs (oversikt/mottakere/historikk)",
+    "modal open buttons (Ny kunngjøring, Ny kanal, Rediger, Arkivér — open modal only)",
+    "scrim/ESC/close buttons on modals (dismiss only)",
+    "case row clicks (open drawer — nav only)",
+    "pinned announcement row click (open drawer — nav only)",
+    "oversikt panel nav links (Se alle / Alle)",
+    "DeskCard Åpne kø link (nav only)",
+    "Min kø Se alle link (nav only)",
+    "Innstillinger Ny skranke / Konfigurer / Gjør til skranke (open modal only)",
+    "Botsson Åpne sak (open drawer — nav only)",
+    "Analyse tab (read-only, no interactions)"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": false,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": true,
+    "baseline_count_recorded": true
+  },
+  "gate": "FAIL",
+  "blockers": [
+    {
+      "id": "B1",
+      "severity": "high",
+      "description": "14 events required by mutations are not registered in packages/telemetry/src/registry.ts",
+      "affected_mutations": [
+        "announcement.draft_saved",
+        "announcement.scheduled",
+        "announcement.archived",
+        "announcement.republished",
+        "announcement.reminder_sent",
+        "announcement.comment_added",
+        "helpdesk.query.replied",
+        "helpdesk.internal_note_added",
+        "helpdesk.ai_draft_accepted",
+        "helpdesk.ai_draft_dismissed",
+        "helpdesk.case.priority_changed",
+        "helpdesk.case.reopened",
+        "channel.updated",
+        "channel.reopened"
+      ],
+      "resolution": "Register missing events in registry.ts. See PLAN.md Phase 2."
+    },
+    {
+      "id": "B2",
+      "severity": "high",
+      "description": "notification_outbox is 0-seeded for announcement domain. 'Send reminder' UI (elements #12, #41) is hollow — no backend path exists.",
+      "affected_mutations": ["remind"],
+      "resolution": "Create send_announcement_reminder RPC that inserts notification_outbox rows. See PLAN.md FLAG-1."
+    },
+    {
+      "id": "B3",
+      "severity": "high",
+      "description": "Entire Skranke helpdesk tab is mock-only. No hooks exist for: send reply, add internal note, change status, change priority, resolve, reopen, reassign, accept/dismiss AI draft.",
+      "affected_mutations": [
+        "sendReply",
+        "addNote",
+        "changeStatus",
+        "changePriority",
+        "resolveCase",
+        "reopenCase",
+        "reassign",
+        "acceptDraft",
+        "dismissDraft"
+      ],
+      "resolution": "Phase 1 (P1-E/F) covers resolve + reassign (events exist). Full skranke wiring requires ADR on data model first. See PLAN.md Phase 3."
+    },
+    {
+      "id": "B4",
+      "severity": "medium",
+      "description": "Announcement comment thread (KoDetail) is design fiction — no backend table/column for announcement comments.",
+      "affected_mutations": ["addComment"],
+      "resolution": "Add helpdesk-style comment path or use channel_message reply threading. Requires ADR."
+    },
+    {
+      "id": "B5",
+      "severity": "low",
+      "description": "channel_ai_policy table exists in DB but agent-router ignores it. KoDeskModal AI policy selector writes local state only.",
+      "affected_mutations": ["setAi in KoDeskModal"],
+      "resolution": "Wire channel_ai_policy writes in useConfigureDesk. Note: agent-router ignoring it is separate track."
+    }
+  ]
+}

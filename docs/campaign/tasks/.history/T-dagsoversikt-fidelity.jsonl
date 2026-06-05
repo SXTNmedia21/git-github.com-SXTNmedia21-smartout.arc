@@ -1,0 +1,5 @@
+{"ts": "2026-06-03T16:21:42Z", "actor": "pontus", "field": "status", "old": "assigned", "new": "in_progress"}
+{"ts": "2026-06-03T16:21:43Z", "actor": "pontus", "field": "assigned_to", "old": "orchestrator", "new": "orchestrator"}
+{"ts": "2026-06-03T18:08:18Z", "actor": "botsson-harness-builder", "field": "verify_run", "old": null, "new": {"rc": 2, "last_run": {"green_dims": 0, "total_dims": 8, "cleared": false}}}
+{"ts": "2026-06-03T18:12:39Z", "actor": "botsson-harness-builder", "field": "verify_run", "old": null, "new": {"rc": 2, "last_run": {"green_dims": 0, "total_dims": 8, "cleared": false}}}
+{"ts": "2026-06-03T18:13:15Z", "actor": "pontus", "field": "verify_run", "old": null, "new": {"rc": 2, "last_run": {"green_dims": 0, "total_dims": 8, "cleared": false}}}

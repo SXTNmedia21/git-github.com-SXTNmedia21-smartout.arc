@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Smartout — Fjernkontroll (test runner)</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Geist', system-ui, sans-serif; margin: 0; background: #faf8f5; }
+
+    /* Animations used across the remote */
+    @keyframes remotePulse {
+      0%   { opacity: 0.5; transform: scale(1); }
+      70%  { opacity: 0;   transform: scale(2.6); }
+      100% { opacity: 0;   transform: scale(2.6); }
+    }
+    @keyframes remotePulseRing {
+      0%   { opacity: 0.55; transform: scale(0.9); }
+      100% { opacity: 0;    transform: scale(1.8); }
+    }
+    @keyframes remoteRecBlink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.25; }
+    }
+    @keyframes remoteFlashIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes remoteExpand {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes remoteSnapFlash {
+      0%   { opacity: 0; }
+      30%  { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="remote/remote-data.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="remote/remote-primitives.jsx"></script>
+  <script type="text/babel" src="remote/remote.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAKS = /*EDITMODE-BEGIN*/{
+      "theme": "light",
+      "focus": "live"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [theme, setTheme] = React.useState(TWEAKS.theme);
+      const [focus, setFocus] = React.useState(TWEAKS.focus);
+      const [tweaksOn, setTweaksOn] = React.useState(false);
+
+      React.useEffect(() => {
+        const handler = (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === '__activate_edit_mode')   setTweaksOn(true);
+          if (e.data.type === '__deactivate_edit_mode') setTweaksOn(false);
+        };
+        window.addEventListener('message', handler);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', handler);
+      }, []);
+
+      const setTweak = (k, v) => {
+        if (k === 'theme') setTheme(v);
+        if (k === 'focus') setFocus(v);
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+      };
+
+      const { scenario, steps } = REMOTE_DATA;
+
+      return (
+        <>
+          <DesignCanvas>
+            <div style={{ padding: '0 60px 28px' }}>
+              <div style={{
+                fontFamily: 'Instrument Serif, serif', fontSize: 44,
+                letterSpacing: '-0.02em', color: 'rgba(40,30,20,0.9)',
+              }}>
+                Smartout — Fjernkontroll
+              </div>
+              <div style={{
+                fontSize: 15, color: 'rgba(60,50,40,0.65)',
+                marginTop: 4, maxWidth: 780, lineHeight: 1.5,
+              }}>
+                En state-maskin i visuell form: start / pause / fortsett, hastighet, REC og skjermbilde.
+                Vertikal steg-liste med live progress — klikk et steg for å se event-loggen.
+                Farger skiller tydelig <b>klar</b> (grå), <b>kjører</b> (grønn), <b>pauset</b> (amber) og <b>fullført</b> (blå).
+              </div>
+            </div>
+
+            <DCSection title="1. Live prototype" subtitle="Trykk Start — tikk i sanntid, klikk steg for event-logg">
+              <DCArtboard label={`Fjernkontroll · ${theme === 'dark' ? 'mørk' : 'lys'} tema`} width={960} height={920}>
+                <div style={{
+                  padding: 28,
+                  background: theme === 'dark' ? '#0f0c09' : '#faf8f5',
+                  height: '100%', boxSizing: 'border-box',
+                }}>
+                  <Remote scenario={scenario} steps={steps} theme={theme}/>
+                </div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="2. State-maskin · alle tilstander" subtitle="Samme komponent, seks snapshots — se hvordan fargespråket skifter">
+              <DCArtboard label="Ready · ingenting kjører ennå" width={960} height={560}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="ready" scenario={scenario} steps={steps}/>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="Running · steg 3 pågår · 1x" width={960} height={560}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="running" scenario={scenario} steps={steps} stepIdx={2} progress={0.55}/>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="Paused · midt i steg 5" width={960} height={560}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="paused" scenario={scenario} steps={steps} stepIdx={4} progress={0.42}/>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="Recording aktiv · steg 2" width={960} height={560}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="running" scenario={scenario} steps={steps} stepIdx={1} progress={0.3} recording/>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="Fullført · alle steg OK" width={960} height={560}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="done" scenario={scenario} steps={steps} stepIdx={steps.length - 1} progress={1}/>
+                </div>
+              </DCArtboard>
+              <DCArtboard label="Mørk tema · kjører @ 2x" width={960} height={560}>
+                <div style={{ padding: 24, background: '#0f0c09', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="running" scenario={scenario} steps={steps} stepIdx={3} progress={0.6} theme="dark" speed={2}/>
+                </div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="3. State-maskin · diagram" subtitle="Transitions og orthogonal recording/snapshot sub-state">
+              <DCArtboard label="Transitions" width={1100} height={460}>
+                <StateDiagram/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection title="4. Steg ekspandert — event-logg" subtitle="Klikk på et steg for å se alt som skjedde i det">
+              <DCArtboard label="Steg 5 åpent · Løs avvik" width={960} height={600}>
+                <div style={{ padding: 24, background: '#faf8f5', height: '100%', boxSizing: 'border-box' }}>
+                  <StateSnapshot stateName="running" scenario={scenario} steps={steps} stepIdx={4} progress={0.8} openStep="s05"/>
+                </div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCPostIt top={210} left={30} rotate={-3} width={230}>
+              Transport-knappen bytter form: play (ready) → pause (running) → play (paused/done). Aldri to primær-knapper samtidig.
+            </DCPostIt>
+            <DCPostIt top={1180} left={30} rotate={2} width={230}>
+              REC er orthogonal: opptak kan gå uavhengig av run-state. Skjermbilde er enkelt-skudd.
+            </DCPostIt>
+          </DesignCanvas>
+
+          {tweaksOn && (
+            <div style={{
+              position: "fixed", bottom: 20, right: 20, width: 260, padding: 16,
+              background: "#fdfcfa", border: "1px solid #e8e5e1", borderRadius: 14,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.12)", fontFamily: "Geist, sans-serif", zIndex: 9999,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a756e", marginBottom: 12 }}>Tweaks</div>
+
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Tema (live prototype)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 14 }}>
+                {[{k:"light",l:"Lys"},{k:"dark",l:"Mørk"}].map(o => (
+                  <button key={o.k} onClick={() => setTweak('theme', o.k)} style={{
+                    padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    border: `1px solid ${theme === o.k ? "#f97316" : "#e8e5e1"}`,
+                    background: theme === o.k ? "rgba(249,115,22,0.1)" : "transparent",
+                    color: theme === o.k ? "#f97316" : "#1c1814",
+                    fontFamily: "Geist, sans-serif",
+                  }}>{o.l}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    /* Stateless snapshot used for the state-machine gallery.
+       It renders a lookalike of <Remote/> at a specific fixed state. */
+    function StateSnapshot({ stateName, scenario, steps, stepIdx = 0, progress = 0, recording = false, openStep = null, theme = "light", speed = 1 }) {
+      // Fake deterministic "seen events"
+      const fakeSeen = {};
+      const curStep = steps[stepIdx];
+      if (curStep) {
+        const upto = curStep.duration_ms * progress;
+        const s = new Set();
+        curStep.events.forEach((e, i) => { if (e.t <= upto) s.add(i); });
+        fakeSeen[curStep.id] = s;
+      }
+      for (let i = 0; i < stepIdx; i++) {
+        fakeSeen[steps[i].id] = new Set(steps[i].events.map((_, j) => j));
+      }
+      return (
+        <FrozenRemote
+          scenario={scenario} steps={steps}
+          machine={stateName} currentIdx={stepIdx}
+          elapsedInStep={curStep ? curStep.duration_ms * progress : 0}
+          speed={speed} recording={recording}
+          openStep={openStep}
+          eventsSeen={fakeSeen}
+          theme={theme}
+        />
+      );
+    }
+
+    /* Simplified non-interactive copy of <Remote/> layout for static states.
+       Uses the SAME subcomponents (StepTimeline, StepRow, SpeedControl, TransportButton, StateBadge)
+       so visual language stays consistent. */
+    function FrozenRemote({ scenario, steps, machine, currentIdx, elapsedInStep, speed, recording, openStep, eventsSeen, theme }) {
+      const dark = theme === "dark";
+      const C = dark ? {
+        bg: "#17130f", surface: "#1f1a15", surfaceDim: "#1a1611",
+        fg: "#f0eeeb", muted: "#a09890", border: "rgba(255,255,255,0.08)",
+        borderSoft: "rgba(255,255,255,0.05)",
+      } : {
+        bg: RT.bg, surface: RT.surface, surfaceDim: RT.surfaceDim,
+        fg: RT.fg, muted: RT.muted, border: RT.border, borderSoft: RT.borderSoft,
+      };
+
+      const totalElapsed = (() => {
+        let t = 0; for (let i = 0; i < currentIdx; i++) t += steps[i].duration_ms;
+        return t + elapsedInStep;
+      })();
+      const totalDuration = steps.reduce((a, s) => a + s.duration_ms, 0);
+
+      const primaryConf = (() => {
+        if (machine === "ready")   return { variant: "primary", icon: Icon.play(18, "#fff"),    label: "Start" };
+        if (machine === "running") return { variant: "pause",   icon: Icon.pause(18, "#8f5f00"),label: "Pause" };
+        if (machine === "paused")  return { variant: "primary", icon: Icon.play(18, "#fff"),    label: "Fortsett" };
+        if (machine === "done")    return { variant: "primary", icon: Icon.play(18, "#fff"),    label: "Kjør igjen" };
+        return { variant: "primary", icon: Icon.play(18, "#fff"), label: "Start" };
+      })();
+
+      return (
+        <div style={{
+          width: "100%", fontFamily: "Geist, sans-serif",
+          color: C.fg, background: C.bg,
+          borderRadius: 18, border: `1px solid ${C.border}`, overflow: "hidden",
+          boxShadow: dark ? "0 20px 48px rgba(0,0,0,0.5)" : "0 18px 40px rgba(30,22,15,0.08)",
+        }}>
+          {/* header */}
+          <div style={{
+            padding: "18px 22px 14px", background: C.surface,
+            borderBottom: `1px solid ${C.border}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  <StateBadge state={machine} large/>
+                  {recording && (
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 7,
+                      padding: "4px 10px 4px 9px", borderRadius: 999,
+                      background: "rgba(231,0,11,0.10)",
+                      border: "1px solid rgba(231,0,11,0.35)",
+                      color: RT.rec,
+                      fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                    }}>
+                      <span style={{
+                        display: "inline-block", width: 8, height: 8, borderRadius: 999,
+                        background: RT.rec, animation: "remoteRecBlink 1s ease-in-out infinite",
+                      }}/>
+                      REC · opptak
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontFamily: "Instrument Serif, serif", fontSize: 26, lineHeight: 1.05, letterSpacing: "-0.01em" }}>
+                  {scenario.title}
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 4, fontFamily: "Geist Mono, monospace" }}>
+                  {scenario.target}
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>Kjøretid</div>
+                <div style={{
+                  fontFamily: "Geist Mono, monospace",
+                  fontSize: 28, fontWeight: 500, letterSpacing: "-0.02em",
+                  color: C.fg, fontVariantNumeric: "tabular-nums", marginTop: 2,
+                }}>
+                  {fmtTime(totalElapsed)}
+                </div>
+                <div style={{ fontSize: 11, color: C.muted, fontFamily: "Geist Mono, monospace" }}>
+                  / {fmtTime(totalDuration)} @ {speed}x
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <StepTimeline steps={steps} currentIdx={currentIdx} elapsedInStep={elapsedInStep} machine={machine} onJump={()=>{}} C={C}/>
+
+          {/* transport */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 14,
+            padding: "16px 22px", background: C.surfaceDim,
+            borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+            flexWrap: "wrap",
+          }}>
+            <TransportButton variant="default" size={44} icon={Icon.back(16, C.fg)} label="Forrige" onClick={()=>{}}/>
+            <TransportButton variant={primaryConf.variant} size={56} icon={primaryConf.icon} label={primaryConf.label} onClick={()=>{}}/>
+            <TransportButton variant="default" size={44} icon={Icon.step(16, C.fg)} label="Neste" onClick={()=>{}}/>
+            <TransportButton variant="default" size={44} icon={Icon.stop(14, C.fg)} label="Stopp" onClick={()=>{}}/>
+            <div style={{ width: 1, height: 40, background: C.border, margin: "0 4px" }}/>
+            <SpeedControl value={speed} onChange={()=>{}} C={C}/>
+            <div style={{ flex: 1, minWidth: 12 }}/>
+            <button style={{
+              display: "inline-flex", alignItems: "center", gap: 9,
+              height: 44, padding: "0 16px 0 14px", borderRadius: 999,
+              border: `1px solid ${recording ? RT.rec : C.border}`,
+              background: recording ? "rgba(231,0,11,0.10)" : C.surface,
+              color: recording ? RT.rec : C.fg,
+              fontSize: 13, fontWeight: 700, letterSpacing: "0.06em",
+              cursor: "default", fontFamily: "Geist, sans-serif",
+              boxShadow: recording ? "0 0 0 3px rgba(231,0,11,0.18)" : "none",
+            }}>
+              <span style={{
+                width: 10, height: 10, borderRadius: 999, background: RT.rec,
+                animation: recording ? "remoteRecBlink 1s ease-in-out infinite" : "none",
+              }}/>
+              REC
+            </button>
+            <button style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              height: 44, padding: "0 16px", borderRadius: 999,
+              border: `1px solid ${C.border}`, background: C.surface, color: C.fg,
+              fontSize: 13, fontWeight: 600, cursor: "default", fontFamily: "Geist, sans-serif",
+            }}>
+              {Icon.cam(16, C.fg)} Skjermbilde
+            </button>
+          </div>
+
+          {/* steps */}
+          <div style={{ background: C.bg, padding: "6px 0" }}>
+            {steps.map((step, i) => (
+              <StepRow key={step.id}
+                step={step} index={i} total={steps.length}
+                isCurrent={i === currentIdx}
+                isDone={i < currentIdx || (i === currentIdx && machine === "done")}
+                isFuture={i > currentIdx}
+                machine={machine}
+                elapsedInStep={i === currentIdx ? elapsedInStep : (i < currentIdx ? step.duration_ms : 0)}
+                eventsSeen={eventsSeen[step.id] || new Set()}
+                open={openStep === step.id}
+                onToggle={() => {}} onJump={() => {}}
+                C={C}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* Clean state-machine diagram */
+    function StateDiagram() {
+      const nodes = [
+        { id: "ready",   x: 100,  y: 200, label: "Klar",    color: RT.ready },
+        { id: "running", x: 440,  y: 200, label: "Kjører",  color: RT.running },
+        { id: "paused",  x: 440,  y: 60,  label: "Pauset",  color: RT.paused },
+        { id: "done",    x: 820,  y: 200, label: "Fullført",color: RT.done },
+      ];
+      const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+      return (
+        <div style={{ width: "100%", height: "100%", background: "#fff", padding: 30, boxSizing: "border-box", fontFamily: "Geist, sans-serif" }}>
+          <svg width="100%" height="100%" viewBox="0 0 1080 400" style={{ display: "block" }}>
+            {/* arrows */}
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#7a756e"/>
+              </marker>
+            </defs>
+
+            {/* ready -> running (Start) */}
+            <path d="M 180 200 L 360 200" stroke="#7a756e" strokeWidth="1.5" fill="none" markerEnd="url(#arrow)"/>
+            <text x="270" y="190" textAnchor="middle" fontSize="12" fill="#1c1814" fontWeight="600">Start</text>
+
+            {/* running -> paused */}
+            <path d="M 420 160 Q 380 110 420 90" stroke="#c18200" strokeWidth="1.5" fill="none" markerEnd="url(#arrow)"/>
+            <text x="350" y="122" textAnchor="middle" fontSize="12" fill="#c18200" fontWeight="600">Pause</text>
+
+            {/* paused -> running */}
+            <path d="M 460 100 Q 500 140 460 160" stroke="#11ad32" strokeWidth="1.5" fill="none" markerEnd="url(#arrow)"/>
+            <text x="530" y="122" textAnchor="start" fontSize="12" fill="#11ad32" fontWeight="600">Fortsett</text>
+
+            {/* running -> done */}
+            <path d="M 520 200 L 740 200" stroke="#7a756e" strokeWidth="1.5" fill="none" markerEnd="url(#arrow)"/>
+            <text x="630" y="190" textAnchor="middle" fontSize="12" fill="#1c1814" fontWeight="600">Alle steg fullført</text>
+
+            {/* done -> ready (Kjør igjen) */}
+            <path d="M 820 240 Q 500 340 100 240" stroke="#7a756e" strokeWidth="1.5" fill="none" strokeDasharray="4 4" markerEnd="url(#arrow)"/>
+            <text x="460" y="320" textAnchor="middle" fontSize="12" fill="#7a756e" fontWeight="600">Kjør igjen / Stopp</text>
+
+            {/* running -> ready (Stopp) */}
+            <path d="M 440 230 Q 270 280 100 230" stroke="#7a756e" strokeWidth="1.5" fill="none" strokeDasharray="4 4" markerEnd="url(#arrow)"/>
+            <text x="270" y="272" textAnchor="middle" fontSize="12" fill="#7a756e" fontWeight="600">Stopp</text>
+
+            {/* nodes */}
+            {nodes.map(n => (
+              <g key={n.id}>
+                <rect x={n.x - 80} y={n.y - 40} width="160" height="80" rx="40"
+                      fill={`color-mix(in oklab, ${n.color} 10%, #fff)`}
+                      stroke={n.color} strokeWidth="1.5"/>
+                <circle cx={n.x - 48} cy={n.y} r="6" fill={n.color}/>
+                <text x={n.x - 30} y={n.y - 4} fontSize="16" fontWeight="700" fill="#1c1814">{n.label}</text>
+                <text x={n.x - 30} y={n.y + 16} fontSize="11" fill="#7a756e" fontFamily="Geist Mono, monospace">{n.id}</text>
+              </g>
+            ))}
+          </svg>
+
+          <div style={{ marginTop: 10, fontSize: 12, color: "#7a756e", textAlign: "center" }}>
+            <b style={{ color: "#1c1814" }}>Orthogonalt:</b> REC (opptak) og skjermbilde lever uavhengig av run-state — du kan starte opptak før Start trykkes, eller ta bilde i pause.
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

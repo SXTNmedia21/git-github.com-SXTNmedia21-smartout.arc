@@ -1,0 +1,1154 @@
+[
+  {
+    "domain": "ansatte",
+    "design_files": [
+      "ansatte.jsx",
+      "ansatte-directory.jsx",
+      "ansatte-contracts.jsx",
+      "ansatte-controls.jsx",
+      "ansatte-panels.jsx",
+      "ansatte-panels2.jsx",
+      "ansatte-profile.jsx",
+      "ansatte-templates.jsx",
+      "ansatte-shared.jsx"
+    ],
+    "interactive_elements_total": 164,
+    "elements_mapped": 164,
+    "mutations": 34,
+    "events_required": 34,
+    "events_in_registry": 14,
+    "events_missing_from_registry": [
+      "people.employee.onboarding_wizard_started",
+      "people.bulk.training_assigned",
+      "people.bulk.message_sent",
+      "people.bulk.department_set",
+      "people.competence.added",
+      "people.absence.registered",
+      "people.document.sent",
+      "people.task.assigned",
+      "people.task.daily_list_added",
+      "people.recert.scheduled",
+      "people.recert.deadline_extended",
+      "people.recert.reminder_sent",
+      "people.botsson.action_invoked",
+      "people.message.sent",
+      "people.audit.exported",
+      "contract_attachment.upload_initiated",
+      "contract_template.draft_saved",
+      "contract_template.published",
+      "contract_template.auto_attach_toggled",
+      "contracts.export.initiated"
+    ],
+    "hooks_found": 6,
+    "hooks_reusable": [
+      "use-employment-contracts.ts → useComposeContract (contract draft save)",
+      "use-employment-contracts.ts → useSendContract (contract send + reminder purr)",
+      "use-drawer-profile.ts → useDrawerProfile (read — needs write companion)",
+      "use-workforce-readiness.ts → useWorkforceReadiness (read — assign protocol can piggyback)",
+      "use-drawer-payroll-profile.ts → read only",
+      "use-roster.ts → read only (schedule surface, not people mutations)"
+    ],
+    "hooks_missing": [
+      "useUpdateProfile — ProfileCC save (profile fields + IDENTITY FLAG for email/phone)",
+      "useUpdateProfileAccess — AccessEdit save (role + scopes)",
+      "useUpdatePlacement — PlacementEdit save (dept + team + location)",
+      "useActivateEmployee — trainee→active lifecycle transition",
+      "useReactivateEmployee — inactive→active lifecycle",
+      "useRegisterAbsence — NewAbsence modal",
+      "useAddCompetence — AddCompetence modal (4 sub-types)",
+      "useAssignProtocols — AssignCenter opplæring confirm (bulk protocol_assignment)",
+      "useAssignLegalFunction — AssignCenter juridisk verv",
+      "useScheduleRecert — RecertPlan confirm",
+      "useExtendRecertDeadline — RecertPlan + ProtoCard forleng",
+      "useSendRecertReminder — ProtoCard påminn",
+      "useUpsertContractTemplate — TemplateEditor save/publish",
+      "useToggleContractTemplateAutoAttach — TemplateEditor auto-vedlegg toggle",
+      "useStartOnboardingWizard — Ny ansatt CTA",
+      "useBulkAssignTraining — bulk training assign",
+      "useBulkSendMessage — bulk message (no API route either)",
+      "useBulkSetDepartment — bulk dept set (no API route either)",
+      "useExportContracts — contracts export",
+      "useExportAuditLog — audit panel export",
+      "useSendDocument — AssignCenter dokument confirm",
+      "useAssignTask — AssignCenter oppgave confirm",
+      "useAddToDailyList — AssignCenter dagsliste confirm",
+      "useSendDirectMessage — MessageThread send (real impl)"
+    ],
+    "noop_candidates": [
+      "Surface switch buttons (ansatte/kontrakter)",
+      "All KPI Pulse onClick (filter tab change only)",
+      "Botsson 'Se Petter' CTA (nav only)",
+      "All lifecycle filter tabs",
+      "Search input (client filter)",
+      "Dept filter popover items",
+      "View toggle table/cards",
+      "Row/card checkbox toggles (local selection state)",
+      "Select-all checkbox",
+      "Row click / card click (navigation to profile)",
+      "Contract sub-tabs (avtaler/maler)",
+      "Legg til kontrakt button (opens drawer only)",
+      "Ny mal button (opens editor only)",
+      "Contract filter chips (local filter state)",
+      "Contract activity row click (navigation)",
+      "AddContract backdrop + X + Avbryt",
+      "Velg ansatt select (local state)",
+      "Ansettelsesform segment (local state)",
+      "Lønnstype segment (local state)",
+      "Legg til vedlegg toggle (shows menu only)",
+      "ProfileCC backdrop/X + quicklinks",
+      "Access level radios (local state)",
+      "Authority segment (local state)",
+      "Leadership toggles (local state only in design)",
+      "Scope toggles (local state only in design)",
+      "PlacementEdit inputs (local state until save)",
+      "CompetenceType segment",
+      "Stilling/Profesjon/Juridisk/Sertifikat selects (local state)",
+      "Absence type select + date inputs (local state)",
+      "Fravær gov-hint link (nav)",
+      "AssignCenter hub nav cards (mode switch)",
+      "Sett opp vakt card (opens schedule — no people mutation)",
+      "Opplæring/Dokument/Oppgave filter chips + search + pick rows (local)",
+      "Tilbake buttons in AssignCenter (mode nav)",
+      "Oppgave 'Legg i dagsliste' toggle (local)",
+      "Recert preset buttons (local state)",
+      "Recert custom date input",
+      "Recert Ansvarlig select",
+      "Recert reminder toggles (local state)",
+      "VideoCall Demp + Video (no handlers wired)",
+      "Chat input onChange (local)",
+      "Chat Ring button (opens call modal)",
+      "Chat X close",
+      "ProtoCard expand (read-only drill-down)",
+      "Recert Planlegg button (opens RecertPlan modal)",
+      "Readiness blocker Løs (advisory only)",
+      "ContractPanel Ny kontrakt button (opens AddContract drawer)",
+      "CompetencePanel Legg til (opens AddCompetence modal)",
+      "AccessPanel Endre (opens AccessEdit modal)",
+      "PlacementPanel Endre (opens PlacementEdit modal)",
+      "AbsencePanel Nytt (opens NewAbsence modal)",
+      "PII Se innsynslogg link (nav)",
+      "PII ConfirmModal Avbryt",
+      "Profile back button",
+      "Profile tab bar (9 tabs, local nav)",
+      "Summary Aktiver button (opens confirm modal)",
+      "Summary Avslutningsløp (nav)",
+      "Summary Rediger profil (opens ProfileCC)",
+      "Summary Ring/Melding/Tildel quick actions (open modals)",
+      "ConfirmModal Avbryt (activate)",
+      "Template grid item (opens editor)",
+      "Template Ny mal card (opens editor)",
+      "Editor back button",
+      "Editor Forhåndsvis/Rediger toggle",
+      "System field chips (text insert only)",
+      "Deep link buttons (text insert only)",
+      "Document blocks (active block selection)",
+      "Template name input (local state)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": false,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "identity_flags": [
+      {
+        "element": "PII reveal (personnr, bank, address, family, taxCard)",
+        "flag": "IDENTITY FLAG — query must join user_identity (PK: user_id), NOT user/auth.users",
+        "elements": [
+          138,
+          140
+        ]
+      },
+      {
+        "element": "ProfileCC save (e-post, telefon fields)",
+        "flag": "IDENTITY FLAG — email + phone live on user_identity, must write via privileged server route",
+        "elements": [
+          60
+        ]
+      }
+    ],
+    "gate": "FAIL",
+    "blockers": [
+      "20 events missing from registry — must be added before emit() can be wired",
+      "24 mutations have no backing hook — hooks must be implemented before wiring",
+      "every_mutation_has_event = false (20 missing events prevent this control point from passing)",
+      "Bulk actions (bulk.message_sent, bulk.department_set) have no API route yet — requires server-side work beyond telemetry",
+      "MessageThread send is client-only state in design — real channel/messaging infrastructure not yet wired",
+      "PII reveal emit wiring needs verification — admin.pii_reveal exists in registry but emit call at server route must be confirmed"
+    ]
+  },
+  {
+    "domain": "avstemming",
+    "design_files": [
+      "pages/avstemming.jsx",
+      "pages/avstemming-daglig.jsx",
+      "pages/avstemming-forms.jsx",
+      "pages/avstemming-more.jsx",
+      "pages/avstemming-shared.jsx"
+    ],
+    "interactive_elements_total": 97,
+    "elements_mapped": 97,
+    "mutations": 40,
+    "events_required": 19,
+    "events_in_registry": 8,
+    "events_missing_from_registry": [
+      "reconciliation exported",
+      "reconciliation bulk_approved",
+      "reconciliation revenue_adjusted",
+      "reconciliation shift_proposal_sent",
+      "reconciliation occupational_closed",
+      "reconciliation season_closed",
+      "handoff resolved",
+      "handoff escalated",
+      "handoff reminder_sent",
+      "handoff rejected",
+      "reconciliation policy_updated"
+    ],
+    "hooks_found": 5,
+    "hooks_reuse": [
+      "useApproveReconciliation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:95)",
+      "useRejectReconciliation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:182)",
+      "useApproveShiftHours (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:248)",
+      "useResolveDeviation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:298)",
+      "lockDayMutation (apps/web/src/app/dashboard/reconciliation/_components/DayDetail.tsx:97)"
+    ],
+    "hooks_missing": [
+      "useAdjustRevenue — UPDATE daily_reconciliation revenue fields + emit reconciliation revenue_adjusted",
+      "useSubmitHandoff — INSERT session_note type=handoff_request + emit handoff submitted",
+      "useProposeShiftHours — UPDATE shift_approval status=proposed + emit reconciliation shift_proposal_sent",
+      "useBulkApproveReconciliation — UPDATE daily_reconciliation ×N + emit reconciliation bulk_approved",
+      "useResolveHandoff — resolve handoff + emit handoff resolved",
+      "useEscalateHandoff — escalate handoff + emit handoff escalated",
+      "useHandoffReminder — send reminder + emit handoff reminder_sent",
+      "useRejectHandoff — reject handoff + emit handoff rejected",
+      "useCloseOccupationalPeriod — close occupational period + emit reconciliation occupational_closed",
+      "useCloseSeasonPeriod — close season + emit reconciliation season_closed",
+      "useUpdateReconciliationPolicy — upsert policy config + emit reconciliation policy_updated"
+    ],
+    "noop_candidates": [
+      "Tab navigation (daglig/yrke/sesong/handoffs/innstillinger) — 5 elements",
+      "Detail tab navigation (oversikt/omsetning/vakter/avvik/oppgaver/logg) — 6 elements",
+      "DayList search input — 1 element",
+      "DayList status filter chips (alle/krever handling/venter/låst) — 4 elements",
+      "Day row click (select for detail) — 1 element",
+      "Day row checkbox (bulk selection toggle) — 1 element",
+      "Preflight blocker row click (jump to tab) — 1 element",
+      "Botsson assist: Vis avvik button (goTab nav) — 1 element",
+      "OCR bilag thumbnail click (preview toast) — 1 element",
+      "Deviation row expand (toggle suggestion) — 1 element",
+      "ContextRail handoff item click (open handoff tab) — 1 element",
+      "All modal Avbryt buttons — 7 elements",
+      "All form input/textarea/select (local state only) — 15 elements",
+      "ShiftApprove supplement +/× local state — 2 elements",
+      "Yrke wizard: profession radio, period input, Tilbake/Neste nav — 4 elements",
+      "Sesong wizard: season radio (display only), Tilbake/Neste nav, factor toggles (local) — 5 elements",
+      "Handoffs: filter chips, list row select — 2 elements"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": false,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": false,
+      "baseline_count_recorded": true
+    },
+    "gate": "FAIL",
+    "blockers": [
+      {
+        "id": "MISSING_EVENTS",
+        "severity": "high",
+        "description": "11 telemetry events required by design mutations are not present in packages/telemetry/src/registry.ts. Must be added before implementation: reconciliation exported, reconciliation bulk_approved, reconciliation revenue_adjusted, reconciliation shift_proposal_sent, reconciliation occupational_closed, reconciliation season_closed, handoff resolved, handoff escalated, handoff reminder_sent, handoff rejected, reconciliation policy_updated."
+      },
+      {
+        "id": "MISSING_HOOKS",
+        "severity": "high",
+        "description": "11 mutation hooks are missing: useAdjustRevenue, useSubmitHandoff, useProposeShiftHours, useBulkApproveReconciliation, useResolveHandoff, useEscalateHandoff, useHandoffReminder, useRejectHandoff, useCloseOccupationalPeriod, useCloseSeasonPeriod, useUpdateReconciliationPolicy. These must be written before those UI paths can wire up."
+      },
+      {
+        "id": "F0_4_SEED_BLOCKER",
+        "severity": "critical",
+        "description": "daily_reconciliation, shift_approval, and session_note tables have 0 seed rows. E2E tests against seed are BLOCKED until supabase/migrations/70-reconciliation.sql (F0.4) lands. Unit-level hook tests are unblocked. Do not treat gate battery as passable for e2e until F0.4 is merged."
+      }
+    ]
+  },
+  {
+    "domain": "hms",
+    "design_files": [
+      "hms.jsx",
+      "hms-avvik.jsx",
+      "hms-dashboard.jsx",
+      "hms-entities.jsx",
+      "hms-protocol.jsx",
+      "hms-shared.jsx",
+      "hms-tracking.jsx",
+      "hms-wizard.jsx"
+    ],
+    "interactive_elements_total": 145,
+    "elements_mapped": 145,
+    "mutations": 38,
+    "events_required": 38,
+    "events_in_registry": 38,
+    "events_missing_from_registry": [],
+    "hooks_found": 5,
+    "hooks_reused": [
+      "use-deviations.ts",
+      "use-create-deviation.ts",
+      "use-update-deviation.ts",
+      "use-complete-task.ts",
+      "use-readiness-score.ts",
+      "use-session-tasks.ts",
+      "use-procedure-steps.ts"
+    ],
+    "hooks_missing": [],
+    "hooks_delivered": [
+      "use-create-protocol.ts — delivered 2026-06-01; delegates to createProtocolAction (gateAction + admin INSERT + awaited emit(hms.protocol.created)). Follows use-complete-task.ts gated template pattern."
+    ],
+    "noop_candidates": [
+      "Tab nav (hms.jsx:129) — 5 buttons — pure nav",
+      "KPI Pulses (hms-dashboard.jsx:109-113) — 5 buttons — pure nav",
+      "Protocol library expand/collapse (hms-protocol.jsx:14) — accordion toggle",
+      "Protocol detail tab nav (hms-protocol.jsx:199) — 11 tab buttons",
+      "Training/Readiness view switch (hms-tracking.jsx:100)",
+      "Training/Avvik/Activity filter chips — combined ~22 filter toggles",
+      "Wizard form fields (hms-wizard.jsx) — 15 form inputs/toggles",
+      "AvvikDrawer owner edit toggle (hms-avvik.jsx:267)",
+      "Comment compose option chips (hms-shared.jsx:312-315)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": true,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "GREEN",
+    "gate_verified_at": "2026-06-01T00:00:00Z",
+    "gate_notes": "Stale control.json reconciled: all 20 claimed-missing events were already in registry.ts (5th stale occurrence across campaign). use-create-protocol.ts built and delivered: gateAction + createAdminClient INSERT + awaited emit(hms.protocol.created). Evidence tier enum corrected from assumed values to actual DB enum. Static gate battery clean: tsc --noEmit exit 0, no direct browser writes, gateAction+emit present.",
+    "e2e_gate": "ENV-BLOCKED + SEED-BLOCKED: (1) live login requires smartout op token (97 op:// refs); (2) haccp_log / knowledge_test_attempt / confirmation_signature tables have 0 seed rows — E2E exercises hollow for HACCP/quiz/manual compliance widgets. Needs F0.4 seed PR before live E2E can pass.",
+    "remaining_seed_blockers": [
+      {
+        "id": "F0.4-HMS-1",
+        "type": "seed-blocker",
+        "table": "haccp_log",
+        "seed_rows": 0,
+        "action": "Insert >=3 seed rows with valid session_id, protocol_id, recorded_at, recorded_by"
+      },
+      {
+        "id": "F0.4-HMS-2",
+        "type": "seed-blocker",
+        "table": "knowledge_test_attempt",
+        "seed_rows": 0,
+        "action": "Insert >=2 seed rows: one passed, one failed. Link to existing quiz + profile."
+      },
+      {
+        "id": "F0.4-HMS-3",
+        "type": "seed-blocker",
+        "table": "confirmation_signature",
+        "seed_rows": 0,
+        "action": "Insert >=2 seed rows per manual per profile."
+      }
+    ],
+    "blockers": []
+  },
+  {
+    "domain": "kommunikasjon",
+    "design_files": [
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-compose.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-detail.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-shared.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-skranke.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-skranke-views.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/kommunikasjon-case.jsx"
+    ],
+    "interactive_elements_total": 46,
+    "elements_mapped": 46,
+    "mutations": 22,
+    "events_required": 22,
+    "events_in_registry": 8,
+    "events_missing_from_registry": [
+      "announcement.draft_saved",
+      "announcement.scheduled",
+      "announcement.archived",
+      "announcement.republished",
+      "announcement.reminder_sent",
+      "announcement.comment_added",
+      "helpdesk.query.replied",
+      "helpdesk.internal_note_added",
+      "helpdesk.ai_draft_accepted",
+      "helpdesk.ai_draft_dismissed",
+      "helpdesk.case.priority_changed",
+      "helpdesk.case.reopened",
+      "channel.updated",
+      "channel.reopened"
+    ],
+    "hooks_found": 5,
+    "hooks_missing": [
+      {
+        "mutation": "togglePin (announcement)",
+        "hook": "use-pin-message",
+        "status": "hook_exists_unwired",
+        "note": "Hook exists; design uses local state mock. Pin emit is in capability tool body per ADR-0415."
+      },
+      {
+        "mutation": "upsertAnn (publish)",
+        "hook": "use-send-announcement",
+        "status": "hook_exists_unwired",
+        "note": "Hook exists and calls publish_announcement_atomic RPC. Design uses local state mock."
+      },
+      {
+        "mutation": "upsertAnn (draft)",
+        "hook": null,
+        "status": "missing",
+        "note": "use-send-announcement does not support status=draft. No hook. Event also missing from registry."
+      },
+      {
+        "mutation": "upsertAnn (scheduled)",
+        "hook": null,
+        "status": "missing",
+        "note": "use-send-announcement has no scheduled_at param. No hook. Event also missing from registry."
+      },
+      {
+        "mutation": "archiveAnn",
+        "hook": null,
+        "status": "missing",
+        "note": "No useArchiveAnnouncement hook. Event announcement.archived missing from registry."
+      },
+      {
+        "mutation": "republishAnn",
+        "hook": null,
+        "status": "missing",
+        "note": "No useRepublishAnnouncement hook. Event announcement.republished missing from registry."
+      },
+      {
+        "mutation": "remind (announcement unread)",
+        "hook": null,
+        "status": "hollow_blocked",
+        "note": "FLAG-1: notification_outbox is 0-seeded for announcement reminders. Backend path does not exist. UI is hollow."
+      },
+      {
+        "mutation": "addComment (announcement)",
+        "hook": null,
+        "status": "hollow_design_fiction",
+        "note": "No comment table/column for announcement comments. Design fiction — no backend path."
+      },
+      {
+        "mutation": "upsertChannel (create)",
+        "hook": "use-create-channel",
+        "status": "hook_exists_unwired",
+        "note": "Hook exists. Design uses local state mock."
+      },
+      {
+        "mutation": "upsertChannel (edit/update)",
+        "hook": null,
+        "status": "missing",
+        "note": "No useUpdateChannel hook. No channel.updated event in registry."
+      },
+      {
+        "mutation": "toggleArchiveChannel (archive)",
+        "hook": null,
+        "status": "missing",
+        "note": "No useArchiveChannel hook. channel.archived event exists in registry."
+      },
+      {
+        "mutation": "toggleArchiveChannel (reopen)",
+        "hook": null,
+        "status": "missing",
+        "note": "No hook. No channel.reopened event in registry."
+      },
+      {
+        "mutation": "upsertDesk (create/configure)",
+        "hook": null,
+        "status": "missing",
+        "note": "No useConfigureDesk hook. channel.helpdesk.enabled event exists in registry."
+      },
+      {
+        "mutation": "sendReply (helpdesk case)",
+        "hook": null,
+        "status": "missing",
+        "note": "use-send-message is for chat, not helpdesk. No helpdesk reply hook. Event helpdesk.query.replied missing from registry."
+      },
+      {
+        "mutation": "addNote (helpdesk internal)",
+        "hook": null,
+        "status": "missing",
+        "note": "No internal note hook. Event missing from registry. No DB table for helpdesk internal notes."
+      },
+      {
+        "mutation": "changeStatus (helpdesk case)",
+        "hook": null,
+        "status": "hollow_no_schema",
+        "note": "No case status column in current schema. Requires ADR before implementing."
+      },
+      {
+        "mutation": "changePriority (helpdesk case)",
+        "hook": null,
+        "status": "missing",
+        "note": "No priority hook. Event helpdesk.case.priority_changed missing from registry."
+      },
+      {
+        "mutation": "resolveCase (helpdesk)",
+        "hook": null,
+        "status": "missing",
+        "note": "No useResolveCase hook. helpdesk.query.resolved event EXISTS in registry. Hook must be created."
+      },
+      {
+        "mutation": "reopenCase (helpdesk)",
+        "hook": null,
+        "status": "missing",
+        "note": "No hook. Event helpdesk.case.reopened missing from registry."
+      },
+      {
+        "mutation": "reassign (helpdesk case)",
+        "hook": null,
+        "status": "missing",
+        "note": "No useReassignCase hook. helpdesk.query.reassigned event EXISTS in registry. Hook must be created."
+      },
+      {
+        "mutation": "acceptDraft (AI draft)",
+        "hook": null,
+        "status": "missing",
+        "note": "No hook. Event helpdesk.ai_draft_accepted missing from registry."
+      },
+      {
+        "mutation": "dismissDraft (AI draft)",
+        "hook": null,
+        "status": "missing",
+        "note": "No hook. Event helpdesk.ai_draft_dismissed missing from registry."
+      }
+    ],
+    "noop_candidates": [
+      "tab navigation (oversikt/kunngjoringer/kanaler/skranke)",
+      "skranke sub-tab navigation (oversikt/ko/analyse/innstillinger)",
+      "KPI pulse buttons (navigation only)",
+      "Botsson dismiss (local state only)",
+      "search inputs (local filter only)",
+      "filter/sort selects (local only)",
+      "channel selector in KoCompose (form field)",
+      "audience picker tiles (form field)",
+      "options toggles in compose (form field)",
+      "channel kind selector in KoChannelModal (form field)",
+      "KoDeskModal form fields (name/slug/preset/owners/cats/sla/ai — all local until save)",
+      "KoCaseDrawer tabs (samtale/internt/logg)",
+      "KoCaseDrawer 'Hvorfor?' toggle",
+      "KoDetail tabs (oversikt/mottakere/historikk)",
+      "modal open buttons (Ny kunngjøring, Ny kanal, Rediger, Arkivér — open modal only)",
+      "scrim/ESC/close buttons on modals (dismiss only)",
+      "case row clicks (open drawer — nav only)",
+      "pinned announcement row click (open drawer — nav only)",
+      "oversikt panel nav links (Se alle / Alle)",
+      "DeskCard Åpne kø link (nav only)",
+      "Min kø Se alle link (nav only)",
+      "Innstillinger Ny skranke / Konfigurer / Gjør til skranke (open modal only)",
+      "Botsson Åpne sak (open drawer — nav only)",
+      "Analyse tab (read-only, no interactions)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": false,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "FAIL",
+    "blockers": [
+      {
+        "id": "B1",
+        "severity": "high",
+        "description": "14 events required by mutations are not registered in packages/telemetry/src/registry.ts",
+        "affected_mutations": [
+          "announcement.draft_saved",
+          "announcement.scheduled",
+          "announcement.archived",
+          "announcement.republished",
+          "announcement.reminder_sent",
+          "announcement.comment_added",
+          "helpdesk.query.replied",
+          "helpdesk.internal_note_added",
+          "helpdesk.ai_draft_accepted",
+          "helpdesk.ai_draft_dismissed",
+          "helpdesk.case.priority_changed",
+          "helpdesk.case.reopened",
+          "channel.updated",
+          "channel.reopened"
+        ],
+        "resolution": "Register missing events in registry.ts. See PLAN.md Phase 2."
+      },
+      {
+        "id": "B2",
+        "severity": "high",
+        "description": "notification_outbox is 0-seeded for announcement domain. 'Send reminder' UI (elements #12, #41) is hollow — no backend path exists.",
+        "affected_mutations": [
+          "remind"
+        ],
+        "resolution": "Create send_announcement_reminder RPC that inserts notification_outbox rows. See PLAN.md FLAG-1."
+      },
+      {
+        "id": "B3",
+        "severity": "high",
+        "description": "Entire Skranke helpdesk tab is mock-only. No hooks exist for: send reply, add internal note, change status, change priority, resolve, reopen, reassign, accept/dismiss AI draft.",
+        "affected_mutations": [
+          "sendReply",
+          "addNote",
+          "changeStatus",
+          "changePriority",
+          "resolveCase",
+          "reopenCase",
+          "reassign",
+          "acceptDraft",
+          "dismissDraft"
+        ],
+        "resolution": "Phase 1 (P1-E/F) covers resolve + reassign (events exist). Full skranke wiring requires ADR on data model first. See PLAN.md Phase 3."
+      },
+      {
+        "id": "B4",
+        "severity": "medium",
+        "description": "Announcement comment thread (KoDetail) is design fiction — no backend table/column for announcement comments.",
+        "affected_mutations": [
+          "addComment"
+        ],
+        "resolution": "Add helpdesk-style comment path or use channel_message reply threading. Requires ADR."
+      },
+      {
+        "id": "B5",
+        "severity": "low",
+        "description": "channel_ai_policy table exists in DB but agent-router ignores it. KoDeskModal AI policy selector writes local state only.",
+        "affected_mutations": [
+          "setAi in KoDeskModal"
+        ],
+        "resolution": "Wire channel_ai_policy writes in useConfigureDesk. Note: agent-router ignoring it is separate track."
+      }
+    ]
+  },
+  {
+    "domain": "lonn",
+    "design_files": [
+      "lonn.jsx",
+      "lonn-config.jsx",
+      "lonn-overlays.jsx",
+      "lonn-shared.jsx",
+      "lonn-views.jsx",
+      "min-lonn.jsx"
+    ],
+    "interactive_elements_total": 71,
+    "elements_mapped": 71,
+    "mutations": 13,
+    "events_required": 13,
+    "events_in_registry": 13,
+    "events_missing_from_registry": [],
+    "hooks_found": [
+      "use-payroll-lines.ts → usePayrollLines()",
+      "use-payroll-period.ts → usePayrollPeriod()",
+      "use-payroll-deviations.ts → usePayrollDeviations()",
+      "use-approve-period.ts → useApprovePeriod()",
+      "use-lock-period.ts → useLockPeriod()",
+      "use-payroll-lonnsgrunnlag.ts → useLonnsgrunnlagUrl()",
+      "use-payroll-pii-reveal.ts → usePayrollPiiReveal()",
+      "use-acknowledge-deviation.ts → useAcknowledgeDeviation()",
+      "use-payroll-exports.ts → useExportPeriod()",
+      "use-supplement-rules.ts → useUpdateSupplementRule()"
+    ],
+    "hooks_missing": [
+      "useSupplementRuleTestRun — no hook for 'Test mot april' (P2 future sortie — non-blocking)",
+      "useDeviationReject — no hook for DevRow 'Avvis vakten' (P1 future sortie — flagged)",
+      "useTimebankWithdrawalRequest — no hook for 'Be om avspasering' employee (P1 future sortie — flagged)"
+    ],
+    "hooks_already_wired_confirmed": [
+      "useAddManualSupplement — wired at ManualSupplementForm.tsx:105 via POST /api/payroll/add-manual-supplement (BFF route, not direct browser write)",
+      "useUpdatePayrollSettings — exists at settings/_hooks/use-payroll-settings.ts, emits payroll.settings_updated (fixed from malformed space-separator name)",
+      "useAcknowledgeDeviation — exists at payroll/[periodId]/_hooks/use-acknowledge-deviation.ts"
+    ],
+    "noop_candidates": [
+      "#1 PeriodSwitcher dropdown toggle (local state)",
+      "#2 PeriodSwitcher row select period (local state)",
+      "#3 Rapport button (window.open, read-only)",
+      "#5 Lås periode button opens modal (local state)",
+      "#6 Åpne på nytt (locked banner undo, local state)",
+      "#7-11 Tab navigation (local state)",
+      "#12 Til April 2026 back button (local state)",
+      "#13 PULSE Brutto (no go fn)",
+      "#14 PULSE Netto (no go fn)",
+      "#15 PULSE Krever handling → tab nav",
+      "#16 PULSE Manuelle tillegg → tab nav",
+      "#17 PULSE Klar til lås → opens modal or tab nav",
+      "#19 Botsson assist: Lås periode (opens modal)",
+      "#20 Botsson assist: Vis avvik (tab nav)",
+      "#21 Botsson assist: Avvis (local state)",
+      "#22 Featured period: Åpne periode (tab nav)",
+      "#23 Action queue: Vis vakt (opens drawer)",
+      "#25 Earlier periods row (local state)",
+      "#26 Linjer: search input (local filter)",
+      "#27 Dept chip cycle (local filter)",
+      "#28-30 Filter chips (local filter)",
+      "#31 Employee row click (opens drawer)",
+      "#32 Manuelt tillegg button in Linjer (opens modal)",
+      "#33 Avvik banner lock button (opens modal)",
+      "#35 Group header collapse/expand (local state)",
+      "#36 DevRow suggestion expand (local state)",
+      "#37 DevRow Vis vakt (opens drawer)",
+      "#40 DevRow expanded Vis vakt (opens drawer)",
+      "#45 Segmented control period type (local state)",
+      "#48 Drilldown X close (local state)",
+      "#49 Drilldown Åpne profil (stub, closes drawer)",
+      "#50 Drilldown Manuelt tillegg (opens modal)",
+      "#51 LockModal X close (local state)",
+      "#52 LockModal Avbryt (local state)",
+      "#53 LockModal Lagre uten å låse (toast + close)",
+      "#55 SupplementForm X close (local state)",
+      "#56 Type card click (local state)",
+      "#57 Amount input (local state)",
+      "#58 Description input (local state)",
+      "#59 Shift picker (static mock)",
+      "#60 Visibility segmented (local state)",
+      "#62 SupplementForm Avbryt (local state)",
+      "#64 min-lonn Avklar (toast stub)",
+      "#66 Signed banner Angre (local state)",
+      "#67 Payslip row click (local state)",
+      "#68 Payslip drawer X close (local state)",
+      "#70 Åpne sak i #lønn (toast stub)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": true,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "GREEN",
+    "gate_verified_at": "2026-06-01T00:00:00Z",
+    "gate_notes": "Stale control.json reconciled: payroll.deviation_rejected + payroll.timebank_withdrawal_requested were already in registry. Malformed event 'payroll_settings updated' renamed to 'payroll.settings_updated' in registry.ts (type union + routing map) + 1 emit site fixed in settings/_hooks/use-payroll-settings.ts. useAddManualSupplement + useUpdatePayrollSettings already existed and were wired. P1/P2 hooks (deviation reject, timebank withdrawal, test-run) flagged as future sorties — not fan-out blockers.",
+    "e2e_gate": "ENV-BLOCKED — live login requires smartout op token (97 op:// refs). Static gates pass: tsc --noEmit clean, no malformed event strings in source, registry dist rebuilt.",
+    "blockers": [],
+    "remaining_p1_p2_gaps": [
+      "useDeviationReject — DevRow 'Avvis vakten' (element #41): no Server Action + capability tool path yet. P1 future sortie.",
+      "useTimebankWithdrawalRequest — 'Be om avspasering' (element #71): employee timebank request path not built. P1 future sortie.",
+      "useSupplementRuleTestRun — 'Test mot april' (element #42): test-run BFF endpoint not built. P2 future sortie.",
+      "min-lonn DATA_GAP: payroll.calculation empty for open periods (F0.4 seed required). Display shows 0 kr — not a UI bug.",
+      "SCHEMA_TRAP note: all payroll.* hook callers must use .schema('payroll') — verified in existing hooks; flag for any future additions."
+    ]
+  },
+  {
+    "domain": "min-dag",
+    "design_files": [
+      "apps/web/pages/min-dag.jsx",
+      "apps/mobile/refs/day-widgets.jsx",
+      "apps/mobile/refs/home-screens.jsx"
+    ],
+    "interactive_elements_total": 21,
+    "elements_mapped": 21,
+    "mutations": 5,
+    "events_required": 15,
+    "events_in_registry": 15,
+    "events_missing_from_registry": [],
+    "hooks_found": 5,
+    "hooks_missing": [],
+    "noop_candidates": [
+      "EL-09: brief source list reveal (setShowWhy local toggle — no DB, no side-effect)",
+      "EL-10: TaskItem expand chevron (setOpen local toggle — no DB, no side-effect)",
+      "EL-20: mobile week-strip date select (MobileWeekStrip — display-only, no route change)",
+      "EL-21: mobile tab-bar buttons (MobileTabBar — navigation shell, no domain mutation)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": true,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "GREEN",
+    "blockers": []
+  },
+  {
+    "domain": "oppgaver",
+    "design_files": [
+      "Smartout.ai_re-designe/apps/web/pages/oppgaver.jsx",
+      "Smartout.ai_re-designe/apps/web/pages/oppgaver-form.jsx"
+    ],
+    "interactive_elements_total": 38,
+    "elements_mapped": 38,
+    "mutations": 14,
+    "events_required": 19,
+    "events_in_registry": 19,
+    "events_missing_from_registry": [],
+    "hooks_found": 4,
+    "hooks_missing": [
+      "No hook exists for: routine toggle (activate/pause), duplicate task, subtask toggle, reschedule-via-DnD (task.session_task_updated registered but hook not built), add comment, add evidence, bulk-done, bulk-assign, flow player completion, form sign+complete, send-reminder, move-to-dagslinje, suggest-routine (Botsson), new-routine wizard, Botsson assign accept/dismiss — P3 future sorties, not production blockers"
+    ],
+    "noop_candidates": [
+      "Tab navigation (oversikt/dag/dagslinje/oppgaver/rutiner) — nav state, no DB mutation; recommend oppgaver.view_mode_changed",
+      "Filter chips (all/me/critical/inprogress/overdue/done) — local filter state; recommend oppgaver.area_filter_changed",
+      "Origin filter (proaktivt/reaktivt) — local filter state only",
+      "Sort menu (prioritet/frist/ansvarlig) — local sort state only",
+      "Search input — local filter only",
+      "Dagslinje group-by mode selector (ansatt/avdeling/omrade/lag) — local state; recommend oppgaver.view_mode_changed",
+      "Routine category / cadence filter chips — local filter only",
+      "Overview pulse cards (click to setTab) — nav state only",
+      "Routine status panel row click (navigate to routine) — nav only",
+      "ChapterLink / handbook link opens — nav/read only; recommend oppgaver.context_pinned",
+      "Drawer: open (onOpen) — read-path; recommend oppgaver.task_focused",
+      "Drawer: close (onClose) — nav only",
+      "Drawer: edit toggle (pen icon) — local UI state only",
+      "Drawer: 'Følg' bell button — fire-and-forget toast; no persistence built",
+      "FlowPlayer: prev/next navigation steps — local state",
+      "ChapterViewer: 'Åpne i Bibliotek' — navigation",
+      "FormViewer: close — nav only",
+      "Routine 'Foreslå rutine' button — Botsson stub, toast only",
+      "Routine 'Ny rutine' button — toast stub only",
+      "Routine 'Se generert oppgave' arrow — nav/task open",
+      "Dagslinje drag chip (onDragStart/End) — drag state only; drop writes DnD reschedule"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": true,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "GREEN",
+    "gate_verified_at": "2026-06-01T00:00:00Z",
+    "gate_notes": "ADR-0099/0114/0134/0151 violations closed for useCreateQuickTask (addTaskAction) and useAssignTask (assignTaskAction). P3 hooks (bulk-complete, DnD, subtask etc.) are explicitly flagged as future sorties — not fan-out blockers.",
+    "blockers": [],
+    "e2e_gate": "ENV-BLOCKED — live login requires smartout op token (97 op:// refs). Static gates pass: typecheck clean, no direct browser writes, server action delegation verified."
+  },
+  {
+    "domain": "oversikt",
+    "design_files": [
+      "apps/web/pages/oversikt.jsx",
+      "apps/web/shared/data.js"
+    ],
+    "port_files": [
+      "apps/web/src/app/dashboard/oversikt-v2/page.tsx",
+      "apps/web/src/app/dashboard/oversikt-v2/_lib/to-design-shape.ts",
+      "apps/web/src/app/dashboard/oversikt-v2/_components/OversiktCockpit.tsx",
+      "apps/web/src/app/dashboard/oversikt-v2/_components/oversikt.css"
+    ],
+    "interactive_elements_total": 19,
+    "elements_mapped": 19,
+    "mutations": 0,
+    "events_required": 11,
+    "events_in_registry": 11,
+    "events_missing_from_registry": [],
+    "events_registered_this_pass": [
+      "oversikt.viewed",
+      "oversikt.budget_empty_state_shown",
+      "oversikt.brief_why_toggled",
+      "oversikt.brief_action_taken",
+      "oversikt.pulse_tile_clicked",
+      "oversikt.action_queue_row_clicked",
+      "oversikt.action_cta_clicked",
+      "oversikt.nav_link_clicked",
+      "oversikt.gap_fill_requested",
+      "oversikt.receipt_nudge_sent",
+      "oversikt.dagsrapport_requested"
+    ],
+    "hooks_found": 4,
+    "hooks_found_list": [
+      "use-cockpit-first-screen.ts",
+      "use-shift-day-stats.ts",
+      "use-day-budget.ts",
+      "use-day-timeline-events.ts"
+    ],
+    "hooks_missing": [
+      "useCreateOpenShift (gap_fill Roster button — open_shift mutation not wired to oversikt surface)",
+      "useGenerateDayReport (dagsrapport header button — no hook or Edge Function exists)",
+      "Levering delivery checklist hook (ActionQueue Klargjør CTA — session_task insert not plumbed)"
+    ],
+    "noop_candidates": [
+      "RiskTomorrow risk item actions (Løs/Se) — static text, no onClick in design",
+      "window.CreateButton — shell-level component, telemetry owned externally",
+      "Roster shift bar visuals — display-only",
+      "Feed list items — read-only in current design",
+      "Receipts list rows — display-only"
+    ],
+    "budget_tile_trap": {
+      "table": "workspace_budget",
+      "status": "0-SEEDED",
+      "db_row_count": 0,
+      "risk": "Budget KPI tiles return null/— silently. workspace_budget has 0 rows for demo workspace. No observable error — OversiktCockpit renders honest empty state and emits oversikt.budget_empty_state_shown.",
+      "required_actions": [
+        "Add seed rows in supabase/seed.sql for workspace_budget (period_type='daily') — F0.4 scope",
+        "Coordinate with F0.4 scope before adding budget tiles to oversikt pulse bar"
+      ],
+      "flag": "needs-F0.4-seed"
+    },
+    "db_render_result": {
+      "verified_at": "2026-06-03",
+      "method": "psql heredoc with simulated RLS auth (authenticated role, jwt.claims.sub=e0000000-...-001, workspace_id=b0000000-...-000)",
+      "schedule_shift": 4,
+      "time_entry": 8,
+      "deviation": 2,
+      "session_task_open": 21,
+      "workspace_budget": 0,
+      "profile": 14,
+      "verdict": "REAL-DATA — 5 of 6 sources return real rows; workspace_budget=0 (honest-empty per budget_tile_trap, empty-state rendered)"
+    },
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": true,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true,
+      "typecheck_exit_0": true,
+      "telemetry_dist_rebuilt": true
+    },
+    "typecheck": {
+      "command": "TURBO_CONCURRENCY=1 pnpm --filter web typecheck",
+      "exit_code": 0,
+      "verified_at": "2026-06-03"
+    },
+    "gate": "PASS",
+    "gate_verified_at": "2026-06-03T00:00:00Z",
+    "gate_notes": "Port complete: 4-file unit copied verbatim from sandbox fasit (2641 lines, 1:1 fidelity). All 11 oversikt events registered (3-site recipe: interface + union + EVENT_ROUTING in registry.ts). @smartout/telemetry built, dist refreshed. web typecheck exit 0. DB-proved: 5/6 tables return real rows under simulated auth; workspace_budget=0 (honest-empty, not ghost data). No migrations, no seeds, no schema writes.",
+    "remaining_noops": [
+      "useCreateOpenShift — Roster gap_fill emits oversikt.gap_fill_requested intent only (no DB write); honest noop documented in component",
+      "useGenerateDayReport — Dagsrapport button shows toast 'not available yet'; emits oversikt.dagsrapport_requested intent; honest noop documented",
+      "workspace_budget 0-seeded — budget tiles null-guarded; oversikt.budget_empty_state_shown emitted client-side when null"
+    ],
+    "known_payload_bug": "receipt_nudge_sent emit in OversiktCockpit.tsx: data.profile_id is incorrectly set to workspaceId instead of a recipient profile_id. Low severity — payload data field only, routing IDs (workspace_id/actor_id) are correct. Fix in next pass.",
+    "blockers": []
+  },
+  {
+    "domain": "planlegging",
+    "design_files": [
+      "planlegging.jsx",
+      "planlegging-data.jsx",
+      "planlegging-panels.jsx",
+      "planlegging-season.jsx",
+      "planlegging-views.jsx"
+    ],
+    "interactive_elements_total": 43,
+    "elements_mapped": 43,
+    "mutations": 14,
+    "events_required": 29,
+    "events_in_registry": 16,
+    "events_missing_from_registry": [
+      "planlegging view_changed",
+      "planlegging layer_toggled",
+      "planlegging saved_view_applied",
+      "planlegging filter_applied",
+      "planlegging filter_reset",
+      "planlegging date_navigated",
+      "planlegging today_clicked",
+      "planlegging attention_panel_opened",
+      "planlegging attention_item_actioned",
+      "planlegging opening_hours_saved",
+      "planlegging opening_hours_exception_added",
+      "planlegging machine_room_opened",
+      "planlegging machine_room_draft_saved",
+      "booking confirmed",
+      "booking cancelled",
+      "absence approved",
+      "absence rejected",
+      "season goal_toggled",
+      "season operating_hours_override_added",
+      "planlegging create_button_used",
+      "planlegging botsson_cta_clicked",
+      "planlegging botsson_dismissed",
+      "planlegging cross_domain_navigate",
+      "planlegging empty_state_show_all_clicked",
+      "booking machine_room_propagated"
+    ],
+    "hooks_found": 4,
+    "hooks_missing": [
+      "booking create hook (planning_event or schedule_day_booking — no hook for Planlegging BookingCreatePanel)",
+      "leave approve/reject hook (absence table — design uses toast, no useMutation wired)",
+      "opening_hours save hook (day_factor / hour_factor tables — no hook in scope)",
+      "machine room propagate hook (season_budget.upsert — uses use-budget.ts:103 UNGATED DIRECT UPSERT)"
+    ],
+    "noop_candidates": [
+      "pl-dd-scrim click (closes dropdown — pure UI, no data)",
+      "pl-over-scrim click (closes panel — pure UI, no data)",
+      "PL.weekCounts() call (computed in render, no interaction)",
+      "CalSkeleton render (loading animation — no click target)",
+      "HourLines render (visual only)",
+      "ClosedZones render (visual only)",
+      "NOW indicator render (visual only)",
+      "pl-m-more '+N til' — non-interactive overflow count display",
+      "season seeded-from badge (read-only display)",
+      "status pill renders (read-only display in SeasonPanel)",
+      "pl-ohrow display rows (reading, no edit on the 'hours' tab rows themselves)",
+      "pl-evrow display rows (events tab, read-only list)",
+      "pl-srow summary rows in SeasonPanel (read-only KPI display)",
+      "BotCard state='done' resolved display (post-confirmation feedback, not interactive)"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": false,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": false,
+      "baseline_count_recorded": true
+    },
+    "gate": "FAIL",
+    "blockers": [
+      {
+        "id": "B1",
+        "severity": "critical",
+        "category": "ungated-write",
+        "description": "use-budget.ts:103 — direct .upsert() to workspace_budget with no C4-authority gate. Called from MachineRoom 'Propager til budsjett' button. This is the F0.3 offender documented in the spec. Any Planlegging control wired through this path is ungated.",
+        "affected_controls": [
+          "MR-11 — Machine Room: Propager til budsjett"
+        ],
+        "status": "F0.3 — budget-tiles domain; blocked pending F0.3 gate work"
+      },
+      {
+        "id": "B2",
+        "severity": "critical",
+        "category": "missing-hook",
+        "description": "BookingCreatePanel (PL-25 — 'Opprett booking') has no backend hook. The panel shows a form and fires a toast on submit but calls no mutation, no RPC, no edge function. No hook exists for booking creation in the planlegging domain (calendar/_hooks/use-calendar-overlays.ts is read-only; schedule_day_booking is the production target).",
+        "affected_controls": [
+          "PL-25 — BookingCreatePanel: Opprett booking"
+        ],
+        "status": "MISSING — requires booking creation hook before this control can be wired"
+      },
+      {
+        "id": "B3",
+        "severity": "critical",
+        "category": "missing-hook",
+        "description": "Leave approve/reject (PL-29/PL-30) buttons in DetailPanel fire toasts but have no mutation or absence-table hook wired. The production hook (use-absence.ts or similar) is not in scope for this domain.",
+        "affected_controls": [
+          "PL-29 — DetailPanel (leave): Godkjenn",
+          "PL-30 — DetailPanel (leave): Avslå"
+        ],
+        "status": "MISSING — requires absence mutation hook"
+      },
+      {
+        "id": "B4",
+        "severity": "high",
+        "category": "missing-events",
+        "description": "25 events required for full coverage are absent from the telemetry registry. Season-financials path (season activated / archived / goals / season_budget / operating_hours) is largely covered (16 registry hits). Budget-tiles path (machine room propagate) is intentionally blocked (F0.4). Calendar navigation, layer toggles, filter, saved-view, attention, booking confirm/cancel, leave approve/reject and Botsson CTA interactions have no registry entries.",
+        "affected_controls": "See events_missing_from_registry array — all 25 need registry additions",
+        "status": "MISSING — split: season-financials subset unblocked; budget-tiles subset F0.4"
+      },
+      {
+        "id": "B5",
+        "severity": "high",
+        "category": "missing-hook",
+        "description": "OpeningHoursPanel save (PL-40) and 'Legg til unntak' (PL-41) fire toasts but have no backend hook. The target tables (HOURS_EXC / day_factor-based operating_hours or a dedicated opening_hours table) are not wired.",
+        "affected_controls": [
+          "PL-40 — OpeningHoursPanel: Lagre",
+          "PL-41 — OpeningHoursPanel: Legg til unntak"
+        ],
+        "status": "MISSING — requires opening_hours mutation hook"
+      }
+    ]
+  },
+  {
+    "domain": "vaktplan",
+    "design_files": [
+      "apps/web/pages/vaktplan.jsx",
+      "apps/web/pages/vaktplan-parts.jsx",
+      "apps/web/pages/vaktplan-controller.jsx",
+      "apps/web/pages/vaktplan-availability.jsx",
+      "apps/web/pages/vaktplan-turnus.jsx",
+      "apps/web/pages/vaktplan-profile.jsx",
+      "apps/web/pages/vaktplan-print.jsx"
+    ],
+    "interactive_elements_total": 153,
+    "elements_mapped": 153,
+    "mutations": 91,
+    "events_required": 91,
+    "events_in_registry": 58,
+    "events_missing_from_registry": [
+      "schedule.week_navigated",
+      "schedule.grouping_changed",
+      "schedule.filter_changed",
+      "schedule.gap_fill_initiated",
+      "scheduler.planner_opened",
+      "schedule.publish_modal_opened",
+      "schedule.export_opened",
+      "schedule.pdf_exported",
+      "schedule.week_added",
+      "schedule.week_removed",
+      "profile.schedule_viewed",
+      "shift updated (unpublish sub-action — needs dedicated event or sub-type field)",
+      "shift updated (revert sub-action — needs sub-type field)",
+      "shift updated (settings.notify sub-field — needs sub-type field)",
+      "shift updated (settings.marketplace sub-field — needs sub-type field)",
+      "shift updated (settings.swap sub-field — needs sub-type field)",
+      "shift updated (settings.template sub-field — needs sub-type field)",
+      "shift updated (settings.audit sub-field — needs sub-type field)",
+      "session_task completed (task toggle in oppgaver — deferred)",
+      "task created (add oppgave — deferred)",
+      "shift supplement_claimed (manual lonn adjustment — deferred)",
+      "botsson.tool_invoked (foreslå fiks — deferred, registry has event but call site stub)",
+      "communication sent (send oppdatering — deferred)",
+      "shift_swap.approved (profile ReqRow godkjenn — not wired to hook)",
+      "shift_swap.rejected (profile ReqRow avslå — not wired to hook)",
+      "absence approved (profile ReqRow godkjenn — type depends on req.kind)",
+      "absence rejected (profile ReqRow avslå — type depends on req.kind)",
+      "roster updated (profile avtale edit — stub)",
+      "roster updated (profile tilgj edit — stub)",
+      "task created (profile follow-up — deferred)",
+      "communication sent (profile footer melding — deferred)",
+      "shift_offer.posted (del på nytt — stub, re-share notification)"
+    ],
+    "hooks_found": 5,
+    "hooks_missing": [
+      "usePublishShifts: no shift_lifecycle approved action — need new hook or extend existing for payroll approval path",
+      "useShiftLifecycleApprove: does not exist — needed for ctlAction('approve') and Lifecycle overlay 'Godkjenn for lønn'",
+      "useWeekNavTelemetry: no emit hook for week navigation — needs new emit call site or thin wrapper",
+      "useScheduleGrouping: no emit hook for groupBy changes — needs new emit call site",
+      "useScheduleFilter: no emit hook for dept filter changes — needs new emit call site",
+      "usePlannerTelemetry: no dedicated hook for AI planner open/close — needs emit call site in VPPlanner overlay"
+    ],
+    "noop_candidates": [
+      "Mode tab switches (vaktplan/turnus/tilgjengelighet/vaktbors/bytter) — navigation only, use page viewed",
+      "Banner dismiss (×) — local state clear",
+      "Day header click (open inspector) — read-only, use shift list_viewed",
+      "Chip QA Livsløp button — read-only detail view",
+      "Chip QA Rediger button — opens modal, no mutation yet",
+      "Add shift (+ cell) — opens modal, no mutation until save",
+      "Controller tab switches (all 7 tabs)",
+      "Ansatt picker open toggle",
+      "Ansatt picker: select employee / open vakt — local state only",
+      "Start/Slutt/Pause/Rolle/Avdeling/Notat field edits — local dirty state only",
+      "Historikk: Sammenlign button — view diff only",
+      "Lonn: Se livsløp link — tab switch only",
+      "Oppgaver: Dagslinjen link — toast stub, no mutation",
+      "Publish modal row checkbox toggle",
+      "Publish modal expand/history button",
+      "Publish modal hold/take-back button",
+      "Publish modal: Issue bar 'Tildel ansatt' — toast stub",
+      "Publish modal: Ferdig close",
+      "Lifecycle overlay: Lukk",
+      "Controller close (×) / scrim",
+      "Availability: match context Avslutt — clears local state",
+      "Availability: preset tabs — local sort/filter only",
+      "Availability: flag chips (trenger, vil, rolle) — local filter",
+      "Availability: staff row click (select) — local selection",
+      "Availability: Se vakter button (browse mode) — local selection",
+      "Availability: side panel hint (no selection) — display",
+      "Turnus: sub-tab Måned/Bygg",
+      "Turnus: month row click — scroll/sub-tab change",
+      "Turnus: Åpne turnusbygger button",
+      "Turnus: week collapse toggle",
+      "Turnus: turnus chip click — opens controller, no mutation",
+      "Turnus: Legg til uke toggle",
+      "Profile: close (×)",
+      "Profile: all 8 tab switches",
+      "Profile: Se detaljer link (timer)",
+      "Profile: Full plan link (footer + oversikt)",
+      "Profile: Rediger btn (toggle editAgr state)",
+      "Profile: Agreement type cards mini (display)",
+      "Profile: Agreement field inputs (uncontrolled local)",
+      "Print: close (×)",
+      "Print: scope Uke/Måned toggle",
+      "Print: orientering toggle",
+      "Print: month metric toggle"
+    ],
+    "control_points": {
+      "every_element_mapped": true,
+      "every_mutation_has_event": false,
+      "every_event_registry_status_known": true,
+      "every_mutation_has_hook_or_flagged": true,
+      "baseline_count_recorded": true
+    },
+    "gate": "FAIL",
+    "blockers": [
+      "33 telemetry events are either missing from registry.ts or exist only as stubs/partial wiring — must be added or confirmed before any sortie can close",
+      "18 shift write paths bypass the cascade gate (C4 / enforce-gates) — ALL must be gated before any path goes to production",
+      "6 hooks are missing or incomplete: useShiftLifecycleApprove does not exist; 5 new emit call sites required for week-nav/grouping/filter/planner/export telemetry",
+      "every_mutation_has_event = false: 33 events missing prevents this control point from passing"
+    ]
+  }
+]

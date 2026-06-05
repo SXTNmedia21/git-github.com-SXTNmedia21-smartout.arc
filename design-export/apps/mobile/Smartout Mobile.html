@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout Mobile — skjermer</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f0eeeb; --panel: #fdfcfa; --fg: #1c1814; --muted: #7a756e;
+    --border: #e8e5e1; --orange: #f97316;
+  }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: "Geist", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  *::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes soPulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.55; transform:scale(.85);} }
+  .mg-wrap { max-width: 1400px; margin: 0 auto; padding: 56px 40px 96px; }
+  .mg-eyebrow { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--orange); font-weight: 600; }
+  .mg-h1 { font-family: "Instrument Serif", serif; font-size: 52px; letter-spacing: -.02em; line-height: 1.02; margin: 8px 0 0; }
+  .mg-lede { font-size: 16px; color: var(--muted); margin-top: 12px; max-width: 640px; line-height: 1.55; }
+  .mg-sec { margin-top: 64px; }
+  .mg-sec-head { display: flex; align-items: baseline; gap: 14px; padding-bottom: 22px; border-bottom: 1px solid var(--border); margin-bottom: 36px; }
+  .mg-sec-title { font-family: "Instrument Serif", serif; font-size: 30px; letter-spacing: -.01em; }
+  .mg-sec-count { font-family: "Geist Mono", monospace; font-size: 13px; color: var(--muted); }
+  .mg-sec-desc { font-size: 14px; color: var(--muted); margin-left: auto; max-width: 360px; text-align: right; }
+  .mg-grid { display: flex; flex-wrap: wrap; gap: 48px 40px; }
+  .mg-item { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .mg-cap { text-align: center; max-width: 410px; }
+  .mg-cap-t { font-size: 14px; font-weight: 600; }
+  .mg-cap-s { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  /* device bezel for screens that don't bring their own */
+  .mg-bezel { width: 410px; height: 864px; border-radius: 56px; background: #1c1814; padding: 10px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.08); }
+  .mg-bezel-inner { width: 390px; height: 844px; border-radius: 46px; overflow: hidden; background: #f5f3f0; position: relative; }
+</style>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#1a1510"/>
+    <rect x="34" y="14" width="32" height="72" rx="8" fill="#1c1814"/>
+    <rect x="37" y="20" width="26" height="60" rx="3" fill="#fdfcfa"/>
+    <circle cx="50" cy="17.5" r="1.6" fill="#3a342d"/>
+    <rect x="41" y="26" width="18" height="4" rx="2" fill="#f97316"/>
+    <rect x="41" y="34" width="14" height="3" rx="1.5" fill="#d9d4cd"/>
+    <rect x="41" y="40" width="18" height="10" rx="2.5" fill="#fff4e8" stroke="#f97316" stroke-width="0.8"/>
+    <rect x="41" y="68" width="18" height="6" rx="3" fill="#f5f3f0"/>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- shared foundation (from refs/) -->
+<script src="refs/day-data.js"></script>
+<script type="text/babel" src="refs/primitives.jsx"></script>
+<script type="text/babel" src="refs/day-widgets.jsx"></script>
+<!-- mobile screens (from refs/) -->
+<script type="text/babel" src="refs/auth-screens.jsx"></script>
+<script type="text/babel" src="refs/home-screens.jsx"></script>
+
+<!-- gallery host -->
+<script type="text/babel" data-presets="env,react">
+  function Item({ title, sub, children, ownFrame }) {
+    return (
+      <div className="mg-item">
+        {ownFrame ? children : (
+          <div className="mg-bezel"><div className="mg-bezel-inner">{children}</div></div>
+        )}
+        <div className="mg-cap">
+          <div className="mg-cap-t">{title}</div>
+          {sub && <div className="mg-cap-s">{sub}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  function Section({ title, desc, items }) {
+    return (
+      <section className="mg-sec">
+        <div className="mg-sec-head">
+          <span className="mg-sec-title">{title}</span>
+          <span className="mg-sec-count">{items.length} skjermer</span>
+          {desc && <span className="mg-sec-desc">{desc}</span>}
+        </div>
+        <div className="mg-grid">
+          {items.map((it, i) => <Item key={i} {...it} />)}
+        </div>
+      </section>
+    );
+  }
+
+  function Gallery() {
+    const W = window;
+    const auth = [
+      { title: "Velkommen", sub: "Første møte — invitasjon, finn arbeidsplass eller logg inn", ownFrame: true, children: <W.MobileWelcome /> },
+      { title: "Logg inn", sub: "E-post + passord, Google, magisk lenke", ownFrame: true, children: <W.MobileLogin /> },
+      { title: "Bli med på arbeidsplass", sub: "Lim inn invitasjonslenke eller skann QR", ownFrame: true, children: <W.MobileInviteEntry /> },
+      { title: "Aksepter invitasjon", sub: "Kontekstkort + opprett konto", ownFrame: true, children: <W.MobileInviteAccept /> },
+      { title: "Engangskode", sub: "6-sifret kode med tastatur", ownFrame: true, children: <W.MobileOtp /> },
+      { title: "Velg arbeidsplass", sub: "Flere arbeidsplasser per bruker", ownFrame: true, children: <W.MobileSelectWorkspace /> },
+      { title: "Du er inne", sub: "Onboarding-landing med neste steg", ownFrame: true, children: <W.MobileWelcomePost /> },
+      { title: "Lenke utløpt", sub: "Feiltilstand — be om ny lenke", ownFrame: true, children: <W.MobileInviteExpired /> },
+    ];
+    const home = [
+      { title: "Min dag — før vakt", sub: "Neste vakt, hvem er på, meldinger til teamet", children: <W.MobileHomeFrame phase="upcoming" /> },
+      { title: "Min dag — på vakt", sub: "Live stemplingstimer, neste oppgave, kolleger på vakt", children: <W.MobileHomeFrame phase="active" /> },
+      { title: "Min dag — etter vakt", sub: "Oppsummering + venter på oppgjør + neste vakt", children: <W.MobileHomeFrame phase="pending_signoff" /> },
+    ];
+    return (
+      <div className="mg-wrap">
+        <div className="mg-eyebrow">Smartout · Mobil</div>
+        <h1 className="mg-h1">Mobilskjermer</h1>
+        <p className="mg-lede">Alle mobilflatene samlet på ett sted — pålogging og onboarding, og ansattens «Min dag» gjennom vaktens faser. Komponentene ligger i <code>refs/</code> og bygger på den delte Nordic Split-foundationen.</p>
+        <Section title="Pålogging & onboarding" desc="Fra invitasjon til første innlogging — ansattens vei inn i en arbeidsplass." items={auth} />
+        <Section title="Min dag — ansatt" desc="Hjem-skjermen følger vakten: før, under og etter — alltid med neste handling synlig." items={home} />
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<Gallery />);
+</script>
+</body>
+</html>

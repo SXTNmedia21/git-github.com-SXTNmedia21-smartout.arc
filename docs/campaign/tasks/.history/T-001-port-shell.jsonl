@@ -1,0 +1,3 @@
+{"ts": "2026-06-03T14:59:54Z", "actor": "pontus", "field": "gate_confidence", "old": 95, "new": 90}
+{"ts": "2026-06-03T15:00:07Z", "actor": "pontus", "field": "gate_confidence", "old": 90, "new": 95}
+{"ts": "2026-06-03T15:00:07Z", "actor": "pontus", "field": "verify_run", "old": null, "new": {"rc": 2, "last_run": {"percent": 80, "confidence": 58, "cleared": false, "has_script": true}}}

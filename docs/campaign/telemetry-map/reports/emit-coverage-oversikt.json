@@ -1,0 +1,177 @@
+{
+  "domain": "oversikt",
+  "app_subdir": "apps/web/src/components/day",
+  "generated_at": "2026-05-31T23:52:09Z",
+  "aggregate": {
+    "required": 23,
+    "defined_in_registry": 21,
+    "emitted_in_ui": 0,
+    "not_emitted_count": 23,
+    "emit_coverage_pct": 0.0
+  },
+  "not_emitted": [
+    "approval resolved",
+    "communication.broadcast_sent",
+    "deviation updated",
+    "deviation viewed",
+    "open_shift created",
+    "oppgaver.view_opened",
+    "oversikt.action_cta_clicked",
+    "oversikt.action_queue_row_clicked",
+    "oversikt.brief_action_taken",
+    "oversikt.brief_why_toggled",
+    "oversikt.budget_empty_state_shown",
+    "oversikt.dagsrapport_requested",
+    "oversikt.gap_fill_requested",
+    "oversikt.nav_link_clicked",
+    "oversikt.pulse_tile_clicked",
+    "oversikt.receipt_nudge_sent",
+    "oversikt.risk_item_clicked",
+    "oversikt.viewed",
+    "page viewed",
+    "payroll.deviation_acknowledged",
+    "reminder sent",
+    "shift_offer.posted",
+    "timesheet.time_entry"
+  ],
+  "events": [
+    {
+      "key": "approval resolved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "communication.broadcast_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "deviation updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "deviation viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "open_shift created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oppgaver.view_opened",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.action_cta_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.action_queue_row_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.brief_action_taken",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.brief_why_toggled",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.budget_empty_state_shown",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.dagsrapport_requested",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.gap_fill_requested",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.nav_link_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.pulse_tile_clicked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.receipt_nudge_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.risk_item_clicked",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "oversikt.viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "page viewed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.deviation_acknowledged",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reminder sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "shift_offer.posted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "timesheet.time_entry",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

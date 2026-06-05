@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="nb" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smartout — Design System · web &amp; app</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Shared root system (both platforms build on these tokens) -->
+<link rel="stylesheet" href="apps/web/shared/styles.css" />
+<link rel="stylesheet" href="apps/web/shared/shell.css" />
+<link rel="stylesheet" href="apps/web/shared/pages.css" />
+<!-- Web component layers used for live specimens -->
+<link rel="stylesheet" href="apps/web/pages/vaktplan.css" />
+<link rel="stylesheet" href="apps/web/pages/oppgaver-form.css" />
+<!-- Mobile component layer (prefixed .m-*, built on the same tokens) -->
+<link rel="stylesheet" href="apps/mobile/mobile.css" />
+<style>
+  body { background: var(--bg); color: var(--fg); margin: 0; }
+  .ds { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+  .ds-topbar { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .ds-topbar-in { max-width: 1080px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 14px; }
+  .ds-logo { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--orange), var(--orange-dark)); flex-shrink: 0; }
+  .ds-topbar .name { font-weight: 600; font-size: 14.5px; }
+  .ds-topbar .tag { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; }
+  .ds-topbar .grow { flex: 1; }
+  .ds-tlink { font-size: 13px; font-weight: 500; color: var(--muted); padding: 6px 10px; border-radius: 8px; }
+  .ds-tlink:hover { background: var(--secondary); color: var(--fg); }
+  .ds-themebtn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--card); display: inline-flex; align-items: center; justify-content: center; color: var(--fg); cursor: pointer; }
+  .ds-themebtn:hover { background: var(--secondary); }
+
+  .ds-hero { padding: 64px 0 40px; border-bottom: 1px solid var(--border); }
+  .ds-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--orange-dark); }
+  [data-theme="dark"] .ds-eyebrow { color: var(--orange-light); }
+  .ds-h1 { font-family: var(--font-heading); font-weight: 400; font-size: 68px; line-height: 0.98; letter-spacing: -0.02em; margin: 16px 0 0; }
+  .ds-lede { font-size: 18px; line-height: 1.55; color: var(--muted); max-width: 64ch; margin: 20px 0 0; text-wrap: pretty; }
+  .ds-lede strong { color: var(--fg); font-weight: 600; }
+  .ds-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .ds-metapill { font-size: 12px; font-weight: 500; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 6px 13px; display: inline-flex; align-items: center; gap: 7px; }
+  .ds-metapill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+
+  section { padding-top: 64px; }
+  .ds-sec-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .ds-h2 { font-family: var(--font-heading); font-weight: 400; font-size: 40px; letter-spacing: -0.02em; line-height: 1.05; margin: 8px 0 0; }
+  .ds-sec-lede { font-size: 15px; line-height: 1.6; color: var(--muted); max-width: 70ch; margin: 14px 0 0; text-wrap: pretty; }
+  .ds-h3 { font-family: var(--font-heading); font-weight: 400; font-size: 25px; letter-spacing: -0.01em; margin: 38px 0 16px; }
+  p.body { font-size: 14.5px; line-height: 1.65; color: var(--fg); max-width: 72ch; text-wrap: pretty; }
+  p.body.muted { color: var(--muted); }
+  a.inline { color: var(--orange-dark); font-weight: 500; border-bottom: 1px solid color-mix(in srgb, var(--orange) 40%, transparent); }
+  [data-theme="dark"] a.inline { color: var(--orange-light); }
+
+  .ds-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); }
+  .ds-pad { padding: 22px 24px; }
+
+  /* status badges */
+  .st { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .st i { width: 7px; height: 7px; border-radius: 50%; }
+  .st.aligned { color: var(--success); background: rgba(17,173,50,0.10); } .st.aligned i { background: var(--success); }
+  .st.partial { color: var(--warning); background: rgba(193,130,0,0.12); } .st.partial i { background: var(--warning); }
+  .st.gap { color: var(--error); background: rgba(231,0,11,0.10); } .st.gap i { background: var(--error); }
+  .st.todo { color: var(--muted); background: var(--secondary); } .st.todo i { background: var(--muted-soft); }
+
+  /* color tokens */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .swatch { border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; background: var(--card); }
+  .swatch .sw-chip { height: 64px; }
+  .swatch .meta { padding: 9px 11px; }
+  .swatch .nm { font-size: 12.5px; font-weight: 600; }
+  .swatch .hex { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .swatch .var { font-family: var(--font-mono); font-size: 10px; color: var(--muted-soft); }
+
+  /* type specimens */
+  .type-row { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .lbl { font-size: 11px; color: var(--muted); }
+  .type-row .lbl b { display: block; color: var(--fg); font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+  .type-row .lbl code { font-family: var(--font-mono); font-size: 10.5px; }
+
+  /* token rows */
+  .tok { display: flex; align-items: center; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .tok:last-child { border-bottom: none; }
+  .tok .demo { flex-shrink: 0; }
+  .tok .nm { font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 130px; }
+  .tok .val { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+  /* specimen frame */
+  .spec { border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; margin-top: 14px; }
+  .spec-stage { padding: 26px; background: var(--secondary); display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+  .spec-stage.col { flex-direction: column; }
+  .spec-stage.center { align-items: center; }
+  .spec-cap { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-top: 1px solid var(--border); background: var(--card); font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+  .spec-cap code { font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--secondary); padding: 2px 6px; border-radius: 5px; }
+  .spec-cap .grow { flex: 1; }
+
+  /* screenshots */
+  .shotgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 760px) { .shotgrid { grid-template-columns: 1fr; } }
+  .shot { border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; background: var(--card); }
+  .shot img { display: block; width: 100%; border-bottom: 1px solid var(--border); }
+  .shot .cap { padding: 12px 15px; }
+  .shot .cap .t { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .shot .cap .d { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+  /* tables */
+  table.ds-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13.5px; }
+  table.ds-table th { text-align: left; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 0 14px 10px; border-bottom: 1px solid var(--border); }
+  table.ds-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+  table.ds-table tr:last-child td { border-bottom: none; }
+  table.ds-table td .term { font-weight: 600; }
+  table.ds-table td code { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+  table.ds-table .nowrap { white-space: nowrap; }
+
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: var(--r-md); background: var(--orange-soft); padding: 14px 18px; margin-top: 18px; font-size: 13.5px; line-height: 1.6; }
+  [data-theme="dark"] .callout { background: rgba(249,115,22,0.08); }
+  .callout b { font-weight: 600; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+  ul.clean { margin: 14px 0 0; padding-left: 0; list-style: none; }
+  ul.clean li { position: relative; padding: 7px 0 7px 26px; font-size: 14px; line-height: 1.55; border-bottom: 1px solid var(--border); }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li::before { content: ""; position: absolute; left: 4px; top: 14px; width: 6px; height: 6px; border-radius: 50%; background: var(--orange); }
+  ul.clean li code { font-family: var(--font-mono); font-size: 12px; background: var(--secondary); padding: 1px 6px; border-radius: 5px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+  /* ====== cross-platform additions ====== */
+  .dsx-platrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .dsx-plat { font-size: 11.5px; font-weight: 600; letter-spacing: .02em; padding: 5px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); background: var(--card); }
+  .dsx-plat .d { width: 8px; height: 8px; border-radius: 50%; }
+  .dsx-plat.web .d { background: var(--info); }
+  .dsx-plat.app .d { background: var(--orange); }
+  .dsx-plat.both .d { background: linear-gradient(90deg, var(--info) 50%, var(--orange) 50%); }
+
+  /* two-up component comparison */
+  .dsx-cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; align-items: start; }
+  @media (max-width: 880px) { .dsx-cmp { grid-template-columns: 1fr; } }
+  .dsx-col { border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; background: var(--secondary); }
+  .dsx-col-h { display: flex; align-items: center; gap: 9px; padding: 11px 15px; border-bottom: 1px solid var(--border); background: var(--card); font-size: 12.5px; font-weight: 600; }
+  .dsx-col-h .plat { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+  .dsx-col-h .plat.web { color: var(--info); background: rgba(39,132,213,.1); }
+  .dsx-col-h .plat.app { color: var(--orange-dark); background: var(--orange-soft); }
+  [data-theme="dark"] .dsx-col-h .plat.app { color: var(--orange-light); background: rgba(249,115,22,.14); }
+  .dsx-col-h .cls { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); font-weight: 500; }
+  .dsx-col-stage { padding: 24px; display: flex; justify-content: center; align-items: flex-start; min-height: 360px; }
+
+  /* phone frame for live mobile specimens */
+  .dsx-phone { width: 308px; border: 1px solid var(--border-strong); border-radius: 30px; background: var(--bg); box-shadow: var(--sh-lg); overflow: hidden; }
+  .dsx-scrim { height: 60px; background: rgba(20,16,12,.42); }
+
+  /* web modal shell for static (non-fixed) specimens of overlay components */
+  .dsx-modal { width: 100%; max-width: 360px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-lg); overflow: hidden; display: flex; flex-direction: column; }
+  .dsx-modal-h { display: flex; align-items: center; gap: 11px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dsx-modal-h .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--secondary); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .dsx-modal-h .t { font-size: 14.5px; font-weight: 600; }
+  .dsx-modal-h .s { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .dsx-modal-h .x { margin-left: auto; width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); border: 1px solid var(--border); background: var(--card); }
+  .dsx-modal-b { padding: 18px 16px; }
+  .dsx-modal-f { display: flex; gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--card); }
+  .dsx-modal-f .sp { flex: 1; }
+
+  /* map table accent */
+  .map-web { color: var(--info); font-family: var(--font-mono); font-size: 11.5px; }
+  .map-app { color: var(--orange-dark); font-family: var(--font-mono); font-size: 11.5px; }
+  [data-theme="dark"] .map-app { color: var(--orange-light); }
+</style>
+</head>
+<body>
+
+<div class="ds-topbar">
+  <div class="ds-topbar-in">
+    <span class="ds-logo"></span>
+    <span class="name">Smartout</span>
+    <span class="tag">Design System · web &amp; app</span>
+    <span class="grow"></span>
+    <a class="ds-tlink" href="#platforms">Plattformer</a>
+    <a class="ds-tlink" href="#foundations">Foundations</a>
+    <a class="ds-tlink" href="#components">Komponenter</a>
+    <a class="ds-tlink" href="#shared">Delte</a>
+    <a class="ds-tlink" href="#status">Status</a>
+    <button class="ds-themebtn" id="themebtn" title="Bytt tema">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="ds">
+
+  <!-- HERO -->
+  <div class="ds-hero">
+    <div class="ds-eyebrow">Nordic Split · ett system, to flater</div>
+    <h1 class="ds-h1">Design&nbsp;System<br/>web&nbsp;&amp;&nbsp;app</h1>
+    <p class="ds-lede">Ett delt referansepunkt for <strong>design og utvikling</strong> av Smartout — på tvers av <strong>web</strong> (driftsleder-cockpit) og <strong>app</strong> (frontline mobil). Begge flatene bygger på <strong>samme tokens, type og farger</strong> fra én rot — <code style="font-family:var(--font-mono);font-size:14px">styles.css</code>. Dette dokumentet speiler produktet slik det faktisk er bygget, og dokumenterer de <strong>delte komponentene</strong> — Veiledning (Flow Player), Opprett oppgave og Opprett vakt — side om side, slik at web og app holder samme stil.</p>
+    <div class="ds-meta">
+      <span class="ds-metapill"><span class="dot"></span>Oppdatert 30. mai 2026</span>
+      <span class="ds-metapill">Web: <code style="font-family:var(--font-mono);font-size:11px">apps/web/</code></span>
+      <span class="ds-metapill">App: <code style="font-family:var(--font-mono);font-size:11px">apps/mobile/</code></span>
+      <span class="ds-metapill">Rot: <code style="font-family:var(--font-mono);font-size:11px">shared/styles.css</code></span>
+    </div>
+    <div class="legend">
+      <span class="st aligned"><i></i>På linje</span>
+      <span class="st partial"><i></i>Delvis</span>
+      <span class="st gap"><i></i>Avvik / mangel</span>
+      <span class="st todo"><i></i>Ikke startet</span>
+    </div>
+  </div>
+
+  <!-- PLATFORMS: ONE SYSTEM, TWO SURFACES -->
+  <section id="platforms">
+    <div class="ds-sec-eyebrow">Arkitektur</div>
+    <h2 class="ds-h2">To flater, ett system</h2>
+    <p class="ds-sec-lede">Web og app er ikke to designsystemer — de er to <em>komponentlag</em> over samme rot. <code style="font-family:var(--font-mono)">styles.css</code> definerer alle tokens (farge, type, rom, radius, skygge, mørk modus). Web legger sine klasser oppå (<code style="font-family:var(--font-mono)">sk-*</code>, <code style="font-family:var(--font-mono)">so-*</code> + sidespesifikke), appen sine (<code style="font-family:var(--font-mono)">m-*</code>). Endrer du en token, endrer begge flatene seg.</p>
+
+    <div class="two" style="margin-top:22px">
+      <div class="ds-card ds-pad">
+        <div class="dsx-plat web" style="margin-bottom:12px"><span class="d"></span>Web — driftsleder-cockpit</div>
+        <p class="body muted" style="margin:0">Tett informasjon, mus + tastatur, mange ruter og overlays. <strong style="color:var(--fg)">Desktop-first</strong>, responsiv. Klasser: <code style="font-family:var(--font-mono);font-size:12px">sk-*</code> (skall), <code style="font-family:var(--font-mono);font-size:12px">so-*</code> (delte side-primitiver), og sidelag i <code style="font-family:var(--font-mono);font-size:12px">pages/*.css</code>. Overlays = sentrerte modaler / sidedrawere.</p>
+      </div>
+      <div class="ds-card ds-pad">
+        <div class="dsx-plat app" style="margin-bottom:12px"><span class="d"></span>App — frontline mobil</div>
+        <p class="body muted" style="margin:0">Handlingsfokus, én hånd, telefonbredde (≤ 430px). <strong style="color:var(--fg)">Mobile-first</strong>, rå canvas uten bezel. Alt prefikset <code style="font-family:var(--font-mono);font-size:12px">m-*</code> i <code style="font-family:var(--font-mono);font-size:12px">mobile.css</code>. Overlays = <strong style="color:var(--fg)">bunnark</strong> (bottom sheets) og helskjerm-takeovers.</p>
+      </div>
+    </div>
+
+    <h3 class="ds-h3">Primitiv-kart — web ↔ app</h3>
+    <p class="body muted" style="margin-top:-4px">Samme rolle, plattformtilpasset klasse. Bygger du den ene, finn motparten her i stedet for å lage en ny.</p>
+    <table class="ds-table">
+      <thead><tr><th>Rolle</th><th>Web-klasse</th><th>App-klasse</th><th>Felles token-grunnlag</th></tr></thead>
+      <tbody>
+        <tr><td><span class="term">Primærknapp</span></td><td><span class="map-web">.sk-primary</span></td><td><span class="map-app">.m-btn.m-btn-primary</span></td><td><code>--orange</code> · #fff tekst</td></tr>
+        <tr><td><span class="term">Sekundær / ghost</span></td><td><span class="map-web">.sk-ghost</span></td><td><span class="map-app">.m-btn.m-btn-ghost</span></td><td><code>--secondary</code> · <code>--border</code></td></tr>
+        <tr><td><span class="term">Skjemafelt</span></td><td><span class="map-web">.vp-finput / .vp-flbl</span></td><td><span class="map-app">.m-input / .m-field</span></td><td><code>--border</code> → fokus <code>--orange</code></td></tr>
+        <tr><td><span class="term">Segmentkontroll</span></td><td><span class="map-web">.set-seg / .vp-ctl-seg</span></td><td><span class="map-app">.m-seg</span></td><td><code>--secondary</code> spor · <code>--card</code> aktiv</td></tr>
+        <tr><td><span class="term">Valg-chip</span></td><td><span class="map-web">.vp-fchip</span></td><td><span class="map-app">.m-chip</span></td><td>aktiv = <code>--fg</code>/<code>--orange</code> kant</td></tr>
+        <tr><td><span class="term">Bryter (toggle)</span></td><td><span class="map-web">.sk-switch</span></td><td><span class="map-app">.m-switch</span></td><td>på = <code>--orange</code></td></tr>
+        <tr><td><span class="term">Kort / panel</span></td><td><span class="map-web">.so-panel</span></td><td><span class="map-app">.m-card</span></td><td><code>--card</code> · <code>--border</code> · <code>--r-card</code></td></tr>
+        <tr><td><span class="term">Overlay</span></td><td><span class="map-web">.vp-ov / .opf (modal)</span></td><td><span class="map-app">.m-sheet (bunnark)</span></td><td><code>--bg</code> · <code>--sh-lg</code></td></tr>
+        <tr><td><span class="term">AI-stripe (Botsson)</span></td><td><span class="map-web">.aq / morgenbrief</span></td><td><span class="map-app">.m-bot</span></td><td><code>--orange</code> kant · <code>--fg</code> avatar</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>Regel:</b> appen <em>gjenbruker</em> roten, den forker den aldri. Trenger appen noe nytt visuelt, legg det som en <code>--token</code> i <code>styles.css</code> (slik at web kan bruke det også) — ikke som en hardkodet verdi i <code>mobile.css</code>.</div>
+  </section>
+
+  <!-- FOUNDATIONS -->
+  <section id="foundations">
+    <div class="ds-sec-eyebrow">Foundations · delt rot</div>
+    <h2 class="ds-h2">Farger, type, rom</h2>
+    <p class="ds-sec-lede">Alle verdier under er live fra <code style="font-family:var(--font-mono);font-size:13px">styles.css</code> — den ene roten begge flatene deler. Varmt krembakgrunn, varm svart tekst, oransje merkevare. Aldri kald grå/blå, aldri ren hvit/svart.</p>
+
+    <h3 class="ds-h3">Merkevare</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="sw-chip" style="background:var(--orange)"></div><div class="meta"><div class="nm">Orange</div><div class="hex">#f97316</div><div class="var">--orange</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--orange-light)"></div><div class="meta"><div class="nm">Orange light</div><div class="hex">#fb923c</div><div class="var">--orange-light</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--orange-dark)"></div><div class="meta"><div class="nm">Orange dark</div><div class="hex">#c2410c</div><div class="var">--orange-dark</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--orange-soft);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Orange soft</div><div class="hex">#fff4e8</div><div class="var">--orange-soft</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--purple)"></div><div class="meta"><div class="nm">Purple</div><div class="hex">#8b5cf6</div><div class="var">--purple</div></div></div>
+    </div>
+
+    <h3 class="ds-h3">Semantisk status</h3>
+    <p class="body muted" style="margin-top:-6px">success = ferdig/godkjent · warning = venter/risiko · error = forsinket/haster · info = opplæring/info. Identisk på web og app.</p>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="sw-chip" style="background:var(--success)"></div><div class="meta"><div class="nm">Success</div><div class="hex">#11ad32</div><div class="var">--success</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--warning)"></div><div class="meta"><div class="nm">Warning</div><div class="hex">#c18200</div><div class="var">--warning</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--error)"></div><div class="meta"><div class="nm">Error</div><div class="hex">#e7000b</div><div class="var">--error</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--info)"></div><div class="meta"><div class="nm">Info</div><div class="hex">#2784d5</div><div class="var">--info</div></div></div>
+    </div>
+
+    <h3 class="ds-h3">Avdelinger</h3>
+    <p class="body muted" style="margin-top:-6px">Faste farger per avdeling (<code style="font-family:var(--font-mono);font-size:12px">department</code>) — brukes på vaktbånd, chips og avatarer på begge flater.</p>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="sw-chip" style="background:var(--dept-kjokken)"></div><div class="meta"><div class="nm">Kjøkken</div><div class="hex">#ee560c</div><div class="var">--dept-kjokken</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--dept-sal)"></div><div class="meta"><div class="nm">Sal</div><div class="hex">#00ab93</div><div class="var">--dept-sal</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--dept-bar)"></div><div class="meta"><div class="nm">Bar</div><div class="hex">#864ad2</div><div class="var">--dept-bar</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--dept-event)"></div><div class="meta"><div class="nm">Event</div><div class="hex">#c18200</div><div class="var">--dept-event</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--dept-lager)"></div><div class="meta"><div class="nm">Lager</div><div class="hex">#008388</div><div class="var">--dept-lager</div></div></div>
+    </div>
+
+    <h3 class="ds-h3">Overflater &amp; nøytraler</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="sw-chip" style="background:var(--bg);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Background</div><div class="var">--bg</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--card);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Card</div><div class="var">--card</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--secondary);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Secondary</div><div class="var">--secondary</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--sidebar);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Sidebar</div><div class="var">--sidebar</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--fg)"></div><div class="meta"><div class="nm">Foreground</div><div class="var">--fg</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--muted)"></div><div class="meta"><div class="nm">Muted</div><div class="var">--muted</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--border);border-bottom:1px solid var(--border)"></div><div class="meta"><div class="nm">Border</div><div class="var">--border</div></div></div>
+      <div class="swatch"><div class="sw-chip" style="background:var(--border-strong)"></div><div class="meta"><div class="nm">Border strong</div><div class="var">--border-strong</div></div></div>
+    </div>
+    <div class="callout"><b>Begge temaer er førsteklasses, på begge flater.</b> Alle overflate-tokens har en mørk variant (<code>[data-theme="dark"]</code>). Bruk temaknappen oppe til høyre — dette dokumentet, web-spesimen og mobil-spesimen bytter alle til mørk modus samtidig.</div>
+
+    <h3 class="ds-h3">Typografi</h3>
+    <div class="ds-card ds-pad" style="margin-top:8px">
+      <div class="type-row"><div class="lbl"><b>Display</b>Instrument Serif<br/><code>--font-heading</code></div><div style="font-family:var(--font-heading);font-size:44px;line-height:1;letter-spacing:-0.02em">God morgen, Maria</div></div>
+      <div class="type-row"><div class="lbl"><b>Overskrift</b>Instrument Serif<br/><code>--font-heading</code></div><div style="font-family:var(--font-heading);font-size:28px;letter-spacing:-0.01em">Krever handling nå</div></div>
+      <div class="type-row"><div class="lbl"><b>UI / brødtekst</b>Geist<br/><code>--font-sans</code></div><div style="font-family:var(--font-sans);font-size:15px;line-height:1.5">Temperaturavvik på Kjøl 3 bør løses før Bama leverer 09:30.</div></div>
+      <div class="type-row"><div class="lbl"><b>Etikett</b>Geist 600 · uppercase<br/><code>--font-sans</code></div><div style="font-family:var(--font-sans);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Til godkjenning</div></div>
+      <div class="type-row"><div class="lbl"><b>Tall / tid / data</b>Geist Mono<br/><code>--font-mono</code></div><div style="font-family:var(--font-mono);font-size:26px;font-weight:700;letter-spacing:-0.02em">4 / 5 · 08:14 · 92%</div></div>
+    </div>
+
+    <h3 class="ds-h3">Radius, rom &amp; skygge</h3>
+    <div class="two">
+      <div class="ds-card ds-pad">
+        <div class="tok"><span class="demo" style="width:46px;height:30px;background:var(--secondary);border:1px solid var(--border-strong);border-radius:var(--r-sm)"></span><span class="nm">--r-sm</span><span class="val">6px</span></div>
+        <div class="tok"><span class="demo" style="width:46px;height:30px;background:var(--secondary);border:1px solid var(--border-strong);border-radius:var(--r-md)"></span><span class="nm">--r-md</span><span class="val">8px</span></div>
+        <div class="tok"><span class="demo" style="width:46px;height:30px;background:var(--secondary);border:1px solid var(--border-strong);border-radius:var(--r-lg)"></span><span class="nm">--r-lg</span><span class="val">10px</span></div>
+        <div class="tok"><span class="demo" style="width:46px;height:30px;background:var(--secondary);border:1px solid var(--border-strong);border-radius:var(--r-xl)"></span><span class="nm">--r-xl</span><span class="val">14px</span></div>
+        <div class="tok"><span class="demo" style="width:46px;height:30px;background:var(--secondary);border:1px solid var(--border-strong);border-radius:var(--r-card)"></span><span class="nm">--r-card</span><span class="val">16px</span></div>
+      </div>
+      <div class="ds-card ds-pad">
+        <div class="tok"><span class="demo ds-card" style="width:50px;height:36px;box-shadow:var(--sh-sm)"></span><span class="nm">--sh-sm</span><span class="val">subtil</span></div>
+        <div class="tok"><span class="demo ds-card" style="width:50px;height:36px;box-shadow:var(--sh-md)"></span><span class="nm">--sh-md</span><span class="val">kort</span></div>
+        <div class="tok"><span class="demo ds-card" style="width:50px;height:36px;box-shadow:var(--sh-lg)"></span><span class="nm">--sh-lg</span><span class="val">popover</span></div>
+        <div class="tok"><span class="demo" style="width:50px;height:36px;border-radius:9px;background:var(--orange);box-shadow:var(--sh-glow)"></span><span class="nm">--sh-glow</span><span class="val">oransje glød</span></div>
+      </div>
+    </div>
+    <p class="body muted" style="margin-top:14px">App-spesifikt: mobilen bruker noe rundere radier på interaktive flater (<code style="font-family:var(--font-mono)">.m-btn</code> 13px, <code style="font-family:var(--font-mono)">.m-input</code> 12px, bunnark 24px topp) for tommelvennlig følelse — bygget på de samme grunnverdiene, justert for berøring (min. 44px treffmål).</p>
+  </section>
+
+  <!-- WEB COMPONENTS -->
+  <section id="components">
+    <div class="ds-sec-eyebrow">Komponenter · web</div>
+    <h2 class="ds-h2">Web-mønstre i bruk</h2>
+    <p class="ds-sec-lede">Live-spesimen rendret med de faktiske klassene fra <code style="font-family:var(--font-mono);font-size:13px">shell.css</code> og <code style="font-family:var(--font-mono);font-size:13px">pages.css</code>. Hvert mønster har en status: på linje, delvis, eller avvik.</p>
+
+    <h3 class="ds-h3">Knapper &amp; handlinger</h3>
+    <div class="spec">
+      <div class="spec-stage center">
+        <button class="sk-primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Skap</button>
+        <button class="sk-ghost">Dagsrapport</button>
+        <button class="aq-btn primary">Løs nå</button>
+        <button class="aq-btn">Åpne</button>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.sk-primary</code><code>.sk-ghost</code><code>.aq-btn</code></div>
+    </div>
+
+    <h3 class="ds-h3">Status-pills &amp; chips</h3>
+    <div class="spec">
+      <div class="spec-stage center">
+        <span class="roster-status on">På vakt</span>
+        <span class="roster-status soon">Fra 16:00</span>
+        <span class="roster-status gap">Mangler</span>
+        <span class="aq-kind crit">Avvik</span>
+        <span class="aq-kind warn">Godkjenning</span>
+        <span class="aq-kind info">Levering</span>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.roster-status</code><code>.aq-kind</code></div>
+    </div>
+
+    <h3 class="ds-h3">Panel (delt primitiv)</h3>
+    <div class="spec">
+      <div class="spec-stage col">
+        <div class="so-panel" style="width:100%;max-width:520px">
+          <div class="so-panel-head"><span class="t"><span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>Krever handling nå</span><span class="cnt crit">3</span></div>
+          <div style="padding:16px 18px;font-size:13px;color:var(--muted)">Innhold rendres her — handlingskø, liste, tabell …</div>
+        </div>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.so-panel</code><code>.so-panel-head</code> — gjenbrukes på alle sider</div>
+    </div>
+
+    <h3 class="ds-h3">KPI-puls</h3>
+    <div class="spec">
+      <div class="spec-stage">
+        <div class="pulse" style="width:180px"><span class="pulse-edge" style="background:var(--success)"></span><div class="pulse-lbl">På vakt nå</div><div class="pulse-val">4<span class="u">/ 5</span></div><div class="pulse-sub">1 møter 16:00</div></div>
+        <div class="pulse" style="width:180px"><span class="pulse-edge" style="background:var(--error)"></span><div class="pulse-lbl">Må løses</div><div class="pulse-val crit">3</div><div class="pulse-sub">hvorav 1 forsinket</div></div>
+        <div class="pulse" style="width:180px"><span class="pulse-edge" style="background:var(--success)"></span><div class="pulse-lbl">Dekning i dag</div><div class="pulse-val ok">92<span class="u">%</span></div><div class="pulse-sub">fre faller til 83 %</div></div>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.pulse</code> — dashbordets nøkkeltall</div>
+    </div>
+
+    <h3 class="ds-h3">Toggles &amp; segment</h3>
+    <div class="spec">
+      <div class="spec-stage center">
+        <span class="sk-switch on"><span></span></span>
+        <span class="sk-switch"><span></span></span>
+        <div class="set-seg"><button class="on">Lyst</button><button>Mørkt</button></div>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.sk-switch</code><code>.set-seg</code></div>
+    </div>
+
+    <h3 class="ds-h3">Chat-boble &amp; vedleggskort</h3>
+    <div class="spec">
+      <div class="spec-stage col">
+        <div class="chat-m them"><span class="chat-bubble">Kjøl 3 viser fortsatt +5 grader.</span></div>
+        <div class="chat-m me" style="align-self:flex-end"><span class="chat-bubble">Takk — jeg er på vei ned for å se på pakningen.</span></div>
+        <div class="attc" style="max-width:300px"><div class="attc-doc file"><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><span class="body"><span class="t">IK-mat internkontroll.pdf</span><span class="m">PDF · 1,8 MB · 12 sider</span></span></div></div>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.chat-bubble</code><code>.attc</code> — WhatsApp-mønster i vårt DS</div>
+    </div>
+  </section>
+
+  <!-- MOBILE COMPONENTS -->
+  <section id="mobile">
+    <div class="ds-sec-eyebrow">Komponenter · app</div>
+    <h2 class="ds-h2">Mobil-mønstre i bruk</h2>
+    <p class="ds-sec-lede">Live-spesimen rendret med de faktiske <code style="font-family:var(--font-mono);font-size:13px">.m-*</code>-klassene fra <code style="font-family:var(--font-mono);font-size:13px">mobile.css</code> — samme tokens, berøringstilpasset. Større treffmål, rundere hjørner, bunnark i stedet for sentrerte modaler.</p>
+
+    <h3 class="ds-h3">Knapper, felt &amp; kontroller</h3>
+    <div class="spec">
+      <div class="spec-stage col" style="gap:18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="m-btn m-btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Opprett oppgave</button>
+          <button class="m-btn m-btn-ghost">Avbryt</button>
+          <button class="m-btn m-btn-ghost m-sm">Liten</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <div class="m-seg"><button class="is-active">Mine</button><button>Haster</button><button>Alle</button></div>
+          <span class="m-switch on"><span></span></span>
+          <span class="m-switch"><span></span></span>
+          <span class="m-chip on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Kan hele vakten</span>
+          <span class="m-chip">Til 19:00</span>
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <span class="m-pill m-pill-crit"><span class="m-pill-dot"></span>Kritisk</span>
+          <span class="m-pill m-pill-warn"><span class="m-pill-dot"></span>Venter</span>
+          <span class="m-pill m-pill-ok"><span class="m-pill-dot"></span>Ferdig</span>
+          <span class="m-pill m-pill-info"><span class="m-pill-dot"></span>Opplæring</span>
+        </div>
+        <label class="m-field" style="width:100%;max-width:360px"><span>Tittel</span><input class="m-input" value="Temperaturkontroll Kjøl 3" readonly /></label>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.m-btn</code><code>.m-seg</code><code>.m-switch</code><code>.m-chip</code><code>.m-pill</code><code>.m-field</code></div>
+    </div>
+
+    <h3 class="ds-h3">Oppgaverad &amp; Botsson-stripe</h3>
+    <div class="spec">
+      <div class="spec-stage col" style="align-items:stretch">
+        <div class="m-card m-flush" style="max-width:380px;width:100%">
+          <div class="m-tasklist">
+            <div class="m-task"><span class="m-task-check is-done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span><div class="m-task-body"><div class="m-task-title is-done">Temperaturlogg frokost</div><div class="m-task-meta"><span class="m-pill m-pill-ok"><span class="m-pill-dot"></span>IK-mat</span><span>08:15</span></div></div></div>
+            <div class="m-task"><span class="m-task-check"></span><div class="m-task-body"><div class="m-task-title">Rengjør kaffemaskin</div><div class="m-task-meta"><span class="m-pill m-pill-warn"><span class="m-pill-dot"></span>Rutine</span><span>før 15:00</span></div></div><span class="m-task-go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+          </div>
+        </div>
+        <div class="m-bot" style="max-width:380px;width:100%">
+          <div class="m-bot-h"><span class="m-bot-ava"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/></svg></span><b>Mr. Botsson</b><span class="m-bot-tag">Forslag</span></div>
+          <div class="m-bot-body">Kjøl 3 har ligget på +5 °C i 40 min. Vil du <b>melde avvik</b> og varsle vaktansvarlig?</div>
+          <div class="m-bot-actions"><button class="m-btn m-btn-primary m-sm">Meld avvik</button><span class="m-bot-why"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg> Hvorfor?</span></div>
+        </div>
+      </div>
+      <div class="spec-cap"><span class="st aligned"><i></i>På linje</span><span class="grow"></span><code>.m-task</code><code>.m-bot</code> — handlingsfokus, AI assistiv</div>
+    </div>
+  </section>
+
+  <!-- SHARED COMPONENTS (web ↔ app) -->
+  <section id="shared">
+    <div class="ds-sec-eyebrow">Delte komponenter</div>
+    <h2 class="ds-h2">Web ↔ app, side om side</h2>
+    <p class="ds-sec-lede">De delte, gjenbrukbare komponentene i produktet — dokumentert mot sin <em>faktiske kode</em> (<code style="font-family:var(--font-mono);font-size:12px">window.*</code>-eksport + filnavn), ikke gjenoppdiktet. Registeret under er sannheten; seksjonene som følger viser de viktigste i detalj.</p>
+    <h3 class="ds-h3" style="margin-top:24px">Komponentregister (ekte kode)</h3>
+    <table class="ds-table">
+      <thead><tr><th>Komponent</th><th>Eksport</th><th>Fil</th><th>Rolle</th></tr></thead>
+      <tbody>
+        <tr><td><span class="term">FlowPlayer</span></td><td><code>OppFlowPlayer</code> · <code>MFlowPlayer</code></td><td><code>oppgaver-form.jsx</code> · <code>flows.jsx</code></td><td>Veiledning du blar gjennom — <strong>manualer, opplæring og kunnskapssjekk (quiz)</strong>. Innhold: tekst/bilde/video/sitat/sjekkliste. Ender i lesekvittering.</td></tr>
+        <tr><td><span class="term">Flow Controller</span><br/><span style="font-size:11.5px;color:var(--muted)">(Compliance Flow)</span></td><td><code>OppFormViewer</code> · <code>MFormViewer</code></td><td><code>oppgaver-form.jsx</code> · <code>flows.jsx</code></td><td>HMS/compliance-kontroll du scroller gjennom og <strong>signerer</strong>. Kontroller: spørsmål (ja/avvik), måling, vurdering, foto, QR, signatur + innskutte huskeregler → bevis i loggen. Web + app, ett delt skjema.</td></tr>
+        <tr><td><span class="term">Håndbok-viser</span></td><td><code>OppChapterViewer</code></td><td><code>oppgaver-form.jsx</code></td><td>Viser et <strong>håndbok-kapittel</strong> som lesbart dokument (Bedrift/HMS/Personal), åpnet fra en oppgave eller rutine.</td></tr>
+        <tr><td><span class="term">Rutine-/oppgavedrawer</span></td><td><code>OppgaverPage › Drawer</code></td><td><code>oppgaver.jsx</code></td><td>Oppgavedetalj for <strong>oppgaver og rutiner</strong>: status/prioritet, kontekst, kapittel, manual, delsteg, bevis, aktivitet + kommentar.</td></tr>
+        <tr><td><span class="term">Oppgave-tildeling</span></td><td><code>AdhocCompose</code></td><td><code>oppgaver.jsx</code></td><td>Opprett + tildel til <strong>person · Avdeling · Område · Lag</strong>.</td></tr>
+        <tr><td><span class="term">Shift Controller</span><br/><span style="font-size:11.5px;color:var(--muted)">(Vaktkontroll)</span></td><td><code>VPController</code></td><td><code>vaktplan-controller.jsx</code></td><td>Vakt-cockpit: rolle/team/sone, funksjoner &amp; kompetanse, koblede oppgaver, lønnsgrunnlag.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>To distinkte «flows» — like ut, ulik jobb:</b> <strong>FlowPlayer</strong> = <em>les og forstå</em> (manual/opplæring/quiz → lesekvittering). <strong>Flow Controller</strong> (Compliance Flow) = <em>svar og bekreft</em> (kontroller + huskeregler → signering + bevis).</div>
+
+    <!-- VEILEDNING / FLOW PLAYER -->
+    <h3 class="ds-h3">1 · FlowPlayer (Veiledning)</h3>
+    <p class="body muted" style="margin-top:-6px">En guidet, stegvis gjennomgang av en manual/prosedyre som ender i <strong>lesekvittering</strong>. Hvert steg er en <strong>seksjonstype</strong> — <code style="font-family:var(--font-mono);font-size:12px">tekst</code>, <code style="font-family:var(--font-mono);font-size:12px">bilde</code>, <code style="font-family:var(--font-mono);font-size:12px">video</code>, <code style="font-family:var(--font-mono);font-size:12px">sitat</code> eller <code style="font-family:var(--font-mono);font-size:12px">sjekkliste</code> (se variantene under). Web = sentrert modal med fremdriftslinje; app = helskjerm med steg-prikker. Begge: oransje aksent, serif-titler, navnet «Veiledning».</p>
+    <div class="dsx-cmp">
+      <!-- web flow -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat web">Web</span> Veiledning <span class="cls">.opf · OppFlowPlayer</span></div>
+        <div class="dsx-col-stage">
+          <div class="opf" style="max-width:100%;width:100%;max-height:none;animation:none">
+            <div class="opf-head">
+              <div class="opf-head-top">
+                <span class="opf-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg> Veiledning · Manual</span>
+                <span class="sp"></span><button class="opf-x"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <div class="opf-prog"><div class="opf-prog-bar"><span style="width:55%;background:var(--orange)"></span></div><span class="opf-prog-n">3/5</span></div>
+            </div>
+            <div class="opf-body" style="min-height:150px;overflow:visible">
+              <div>
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-bottom:6px">Steg 2 av 3</div>
+                <h2 class="opf-title" style="font-size:22px">Kontroller kjøletemperatur</h2>
+                <p style="font-size:14px;line-height:1.6;color:var(--fg);max-width:46ch">Les av termometeret i Kjøl 3. Godkjent område er 0–4 °C. Avvik registreres umiddelbart med foto.</p>
+              </div>
+            </div>
+            <div class="opf-foot">
+              <div class="opf-sign">
+                <button class="btn btn-ghost btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Forrige</button>
+                <span class="opf-sign-info"></span>
+                <button class="opf-btn" style="background:var(--orange)">Neste <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- app flow -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat app">App</span> Veiledning <span class="cls">.m-flow · MFlowPlayer</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-phone">
+            <div class="m-flow" style="position:static;animation:none">
+              <div class="m-flow-head">
+                <button class="m-iconbtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <div class="m-flow-htitle">Veiledning</div>
+                <span class="m-flow-badge">Kjøletemp.</span>
+              </div>
+              <div class="m-flow-body" style="overflow:visible">
+                <div class="m-flow-step">
+                  <div class="m-flow-stepmeta">
+                    <span class="m-flow-stepno">STEG 2 AV 3</span>
+                    <div class="m-flow-dots"><span class="m-flow-dot on"></span><span class="m-flow-dot on cur"></span><span class="m-flow-dot"></span></div>
+                  </div>
+                  <span class="m-pill m-pill-muted" style="align-self:flex-start"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/></svg> Tekst</span>
+                  <h2>Kontroller kjøletemperatur</h2>
+                  <div class="m-flow-text"><p>Les av termometeret i Kjøl 3. Godkjent område er 0–4 °C. Avvik registreres umiddelbart med foto.</p></div>
+                  <div class="m-flow-preview"><span class="m-flow-preview-l">NESTE</span><span>Signér kontrollen</span></div>
+                </div>
+              </div>
+              <div class="m-flow-foot">
+                <div style="display:flex;gap:8px">
+                  <button class="m-btn m-btn-ghost" style="flex:0 0 auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Forrige</button>
+                  <button class="m-btn m-btn-primary m-full">Neste steg <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="spec-cap" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);margin-top:-2px">
+      <span class="st aligned"><i></i>På linje (justert 30.05)</span>
+      <span class="grow"></span>
+      Felles: oransje aksent · serif-titler · navnet «Veiledning» · ender i lesekvittering. Plattform-forskjell: modal+fremdriftslinje (web) vs helskjerm+prikker (app).
+    </div>
+
+    <!-- OPPGAVE-TILDELING -->
+    <h3 class="ds-h3">2 · Oppgave-tildeling (person · gruppe · team)</h3>
+    <p class="body muted" style="margin-top:-6px">Den faktiske komponenten er <code style="font-family:var(--font-mono);font-size:12px">AdhocCompose</code> i <code style="font-family:var(--font-mono);font-size:12px">oppgaver.jsx</code>. En oppgave kan tildeles en <strong>person</strong> — eller en hel <strong>gruppe/team</strong> via de <em>samme aksene</em> som chat-mottakere: <strong>Avdeling · Område · Lag</strong> (<code style="font-family:var(--font-mono);font-size:12px">CHAT_FACETS</code>-vokabularet). Velgeren har en fane-rad øverst; en gruppe får en samlet brikke i lista i stedet for én avatar.</p>
+    <div class="dsx-cmp">
+      <!-- web tildeling -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat web">Web</span> Tildel til <span class="cls">oppgaver.jsx · AdhocCompose</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-modal" style="max-width:288px">
+            <div class="dsx-modal-b" style="padding:13px 14px">
+              <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 2px 9px">Tildel til</div>
+              <div style="display:flex;gap:4px;padding:0 0 8px;border-bottom:1px solid var(--border);margin-bottom:7px">
+                <span style="flex:1;text-align:center;font-size:10.5px;font-weight:600;padding:5px 3px;border-radius:7px;color:var(--muted)">Person</span>
+                <span style="flex:1;text-align:center;font-size:10.5px;font-weight:600;padding:5px 3px;border-radius:7px;border:1px solid var(--border-strong);background:var(--secondary);color:var(--fg)">Avdeling</span>
+                <span style="flex:1;text-align:center;font-size:10.5px;font-weight:600;padding:5px 3px;border-radius:7px;color:var(--muted)">Område</span>
+                <span style="flex:1;text-align:center;font-size:10.5px;font-weight:600;padding:5px 3px;border-radius:7px;color:var(--muted)">Lag</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;font-size:13.5px"><span style="width:22px;height:22px;border-radius:6px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--dept-kjokken);color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.2 3-5 6.5-5s6.5 1.8 6.5 5"/><circle cx="18" cy="9" r="2"/><path d="M17 14c3 0 4.5 2 4.5 4.5"/></svg></span> Kjøkken</div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;font-size:13.5px;background:var(--secondary)"><span style="width:22px;height:22px;border-radius:6px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--dept-sal);color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.2 3-5 6.5-5s6.5 1.8 6.5 5"/><circle cx="18" cy="9" r="2"/><path d="M17 14c3 0 4.5 2 4.5 4.5"/></svg></span> Sal <span style="margin-left:auto;color:var(--orange-dark);display:inline-flex"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;font-size:13.5px"><span style="width:22px;height:22px;border-radius:6px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--dept-bar);color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.2 3-5 6.5-5s6.5 1.8 6.5 5"/><circle cx="18" cy="9" r="2"/><path d="M17 14c3 0 4.5 2 4.5 4.5"/></svg></span> Bar</div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;font-size:13.5px"><span style="width:22px;height:22px;border-radius:6px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--dept-event);color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.2 3-5 6.5-5s6.5 1.8 6.5 5"/><circle cx="18" cy="9" r="2"/><path d="M17 14c3 0 4.5 2 4.5 4.5"/></svg></span> Event</div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;font-size:13.5px"><span style="width:22px;height:22px;border-radius:6px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:var(--dept-lager);color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3.2 3-5 6.5-5s6.5 1.8 6.5 5"/><circle cx="18" cy="9" r="2"/><path d="M17 14c3 0 4.5 2 4.5 4.5"/></svg></span> Lager</div>
+              </div>
+            </div>
+            <div class="dsx-modal-f"><span style="font-size:12px;color:var(--muted)">Tildelt: <strong style="color:var(--fg)">Sal</strong> · 4 personer</span><span class="sp"></span><button class="sk-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Opprett &amp; tildel</button></div>
+          </div>
+        </div>
+      </div>
+      <!-- app tildeling -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat app">App</span> Tildel <span class="cls">flows.jsx · MNewTaskDrawer</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-modal" style="max-width:288px;background:var(--secondary)">
+            <div class="dsx-modal-b" style="padding:18px 16px">
+              <div class="m-bot" style="margin-bottom:14px"><div class="m-bot-h"><span class="m-bot-ava"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M8 4h8"/></svg></span><b>Samkjøres</b><span class="m-bot-tag">Til</span></div><div class="m-bot-body" style="font-size:12.5px">App-draweren tildeler i dag kun til <b>person</b>. Neste steg: samme <b>Person / Avdeling / Område / Lag</b>-velger som på web, i et bunnark.</div></div>
+              <label class="m-field"><span>Tildel (i dag)</span><div class="m-input" style="display:flex;align-items:center;gap:9px"><span class="so-av" style="width:22px;height:22px;font-size:9px;background:#10B981">SL</span> Selma L.</div></label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="spec-cap" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);margin-top:-2px">
+      <span class="st partial"><i></i>Web på linje · app gjenstår</span>
+      <span class="grow"></span>
+      Web (<code>AdhocCompose</code>) tildeler person + Avdeling/Område/Lag. App tildeler foreløpig kun person — samkjøres mot samme facet-velger.
+    </div>
+
+    <!-- VAKTKONTROLL / SHIFT CONTROLLER -->
+    <h3 class="ds-h3">3 · Vaktkontroll (Shift Controller)</h3>
+    <p class="body muted" style="margin-top:-6px">Vakter styres <em>ikke</em> fra en isolert «Ny vakt»-boks — de håndteres i <strong>Shift Controller</strong> på vaktplanen (<code style="font-family:var(--font-mono);font-size:12px">vaktplan-controller.jsx</code>). Du plukker en vakt i rutenettet og åpner kontrolleren: et faner-cockpit for én vakt med <strong>Rolle / Team / Sone</strong>, <strong>Funksjoner &amp; kompetanse</strong> (skjenkebevilling, vaktansvarlig), avvik/issues, koblede oppgaver (TaskDrawer) og Lønnsgrunnlag. På app gjør ansatte den rolletilpassede motparten — tilby/ønske en vakt i Vaktbørs.</p>
+    <div class="dsx-cmp">
+      <!-- web shift controller -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat web">Web</span> Shift Controller <span class="cls">vaktplan-controller.jsx</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-modal" style="max-width:344px">
+            <div class="dsx-modal-h">
+              <span class="so-av" style="width:34px;height:34px;background:var(--dept-sal)">SL</span>
+              <div><div class="t">Selma L. · Servitør</div><div class="s">Fre 30/5 · 16:00–23:00 · Sal</div></div>
+            </div>
+            <div style="display:flex;gap:3px;padding:10px 14px 0;font-size:11.5px;font-weight:600;color:var(--muted)">
+              <span style="padding:6px 10px;border-radius:7px;background:var(--secondary);color:var(--fg)">Vakt</span>
+              <span style="padding:6px 10px">Funksjoner</span>
+              <span style="padding:6px 10px">Oppgaver</span>
+              <span style="padding:6px 10px">Lønn</span>
+            </div>
+            <div class="dsx-modal-b" style="padding:14px;display:flex;flex-direction:column;gap:11px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="vp-frow"><span class="vp-flbl">Rolle</span><div class="vp-finput" style="display:flex;align-items:center">Servitør</div></div>
+                <div class="vp-frow"><span class="vp-flbl">Team</span><div class="vp-finput" style="display:flex;align-items:center">Sal-laget</div></div>
+              </div>
+              <div class="vp-frow"><span class="vp-flbl">Sone / stasjon</span><div class="vp-fchips"><span class="vp-fchip on" style="height:30px">Sal vest</span><span class="vp-fchip" style="height:30px">+ Legg til</span></div></div>
+              <div style="display:flex;gap:9px;align-items:center;padding:10px 12px;border-radius:var(--r-lg);background:rgba(193,130,0,.08);border:1px solid rgba(193,130,0,.26);font-size:12.5px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="1.8" style="flex:0 0 auto"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg> 1 funksjon mangler dekning — <strong style="margin-left:3px">Vaktansvarlig</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- app offer shift -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat app">App</span> Tilby / ønsk vakt <span class="cls">flows.jsx · MShiftOfferDrawer</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-phone">
+            <div class="dsx-scrim"></div>
+            <div class="m-sheet" style="max-height:none;animation:none">
+              <div class="m-sheet-grip"></div>
+              <div class="m-sheet-h"><h3>Legg ut vakt</h3><button class="m-iconbtn" style="margin-left:auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+              <div class="m-sheet-body" style="display:flex;flex-direction:column;gap:15px">
+                <div class="m-seg m-seg-full"><button class="is-active">Tilby vakt</button><button>Ønsk vakt</button></div>
+                <div class="m-card" style="display:flex;gap:12px;align-items:center">
+                  <span class="so-av" style="width:42px;height:42px;font-size:14px;background:var(--dept-sal)">SL</span>
+                  <div style="flex:1"><div style="font-size:14.5px;font-weight:650">Lørdag 31. mai</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">Servitør · Sal · 16:00–23:00</div></div>
+                </div>
+                <label class="m-field"><span>Melding til leder <small style="text-transform:none;letter-spacing:0;color:var(--muted-soft)">(valgfritt)</small></span><textarea class="m-input" rows="2" readonly>Kan ikke jobbe lørdag — tilbyr vakten til laget.</textarea></label>
+              </div>
+              <div style="display:flex;gap:8px;padding:10px 16px 16px;border-top:1px solid var(--border)">
+                <button class="m-btn m-btn-ghost" style="flex:0 0 auto">Avbryt</button>
+                <button class="m-btn m-btn-primary m-full"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Legg ut vakt</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="spec-cap" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);margin-top:-2px">
+      <span class="st partial"><i></i>Rolletilpasset</span>
+      <span class="grow"></span>
+      Leder styrer vakten i Shift Controller (web); ansatt tilbyr/ønsker i Vaktbørs (app). Felles avdelingsfarger + vokabular.
+    </div>
+
+    <!-- REPORTER -->
+    <h3 class="ds-h3">4 · Flow Controller (Compliance Flow)</h3>
+    <p class="body muted" style="margin-top:-6px">Flow Controller er HMS/compliance-verktøyet — den faktiske <code style="font-family:var(--font-mono);font-size:12px">OppFormViewer</code> (web) og <code style="font-family:var(--font-mono);font-size:12px">MFormViewer</code> (app). Du scroller ovenfra og ned gjennom seksjoner med <strong>kontroller</strong> og innskutte <strong>huskeregler</strong>, og signerer til slutt (genererer bevis til loggen). Kontrolltyper: <strong>Måling · Spørsmål (ja/avvik) · Vurdering · Foto · QR · Signatur</strong>. <strong>Begge flater leser ett delt skjema</strong> — <code style="font-family:var(--font-mono);font-size:12px">SmartoutData.resolveControlForm(task)</code> i <code style="font-family:var(--font-mono);font-size:12px">shared/data.js</code> — så de kan aldri komme ut av synk.</p>
+    <div class="callout" style="margin-top:0"><b>Gjenbrukbar på tvers av kontrolldomener:</b> samme komponent driver <strong>Vernerunde</strong> (vern), <strong>HMS</strong>, <strong>IK / Mat</strong> (egenkontroll) og <strong>innhenting</strong> (mottakskontroll). En oppgave løses opp til riktig skjema etter domenet sitt — <code style="font-family:var(--font-mono);font-size:12px">CONTROL_FORMS[id]</code> ellers et <code style="font-family:var(--font-mono);font-size:12px">CONTROL_TEMPLATES[domene]</code>.</p>
+    <div class="dsx-cmp">
+      <!-- web flow controller -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat web">Web</span> Flow Controller <span class="cls">oppgaver-form.jsx · OppFormViewer</span></div>
+        <div class="dsx-col-stage" style="align-items:stretch">
+          <div class="opf" style="max-width:100%;width:100%;max-height:none;animation:none">
+            <div class="opf-head">
+              <div class="opf-head-top"><span class="opf-badge" style="background:rgba(231,0,11,.1);color:var(--error)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3.5h6V5"/><path d="M9 13l2 2 4-4"/></svg> Kontroll</span><span class="sp"></span></div>
+              <h2 class="opf-title" style="font-size:22px">Vernerunde — Sal &amp; rømningsveier</h2>
+              <div class="opf-meta"><span class="chap" style="color:var(--error)"><span class="dot" style="background:var(--error)"></span>Vernerunde</span><span>·</span><span>signeres</span></div>
+              <div class="opf-prog"><div class="opf-prog-bar"><span style="width:60%"></span></div><span class="opf-prog-n">3/5</span></div>
+            </div>
+            <div class="opf-body" style="max-height:300px">
+              <div style="display:flex;gap:9px;align-items:flex-start;padding:10px 12px;margin:0 0 12px;border-radius:var(--r-lg);background:var(--orange-soft);border:1px solid color-mix(in srgb, var(--orange) 22%, var(--border));font-size:12.5px;line-height:1.5"><span style="flex:0 0 auto;margin-top:1px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span><span><strong style="font-weight:600">Husk:</strong> nødutganger og rømningsveier skal alltid være frie og tydelig merket.</span></div>
+              <div class="opf-q answered"><div class="opf-q-top"><span class="opf-q-type sjekk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span><div class="opf-q-p">Rømningsvei øst fri for hindringer<div class="opf-q-tt">Spørsmål</div></div><span class="opf-q-ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="opf-segs"><button class="opf-seg on ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> OK</button><button class="opf-seg"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg> Avvik</button></div></div>
+              <div class="opf-q"><div class="opf-q-top"><span class="opf-q-type foto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.2"/></svg></span><div class="opf-q-p">Foto av merket rømningsvei<span class="req" style="color:var(--error)">*</span><div class="opf-q-tt">Foto</div></div></div><div class="opf-drop"><span class="dic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.2"/></svg></span><div class="db"><div class="dt">Ta bilde eller last opp</div><div class="ds">Trykk for å åpne kamera</div></div></div></div>
+              <div class="opf-q"><div class="opf-q-top"><span class="opf-q-type qr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><div class="opf-q-p">Skann QR på vernerunde-sonen<div class="opf-q-tt">QR-skann</div></div></div><div class="opf-qr"><button class="opf-qr-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Skann QR-kode</button></div></div>
+            </div>
+            <div class="opf-foot"><div class="opf-sign"><div class="opf-sign-info"><div class="t">Signér og fullfør</div><div class="s">Påkrevd foto mangler</div></div><button class="opf-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Signér</button></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- app flow controller -->
+      <div class="dsx-col">
+        <div class="dsx-col-h"><span class="plat app">App</span> Flow Controller <span class="cls">flows.jsx · MFormViewer</span></div>
+        <div class="dsx-col-stage">
+          <div class="dsx-phone">
+            <div class="m-flow m-flow-imm" style="position:static;animation:none">
+              <div class="m-flow-top"><button class="m-flow-x"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="m-flow-prog"><span class="m-flow-prog-bar" style="width:60%;background:#e7000b"></span></div><span class="m-flow-count mono">3/5</span></div>
+              <div class="m-flow-body" style="overflow:visible">
+                <div style="padding:4px 2px 8px">
+                  <span class="m-flow-kicker mono" style="color:#e7000b">VERNERUNDE</span>
+                  <h2 style="font-family:var(--font-heading);font-size:24px;line-height:1.12;margin:6px 0 4px">Vernerunde — Sal</h2>
+                  <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px">HMS › Vernerunder · signeres</div>
+                  <div class="m-ctrl-sec">
+                    <div class="m-ctrl-sec-h"><span class="m-ctrl-sec-n">1</span><span class="m-ctrl-sec-t">Rømning og brann</span><span class="m-ctrl-sec-c">1/4</span></div>
+                    <div class="m-ctrl-husk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="1.8" style="flex:0 0 auto;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span><b>Husk:</b> nødutganger og rømningsveier skal alltid være frie og tydelig merket.</span></div>
+                    <div class="m-ctrl-q done"><div class="m-ctrl-q-top"><span class="m-ctrl-q-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span><div class="m-ctrl-q-p">Rømningsvei øst fri for hindringer<div class="m-ctrl-q-tt">Spørsmål</div></div><span class="m-ctrl-q-ok"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div><div class="m-ctrl-segs"><button class="m-ctrl-seg on ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> OK</button><button class="m-ctrl-seg"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg> Avvik</button></div></div>
+                    <div class="m-ctrl-q"><div class="m-ctrl-q-top"><span class="m-ctrl-q-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.2"/></svg></span><div class="m-ctrl-q-p">Foto av merket rømningsvei<span class="req">*</span><div class="m-ctrl-q-tt">Foto</div></div></div><button class="m-dropzone"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="1.7"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.2"/></svg><span>Legg til foto som bevis</span></button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="m-flow-foot">
+                <div style="display:flex;gap:10px;align-items:center">
+                  <div style="flex:1;font-size:12px;color:var(--muted)">2 kontroller gjenstår</div>
+                  <button class="m-btn m-btn-primary" style="flex:0 0 auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M12 11a2 2 0 0 0-2 2c0 2 .5 4 1 5"/><path d="M8 9a5 5 0 0 1 8 1c.4 2.5 0 5-1 7"/><path d="M5 11a7 7 0 0 1 13-2"/></svg> Signér</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="spec-cap" style="border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);margin-top:-2px">
+      <span class="st aligned"><i></i>På linje (app bygget 30.05)</span>
+      <span class="grow"></span>
+      Web modal (<code>.opf</code>) · app helskjerm (<code>.m-ctrl-*</code>) · ett delt skjema · samme kontrolltyper + huskeregler + signering.
+    </div>
+
+    <!-- HÅNDBOK-VISER -->
+    <h3 class="ds-h3">5 · Håndbok-viser (kapittel)</h3>
+    <p class="body muted" style="margin-top:-6px">Den faktiske <code style="font-family:var(--font-mono);font-size:12px">OppChapterViewer</code> i <code style="font-family:var(--font-mono);font-size:12px">oppgaver-form.jsx</code> åpner et <strong>håndbok-kapittel</strong> som lesbart dokument — samme <code style="font-family:var(--font-mono);font-size:12px">.opf</code>-skall som FlowPlayer/Flow Controller, men ren lesemodus. Nås fra en oppgave/rutine sin «Tilhører kapittel»-lenke, eller fra Bibliotek. Bok-aksent per håndbok: Bedrift (lilla), HMS (oransje), Personal (teal).</p>
+
+    <h3 class="ds-h3">Status pr. delt komponent</h3>
+    <table class="ds-table">
+      <thead><tr><th>Komponent</th><th>Web</th><th>App</th><th>Samkjøring</th></tr></thead>
+      <tbody>
+        <tr><td><span class="term">FlowPlayer (Veiledning)</span><br/><code>OppFlowPlayer</code> · <code>MFlowPlayer</code></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Varianter tekst/bilde/video/<strong>sitat</strong>/sjekkliste på begge (30.05); navn + oransje aksent justert</td></tr>
+        <tr><td><span class="term">Flow Controller (Compliance Flow)</span><br/><code>OppFormViewer</code> · <code>MFormViewer</code></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Web + app bygget 30.05 — ett delt skjema (<code>resolveControlForm</code>); reusable Vern/HMS/IK/Mat/innhenting</td></tr>
+        <tr><td><span class="term">Håndbok-viser</span><br/><code>OppChapterViewer</code></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st todo"><i></i>Gjenstår</span></td><td>Kapittel som lesbart dokument; app-leser i backlog</td></tr>
+        <tr><td><span class="term">Oppgave-tildeling</span><br/><code>AdhocCompose</code> · <code>MNewTaskDrawer</code></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Delvis</span></td><td>Web: person + Avdeling/Område/Lag (30.05). App: kun person — samkjøres</td></tr>
+        <tr><td><span class="term">Vaktkontroll (Shift Controller)</span><br/><code>vaktplan-controller.jsx</code> · <code>MShiftOfferDrawer</code></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Rolletilpasset</span></td><td>Leder styrer vakt (web); ansatt tilbyr/ønsker i Vaktbørs (app)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>Neste samkjøring:</b> gi app-oppgavetildeling (<code>MNewTaskDrawer</code>) samme <strong>Person / Avdeling / Område / Lag</strong>-velger som web. FlowPlayer og Flow Controller er nå på linje på begge flater.</div>
+  </section>
+
+  <!-- SCREENS -->
+  <section id="screens">
+    <div class="ds-sec-eyebrow">Skjermer &amp; mønstre</div>
+    <h2 class="ds-h2">Produktet i dag</h2>
+    <p class="ds-sec-lede">Ekte skjermbilder fra den kjørende web-appen. Skallet, dashbordet og domenesidene er bygget; mobil-appen speiler dem i lettere form (se <code style="font-family:var(--font-mono);font-size:13px">apps/mobile/</code>). Overlays vises som live-spesimen over (de er <code>position:fixed</code> og lar seg ikke fange av skjermbilde-verktøyet).</p>
+    <div class="shotgrid">
+      <div class="shot"><img src="apps/web/docs/shots/dashboard-light.png" alt="Dashbord lyst tema" /><div class="cap"><div class="t">Dashbord — «I dag» <span class="st aligned"><i></i>På linje</span></div><div class="d">Morgenbrief (Botsson m/ «Hvorfor?»), KPI-puls, handlingskø, bemanning. Manager-cockpiten.</div></div></div>
+      <div class="shot"><img src="apps/web/docs/shots/dashboard-dark.png" alt="Dashbord mørkt tema" /><div class="cap"><div class="t">Dashbord — mørkt tema <span class="st aligned"><i></i>På linje</span></div><div class="d">Samme flate i mørk modus. Alle tokens har mørke varianter; begge temaer holdes polerte.</div></div></div>
+      <div class="shot"><img src="apps/web/docs/shots/mode-document.png" alt="Dokumentmodus" /><div class="cap"><div class="t">Dokumentmodus <span class="st aligned"><i></i>På linje</span></div><div class="d">Bibliotek/håndbok-system: kapittel-nav, helse-ring, dokument-editor med AI-diff og lesekvittering.</div></div></div>
+      <div class="shot"><img src="apps/web/docs/shots/page-profile.png" alt="Min profil" /><div class="cap"><div class="t">Min profil <span class="st aligned"><i></i>På linje</span></div><div class="d">Hero, Personlig/Arbeid-felter, kompetanse-merker, månedsstats.</div></div></div>
+      <div class="shot"><img src="apps/web/docs/shots/page-settings.png" alt="Kontoinnstillinger" /><div class="cap"><div class="t">Kontoinnstillinger <span class="st aligned"><i></i>På linje</span></div><div class="d">Tema-segment, varsler, sikkerhet/2FA. Togglene fungerer og bekrefter med toast.</div></div></div>
+      <div class="shot"><img src="apps/web/docs/shots/sidebar-collapsed.png" alt="Kollapset sidepanel" /><div class="cap"><div class="t">Kollapset sidepanel <span class="st aligned"><i></i>På linje</span></div><div class="d">Ikoner med tooltip, badges/dot og aktiv tilstand bevart. Adminmodus + profil fungerer kollapset.</div></div></div>
+    </div>
+  </section>
+
+  <!-- STRUCTURE / ARCHITECTURE -->
+  <section id="structure">
+    <div class="ds-sec-eyebrow">Arkitektur-kobling</div>
+    <h2 class="ds-h2">UI ↔ Core Structure</h2>
+    <p class="ds-sec-lede">Designsystemet er ikke bare visuelt — det hviler på datamodellen i <a class="inline" href="uploads/OVERVIEW.md">Core Structure (D1)</a>. Et delt vokabular (ADR-0429) holder UI, AI, docs og database i takt på tvers av web og app. Ordet «rolle» er bevisst <em>ikke</em> et Smartout-begrep — det blandet sammen stilling og tilgangsnivå.</p>
+
+    <h3 class="ds-h3">Kanonisk terminologi (ADR-0429)</h3>
+    <table class="ds-table">
+      <thead><tr><th>UI-begrep (norsk)</th><th>Datamodell</th><th>Hvor i produktet</th></tr></thead>
+      <tbody>
+        <tr><td><span class="term">Avdeling</span></td><td><code>department</code></td><td>Avdelingsfarger, chat-filter «Avdeling», bemanning</td></tr>
+        <tr><td><span class="term">Stilling</span></td><td><code>position</code></td><td>Profil «Stilling», vakt-roller (Kokk, Servitør …)</td></tr>
+        <tr><td><span class="term">Tilgangsnivå</span></td><td><code>profile.role</code> <span class="nowrap">(employee/manager/admin/owner)</span></td><td>Adminmodus-gate (web) / Ansatt↔Leder (app), profil «Tilgangsnivå»</td></tr>
+        <tr><td><span class="term">Område</span></td><td><code>location</code></td><td>Chat-filter «Område» (Restaurant, Kjøkken, Bar, Lager, Event-floor)</td></tr>
+        <tr><td><span class="term">Lag</span></td><td><code>team</code></td><td>Chat-filter «Lag» (Morgen, Kveld, Helg)</td></tr>
+        <tr><td><span class="term">Vakt</span></td><td><code>schedule_shift</code></td><td>Vaktplan, «På vakt nå», bemanningshull, Vaktbørs</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>Felles datakilde:</b> begge flatene leser <code>window.SmartoutData</code> fra samme <code>shared/data.js</code> — samme cast (Bistro Nord, Maria A., teamet), samme avdelingsfarger. Utvid der, ikke i parallell.</div>
+
+    <h3 class="ds-h3">Tilgangsnivå styrer modus — på begge flater</h3>
+    <p class="body">Web har to moduser via <b>Adminmodus</b>-toggelen: <b>Privat</b> (ansatt) og <b>Admin</b> (Workforce Management). App speiler dette med <b>Ansatt ⟷ Leder</b> fra Mer-skjermen. Begge styres av samme <code style="font-family:var(--font-mono);font-size:12px">profile.role</code> / <code style="font-family:var(--font-mono);font-size:12px">canAdmin</code>. På web er det rolle-styrt med rute-vakt; på app adapterer de fem fanene innhold til modus.</p>
+  </section>
+
+  <!-- STATUS MATRIX -->
+  <section id="status">
+    <div class="ds-sec-eyebrow">Statusmatrise</div>
+    <h2 class="ds-h2">På linje · delvis · gjenstår</h2>
+    <p class="ds-sec-lede">Sannheten om hvor produktet står mot designretningen, på begge flater. Oppdater denne (og <code style="font-family:var(--font-mono);font-size:13px">apps/web/README.md</code> + <code style="font-family:var(--font-mono);font-size:13px">apps/mobile/README.md</code>) når en flate bygges ferdig.</p>
+    <table class="ds-table">
+      <thead><tr><th>Flate / mønster</th><th>Web</th><th>App</th><th>Notat</th></tr></thead>
+      <tbody>
+        <tr><td>Delt rot — tokens, type, farge, mørk modus</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Én <code>styles.css</code>; app gjenbruker, forker aldri</td></tr>
+        <tr><td>Skall — nav, router, toasts, modus</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Web: topbar/sidebar. App: topbar + 5-fane bunnlinje + FAB</td></tr>
+        <tr><td>Mr. Botsson (AI)</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Assistiv: forklarer, viser kilder, bekrefter. Web=slide-in, app=bunnark</td></tr>
+        <tr><td>Meldinger (chat)</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Delvis</span></td><td>App = lettere førsteutkast (liste + samtale)</td></tr>
+        <tr><td>Hjem / dashbord</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>App «Min dag» speiler cockpiten i lettere form, begge moduser</td></tr>
+        <tr><td><b>Veiledning (Flow Player)</b></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Samkjørt 30.05 — navn + oransje aksent på begge</td></tr>
+        <tr><td><b>Opprett oppgave</b></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Lik feltrekkefølge; web modal / app bunnark</td></tr>
+        <tr><td><b>Opprett / tilby vakt</b></td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Rolletilpasset</span></td><td>Leder oppretter (web) · ansatt tilbyr/ønsker (app)</td></tr>
+        <tr><td>Oppgaver, Vaktplan, Planlegging</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Delvis</span></td><td>Web bygget; app Vakter/Oppgaver lettere førsteutkast</td></tr>
+        <tr><td>HMS / Opplæring</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>App «Sikkerhet» + «Opplæring» portert fra repo</td></tr>
+        <tr><td>Lønn, Avstemming, Rapporter, Ansatte, Kommunikasjon</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st partial"><i></i>Delvis</span></td><td>Web bygget; app «Lønn»-hub bygget, resten gjenstår</td></tr>
+        <tr><td>Flow Controller / kontrollskjema</td><td><span class="st aligned"><i></i>På linje</span></td><td><span class="st aligned"><i></i>På linje</span></td><td>Web + app bygget 30.05; ett delt skjema, reusable på tvers av kontrolldomener</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="ds-h3">Kjente avvik &amp; oppfølging</h3>
+    <ul class="clean">
+      <li><span class="st aligned" style="margin-right:8px"><i></i>Løst 30.05</span> Web «Flow Player» (engelsk, blå) → <code>Veiledning</code> (bokmål, oransje) — nå på linje med appen.</li>
+      <li><span class="st aligned" style="margin-right:8px"><i></i>Løst 30.05</span> Appens Flow Controller (<code>MFormViewer</code>) bygget — ett delt skjema med web (<code>SmartoutData.resolveControlForm</code>), reusable Vern/HMS/IK/Mat/innhenting.</li>
+      <li><span class="st partial" style="margin-right:8px"><i></i>Delvis</span> App Vakter/Oppgaver/Chat er lettere førsteutkast — fordype mot web-paritet (se <code>apps/mobile/README.md</code> backlog).</li>
+    </ul>
+
+    <div class="callout" style="margin-top:28px">
+      <b>Vedlikehold:</b> Dette dokumentet leser tokens live fra <code>styles.css</code> og viser web- og mobil-komponenter med faktiske klasser, så foundations + komponenter + de delte spesimen holder seg selv oppdatert. Skjermbilder i <code>docs/shots/</code> og statusmatrisen oppdateres manuelt. Hold den i takt med <code>apps/web/README.md</code> og <code>apps/mobile/README.md</code>.
+    </div>
+  </section>
+
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#fdfcfa"/><rect x="30" y="30" width="40" height="40" rx="10" fill="#f97316"/></svg>
+</template>
+
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem("ds_theme"); } catch (e) {}
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    var btn = document.getElementById("themebtn");
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("ds_theme", next); } catch (e) {}
+    });
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        var t = document.querySelector(a.getAttribute("href"));
+        if (t) { e.preventDefault(); var y = t.getBoundingClientRect().top + window.scrollY - 64; window.scrollTo({ top: y, behavior: "smooth" }); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

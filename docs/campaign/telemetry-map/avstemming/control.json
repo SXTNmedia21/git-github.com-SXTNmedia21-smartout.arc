@@ -1,0 +1,93 @@
+{
+  "domain": "avstemming",
+  "design_files": [
+    "pages/avstemming.jsx",
+    "pages/avstemming-daglig.jsx",
+    "pages/avstemming-forms.jsx",
+    "pages/avstemming-more.jsx",
+    "pages/avstemming-shared.jsx"
+  ],
+  "interactive_elements_total": 97,
+  "elements_mapped": 97,
+  "mutations": 40,
+  "events_required": 19,
+  "events_in_registry": 8,
+  "events_missing_from_registry": [
+    "reconciliation exported",
+    "reconciliation bulk_approved",
+    "reconciliation revenue_adjusted",
+    "reconciliation shift_proposal_sent",
+    "reconciliation occupational_closed",
+    "reconciliation season_closed",
+    "handoff resolved",
+    "handoff escalated",
+    "handoff reminder_sent",
+    "handoff rejected",
+    "reconciliation policy_updated"
+  ],
+  "hooks_found": 5,
+  "hooks_reuse": [
+    "useApproveReconciliation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:95)",
+    "useRejectReconciliation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:182)",
+    "useApproveShiftHours (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:248)",
+    "useResolveDeviation (apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:298)",
+    "lockDayMutation (apps/web/src/app/dashboard/reconciliation/_components/DayDetail.tsx:97)"
+  ],
+  "hooks_missing": [
+    "useAdjustRevenue — UPDATE daily_reconciliation revenue fields + emit reconciliation revenue_adjusted",
+    "useSubmitHandoff — INSERT session_note type=handoff_request + emit handoff submitted",
+    "useProposeShiftHours — UPDATE shift_approval status=proposed + emit reconciliation shift_proposal_sent",
+    "useBulkApproveReconciliation — UPDATE daily_reconciliation ×N + emit reconciliation bulk_approved",
+    "useResolveHandoff — resolve handoff + emit handoff resolved",
+    "useEscalateHandoff — escalate handoff + emit handoff escalated",
+    "useHandoffReminder — send reminder + emit handoff reminder_sent",
+    "useRejectHandoff — reject handoff + emit handoff rejected",
+    "useCloseOccupationalPeriod — close occupational period + emit reconciliation occupational_closed",
+    "useCloseSeasonPeriod — close season + emit reconciliation season_closed",
+    "useUpdateReconciliationPolicy — upsert policy config + emit reconciliation policy_updated"
+  ],
+  "noop_candidates": [
+    "Tab navigation (daglig/yrke/sesong/handoffs/innstillinger) — 5 elements",
+    "Detail tab navigation (oversikt/omsetning/vakter/avvik/oppgaver/logg) — 6 elements",
+    "DayList search input — 1 element",
+    "DayList status filter chips (alle/krever handling/venter/låst) — 4 elements",
+    "Day row click (select for detail) — 1 element",
+    "Day row checkbox (bulk selection toggle) — 1 element",
+    "Preflight blocker row click (jump to tab) — 1 element",
+    "Botsson assist: Vis avvik button (goTab nav) — 1 element",
+    "OCR bilag thumbnail click (preview toast) — 1 element",
+    "Deviation row expand (toggle suggestion) — 1 element",
+    "ContextRail handoff item click (open handoff tab) — 1 element",
+    "All modal Avbryt buttons — 7 elements",
+    "All form input/textarea/select (local state only) — 15 elements",
+    "ShiftApprove supplement +/× local state — 2 elements",
+    "Yrke wizard: profession radio, period input, Tilbake/Neste nav — 4 elements",
+    "Sesong wizard: season radio (display only), Tilbake/Neste nav, factor toggles (local) — 5 elements",
+    "Handoffs: filter chips, list row select — 2 elements"
+  ],
+  "control_points": {
+    "every_element_mapped": true,
+    "every_mutation_has_event": false,
+    "every_event_registry_status_known": true,
+    "every_mutation_has_hook_or_flagged": false,
+    "baseline_count_recorded": true
+  },
+  "gate": "FAIL",
+  "blockers": [
+    {
+      "id": "MISSING_EVENTS",
+      "severity": "high",
+      "description": "11 telemetry events required by design mutations are not present in packages/telemetry/src/registry.ts. Must be added before implementation: reconciliation exported, reconciliation bulk_approved, reconciliation revenue_adjusted, reconciliation shift_proposal_sent, reconciliation occupational_closed, reconciliation season_closed, handoff resolved, handoff escalated, handoff reminder_sent, handoff rejected, reconciliation policy_updated."
+    },
+    {
+      "id": "MISSING_HOOKS",
+      "severity": "high",
+      "description": "11 mutation hooks are missing: useAdjustRevenue, useSubmitHandoff, useProposeShiftHours, useBulkApproveReconciliation, useResolveHandoff, useEscalateHandoff, useHandoffReminder, useRejectHandoff, useCloseOccupationalPeriod, useCloseSeasonPeriod, useUpdateReconciliationPolicy. These must be written before those UI paths can wire up."
+    },
+    {
+      "id": "F0_4_SEED_BLOCKER",
+      "severity": "critical",
+      "description": "daily_reconciliation, shift_approval, and session_note tables have 0 seed rows. E2E tests against seed are BLOCKED until supabase/migrations/70-reconciliation.sql (F0.4) lands. Unit-level hook tests are unblocked. Do not treat gate battery as passable for e2e until F0.4 is merged."
+    }
+  ]
+}

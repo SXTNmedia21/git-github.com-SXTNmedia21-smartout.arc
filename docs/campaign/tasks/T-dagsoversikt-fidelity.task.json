@@ -1,0 +1,140 @@
+{
+  "id": "T-dagsoversikt-fidelity",
+  "kind": "page-fidelity",
+  "label": "dagsoversikt",
+  "page": "apps/web/src/app/dashboard/min-dag-v2",
+  "design_source": "design-export/apps/web/pages/min-dag.jsx",
+  "ask": "Verify the dagsoversikt port matches the design across all 8 fidelity dimensions.",
+  "assigned_to": "orchestrator",
+  "gate_confidence": 95,
+  "advance_rule": "ALL 8 subtasks GREEN (confidence>=95) → then AWAITING-HUMAN-APPROVAL → Pontus approves → advance. One red = NOT READY, no advance.",
+  "subtasks": [
+    {
+      "n": 1,
+      "dim": "farge",
+      "measures": "token-verdi + palett-range (høyeste/laveste tone)",
+      "design_source": "shell.css var(--*)",
+      "pass": "eksakt token, 0 rå",
+      "verify_script": "verify/dagsoversikt-farge.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 72,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 2,
+      "dim": "font",
+      "measures": "family · size(px) · weight · line-height · letter-spacing",
+      "design_source": "CSS font-*",
+      "pass": "alle 5 matcher",
+      "verify_script": "verify/dagsoversikt-font.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 60,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 3,
+      "dim": "padding",
+      "measures": "px per side (topp/høyre/bunn/venstre)",
+      "design_source": "CSS padding:",
+      "pass": "eksakt px",
+      "verify_script": "verify/dagsoversikt-padding.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 75,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 4,
+      "dim": "avstand",
+      "measures": "gap + margin mellom elementer",
+      "design_source": "CSS gap/margin",
+      "pass": "eksakt px",
+      "verify_script": "verify/dagsoversikt-avstand.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 75,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 5,
+      "dim": "border-radius",
+      "measures": "runding px per hjørne",
+      "design_source": "CSS border-radius:",
+      "pass": "eksakt px",
+      "verify_script": "verify/dagsoversikt-border-radius.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 78,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 6,
+      "dim": "skygge",
+      "measures": "box-shadow-verdier",
+      "design_source": "CSS box-shadow:",
+      "pass": "matcher",
+      "verify_script": "verify/dagsoversikt-skygge.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 40,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 7,
+      "dim": "layout",
+      "measures": "flex/grid/order/align — hvor knappen sitter",
+      "design_source": "CSS struktur",
+      "pass": "samme plassering",
+      "verify_script": "verify/dagsoversikt-layout.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 55,
+        "green": false,
+        "has_script": true
+      }
+    },
+    {
+      "n": 8,
+      "dim": "tekst",
+      "measures": "innhold + lengde (truncation, antall bokstaver)",
+      "design_source": "design-data.js",
+      "pass": "samme copy/lengde",
+      "verify_script": "verify/dagsoversikt-tekst.sh",
+      "status": "red",
+      "last_run": {
+        "percent": 100,
+        "confidence": 80,
+        "green": false,
+        "has_script": true
+      }
+    }
+  ],
+  "status": "in_progress",
+  "last_run": {
+    "green_dims": 0,
+    "total_dims": 8,
+    "cleared": false
+  },
+  "note": "Orchestrator runs run-verify + owns the 8 verify-scripts (color done, dimension-extractor + Playwright next). App up on 3060 → Playwright dims runnable."
+}

@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartOut — Agent Activity Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ─── Design tokens (Nordic Split) ─── */
+:root {
+  --orange: #e8631a;
+  --orange-light: #f97316;
+  --orange-glow: rgba(232,99,26,0.18);
+  --orange-soft: rgba(232,99,26,0.08);
+  --success: #22c55e;
+  --success-soft: rgba(34,197,94,0.10);
+  --fail: #ef4444;
+  --fail-soft: rgba(239,68,68,0.10);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245,158,11,0.10);
+  --info: #3b82f6;
+  --info-soft: rgba(59,130,246,0.10);
+
+  /* Dark surfaces */
+  --bg: #0d0c0a;
+  --surface: #141210;
+  --card: #1a1814;
+  --card2: #201e1b;
+  --border: rgba(255,255,255,0.07);
+  --border-md: rgba(255,255,255,0.11);
+  --fg: #f0eeeb;
+  --muted: #7a756e;
+  --muted-soft: #504b45;
+
+  --font-heading: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --sh-card: 0 4px 16px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+  --sh-glow: 0 0 20px rgba(232,99,26,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01","cv11";
+  min-height: 100vh;
+}
+
+/* ─── Shell ─── */
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+/* ─── Sidebar ─── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+  padding: 20px 10px 16px;
+}
+.brand {
+  padding: 0 8px;
+  margin-bottom: 24px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.brand-name {
+  font-family: var(--font-heading);
+  font-size: 22px; font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  line-height: 1;
+}
+.brand-sub {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.nav-section {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted-soft);
+  padding: 14px 10px 5px;
+}
+.nav-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: var(--r-md);
+  cursor: pointer; width: 100%;
+  background: none; border: none; color: var(--muted);
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+  text-align: left; transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
+.nav-btn.active { background: var(--card); color: var(--fg); box-shadow: var(--sh-sm); }
+.nav-btn.active .nav-ico { color: var(--orange); }
+.nav-ico { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.8; }
+.nav-btn.active .nav-ico { opacity: 1; }
+.nav-label { flex: 1; }
+.nav-count { font-family: var(--font-mono); font-size: 10px; color: var(--muted-soft); }
+.nav-count.alert { color: var(--fail); font-weight: 700; }
+.sidebar-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.poll-indicator {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono);
+}
+.poll-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success); flex-shrink: 0;
+  box-shadow: 0 0 6px var(--success);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+.poll-dot.stale { background: var(--warn); box-shadow: 0 0 6px var(--warn); animation: none; }
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Main ─── */
+.main {
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Top bar ─── */
+.topbar {
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-title {
+  font-size: 14px; font-weight: 700; color: var(--fg);
+  flex: 1;
+}
+.topbar-ts {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--r-md);
+  border: 1px solid var(--border-md);
+  background: var(--card); color: var(--fg);
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  text-decoration: none; white-space: nowrap;
+}
+.btn:hover {
+  background: var(--card2);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: var(--sh-sm);
+}
+.btn-orange {
+  background: linear-gradient(135deg, #e8631a 0%, #c2410c 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(232,99,26,0.3);
+}
+.btn-orange:hover {
+  background: linear-gradient(135deg, #f97316 0%, #e8631a 100%);
+  box-shadow: 0 4px 14px rgba(232,99,26,0.4);
+}
+
+/* ─── Content area ─── */
+.content { padding: 20px 24px 40px; flex: 1; }
+
+/* ─── Pages ─── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── Headline row ─── */
+.headline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.hl-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-card);
+}
+.hl-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 6px;
+}
+.hl-value {
+  font-family: var(--font-mono);
+  font-size: 28px; font-weight: 700;
+  line-height: 1; color: var(--fg);
+}
+.hl-value .unit { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.hl-sub {
+  font-size: 11px; color: var(--muted);
+  margin-top: 6px;
+}
+.hl-card.orange .hl-value { color: var(--orange-light); }
+.hl-card.green .hl-value { color: var(--success); }
+.hl-card.red .hl-value { color: var(--fail); }
+
+/* ─── Progress bar ─── */
+.progress-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--sh-sm);
+}
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.progress-label { font-size: 12px; font-weight: 600; }
+.progress-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--orange-light); }
+.progress-track {
+  height: 8px; border-radius: var(--r-full);
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--orange) 0%, var(--orange-light) 100%);
+  box-shadow: 0 0 10px rgba(232,99,26,0.4);
+  transition: width 0.8s ease-in-out;
+}
+
+/* ─── Section header ─── */
+.section-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+.section-count {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  color: var(--muted); margin-left: auto;
+}
+
+/* ─── CHANNELS panel ─── */
+.channels-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.channel-tile {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px 14px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-card);
+  transition: border-color 0.2s;
+}
+.channel-tile .ch-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(36px); pointer-events: none;
+  transition: opacity 0.4s;
+}
+.channel-tile.ch-beating { border-color: rgba(34,197,94,0.3); }
+.channel-tile.ch-stalled { border-color: rgba(239,68,68,0.4); }
+.channel-tile.ch-idle { border-color: var(--border); }
+.ch-head {
+  display: flex; align-items: center; gap: 9px;
+  margin-bottom: 10px;
+}
+.ch-icon {
+  width: 32px; height: 32px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 15px;
+}
+.ch-icon.heartbeat { background: rgba(34,197,94,0.12); }
+.ch-icon.telemetry  { background: rgba(59,130,246,0.12); }
+.ch-icon.webhook    { background: rgba(255,255,255,0.05); }
+.ch-name { font-size: 13px; font-weight: 700; }
+.ch-state-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  margin-left: auto; position: relative;
+}
+.ch-state-dot.beating { background: var(--success); }
+.ch-state-dot.beating::after {
+  content:''; position:absolute; inset:-4px; border-radius:50%;
+  background: var(--success); opacity:0.3;
+  animation: ping 1.8s ease-out infinite;
+}
+.ch-state-dot.active { background: var(--info); }
+.ch-state-dot.idle { background: var(--muted-soft); }
+.ch-state-dot.stalled { background: var(--fail); }
+.ch-state-dot.stalled::after {
+  content:''; position:absolute; inset:-4px; border-radius:50%;
+  background: var(--fail); opacity:0.35;
+  animation: ping 0.9s ease-out infinite;
+}
+@keyframes ping {
+  0% { transform:scale(1); opacity:0.35; }
+  100% { transform:scale(2.4); opacity:0; }
+}
+.ch-stat-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.ch-stat {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 6px 10px;
+  min-width: 50px;
+}
+.ch-stat-val {
+  font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+  line-height: 1;
+}
+.ch-stat-val.green { color: var(--success); }
+.ch-stat-val.red   { color: var(--fail); }
+.ch-stat-val.warn  { color: var(--warn); }
+.ch-stat-val.blue  { color: var(--info); }
+.ch-stat-val.muted { color: var(--muted); }
+.ch-stat-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted-soft);
+  margin-top: 3px;
+}
+.ch-detail {
+  font-size: 11px; color: var(--muted);
+  line-height: 1.4;
+}
+.ch-detail .ch-ts {
+  font-family: var(--font-mono); color: var(--muted-soft);
+  font-size: 10px;
+}
+.stall-alert {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 7px 10px; border-radius: var(--r-md);
+  background: var(--fail-soft);
+  border: 1px solid rgba(239,68,68,0.35);
+  margin-top: 8px;
+  font-size: 11.5px; color: var(--fail);
+  line-height: 1.4;
+  animation: stall-flash 1.5s ease-in-out infinite;
+}
+@keyframes stall-flash {
+  0%, 100% { border-color: rgba(239,68,68,0.35); background: var(--fail-soft); }
+  50% { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.14); }
+}
+.stall-icon { font-size: 13px; flex-shrink: 0; padding-top: 1px; }
+.ch-beat-tick {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  margin-right: 5px;
+  animation: beat-tick 0.4s ease-out;
+}
+@keyframes beat-tick {
+  0% { transform: scale(0.3); opacity: 0.3; }
+  60% { transform: scale(1.8); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.webhook-fn-list {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.webhook-fn {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--muted);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+}
+.webhook-fn:last-child { border-bottom: none; }
+.webhook-fn-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--muted-soft); flex-shrink: 0;
+}
+.webhook-fn .live-env-tag {
+  margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.05); color: var(--muted-soft);
+  border: 1px solid var(--border);
+}
+
+/* ─── Agent cards ─── */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.agent-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  box-shadow: var(--sh-card);
+  position: relative; overflow: hidden;
+  transition: border-color 0.15s;
+}
+.agent-card.live { border-color: rgba(34,197,94,0.25); }
+.agent-card.stalled { border-color: rgba(239,68,68,0.4); }
+.agent-card .orb-bg {
+  position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  opacity: 0.6; pointer-events: none;
+  filter: blur(28px);
+}
+.agent-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.agent-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  position: relative;
+}
+.agent-status-dot.live { background: var(--success); }
+.agent-status-dot.live::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: var(--success); opacity: 0.35;
+  animation: ping 1.6s ease-out infinite;
+}
+.agent-status-dot.off { background: var(--muted-soft); }
+.agent-status-dot.stalled { background: var(--fail); }
+.agent-status-dot.stalled::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  background: var(--fail); opacity: 0.4;
+  animation: ping 0.9s ease-out infinite;
+}
+.agent-name { font-size: 13px; font-weight: 700; flex: 1; }
+.agent-domain-badge {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: var(--r-full);
+  background: var(--orange-soft); color: var(--orange-light);
+  border: 1px solid rgba(232,99,26,0.2);
+}
+/* ── Liveness badge ── */
+.liveness-badge {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 8px; border-radius: var(--r-full);
+  border: 1px solid;
+  flex-shrink: 0;
+}
+.lb-live    { background: var(--success-soft); color: var(--success); border-color: rgba(34,197,94,0.3); }
+.lb-working { background: var(--warn-soft);    color: var(--warn);    border-color: rgba(245,158,11,0.3); }
+.lb-stalled { background: var(--fail-soft);    color: var(--fail);    border-color: rgba(239,68,68,0.4);
+              animation: stall-flash 1.2s ease-in-out infinite; }
+.lb-done    { background: rgba(255,255,255,0.04); color: var(--muted); border-color: var(--border); }
+
+.agent-times {
+  display: flex; gap: 12px;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+  margin-bottom: 8px;
+}
+.agent-times span { display: flex; gap: 4px; align-items: center; }
+.agent-times .key { color: var(--muted-soft); }
+.agent-stream {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.stream-item {
+  display: flex; gap: 7px; align-items: flex-start;
+  font-size: 11.5px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.stream-item:last-child { border-bottom: none; }
+.stream-ts {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--muted-soft); flex-shrink: 0; padding-top: 1px;
+  min-width: 44px;
+}
+.stream-evt { flex-shrink: 0; padding-top: 1px; }
+.evt-chip {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px; border-radius: var(--r-sm);
+  display: inline-block;
+}
+.evt-logon     { background: var(--info-soft);    color: var(--info);    border: 1px solid rgba(59,130,246,0.2); }
+.evt-logoff    { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); }
+.evt-working   { background: var(--warn-soft);    color: var(--warn);    border: 1px solid rgba(245,158,11,0.2); }
+.evt-delivered { background: var(--success-soft); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+.evt-gate-pass { background: var(--success-soft); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+.evt-gate-fail { background: var(--fail-soft);    color: var(--fail);    border: 1px solid rgba(239,68,68,0.3); }
+.stream-detail { flex: 1; color: var(--fg); line-height: 1.4; }
+.stream-detail .artifact-link {
+  display: block; font-family: var(--font-mono); font-size: 10px;
+  color: var(--orange-light); margin-top: 2px; opacity: 0.8;
+}
+.current-step {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.15);
+  border-radius: var(--r-md);
+  margin-top: 8px;
+  font-size: 11px;
+}
+.current-step .spinner {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(245,158,11,0.3);
+  border-top-color: var(--warn);
+  animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Gate grid ─── */
+.gate-grid {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 24px;
+}
+.gate-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-sm);
+}
+.gate-row.pass { border-color: rgba(34,197,94,0.2); }
+.gate-row.fail { border-color: rgba(239,68,68,0.15); }
+.gate-header {
+  display: grid;
+  grid-template-columns: 140px 1fr repeat(5, 80px) 60px;
+  gap: 0;
+  align-items: stretch;
+  min-height: 44px;
+}
+.gate-col {
+  padding: 10px 12px;
+  display: flex; align-items: center;
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+}
+.gate-col:last-child { border-right: none; }
+.gate-domain { font-weight: 700; }
+.gate-counts { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; }
+.gate-counts .c-row { display: flex; gap: 6px; color: var(--muted); }
+.gate-counts .c-val  { font-family: var(--font-mono); color: var(--fg); }
+.gate-counts .c-bad  { font-family: var(--font-mono); color: var(--fail); }
+.gate-counts .c-warn { font-family: var(--font-mono); color: var(--warn); }
+.cp-cell { justify-content: center; font-size: 14px; }
+.cp-pass { color: var(--success); }
+.cp-fail { color: var(--fail); }
+.gate-verdict {
+  justify-content: center;
+  font-weight: 700; font-size: 11px; letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.verdict-pass    { color: var(--success); background: var(--success-soft); }
+.verdict-fail    { color: var(--fail);    background: var(--fail-soft); }
+.verdict-unknown { color: var(--muted);   background: rgba(255,255,255,0.03); }
+.gate-blockers {
+  padding: 0 12px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.blocker-item {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 11px; padding: 4px 0;
+  border-top: 1px solid var(--border);
+  color: var(--muted); line-height: 1.4;
+}
+.blocker-item:first-child { border-top: none; padding-top: 0; }
+.blocker-icon { color: var(--fail); flex-shrink: 0; padding-top: 1px; font-size: 10px; }
+.gate-header-labels {
+  display: grid;
+  grid-template-columns: 140px 1fr repeat(5, 80px) 60px;
+  gap: 0;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.gate-lbl {
+  padding: 0 12px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted-soft);
+  display: flex; align-items: center;
+}
+.gate-lbl.center { justify-content: center; }
+
+/* ─── Missing events worklist ─── */
+.events-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 4px; margin-bottom: 24px;
+}
+.evt-item {
+  font-family: var(--font-mono); font-size: 10.5px;
+  padding: 5px 10px; border-radius: var(--r-md);
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--muted); line-height: 1.35;
+  display: flex; align-items: center; gap: 6px;
+}
+.evt-item::before {
+  content: '—'; color: var(--fail); flex-shrink: 0;
+  font-size: 12px; opacity: 0.7;
+}
+
+/* ─── Telemetry inventory ─── */
+.tele-controls {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.tele-search {
+  flex: 1; min-width: 200px; max-width: 320px;
+  background: var(--card); border: 1px solid var(--border-md);
+  border-radius: var(--r-md); padding: 7px 12px;
+  font-family: var(--font-sans); font-size: 12px; color: var(--fg);
+  outline: none; transition: border-color 0.15s;
+}
+.tele-search:focus { border-color: var(--orange-light); }
+.tele-search::placeholder { color: var(--muted-soft); }
+.filter-btn {
+  padding: 6px 12px; border-radius: var(--r-md);
+  border: 1px solid var(--border-md); background: var(--card);
+  font-family: var(--font-sans); font-size: 11.5px; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.filter-btn:hover { color: var(--fg); background: var(--card2); }
+.filter-btn.active-filter {
+  background: var(--orange-soft); color: var(--orange-light);
+  border-color: rgba(232,99,26,0.3);
+}
+.tele-summary {
+  display: flex; gap: 14px; margin-left: auto;
+  font-size: 11px;
+}
+.tele-summary span { display: flex; gap: 5px; align-items: center; }
+.ts-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.ts-dot.reg  { background: var(--success); }
+.ts-dot.miss { background: var(--fail); }
+
+.tele-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  box-shadow: var(--sh-sm);
+}
+.tele-table {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+}
+.tele-table th {
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-md);
+  text-align: left;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted-soft);
+  white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+.tele-table th:hover { color: var(--muted); }
+.tele-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.35;
+  max-width: 300px;
+}
+.tele-table tr:last-child td { border-bottom: none; }
+.tele-table tr:hover td { background: rgba(255,255,255,0.02); }
+.tele-event { font-family: var(--font-mono); font-size: 11px; color: var(--fg); }
+.tele-domain-tag {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 1px 7px; border-radius: var(--r-full);
+  background: var(--orange-soft); color: var(--orange-light);
+  border: 1px solid rgba(232,99,26,0.2);
+  white-space: nowrap;
+}
+.reg-badge {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 1px 7px; border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.reg-yes  { background: var(--success-soft); color: var(--success); border: 1px solid rgba(34,197,94,0.25); }
+.reg-miss { background: var(--fail-soft);    color: var(--fail);    border: 1px solid rgba(239,68,68,0.3); }
+.reg-noop { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); }
+.tele-element { color: var(--muted); font-size: 11px; }
+.tele-hook { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted-soft); }
+.tele-table-count {
+  padding: 8px 12px;
+  font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* ─── Spec page ─── */
+.spec-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--sh-card);
+}
+.spec-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 16px;
+}
+.spec-tab {
+  padding: 10px 14px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; border: none; background: none; font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.spec-tab:hover { color: var(--fg); }
+.spec-tab.active { color: var(--orange-light); border-bottom-color: var(--orange); }
+.spec-content { display: none; padding: 24px; }
+.spec-content.active { display: block; }
+.spec-content pre {
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.65;
+  color: var(--fg); white-space: pre-wrap; word-break: break-word;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 16px; overflow-x: auto;
+}
+.spec-content h1, .spec-content h2, .spec-content h3 {
+  font-family: var(--font-heading); font-weight: 400;
+  color: var(--fg); margin: 0 0 12px; letter-spacing: -0.02em;
+}
+.spec-content h1 { font-size: 26px; margin-bottom: 16px; }
+.spec-content h2 { font-size: 19px; margin-top: 24px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.spec-content h3 { font-size: 14px; margin-top: 18px; font-family: var(--font-sans); font-weight: 700; }
+.spec-content p { margin: 0 0 10px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.spec-content ul, .spec-content ol { padding-left: 20px; margin: 0 0 10px; }
+.spec-content li { color: var(--muted); font-size: 13px; line-height: 1.65; margin-bottom: 4px; }
+.spec-content table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+.spec-content th { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border-md); font-weight: 700; font-size: 11px; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
+.spec-content td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.spec-content code { font-family: var(--font-mono); background: var(--surface); padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
+.spec-content blockquote { border-left: 3px solid var(--orange); padding: 8px 14px; margin: 0 0 12px; background: var(--orange-soft); border-radius: 0 var(--r-md) var(--r-md) 0; }
+.spec-content blockquote p { color: var(--fg); margin: 0; }
+
+/* ─── Design page ─── */
+.design-frame-wrap {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--sh-card);
+}
+.design-frame-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+}
+.design-frame-header .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.design-frame-wrap iframe {
+  width: 100%; height: calc(100vh - 130px);
+  border: none; display: block;
+  background: #fff;
+}
+
+/* ─── Empty state ─── */
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--muted);
+}
+.empty-state .es-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+.empty-state p { font-size: 12.5px; }
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .headline { grid-template-columns: repeat(2, 1fr); }
+  .channels-row { grid-template-columns: 1fr; }
+  .gate-header { grid-template-columns: 100px 1fr repeat(5, 60px) 52px; }
+  .gate-header-labels { grid-template-columns: 100px 1fr repeat(5, 60px) 52px; }
+}
+
+/* ─── Animations ─── */
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ─── Error banner ─── */
+.error-banner {
+  padding: 10px 16px;
+  background: var(--fail-soft); border-bottom: 1px solid rgba(239,68,68,0.2);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--fail);
+}
+.error-banner button {
+  margin-left: auto; cursor: pointer; background: none; border: none;
+  color: var(--fail); font-size: 16px; line-height: 1; padding: 0 4px;
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ─── Sidebar ─── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name">SmartOut</div>
+      <div class="brand-sub">Agent Observatory</div>
+    </div>
+
+    <div class="nav-section">Signals</div>
+    <button class="nav-btn" onclick="showPage('channels')" id="nav-channels">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 8c0-3.31 2.69-6 6-6M2 8c0 3.31 2.69 6 6 6M14 8c0-3.31-2.69-6-6-6M14 8c0 3.31-2.69 6-6 6"/>
+        <circle cx="8" cy="8" r="1.5"/>
+      </svg>
+      <span class="nav-label">Channels</span>
+      <span class="nav-count" id="nav-count-channels">3</span>
+    </button>
+
+    <div class="nav-section">Views</div>
+    <button class="nav-btn active" onclick="showPage('live')" id="nav-live">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="6.5" stroke-dasharray="3 2"/>
+      </svg>
+      <span class="nav-label">Live Feed</span>
+      <span class="nav-count" id="nav-count-agents">—</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('gates')" id="nav-gates">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1.5" y="1.5" width="5" height="5" rx="1"/>
+        <rect x="9.5" y="1.5" width="5" height="5" rx="1"/>
+        <rect x="1.5" y="9.5" width="5" height="5" rx="1"/>
+        <rect x="9.5" y="9.5" width="5" height="5" rx="1"/>
+      </svg>
+      <span class="nav-label">Gate Grid</span>
+      <span class="nav-count" id="nav-count-gates">—</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('tele')" id="nav-tele">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 12l3-4 3 2 3-5 3 3"/>
+        <rect x="1" y="1" width="14" height="14" rx="2"/>
+      </svg>
+      <span class="nav-label">All Events</span>
+      <span class="nav-count" id="nav-count-tele">—</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('events')" id="nav-events">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 4h12M2 8h9M2 12h6"/>
+      </svg>
+      <span class="nav-label">Missing Events</span>
+      <span class="nav-count" id="nav-count-events">—</span>
+    </button>
+
+    <div class="nav-section">Docs</div>
+    <button class="nav-btn" onclick="showPage('spec')">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 2h8l2 2v10H3V2z"/><path d="M5 6h6M5 9h6M5 12h3"/>
+      </svg>
+      <span class="nav-label">Spec / Process</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('design')">
+      <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1.5" y="3" width="13" height="10" rx="1.5"/>
+        <path d="M5.5 3V13"/>
+      </svg>
+      <span class="nav-label">Nordic Design</span>
+    </button>
+
+    <div class="sidebar-foot">
+      <div class="poll-indicator">
+        <span class="poll-dot" id="poll-dot"></span>
+        <span id="poll-label">polling 3s</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── Main ─── -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Signal Channels</div>
+      <span class="topbar-ts" id="topbar-ts">—</span>
+      <button class="btn btn-orange" onclick="showPage('spec')" title="Open spec docs">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 2h8l2 2v10H3V2z"/>
+        </svg>
+        SPEC
+      </button>
+      <button class="btn" onclick="showPage('design')" title="Open Nordic design">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1.5" y="3" width="13" height="10" rx="1.5"/>
+          <path d="M5.5 3V13"/>
+        </svg>
+        DESIGN
+      </button>
+      <button class="btn" onclick="forceRefresh()" title="Force refresh data">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" id="refresh-icon">
+          <path d="M14 8A6 6 0 1 1 8 2"/>
+          <path d="M14 2v4h-4"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Error banner -->
+    <div class="error-banner" id="error-banner" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5M8 11v.5"/>
+      </svg>
+      <span id="error-msg">Load error — retrying…</span>
+      <button onclick="document.getElementById('error-banner').style.display='none'">×</button>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══ PAGE: CHANNELS ═══ -->
+      <div class="page" id="page-channels">
+
+        <div class="section-header" style="margin-bottom:16px">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M2 8c0-3.31 2.69-6 6-6M2 8c0 3.31 2.69 6 6 6M14 8c0-3.31-2.69-6-6-6M14 8c0 3.31-2.69 6-6 6"/>
+            <circle cx="8" cy="8" r="1.5"/>
+          </svg>
+          <span class="section-title">Signal Channels — three inbound streams</span>
+          <span class="section-count">per CHANNELS.md contract</span>
+        </div>
+
+        <div class="channels-row" id="channels-row">
+          <!-- rendered by renderChannels() -->
+        </div>
+
+      </div>
+
+      <!-- ═══ PAGE: LIVE ═══ -->
+      <div class="page active" id="page-live">
+
+        <div class="headline">
+          <div class="hl-card">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(59,130,246,0.12);filter:blur(28px);pointer-events:none"></div>
+            <div class="hl-label">Agents Online</div>
+            <div class="hl-value" id="kpi-agents-live">—</div>
+            <div class="hl-sub" id="kpi-agents-sub">of — total seen</div>
+          </div>
+          <div class="hl-card orange">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(232,99,26,0.14);filter:blur(28px);pointer-events:none"></div>
+            <div class="hl-label">Domains Mapped</div>
+            <div class="hl-value" id="kpi-domains"><span id="kpi-domains-val">—</span><span class="unit">/ 13</span></div>
+            <div class="hl-sub" id="kpi-domains-sub">Wave 1 complete</div>
+          </div>
+          <div class="hl-card red">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(239,68,68,0.10);filter:blur(28px);pointer-events:none"></div>
+            <div class="hl-label">Events to Register</div>
+            <div class="hl-value" id="kpi-events-missing">—</div>
+            <div class="hl-sub">Target: 0</div>
+          </div>
+          <div class="hl-card">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(34,197,94,0.08);filter:blur(28px);pointer-events:none"></div>
+            <div class="hl-label">Gate PASS</div>
+            <div class="hl-value green" id="kpi-pass"><span id="kpi-pass-val">—</span><span class="unit">/ 13</span></div>
+            <div class="hl-sub" id="kpi-pass-sub">Target: 13</div>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-label">Progress to 100% — all 13 domains PASS, 0 events missing</span>
+            <span class="progress-pct" id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6"/>
+          </svg>
+          <span class="section-title">Agent Activity</span>
+          <span class="section-count" id="agent-count-label">— agents</span>
+        </div>
+        <div class="agents-grid" id="agents-grid">
+          <div class="empty-state"><div class="es-icon">⏳</div><p>Loading feed…</p></div>
+        </div>
+
+      </div>
+
+      <!-- ═══ PAGE: GATES ═══ -->
+      <div class="page" id="page-gates">
+
+        <div class="headline">
+          <div class="hl-card green">
+            <div class="hl-label">Gate PASS</div>
+            <div class="hl-value" id="gates-kpi-pass">—<span class="unit">/ 13</span></div>
+            <div class="hl-sub">5 control points each</div>
+          </div>
+          <div class="hl-card red">
+            <div class="hl-label">Gate FAIL</div>
+            <div class="hl-value" id="gates-kpi-fail">—</div>
+            <div class="hl-sub" id="gates-kpi-fail-sub">domains failing</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-label">Total Blockers</div>
+            <div class="hl-value" id="gates-kpi-blockers">—</div>
+            <div class="hl-sub">across all domains</div>
+          </div>
+          <div class="hl-card orange">
+            <div class="hl-label">Hooks Missing</div>
+            <div class="hl-value" id="gates-kpi-hooks">—</div>
+            <div class="hl-sub">must implement</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="1.5" y="1.5" width="5" height="5" rx="1"/>
+            <rect x="9.5" y="1.5" width="5" height="5" rx="1"/>
+            <rect x="1.5" y="9.5" width="5" height="5" rx="1"/>
+            <rect x="9.5" y="9.5" width="5" height="5" rx="1"/>
+          </svg>
+          <span class="section-title">Domain × Control-Point Matrix</span>
+          <span class="section-count">5 control points per domain</span>
+        </div>
+
+        <div class="gate-header-labels">
+          <div class="gate-lbl">Domain</div>
+          <div class="gate-lbl">Counts</div>
+          <div class="gate-lbl center" title="every_element_mapped">Mapped</div>
+          <div class="gate-lbl center" title="every_mutation_has_event">Evt</div>
+          <div class="gate-lbl center" title="every_event_registry_status_known">Reg</div>
+          <div class="gate-lbl center" title="every_mutation_has_hook_or_flagged">Hook</div>
+          <div class="gate-lbl center" title="baseline_count_recorded">Base</div>
+          <div class="gate-lbl center">Gate</div>
+        </div>
+        <div class="gate-grid" id="gate-grid">
+          <div class="empty-state"><p>Loading gate data…</p></div>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE: ALL EVENTS (TELEMETRY INVENTORY) ═══ -->
+      <div class="page" id="page-tele">
+
+        <div class="headline">
+          <div class="hl-card">
+            <div class="hl-label">Total Events</div>
+            <div class="hl-value" id="tele-kpi-total">—</div>
+            <div class="hl-sub">across all domains</div>
+          </div>
+          <div class="hl-card green">
+            <div class="hl-label">In Registry</div>
+            <div class="hl-value" id="tele-kpi-reg">—</div>
+            <div class="hl-sub">registered + wired</div>
+          </div>
+          <div class="hl-card red">
+            <div class="hl-label">Missing</div>
+            <div class="hl-value" id="tele-kpi-miss">—</div>
+            <div class="hl-sub">F0.1 to-register</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-label">Noops</div>
+            <div class="hl-value" id="tele-kpi-noop">—</div>
+            <div class="hl-sub">no telemetry needed</div>
+          </div>
+        </div>
+
+        <div class="tele-controls">
+          <input class="tele-search" id="tele-search" type="text" placeholder="Search events, elements, hooks…" oninput="renderTeleTable()" />
+          <button class="filter-btn" id="flt-all" onclick="setTeleFilter('all')">All</button>
+          <button class="filter-btn active-filter" id="flt-active" onclick="setTeleFilter('active')" style="display:none">Active only</button>
+          <button class="filter-btn" id="flt-miss" onclick="setTeleFilter('missing')">Missing</button>
+          <button class="filter-btn" id="flt-reg"  onclick="setTeleFilter('registered')">Registered</button>
+          <button class="filter-btn" id="flt-noop" onclick="setTeleFilter('noop')">Noop</button>
+          <div class="tele-summary">
+            <span><span class="ts-dot reg"></span><span id="ts-reg-count">—</span> reg</span>
+            <span><span class="ts-dot miss"></span><span id="ts-miss-count">—</span> missing</span>
+          </div>
+        </div>
+
+        <div class="tele-table-wrap">
+          <table class="tele-table" id="tele-table">
+            <thead>
+              <tr>
+                <th onclick="sortTele('event')">Event</th>
+                <th onclick="sortTele('domain')">Domain</th>
+                <th onclick="sortTele('reg')">Registry</th>
+                <th>Element</th>
+                <th>Hook</th>
+              </tr>
+            </thead>
+            <tbody id="tele-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Loading telemetry maps…</td></tr>
+            </tbody>
+          </table>
+          <div class="tele-table-count" id="tele-table-count">— rows</div>
+        </div>
+
+      </div>
+
+      <!-- ═══ PAGE: MISSING EVENTS ═══ -->
+      <div class="page" id="page-events">
+        <div class="headline">
+          <div class="hl-card red">
+            <div class="hl-label">Events to Register</div>
+            <div class="hl-value" id="ev-kpi-count">—</div>
+            <div class="hl-sub">F0.1 reconcile worklist</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-label">Domains Affected</div>
+            <div class="hl-value" id="ev-kpi-domains">—</div>
+            <div class="hl-sub">have missing events</div>
+          </div>
+          <div class="hl-card orange">
+            <div class="hl-label">Mutations Blocked</div>
+            <div class="hl-value" id="ev-kpi-mutations">—</div>
+            <div class="hl-sub">waiting for event reg</div>
+          </div>
+          <div class="hl-card green">
+            <div class="hl-label">Events in Registry</div>
+            <div class="hl-value" id="ev-kpi-registered">—</div>
+            <div class="hl-sub">already registered</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M2 4h12M2 8h9M2 12h6"/>
+          </svg>
+          <span class="section-title">Missing Events — F0.1 Worklist</span>
+          <span class="section-count" id="ev-count-label">— items</span>
+        </div>
+        <div class="events-list" id="events-list">
+          <div class="empty-state"><p>Loading worklist…</p></div>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE: SPEC ═══ -->
+      <div class="page" id="page-spec">
+        <div class="spec-wrap">
+          <div class="spec-tabs">
+            <button class="spec-tab active" onclick="showSpecTab('drive')">DRIVE-TO-100</button>
+            <button class="spec-tab" onclick="showSpecTab('process')">PROCESS-SPEC</button>
+            <button class="spec-tab" onclick="showSpecTab('council')">Council Notes</button>
+          </div>
+          <div class="spec-content active" id="spec-drive"></div>
+          <div class="spec-content" id="spec-process"></div>
+          <div class="spec-content" id="spec-council"></div>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE: DESIGN ═══ -->
+      <div class="page" id="page-design">
+        <div class="design-frame-wrap">
+          <div class="design-frame-header">
+            <div class="dot" style="background:#ef4444"></div>
+            <div class="dot" style="background:#f59e0b"></div>
+            <div class="dot" style="background:#22c55e"></div>
+            <span style="margin-left:8px">Nordic Split — Smartout Web Version 1</span>
+            <a class="btn" href="../../../../../../../mnt/c/Users/sxtnl/Downloads/Smartout.ai_re-designe/apps/web/Smartout Web Version 1.html" target="_blank" style="margin-left:auto;font-size:11px;padding:4px 10px">Open in tab ↗</a>
+          </div>
+          <iframe id="design-frame" src="" title="Nordic Split Design"></iframe>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /shell -->
+
+<script>
+// ─── Configuration ────────────────────────────────────────────────────────────
+const POLL_INTERVAL_MS  = 3000;
+const FEED_PATH         = 'activity/feed.jsonl';
+const HEARTBEAT_PATH    = 'activity/heartbeat.jsonl';
+const AGGREGATE_PATH    = 'AGGREGATE-control.json';
+const DOMAINS           = ['vaktplan','ansatte','min-dag','oversikt','planlegging','lonn','kommunikasjon'];
+const DOMAIN_CTRL_PATHS = Object.fromEntries(DOMAINS.map(d => [d, `${d}/control.json`]));
+const TELEMAP_PATHS     = Object.fromEntries(DOMAINS.map(d => [d, `${d}/TELEMETRY-MAP.md`]));
+const TOTAL_DOMAINS     = 13;
+
+// Webhook edge functions (real, from supabase/functions/)
+const WEBHOOK_FNS = ['stripe-webhook','sendgrid-webhook','livekit-webhook'];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let feedLines    = [];
+let hbLines      = [];        // heartbeat.jsonl lines
+let gateData     = {};        // domain → control.json
+let teleEvents   = [];        // all parsed telemetry events [{event,domain,reg,element,hook}]
+let lastHbLen    = 0;         // heartbeat line count last poll — detect new beats
+let pollHandle   = null;
+let isLoading    = false;
+
+// Telemetry table state
+let teleFilter   = 'all';     // 'all' | 'missing' | 'registered' | 'noop'
+let teleSort     = { col: 'domain', dir: 1 };
+let teleMapLoaded = false;
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function fmtTime(isoStr) {
+  if (!isoStr) return '—';
+  try { return new Date(isoStr).toLocaleTimeString('no-NO', { hour:'2-digit', minute:'2-digit', second:'2-digit' }); }
+  catch { return isoStr; }
+}
+function shortTime(isoStr) {
+  if (!isoStr) return '—';
+  try { return new Date(isoStr).toLocaleTimeString('no-NO', { hour:'2-digit', minute:'2-digit' }); }
+  catch { return isoStr; }
+}
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function setPollStatus(ok) {
+  const dot = document.getElementById('poll-dot');
+  const lbl = document.getElementById('poll-label');
+  if (ok) { dot.className='poll-dot'; lbl.textContent='live — 3s'; }
+  else     { dot.className='poll-dot stale'; lbl.textContent='stale'; }
+}
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('error-banner').style.display = 'flex';
+}
+function hideError() { document.getElementById('error-banner').style.display = 'none'; }
+
+// ─── Fetch ────────────────────────────────────────────────────────────────────
+async function fetchText(path) {
+  const res = await fetch(path + '?_=' + Date.now(), { cache:'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${path}`);
+  return res.text();
+}
+function parseJsonLines(text) {
+  return text.trim().split('\n').filter(Boolean)
+    .map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+}
+
+async function loadFeed() {
+  const text = await fetchText(FEED_PATH);
+  feedLines = parseJsonLines(text);
+}
+async function loadHeartbeat() {
+  try {
+    const text = await fetchText(HEARTBEAT_PATH);
+    const newLines = parseJsonLines(text);
+    const newLen = newLines.length;
+    if (newLen > lastHbLen) {
+      // New beats arrived — flash the channels dot
+      lastHbLen = newLen;
+      flashChannelBeat();
+    }
+    hbLines = newLines;
+  } catch { /* heartbeat.jsonl may not exist yet */ }
+}
+async function loadGates() {
+  for (const domain of DOMAINS) {
+    try {
+      const text = await fetchText(DOMAIN_CTRL_PATHS[domain]);
+      const parsed = JSON.parse(text);
+      gateData[domain] = Array.isArray(parsed)
+        ? (parsed.find(d => d.domain === domain) || parsed[0])
+        : parsed;
+    } catch {}
+  }
+  // Aggregate fallback
+  try {
+    const text = await fetchText(AGGREGATE_PATH);
+    const arr = JSON.parse(text);
+    if (Array.isArray(arr)) {
+      for (const item of arr) {
+        if (item.domain && !gateData[item.domain]) gateData[item.domain] = item;
+      }
+    }
+  } catch {}
+}
+async function loadTeleMaps() {
+  if (teleMapLoaded) return;
+  teleMapLoaded = true;
+  const all = [];
+  for (const domain of DOMAINS) {
+    try {
+      const text = await fetchText(TELEMAP_PATHS[domain]);
+      const rows = parseTeleMap(text, domain);
+      all.push(...rows);
+    } catch {}
+  }
+  teleEvents = all;
+  renderTeleTable();
+  updateTeleKpis();
+}
+
+// ─── TELEMETRY-MAP.md parser ──────────────────────────────────────────────────
+// Handles the 4 distinct table formats found across the 7 domain files.
+function parseTeleMap(text, domain) {
+  const rows = [];
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    if (!line.startsWith('|')) continue;
+    // Skip separator and header lines
+    if (/^\|[-: |]+\|$/.test(line.trim())) continue;
+
+    const cells = line.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+    if (cells.length < 2) continue;
+
+    // --- Format A: vaktplan — | # | Element | File:loc | Type | Mutation | Event | In registry? | Hook | noop? |
+    // --- Format B: ansatte  — | # | Element | File | Action | Mutation | Event | Registry Status | Hook |
+    // --- Format C: lonn     — | # | Element | File | Event | Hook | Status |
+    // --- Format D: planlegging / oversikt / kommunikasjon — | ID | Element | Interaction | Proposed event | Registry status | Backend |
+    // --- Format E: min-dag  — | ID | Element | Handler | Event | Registry | Backend hook | Notes |
+
+    // First cell: row ID. Skip non-data rows.
+    const id = cells[0];
+    if (!id || id === '#' || id === 'ID' || id === 'Metric' || id === 'Stat'
+        || id === 'Symbol' || id === 'File' || id.startsWith('---')) continue;
+
+    // Detect format by cell count and content patterns
+    let evtRaw = '', regRaw = '', elementRaw = '', hookRaw = '';
+
+    if (cells.length >= 9) {
+      // Format A (vaktplan, 9 cols): 0=# 1=element 2=file 3=type 4=mutation 5=event 6=inreg 7=hook 8=noop
+      elementRaw = cells[1];
+      evtRaw     = cells[5];
+      regRaw     = cells[6];
+      hookRaw    = cells[7];
+    } else if (cells.length === 8) {
+      // Format B (ansatte, 8 cols): 0=# 1=element 2=file 3=action 4=mutation 5=event 6=regstatus 7=hook
+      elementRaw = cells[1];
+      evtRaw     = cells[5];
+      regRaw     = cells[6];
+      hookRaw    = cells[7];
+    } else if (cells.length === 7) {
+      // Format E (min-dag): 0=ID 1=element 2=handler 3=event 4=registry 5=hook 6=notes
+      elementRaw = cells[1];
+      evtRaw     = cells[3];
+      regRaw     = cells[4];
+      hookRaw    = cells[5];
+    } else if (cells.length === 6) {
+      // Format D (planlegging, kommunikasjon, oversikt): 0=ID 1=element 2=interaction 3=event 4=regstatus 5=backend
+      // OR lonn: 0=# 1=element 2=file 3=event 4=hook 5=status
+      elementRaw = cells[1];
+      if (cells[4] && (cells[4].includes('MISSING') || cells[4].includes('yes') || cells[4].includes('✅') || cells[4].includes('❌') || cells[4].includes('REGISTRY'))) {
+        // planlegging-style
+        evtRaw     = cells[3];
+        regRaw     = cells[4];
+        hookRaw    = cells[5];
+      } else {
+        // lonn-style: 3=event, 4=hook, 5=status
+        evtRaw = cells[3];
+        hookRaw = cells[4];
+        regRaw  = cells[5];
+      }
+    } else if (cells.length === 5) {
+      // kommunikasjon short format: 0=# 1=action 2=mutation 3=event 4=reg
+      elementRaw = cells[1];
+      evtRaw     = cells[3];
+      regRaw     = cells[4];
+    } else if (cells.length >= 3) {
+      elementRaw = cells[1] || '';
+      evtRaw     = cells[2] || '';
+      regRaw     = cells[3] || '';
+      hookRaw    = cells[4] || '';
+    }
+
+    // Normalise event name: strip backticks, MISSING: prefix, {…} suffixes
+    let event = evtRaw
+      .replace(/`/g, '')
+      .replace(/^MISSING:\s*/i, '')
+      .replace(/\s*\{.*\}/, '')
+      .replace(/\*\*/g, '')
+      .trim();
+    if (!event || event === '—' || event === '-') continue;
+
+    // Determine registry status
+    const regLow = (regRaw || '').toLowerCase();
+    let reg = 'unknown';
+    if (/noop|🔇|no\b|^\s*—\s*$|local state/i.test(regLow)) {
+      reg = 'noop';
+    } else if (/\bmissing\b|❌|**missing**/.test(regRaw) || event.toUpperCase().startsWith('MISSING')) {
+      reg = 'missing';
+    } else if (/\byes\b|\bin\b|✅|exists|found|line \d/i.test(regLow)) {
+      reg = 'registered';
+    } else if (/^noop$/i.test(regLow) || /noop/i.test(evtRaw)) {
+      reg = 'noop';
+    }
+    // If event starts with MISSING (from format A inlined MISSING: prefix in event col)
+    if (evtRaw.includes('MISSING')) reg = 'missing';
+
+    // Clean element
+    const element = elementRaw.replace(/\*\*/g, '').replace(/`/g, '').trim();
+
+    // Clean hook
+    const hook = hookRaw
+      .replace(/`/g, '').replace(/\*\*/g, '')
+      .replace(/^—$/, '').trim();
+
+    rows.push({ id, event, domain, reg, element, hook });
+  }
+  return rows;
+}
+
+// ─── Heartbeat helpers ────────────────────────────────────────────────────────
+let beatTickTimer = null;
+function flashChannelBeat() {
+  // Trigger a visual tick on the heartbeat channel dot
+  const tile = document.getElementById('ch-tile-heartbeat');
+  if (!tile) return;
+  const dot = tile.querySelector('.ch-state-dot');
+  if (!dot) return;
+  // Quick scale flash
+  dot.style.transform = 'scale(1.8)';
+  setTimeout(() => { dot.style.transform = ''; }, 300);
+}
+
+function deriveHeartbeatState() {
+  if (!hbLines.length) return { state: 'idle', latest: null, stalls: [] };
+  const latest = hbLines[hbLines.length - 1];
+  // If last beat was > 60s ago → stale
+  const ageMs = Date.now() - new Date(latest.ts).getTime();
+  const state = ageMs > 60000 ? 'stale' : 'beating';
+
+  // Stalls: only agents that are CURRENTLY stalled — i.e. have a stall-alert in the
+  // heartbeat log AND whose latest feed event is NOT logoff/gate (latest-event-wins).
+  const agents = deriveAgents();
+  const activelyStalled = hbLines.filter(l => {
+    if (l.event !== 'stall-alert') return false;
+    const a = agents[l.agent];
+    if (!a) return true; // no feed data → treat as stalled
+    const lastEv = a.events[a.events.length - 1];
+    return lastEv && lastEv.event !== 'logoff' && lastEv.event !== 'gate';
+  });
+  // De-duplicate by agent (one entry per currently-stalled agent)
+  const seenAgents = new Set();
+  const stalls = activelyStalled.filter(l => {
+    if (seenAgents.has(l.agent)) return false;
+    seenAgents.add(l.agent);
+    return true;
+  });
+
+  return { state, latest, stalls };
+}
+
+// ─── Agent liveness from heartbeat ───────────────────────────────────────────
+// The heartbeat records per-agent classification in detail field or as separate events.
+// Primary: derive from feed — a "working" event within last 60s = working;
+//          logon but no logoff and last event > 5min ago = stalled;
+//          logoff present = done.
+// Latest-event-wins: the agent's badge is derived solely from its latest feed event.
+// Historical stall-alerts are IGNORED if the agent later logged off — they reflect
+// a mid-run quiet window, not the final state.
+function deriveAgentLiveness(agentId, agentState) {
+  const lastEv = agentState.events[agentState.events.length - 1];
+
+  // Latest event is terminal → DONE regardless of any prior stall-alerts
+  if (!lastEv || lastEv.event === 'logoff' || lastEv.event === 'gate') return 'done';
+
+  // Agent is still live (no logoff yet)
+  const ageMs = Date.now() - new Date(lastEv.ts).getTime();
+  // Genuinely stalled: logged on, silent >90s, no logoff, AND a stall-alert exists for it
+  if (ageMs > 90000 && hbLines.some(l => l.event === 'stall-alert' && l.agent === agentId)) {
+    return 'stalled';
+  }
+  // Silent >90s but no heartbeat stall-alert yet → still show live (conservative)
+  if (lastEv.event === 'working') return 'working';
+  return 'live';
+}
+
+// ─── Derived data ─────────────────────────────────────────────────────────────
+function deriveAgents() {
+  const agents = {};
+  for (const row of feedLines) {
+    const id = row.agent;
+    if (!id) continue;
+    if (!agents[id]) agents[id] = { id, domain: row.domain, logonTs: null, logoffTs: null, isLive: false, lastGate: null, events: [] };
+    const a = agents[id];
+    if (row.event === 'logon')  { a.logonTs = row.ts; a.isLive = true; }
+    if (row.event === 'logoff') { a.logoffTs = row.ts; a.isLive = false; }
+    if (row.gate) a.lastGate = row.gate;
+    a.events.push(row);
+  }
+  return agents;
+}
+function countMissingEvents() {
+  let total = 0;
+  for (const d of Object.values(gateData)) {
+    if (Array.isArray(d.events_missing_from_registry)) total += d.events_missing_from_registry.length;
+  }
+  return total;
+}
+function countPassFail() {
+  let pass = 0, fail = 0;
+  for (const d of Object.values(gateData)) {
+    if (d.gate === 'PASS') pass++;
+    else if (d.gate === 'FAIL') fail++;
+  }
+  return { pass, fail };
+}
+function computeProgress() {
+  const { pass } = countPassFail();
+  const missingEvts = countMissingEvents();
+  const domainPct = (pass / TOTAL_DOMAINS) * 60;
+  const evtBaseline = 113;
+  const evtCleared = Math.max(0, evtBaseline - missingEvts);
+  return Math.min(100, Math.round(domainPct + (evtCleared / evtBaseline) * 40));
+}
+
+// ─── Render: Channels page ────────────────────────────────────────────────────
+function renderChannels() {
+  const hb = deriveHeartbeatState();
+  const latestHb = hb.latest;
+  const hasStalls = hb.stalls.length > 0;
+  const hbTileClass = hasStalls ? 'ch-stalled' : (hb.state === 'beating' ? 'ch-beating' : 'ch-idle');
+  const hbDotClass  = hasStalls ? 'stalled' : (hb.state === 'beating' ? 'beating' : 'idle');
+
+  // Heartbeat counts
+  const live    = latestHb?.live    || 0;
+  const working = latestHb?.working || 0;
+  const stalled = latestHb?.stalled || 0;
+  const done    = latestHb?.done    || 0;
+
+  // Stall alert list
+  let stallHtml = '';
+  for (const s of hb.stalls.slice(-3)) {
+    stallHtml += `<div class="stall-alert"><span class="stall-icon">⚠</span><span><strong>${esc(s.agent || 'agent')}</strong> — ${esc(s.detail || 'stall detected')}</span></div>`;
+  }
+
+  // Telemetry channel counts
+  const totalFeedEvents = feedLines.length;
+  const deliveredCount  = feedLines.filter(l => l.event === 'delivered').length;
+  const gateEvents      = feedLines.filter(l => l.event === 'gate').length;
+  const { pass: gatePasses } = countPassFail();
+  const missingEvts = countMissingEvents();
+  const isTelemActive = totalFeedEvents > 0;
+
+  // Beat age display
+  let hbAgeStr = 'no signal';
+  if (latestHb) {
+    const ageMs = Date.now() - new Date(latestHb.ts).getTime();
+    const ageSec = Math.round(ageMs / 1000);
+    hbAgeStr = ageSec < 60 ? `${ageSec}s ago` : `${Math.round(ageSec/60)}m ago`;
+  }
+
+  const html = `
+    <!-- HEARTBEAT -->
+    <div class="channel-tile ${hbTileClass}" id="ch-tile-heartbeat">
+      <div class="ch-orb" style="top:-40px;right:-40px;width:120px;height:120px;background:${hasStalls ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.12)'}"></div>
+      <div class="ch-head">
+        <div class="ch-icon heartbeat">💓</div>
+        <div>
+          <div class="ch-name">Heartbeat</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">liveness pulse</div>
+        </div>
+        <span class="ch-state-dot ${hbDotClass}" id="hb-state-dot" style="transition:transform 0.2s"></span>
+      </div>
+      <div class="ch-stat-row">
+        <div class="ch-stat">
+          <span class="ch-stat-val green">${live}</span>
+          <span class="ch-stat-lbl">Live</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val warn">${working}</span>
+          <span class="ch-stat-lbl">Working</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val ${stalled > 0 ? 'red' : 'muted'}">${stalled}</span>
+          <span class="ch-stat-lbl">Stalled</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val muted">${done}</span>
+          <span class="ch-stat-lbl">Done</span>
+        </div>
+      </div>
+      <div class="ch-detail">
+        <span class="ch-ts">Last beat: ${latestHb ? shortTime(latestHb.ts) : '—'} (${hbAgeStr})</span>
+        ${latestHb ? `<div style="margin-top:4px">${esc(latestHb.detail || '')}</div>` : ''}
+        ${stallHtml}
+      </div>
+    </div>
+
+    <!-- TELEMETRY -->
+    <div class="channel-tile ${isTelemActive ? 'ch-beating' : 'ch-idle'}">
+      <div class="ch-orb" style="top:-40px;right:-40px;width:120px;height:120px;background:rgba(59,130,246,0.10)"></div>
+      <div class="ch-head">
+        <div class="ch-icon telemetry">📡</div>
+        <div>
+          <div class="ch-name">Telemetry</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">app-event stream</div>
+        </div>
+        <span class="ch-state-dot ${isTelemActive ? 'active' : 'idle'}"></span>
+      </div>
+      <div class="ch-stat-row">
+        <div class="ch-stat">
+          <span class="ch-stat-val blue">${totalFeedEvents}</span>
+          <span class="ch-stat-lbl">Events</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val green">${deliveredCount}</span>
+          <span class="ch-stat-lbl">Delivered</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val ${missingEvts > 0 ? 'red' : 'green'}">${missingEvts}</span>
+          <span class="ch-stat-lbl">Missing</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val ${gatePasses > 0 ? 'green' : 'muted'}">${gatePasses}</span>
+          <span class="ch-stat-lbl">Gates ✓</span>
+        </div>
+      </div>
+      <div class="ch-detail">
+        <div>feed.jsonl + per-domain TELEMETRY-MAP.md</div>
+        <div style="margin-top:4px;color:var(--muted-soft);font-size:11px">${gateEvents} gate events — ${deliveredCount} artifacts delivered</div>
+        <div style="margin-top:6px">
+          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="showPage('tele')">Browse all events →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEBHOOK -->
+    <div class="channel-tile ch-idle">
+      <div class="ch-orb" style="top:-40px;right:-40px;width:120px;height:120px;background:rgba(120,113,108,0.08)"></div>
+      <div class="ch-head">
+        <div class="ch-icon webhook">🔗</div>
+        <div>
+          <div class="ch-name">Webhook</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">external inbound</div>
+        </div>
+        <span class="ch-state-dot idle"></span>
+      </div>
+      <div class="ch-stat-row">
+        <div class="ch-stat">
+          <span class="ch-stat-val muted">${WEBHOOK_FNS.length}</span>
+          <span class="ch-stat-lbl">Functions</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val muted">0</span>
+          <span class="ch-stat-lbl">Events</span>
+        </div>
+        <div class="ch-stat">
+          <span class="ch-stat-val muted">—</span>
+          <span class="ch-stat-lbl">Last hit</span>
+        </div>
+      </div>
+      <div class="ch-detail">
+        <div class="webhook-fn-list">
+          ${WEBHOOK_FNS.map(fn => `
+            <div class="webhook-fn">
+              <span class="webhook-fn-dot"></span>
+              <span>${esc(fn)}</span>
+              <span class="live-env-tag">live env only</span>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:8px;font-size:10.5px;color:var(--muted-soft)">No traffic in staging. Inbound only in production environment.</div>
+      </div>
+    </div>`;
+
+  document.getElementById('channels-row').innerHTML = html;
+
+  // Nav count: show stall count if any
+  const nc = document.getElementById('nav-count-channels');
+  if (hasStalls) {
+    nc.textContent = hb.stalls.length + ' stall';
+    nc.className = 'nav-count alert';
+  } else {
+    nc.textContent = hb.state === 'beating' ? '● live' : '3';
+    nc.className = 'nav-count';
+  }
+}
+
+// ─── Render: Live page ────────────────────────────────────────────────────────
+function renderLivePage() {
+  const agents   = deriveAgents();
+  const agentList = Object.values(agents);
+  const liveAgents = agentList.filter(a => a.isLive);
+  const { pass } = countPassFail();
+  const missingEvts = countMissingEvents();
+  const pct = computeProgress();
+
+  document.getElementById('kpi-agents-live').textContent = liveAgents.length;
+  document.getElementById('kpi-agents-sub').textContent  = `of ${agentList.length} total seen`;
+  document.getElementById('kpi-domains-val').textContent = Object.keys(gateData).length;
+  document.getElementById('kpi-domains-sub').textContent = `Wave 1: ${DOMAINS.length} mapped`;
+  document.getElementById('kpi-events-missing').textContent = missingEvts;
+  document.getElementById('kpi-pass-val').textContent    = pass;
+  document.getElementById('progress-pct').textContent    = pct + '%';
+  document.getElementById('progress-fill').style.width   = pct + '%';
+  document.getElementById('nav-count-agents').textContent = liveAgents.length > 0 ? liveAgents.length + ' live' : agentList.length;
+  document.getElementById('agent-count-label').textContent = agentList.length + ' agents';
+
+  const grid = document.getElementById('agents-grid');
+  if (!agentList.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="es-icon">📡</div><p>No agent activity yet.<br>Feed is empty or still loading.</p></div>';
+    return;
+  }
+
+  agentList.sort((a, b) => {
+    if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
+    return (b.logonTs||'') > (a.logonTs||'') ? 1 : -1;
+  });
+
+  let html = '';
+  for (const a of agentList) {
+    const liveness = deriveAgentLiveness(a.id, a);
+    const isStalled = liveness === 'stalled';
+    const orbColor = isStalled ? 'rgba(239,68,68,0.15)' : a.isLive ? 'rgba(34,197,94,0.13)' : 'rgba(80,75,69,0.18)';
+    const dotClass = isStalled ? 'stalled' : a.isLive ? 'live' : 'off';
+    const cardClass = isStalled ? 'stalled' : a.isLive ? 'live' : '';
+
+    // Liveness badge
+    const lbClass = { live:'lb-live', working:'lb-working', stalled:'lb-stalled', done:'lb-done' }[liveness] || 'lb-done';
+    const lbLabel = { live:'● live', working:'working', stalled:'⚠ stalled', done:'done' }[liveness] || liveness;
+    const lbHtml = `<span class="liveness-badge ${lbClass}">${lbLabel}</span>`;
+
+    const lastEvent = a.events[a.events.length - 1];
+    const streamEvents = a.events.slice(-6);
+    let streamHtml = '';
+    for (const ev of streamEvents) {
+      const chipClass = ev.event === 'gate' ? (ev.gate === 'PASS' ? 'evt-gate-pass' : 'evt-gate-fail') : `evt-${ev.event}`;
+      const chipLabel = ev.event === 'gate' ? (ev.gate || 'GATE') : ev.event.toUpperCase();
+      const artifactHtml = ev.artifact ? `<span class="artifact-link">${esc(ev.artifact)}</span>` : '';
+      streamHtml += `
+        <div class="stream-item">
+          <span class="stream-ts">${shortTime(ev.ts)}</span>
+          <span class="stream-evt"><span class="evt-chip ${chipClass}">${chipLabel}</span></span>
+          <span class="stream-detail">${esc(ev.detail)}${artifactHtml}</span>
+        </div>`;
+    }
+
+    const currentStepHtml = (liveness === 'working' && lastEvent?.event === 'working')
+      ? `<div class="current-step"><span class="spinner"></span>${esc(lastEvent.detail)}</div>`
+      : '';
+
+    html += `
+      <div class="agent-card ${cardClass} fade-in">
+        <div class="orb-bg" style="background:${orbColor}"></div>
+        <div class="agent-head">
+          <span class="agent-status-dot ${dotClass}"></span>
+          <span class="agent-name">${esc(a.id)}</span>
+          <span class="agent-domain-badge">${esc(a.domain)}</span>
+          ${lbHtml}
+        </div>
+        <div class="agent-times">
+          <span><span class="key">on</span> ${fmtTime(a.logonTs)}</span>
+          ${a.logoffTs ? `<span><span class="key">off</span> ${fmtTime(a.logoffTs)}</span>` : '<span style="color:var(--success);font-size:10.5px">● live</span>'}
+          ${a.lastGate ? `<span><span class="key">gate</span> <span style="color:${a.lastGate==='PASS'?'var(--success)':'var(--fail)'}">${a.lastGate}</span></span>` : ''}
+        </div>
+        <div class="agent-stream">${streamHtml}</div>
+        ${currentStepHtml}
+      </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// ─── Render: Gate page ────────────────────────────────────────────────────────
+function renderGatePage() {
+  const { pass, fail } = countPassFail();
+  let totalBlockers = 0, totalHooksMissing = 0;
+
+  for (const d of Object.values(gateData)) {
+    if (Array.isArray(d.blockers)) totalBlockers += d.blockers.length;
+    else if (d.blockers) totalBlockers++;
+    if (Array.isArray(d.hooks_missing)) totalHooksMissing += d.hooks_missing.length;
+  }
+
+  document.getElementById('gates-kpi-pass').innerHTML = `${pass}<span class="unit">/ 13</span>`;
+  document.getElementById('gates-kpi-fail').textContent = fail;
+  document.getElementById('gates-kpi-fail-sub').textContent = `${TOTAL_DOMAINS - pass - fail} unmapped`;
+  document.getElementById('gates-kpi-blockers').textContent = totalBlockers;
+  document.getElementById('gates-kpi-hooks').textContent = totalHooksMissing;
+  document.getElementById('nav-count-gates').textContent = `${pass}P / ${fail}F`;
+
+  const allDomains = [...DOMAINS];
+  for (const k of Object.keys(gateData)) { if (!allDomains.includes(k)) allDomains.push(k); }
+  const unmappedCount = Math.max(0, TOTAL_DOMAINS - allDomains.length);
+
+  let html = '';
+  for (const domain of allDomains) {
+    const d = gateData[domain];
+    if (!d) {
+      html += `<div class="gate-row"><div class="gate-header">
+        <div class="gate-col gate-domain">${esc(domain)}</div>
+        <div class="gate-col gate-counts"><div class="c-row" style="color:var(--muted-soft)">—</div></div>
+        ${[0,0,0,0,0].map(() => `<div class="gate-col cp-cell"><span style="color:var(--muted-soft)">?</span></div>`).join('')}
+        <div class="gate-col gate-verdict verdict-unknown">—</div></div></div>`;
+      continue;
+    }
+    const cp = d.control_points || {};
+    const cpKeys = ['every_element_mapped','every_mutation_has_event','every_event_registry_status_known','every_mutation_has_hook_or_flagged','baseline_count_recorded'];
+    const cpCells = cpKeys.map(k => {
+      if (cp[k] === true)  return `<div class="gate-col cp-cell"><span class="cp-pass">✓</span></div>`;
+      if (cp[k] === false) return `<div class="gate-col cp-cell"><span class="cp-fail">✗</span></div>`;
+      return `<div class="gate-col cp-cell"><span style="color:var(--muted-soft)">?</span></div>`;
+    }).join('');
+
+    const verdictClass = d.gate==='PASS' ? 'verdict-pass' : d.gate==='FAIL' ? 'verdict-fail' : 'verdict-unknown';
+    const rowClass = d.gate==='PASS' ? 'pass' : d.gate==='FAIL' ? 'fail' : '';
+    const missing = Array.isArray(d.events_missing_from_registry) ? d.events_missing_from_registry.length : 0;
+    const hooksM  = Array.isArray(d.hooks_missing) ? d.hooks_missing.length : 0;
+
+    let blockersHtml = '';
+    const blockers = d.blockers;
+    if (blockers && (Array.isArray(blockers) ? blockers.length > 0 : true)) {
+      blockersHtml = '<div class="gate-blockers">';
+      const bArr = Array.isArray(blockers) ? blockers : [blockers];
+      for (const b of bArr) {
+        const text = typeof b === 'string' ? b : (b.description || JSON.stringify(b));
+        blockersHtml += `<div class="blocker-item"><span class="blocker-icon">▸</span>${esc(text)}</div>`;
+      }
+      blockersHtml += '</div>';
+    }
+
+    html += `<div class="gate-row ${rowClass}">
+      <div class="gate-header">
+        <div class="gate-col gate-domain">${esc(domain)}</div>
+        <div class="gate-col gate-counts">
+          <div class="c-row"><span>el:</span><span class="c-val">${d.elements_mapped||0}/${d.interactive_elements_total||0}</span></div>
+          <div class="c-row"><span>evt−:</span><span class="${missing>0?'c-bad':'c-val'}">${missing}</span><span style="margin-left:6px">hook−:</span><span class="${hooksM>0?'c-warn':'c-val'}">${hooksM}</span></div>
+        </div>
+        ${cpCells}
+        <div class="gate-col gate-verdict ${verdictClass}">${d.gate||'—'}</div>
+      </div>${blockersHtml}</div>`;
+  }
+
+  for (let i = 0; i < unmappedCount; i++) {
+    html += `<div class="gate-row" style="opacity:0.4;border-style:dashed">
+      <div class="gate-header">
+        <div class="gate-col gate-domain" style="color:var(--muted)">batch 2…</div>
+        <div class="gate-col gate-counts"><div class="c-row" style="color:var(--muted-soft)">not yet mapped</div></div>
+        ${[0,0,0,0,0].map(() => `<div class="gate-col cp-cell"><span style="color:var(--muted-soft)">–</span></div>`).join('')}
+        <div class="gate-col gate-verdict verdict-unknown">–</div>
+      </div></div>`;
+  }
+
+  document.getElementById('gate-grid').innerHTML = html || '<div class="empty-state"><p>No gate data loaded yet.</p></div>';
+}
+
+// ─── Render: Telemetry inventory ──────────────────────────────────────────────
+function updateTeleKpis() {
+  const reg  = teleEvents.filter(r => r.reg === 'registered').length;
+  const miss = teleEvents.filter(r => r.reg === 'missing').length;
+  const noop = teleEvents.filter(r => r.reg === 'noop').length;
+  const total = teleEvents.length;
+
+  document.getElementById('tele-kpi-total').textContent = total;
+  document.getElementById('tele-kpi-reg').textContent   = reg;
+  document.getElementById('tele-kpi-miss').textContent  = miss;
+  document.getElementById('tele-kpi-noop').textContent  = noop;
+  document.getElementById('ts-reg-count').textContent   = reg;
+  document.getElementById('ts-miss-count').textContent  = miss;
+  document.getElementById('nav-count-tele').textContent = total;
+}
+
+function setTeleFilter(f) {
+  teleFilter = f;
+  // Update active button
+  ['all','miss','reg','noop'].forEach(id => {
+    const btn = document.getElementById('flt-' + id);
+    if (btn) btn.classList.toggle('active-filter', id === f || (id==='all' && f==='all'));
+  });
+  // Hide the 'active only' button when switching away
+  document.getElementById('flt-active').style.display = 'none';
+  renderTeleTable();
+}
+
+function sortTele(col) {
+  if (teleSort.col === col) teleSort.dir *= -1;
+  else { teleSort.col = col; teleSort.dir = 1; }
+  renderTeleTable();
+}
+
+function renderTeleTable() {
+  if (!teleEvents.length) return;
+
+  const q = (document.getElementById('tele-search')?.value || '').toLowerCase().trim();
+
+  let rows = teleEvents.filter(r => {
+    // Filter
+    if (teleFilter === 'missing')    return r.reg === 'missing';
+    if (teleFilter === 'registered') return r.reg === 'registered';
+    if (teleFilter === 'noop')       return r.reg === 'noop';
+    return true; // all
+  }).filter(r => {
+    if (!q) return true;
+    return r.event.toLowerCase().includes(q)
+        || r.domain.toLowerCase().includes(q)
+        || r.element.toLowerCase().includes(q)
+        || r.hook.toLowerCase().includes(q);
+  });
+
+  // Sort
+  const { col, dir } = teleSort;
+  rows.sort((a, b) => {
+    const av = col === 'event' ? a.event : col === 'domain' ? a.domain : a.reg;
+    const bv = col === 'event' ? b.event : col === 'domain' ? b.domain : b.reg;
+    return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+  });
+
+  const regBadge = reg => {
+    if (reg === 'registered') return '<span class="reg-badge reg-yes">In Registry</span>';
+    if (reg === 'missing')    return '<span class="reg-badge reg-miss">Missing</span>';
+    if (reg === 'noop')       return '<span class="reg-badge reg-noop">Noop</span>';
+    return `<span class="reg-badge reg-noop">${esc(reg)}</span>`;
+  };
+
+  const tbody = document.getElementById('tele-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No events match this filter.</td></tr>';
+    document.getElementById('tele-table-count').textContent = '0 rows';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="tele-event">${esc(r.event)}</span></td>
+      <td><span class="tele-domain-tag">${esc(r.domain)}</span></td>
+      <td>${regBadge(r.reg)}</td>
+      <td><span class="tele-element">${esc(r.element) || '<span style="color:var(--muted-soft)">—</span>'}</span></td>
+      <td><span class="tele-hook">${esc(r.hook) || '<span style="color:var(--muted-soft)">—</span>'}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('tele-table-count').textContent = `${rows.length} of ${teleEvents.length} rows`;
+}
+
+// ─── Render: Events (worklist) page ──────────────────────────────────────────
+function renderEventsPage() {
+  const allMissing = new Set();
+  let totalInRegistry = 0, totalMutations = 0, domainsAffected = 0;
+
+  for (const d of Object.values(gateData)) {
+    if (Array.isArray(d.events_missing_from_registry) && d.events_missing_from_registry.length > 0) {
+      domainsAffected++;
+      for (const e of d.events_missing_from_registry) allMissing.add(e);
+    }
+    totalInRegistry += (d.events_in_registry || 0);
+    totalMutations  += (d.mutations || 0);
+  }
+
+  const missing = [...allMissing].sort();
+  document.getElementById('ev-kpi-count').textContent      = missing.length;
+  document.getElementById('ev-kpi-domains').textContent    = domainsAffected;
+  document.getElementById('ev-kpi-mutations').textContent  = totalMutations;
+  document.getElementById('ev-kpi-registered').textContent = totalInRegistry;
+  document.getElementById('ev-count-label').textContent    = missing.length + ' items';
+  document.getElementById('nav-count-events').textContent  = missing.length;
+
+  const list = document.getElementById('events-list');
+  if (!missing.length) {
+    list.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">✓</div><p>No missing events. All registered.</p></div>';
+    return;
+  }
+  list.innerHTML = missing.map(e => `<div class="evt-item">${esc(e)}</div>`).join('');
+}
+
+// ─── Render: Spec page ────────────────────────────────────────────────────────
+let specLoaded = false;
+async function loadSpec() {
+  if (specLoaded) return;
+  specLoaded = true;
+  const files = [
+    { id: 'spec-drive',   path: 'DRIVE-TO-100.md',  label: 'DRIVE-TO-100.md' },
+    { id: 'spec-process', path: 'PROCESS-SPEC.md',  label: 'PROCESS-SPEC.md' },
+    { id: 'spec-council', path: '../SPEC.md',        label: '../SPEC.md' },
+  ];
+  for (const f of files) {
+    const el = document.getElementById(f.id);
+    try {
+      const text = await fetchText(f.path);
+      el.innerHTML = `<h2 style="font-family:var(--font-heading);font-weight:400;font-size:18px;margin-bottom:16px;color:var(--muted)">${esc(f.label)}</h2><pre>${esc(text)}</pre>`;
+    } catch {
+      el.innerHTML = `<div class="empty-state"><p>${esc(f.label)} — not reachable from this server root</p></div>`;
+    }
+  }
+}
+function showSpecTab(tab) {
+  document.querySelectorAll('.spec-tab').forEach((t, i) => {
+    const tabs = ['drive','process','council'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.spec-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('spec-' + tab).classList.add('active');
+}
+
+// ─── Fetch + poll ─────────────────────────────────────────────────────────────
+async function pollAll() {
+  if (isLoading) return;
+  isLoading = true;
+  try {
+    await Promise.all([loadFeed(), loadHeartbeat(), loadGates()]);
+    hideError();
+    setPollStatus(true);
+    renderAll();
+    document.getElementById('topbar-ts').textContent = 'Updated ' + new Date().toLocaleTimeString('no-NO');
+  } catch(e) {
+    setPollStatus(false);
+    showError('Fetch error — ' + e.message + '. Is serve-dashboard.sh running?');
+  } finally {
+    isLoading = false;
+  }
+}
+function forceRefresh() {
+  const icon = document.getElementById('refresh-icon');
+  icon.style.animation = 'spin 0.5s linear';
+  setTimeout(() => { icon.style.animation = ''; }, 600);
+  pollAll();
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  channels: 'Signal Channels',
+  live:     'Live Agent Feed',
+  gates:    'Domain Gate Grid',
+  tele:     'All Telemetry Events',
+  events:   'Missing Events — F0.1 Worklist',
+  spec:     'Spec Documents',
+  design:   'Nordic Split Design',
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  const navBtn = document.getElementById('nav-' + id);
+  if (navBtn) navBtn.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
+
+  if (id === 'spec') loadSpec();
+  if (id === 'tele') loadTeleMaps();
+  if (id === 'design') {
+    const frame = document.getElementById('design-frame');
+    if (!frame.src) frame.src = '/mnt/c/Users/sxtnl/Downloads/Smartout.ai_re-designe/apps/web/Smartout Web Version 1.html';
+  }
+}
+
+// ─── Master render ────────────────────────────────────────────────────────────
+function renderAll() {
+  renderChannels();
+  renderLivePage();
+  renderGatePage();
+  renderEventsPage();
+  if (teleEvents.length) { renderTeleTable(); updateTeleKpis(); }
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(async function boot() {
+  // Default to channels page (prominent, as requested)
+  showPage('channels');
+  await pollAll();
+  // Kick off telemap load in background after initial data
+  loadTeleMaps();
+  pollHandle = setInterval(pollAll, POLL_INTERVAL_MS);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lønnskjøring — Bistro Nord · april 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --orange:#f97316; --orange-dark:#c2410c; --orange-soft:#fff4e8;
+    --success:#11ad32; --warning:#c18200; --error:#e7000b; --info:#2784d5;
+    --kjokken:#ee560c; --sal:#00ab93; --bar:#864ad2;
+    --card:#ffffff; --secondary:#f5f3f0; --fg:#1c1814;
+    --muted:#7a756e; --muted-soft:#a8a39c; --border:#e8e5e1; --border-strong:#d4cfc7;
+    --h:'Instrument Serif',Georgia,serif; --s:'Geist',system-ui,sans-serif; --m:'Geist Mono',monospace;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{ background:#ece8e2; font-family:var(--s); color:var(--fg); -webkit-font-smoothing:antialiased; font-feature-settings:"ss01","cv11"; }
+
+  .bar{ position:fixed; top:0; left:0; right:0; height:54px; background:rgba(28,24,20,0.94); backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px; padding:0 20px; z-index:50; color:#f0eeeb; }
+  .bar .mk{ width:22px;height:22px;border-radius:6px;background:var(--orange); display:inline-flex;align-items:center;justify-content:center; }
+  .bar .mk span{ width:8px;height:8px;border-radius:2px;background:#fff; }
+  .bar b{ font-size:13.5px; font-weight:600; } .bar .sub{ font-size:12px; color:#b8b2aa; } .bar .sp{ flex:1; }
+  .bar button{ font-family:inherit; font-size:13px; font-weight:600; border:none; border-radius:8px; padding:9px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .bar .ghost{ background:rgba(255,255,255,0.10); color:#f0eeeb; } .bar .ghost:hover{ background:rgba(255,255,255,0.18); }
+  .bar .prim{ background:var(--orange); color:#fff; } .bar .prim:hover{ background:var(--orange-dark); }
+
+  .stage{ padding:78px 0 60px; display:flex; flex-direction:column; align-items:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--card); box-shadow:0 8px 30px rgba(28,24,20,0.13); padding:16mm 15mm 13mm; position:relative; }
+  .sheet, .sheet *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+
+  .lh{ display:flex; align-items:flex-start; gap:14px; padding-bottom:14px; border-bottom:2px solid var(--fg); }
+  .lh-mk{ width:36px;height:36px;border-radius:10px;background:var(--orange); display:flex;align-items:center;justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(249,115,22,0.30); }
+  .lh-mk span{ width:13px;height:13px;border-radius:4px;background:#fff; }
+  .lh-id{ flex:1; } .lh-brand{ font-size:13px; font-weight:700; } .lh-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .lh-right{ text-align:right; font-size:10.5px; color:var(--muted); line-height:1.6; }
+  .lh-right b{ color:var(--fg); font-family:var(--m); font-weight:600; }
+
+  .title{ margin:16px 0 0; }
+  .eyebrow{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--orange-dark); }
+  h1{ font-family:var(--h); font-weight:400; font-size:36px; letter-spacing:-0.02em; line-height:1.02; margin:7px 0 0; }
+  .title-sub{ font-size:12.5px; color:var(--muted); margin-top:9px; max-width:64ch; line-height:1.5; }
+
+  /* gate banner */
+  .gate{ display:flex; gap:12px; align-items:center; padding:13px 16px; border-radius:12px; margin-top:16px; border:1px solid rgba(231,0,11,0.22); background:rgba(231,0,11,0.05); }
+  .gate .ic{ width:30px;height:30px;border-radius:9px;background:rgba(231,0,11,0.12);color:var(--error); display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .gate .ic svg{ width:17px;height:17px; }
+  .gate .bt{ font-size:13.5px; font-weight:600; } .gate .bs{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .gate .state{ margin-left:auto; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--error); background:rgba(231,0,11,0.10); padding:5px 11px; border-radius:999px; white-space:nowrap; }
+
+  section{ margin-top:20px; }
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:11px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+  .sec-h .n{ font-family:var(--m); font-size:11px; font-weight:600; color:var(--orange-dark); }
+  .sec-h h2{ font-family:var(--h); font-weight:400; font-size:20px; letter-spacing:-0.01em; margin:0; white-space:nowrap; }
+  .sec-h .meta{ margin-left:auto; font-size:10.5px; color:var(--muted-soft); font-family:var(--m); }
+
+  .tiles{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
+  .tile{ border:1px solid var(--border); border-radius:11px; padding:11px 13px; position:relative; }
+  .tile.hero{ background:var(--fg); border-color:var(--fg); }
+  .tile .lbl{ font-size:8.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+  .tile.hero .lbl{ color:rgba(255,255,255,0.62); }
+  .tile .val{ font-family:var(--m); font-size:22px; font-weight:700; letter-spacing:-0.02em; line-height:1; margin-top:7px; }
+  .tile.hero .val{ color:#fff; } .tile .val .u{ font-size:11px; color:var(--muted-soft); }
+  .tile .sub{ font-size:9px; color:var(--muted); margin-top:5px; } .tile.hero .sub{ color:rgba(255,255,255,0.6); }
+  .tile.crit .val{ color:var(--error); }
+
+  /* deviations */
+  .dev{ display:flex; flex-direction:column; gap:7px; }
+  .d{ display:flex; gap:11px; align-items:center; border:1px solid var(--border); border-radius:10px; padding:9px 13px; position:relative; overflow:hidden; }
+  .d::before{ content:""; position:absolute; left:0;top:0;bottom:0;width:3px; background:var(--error); }
+  .d.warn::before{ background:var(--warning); }
+  .d .code{ font-family:var(--m); font-size:9px; font-weight:600; color:var(--muted-soft); width:128px; flex-shrink:0; }
+  .d .who{ display:inline-flex; align-items:center; gap:7px; width:96px; flex-shrink:0; }
+  .d .who .av{ width:20px;height:20px;border-radius:6px;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center; }
+  .d .who .nm{ font-size:11.5px; font-weight:600; }
+  .d .ttl{ flex:1; font-size:12px; }
+  .d .req{ font-size:9.5px; color:var(--muted); }
+  .d .pill{ font-size:8px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+  .d .pill.err{ color:var(--error); background:rgba(231,0,11,0.10); }
+  .d .pill.warn{ color:var(--warning); background:rgba(193,130,0,0.13); }
+
+  table{ width:100%; border-collapse:collapse; }
+  .t th{ text-align:right; font-size:8px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:8px 7px; border-bottom:1px solid var(--border-strong); white-space:nowrap; }
+  .t th:first-child{ text-align:left; }
+  .t td{ padding:9px 7px; border-bottom:1px solid var(--border); font-family:var(--m); font-size:11px; text-align:right; font-variant-numeric:tabular-nums; }
+  .t td:first-child{ text-align:left; font-family:var(--s); }
+  .t tr:last-child td{ border-bottom:none; }
+  .t tr.tot td{ background:var(--secondary); font-weight:700; }
+  .t .en{ display:inline-flex; align-items:center; gap:8px; }
+  .t .av{ width:22px;height:22px;border-radius:6px;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+  .t .nm{ font-weight:600; font-size:11.5px; } .t .rl{ font-size:9px; color:var(--muted); }
+  .t td .otv{ color:var(--error); font-weight:700; }
+  .t td .flag{ display:inline-block; width:6px;height:6px;border-radius:50%;background:var(--error);margin-left:5px; }
+
+  /* rules + export two-col */
+  .twocol{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .panel{ border:1px solid var(--border); border-radius:12px; padding:13px 15px; }
+  .panel-h{ font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:11px; }
+  .rule{ display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--border); font-size:11.5px; }
+  .rule:last-child{ border-bottom:none; }
+  .rule .nm{ flex:1; font-weight:500; } .rule .amt{ font-family:var(--m); font-size:10px; color:var(--muted); }
+  .rule .kr{ font-family:var(--m); font-weight:700; font-variant-numeric:tabular-nums; width:62px; text-align:right; }
+  .rule.off .nm{ color:var(--muted-soft); }
+  .rule .hits{ font-family:var(--m); font-size:9.5px; color:var(--muted-soft); width:54px; text-align:right; }
+
+  .ex{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .ex:last-child{ border-bottom:none; }
+  .ex .ic{ width:26px;height:26px;border-radius:7px;background:var(--secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted); }
+  .ex .t{ flex:1; font-size:12px; font-weight:500; } .ex .t .s{ display:block; font-size:9.5px; color:var(--muted); font-weight:400; }
+  .ex .st{ font-size:8.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 8px; border-radius:999px; }
+  .ex .st.rdy{ color:var(--success); background:rgba(17,173,50,0.12); }
+  .ex .st.wait{ color:var(--warning); background:rgba(193,130,0,0.13); }
+
+  .foot{ margin-top:22px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:18px; align-items:flex-end; }
+  .foot .l{ font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .foot .nm{ font-family:var(--h); font-size:17px; margin-top:6px; } .foot .rl{ font-size:10px; color:var(--muted); }
+  .foot .conf{ margin-left:auto; text-align:right; font-size:9.5px; color:var(--muted-soft); line-height:1.6; max-width:48ch; }
+  .pagefoot{ position:absolute; left:15mm; right:15mm; bottom:7mm; display:flex; justify-content:space-between; font-size:9px; color:var(--muted-soft); font-family:var(--m); }
+
+  @page{ size:A4; margin:0; }
+  @media print{ body{ background:#fff; } .bar{ display:none; } .stage{ padding:0; } .sheet{ box-shadow:none; width:auto; min-height:auto; } }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="mk"><span></span></span>
+    <div><b>Lønnskjøring</b> <span class="sub">· Bistro Nord · april 2026</span></div>
+    <span class="sp"></span>
+    <button class="ghost" onclick="history.length>1?history.back():window.close()">Lukk</button>
+    <button class="prim" onclick="window.print()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 20h14"/></svg> Lagre som PDF</button>
+  </div>
+
+  <div class="stage">
+    <div class="sheet">
+      <div class="lh">
+        <span class="lh-mk"><span></span></span>
+        <div class="lh-id"><div class="lh-brand">Smartout · Bistro Nord</div><div class="lh-meta">Lønnskjøring · calc-engine deriverer, leder bekrefter og låser</div></div>
+        <div class="lh-right">Periode <b>2026-04</b><br/>01.–30.04.2026 · <b>89 linjer</b><br/>Utbetaling <b>15.05.2026</b></div>
+      </div>
+
+      <div class="title">
+        <div class="eyebrow">Lønnskjøringsrapport · til godkjenning</div>
+        <h1>Lønnskjøring — april 2026</h1>
+        <div class="title-sub">Status før lås: alle linjer er derivert fra vakter og regler. Fire avvik krever bekreftelse før perioden kan låses og sendes til A-melding og bank.</div>
+      </div>
+
+      <div class="gate">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <div><div class="bt">4 avvik må bekreftes før perioden kan låses</div><div class="bs">2 ansatte med overtid over grense · 2 vakter på rød dag. 3 advarsler vises på lønnsslippene, 2 info-saker er kvittert ut.</div></div>
+        <span class="state">Ikke låst</span>
+      </div>
+
+      <section data-rsec="sum">
+        <div class="sec-h"><span class="n">01</span><h2>Sum kjøring</h2><span class="meta">7 ansatte</span></div>
+        <div class="tiles">
+          <div class="tile"><div class="lbl">Brutto</div><div class="val">266 728<span class="u"> kr</span></div><div class="sub">før trekk</div></div>
+          <div class="tile hero"><div class="lbl">Netto utbetalt</div><div class="val">189 910<span class="u"> kr</span></div><div class="sub">til 7 konti 15.05</div></div>
+          <div class="tile"><div class="lbl">Timer faktisk</div><div class="val">1 020<span class="u"> t</span></div><div class="sub">planlagt 987 t</div></div>
+          <div class="tile"><div class="lbl">Tillegg</div><div class="val">26 197<span class="u"> kr</span></div><div class="sub">kveld·helg·hellig·OT</div></div>
+          <div class="tile crit"><div class="lbl">Avvik</div><div class="val">4<span class="u"> + 3</span></div><div class="sub">blokk. + advarsler</div></div>
+        </div>
+      </section>
+
+      <section data-rsec="avvik">
+        <div class="sec-h"><span class="n">02</span><h2>Avvik til behandling</h2><span class="meta">blokkerer lås</span></div>
+        <div class="dev">
+          <div class="d">
+            <span class="code">OVERTID_OVER_GRENSE</span>
+            <span class="who"><span class="av" style="background:#864ad2">OT</span><span class="nm">Ole T.</span></span>
+            <span class="ttl">Overtid over avtalt grense <span class="req">· 9,5 t mot 8 t/mnd · 26.04</span></span>
+            <span class="pill err">Bekreft</span>
+          </div>
+          <div class="d">
+            <span class="code">HELLIGDAG_KOLLISJON</span>
+            <span class="who"><span class="av" style="background:#864ad2">OT</span><span class="nm">Ole T.</span></span>
+            <span class="ttl">Vakt 17.04 (Skjærtorsdag) krever signert tillegg <span class="req">· signert i app 14.04</span></span>
+            <span class="pill err">Bekreft</span>
+          </div>
+          <div class="d">
+            <span class="code">HELLIGDAG_KOLLISJON</span>
+            <span class="who"><span class="av" style="background:#ec4899">ES</span><span class="nm">Erik S.</span></span>
+            <span class="ttl">Vakt 17.04 (Skjærtorsdag) krever signert tillegg <span class="req">· signert i app 14.04</span></span>
+            <span class="pill err">Bekreft</span>
+          </div>
+          <div class="d">
+            <span class="code">OVERTID_OVER_GRENSE</span>
+            <span class="who"><span class="av" style="background:#ec4899">ES</span><span class="nm">Erik S.</span></span>
+            <span class="ttl">12 t overtid · 75 %-stilling tillater 4 t/mnd <span class="req">· 15.04</span></span>
+            <span class="pill err">Bekreft</span>
+          </div>
+          <div class="d warn">
+            <span class="code">STEMPLING_GLEMT</span>
+            <span class="who"><span class="av" style="background:#3B82F6">JH</span><span class="nm">Jonas H.</span></span>
+            <span class="ttl">Stempling mangler 20.04 · brukte planlagt 19:00 <span class="req">· vises på slipp</span></span>
+            <span class="pill warn">Advarsel</span>
+          </div>
+        </div>
+      </section>
+
+      <section data-rsec="ansatte">
+        <div class="sec-h"><span class="n">03</span><h2>Ansatte i kjøringen</h2><span class="meta">brutto → netto</span></div>
+        <table class="t">
+          <thead><tr><th>Ansatt</th><th>Stilling</th><th>Plan</th><th>Faktisk</th><th>OT</th><th>Tillegg</th><th>Brutto</th><th>Netto</th></tr></thead>
+          <tbody>
+            <tr><td><span class="en"><span class="av" style="background:#3B82F6">JH</span><span><span class="nm">Jonas H.</span><br/><span class="rl">Kokk · fast</span></span></span></td><td style="text-align:right">100 %</td><td>162,5</td><td>168,0</td><td>5,5</td><td>5 677</td><td>49 221</td><td>35 045</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#864ad2">OT</span><span><span class="nm">Ole T.</span><br/><span class="rl">Bartender · timer</span></span></span></td><td style="text-align:right">80 %</td><td>152,0</td><td>161,5</td><td><span class="otv">9,5</span><span class="flag"></span></td><td>6 931</td><td>44 399</td><td>31 612</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#10B981">SL</span><span><span class="nm">Selma L.</span><br/><span class="rl">Servitør · timer</span></span></span></td><td style="text-align:right">90 %</td><td>156,0</td><td>156,0</td><td>0,0</td><td>1 824</td><td>37 392</td><td>26 623</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#14b8a6">KN</span><span><span class="nm">Kari N.</span><br/><span class="rl">Servitør · fast</span></span></span></td><td style="text-align:right">100 %</td><td>162,5</td><td>164,0</td><td>1,5</td><td>1 351</td><td>40 241</td><td>28 652</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#ec4899">ES</span><span><span class="nm">Erik S.</span><br/><span class="rl">Kokk · timer</span></span></span></td><td style="text-align:right">75 %</td><td>130,0</td><td>142,0</td><td><span class="otv">12,0</span><span class="flag"></span></td><td>6 870</td><td>40 950</td><td>29 156</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#A855F7">PK</span><span><span class="nm">Petter K.</span><br/><span class="rl">Servitør · deltid</span></span></span></td><td style="text-align:right">50 %</td><td>80,0</td><td>84,5</td><td>4,5</td><td>3 544</td><td>22 557</td><td>16 061</td></tr>
+            <tr><td><span class="en"><span class="av" style="background:#EAB308">IB</span><span><span class="nm">Ida B.</span><br/><span class="rl">Renhold · timer</span></span></span></td><td style="text-align:right">90 %</td><td>144,0</td><td>144,0</td><td>0,0</td><td>0</td><td>31 968</td><td>22 761</td></tr>
+            <tr class="tot"><td>Sum · 7 ansatte</td><td style="text-align:right"></td><td>987,0</td><td>1 020</td><td>33,0</td><td>26 197</td><td>266 728</td><td>189 910</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section data-rsec="tillegg">
+        <div class="sec-h"><span class="n">04</span><h2>Tillegg &amp; klar for eksport</h2><span class="meta">regler + leveranser</span></div>
+        <div class="twocol">
+          <div class="panel">
+            <div class="panel-h">Aktive tillegg-regler</div>
+            <div class="rule"><span class="nm">Kveldstillegg <span class="amt">+25 %</span></span><span class="hits">47 treff</span><span class="kr">12 250</span></div>
+            <div class="rule"><span class="nm">Helgtillegg <span class="amt">+50 %</span></span><span class="hits">38 treff</span><span class="kr">18 900</span></div>
+            <div class="rule"><span class="nm">Helligdagstillegg <span class="amt">+100 %</span></span><span class="hits">6 treff</span><span class="kr">6 120</span></div>
+            <div class="rule"><span class="nm">Daglig overtid <span class="amt">+50 %</span></span><span class="hits">11 treff</span><span class="kr">4 180</span></div>
+            <div class="rule"><span class="nm">Tipspott · ut</span><span class="hits">mnd</span><span class="kr">4 320</span></div>
+            <div class="rule off"><span class="nm">Nattillegg <span class="amt">+45 %</span> · ikke aktiv</span><span class="hits">0</span><span class="kr">0</span></div>
+          </div>
+          <div class="panel">
+            <div class="panel-h">Klar for eksport når låst</div>
+            <div class="ex"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><span class="t">A-melding<span class="s">Altinn · 7 ansatte · 89 linjer</span></span><span class="st wait">Venter lås</span></div>
+            <div class="ex"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg></span><span class="t">Bankfil (utbetaling)<span class="s">189 910 kr · 7 konti · forfall 15.05</span></span><span class="st wait">Venter lås</span></div>
+            <div class="ex"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M9 14l2 2 4-4"/></svg></span><span class="t">Lønnsslipper<span class="s">Publiseres til ansatte i appen</span></span><span class="st wait">Venter lås</span></div>
+            <div class="ex"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/><polyline points="21 4 21 9 16 9"/></svg></span><span class="t">Recalc-status<span class="s">Alle linjer ferske · sist 30.04 06:00</span></span><span class="st rdy">Klar</span></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <div><div class="l">Klargjort av</div><div class="nm">Maria Andersen</div><div class="rl">Driftsleder · 30.04.2026</div></div>
+        <div class="conf">Konfidensielt — inneholder lønns- og persondata. Tall er derivert av Smartouts calc-engine fra vakter og regler. Perioden låses først når de 4 avvikene er bekreftet. Generert 30.04.2026.</div>
+      </div>
+
+      <div class="pagefoot"><span>Smartout · Lønnskjøring · Bistro Nord</span><span>Periode 2026-04 · 89 linjer · konfidensielt</span></div>
+    </div>
+  </div>
+  <script>
+    // Section filter hook for the in-app report viewer (openReportDoc).
+    // keys === ["*"] (or empty) shows everything; otherwise only matching data-rsec sections.
+    window.applyReportFilter = function (keys) {
+      var all = !keys || keys.length === 0 || keys.indexOf("*") !== -1;
+      document.querySelectorAll("section[data-rsec]").forEach(function (sec) {
+        sec.style.display = (all || keys.indexOf(sec.getAttribute("data-rsec")) !== -1) ? "" : "none";
+      });
+    };
+  </script>
+</body>
+</html>

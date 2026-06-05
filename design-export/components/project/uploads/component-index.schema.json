@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SXTNmedia21/sxtn-plugin/schemas/component-index.schema.json",
+  "title": "SXTN Component Index",
+  "description": "Validates the YAML Component Index emitted by sxtn-component-indexer. Each entry represents a discovered interactive component in frontend code. Duplicate component_id values surface in consistency_gate, not as entry drops.",
+  "type": "object",
+  "required": ["generated_at", "source_dir", "entries"],
+  "additionalProperties": false,
+  "$defs": {
+    "NotificationBlock": {
+      "type": "object",
+      "description": "Optional push/toast notification config linked to this component's action.",
+      "required": ["channel", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Delivery channel (e.g. toast, push, email)"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Notification message template"
+        },
+        "action": {
+          "type": "string",
+          "description": "Optional deep-link action triggered by the notification"
+        },
+        "delay": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delay in milliseconds before notification fires"
+        }
+      }
+    },
+    "ComponentEntry": {
+      "type": "object",
+      "description": "One discovered interactive component. index_key is globally unique; component_id is semantic and may repeat across entries (triggers consistency_gate).",
+      "required": ["index_key", "component_id", "feature", "tier", "module"],
+      "additionalProperties": false,
+      "properties": {
+        "index_key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*-[0-9]{18}$",
+          "description": "Globally unique key: <featureList>-<monotonic-timestamp>. Entries are SORTED by this key. Pattern: kebab-case feature prefix + hyphen + 18-digit timestamp+sequence suffix (14-digit UTC timestamp + 4-digit sequence for monotonic uniqueness within a run)."
+        },
+        "component_id": {
+          "type": "string",
+          "pattern": "^[a-z]+(\\.[a-z0-9-]+){2}$",
+          "description": "Semantic component identifier: <element>.<feature>.<action>. e.g. button.task.create. A duplicate across entries triggers a consistency_gate warning."
+        },
+        "feature": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Feature name derived from filename or component context"
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["default", "premium", "pro"],
+          "description": "Feature tier. Defaults to 'default' when not derivable from source."
+        },
+        "module": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Module owning this component, derived from filename or directory"
+        },
+        "parent": {
+          "type": "string",
+          "pattern": "^[a-z]+(\\.[a-z0-9-]+){2}$",
+          "description": "Optional parent component_id (e.g. popup.task.edit contains button.task.create). Must match component_id pattern."
+        },
+        "telemetry_event_id": {
+          "type": "string",
+          "description": "Optional analytics/telemetry event identifier to fire when this component is activated"
+        },
+        "notification": {
+          "$ref": "#/$defs/NotificationBlock"
+        }
+      }
+    },
+    "ConsistencyFinding": {
+      "type": "object",
+      "description": "A consistency-gate finding: same component_id appeared in multiple entries (same UX must reuse one component).",
+      "required": ["component_id", "occurrences"],
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "pattern": "^[a-z]+(\\.[a-z0-9-]+){2}$",
+          "description": "The duplicated component_id"
+        },
+        "occurrences": {
+          "type": "array",
+          "minItems": 2,
+          "description": "All index_keys that share this component_id",
+          "items": {
+            "type": "string"
+          }
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable explanation of the duplication"
+        }
+      }
+    }
+  },
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "description": "ISO-8601 timestamp when the index was generated"
+    },
+    "source_dir": {
+      "type": "string",
+      "description": "Absolute or relative path to the scanned source directory"
+    },
+    "entries": {
+      "type": "array",
+      "description": "Component entries, sorted ascending by index_key",
+      "items": {
+        "$ref": "#/$defs/ComponentEntry"
+      }
+    },
+    "consistency_gate": {
+      "type": "array",
+      "description": "Duplicate component_id findings. Empty array = no duplicates (clean). Non-empty = consistency violations that MUST be resolved before promotion.",
+      "items": {
+        "$ref": "#/$defs/ConsistencyFinding"
+      }
+    }
+  }
+}

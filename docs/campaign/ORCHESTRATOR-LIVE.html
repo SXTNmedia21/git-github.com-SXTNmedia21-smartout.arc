@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Orchestrator — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#16130f;--panel:#1e1a14;--panel2:#251f17;--line:#332a1f;--ink:#f2ece1;--dim:#a8997f;--faint:#6f6450;
+    --warm:#d99a4e;--warm2:#e8b56a;--green:#7fae6a;--blue:#6a93ae;--red:#c4694a;--grey:#8a7f6a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;line-height:1.5;padding:28px 24px 60px}
+  h1,.serif{font-family:"Instrument Serif",Georgia,serif;font-weight:400}
+  h1{font-size:30px;margin:0 0 2px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+  .bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:20px}
+  .live{display:flex;align-items:center;gap:7px;color:var(--green);font-size:12px}
+  .pulse{width:9px;height:9px;border-radius:50%;background:var(--green);animation:p 1.6s ease-in-out infinite}
+  @keyframes p{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  .meta{color:var(--dim);font-size:11px}.meta b{color:var(--warm2);font-family:"Instrument Serif",serif;font-size:17px}
+  .slot{display:flex;gap:5px;align-items:center}.dot{width:9px;height:9px;border-radius:50%}.dot.full{background:var(--warm2)}.dot.free{background:#3a3026}
+  .wave{margin-bottom:16px}
+  .wh{font-family:"Instrument Serif",serif;font-size:18px;color:var(--warm2);margin:0 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .m{display:grid;grid-template-columns:150px 84px 50px 1fr;gap:10px;align-items:start;padding:8px 9px;border-bottom:1px solid #2a2319;transition:background .4s}
+  .m.flash{background:rgba(127,174,106,.18);animation:knall .6s ease-out}
+  @keyframes knall{0%{background:rgba(232,181,106,.5);transform:translateX(3px)}100%{background:rgba(127,174,106,.10);transform:none}}
+  button{font-family:"Geist Mono",monospace;background:var(--panel2);color:var(--warm2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;transition:.2s}
+  button:hover{border-color:var(--warm);background:rgba(217,154,78,.12)}
+  button:active{transform:scale(.96)}
+  .mid{font-size:12px}
+  .st{font-size:10px;padding:2px 9px;border-radius:20px;text-align:center}
+  .s-done{background:rgba(127,174,106,.15);color:var(--green);border:1px solid rgba(127,174,106,.35)}
+  .s-ready{background:rgba(217,154,78,.14);color:var(--warm2);border:1px solid rgba(217,154,78,.34)}
+  .s-running{background:rgba(106,147,174,.18);color:var(--blue);border:1px solid rgba(106,147,174,.4)}
+  .s-blocked{background:rgba(196,105,74,.14);color:var(--red);border:1px solid rgba(196,105,74,.34)}
+  .pr{font-size:9.5px;color:var(--faint)}
+  .ask{color:var(--dim);font-size:11px}
+  .err{color:var(--red);font-size:12px;padding:20px}
+  .foot{color:var(--faint);font-size:11px;margin-top:22px;border-top:1px solid var(--line);padding-top:10px}
+  /* progression */
+  .prog{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px}
+  .prog .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .prog .big{font-family:"Instrument Serif",serif;font-size:26px;color:var(--warm2)}
+  .pbar{height:10px;background:#2a2319;border-radius:6px;overflow:hidden;display:flex}
+  .pbar>i{height:100%}.pbar .done{background:linear-gradient(90deg,var(--green),#9ec47f)}.pbar .run{background:var(--blue)}
+  .m{cursor:pointer}
+  .m:hover{background:rgba(217,154,78,.07)}
+  /* modal */
+  .ovl{position:fixed;inset:0;background:rgba(8,6,4,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .ovl.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:620px;width:100%;max-height:84vh;overflow:auto;padding:22px 24px}
+  .modal h2{font-family:"Instrument Serif",serif;font-size:23px;color:var(--warm2);margin:0 0 2px}
+  .modal .x{float:right;cursor:pointer;color:var(--faint);font-size:20px;line-height:1}
+  .modal .row{margin:10px 0;font-size:12.5px}
+  .modal .k{color:var(--faint);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
+  .modal .ask{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--ink);white-space:pre-wrap;line-height:1.55}
+  .modal textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:"Geist Mono",monospace;font-size:12.5px;padding:12px 14px;min-height:120px;resize:vertical}
+  .hint{color:var(--faint);font-size:10.5px;margin-top:6px}
+  .wfchips{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  .agent{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);font-size:11.5px}
+  .agent.on{border-color:rgba(127,174,106,.45);color:var(--green)}
+  .agent.off{color:var(--faint)}
+  .agent .adot{width:7px;height:7px;border-radius:50%}
+  .agent.on .adot{background:var(--green);animation:p 1.6s ease-in-out infinite}
+  .agent.off .adot{background:#3a3026}
+  .agent .am{font-size:9px;opacity:.7;text-transform:uppercase}
+</style>
+</head>
+<body>
+  <h1>Orchestrator — Live</h1>
+  <div class="sub">Følger <code>.sxtn/worklist.json</code> — bootstrapperens demand-liste. Oppdateres live mens hun jobber.</div>
+  <div class="bar">
+    <div class="live"><span class="pulse"></span><span id="livetxt">LIVE</span></div>
+    <div class="slot" title="worker slots"><span class="meta">WORKERS</span><span id="slots"></span><span class="meta" id="slotn"></span></div>
+    <div class="meta" id="rollup"></div>
+    <button id="refresh" title="oppdater nå">↻ Oppdater</button>
+    <div class="meta" style="margin-left:auto" id="updated"></div>
+  </div>
+  <div class="prog">
+    <div class="top"><span class="meta">PROGRESJON</span><span class="big" id="pct">—</span></div>
+    <div class="pbar" id="pbar"></div>
+    <div class="hint" id="proghint"></div>
+  </div>
+  <div class="prog" id="wf" style="display:none">
+    <div class="top"><span class="meta">WORKFORCE</span><span class="meta" id="wfn"></span></div>
+    <div class="wfchips" id="wfchips"></div>
+  </div>
+  <div class="prog" id="gates" style="display:none">
+    <div class="top"><span class="meta">FIDELITY GATES</span><span class="meta" id="gatesn"></span></div>
+    <div id="gateslist"></div>
+  </div>
+  <div id="body"><div class="meta">laster…</div></div>
+  <div class="foot">100% knyttet til bootstrappern: panelet leser samme <code>worklist.json</code> hun skriver status til. Poller hvert 5s · klikk en task → instruksjon · ingen mock.</div>
+
+  <div class="ovl" id="ovl" onclick="if(event.target===this)closeTask()">
+    <div class="modal" id="modal"></div>
+  </div>
+
+<script>
+const WAVES = [
+  {key:"w1", title:"W1 · Telemetry-sweep"},
+  {key:"w2", title:"W2 · Port"},
+  {key:"w3", title:"W3 · Fix & Gap"},
+  {key:"gate", title:"Gate-harden"},
+];
+let prev = {}, ITEMS = {}, TASKS = {};
+function waveOf(id){ if(id.startsWith("w1"))return"w1"; if(id.startsWith("w2"))return"w2"; if(id.startsWith("w3"))return"w3"; return"gate"; }
+function esc(x){ return (x||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+const DIMS=["farge","font","padding","avstand","border-radius","skygge","layout","tekst"];
+function openTask(id){
+  const it = ITEMS[id]; if(it) return openMission(it);
+  const t = TASKS[id]; if(t) return openFidelity(t);
+}
+function openMission(it){
+  const m = document.getElementById("modal");
+  m.innerHTML =
+    `<span class="x" onclick="closeTask()">✕</span>`+
+    `<h2>${esc(it.id)}</h2>`+
+    `<div class="row"><span class="st ${cls(it.status)}">${it.status==="in_progress"?"running":it.status}</span> &nbsp; <span class="pr">${it.priority||""} · ${it.tier||""}${it.session?" · "+it.session:""}</span></div>`+
+    (it.skill?`<div class="row"><span class="k">skill</span><br>${esc(it.skill)}</div>`:"")+
+    `<div class="row"><span class="k">instruksjon (ask)</span><div class="ask">${esc(it.ask)||"(ingen)"}</div></div>`+
+    (it.evidence?`<div class="row"><span class="k">evidence</span><br>${esc(it.evidence)}</div>`:"")+
+    `<div class="row"><span class="k">endre instruksjon</span><textarea id="edit">${esc(it.ask)}</textarea>`+
+    `<div class="hint">Lagring live krever en backend (control-server). For nå: rediger her, kopier, og oppdater worklist.json. "Bedre variant" = POST-endpoint som skriver tilbake.</div></div>`;
+  document.getElementById("ovl").classList.add("open");
+}
+function openFidelity(t){
+  const m = document.getElementById("modal");
+  const dims = (t.subtasks_detail && t.subtasks_detail.length) ? t.subtasks_detail
+    : DIMS.map(d=>({dim:d,status:"missing-script"}));
+  const rows = dims.map(s=>{
+    const st=s.status||"red", mark=st==="green"?"🟢":(st==="missing-script"?"🟡":"🔴");
+    const lr=s.last_run||{}, note=st==="green"?`${lr.percent}% conf=${lr.confidence}%`
+      : (st==="missing-script"?"intet skript ennå":`${lr.percent||0}% conf=${lr.confidence||0}%`);
+    return `<div class="row" style="display:flex;justify-content:space-between;padding:4px 0;border:0"><span>${mark} ${esc(s.dim)}</span><span class="pr">${note}</span></div>`;
+  }).join("");
+  m.innerHTML =
+    `<span class="x" onclick="closeTask()">✕</span>`+
+    `<h2>${esc(t.label)} — fidelity</h2>`+
+    `<div class="row"><span class="st ${t.cleared?'s-done':(t.green>0?'s-running':'s-ready')}">${t.cleared?'CLEAR':t.green+'/'+t.subtasks}</span> &nbsp; <span class="pr">side: ${esc(t.page)} · →${esc(t.assigned_to)} · gate≥${t.gate}%</span></div>`+
+    `<div class="row"><span class="k">hva tasken gjør</span><div class="ask">${esc(t.ask)}</div></div>`+
+    `<div class="row"><span class="k">8 dimensjoner (side → godkjent)</span>${rows}</div>`+
+    `<div class="row"><span class="k">kjør</span><div class="ask">cd docs/campaign/tasks &amp;&amp; ./task.sh verify ${esc(t.id)}</div>`+
+    `<div class="hint">Alle 8 grønne ≥${t.gate}% → AWAITING-HUMAN-APPROVAL (C4). Du godkjenner siden — agenten kan ikke. Skript eies av deg, agenten skriver dem ikke.</div></div>`;
+  document.getElementById("ovl").classList.add("open");
+}
+function closeTask(){ document.getElementById("ovl").classList.remove("open"); }
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeTask(); });
+function cls(s){ return {done:"s-done",ready:"s-ready",running:"s-running","in_progress":"s-running",blocked:"s-blocked"}[s]||"s-ready"; }
+async function tick(){
+  try{
+    const r = await fetch("worklist.json?_="+Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    const items = d.items||[];
+    ITEMS = {}; items.forEach(it=>ITEMS[it.id]=it);
+    const cnt = {done:0,ready:0,blocked:0,running:0};
+    items.forEach(it=>{ const s=(it.status==="in_progress")?"running":it.status; cnt[s]=(cnt[s]||0)+1; });
+    document.getElementById("rollup").innerHTML =
+      `MISSIONS <b>${items.length}</b> · done <b>${cnt.done||0}</b> · running <b>${cnt.running||0}</b> · ready <b>${cnt.ready||0}</b> · blocked <b>${cnt.blocked||0}</b>`;
+    // PROGRESJON (front and center)
+    const tot = items.length||1, donePct = Math.round((cnt.done||0)/tot*100), runPct = Math.round((cnt.running||0)/tot*100);
+    document.getElementById("pct").textContent = donePct + "%";
+    document.getElementById("pbar").innerHTML = `<i class="done" style="width:${donePct}%"></i><i class="run" style="width:${runPct}%"></i>`;
+    document.getElementById("proghint").textContent = `${cnt.done||0} av ${items.length} done${cnt.running?` · ${cnt.running} kjører`:""}${cnt.blocked?` · ${cnt.blocked} blokkert`:""}`;
+    const mw = d.max_workers||3, busy = cnt.running||0;
+    document.getElementById("slots").innerHTML = Array.from({length:mw},(_,i)=>`<span class="dot ${i<busy?'full':'free'}"></span>`).join("");
+    document.getElementById("slotn").innerHTML = `${busy} / <b>${mw}</b>`;
+    document.getElementById("updated").textContent = "worklist " + (d.updated_at||"").slice(0,10) + " · poll " + new Date().toLocaleTimeString();
+    let html = "";
+    for(const w of WAVES){
+      const rows = items.filter(it=>waveOf(it.id)===w.key);
+      if(!rows.length) continue;
+      html += `<div class="wave"><div class="wh">${w.title}</div>`;
+      for(const it of rows){
+        const s=(it.status==="in_progress")?"running":it.status;
+        const flash = prev[it.id] && prev[it.id]!==it.status ? " flash":"";
+        html += `<div class="m${flash}" onclick="openTask('${it.id}')"><div class="mid">${it.id.replace(/^w\d-/,"")}</div>`+
+          `<div><span class="st ${cls(it.status)}">${s}</span></div>`+
+          `<div class="pr">${it.priority||""}·${it.tier||""}</div>`+
+          `<div class="ask">${(it.ask||"").slice(0,70)}</div></div>`;
+      }
+      html += `</div>`;
+    }
+    document.getElementById("body").innerHTML = html || `<div class="meta">ingen missions</div>`;
+    prev = Object.fromEntries(items.map(it=>[it.id,it.status]));
+    document.getElementById("livetxt").textContent="LIVE";
+  }catch(e){
+    document.getElementById("livetxt").textContent="offline";
+    if(!Object.keys(prev).length) document.getElementById("body").innerHTML = `<div class="err">Kan ikke lese worklist.json — er serveren oppe? (${e.message})</div>`;
+  }
+}
+async function tickWF(){
+  try{
+    const r = await fetch("workforce.json?_="+Date.now(),{cache:"no-store"});
+    if(!r.ok) return;
+    const w = await r.json();
+    document.getElementById("wf").style.display="block";
+    document.getElementById("wfn").innerHTML = `<b>${w.active}</b> aktive / ${w.registered} registrert · ${w.max_workers} slots`;
+    document.getElementById("wfchips").innerHTML = (w.agents||[]).map(a=>
+      `<span class="agent ${a.active?'on':'off'}" title="${esc(a.role)}"><span class="adot"></span>${esc(a.agent)}<span class="am">${esc(a.model)}</span></span>`
+    ).join("");
+  }catch(e){}
+}
+async function tickGates(){
+  try{
+    const r = await fetch("tasks-index.json?_="+Date.now(),{cache:"no-store"});
+    if(!r.ok) return;
+    const g = await r.json();
+    const ts = (g.tasks||[]).filter(t=>t.subtasks>0);  // the 8-dim fidelity gates
+    if(!ts.length) return;
+    TASKS = {}; ts.forEach(t=>TASKS[t.id]=t);
+    document.getElementById("gates").style.display="block";
+    const tot = ts.reduce((s,t)=>s+t.subtasks,0), grn = ts.reduce((s,t)=>s+t.green,0);
+    document.getElementById("gatesn").innerHTML = `<b>${grn}</b>/${tot} dimensjoner grønne · ${ts.length} sider`;
+    document.getElementById("gateslist").innerHTML = ts.map(t=>{
+      const pct = Math.round(t.green/t.subtasks*100);
+      const chip = t.cleared?'s-done':(t.green>0?'s-running':'s-ready');
+      const label = t.cleared?'CLEAR':(t.green>0?`${t.green}/${t.subtasks}`:'venter');
+      return `<div class="m" style="cursor:pointer" title="${esc(t.ask)}" onclick="openTask('${t.id}')"><div class="mid">${esc(t.label)}</div>`+
+        `<div><span class="st ${chip}">${label}</span></div>`+
+        `<div class="pr">→${esc(t.assigned_to)}</div>`+
+        `<div class="ask"><div class="pbar" style="height:7px"><i class="done" style="width:${pct}%"></i></div>${t.green}/${t.subtasks} dim · gate≥${t.gate}%</div></div>`;
+    }).join("");
+  }catch(e){}
+}
+function refreshAll(){ document.getElementById("livetxt").textContent="…"; tick(); tickWF(); tickGates(); }
+document.getElementById("refresh").addEventListener("click", refreshAll);
+tick(); tickWF(); tickGates(); setInterval(()=>{ tick(); tickWF(); tickGates(); }, 5000);
+</script>
+</body>
+</html>

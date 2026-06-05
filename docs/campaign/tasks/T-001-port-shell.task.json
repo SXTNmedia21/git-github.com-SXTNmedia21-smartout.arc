@@ -1,0 +1,14 @@
+{
+  "id": "T-001-port-shell",
+  "kind": "ui",
+  "ask": "Port the design SHELL (sidebar + header + subheader) onto live DashboardShell, 1:1.",
+  "skill": "smartout-design-port",
+  "verify_script": "verify/T-001.sh",
+  "gate_confidence": 95,
+  "last_run": {
+    "percent": 80,
+    "confidence": 58,
+    "cleared": false,
+    "has_script": true
+  }
+}

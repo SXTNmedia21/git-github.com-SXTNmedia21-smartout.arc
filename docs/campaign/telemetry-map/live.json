@@ -1,0 +1,430 @@
+{
+  "generated_at": "2026-05-31T21:07:48Z",
+  "sinks": { "activity_trail": 1710, "engine_event": 37, "billing_activity_log": 0 },
+  "span": {
+    "first": "2026-05-30T03:50:08.915573+00:00",
+    "last": "2026-05-31T21:06:59.199903+00:00",
+    "event_types": 7,
+    "workspaces": 1
+  },
+  "by_category": [
+    { "category": "platform_telemetry", "n": 1686 },
+    { "category": "contract", "n": 11 },
+    { "category": "operations", "n": 5 },
+    { "category": "agent", "n": 4 },
+    { "category": "hms", "n": 2 },
+    { "category": "authority", "n": 1 },
+    { "category": "navigation", "n": 1 }
+  ],
+  "by_event": [
+    { "event": "engine_world.platform_write", "n": 1686 },
+    { "event": "employment_contract.created", "n": 11 },
+    { "event": "calendar.hub.viewed", "n": 5 },
+    { "event": "agent.heartbeat", "n": 4 },
+    { "event": "hms.umbrella.viewed", "n": 2 },
+    { "event": "setup.wizard_viewed", "n": 1 },
+    { "event": "gate.unseeded_capability_invoked", "n": 1 }
+  ],
+  "recent": [
+    {
+      "ts": "21:06:59",
+      "event": "agent.heartbeat",
+      "category": "agent",
+      "actor": "platform",
+      "entity": "flagged inconsistent output",
+      "source": "QAAgent"
+    },
+    {
+      "ts": "21:06:58",
+      "event": "agent.heartbeat",
+      "category": "agent",
+      "actor": "platform",
+      "entity": "market scan",
+      "source": "ResearchAgent"
+    },
+    {
+      "ts": "21:06:58",
+      "event": "agent.heartbeat",
+      "category": "agent",
+      "actor": "platform",
+      "entity": "drafting landing copy",
+      "source": "ContentAgent"
+    },
+    {
+      "ts": "21:06:45",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:05:40",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:04:34",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:03:29",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:02:23",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:01:29",
+      "event": "agent.heartbeat",
+      "category": "agent",
+      "actor": "platform",
+      "entity": "waiting",
+      "source": "CostMonitor"
+    },
+    {
+      "ts": "21:01:18",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "21:00:12",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:59:07",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:58:01",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:56:56",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:55:50",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:54:45",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:53:39",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:52:34",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:51:29",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:50:23",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:49:18",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:48:12",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:47:07",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:46:01",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:44:56",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:43:50",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:42:45",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:41:39",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:40:34",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:39:29",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:38:23",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:37:18",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:36:12",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:35:07",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:34:01",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:32:56",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:31:50",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:30:45",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:29:39",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:28:34",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:27:29",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:26:23",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:25:18",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:24:12",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:23:07",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:22:01",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:20:56",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:19:50",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:18:45",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    },
+    {
+      "ts": "20:17:39",
+      "event": "engine_world.platform_write",
+      "category": "platform_telemetry",
+      "actor": "platform",
+      "entity": "",
+      "source": "platform"
+    }
+  ]
+}

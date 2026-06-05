@@ -1,0 +1,302 @@
+// ===== Mine vakter — employee shift schedule (private route "mine-vakter") =====
+// The employee's own roster: next shift, what needs their answer (swap requests +
+// open shifts = the "2" badge), a navigable week list, the shift marketplace, and
+// self-service tools (be om fri / bytt vakt / tilgjengelighet). Week nav animates;
+// every control routes, opens the drawer, or fires a toast.
+(function () {
+  const { useState, useEffect } = React;
+  const Ic = window.Ic;
+
+  const DEPT = { sal: "#00ab93", kjokken: "#ee560c", bar: "#864ad2", event: "#c18200" };
+
+  // 3 weeks of the employee's own shifts (Bistro Nord · Maria), coherent with the app's "now" = fre 30. mai
+  const WEEKS = [
+    {
+      id: 21, label: "Forrige uke", range: "19.–25. mai", hours: 30.0, target: 37.5, shifts: 4,
+      days: [
+        { dw: "Man", dn: 19, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "done" },
+        { dw: "Tir", dn: 20, off: true },
+        { dw: "Ons", dn: 21, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "done" },
+        { dw: "Tor", dn: 22, shift: { s: "16:00", e: "23:00", role: "Skiftleder", dep: "sal", loc: "Sal · kveld" }, status: "done" },
+        { dw: "Fre", dn: 23, off: true },
+        { dw: "Lør", dn: 24, shift: { s: "12:00", e: "20:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "done" },
+        { dw: "Søn", dn: 25, off: true },
+      ],
+    },
+    {
+      id: 22, label: "Denne uka", range: "26. mai–1. jun", hours: 36.0, target: 37.5, shifts: 4, current: true,
+      days: [
+        { dw: "Man", dn: 26, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "done" },
+        { dw: "Tir", dn: 27, off: true },
+        { dw: "Ons", dn: 28, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "done" },
+        { dw: "Tor", dn: 29, shift: { s: "16:00", e: "23:00", role: "Skiftleder", dep: "sal", loc: "Sal · kveld" }, status: "done" },
+        { dw: "Fre", dn: 30, today: true, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal", note: "Stort selskap 30 pers kl. 19 — travel ettermiddag" }, status: "now" },
+        { dw: "Lør", dn: 31, off: true, openSwap: true },
+        { dw: "Søn", dn: 1, shift: { s: "10:00", e: "18:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "plan" },
+      ],
+    },
+    {
+      id: 23, label: "Neste uke", range: "2.–8. jun", hours: 30.5, target: 37.5, shifts: 4,
+      days: [
+        { dw: "Man", dn: 2, shift: { s: "09:00", e: "17:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "plan" },
+        { dw: "Tir", dn: 3, off: true },
+        { dw: "Ons", dn: 4, shift: { s: "11:00", e: "19:00", role: "Driftsleder", dep: "sal", loc: "Sal", note: "Byttet med Selma L." }, status: "swap" },
+        { dw: "Tor", dn: 5, off: true },
+        { dw: "Fre", dn: 6, shift: { s: "12:00", e: "20:00", role: "Driftsleder", dep: "sal", loc: "Sal" }, status: "plan" },
+        { dw: "Lør", dn: 7, shift: { s: "12:00", e: "21:00", role: "Skiftleder", dep: "sal", loc: "Sal · kveld" }, status: "plan" },
+        { dw: "Søn", dn: 8, off: true },
+      ],
+    },
+  ];
+
+  // Marketplace — open shifts the employee could pick up
+  const OPEN_SHIFTS = [
+    { id: "o1", title: "Bar · kveld", date: "Fre 30. mai", time: "17:00–23:00", dep: "bar" },
+    { id: "o2", title: "Kjøkken · lunsj", date: "Søn 1. jun", time: "10:00–15:00", dep: "kjokken" },
+    { id: "o3", title: "Sal · kveld", date: "Ons 4. jun", time: "16:00–23:00", dep: "sal" },
+  ];
+
+  const STATUS_LBL = { done: "Fullført", now: "I dag", plan: "Planlagt", swap: "Byttet" };
+
+  function MineVakterPage({ setRoute }) {
+    const toast = window.useToast();
+    const [wi, setWi] = useState(1); // start on "Denne uka"
+    const week = WEEKS[wi];
+    const [drawer, setDrawer] = useState(null); // a day object
+    const [swapDone, setSwapDone] = useState(false);
+    const [claimed, setClaimed] = useState(false);
+
+    useEffect(() => {
+      if (window.SmartoutContext && window.SmartoutContext.set) {
+        window.SmartoutContext.set({ route: "mine-vakter", view: week.label, role: "ansatt", subject: "Dine vakter" });
+      }
+      return () => { if (window.SmartoutContext && window.SmartoutContext.set) window.SmartoutContext.set({ route: null }); };
+    }, [wi]);
+
+    // next/now shift = today's shift in the current week
+    const nextDay = WEEKS[1].days.find(d => d.today && d.shift);
+    const pct = Math.min(1, week.hours / week.target);
+    const pendingCount = (swapDone ? 0 : 1) + (claimed ? 0 : 1);
+
+    return (
+      <main className="sk-main">
+        <div className="sk-wrap">
+          {/* header */}
+          <div className="mv-head">
+            <div>
+              <div className="sk-eyebrow">Min side · Vaktplan</div>
+              <h1 className="mv-h1">Mine vakter</h1>
+            </div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div className="mv-weeknav">
+                <button className="mv-wbtn" onClick={() => setWi(i => Math.max(0, i - 1))} disabled={wi === 0} style={{ opacity: wi === 0 ? 0.4 : 1 }}><Ic n="chevLeft" s={18} /></button>
+                <div className="mv-wlabel">{week.label}<span className="wk">UKE {week.id} · {week.range}</span></div>
+                <button className="mv-wbtn" onClick={() => setWi(i => Math.min(WEEKS.length - 1, i + 1))} disabled={wi === WEEKS.length - 1} style={{ opacity: wi === WEEKS.length - 1 ? 0.4 : 1 }}><Ic n="chevRight" s={18} /></button>
+              </div>
+              {wi !== 1 && <button className="mv-today-btn" onClick={() => setWi(1)}>I dag</button>}
+            </div>
+          </div>
+
+          {/* hours summary */}
+          <div className="mv-summary">
+            <div className="mv-sum">
+              <div className="mv-sum-l">Timer {week.label.toLowerCase()}</div>
+              <div className="mv-sum-v">{week.hours.toFixed(1).replace(".", ",")}<span className="u"> / {week.target.toString().replace(".", ",")}</span></div>
+              <div className="bar"><span style={{ width: `${pct * 100}%` }} /></div>
+            </div>
+            <div className="mv-sum"><div className="mv-sum-l">Vakter</div><div className="mv-sum-v">{week.shifts}</div><div className="mv-sum-s">denne perioden</div></div>
+            <div className="mv-sum"><div className="mv-sum-l">Timebank</div><div className="mv-sum-v" style={{ color: "var(--orange)" }}>+4,5<span className="u">t</span></div><div className="mv-sum-s">plusstimer</div></div>
+            <div className="mv-sum"><div className="mv-sum-l">Krever svar</div><div className="mv-sum-v" style={{ color: pendingCount ? "var(--warning)" : "var(--success)" }}>{pendingCount}</div><div className="mv-sum-s">{pendingCount ? "bytter & ledige" : "alt besvart"}</div></div>
+          </div>
+
+          <div className="so-grid-2">
+            {/* LEFT */}
+            <div className="so-stack">
+              {/* next shift */}
+              <div className="mv-next">
+                <div className="mv-next-top">
+                  <span className="mv-next-tag">Neste vakt</span>
+                  <span className="mv-next-live"><span className="d" /> Starter om 46 min</span>
+                </div>
+                <div className="mv-next-day">I dag · fredag 30. mai</div>
+                <div className="mv-next-time">{nextDay.shift.s}<span className="sep"> – {nextDay.shift.e}</span></div>
+                <div className="mv-next-meta">
+                  <span className="sub"><Ic n="user" s={13} c="rgba(255,255,255,0.8)" /> {nextDay.shift.role}</span>
+                  <span className="mv-next-dot" />
+                  <span className="sub"><Ic n="mappin" s={13} c="rgba(255,255,255,0.8)" /> {nextDay.shift.loc}</span>
+                </div>
+                <div className="mv-next-actions">
+                  <button className="mv-nbtn solid" onClick={() => toast("Stemplet inn 08:14", { undo: () => {} })}><Ic n="clock" s={15} /> Stemple inn</button>
+                  <button className="mv-nbtn" onClick={() => setDrawer(nextDay)}><Ic n="eye" s={15} /> Detaljer</button>
+                  <button className="mv-nbtn" onClick={() => toast("Bytteforespørsel åpnet")}><Ic n="swap" s={15} /> Bytt</button>
+                </div>
+              </div>
+
+              {/* needs your answer */}
+              <div className="so-panel">
+                <div className="so-panel-head">
+                  <span className="t"><span className="ico"><Ic n="bell" s={15} /></span>Krever svar</span>
+                  <span className={`cnt ${pendingCount ? "crit" : ""}`} style={pendingCount ? { color: "var(--warning)", background: "rgba(193,130,0,0.12)" } : {}}>{pendingCount}</span>
+                </div>
+                <div>
+                  {/* swap request */}
+                  <div className="mv-act">
+                    <span className="mv-act-ic swap"><Ic n="swap" s={18} /></span>
+                    <div className="mv-act-body">
+                      <div className="mv-act-title">Selma L. vil bytte vakt med deg</div>
+                      <div className="mv-act-sub">Hun tar din søndagsvakt <b>1/6 · 10–18</b>, du tar hennes <b>lør 31/5 · 16–23</b>. Botsson: byttet holder deg innenfor 37,5 t.</div>
+                      {!swapDone ? (
+                        <div className="mv-act-btns">
+                          <button className="mv-abtn primary" onClick={() => { setSwapDone(true); toast("Bytte godtatt · vaktplan oppdatert", { undo: () => setSwapDone(false) }); }}><Ic n="check" s={14} /> Godta bytte</button>
+                          <button className="mv-abtn ghost" onClick={() => toast("Bytte avslått · Selma får beskjed")}>Avslå</button>
+                          <button className="mv-abtn ghost" onClick={() => toast("Sendt til leder for avklaring")}>Spør leder</button>
+                        </div>
+                      ) : (
+                        <div className="mv-act-done"><Ic n="check" s={15} /> Du godtok byttet</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* open shift */}
+                  <div className="mv-act">
+                    <span className="mv-act-ic open"><Ic n="ticket" s={18} /></span>
+                    <div className="mv-act-body">
+                      <div className="mv-act-title">Ledig vakt: Bar · kveld i dag</div>
+                      <div className="mv-act-sub"><b>Fre 30/5 · 17–23</b> mangler bartender. Du er kvalifisert — meld interesse så vurderer leder.</div>
+                      {!claimed ? (
+                        <div className="mv-act-btns">
+                          <button className="mv-abtn primary" onClick={() => { setClaimed(true); toast("Interesse meldt · leder varslet", { undo: () => setClaimed(false) }); }}><Ic n="check" s={14} /> Meld interesse</button>
+                          <button className="mv-abtn ghost" onClick={() => toast("Skjult fra din liste")}>Ikke aktuelt</button>
+                        </div>
+                      ) : (
+                        <div className="mv-act-done"><Ic n="check" s={15} /> Interesse meldt — venter på leder</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* week list */}
+              <div className="so-panel">
+                <div className="so-panel-head">
+                  <span className="t"><span className="ico"><Ic n="calendar" s={15} /></span>{week.label} · uke {week.id}</span>
+                  <span className="spacer" />
+                  <span className="so-eyebrow-lbl">{week.range}</span>
+                </div>
+                <div className="mv-week" key={week.id}>
+                  {week.days.map((d, i) => (
+                    <div key={i} className={`mv-day ${d.today ? "today" : ""} ${d.off ? "off" : ""}`}>
+                      <div className="mv-date"><div className="dw">{d.dw}</div><div className="dn">{d.dn}</div></div>
+                      {d.shift ? (
+                        <div className="mv-shift-card" style={{ "--dept": DEPT[d.shift.dep] }} onClick={() => setDrawer(d)}>
+                          <span className="tm">{d.shift.s}–{d.shift.e}</span>
+                          <span className="rl"><b>{d.shift.role}</b> · {d.shift.loc}</span>
+                        </div>
+                      ) : d.openSwap ? (
+                        <div className="mv-off-lbl">Fri — Selma vil bytte hit</div>
+                      ) : (
+                        <div className="mv-off-lbl">Fri</div>
+                      )}
+                      {d.shift && <span className={`mv-day-status ${d.status}`}>{STATUS_LBL[d.status]}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT */}
+            <div className="so-stack">
+              {/* self-service tools */}
+              <div className="mv-tools">
+                <button className="mv-tool" onClick={() => toast("Søknad om fri åpnet")}>
+                  <span className="mv-tool-ic"><Ic n="umbrella" s={18} /></span>
+                  <span className="mv-tool-lbl">Be om fri</span>
+                  <span className="mv-tool-sub">Ferie / avspasering</span>
+                </button>
+                <button className="mv-tool" onClick={() => toast("Bytteforespørsel åpnet")}>
+                  <span className="mv-tool-ic"><Ic n="swap" s={18} /></span>
+                  <span className="mv-tool-lbl">Bytt vakt</span>
+                  <span className="mv-tool-sub">Foreslå et bytte</span>
+                </button>
+                <button className="mv-tool" onClick={() => toast("Tilgjengelighet åpnet")}>
+                  <span className="mv-tool-ic"><Ic n="clock" s={18} /></span>
+                  <span className="mv-tool-lbl">Tilgjengelig</span>
+                  <span className="mv-tool-sub">Når kan du jobbe</span>
+                </button>
+              </div>
+
+              {/* marketplace */}
+              <div className="so-panel">
+                <div className="so-panel-head"><span className="t"><span className="ico"><Ic n="ticket" s={15} /></span>Ledige vakter</span><span className="cnt">{OPEN_SHIFTS.length}</span></div>
+                <div>
+                  {OPEN_SHIFTS.map(o => (
+                    <div key={o.id} className="mv-open">
+                      <span className="mv-open-ic" style={{ background: `color-mix(in oklab, ${DEPT[o.dep]} 14%, transparent)`, color: DEPT[o.dep] }}><Ic n="utensils" s={15} /></span>
+                      <div className="mv-open-body">
+                        <div className="mv-open-title">{o.title}</div>
+                        <div className="mv-open-meta">{o.date} · {o.time}</div>
+                      </div>
+                      <button className="mv-abtn" onClick={() => toast(`Interesse meldt: ${o.title}`, { undo: () => {} })}><Ic n="plus" s={13} /> Meld</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* pay link */}
+              <div className="so-panel">
+                <div className="so-panel-head"><span className="t"><span className="ico"><Ic n="wallet" s={15} /></span>Lønn for disse vaktene</span></div>
+                <div style={{ padding: "16px 18px" }}>
+                  <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, marginBottom: 12 }}>Kveldsvakta tor 29/5 ga <b style={{ color: "var(--fg)" }}>kveldstillegg</b>. Se hvordan vaktene bygger lønna di.</div>
+                  <button className="mv-abtn" onClick={() => setRoute("min-lonn")} style={{ width: "100%", justifyContent: "center" }}><Ic n="wallet" s={14} /> Åpne Min lønn <Ic n="arrowRight" s={13} /></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* shift detail drawer */}
+        {drawer && drawer.shift && (
+          <div className="mv-scrim" onClick={() => setDrawer(null)}>
+            <div className="mv-drawer" onClick={e => e.stopPropagation()}>
+              <div className="mv-dhead">
+                <div className="mv-dhead-top">
+                  <button className="mv-x" onClick={() => setDrawer(null)}><Ic n="x" s={18} /></button>
+                  <span style={{ flex: 1 }} />
+                  <span className={`mv-day-status ${drawer.status}`}>{STATUS_LBL[drawer.status]}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{drawer.dw} {drawer.dn}. {week.id === 23 ? "juni" : "mai"}</div>
+                <div className="mv-dtime">{drawer.shift.s} – {drawer.shift.e}</div>
+                <div className="mv-drole">{drawer.shift.role} · {drawer.shift.loc} · Bistro Nord</div>
+              </div>
+              <div className="mv-dbody">
+                {drawer.shift.note && (
+                  <div className="lo-infonote" style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--orange-soft)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px" }}>
+                    <Ic n="info" s={16} c="var(--orange-dark)" />
+                    <div style={{ fontSize: 12.5, lineHeight: 1.45 }}>{drawer.shift.note}</div>
+                  </div>
+                )}
+                <div className="mv-dfield"><span className="ic"><Ic n="clock" s={15} /></span><div><div className="l">Varighet</div><div className="v">8 timer (inkl. 30 min pause)</div></div></div>
+                <div className="mv-dfield"><span className="ic"><Ic n="mappin" s={15} /></span><div><div className="l">Sted</div><div className="v">Bistro Nord · {drawer.shift.loc}</div></div></div>
+                <div className="mv-dfield"><span className="ic"><Ic n="user" s={15} /></span><div><div className="l">Rolle</div><div className="v">{drawer.shift.role}</div></div></div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 10 }}>På vakt med deg</div>
+                  <div className="mv-dco">
+                    {[["JH", "Jonas H.", "Kokk", "#3B82F6"], ["SL", "Selma L.", "Servitør", "#10B981"], ["IB", "Ida B.", "Renhold", "#EAB308"]].map(([i, n, r, c]) => (
+                      <div key={i} className="mv-dco-row"><span className="so-av" style={{ width: 28, height: 28, background: c }}>{i}</span><span style={{ fontWeight: 600 }}>{n}</span><span style={{ color: "var(--muted)", fontSize: 12 }}>{r}</span></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="mv-dfoot">
+                <button className="mv-abtn primary" onClick={() => { toast("Bytteforespørsel sendt"); setDrawer(null); }}><Ic n="swap" s={14} /> Be om bytte</button>
+                <button className="mv-abtn" onClick={() => { toast("Lagt til i kalenderen"); }}><Ic n="calendar" s={14} /> Til kalender</button>
+                <button className="mv-abtn ghost" onClick={() => { if (window.SmartoutChat) window.SmartoutChat.open(); setDrawer(null); }}><Ic n="message" s={14} /> Meld fra</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    );
+  }
+
+  window.SO_PAGES = Object.assign(window.SO_PAGES || {}, { "mine-vakter": MineVakterPage });
+})();

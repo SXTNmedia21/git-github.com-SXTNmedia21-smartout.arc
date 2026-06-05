@@ -1,0 +1,72 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  TELEMETRY-MAP · LIVE LOG                                                    │
+│  heartbeat ● 15:11:55  0 live / 0 working / 0 stalled / 8 done      ⚠3│
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  14:20:35  ▶  LOGON   map-vaktplan     vaktplan      telemetry-map subagent started
+  14:21:35  ·  WORK    map-vaktplan     vaktplan      scanning design jsx + mock data
+  14:23:35  ·  WORK    map-vaktplan     vaktplan      grepping registry.ts + resolving hooks
+  14:24:55  ✎  SEND    map-vaktplan     vaktplan      TELEMETRY-MAP.md (153 elements, 91 mutations)
+  14:25:10  ✎  SEND    map-vaktplan     vaktplan      PLAN.md (dedicated sortie plan)
+  14:25:25  ✎  SEND    map-vaktplan     vaktplan      control.json (mechanical gate)
+  14:25:35  ◆  GATE    map-vaktplan     vaktplan      FAIL · 32 events missing, 6 hooks missing
+  14:25:40  ◀  LOGOFF  map-vaktplan     vaktplan      returned ExecutionResult
+  14:21:15  ▶  LOGON   map-ansatte      ansatte       telemetry-map subagent started
+  14:22:15  ·  WORK    map-ansatte      ansatte       scanning design jsx + mock data
+  14:24:15  ·  WORK    map-ansatte      ansatte       grepping registry.ts + resolving hooks
+  14:25:35  ✎  SEND    map-ansatte      ansatte       TELEMETRY-MAP.md (164 elements, 34 mutations)
+  14:25:50  ✎  SEND    map-ansatte      ansatte       PLAN.md (dedicated sortie plan)
+  14:26:05  ✎  SEND    map-ansatte      ansatte       control.json (mechanical gate)
+  14:26:15  ◆  GATE    map-ansatte      ansatte       FAIL · 20 events missing, 24 hooks missing
+  14:26:20  ◀  LOGOFF  map-ansatte      ansatte       returned ExecutionResult
+  14:21:55  ▶  LOGON   map-min-dag      min-dag       telemetry-map subagent started
+  14:22:55  ·  WORK    map-min-dag      min-dag       scanning design jsx + mock data
+  14:24:55  ·  WORK    map-min-dag      min-dag       grepping registry.ts + resolving hooks
+  14:26:15  ✎  SEND    map-min-dag      min-dag       TELEMETRY-MAP.md (21 elements, 5 mutations)
+  14:26:30  ✎  SEND    map-min-dag      min-dag       PLAN.md (dedicated sortie plan)
+  14:26:45  ✎  SEND    map-min-dag      min-dag       control.json (mechanical gate)
+  14:26:55  ◆  GATE    map-min-dag      min-dag       FAIL · 7 events missing, 2 hooks missing
+  14:27:00  ◀  LOGOFF  map-min-dag      min-dag       returned ExecutionResult
+  14:22:35  ▶  LOGON   map-oversikt     oversikt      telemetry-map subagent started
+  14:23:35  ·  WORK    map-oversikt     oversikt      scanning design jsx + mock data
+  14:25:35  ·  WORK    map-oversikt     oversikt      grepping registry.ts + resolving hooks
+  14:26:55  ✎  SEND    map-oversikt     oversikt      TELEMETRY-MAP.md (19 elements, 5 mutations)
+  14:27:10  ✎  SEND    map-oversikt     oversikt      PLAN.md (dedicated sortie plan)
+  14:27:25  ✎  SEND    map-oversikt     oversikt      control.json (mechanical gate)
+  14:27:35  ◆  GATE    map-oversikt     oversikt      FAIL · 11 events missing, 3 hooks missing
+  14:27:40  ◀  LOGOFF  map-oversikt     oversikt      returned ExecutionResult
+  14:23:15  ▶  LOGON   map-planlegging  planlegging   telemetry-map subagent started
+  14:24:15  ·  WORK    map-planlegging  planlegging   scanning design jsx + mock data
+  14:26:15  ·  WORK    map-planlegging  planlegging   grepping registry.ts + resolving hooks
+  14:27:35  ✎  SEND    map-planlegging  planlegging   TELEMETRY-MAP.md (43 elements, 14 mutations)
+  14:27:50  ✎  SEND    map-planlegging  planlegging   PLAN.md (dedicated sortie plan)
+  14:28:05  ✎  SEND    map-planlegging  planlegging   control.json (mechanical gate)
+  14:28:15  ◆  GATE    map-planlegging  planlegging   FAIL · 25 events missing, 4 hooks missing
+  14:28:20  ◀  LOGOFF  map-planlegging  planlegging   returned ExecutionResult
+  14:23:55  ▶  LOGON   map-lonn         lonn          telemetry-map subagent started
+  14:24:55  ·  WORK    map-lonn         lonn          scanning design jsx + mock data
+  14:26:55  ·  WORK    map-lonn         lonn          grepping registry.ts + resolving hooks
+  14:28:15  ✎  SEND    map-lonn         lonn          TELEMETRY-MAP.md (71 elements, 13 mutations)
+  14:28:30  ✎  SEND    map-lonn         lonn          PLAN.md (dedicated sortie plan)
+  14:28:45  ✎  SEND    map-lonn         lonn          control.json (mechanical gate)
+  14:28:55  ◆  GATE    map-lonn         lonn          FAIL · 3 events missing, 5 hooks missing
+  14:29:00  ◀  LOGOFF  map-lonn         lonn          returned ExecutionResult
+  14:24:35  ▶  LOGON   map-kommunikasjon kommunikasjon telemetry-map subagent started
+  14:25:35  ·  WORK    map-kommunikasjon kommunikasjon scanning design jsx + mock data
+  14:27:35  ·  WORK    map-kommunikasjon kommunikasjon grepping registry.ts + resolving hooks
+  14:28:55  ✎  SEND    map-kommunikasjon kommunikasjon TELEMETRY-MAP.md (46 elements, 22 mutations)
+  14:29:10  ✎  SEND    map-kommunikasjon kommunikasjon PLAN.md (dedicated sortie plan)
+  14:29:25  ✎  SEND    map-kommunikasjon kommunikasjon control.json (mechanical gate)
+  14:29:35  ◆  GATE    map-kommunikasjon kommunikasjon FAIL · 14 events missing, 22 hooks missing
+  14:29:40  ◀  LOGOFF  map-kommunikasjon kommunikasjon returned ExecutionResult
+  15:06:19  ▶  LOGON   map-avstemming   avstemming    telemetry-map subagent started
+  15:06:23  ·  WORK    map-avstemming   avstemming    scanning design jsx + mock
+  15:06:50  ·  WORK    map-avstemming   avstemming    grepping registry.ts + resolving hooks
+  15:08:29  ·  WORK    map-avstemming   avstemming    compiling element inventory and writing artifacts
+  15:11:20  ✎  SEND    map-avstemming   avstemming    TELEMETRY-MAP.md: 97 elements, 40 mutations, 19 events
+  15:11:20  ✎  SEND    map-avstemming   avstemming    PLAN.md: 14 ordered implementation items, DoD, gate battery, F0.4 seed blocker
+  15:11:20  ✎  SEND    map-avstemming   avstemming    control.json: gate=FAIL, 3 blockers, 11 events missing, 11 hooks missing
+  15:11:20  ◆  GATE    map-avstemming   avstemming    FAIL · 11 events missing, 11 hooks missing, F0.4 seed-blocker critical
+  15:11:24  ◀  LOGOFF  map-avstemming   avstemming    3 artifacts written, gate FAIL — 11 events + 11 hooks missing + F0.4 seed blocker
+
+������������������������������������������������������������������������������

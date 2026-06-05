@@ -1,0 +1,151 @@
+{
+  "domain": "avstemming",
+  "app_subdir": "apps/web/src/app/dashboard/reconciliation",
+  "generated_at": "2026-05-31T23:52:03Z",
+  "aggregate": {
+    "required": 20,
+    "defined_in_registry": 19,
+    "emitted_in_ui": 5,
+    "not_emitted_count": 15,
+    "emit_coverage_pct": 25.0
+  },
+  "not_emitted": [
+    "handoff escalated",
+    "handoff rejected",
+    "handoff reminder_sent",
+    "handoff resolved",
+    "handoff submitted",
+    "reconciliation admin_override",
+    "reconciliation bulk_approved",
+    "reconciliation exported",
+    "reconciliation occupational_closed",
+    "reconciliation pending_signoff",
+    "reconciliation policy_updated",
+    "reconciliation revenue_adjusted",
+    "reconciliation season_closed",
+    "reconciliation shift_proposal_sent",
+    "shift_approval.approved_hours"
+  ],
+  "events": [
+    {
+      "key": "deviation resolved",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:331"
+    },
+    {
+      "key": "handoff escalated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "handoff rejected",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "handoff reminder_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "handoff resolved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "handoff submitted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation admin_action",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/reconciliation/_hooks/useReconciliation.ts:167"
+    },
+    {
+      "key": "reconciliation admin_override",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation bulk_approved",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation exported",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation locked",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/reconciliation/_components/DayApproval.tsx:58"
+    },
+    {
+      "key": "reconciliation occupational_closed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation pending_signoff",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation policy_updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation revenue_adjusted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation season_closed",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation shift_proposal_sent",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "reconciliation step_completed",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/reconciliation/_actions/save-wizard-step-action.ts:275"
+    },
+    {
+      "key": "reconciliation submitted",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/reconciliation/_actions/submit-reconciliation-action.ts:170"
+    },
+    {
+      "key": "shift_approval.approved_hours",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}

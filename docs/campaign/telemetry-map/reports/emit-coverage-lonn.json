@@ -1,0 +1,127 @@
+{
+  "domain": "lonn",
+  "app_subdir": "apps/web/src/app/dashboard/payroll",
+  "generated_at": "2026-06-05T06:36:56Z",
+  "aggregate": {
+    "required": 16,
+    "defined_in_registry": 9,
+    "emitted_in_ui": 1,
+    "not_emitted_count": 15,
+    "emit_coverage_pct": 6.2
+  },
+  "not_emitted": [
+    "domain.verb_noun",
+    "lonn.jsx",
+    "payroll.calculation",
+    "payroll.csv_exported",
+    "payroll.deviation",
+    "payroll.lonnsgrunnlag_url_granted",
+    "payroll.manual_supplement_added",
+    "payroll.period",
+    "payroll.period_locked",
+    "payroll.supplement_rule",
+    "payroll.supplement_rule_test_run",
+    "payroll.supplement_rule_toggled",
+    "payroll_settings updated",
+    "supplement_rule created",
+    "supplement_rule updated"
+  ],
+  "events": [
+    {
+      "key": "domain.verb_noun",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "lonn.jsx",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.calculation",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.csv_exported",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.deviation",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.deviation_acknowledged",
+      "defined_in_registry": true,
+      "emitted_in_ui": true,
+      "emit_site": "apps/web/src/app/dashboard/payroll/[periodId]/_hooks/use-acknowledge-deviation.ts:78"
+    },
+    {
+      "key": "payroll.lonnsgrunnlag_url_granted",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.manual_supplement_added",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.period",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.period_locked",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.supplement_rule",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.supplement_rule_test_run",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll.supplement_rule_toggled",
+      "defined_in_registry": false,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "payroll_settings updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "supplement_rule created",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    },
+    {
+      "key": "supplement_rule updated",
+      "defined_in_registry": true,
+      "emitted_in_ui": false,
+      "emit_site": null
+    }
+  ]
+}
