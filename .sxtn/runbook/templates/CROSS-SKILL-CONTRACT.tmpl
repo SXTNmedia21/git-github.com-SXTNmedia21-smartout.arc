@@ -1,0 +1,161 @@
+---
+title: Cross-Skill Contract — init-council ↔ run-council
+status: {{STATUS}}
+created_at: {{CREATED_AT}}
+updated_at: {{UPDATED_AT}}
+contract_version: {{CONTRACT_VERSION}}
+authors: [{{AUTHORS}}]
+---
+
+# Cross-Skill Contract — init-council ↔ run-council
+
+> Canonical WRITE↔READ contract for `council.yaml`. Any field written by `init-council` and read by
+> `run-council` MUST be registered here. Purpose: prevent writer/reader drift when new fields are added.
+>
+> Writer: `skills/council/init-council` — produces `.sxtn/council.yaml`
+> Reader: `skills/council/run-council` — consumes `.sxtn/council.yaml` at dispatch time
+> Schema authority: `schemas/council.schema.json`
+
+---
+
+## How to use this document
+
+1. **Adding a field to init-council output?** Add a row in the table below before committing.
+2. **Adding a read in run-council?** Verify the row already exists; if not, add it.
+3. **Removing a field?** Mark `status` → `deprecated`, set `removed_at`, open an ADR.
+4. Fill `{{PLACEHOLDER}}` values at fill-time — do NOT improvise outside the shape defined here.
+
+---
+
+## Contract table
+
+| `council.yaml` key path | Schema type | Writer | Reader | Shape / values | Required by schema | Status | Notes |
+|---|---|---|---|---|---|---|---|
+| `plugin_version` | `string` (semver) | init-council | run-council | `"0.6"` (current); pattern `^[0-9]+\.[0-9]+(\.[0-9]+)?$` | YES | active | Checked at load; run-council rejects incompatible versions |
+| `council_version` | `integer ≥ 1` | init-council; incremented by retro-council | run-council | monotonically increasing; starts at `1` | YES | active | run-council logs version on each dispatch |
+| `base_members` | `string[]` (minItems 4) | init-council | run-council | 8 locked values: `security-guard`, `framework-guard`, `code-reviewer`, `safety-guard`, `migration-guard`, `deploy-guard`, `schema-guard`, `adr-guard` | YES | active | run-council expands `all-base` token to this list |
+| `conditional_members[].name` | `string` | init-council | run-council | `cascade-developer` \| `mobile-ux` \| `payroll-engine-expert` | YES (in item) | active | Kebab-case identifier |
+| `conditional_members[].enabled` | `boolean` | init-council | run-council | `true` if scan/questionnaire matched enabling condition; `false` otherwise | YES (in item) | active | run-council skips disabled members entirely |
+| `conditional_members[].triggers` | `string[]` (minItems 1) | init-council | run-council | Per member: `cascade-developer`→`[schedule,d6,cascade,planning]`; `mobile-ux`→`[mobile,react-native,parity]`; `payroll-engine-expert`→`[payroll,tariff,settlement,contract]` | YES (in item) | active | run-council matches topic keyword against this list |
+| `conditional_members[].model` | `"haiku"\|"sonnet"\|"opus"` | init-council (upgrade-suggest) | run-council | Optional; defaults applied by run-council if absent | NO | active | Post-upgrade model tier; set by upgrade-suggest operation |
+| `conditional_members[].graduation_proposed_at` | `string` (ISO-8601) | retro-council | run-council | Timestamp of graduation proposal; absent until first proposal | NO | active | run-council surfaces in retro report when present |
+| `dispatch_rules.topic_to_members` | `object` (topic→`string[]`) | init-council | run-council | 6 required topics: `deviation`, `tier`, `inventory`, `spec`, `g6`, `import`; additional custom topics allowed | YES | active | Token `all-base` expanded at dispatch time; conditional members injected if `enabled: true` |
+| `dispatch_rules.topic_to_members.deviation` | `string[]` (minItems 1) | init-council | run-council | Base: `[code-reviewer, safety-guard, schema-guard]`; + `cascade-developer` if cascade; + `mobile-ux` if mobile | YES (required topic) | active | |
+| `dispatch_rules.topic_to_members.tier` | `string[]` (minItems 1) | init-council | run-council | Base: `[code-reviewer, adr-guard]`; + `cascade-developer` if cascade | YES (required topic) | active | |
+| `dispatch_rules.topic_to_members.inventory` | `string[]` (minItems 1) | init-council | run-council | Base: `[code-reviewer, framework-guard]`; + `cascade-developer`/`mobile-ux`/`payroll-engine-expert` if applicable | YES (required topic) | active | |
+| `dispatch_rules.topic_to_members.spec` | `string[]` (minItems 1) | init-council | run-council | Base: `[code-reviewer, adr-guard, schema-guard]`; + `payroll-engine-expert` if payroll | YES (required topic) | active | |
+| `dispatch_rules.topic_to_members.g6` | `string[]` (minItems 1) | init-council | run-council | Base: `[all-base]` (expands to all 8); + all enabled conditional members | YES (required topic) | active | `all-base` token must be expanded before run-council dispatch |
+| `dispatch_rules.topic_to_members.import` | `string[]` (minItems 1) | init-council | run-council | Base: `[all-base]`; + all enabled conditional members | YES (required topic) | active | |
+| `retro_rules.upgrade_member_model_threshold` | `integer ≥ 1` | init-council | retro-council | Default `3`; number of REJECTs before model upgrade proposed | NO | active | |
+| `retro_rules.graduate_member_threshold` | `integer ≥ 1` | init-council | retro-council | Default `5`; sorties with zero contribution before graduation proposed (conditional members only) | NO | active | |
+| `retro_rules.promote_lesson_threshold` | `integer ≥ 1` | init-council | retro-council | Default `3`; same-pattern LESSONS count before F6 promotion flagged | NO | active | |
+| `member_profiles[].name` | `string` | init-council (member-review) | run-council | Matches a name in `base_members` or `conditional_members[].name` | NO (additionalProperties) | active | One entry per active member |
+| `member_profiles[].assigned_model` | `"haiku"\|"sonnet"\|"opus"` | init-council (upgrade-suggest) | run-council | Post-upgrade model; run-council uses this at dispatch (overrides agent frontmatter default) | NO (additionalProperties) | active | Core writer↔reader contract — see ADR-{{ADR_REF}} |
+| `member_profiles[].tier` | `"base"\|"conditional"` | init-council | run-council | `"base"` for locked 8; `"conditional"` for opt-in members | NO (additionalProperties) | active | |
+| `member_profiles[].value_score` | `integer 0–100` | init-council (value-score) | retro-council | Composite score: `relevance + coverage + risk_alignment` (weighted) | NO (additionalProperties) | active | |
+| `member_profiles[].dispatch_topics` | `string[]` | init-council | run-council | Topics this member is assigned to; derived from `dispatch_rules.topic_to_members` | NO (additionalProperties) | active | |
+| `enforcement.version` | `integer` | init-council (upgrade-suggest) | run-council | Always `1` for F5; increment signals breaking enforcement shape change | NO (additionalProperties) | active | run-council rejects unknown versions |
+| `enforcement.append_instructions` | `boolean` | init-council | run-council | `true` → run-council merges `enforcement.instructions[].text` into member prompts at dispatch | NO (additionalProperties) | active | |
+| `enforcement.rules[].id` | `string` (kebab-case) | init-council | run-council | Unique rule identifier; e.g. `model-floor-safety-guard` | NO (additionalProperties) | active | run-council evaluates ALL rules on each dispatch |
+| `enforcement.rules[].when` | `object` | init-council | run-council | Key-value conditions from questionnaire + scan field names; e.g. `{ regulated_domain: true }` | NO (additionalProperties) | active | All conditions must match (AND logic) for rule to apply |
+| `enforcement.rules[].apply.model_floor` | `object` (member→model) | init-council | run-council | e.g. `{ safety-guard: sonnet }` — prevents model downgrade below floor | NO (additionalProperties) | active | |
+| `enforcement.rules[].apply.topic_add_members` | `object` (topic→`string[]`) | init-council | run-council | e.g. `{ deviation: [safety-guard] }` — injects members into topic list at runtime | NO (additionalProperties) | active | |
+| `enforcement.instructions[].id` | `string` (kebab-case) | init-council | run-council | Unique instruction identifier; e.g. `regulated-domain-priority` | NO (additionalProperties) | active | |
+| `enforcement.instructions[].when` | `object` | init-council | run-council | Same condition shape as `enforcement.rules[].when` | NO (additionalProperties) | active | |
+| `enforcement.instructions[].text` | `string` | init-council | run-council | Free-text instruction injected into member prompt when `when` matches | NO (additionalProperties) | active | |
+| `_init_metadata.project_root` | `string` | init-council | — (informational) | Absolute path to project root at init time | NO (additionalProperties) | active | Not consumed by run-council; human audit only |
+| `_init_metadata.init_at` | `string` (ISO-8601) | init-council | — (informational) | Timestamp when council.yaml was written | NO (additionalProperties) | active | |
+| `_init_metadata.scan_results` | `object` | init-council (scan) | enforcement rules | Fields: `adr_count`, `migration_count`, `surface_count`, `has_mobile`, `has_payroll`, `has_cascade` — all used in `enforcement.rules[].when` condition evaluation | NO (additionalProperties) | active | run-council reads this to evaluate `when` clauses |
+| `_init_metadata.scan_results.adr_count` | `integer ≥ 0` | init-council (scan) | run-council (enforcement eval) | Raw ADR file count from project scan | NO | active | Drives `migration-guard`/`adr-guard` model upgrades |
+| `_init_metadata.scan_results.migration_count` | `integer ≥ 0` | init-council (scan) | run-council (enforcement eval) | Raw migration file count from project scan | NO | active | `migration_count > 20` → `migration-guard` bumped to sonnet |
+| `_init_metadata.scan_results.has_mobile` | `boolean` | init-council (scan) | run-council | Detected react-native in project | NO | active | Enables `mobile-ux` if `true` |
+| `_init_metadata.scan_results.has_payroll` | `boolean` | init-council (scan) | run-council | Detected payroll/tariff/settlement tables or modules | NO | active | Enables `payroll-engine-expert` if `true` |
+| `_init_metadata.scan_results.has_cascade` | `boolean` | init-council (scan) | run-council | Detected D6/session/cascade tables or modules | NO | active | Enables `cascade-developer` if `true` |
+| `_init_metadata.questionnaire` | `object` | init-council (questionnaire) | run-council (enforcement eval) | Fields: `regulated_domain`, `team_size`, `has_cascade`, `has_mobile` | NO (additionalProperties) | active | run-council reads this to evaluate `when` clauses |
+| `_init_metadata.questionnaire.regulated_domain` | `boolean` | init-council (questionnaire) | run-council (enforcement eval) | User answered yes to regulated-domain question | NO | active | Triggers `safety-guard` model floor + dispatch injection |
+| `_init_metadata.questionnaire.team_size` | `"solo"\|"2-5"\|"6+"` | init-council (questionnaire) | run-council | Team size bracket | NO | active | May influence future retro thresholds |
+| `_init_metadata.questionnaire.has_cascade` | `boolean` | init-council (questionnaire) | run-council | User answered yes to cascade/scheduling question | NO | active | OR'd with `scan_results.has_cascade` to enable `cascade-developer` |
+| `_init_metadata.questionnaire.has_mobile` | `boolean` | init-council (questionnaire) | run-council | User answered yes to mobile question | NO | active | OR'd with `scan_results.has_mobile` to enable `mobile-ux` |
+| `init_recommendations.upgrades[].member` | `string` | init-council (upgrade-suggest) | — (audit) | Member name receiving model upgrade | NO (additionalProperties) | active | Informational; actual upgrade reflected in `member_profiles[].assigned_model` |
+| `init_recommendations.upgrades[].from` | `string` | init-council | — (audit) | Pre-upgrade model | NO | active | |
+| `init_recommendations.upgrades[].to` | `string` | init-council | — (audit) | Post-upgrade model | NO | active | |
+| `init_recommendations.upgrades[].reason` | `string` | init-council | — (audit) | Human-readable trigger condition | NO | active | |
+| `init_recommendations.dispatch_tweaks[].topic` | `string` | init-council | — (audit) | Topic name receiving member injection | NO (additionalProperties) | active | Actual injection in `dispatch_rules.topic_to_members` |
+| `init_recommendations.conditional_enable[].member` | `string` | init-council | — (audit) | Conditional member being enabled/disabled | NO (additionalProperties) | active | Actual state in `conditional_members[].enabled` |
+| {{KEY_PATH}} | {{SCHEMA_TYPE}} | {{WRITER}} | {{READER}} | {{SHAPE}} | {{REQUIRED}} | {{STATUS}} | {{NOTES}} |
+
+---
+
+## Base member reference
+
+The 8 locked base members are hard-coded in `base_members[]`. They are never removed. `run-council` uses
+this list to expand the `all-base` dispatch token.
+
+| Member | Default model | Dispatch topics (required) |
+|---|---|---|
+| `security-guard` | sonnet | `deviation`, `tier`, `inventory`, `spec`, `g6`, `import` |
+| `framework-guard` | haiku | `deviation`, `tier`, `inventory`, `spec`, `g6`, `import` |
+| `code-reviewer` | sonnet | `deviation`, `tier`, `inventory`, `spec`, `g6`, `import` |
+| `safety-guard` | sonnet | `deviation`, `tier`, `inventory`, `spec`, `g6`, `import` |
+| `migration-guard` | haiku | `g6`, `import`, `schema-lock` |
+| `deploy-guard` | haiku | `g6`, `import` |
+| `schema-guard` | haiku | `deviation`, `spec`, `g6`, `import`, `schema-lock` |
+| `adr-guard` | haiku | `tier`, `spec`, `g6`, `import`, `cross-domain`, `capability-surface` |
+
+## Required dispatch topics reference
+
+The 6 topics required by `council.schema.json → dispatch_rules.topic_to_members`:
+
+| Topic | Minimum members (pre-conditional injection) |
+|---|---|
+| `deviation` | `code-reviewer`, `safety-guard`, `schema-guard` |
+| `tier` | `code-reviewer`, `adr-guard` |
+| `inventory` | `code-reviewer`, `framework-guard` |
+| `spec` | `code-reviewer`, `adr-guard`, `schema-guard` |
+| `g6` | all 8 base members (`all-base`) |
+| `import` | all 8 base members (`all-base`) |
+
+## Conditional member reference
+
+| Member | Enabled when | Default model | Topics added to |
+|---|---|---|---|
+| `cascade-developer` | `questionnaire.has_cascade OR scan.has_cascade` | sonnet | `deviation`, `tier`, `inventory`, `g6`, `import` |
+| `mobile-ux` | `questionnaire.has_mobile OR scan.has_mobile` | haiku | `deviation`, `inventory`, `g6`, `import` |
+| `payroll-engine-expert` | `scan.has_payroll` | sonnet | `inventory`, `spec`, `g6`, `import` |
+
+---
+
+## Enforcement contract
+
+`enforcement` is written by `init-council` (upgrade-suggest operation) and consumed by `run-council` before
+each dispatch. The evaluation order is:
+
+1. `run-council` loads `council.yaml`.
+2. Merges `_init_metadata.scan_results` + `_init_metadata.questionnaire` into a condition context.
+3. Evaluates each `enforcement.rules[].when` against the context (AND logic).
+4. For matching rules, applies `model_floor` (prevents model downgrade) and `topic_add_members` (injects members).
+5. If `append_instructions: true`, injects matching `enforcement.instructions[].text` into member system prompts.
+
+Breaking change: incrementing `enforcement.version` requires a corresponding reader update in `run-council`
+and an ADR registration.
+
+---
+
+## Drift prevention checklist
+
+Before merging any PR that touches `init-council` output shape or `run-council` dispatch logic:
+
+- [ ] All new output fields added to the contract table above
+- [ ] `updated_at` frontmatter bumped
+- [ ] `contract_version` incremented if any field changes reader semantics
+- [ ] Schema updated in `schemas/council.schema.json` if field must be validated
+- [ ] ADR registered in `docs/decisions/0000-decision-log.md` if shape is breaking
+
+---
+
+## Changelog
+
+| Date | Contract version | Change | Author |
+|---|---|---|---|
+| {{CREATED_AT}} | 1 | Initial contract — pre-filled from F5 init-council + run-council SKILL.md and council.schema.json | {{AUTHORS}} |
+| {{DATE}} | {{VERSION}} | {{CHANGE_DESCRIPTION}} | {{AUTHOR}} |

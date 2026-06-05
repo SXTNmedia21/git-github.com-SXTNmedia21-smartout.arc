@@ -1,0 +1,38 @@
+---
+owner: "{{OWNER_ARCHETYPE}}"
+purpose: "{{PURPOSE}}"        # why THIS handoff exists — e.g. "Continue the ADR restructure left mid-flight"
+template: handoff
+template_version: 1
+status: open
+thread: "{{THREAD_SLUG}}"     # the work-thread this handoff covers (distinct from relations.thread = chat)
+sortie: "{{SORTIE_OR_NULL}}"
+scope: "{{SCOPE}}"
+created_at: "{{CREATED_AT}}"
+references: [{{REFERENCES}}]
+relations:
+  agent: "{{AGENT}}"
+  human: "{{HUMAN}}"
+  interaction: "{{INTERACTION}}"
+  source: "{{SOURCE}}"
+  thread: "{{SESSION_ID}}"
+---
+
+# HANDOFF — {{THREAD_TITLE}}
+
+## Unresolved
+<!-- 1–3 lines: what is NOT done. A handoff exists because work was left mid-flight. -->
+{{UNRESOLVED}}
+
+## Context to inject (breadcrumbs, not bloat)
+<!-- Pointers ONLY — files, ADR-ids, branches, correlation keys. The next agent READS these;
+     they are never copied in here (RELATIONSHIP-MAP: query the breadcrumbs, don't carry the trail). -->
+{{CONTEXT_POINTERS}}
+
+## Next action
+<!-- The single concrete next step. -->
+{{NEXT_ACTION}}
+
+## On resolution
+The owning agent injects the context above and does the work, then **moves this handoff OUT of
+`.sxtn/inbox/handoffs/` to the domain where its work landed** (feature dir / chronicle / relevant docs) —
+no archive; it becomes a traceable breadcrumb next to the result. The inbox holds only *pending* handoffs.

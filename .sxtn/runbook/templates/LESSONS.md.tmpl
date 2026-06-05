@@ -1,0 +1,70 @@
+---
+title: LESSONS — {{SORTIE_SLUG}}
+status: captured
+created_at: {{CREATED_AT}}
+sortie: {{SORTIE_SLUG}}
+state_at_capture: S9
+tier: {{TIER}}
+captured_by: sxtn-lesson-capture
+---
+
+# LESSONS — {{SORTIE_SLUG}}
+
+> Auto-captured at S9 close. Per SPEC § 5.4 sxtn-lesson-capture.
+> Manual review by Pontus. F4 does not auto-act on lessons.
+
+## Sortie summary
+
+- **Sortie:** {{SORTIE_SLUG}}
+- **Tier:** {{TIER}}
+- **Started:** {{CREATED_AT}}
+- **Closed:** {{CLOSED_AT}}
+- **Duration:** {{DURATION}}
+- **Plans executed:** {{PLAN_COUNT}}
+- **Gates passed:** {{GATES_PASSED}} / {{GATES_TOTAL}}
+
+---
+
+## Anomalies detected
+
+### Subagent retries
+
+{{SUBAGENT_RETRIES_TABLE}}
+
+### Council verdicts
+
+{{COUNCIL_VERDICTS_TABLE}}
+
+### Self-fix loop usage
+
+{{SELF_FIX_TABLE}}
+
+### Pontus pings
+
+{{PONTUS_PINGS_TABLE}}
+
+### Failure codes encountered
+
+{{FAILURE_CODES_TABLE}}
+
+---
+
+## Pattern signals
+
+(Flagged for cross-sortie pattern detection in F6 sxtn-promote-lesson)
+
+{{PATTERN_SIGNALS}}
+
+---
+
+## Severity score
+
+**{{SEVERITY_SCORE}}** — {{SEVERITY_LABEL}}
+
+---
+
+## Recommended actions
+
+(Manual review by Pontus — F4 does not auto-act on lessons)
+
+{{RECOMMENDATIONS}}

@@ -1,0 +1,80 @@
+{
+  "scanned_at": "2026-05-31T08:58:36Z",
+  "scan_paths": ["/home/sxtnl/.claude/skills", "/home/sxtnl/.claude/plugins"],
+  "known_skills": [
+    {
+      "name": "caveman",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/marketplaces/caveman/skills/caveman/SKILL.md",
+      "version": null,
+      "last_modified": "2026-04-24T11:08:10Z",
+      "plugin_uses_for": "Terse-mode output formatting per user invocation"
+    },
+    {
+      "name": "superpowers:using-superpowers",
+      "found": true,
+      "path": "/home/sxtnl/.claude/skills/using-superpowers/SKILL.md",
+      "version": null,
+      "last_modified": "2026-04-14T08:37:38Z",
+      "plugin_uses_for": "Follow skill-loading discipline at orchestrator boot per skill instructions"
+    },
+    {
+      "name": "superpowers:verification-before-completion",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/verification-before-completion/SKILL.md",
+      "version": null,
+      "last_modified": "2026-05-23T02:48:54Z",
+      "plugin_uses_for": "Pre-tag verification gate before v* commits and completion claims per SPEC § 25"
+    },
+    {
+      "name": "superpowers:brainstorming",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/SKILL.md",
+      "version": null,
+      "last_modified": "2026-05-23T02:48:54Z",
+      "plugin_uses_for": "Invoke at S2 in place of generic Plan agent for design-package features"
+    },
+    {
+      "name": "superpowers:writing-plans",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/writing-plans/SKILL.md",
+      "version": null,
+      "last_modified": "2026-05-23T02:48:54Z",
+      "plugin_uses_for": "Invoke at S5 plan generation in place of generic plan-writer"
+    },
+    {
+      "name": "claude-mem",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/cache/thedotmack/claude-mem/11.0.1/skills/timeline-report/SKILL.md",
+      "version": null,
+      "last_modified": "2026-04-06T14:24:49Z",
+      "plugin_uses_for": "MCP memory — session_digest at S9 close; query memory at S2 import"
+    },
+    {
+      "name": "run-council",
+      "found": true,
+      "path": "/home/sxtnl/.claude/skills/run-council/SKILL.md",
+      "version": null,
+      "last_modified": "2026-05-28T22:55:34Z",
+      "plugin_uses_for": "Invoke instead of plugin-shipped run-council (delegation per SPEC § 5.1 thin wrapper)"
+    },
+    {
+      "name": "frontend-designer",
+      "found": false,
+      "plugin_uses_for": "Use for Phase A UI work if config dispatch_table does not override"
+    },
+    {
+      "name": "domain-steward",
+      "found": true,
+      "path": "/home/sxtnl/.claude/plugins/marketplaces/sxtn-marketplace/skills/domain-steward/SKILL.md",
+      "version": "\"1.3\"",
+      "last_modified": "2026-05-31T07:00:05Z",
+      "plugin_uses_for": "Use for cross-domain ADR review instead of generic code-reviewer"
+    }
+  ],
+  "summary": {
+    "total_known": 9,
+    "found": 8,
+    "missing": 1
+  }
+}

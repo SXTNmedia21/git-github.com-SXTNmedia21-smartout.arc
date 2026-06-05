@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SXTNmedia21/sxtn-plugin/schemas/skill-registry.schema.json",
+  "title": "SXTN Skill Registry",
+  "description": "Output of bin/sxtn-discover-skills.sh — record of which optional skills are available for orchestrator adaptation.",
+  "type": "object",
+  "required": ["scanned_at", "scan_paths", "known_skills", "summary"],
+  "properties": {
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scan_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "known_skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "found", "plugin_uses_for"],
+        "properties": {
+          "name": { "type": "string" },
+          "found": { "type": "boolean" },
+          "path": { "type": "string" },
+          "version": { "type": ["string", "null"] },
+          "last_modified": { "type": "string", "format": "date-time" },
+          "plugin_uses_for": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_known", "found", "missing"],
+      "properties": {
+        "total_known": { "type": "integer", "minimum": 0 },
+        "found": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
