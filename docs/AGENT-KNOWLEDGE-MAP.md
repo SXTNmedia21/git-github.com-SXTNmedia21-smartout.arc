@@ -13,6 +13,9 @@ tags: [onboarding, roadmap, knowledge, handoff]
 > and a full definition of every available skill. All paths absolute from repo root
 > `/home/sxtnl/archon-projects/smartout.ai`.
 
+> **Freshness:** counts (ADRs, domains, modules) reflect `development` at 2026-06-06 and will drift. Always cross-check `docs/INDEX.md` for live numbers.
+> **Trust:** this map is a *finder*, not a *believer*. Code + DB schema still win every conflict (see CLAUDE.md precedence).
+
 **Precedence (CLAUDE.md law):** Code + DB schema win ALWAYS. Then CLAUDE.md → decisions/ → reference/ → domains/ → engines/modules/architecture/cross-cutting. If a doc contradicts code, code wins, patch the doc.
 
 ---
