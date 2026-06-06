@@ -27,31 +27,33 @@ note: |
 
 ## 1. Read first (in order)
 
-| # | Full path | What |
-|---|-----------|------|
-| 1 | `/home/sxtnl/archon-projects/smartout.ai/docs/ORIENTATION.md` | North Star cheat sheet (from ADR-0075). Always first. |
-| 2 | `/home/sxtnl/archon-projects/smartout.ai/CLAUDE.md` | Ground truth: conventions, traps, "What NOT To Do", data model, task ontology. |
-| 3 | `/home/sxtnl/archon-projects/smartout.ai/docs/STATE-SUMMARY.md` | Current priorities + active gaps. Lightweight. |
-| 4 | `/home/sxtnl/archon-projects/smartout.ai/docs/INDEX.md` | Master map of all docs. |
+> Paths repo-relative. Resolve from `<your-worktree-root>/`.
+
+| # | Path | What |
+|---|------|------|
+| 1 | `docs/ORIENTATION.md` | North Star cheat sheet (from ADR-0075). Always first. |
+| 2 | `CLAUDE.md` | Ground truth: conventions, traps, "What NOT To Do", data model, task ontology. |
+| 3 | `docs/STATE-SUMMARY.md` | Current priorities + active gaps. Lightweight. |
+| 4 | `docs/INDEX.md` | Master map of all docs. |
 
 ---
 
 ## 2. Gold nuggets 🏆
 
-| Full path | What | Why gold |
-|-----------|------|----------|
-| `/home/sxtnl/archon-projects/smartout.ai/docs/decisions/` | **424 ADRs**. Index: `docs/decisions/0000-decision-log.md` | The *why* behind every choice. Check before changing same area. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/domains/` | **20 domains**, 8-file spine each. Index: each `_DASHBOARD.md` | Compiled truth (ADR-0392). `mirror:` column = `verified`/`aspirational`/`mixed` — tells what to trust. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/reference/DATABASE.md` | Schema reference | public (169 tables), payroll (23), websites (13), timesheet (1). |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/reference/ROUTES.md` | All routes | Web + API surface. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/reference/PACKAGES.md` | Package exports | Monorepo package map. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/reference/ENV_VARS.md` | Env var registry | All `op://` secrets + config. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/reference/` (API_*.md, openapi.*.yaml) | Full API contracts | Data dictionary, endpoints, OpenAPI specs (public/partner/internal/v1). |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` | Cascade Core spec | Canonical: I1 + 6D + 4C + K1a/K1b. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/modules/` | 23 module docs | Business logic. Wins for business logic. |
-| `/home/sxtnl/archon-projects/smartout.ai/docs/engines/` | Event Motor packaging | Industry, niche, role-capability, environment, handbook. |
+| Path | What | Why gold |
+|------|------|----------|
+| `docs/decisions/` | **424 ADRs**. Index: `docs/decisions/0000-decision-log.md` | The *why* behind every choice. Check before changing same area. |
+| `docs/domains/` | **20 domains**, 8-file spine each. Index: each `_DASHBOARD.md` | Compiled truth (ADR-0392). `mirror:` column = `verified`/`aspirational`/`mixed` — tells what to trust. |
+| `docs/reference/DATABASE.md` | Schema reference | public (169 tables), payroll (23), websites (13), timesheet (1). |
+| `docs/reference/ROUTES.md` | All routes | Web + API surface. |
+| `docs/reference/PACKAGES.md` | Package exports | Monorepo package map. |
+| `docs/reference/ENV_VARS.md` | Env var registry | All `op://` secrets + config. |
+| `docs/reference/` (API_*.md, openapi.*.yaml) | Full API contracts | Data dictionary, endpoints, OpenAPI specs (public/partner/internal/v1). |
+| `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` | Cascade Core spec | Canonical: I1 + 6D + 4C + K1a/K1b. |
+| `docs/modules/` | 23 module docs | Business logic. Wins for business logic. |
+| `docs/engines/` | Event Motor packaging | Industry, niche, role-capability, environment, handbook. |
 
-### Domains list (`/home/sxtnl/archon-projects/smartout.ai/docs/domains/<name>/`)
+### Domains list (`docs/domains/<name>/`)
 `agent-harness` · `announcements` · `billing` · `bootstrap` · `botsson` · `communication` · `contracts` · `core-structure` · `day-session` · `lovsen` · `notifications` · `onboarding-wizard` · `payroll` · `procedure-engine` · `reports` · `scheduling` · `scrapling` · `shift-clock` · `training` · `year-wheel`
 
 ---
@@ -147,14 +149,14 @@ The SDSM (Smartout Development State Machine) drives features S0→S9. Key skill
 
 | Need | Path |
 |------|------|
-| Web dashboard | `/home/sxtnl/archon-projects/smartout.ai/apps/web/` (port 3060) |
-| Mobile | `/home/sxtnl/archon-projects/smartout.ai/apps/mobile/` |
-| Landing | `/home/sxtnl/archon-projects/smartout.ai/apps/landing/` (port 3055) |
-| AI / agents / capabilities | `/home/sxtnl/archon-projects/smartout.ai/packages/ai/` |
-| DB types (generated, never edit) | `/home/sxtnl/archon-projects/smartout.ai/packages/supabase/src/database.types.ts` |
-| Migrations | `/home/sxtnl/archon-projects/smartout.ai/supabase/migrations/` |
-| Edge Functions (31) | `/home/sxtnl/archon-projects/smartout.ai/supabase/functions/` |
-| Telemetry registry (event source of truth) | `/home/sxtnl/archon-projects/smartout.ai/packages/telemetry/src/registry.ts` |
-| Services | `/home/sxtnl/archon-projects/smartout.ai/services/` (stage-engine 5010, shift-mcp 5011, contract 5012, scrapling 8000) |
+| Web dashboard | `apps/web/` (port 3060) |
+| Mobile | `apps/mobile/` |
+| Landing | `apps/landing/` (port 3055) |
+| AI / agents / capabilities | `packages/ai/` |
+| DB types (generated, never edit) | `packages/supabase/src/database.types.ts` |
+| Migrations | `supabase/migrations/` |
+| Edge Functions (31) | `supabase/functions/` |
+| Telemetry registry (event source of truth) | `packages/telemetry/src/registry.ts` |
+| Services | `services/` (stage-engine 5010, shift-mcp 5011, contract 5012, scrapling 8000) |
 
 **Code wins. Always.**
