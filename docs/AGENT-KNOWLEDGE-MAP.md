@@ -5,6 +5,11 @@ updated: 2026-06-06
 created: 2026-06-06
 module: meta
 tags: [onboarding, roadmap, knowledge, handoff]
+repo_root: /home/sxtnl/archon-projects/smartout.ai
+assumes_worktree: authoring (paths verified in this worktree only)
+note: |
+  If you operate from a different worktree root, substitute the matching prefix.
+  All §1, §2, §5 paths are <repo_root>-relative under the hood.
 ---
 
 # Agent Knowledge Map
