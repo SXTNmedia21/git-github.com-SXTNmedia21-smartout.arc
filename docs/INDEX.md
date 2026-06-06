@@ -11,6 +11,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 ## Start Here
 
 - **[docs/ORIENTATION.md](ORIENTATION.md)** — Boot-sequence cheat sheet, "where does X live" lookup, trust hierarchy, safety nets. The North Star document for any agent or human starting a session. Added per ADR-0075.
+- **[docs/AGENT-KNOWLEDGE-MAP.md](AGENT-KNOWLEDGE-MAP.md)** — One-file roadmap for an incoming agent. Where the knowledge lives, what's gold, what to skip, which skills to load.
 - **[docs/architecture/BOTSSON-SYSTEM-MAP.md](architecture/BOTSSON-SYSTEM-MAP.md)** — End-to-end pipe diagram for Botsson Arena + Stage Engine. Color-coded (🟢/🟡/🔴) component status. Authoritative for what exists, what's half-wired, and what's missing. Read before any AI-harness work.
 - **[docs/STATE.md](STATE.md)** / **[docs/STATE-SUMMARY.md](STATE-SUMMARY.md)** — Current system state snapshot (drift-prone — see trust banner).
 - **[docs/DASHBOARD.md](DASHBOARD.md)** — Live git state (active worktrees, free slots, pending journeys).
